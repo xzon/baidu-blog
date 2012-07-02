@@ -1,0 +1,537 @@
+<html><head><title><div class="tit">
+  吕成宾画图完整程序,有存储功能-Java画图实验-swingcode -good code
+</div></title></head><body><div id='tit'>吕成宾画图完整程序,有存储功能-Java画图实验-swingcode -good code</div><div id='cate'>代码备份</div><div id='date'>2007年12月08日 星期六 12:21 P.M.</div><div id='page'>196</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/de6430d3641554033af3cfbf.html'>http://hi.baidu.com/hxzon/blog/item/de6430d3641554033af3cfbf.html</a><div id='cnt'><div>
+ /*
+ <br /> *画图完整程序，有存储功能
+ <br /> *有橡皮筋效果，解决闪烁
+ <br /> *颜色选择板
+ <br /> *hxz*/
+</div> 
+<div> 
+</div> 
+<div>
+ /**************************************************************
+ <br /> 班别：04级4班
+ <br /> 姓名：吕成宾
+ <br /> 学号：20042102083
+ <br /> 
+ <br /> 作业7.8：
+ <br /> &nbsp;&nbsp;&nbsp; 1.请设计一个简单的鼠标绘图程序，要求，能绘制基本图形（自由绘图，直线，椭圆，矩形）
+ <br /> 2.增加图形的重画，存贮与文件操作
+ <br /> 我的实现技术:
+ <br /> 1.增加颜色选择框
+ <br /> 2.采用JFileChooser文件保存与打开,文件保存与打开的后缀名为&quot;.msd&quot;表示MouseDraw
+ <br /> 3.采用对象串行化保存与加载.把自由绘图,直线,椭圆,矩形封装到一个类
+ <br /> 4.在鼠标移动时进行重画,使画图时出现橡皮筋效果,但画面会出现闪烁
+ <br /> 5.解决闪烁的方法时采用双缓存机制
+ <br /> ***************************************************************/
+ <br /> 
+ <br /> import java.awt.*;
+ <br /> import javax.swing.*;
+ <br /> import java.awt.event.*;
+ <br /> import java.util.*;
+ <br /> import java.io.*;
+ <br /> import javax.swing.JFileChooser;
+ <br /> 
+ <br /> //绘图对象
+ <br /> class DrawObject implements Serializable
+ <br /> {
+ <br /> int drawType;&nbsp;&nbsp; //绘图类型
+ <br /> ArrayList point; //用来保存直线,椭圆,矩形起点坐标和终点坐标的链表
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //用来保存自由绘图的移动过的每一个坐标
+ <br /> Color color;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //绘图颜色
+ <br /> public DrawObject(int drawType, ArrayList point, Color color)
+ <br /> {
+ <br /> this.drawType = drawType;
+ <br /> this.point = point;
+ <br /> this.color = color;
+ <br /> }
+ <br /> public int getDrawtype()
+ <br /> {
+ <br /> return drawType;
+ <br /> }
+ <br /> public Color getColor()
+ <br /> {
+ <br /> return color;
+ <br /> }
+ <br /> public ArrayList getArrayList()
+ <br /> {
+ <br /> return point;
+ <br /> }
+ <br /> }
+ <br /> 
+ <br /> // 设置过滤器,文件类型为&quot;.msd&quot; 表示:mousedraw
+ <br /> class MyFilter extends javax.swing.filechooser.FileFilter
+ <br /> {
+ <br /> public boolean accept(File f) 
+ <br /> {
+ <br /> if (f.isDirectory())return true;
+ <br /> return f.getName().endsWith(&quot;.msd&quot;);
+ <br /> } 
+ <br /> public String getDescription()
+ <br /> {
+ <br /> return &quot;.msd&quot;;
+ <br /> }
+ <br /> }
+ <br /> 
+ <br /> // 对象串行化 
+ <br /> class SaveObject implements Serializable
+ <br /> {
+ <br /> private ArrayList list;
+ <br /> public SaveObject(ArrayList list)
+ <br /> {
+ <br /> this.list = list;
+ <br /> }
+ <br /> public ArrayList getArrayList()
+ <br /> {
+ <br /> return list;
+ <br /> }
+ <br /> }
+ <br /> 
+ <br /> class MouseDraw extends JFrame
+ <br /> {
+ <br /> private int drawType = 0; //画图类型 1.自由画图,2.画直线,3.画椭圆,4.画矩形
+ <br /> private Color color = new Color(255,0,0); //画图颜色
+ <br /> private int startX, startY;&nbsp;&nbsp; // 起点坐标
+ <br /> private int currentX, currentY; //移动坐标(结束坐标)
+ <br /> private ArrayList list;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //保存绘图对象链表
+ <br /> private DrawCanvas bp;
+ <br /> MouseDraw()
+ <br /> {
+ <br /> setTitle(&quot;MouseDraw&quot;);
+ <br /> setSize(800, 600);
+ <br /> setLocation(100, 100);
+ <br /> insertMenu();
+ <br /> //添加画布
+ <br /> bp = new DrawCanvas();
+ <br /> Container c = getContentPane();
+ <br /> c.add(bp);
+ <br /> }
+ <br /> private void insertMenu()
+ <br /> {
+ <br /> MenuBar mb = new MenuBar();
+ <br /> 
+ <br /> Menu m_File = new Menu(&quot;File&quot;);
+ <br /> Menu m_Draw = new Menu(&quot;Draw&quot;);
+ <br /> Menu m_Para = new Menu(&quot;Parameters&quot;);
+ <br /> 
+ <br /> MenuItem mi_Open = new MenuItem(&quot;Open&quot;);
+ <br /> MenuItem mi_Save = new MenuItem(&quot;Save&quot;);
+ <br /> MenuItem mi_Exit = new MenuItem(&quot;Exit&quot;);
+ <br /> MenuItem mi_Free = new MenuItem(&quot;DrawFree&quot;);
+ <br /> MenuItem mi_Line = new MenuItem(&quot;DrawLine&quot;);
+ <br /> MenuItem mi_Elli = new MenuItem(&quot;DrawElli&quot;);
+ <br /> MenuItem mi_Rect = new MenuItem(&quot;DrawRect&quot;);
+ <br /> MenuItem mi_Color = new MenuItem(&quot;Color&quot;);
+ <br /> MenuItem mi_Clear = new MenuItem(&quot;Clear&quot;);
+ <br /> m_File.add(mi_Open);
+ <br /> m_File.add(mi_Save);
+ <br /> m_File.add(mi_Exit);
+ <br /> m_Draw.add(mi_Free);
+ <br /> m_Draw.add(mi_Line);
+ <br /> m_Draw.add(mi_Elli);
+ <br /> m_Draw.add(mi_Rect);
+ <br /> 
+ <br /> m_Para.add(mi_Color);
+ <br /> m_Para.add(mi_Clear);
+ <br /> 
+ <br /> mb.add(m_File);
+ <br /> mb.add(m_Draw);
+ <br /> mb.add(m_Para);
+ <br /> 
+ <br /> setMenuBar(mb);
+ <br /> // 添加监听器
+ <br /> mi_Free.addActionListener(new DrawAction(1));
+ <br /> mi_Line.addActionListener(new DrawAction(2));
+ <br /> mi_Elli.addActionListener(new DrawAction(3));
+ <br /> mi_Rect.addActionListener(new DrawAction(4));
+ <br /> mi_Clear.addActionListener(new ActionListener()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent event)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if (list.size()!=0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list.clear();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; startX = startY = currentX = currentY = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawType = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bp.repaint(); //重画
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; });
+ <br /> mi_Color.addActionListener(new ActionListener()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent event)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; chooseColor();
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; });
+ <br /> mi_Save.addActionListener(new ActionListener()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent event)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; saveFile();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; });
+ <br /> mi_Open.addActionListener(new ActionListener()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent event)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; openFile();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; });
+ <br /> mi_Exit.addActionListener(new ActionListener()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent event)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; System.exit(0); // 退出
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; });
+ <br /> 
+ <br /> }
+ <br /> private void chooseColor()
+ <br /> {
+ <br /> // 颜色对话框,选择颜色
+ <br /> JColorChooser cc = new JColorChooser();
+ <br /> color = cc.showDialog(this, &quot;调色板&quot;, Color.red);
+ <br /> startX = startY = currentX = currentY = 0;
+ <br /> } 
+ <br /> private void saveFile()
+ <br /> {
+ <br /> if (list.size()==0)
+ <br /> {
+ <br /> &nbsp;&nbsp; JOptionPane.showMessageDialog(null, &quot;Save failed! There is no draw object!&quot;, &quot;Result&quot;, JOptionPane.INFORMATION_MESSAGE);
+ <br /> &nbsp;&nbsp; return;
+ <br /> }
+ <br /> // 文件保存对话框
+ <br /> StringBuffer filePath=new StringBuffer(&quot;&quot;); // 文件路径
+ <br /> MyFilter my=new MyFilter();&nbsp;&nbsp; 
+ <br /> JFileChooser jf=new JFileChooser();
+ <br /> jf.setFileFilter(my); // 设置过滤器
+ <br /> jf.setFileSelectionMode(JFileChooser.FILES_ONLY); 
+ <br /> int returnVal = jf.showSaveDialog(null);
+ <br /> 
+ <br /> 
+ <br /> if (returnVal == JFileChooser.APPROVE_OPTION)
+ <br /> {
+ <br /> &nbsp;&nbsp; filePath.append(jf.getSelectedFile().getPath());
+ <br /> &nbsp;&nbsp; // 如果没有后缀名,则加上后缀名
+ <br /> &nbsp;&nbsp; if ((filePath.lastIndexOf(&quot;.&quot;)) == -1)
+ <br /> &nbsp;&nbsp;&nbsp; filePath.append(&quot;.msd&quot;);
+ <br /> 
+ <br /> &nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; ObjectOutputStream f = new ObjectOutputStream(new FileOutputStream(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; filePath.toString()));
+ <br /> &nbsp;&nbsp;&nbsp; SaveObject so = new SaveObject(list);
+ <br /> &nbsp;&nbsp;&nbsp; f.writeObject(so); //把对象写到文件中
+ <br /> &nbsp;&nbsp;&nbsp; f.close();
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; catch (Exception e)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; JOptionPane.showMessageDialog(null, e.toString(), &quot;Error&quot;, JOptionPane.ERROR_MESSAGE);
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> }
+ <br /> private void openFile()
+ <br /> {
+ <br /> //文件加载框
+ <br /> MyFilter my=new MyFilter();
+ <br /> JFileChooser jf=new JFileChooser();
+ <br /> jf.setFileFilter(my); // 设置过滤器
+ <br /> jf.setFileSelectionMode(JFileChooser.OPEN_DIALOG); 
+ <br /> int returnVal = jf.showOpenDialog(null);
+ <br /> 
+ <br /> if (returnVal == JFileChooser.APPROVE_OPTION) //按保存按钮时...
+ <br /> {
+ <br /> &nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; // 使用对象串行化读取文件,并绘图
+ <br /> &nbsp;&nbsp;&nbsp; //JOptionPane.showMessageDialog(null, jf.getSelectedFile(), &quot;Error&quot;, JOptionPane.ERROR_MESSAGE);
+ <br /> &nbsp;&nbsp;&nbsp; ObjectInputStream f = new ObjectInputStream(new FileInputStream(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; jf.getSelectedFile()));
+ <br /> &nbsp;&nbsp;&nbsp; SaveObject so = (SaveObject)(f.readObject());//读出对象
+ <br /> &nbsp;&nbsp;&nbsp; f.close();
+ <br /> &nbsp;&nbsp;&nbsp; list.clear(); // 先清空
+ <br /> &nbsp;&nbsp;&nbsp; startX = startY = currentX = currentY = 0;
+ <br /> &nbsp;&nbsp;&nbsp; drawType = 0;
+ <br /> &nbsp;&nbsp;&nbsp; list = so.getArrayList();
+ <br /> &nbsp;&nbsp;&nbsp; bp.repaint(); //重画
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; catch (Exception e)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; JOptionPane.showMessageDialog(null, e.toString(), &quot;Error&quot;, JOptionPane.ERROR_MESSAGE);
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> 
+ <br /> }
+ <br /> 
+ <br /> 
+ <br /> //为菜单&quot;Draw&quot;下的菜单项重写监听器,由构造函数里的参数传递画图类型到全局变量drawType
+ <br /> private class DrawAction implements ActionListener
+ <br /> {
+ <br /> DrawAction(int type)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.type = type;
+ <br /> }
+ <br /> public void actionPerformed(ActionEvent event)
+ <br /> {
+ <br /> &nbsp;&nbsp; drawType = type;
+ <br /> }
+ <br /> private int type;
+ <br /> 
+ <br /> }
+ <br /> //内部类,画布:Canvas
+ <br /> private class DrawCanvas extends Canvas
+ <br /> {
+ <br /> private DrawObject object;
+ <br /> private ArrayList point;
+ <br /> private ArrayList free;
+ <br /> private Image bgImage;
+ <br /> private Graphics bg;
+ <br /> DrawCanvas()
+ <br /> {
+ <br /> &nbsp;&nbsp; setBackground(Color.white);
+ <br /> &nbsp;&nbsp; addListener();
+ <br /> &nbsp;&nbsp; list = new ArrayList();
+ <br /> &nbsp;&nbsp; free = new ArrayList();
+ <br /> }
+ <br /> private void addListener()
+ <br /> {
+ <br /> &nbsp;&nbsp; addMouseListener(new MouseAdapter()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; public void mousePressed(MouseEvent e)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if (drawType != 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR)); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; startX = currentX = e.getX();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; startY = currentY = e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; point = new ArrayList();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; point.add(new Point(startX, startY)); //添加起始点
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void mouseReleased(MouseEvent e) //释放鼠标
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; currentX = e.getX();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; currentY = e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; point.add(new Point(currentX, currentY)); //添加结束点
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; object = new DrawObject(drawType, point, color);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; list.add(object); //添加画图对象到list中
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; free.clear();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; });
+ <br /> 
+ <br /> &nbsp;&nbsp; addMouseMotionListener(new MouseMotionAdapter()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; public void mouseDragged(MouseEvent e)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; currentX = e.getX();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; currentY = e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; // 自由画图时,把当前点添加到free链表和point链表中.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if (drawType == 1)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; free.add(new Point(currentX, currentY));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; point.add(new Point(currentX, currentY));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; });
+ <br /> }
+ <br /> //画椭圆
+ <br /> private void drawElli(Graphics g, int start_x, int start_y, int current_x, int current_y)
+ <br /> {
+ <br /> &nbsp;&nbsp; if (current_x &gt; start_x)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; if(current_y &gt; start_y)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawOval(start_x, start_y, current_x-start_x, current_y-start_y);
+ <br /> &nbsp;&nbsp;&nbsp; else 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawOval(start_x, current_y, current_x-start_x, start_y-current_y);
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; if(current_y &gt; start_y)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawOval(current_x, start_y, start_x-current_x, current_y-start_y);
+ <br /> &nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawOval(current_x, current_y, start_x-current_x, start_y-current_y);
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> //画矩形
+ <br /> private void drawRect(Graphics g, int start_x, int start_y, int current_x, int current_y)
+ <br /> {
+ <br /> &nbsp;&nbsp; if (current_x &gt; start_x)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; if(current_y &gt; start_y)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawRect(start_x, start_y, current_x-start_x, current_y-start_y);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawRect(start_x, current_y, current_x-start_x, start_y-current_y);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; if(current_y &gt; start_y)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawRect(current_x, start_y, start_x-current_x, current_y-start_y);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawRect(current_x, current_y, start_x-current_x, start_y-current_y);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; } 
+ <br /> }
+ <br /> /*利用双缓冲机制清除画面闪烁
+ <br /> 具体实现：
+ <br /> 1.首先我们用createImage方法新建一后台图像类变量
+ <br /> 2.然后使用getGraphics()方法得到当前图像的图形关联
+ <br /> 3.在后台处理所有相关的处理，如清除屏幕，后台绘画等等
+ <br /> &nbsp;&nbsp;&nbsp; 当完成所有的后台工作后，复制已经绘制好的图像到前台，并覆盖前台的存在图像。
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 这样我们的所有操作都是在后台前行，在屏幕显示新的图像前，这些内容都已经存
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 在于后台了。所以你也将在任何时刻都看不到空屏幕的存在。也即代表闪烁消除了。
+ <br /> 
+ <br /> Update()方法要实现下面三个步骤：
+ <br /> 1.清除屏幕上的组件
+ <br /> 2.设置相关联组件的前景色
+ <br /> 3.调用paint方法重画屏幕
+ <br /> */
+ <br /> public void update(Graphics g)
+ <br /> {
+ <br /> &nbsp;&nbsp; //super.update(g);
+ <br /> &nbsp;&nbsp; // 初始化buffer
+ <br /> &nbsp;&nbsp; if (bgImage == null)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; bgImage = createImage (this.getSize().width, this.getSize().height);
+ <br /> &nbsp;&nbsp; bg = bgImage.getGraphics ();
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; // 后台清屏,即设置组件和后台一样的颜色，大小
+ <br /> &nbsp;&nbsp; bg.setColor (getBackground ());
+ <br /> &nbsp;&nbsp; bg.fillRect (0, 0, this.getSize().width, this.getSize().height);
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; // 绘制相应的元素组件
+ <br /> &nbsp;&nbsp; bg.setColor (getForeground());
+ <br /> &nbsp;&nbsp; paint (bg);
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; // 在屏幕上重画已经绘制好的圆
+ <br /> &nbsp;&nbsp; g.drawImage (bgImage, 0, 0, this);
+ <br /> 
+ <br /> }
+ <br /> //paint函数
+ <br /> public void paint(Graphics g)
+ <br /> {
+ <br /> &nbsp;&nbsp; ArrayList p;
+ <br /> &nbsp;&nbsp; //绘制之前保存的对象
+ <br /> &nbsp;&nbsp; for (int i=0; i&lt;list.size(); i++)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; g.setColor(((DrawObject)list.get(i)).getColor());
+ <br /> &nbsp;&nbsp;&nbsp; p = ((DrawObject)list.get(i)).getArrayList();
+ <br /> &nbsp;&nbsp;&nbsp; switch(((DrawObject)list.get(i)).getDrawtype())
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //1.自由画图,2.画直线,3.画椭圆,4.画矩形
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; case 1:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (int j=0; j&lt;p.size()-1; j++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawLine((int)((Point)p.get(j)).getX(), (int)((Point)p.get(j)).getY(), 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (int)((Point)p.get(j+1)).getX(), (int)((Point)p.get(j+1)).getY());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; case 2:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawLine((int)((Point)p.get(0)).getX(), (int)((Point)p.get(0)).getY(), 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (int)((Point)p.get(1)).getX(), (int)((Point)p.get(1)).getY());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; case 3:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawElli(g, (int)((Point)p.get(0)).getX(), (int)((Point)p.get(0)).getY(), 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (int)((Point)p.get(1)).getX(), (int)((Point)p.get(1)).getY());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; case 4:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawRect(g, (int)((Point)p.get(0)).getX(), (int)((Point)p.get(0)).getY(), 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (int)((Point)p.get(1)).getX(), (int)((Point)p.get(1)).getY());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; default:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; //对当前的点画图,使效果看起来来像拉动的橡皮筋,free链表在这里起作用,想想为什么不用point链表?
+ <br /> &nbsp;&nbsp; g.setColor(color);
+ <br /> &nbsp;&nbsp; switch (drawType)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; case 1:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; for (int j=0; j&lt;free.size()-1; j++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawLine((int)((Point)free.get(j)).getX(), (int)((Point)free.get(j)).getY(), 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (int)((Point)free.get(j+1)).getX(), (int)((Point)free.get(j+1)).getY());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp; case 2:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; g.drawLine(startX, startY, currentX, currentY);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp; case 3:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; drawElli(g, startX, startY, currentX, currentY);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp; case 4:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; drawRect(g, startX, startY, currentX, currentY);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp; default:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> 
+ <br /> public class DrawMain
+ <br /> {
+ <br /> public static void main(String args[])
+ <br /> {
+ <br /> MouseDraw md = new MouseDraw();
+ <br /> md.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+ <br /> md.setVisible(true);
+ <br /> }
+ <br /> }
+ <br /> /*
+ <br /> *H:\java work\java ok&gt;javac -deprecation DrawMain.java
+ <br /> 注意：DrawMain.java 使用了未经检查或不安全的操作。
+ <br /> 注意：要了解详细信息，请使用 -Xlint:unchecked 重新编译。
+ <br /> 
+ <br /> H:\java work\java ok&gt;javac -Xlint:unchecked DrawMain.java
+ <br /> DrawMain.java:300: 警告：[unchecked] 对作为普通类型 java.util.ArrayList 的成员的
+ <br /> add(E) 的调用未经检查
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; point.add(new Point(startX, startY)); /
+ <br /> /添加起始点
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ^
+ <br /> DrawMain.java:307: 警告：[unchecked] 对作为普通类型 java.util.ArrayList 的成员的
+ <br /> add(E) 的调用未经检查
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; point.add(new Point(currentX, currentY))
+ <br /> ; //添加结束点
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ^
+ <br /> DrawMain.java:309: 警告：[unchecked] 对作为普通类型 java.util.ArrayList 的成员的
+ <br /> add(E) 的调用未经检查
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list.add(object); //添加画图对象到list中
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ^
+ <br /> DrawMain.java:323: 警告：[unchecked] 对作为普通类型 java.util.ArrayList 的成员的
+ <br /> add(E) 的调用未经检查
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; free.add(new Point(currentX, cur
+ <br /> rentY));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ^
+ <br /> DrawMain.java:324: 警告：[unchecked] 对作为普通类型 java.util.ArrayList 的成员的
+ <br /> add(E) 的调用未经检查
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; point.add(new Point(currentX, cu
+ <br /> rrentY));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ^
+ <br /> 5 警告*/
+</div></div></body></html>

@@ -1,0 +1,63 @@
+<html><head><title><div class="tit">
+  解读Tapestry5.1——页面渲染
+</div></title></head><body><div id='tit'>解读Tapestry5.1——页面渲染</div><div id='cate'>源码品读</div><div id='date'>2010年08月25日 星期三 10:42 A.M.</div><div id='page'>9</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/fbe4231f7643dfc6a6866926.html'>http://hi.baidu.com/hxzon/blog/item/fbe4231f7643dfc6a6866926.html</a><div id='cnt'><h1 class="title_txt">解读Tapestry5.1——页面渲染</h1> 
+<p><a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx">http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx</a></p> 
+<p>tapestry源码品读</p> 
+<p>本文旨在介绍Tapestry5.1的页面渲染(render)过程，希望最终能给出一个完整清晰的页面渲染流程，以便大家能更好的理解Tapestry页面渲染的过程，构架出更漂亮的Tapestry组件。</p> 
+<p>页面渲染简单的说就是生产HTML页面，响应输入的HTTP请求。在我另一篇博文中简要的谈到了http请求转化为页面渲染处理的机制和页面渲染的流程，本文将继续详细介绍页面渲染的流程，有关请求处理流程的细节可以参见《<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/15/5009381.aspx">解读Tapestry5.1——请求调用链</a> 》。</p> 
+<p>为了描述清楚整个渲染过程，在介绍渲染细节之前，我首先会简要介绍渲染的<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#introduction">基本概念</a> ，然后介绍Tapestry组件与框架在渲染过程中的<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#seperation">职责划分</a> ，以理清渲染过程中组件与框架的关系。最后，我将详细讨论<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#component">组件职责</a> 和<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#framework">框架职责</a> 。对于组件，将着重说明它的<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#lifecycle">生命周期</a> ，而对于框架则着重说明它是如何支持这一声明周期的，主要包括：<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#enviroment">环境构造</a> ，<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#queue">调度策略</a> ，<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#dom">中间结构</a>这几部分。</p> 
+<p><a target="_blank" name="introduction"></a>1. 基本概念</p> 
+<p>首先，我们回顾一下jsp是如何渲染出一个HTML文档的。当一个请求到达jsp页面时，jsp引擎会解析jsp文件，生成一个servlet类。文件中静态的部分会原样输出，而动态的部分则作为程序代码看待。</p> 
+<p>那么Tapestry的渲染思路呢？</p> 
+<p>本质上，Tapestry还是遵循了这一思路，静态的文本原样输出，而动态的部分则视为组件。</p> 
+<p>那么组件又是什么呢？</p> 
+<p>在介绍Tapestry之前，我们先看看java的swing控件，Tapestry的组件和swing控件是由一定的相似性的。我们可以从三个方 面考察Swing控件，一个是UI展示，一个是数据模型，一个是事件处理。Swing控件统一处理了这三个方面的内容，具体的说，它既负责UI的显示，又 负责处理输入的数据模型，还会产生相应的事件交由外部处理。在使用组件时，只需要考虑如何提供数据并处理事件，并不用关系展示和监听用户输入(比如鼠标动 作等)的细节。</p> 
+<p>Tapestry的组件也是这样组织的。UI、数据和事件这三者有机的统一，使用组件只需要考虑如何提供数据，并处理响应事件即可。对于如何生成HTML片段，如何处理HTTP请求细节，如何接收用户输入等等都不必考虑。</p> 
+<p>为了能更好的支持这三者的统一，Tapestry将其分别划分到渲染和事件着两个阶段完成。</p> 
+<p>我们也可以拿jsp与着两个阶段做类比，回想下写过的jsp程序，其中有一部分代码我们是用来做显示的，而有一部分是在用户触发一些事件后，响应用户请求的。</p> 
+<p>Tapestry将其划分为两个阶段正好有效的分离的这两部分的代码。接下来本文将详细讨论渲染的过程，而有关事件的处理可以参见我另几篇篇博文《<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/15/5009381.aspx">解读Tapestry5.1——请求调用链</a> 》、《<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/12/4990990.aspx">Tapestry5 事件分派机制</a> 》和《<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/21/5045815.aspx">解读Tapestry5.1——Form</a>》。</p> 
+<p><a target="_blank" name="seperation"></a>2.职责划分</p> 
+<p>渲染需要处理的问题相当多，比方说生成各类HTML标签用于显示页面，生成用于响应用户事件的URL以便能将请求传回给组件处理，处理其它页面传入的参数，自动引入组件使用到的js或者css文件，等等。</p> 
+<p>那么，如此多的问题都要如何处理呢？换句话说，哪些职责由组件需要负责？哪些职责又由框架提供呢？</p> 
+<p>这正是本文试图说明的问题。</p> 
+<p>简单的说，框架承担了调度和管理者的职责，而组件负责执行与实施的职责。</p> 
+<p>详细点讲，框架需要提供资源管理的机制，提供URL生成、编码与解编码的方式，提供组件渲染所需的生命周期的支持，等底层细节操作。而组件则是负责在框架的调度下，使用这些服务，生成对应HTML标签。</p> 
+<p>下面，我将分组件和框架两部分讨论各自的职责。</p> 
+<p><a target="_blank" name="component"></a>3.组件职责</p> 
+<p>对于使用Tapestry进行Web开发而言，最重要的，最频繁接触的是组件，而最终展示给用户的页面也是一个特殊的组件。所以，要了解页面渲染的过程，首先需要了解组件的职责。</p> 
+<p>我们先回忆一下曾经写过的页面，里面除了正常的HTML标签外，还有很多用于做循环和选择的控制逻辑。因为页面很多情况下并不是一成不变的，而是根 据不同的状态，有选择性的展现出不同的样式，比如显示table的时候总会循环的生成tr，再比如对于等于用户我们需要显示用户名，而对于非登录用户我们 需要显示登录框。</p> 
+<p>所以，组件按期职责可以分为两类：显示组件和控制组件。</p> 
+<p>显示组件负责生成一段与这个组件相关的HTML代码片段，而控制组件则类似于程序的控制逻辑，控制选择和循环操作。实际上，还可以分出一类交互性组 件，但交互性组件和显示组件在渲染时的行为是相似的，只是多了一个事件处理，可以看作一类特殊的显示组件。不过，很多时候组件的界限并不一定非常明显，它 可能即会生成一段HTML代码，又会控制页面的逻辑，我们这种划分只是为了能更好的说明组件的职责。</p> 
+<p>通过这样的划分不难看出，组件的主要职责是生成HTML代码与控制渲染流程。</p> 
+<p>下面一节我们将继续讨论组件是如何履行这些职责的。</p> 
+<p><a target="_blank" name="lifecycle"></a>3.1生命周期</p> 
+<p>Tapestry框架为组件定义了一个标准的生命周期，所以要了解组件是如何履行其职责的，就必须先了解组件的生命周期。因为，不论是哪一类组件， 实现上并没有明显的区别。它们都会按照一定的生命周期执行，所不同的是，渲染组件会在生命周期执行过程中生成HTML代码，而控制组件只会在生命周期中改 变它所包含组件的渲染流程。</p> 
+<p><a target="_blank" href="http://tapestry.apache.org/tapestry5.1/guide/rendering.html"><img alt="组件渲染生命周期" src="image/解读Tapestry5.1——页面渲染..37a99445412fa47b869473f2.jpg" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/37a99445412fa47b869473f2.jpg</p> </a></p> 
+<p>上图给出了一个组件的标准渲染过程，定义了10个主要的执行阶段，可以看出每个阶段都有两条边输出边，分别对应着true和false两个选择。组 件执行过程中，每个阶段都可以返回一个boolean值，决定下一步的执行路径（对于返回值为void的函数，默认为true）。</p> 
+<p>我们再回头看看显示组件，它们一般不会改变组件生命周期的顺序，每个阶段都会选择true的那条边往下走，并在适当的阶段输出HTML代码片段。</p> 
+<p>比如一个PageLink组件（用于生成指向其它页面的链接的组件），它会在Begin Render阶段输出一段类似于&quot;&lt;a href='page link'&gt;&quot;的代码，并在After Render阶段输出结束标签“&lt;/a&gt;”，从而形成一个完整的&lt;a&gt;标签。而在&lt;a&gt;标签之间的文字或图片则是在 Render Body阶段完成。有一点值得注意， href 属性值是通过调用到Tapestry服务实现的，并非组件自己构造。</p> 
+<p>对于控制组件则恰好相反，它们会在不同的阶段通过返回不同的值来控制页面的显示流程，但并不会生成HTML代码片段。</p> 
+<p>比如 If 组件（用于控制其所包含组件是否显示的组件），如果允许其内嵌的组件显示，则会在Begin Render阶段返回true，这样最终就会进入Render Body阶段，显示其内嵌的组件。再比如Loop组件（用于循环显示的组件），如果循环没有结束，它会在After Render阶段返回false，这样该组件又会重新回到BeginRender阶段，并重新经过Render Body阶段，使得其内嵌的组件可以循环的被执行。</p> 
+<p>总的来说，组件实现其职责的大致思路是分阶段的处理整个渲染流程。</p> 
+<p>下面我们看看最重要的几个阶段：Setup Render, Begin Render, Render Template, Render Body，After Render，和Cleanup Render。</p> 
+<p>Setup Render 阶段主要用于渲染前的准备操作，比如初始化一些数据；</p> 
+<p>Begin Render 主要用于生成一个HTML的开始标签，或者控制渲染流程；</p> 
+<p>Render Template 主要用于渲染模板中的内容（页面和组件都可以具有模板）。这个阶段一般会有多个组件需要渲染，每进入一个组件，都会依次调用这个组件的各个生命周期阶段， 也就是说，此处是一个从上层组件到其下层组件的一个递归入口，只有其下层组件渲染结束，该组件才会继续其后续阶段的操作。</p> 
+<p>Render Body 与Render Template相似，也是渲染一段模板中的内容，所不同的是模板是组件和页面所具有的tml文件，而是组件被使用时，内嵌在组件中的一小段模板片段。比 如对于pagelink组件（&lt;a t:type=&quot;pagelink&quot; page=&quot;index&quot;&gt;this is body&lt;/a&gt;），它的body是“this is body”这几个文字。虽然对于模板的概念与Render Tamplate略有区别，但是它同样也是一个递归的入口。</p> 
+<p>After Render 阶段一般用于生成一个结束标签，或者控制其内嵌组件的执行流程。</p> 
+<p>Cleanup Render 这个阶段一般用于清除数据，但是由于框架会自动的清空页面的属性，所以一般不需要自己清除状态。除非你使用了一些特殊的资源需要清除。</p> 
+<p>其它几个阶段并非经常用到，更多是保证生命周期的完整性，必要情况下，也可以生成HTML代码或修改组件的执行流程。</p> 
+<p><a target="_blank" name="framework"></a>4.框架职责</p> 
+<p>现在，渲染一个页面，组件要做什么我们已经清楚了，接下来就到了讲述框架职责的阶段了。因为所有的底层服务，以及组件的调度都是由框架负责的。所以，要深入了解渲染的过程，仅了解组件的职责还是不够的。下面，我们首先了解下渲染的流程。</p> 
+<p>当一个请求实际到达<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/15/5009381.aspx#renderhandler">渲染处理器</a> 时，该处理器首先会向目标页面发出一个activate事件，为页面提供一个准备渲染，并处理传入参数的机会。</p> 
+<p>之后，渲染流程就会传入一个org.apache.tapestry5.internal.services.PageResponseRenderer服务，该服务会实际的调度页面渲染。</p> 
+<p>渲染过程大致如下：</p> 
+<p>首先，获得页面类型(content type)，默认为&quot;text/html&quot;；然后，根据这一类型生产一个输出器org.apache.tapestry5.MarkupWriter，组 件若有需要输出HTML片段，则会输出到这个输出器中；其 后，org.apache.tapestry5.internal.services.PageMarkupRenderer这一渲染器将会开始调度组件 开始执行其生命周期；最后，MarkupWriter生成的中间结构会实际的输出到返回给客户端的输出流中。</p> 
+<p>获得页面类型并没有复杂的流程，所以本文就不详细介绍了。而MarkupWriter和最后的中间结构又是紧密相关的，所以将它们并在中间结构这部分讲述。剩下的核心环节页面渲染器（PageMarkupRenderer）将进一步分为环境构造，调度策略两个环节介绍。</p> 
+<p>接下来，我将就<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#enviroment">环境构造</a> ，<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#queue">调度策略</a> 和<a target="_blank" href="http://blog.csdn.net/mindhawk/archive/2009/12/16/5021371.aspx#dom">中间结构</a>这三个部分详细讲述。</p> 
+<p>但这之前，我想插入一个话题，也就是与activate对应的passivate事件是何时被激发的？</p> 
+<p>我们知道activate是用于给页面一个初始化的机会，其它页面跳转过来时传递的参数就是通过这个事件让目标页面获取的。</p> 
+<p>那么passivate呢？passivate是同一个页面渲染结束时，希望传入下一次渲染的参数。一个典型的用途是在Form提交事件处理完之 后，传递参数给接下来的渲染使用。因为Tapestry默认的会在Form提交后，通过重定向渲染页面。也就是说渲染实际上是一个新的请求，Form提交 事件里生成的数据，都被清空了。为了让渲染可以获得Form处理事件产生的数据，一个不用消耗存储空间(session)的方式就是在passivate 事件中返回所需的数据。因为这个数据会保存在URL里面，在下一次请求到达服务器时传递到activate这个事件中。</p> 
+<p>所以，为了保证passivate返回的数据能传到activate事件，就必须保证不管通过何种方式，链接也好，Form也好，重定向也好，传递到服务上的URL中都保存有passivate返回的数据。</p> 
+<p>因此，为了保证数据的可回传性，passivate事件并不是在渲染的某个阶段被激发，而是在生产链接的服务里被激发。由于页面所有的链接都是通过 这个服务生产，所以数据就肯定可以回传到activate事件。实际上，这个时候有一件事情就需要注意了，passivate的事件处理函数最好能缓存一 下需要返回的数据，不要每次都构造。</p> 
+<p>好了，现在框架的大致流程已经介绍完了，下面进入渲染的正题，即框架是如何构造一个渲染的环境并调度组件执行。</p></div></body></html>

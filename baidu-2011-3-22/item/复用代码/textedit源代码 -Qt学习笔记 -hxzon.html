@@ -1,0 +1,626 @@
+<html><head><title><div class="tit">
+  textedit源代码 -Qt学习笔记 -hxzon
+</div></title></head><body><div id='tit'>textedit源代码 -Qt学习笔记 -hxzon</div><div id='cate'>复用代码</div><div id='date'>2009年04月11日 星期六 10:59 P.M.</div><div id='page'>57</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5bf89e2260646afbd6cae279.html'>http://hi.baidu.com/hxzon/blog/item/5bf89e2260646afbd6cae279.html</a><div id='cnt'><div>
+ textedit源代码 -Qt学习笔记 -hxzon
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 头文件
+ <br /> ======================================
+ <br /> #ifndef TEXTEDIT_H
+ <br /> #define TEXTEDIT_H
+</div> 
+<div> 
+</div> 
+<div>
+ #include &lt;QMainWindow&gt;
+ <br /> #include &lt;QMap&gt;
+ <br /> #include &lt;QPointer&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ QT_FORWARD_DECLARE_CLASS(QAction)
+ <br /> QT_FORWARD_DECLARE_CLASS(QComboBox)
+ <br /> QT_FORWARD_DECLARE_CLASS(QFontComboBox)
+ <br /> QT_FORWARD_DECLARE_CLASS(QTextEdit)
+ <br /> QT_FORWARD_DECLARE_CLASS(QTextCharFormat)
+ <br /> QT_FORWARD_DECLARE_CLASS(QMenu)
+</div> 
+<div> 
+</div> 
+<div>
+ class TextEdit : public QMainWindow
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; Q_OBJECT
+</div> 
+<div> 
+</div> 
+<div>
+ public:
+ <br /> &nbsp;&nbsp;&nbsp; TextEdit(QWidget *parent = 0);
+</div> 
+<div> 
+</div> 
+<div>
+ protected:
+ <br /> &nbsp;&nbsp;&nbsp; virtual void closeEvent(QCloseEvent *e);
+</div> 
+<div> 
+</div> 
+<div>
+ private:
+ <br /> &nbsp;&nbsp;&nbsp; void setupFileActions();
+ <br /> &nbsp;&nbsp;&nbsp; void setupEditActions();
+ <br /> &nbsp;&nbsp;&nbsp; void setupTextActions();
+ <br /> &nbsp;&nbsp;&nbsp; bool load(const QString &amp;f);
+ <br /> &nbsp;&nbsp;&nbsp; bool maybeSave();
+ <br /> &nbsp;&nbsp;&nbsp; void setCurrentFileName(const QString &amp;fileName);
+</div> 
+<div> 
+</div> 
+<div>
+ private slots:
+ <br /> &nbsp;&nbsp;&nbsp; void fileNew();
+ <br /> &nbsp;&nbsp;&nbsp; void fileOpen();
+ <br /> &nbsp;&nbsp;&nbsp; bool fileSave();
+ <br /> &nbsp;&nbsp;&nbsp; bool fileSaveAs();
+ <br /> &nbsp;&nbsp;&nbsp; void filePrint();
+ <br /> &nbsp;&nbsp;&nbsp; void filePrintPreview();
+ <br /> &nbsp;&nbsp;&nbsp; void filePrintPdf();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; void textBold();
+ <br /> &nbsp;&nbsp;&nbsp; void textUnderline();
+ <br /> &nbsp;&nbsp;&nbsp; void textItalic();
+ <br /> &nbsp;&nbsp;&nbsp; void textFamily(const QString &amp;f);
+ <br /> &nbsp;&nbsp;&nbsp; void textSize(const QString &amp;p);
+ <br /> &nbsp;&nbsp;&nbsp; void textStyle(int styleIndex);
+ <br /> &nbsp;&nbsp;&nbsp; void textColor();
+ <br /> &nbsp;&nbsp;&nbsp; void textAlign(QAction *a);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; void currentCharFormatChanged(const QTextCharFormat &amp;format);
+ <br /> &nbsp;&nbsp;&nbsp; void cursorPositionChanged();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; void clipboardDataChanged();
+ <br /> &nbsp;&nbsp;&nbsp; void about();
+ <br /> &nbsp;&nbsp;&nbsp; void printPreview(QPrinter *);
+</div> 
+<div> 
+</div> 
+<div>
+ private:
+ <br /> &nbsp;&nbsp;&nbsp; void mergeFormatOnWordOrSelection(const QTextCharFormat &amp;format);
+ <br /> &nbsp;&nbsp;&nbsp; void fontChanged(const QFont &amp;f);
+ <br /> &nbsp;&nbsp;&nbsp; void colorChanged(const QColor &amp;c);
+ <br /> &nbsp;&nbsp;&nbsp; void alignmentChanged(Qt::Alignment a);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QAction *actionSave,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionTextBold,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionTextUnderline,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionTextItalic,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionTextColor,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionAlignLeft,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionAlignCenter,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionAlignRight,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionAlignJustify,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionUndo,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionRedo,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionCut,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionCopy,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *actionPaste;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QComboBox *comboStyle;
+ <br /> &nbsp;&nbsp;&nbsp; QFontComboBox *comboFont;
+ <br /> &nbsp;&nbsp;&nbsp; QComboBox *comboSize;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QToolBar *tb;
+ <br /> &nbsp;&nbsp;&nbsp; QString fileName;
+ <br /> &nbsp;&nbsp;&nbsp; QTextEdit *textEdit;
+ <br /> };
+</div> 
+<div> 
+</div> 
+<div>
+ #endif
+ <br /> =============================================
+ <br /> 初始化界面，添加各种事件
+ <br /> --------------------
+ <br /> 将textEdit的字体样式改变和光标位置改变信号转发给本实例。
+ <br /> &nbsp;&nbsp;&nbsp; textEdit = new QTextEdit(this);
+ <br /> &nbsp;&nbsp;&nbsp; connect(textEdit, SIGNAL(currentCharFormatChanged(const QTextCharFormat &amp;)),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this, SLOT(currentCharFormatChanged(const QTextCharFormat &amp;)));
+ <br /> &nbsp;&nbsp;&nbsp; connect(textEdit, SIGNAL(cursorPositionChanged()),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this, SLOT(cursorPositionChanged()));
+ <br /> &nbsp;&nbsp;&nbsp; setCentralWidget(textEdit);
+ <br /> &nbsp;&nbsp;&nbsp; textEdit-&gt;setFocus();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; fontChanged(textEdit-&gt;font());
+ <br /> &nbsp;&nbsp;&nbsp; colorChanged(textEdit-&gt;textColor());
+ <br /> &nbsp;&nbsp;&nbsp; alignmentChanged(textEdit-&gt;alignment());
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; connect(textEdit-&gt;document(), SIGNAL(modificationChanged(bool)),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionSave, SLOT(setEnabled(bool)));
+ <br /> &nbsp;&nbsp;&nbsp; connect(textEdit-&gt;document(), SIGNAL(modificationChanged(bool)),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this, SLOT(setWindowModified(bool)));
+ <br /> &nbsp;&nbsp;&nbsp; connect(textEdit-&gt;document(), SIGNAL(undoAvailable(bool)),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionUndo, SLOT(setEnabled(bool)));
+ <br /> &nbsp;&nbsp;&nbsp; connect(textEdit-&gt;document(), SIGNAL(redoAvailable(bool)),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionRedo, SLOT(setEnabled(bool)));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; setWindowModified(textEdit-&gt;document()-&gt;isModified());
+ <br /> &nbsp;&nbsp;&nbsp; actionSave-&gt;setEnabled(textEdit-&gt;document()-&gt;isModified());
+ <br /> &nbsp;&nbsp;&nbsp; actionUndo-&gt;setEnabled(textEdit-&gt;document()-&gt;isUndoAvailable());
+ <br /> &nbsp;&nbsp;&nbsp; actionRedo-&gt;setEnabled(textEdit-&gt;document()-&gt;isRedoAvailable());
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; connect(actionUndo, SIGNAL(triggered()), textEdit, SLOT(undo()));
+ <br /> &nbsp;&nbsp;&nbsp; connect(actionRedo, SIGNAL(triggered()), textEdit, SLOT(redo()));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; actionCut-&gt;setEnabled(false);
+ <br /> &nbsp;&nbsp;&nbsp; actionCopy-&gt;setEnabled(false);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; connect(actionCut, SIGNAL(triggered()), textEdit, SLOT(cut()));
+ <br /> &nbsp;&nbsp;&nbsp; connect(actionCopy, SIGNAL(triggered()), textEdit, SLOT(copy()));
+ <br /> &nbsp;&nbsp;&nbsp; connect(actionPaste, SIGNAL(triggered()), textEdit, SLOT(paste()));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; connect(textEdit, SIGNAL(copyAvailable(bool)), actionCut, SLOT(setEnabled(bool)));
+ <br /> &nbsp;&nbsp;&nbsp; connect(textEdit, SIGNAL(copyAvailable(bool)), actionCopy, SLOT(setEnabled(bool)));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; connect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(clipboardDataChanged()));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QString initialFile = &quot;:/example.html&quot;;
+ <br /> &nbsp;&nbsp;&nbsp; const QStringList args = QCoreApplication::arguments();
+ <br /> &nbsp;&nbsp;&nbsp; if (args.count() == 2)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; initialFile = args.at(1);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; if (!load(initialFile))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fileNew();
+ <br /> ---------------------------
+ <br /> &nbsp;&nbsp;&nbsp; QToolBar *tb = new QToolBar(this);//按钮条，本例不止一个按钮条
+ <br /> &nbsp;&nbsp;&nbsp; tb-&gt;setWindowTitle(tr(&quot;File Actions&quot;));
+ <br /> &nbsp;&nbsp;&nbsp; addToolBar(tb);//窗体添加按钮条
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QMenu *menu = new QMenu(tr(&quot;&amp;File&quot;), this);//file菜单
+ <br /> &nbsp;&nbsp;&nbsp; menuBar()-&gt;addMenu(menu);//菜单栏添加file菜单
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QAction *a;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; a = new QAction(QIcon(rsrcPath + &quot;/filenew.png&quot;), tr(&quot;&amp;New&quot;), this);//定义一个动作
+ <br /> &nbsp;&nbsp;&nbsp; a-&gt;setShortcut(QKeySequence::New);//快捷键
+ <br /> &nbsp;&nbsp;&nbsp; connect(a, SIGNAL(triggered()), this, SLOT(fileNew()));//监听，通过信号和槽链接//发射信号 emit triggered();
+ <br /> &nbsp;&nbsp;&nbsp; tb-&gt;addAction(a);//按钮条添加按钮项
+ <br /> &nbsp;&nbsp;&nbsp; menu-&gt;addAction(a);//file菜单添加菜单项
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; a = new QAction(QIcon(rsrcPath + &quot;/fileopen.png&quot;), tr(&quot;&amp;Open...&quot;), this);
+ <br /> &nbsp;&nbsp;&nbsp; a-&gt;setShortcut(QKeySequence::Open);
+ <br /> &nbsp;&nbsp;&nbsp; connect(a, SIGNAL(triggered()), this, SLOT(fileOpen()));//此菜单触发打开文件操作
+ <br /> &nbsp;&nbsp;&nbsp; tb-&gt;addAction(a);
+ <br /> &nbsp;&nbsp;&nbsp; menu-&gt;addAction(a);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; menu-&gt;addSeparator();//file菜单添加分割线
+ <br /> ----------------------------
+ <br /> actionPaste-&gt;setEnabled(!QApplication::clipboard()-&gt;text().isEmpty());
+ <br /> ----------------------------
+ <br /> &nbsp;&nbsp;&nbsp; actionTextBold = new QAction(QIcon(rsrcPath + &quot;/textbold.png&quot;), tr(&quot;&amp;Bold&quot;), this);
+ <br /> &nbsp;&nbsp;&nbsp; actionTextBold-&gt;setShortcut(Qt::CTRL + Qt::Key_B);
+ <br /> &nbsp;&nbsp;&nbsp; QFont bold;
+ <br /> &nbsp;&nbsp;&nbsp; bold.setBold(true);
+ <br /> &nbsp;&nbsp;&nbsp; actionTextBold-&gt;setFont(bold);//
+ <br /> &nbsp;&nbsp;&nbsp; connect(actionTextBold, SIGNAL(triggered()), this, SLOT(textBold()));
+ <br /> &nbsp;&nbsp;&nbsp; tb-&gt;addAction(actionTextBold);
+ <br /> &nbsp;&nbsp;&nbsp; menu-&gt;addAction(actionTextBold);
+ <br /> &nbsp;&nbsp;&nbsp; actionTextBold-&gt;setCheckable(true);//
+ <br /> ---------------------------------
+ <br /> 对齐操作
+ <br /> &nbsp;&nbsp;&nbsp; QActionGroup *grp = new QActionGroup(this);
+ <br /> &nbsp;&nbsp;&nbsp; connect(grp, SIGNAL(triggered(QAction *)), this, SLOT(textAlign(QAction *)));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Make sure the alignLeft is always left of the alignRight
+ <br /> &nbsp;&nbsp;&nbsp; if (QApplication::isLeftToRight()) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignLeft = new QAction(QIcon(rsrcPath + &quot;/textleft.png&quot;), tr(&quot;&amp;Left&quot;), grp);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignCenter = new QAction(QIcon(rsrcPath + &quot;/textcenter.png&quot;), tr(&quot;C&amp;enter&quot;), grp);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignRight = new QAction(QIcon(rsrcPath + &quot;/textright.png&quot;), tr(&quot;&amp;Right&quot;), grp);
+ <br /> &nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignRight = new QAction(QIcon(rsrcPath + &quot;/textright.png&quot;), tr(&quot;&amp;Right&quot;), grp);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignCenter = new QAction(QIcon(rsrcPath + &quot;/textcenter.png&quot;), tr(&quot;C&amp;enter&quot;), grp);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignLeft = new QAction(QIcon(rsrcPath + &quot;/textleft.png&quot;), tr(&quot;&amp;Left&quot;), grp);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; actionAlignJustify = new QAction(QIcon(rsrcPath + &quot;/textjustify.png&quot;), tr(&quot;&amp;Justify&quot;), grp);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; actionAlignLeft-&gt;setShortcut(Qt::CTRL + Qt::Key_L);
+ <br /> &nbsp;&nbsp;&nbsp; actionAlignLeft-&gt;setCheckable(true);
+ <br /> &nbsp;&nbsp;&nbsp; actionAlignCenter-&gt;setShortcut(Qt::CTRL + Qt::Key_E);
+ <br /> &nbsp;&nbsp;&nbsp; actionAlignCenter-&gt;setCheckable(true);
+ <br /> &nbsp;&nbsp;&nbsp; actionAlignRight-&gt;setShortcut(Qt::CTRL + Qt::Key_R);
+ <br /> &nbsp;&nbsp;&nbsp; actionAlignRight-&gt;setCheckable(true);
+ <br /> &nbsp;&nbsp;&nbsp; actionAlignJustify-&gt;setShortcut(Qt::CTRL + Qt::Key_J);
+ <br /> &nbsp;&nbsp;&nbsp; actionAlignJustify-&gt;setCheckable(true);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; tb-&gt;addActions(grp-&gt;actions());
+ <br /> &nbsp;&nbsp;&nbsp; menu-&gt;addActions(grp-&gt;actions());
+ <br /> ------------------------------------
+ <br /> //并列项样式
+ <br /> &nbsp;&nbsp;&nbsp; comboStyle = new QComboBox(tb);
+ <br /> &nbsp;&nbsp;&nbsp; tb-&gt;addWidget(comboStyle);
+ <br /> &nbsp;&nbsp;&nbsp; comboStyle-&gt;addItem(&quot;Standard&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; comboStyle-&gt;addItem(&quot;Bullet List (Disc)&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; comboStyle-&gt;addItem(&quot;Bullet List (Circle)&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; comboStyle-&gt;addItem(&quot;Bullet List (Square)&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; comboStyle-&gt;addItem(&quot;Ordered List (Decimal)&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; comboStyle-&gt;addItem(&quot;Ordered List (Alpha lower)&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; comboStyle-&gt;addItem(&quot;Ordered List (Alpha upper)&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; connect(comboStyle, SIGNAL(activated(int)),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this, SLOT(textStyle(int)));
+ <br /> //字体样式
+ <br /> &nbsp;&nbsp;&nbsp; comboFont = new QFontComboBox(tb);
+ <br /> &nbsp;&nbsp;&nbsp; tb-&gt;addWidget(comboFont);
+ <br /> &nbsp;&nbsp;&nbsp; connect(comboFont, SIGNAL(activated(const QString &amp;)),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this, SLOT(textFamily(const QString &amp;)));
+ <br /> //字体大小
+ <br /> &nbsp;&nbsp;&nbsp; comboSize = new QComboBox(tb);
+ <br /> &nbsp;&nbsp;&nbsp; comboSize-&gt;setObjectName(&quot;comboSize&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; tb-&gt;addWidget(comboSize);
+ <br /> &nbsp;&nbsp;&nbsp; comboSize-&gt;setEditable(true);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QFontDatabase db;
+ <br /> &nbsp;&nbsp;&nbsp; foreach(int size, db.standardSizes())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; comboSize-&gt;addItem(QString::number(size));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; connect(comboSize, SIGNAL(activated(const QString &amp;)),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this, SLOT(textSize(const QString &amp;)));
+ <br /> &nbsp;&nbsp;&nbsp; comboSize-&gt;setCurrentIndex(comboSize-&gt;findText(QString::number(QApplication::font()
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .pointSize())));
+ <br /> -----------------------------
+ <br /> -----------------------------
+ <br /> 事件响应操作：
+ <br /> 关闭操作
+ <br /> void TextEdit::closeEvent(QCloseEvent *e)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; if (maybeSave())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e-&gt;accept();
+ <br /> &nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e-&gt;ignore();
+ <br /> }
+ <br /> 加载文件
+ <br /> bool TextEdit::load(const QString &amp;f)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; if (!QFile::exists(f))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+ <br /> &nbsp;&nbsp;&nbsp; QFile file(f);
+ <br /> &nbsp;&nbsp;&nbsp; if (!file.open(QFile::ReadOnly))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QByteArray data = file.readAll();
+ <br /> &nbsp;&nbsp;&nbsp; QTextCodec *codec = Qt::codecForHtml(data);
+ <br /> &nbsp;&nbsp;&nbsp; QString str = codec-&gt;toUnicode(data);
+ <br /> &nbsp;&nbsp;&nbsp; if (Qt::mightBeRichText(str)) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textEdit-&gt;setHtml(str);
+ <br /> &nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; str = QString::fromLocal8Bit(data);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textEdit-&gt;setPlainText(str);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; setCurrentFileName(f);
+ <br /> &nbsp;&nbsp;&nbsp; return true;
+ <br /> }
+ <br /> --------------------------
+ <br /> 是否保存
+ <br /> bool TextEdit::maybeSave()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; if (!textEdit-&gt;document()-&gt;isModified())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return true;
+ <br /> &nbsp;&nbsp;&nbsp; if (fileName.startsWith(QLatin1String(&quot;:/&quot;)))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return true;
+ <br /> &nbsp;&nbsp;&nbsp; QMessageBox::StandardButton ret;
+ <br /> &nbsp;&nbsp;&nbsp; ret = QMessageBox::warning(this, tr(&quot;Application&quot;),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tr(&quot;The document has been modified.\n&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;Do you want to save your changes?&quot;),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QMessageBox::Save | QMessageBox::Discard
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | QMessageBox::Cancel);
+ <br /> &nbsp;&nbsp;&nbsp; if (ret == QMessageBox::Save)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return fileSave();
+ <br /> &nbsp;&nbsp;&nbsp; else if (ret == QMessageBox::Cancel)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+ <br /> &nbsp;&nbsp;&nbsp; return true;
+ <br /> }
+ <br /> ----------------
+ <br /> 新建文件
+ <br /> void TextEdit::fileNew()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; if (maybeSave()) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textEdit-&gt;clear();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setCurrentFileName(QString());
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 打开文件，打开选择对话框
+ <br /> void TextEdit::fileOpen()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; QString fn = QFileDialog::getOpenFileName(this, tr(&quot;Open File...&quot;),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QString(), tr(&quot;HTML-Files (*.htm *.html);;All Files (*)&quot;));
+ <br /> &nbsp;&nbsp;&nbsp; if (!fn.isEmpty())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; load(fn);
+ <br /> }
+ <br /> 保存文件
+ <br /> bool TextEdit::fileSave()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; if (fileName.isEmpty())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return fileSaveAs();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; QTextDocumentWriter writer(fileName);
+ <br /> &nbsp;&nbsp;&nbsp; bool success = writer.write(textEdit-&gt;document());
+ <br /> &nbsp;&nbsp;&nbsp; if (success)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textEdit-&gt;document()-&gt;setModified(false);
+ <br /> &nbsp;&nbsp;&nbsp; return success;
+ <br /> }
+ <br /> 另存为，保存路径对话框
+ <br /> bool TextEdit::fileSaveAs()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; QString fn = QFileDialog::getSaveFileName(this, tr(&quot;Save as...&quot;),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QString(), tr(&quot;ODF files (*.odt);;HTML-Files (*.htm *.html);;All Files (*)&quot;));
+ <br /> &nbsp;&nbsp;&nbsp; if (fn.isEmpty())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+ <br /> &nbsp;&nbsp;&nbsp; if (! (fn.endsWith(&quot;.odt&quot;, Qt::CaseInsensitive) || fn.endsWith(&quot;.htm&quot;, Qt::CaseInsensitive) || fn.endsWith(&quot;.html&quot;, Qt::CaseInsensitive)) )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fn += &quot;.odt&quot;; // default
+ <br /> &nbsp;&nbsp;&nbsp; setCurrentFileName(fn);
+ <br /> &nbsp;&nbsp;&nbsp; return fileSave();
+ <br /> }
+ <br /> -------------------
+ <br /> 设置字体粗细
+ <br /> void TextEdit::textBold()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; QTextCharFormat fmt;
+ <br /> &nbsp;&nbsp;&nbsp; fmt.setFontWeight(actionTextBold-&gt;isChecked() ? QFont::Bold : QFont::Normal);
+ <br /> &nbsp;&nbsp;&nbsp; mergeFormatOnWordOrSelection(fmt);
+ <br /> }
+ <br /> 设置并列项样式
+ <br /> void TextEdit::textStyle(int styleIndex)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; QTextCursor cursor = textEdit-&gt;textCursor();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; if (styleIndex != 0) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QTextListFormat::Style style = QTextListFormat::ListDisc;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch (styleIndex) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; default:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case 1:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style = QTextListFormat::ListDisc;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case 2:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style = QTextListFormat::ListCircle;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case 3:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style = QTextListFormat::ListSquare;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case 4:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style = QTextListFormat::ListDecimal;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case 5:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style = QTextListFormat::ListLowerAlpha;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case 6:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style = QTextListFormat::ListUpperAlpha;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cursor.beginEditBlock();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QTextBlockFormat blockFmt = cursor.blockFormat();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QTextListFormat listFmt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (cursor.currentList()) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; listFmt = cursor.currentList()-&gt;format();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; listFmt.setIndent(blockFmt.indent() + 1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; blockFmt.setIndent(0);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cursor.setBlockFormat(blockFmt);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; listFmt.setStyle(style);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cursor.createList(listFmt);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cursor.endEditBlock();
+ <br /> &nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // ####
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QTextBlockFormat bfmt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bfmt.setObjectIndex(-1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cursor.mergeBlockFormat(bfmt);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 设置颜色，打开颜色选择对话框
+ <br /> void TextEdit::textColor()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; QColor col = QColorDialog::getColor(textEdit-&gt;textColor(), this);
+ <br /> &nbsp;&nbsp;&nbsp; if (!col.isValid())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return;
+ <br /> &nbsp;&nbsp;&nbsp; QTextCharFormat fmt;
+ <br /> &nbsp;&nbsp;&nbsp; fmt.setForeground(col);
+ <br /> &nbsp;&nbsp;&nbsp; mergeFormatOnWordOrSelection(fmt);
+ <br /> &nbsp;&nbsp;&nbsp; colorChanged(col);
+ <br /> }
+ <br /> 设置对齐样式，以组为单位
+ <br /> void TextEdit::textAlign(QAction *a)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; if (a == actionAlignLeft)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textEdit-&gt;setAlignment(Qt::AlignLeft | Qt::AlignAbsolute);
+ <br /> &nbsp;&nbsp;&nbsp; else if (a == actionAlignCenter)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textEdit-&gt;setAlignment(Qt::AlignHCenter);
+ <br /> &nbsp;&nbsp;&nbsp; else if (a == actionAlignRight)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textEdit-&gt;setAlignment(Qt::AlignRight | Qt::AlignAbsolute);
+ <br /> &nbsp;&nbsp;&nbsp; else if (a == actionAlignJustify)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textEdit-&gt;setAlignment(Qt::AlignJustify);
+ <br /> }
+ <br /> --------------------
+ <br /> 字体样式改变
+ <br /> void TextEdit::currentCharFormatChanged(const QTextCharFormat &amp;format)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; fontChanged(format.font());
+ <br /> &nbsp;&nbsp;&nbsp; colorChanged(format.foreground().color());
+ <br /> }
+ <br /> 光标位置改变
+ <br /> void TextEdit::cursorPositionChanged()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; alignmentChanged(textEdit-&gt;alignment());
+ <br /> }
+ <br /> 剪贴板改变
+ <br /> void TextEdit::clipboardDataChanged()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; actionPaste-&gt;setEnabled(!QApplication::clipboard()-&gt;text().isEmpty());
+ <br /> }
+ <br /> void TextEdit::fontChanged(const QFont &amp;f)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; comboFont-&gt;setCurrentIndex(comboFont-&gt;findText(QFontInfo(f).family()));
+ <br /> &nbsp;&nbsp;&nbsp; comboSize-&gt;setCurrentIndex(comboSize-&gt;findText(QString::number(f.pointSize())));
+ <br /> &nbsp;&nbsp;&nbsp; actionTextBold-&gt;setChecked(f.bold());
+ <br /> &nbsp;&nbsp;&nbsp; actionTextItalic-&gt;setChecked(f.italic());
+ <br /> &nbsp;&nbsp;&nbsp; actionTextUnderline-&gt;setChecked(f.underline());
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ void TextEdit::colorChanged(const QColor &amp;c)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; QPixmap pix(16, 16);
+ <br /> &nbsp;&nbsp;&nbsp; pix.fill(c);
+ <br /> &nbsp;&nbsp;&nbsp; actionTextColor-&gt;setIcon(pix);
+ <br /> }
+ <br /> 对齐样式改变
+ <br /> void TextEdit::alignmentChanged(Qt::Alignment a)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; if (a &amp; Qt::AlignLeft) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignLeft-&gt;setChecked(true);
+ <br /> &nbsp;&nbsp;&nbsp; } else if (a &amp; Qt::AlignHCenter) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignCenter-&gt;setChecked(true);
+ <br /> &nbsp;&nbsp;&nbsp; } else if (a &amp; Qt::AlignRight) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignRight-&gt;setChecked(true);
+ <br /> &nbsp;&nbsp;&nbsp; } else if (a &amp; Qt::AlignJustify) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; actionAlignJustify-&gt;setChecked(true);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> ------------------------
+ <br /> 改变样式，合并样式
+ <br /> void TextEdit::mergeFormatOnWordOrSelection(const QTextCharFormat &amp;format)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; QTextCursor cursor = textEdit-&gt;textCursor();
+ <br /> &nbsp;&nbsp;&nbsp; if (!cursor.hasSelection())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cursor.select(QTextCursor::WordUnderCursor);
+ <br /> &nbsp;&nbsp;&nbsp; cursor.mergeCharFormat(format);
+ <br /> &nbsp;&nbsp;&nbsp; textEdit-&gt;mergeCurrentCharFormat(format);
+ <br /> }
+</div></div></body></html>

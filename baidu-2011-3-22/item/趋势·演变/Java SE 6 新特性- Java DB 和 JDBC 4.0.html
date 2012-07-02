@@ -1,0 +1,257 @@
+<html><head><title><div class="tit">
+  Java SE 6 新特性: Java DB 和 JDBC 4.0
+</div></title></head><body><div id='tit'>Java SE 6 新特性: Java DB 和 JDBC 4.0</div><div id='cate'>趋势&middot;演变</div><div id='date'>2008年03月25日 星期二 04:51 P.M.</div><div id='page'>155</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/ecd5982f757cf73c1e308940.html'>http://hi.baidu.com/hxzon/blog/item/ecd5982f757cf73c1e308940.html</a><div id='cnt'><h1><span style="color: rgb(153,153,153)">Java SE 6 新特性: </span>Java DB 和 JDBC 4.0</h1> 
+<p>级别： 初级</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#author">曹 若沈</a> (<a href="mailto:ruoshen_c@sjtu.edu.cn?subject=Java%20DB%20%E5%92%8C%20JDBC%204.0">ruoshen_c@sjtu.edu.cn</a>), 上海交通大学计算机系研究生</p> 
+<p>2007 年 8 月 31 日</p> 
+<blockquote> 
+ <p>2006 年底，Sun 公司发布了 Java Standard Edition 6（Java SE 6）的最终正式版，代号 Mustang（野马）。跟 Tiger（Java SE 5）相比，Mustang 在性能方面有了不错的提升。与 Tiger 在 API 库方面的大幅度加强相比，虽然 Mustang 在 API 库方面的新特性显得不太多，但是也提供了许多实用和方便的功能：在脚本，WebService，XML，编译器 API，数据库，JMX，网络和 Instrumentation 方面都有不错的新特性和功能加强。 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse6/"><em>本系列</em> </a>文章主要介绍 Java SE 6 在 API 库方面的部分新特性，通过一些例子和讲解，帮助开发者在编程实践当中更好的运用 Java SE 6，提高开发效率。</p> 
+ <p>本文是系列文章的第 5 篇，介绍了 Java SE 6 在数据库编程方面的新特性。</p> 
+</blockquote> 
+<p>长久以来，由于大量（甚至几乎所有）的 Java 应用都依赖于数据库，如何使用 Java 语言高效、可靠、简洁地访问数据库一直是程序员们津津乐道的话题。新发布的 Java SE 6 也在这方面更上层楼，为编程人员提供了许多好用的新特性。其中最显著的，莫过于 Java SE 6 拥有了一个内嵌的 100% 用 Java 语言编写的数据库系统。并且，Java 6 开始支持 JDBC 4.0 的一系列新功能和属性。这样，Java SE 在对持久数据的访问上就显得更为易用和强大了。</p> 
+<p><a name="N10059"><span class="atitle">Java DB：Java 6 里的数据库</span></a></p> 
+<p>新安装了 JDK 6 的程序员们也许会发现，除了传统的 bin、jre 等目录，JDK 6 新增了一个名为 db 的目录。这便是 Java 6 的新成员：Java DB。这是一个纯 Java 实现、开源的数据库管理系统（DBMS），源于 Apache 软件基金会（ASF）名下的项目 Derby。它只有 2MB 大小，对比动辄上 G 的数据库来说可谓袖珍。但这并不妨碍 Derby 功能齐备，支持几乎大部分的数据库应用所需要的特性。更难能可贵的是，依托于 ASF 强大的社区力量，Derby 得到了包括 IBM 和 Sun 等大公司以及全世界优秀程序员们的支持。这也难怪 Sun 公司会选择其 10.2.2 版本纳入到 JDK 6 中，作为内嵌的数据库。这就好像为 JDK 注入了一股全新的活力：Java 程序员不再需要耗费大量精力安装和配置数据库，就能进行安全、易用、标准、并且免费的数据库编程。在这一章中，我们将初窥 Java DB 的世界，来探究如何使用它编写出功能丰富的程序。</p> 
+<p><a name="N10062"><span class="smalltitle">Hello, Java DB：内嵌模式的 Derby</span></a></p> 
+<p>既然有了内嵌（embedded）的数据库，就让我们从一个简单的范例（代码在 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list1">清单 1</a> 中列出）开始，试着使用它吧。这个程序做了大多数数据库应用都可能会做的操作：在 DBMS 中创建了一个名为 helloDB 的数据库；创建了一张数据表，取名为 hellotable；向表内插入了两条数据；然后，查询数据并将结果打印在控制台上；最后，删除表和数据库，释放资源。</p> 
+<p><br /> <a name="list1"><strong>清单 1. HelloJavaDB 的代码</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public class HelloJavaDB {
+    public static void main(String[] args) {
+        try { // load the driver
+            Class.forName(&quot;org.apache.derby.jdbc.EmbeddedDriver&quot;).newInstance();
+            System.out.println(&quot;Load the embedded driver&quot;);
+            Connection conn = null;
+            Properties props = new Properties();
+            props.put(&quot;user&quot;, &quot;user1&quot;);  props.put(&quot;password&quot;, &quot;user1&quot;);
+           //create and connect the database named helloDB 
+            conn=DriverManager.getConnection(&quot;jdbc:derby:helloDB;create=true&quot;, props);
+            System.out.println(&quot;create and connect to helloDB&quot;);
+            conn.setAutoCommit(false);
+
+            // create a table and insert two records
+            Statement s = conn.createStatement();
+            s.execute(&quot;create table hellotable(name varchar(40), score int)&quot;);
+            System.out.println(&quot;Created table hellotable&quot;);
+            s.execute(&quot;insert into hellotable values('Ruth Cao', 86)&quot;);
+            s.execute(&quot;insert into hellotable values ('Flora Shi', 92)&quot;);
+            // list the two records
+            ResultSet rs = s.executeQuery(
+                &quot;SELECT name, score FROM hellotable ORDER BY score&quot;);
+            System.out.println(&quot;name\t\tscore&quot;);
+            while(rs.next()) {
+                StringBuilder builder = new StringBuilder(rs.getString(1));
+                builder.append(&quot;\t&quot;);
+                builder.append(rs.getInt(2));
+                System.out.println(builder.toString());
+            }
+            // delete the table
+            s.execute(&quot;drop table hellotable&quot;);
+            System.out.println(&quot;Dropped table hellotable&quot;);
+            
+            rs.close();
+            s.close();
+            System.out.println(&quot;Closed result set and statement&quot;);
+            conn.commit();
+            conn.close();
+            System.out.println(&quot;Committed transaction and closed connection&quot;);
+            
+            try { // perform a clean shutdown 
+                DriverManager.getConnection(&quot;jdbc:derby:;shutdown=true&quot;);
+            } catch (SQLException se) {
+                System.out.println(&quot;Database shut down normally&quot;);
+            }
+        } catch (Throwable e) {
+            // handle the exception
+        }
+        System.out.println(&quot;SimpleApp finished&quot;);
+    }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>随后，我们在命令行（本例为 Windows 平台，当然，其它系统下稍作改动即可）下键入以下命令：</p> 
+<p><br /> <a name="list2"><strong>清单 2. 运行 HelloJavaDB 命令</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">java –cp .;%JAVA_HOME%\db\lib\derby.jar HelloJavaDB</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>程序将会按照我们预想的那样执行，<a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#fig001">图 1</a> 是执行结果的一部分截屏：</p> 
+<p><br /> <a name="fig001"><strong>图 1. HelloJavaDB 程序的执行结果</strong></a><br /> <img alt="图 1. HelloJavaDB 程序的执行结果" src="image/Java SE 6 新特性- Java .fig001.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-jse65/fig001.jpg</p></p> 
+<p>上述的程序和以往没什么区别。不同的是我们不需要再为 DBMS 的配置而劳神，因为 Derby 已经自动地在当前目录下新建了一个名为 helloDB 的目录，来物理地存储数据和日志。需要做的只是注意命名问题：在内嵌模式下驱动的名字应为 <code><font face="新宋体">org.apache.derby.jdbc.EmbeddedDriver</font></code>；创建一个新数据库时需要在协议后加入 <code><font face="新宋体">create=true</font></code>。另外，关闭所有数据库以及 Derby 的引擎可以使用以下代码：</p> 
+<p><br /> <a name="list3"><strong>清单 3. 关闭所有数据库及 Derby 引擎</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">DriverManager.getConnection(&quot;jdbc:derby:;shutdown=true&quot;);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>如果只想关闭一个数据库，那么则可以调用：</p> 
+<p><br /> <a name="list4"><strong>清单 4. 关闭一个数据库</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">DriverManager.getConnection(&quot;jdbc:derby:helloDB;shutdown=true &quot;);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>这样，使用嵌入模式的 Derby 维护和管理数据库的成本接近于 0。这对于希望专心写代码的人来说不失为一个好消息。然而有人不禁要问：既然有了内嵌模式，为什么大多数的 DBMS 都没有采取这样的模式呢？不妨做一个小实验。当我们同时在两个命令行窗口下运行 HelloJavaDB 程序。结果一个的结果与刚才一致，而另一个却出现了错误，如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#fig002">图 2</a> 所示。</p> 
+<p><br /> <a name="fig002"><strong>图 2. 内嵌模式的局限</strong></a><br /> <img alt="图 2. 内嵌模式的局限" src="image/Java SE 6 新特性- Java .fig002.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-jse65/fig002.jpg</p></p> 
+<p>错误的原因其实很简单：在使用内嵌模式时，Derby 本身并不会在一个独立的进程中，而是和应用程序一起在同一个 Java 虚拟机（JVM）里运行。因此，Derby 如同应用所使用的其它 jar 文件一样变成了应用的一部分。这就不难理解为什么在 classpath 中加入 derby 的 jar 文件，我们的示例程序就能够顺利运行了。这也说明了只有一个 JVM 能够启动数据库：而两个跑在不同 JVM 实例里的应用自然就不能够访问同一个数据库了。</p> 
+<p>鉴于上述的局限性，和来自不同 JVM 的多个连接想访问一个数据库的需求，下一节将介绍 Derby 的另一种模式：网络服务器（Network Server）。</p> 
+<p><a name="N100CF"><span class="smalltitle">网络服务器模式</span></a></p> 
+<p>如上所述，网络服务器模式是一种更为传统的客户端/服务器模式。我们需要启动一个 Derby 的网络服务器用于处理客户端的请求，不论这些请求是来自同一个 JVM 实例，还是来自于网络上的另一台机器。同时，客户端使用 DRDA（Distributed Relational Database Architecture）协议连接到服务器端。这是一个由 The Open Group 倡导的数据库交互标准。<a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#fig003">图 3</a> 说明了该模式的大体结构。</p> 
+<p>由于 Derby 的开发者们努力使得网络服务器模式与内嵌模式之间的差异变小，使得我们只需简单地修改 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list1">清单 1</a> 中的程序就可以实现。如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list5">清单 5</a>所示，我们在 HelloJavaDB 中增添了一个新的函数和一些字符串变量。不难看出，新的代码只是将一些在 上一节中特别指出的字符串进行了更改：驱动类为 <code><font face="新宋体">org.apache.derby.jdbc.ClientDriver</font></code>，而连接数据库的协议则变成了 <code><font face="新宋体">jdbc:derby://localhost:1527/</font></code>。这是一个类似 URL 的字符串，而事实上，Derby 网络的客户端的连接格式为：<code><font face="新宋体">jdbc:derby://server[:port]/databaseName[;attributeKey=value]</font></code>。在这个例子中，我们使用了最简单的本地机器作为服务器，而端口则是 Derby 默认的 1527 端口。</p> 
+<p><br /> <a name="fig003"><strong>图 3. Derby 网络服务器模式架构</strong></a><br /> <img alt="图 3. Derby 网络服务器模式架构" src="image/Java SE 6 新特性- Java .fig003.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-jse65/fig003.gif</p> <br /> <br /> <a name="list5"><strong>清单 5. 网络服务器模式下的 HelloJavaDB</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public class HelloJavaDB {
+    public static String driver = &quot;org.apache.derby.jdbc.EmbeddedDriver&quot;;
+    public static String protocol = &quot;jdbc:derby:&quot;;
+
+    public static void main(String[] args) {
+        // same as before
+    }
+    private static void parseArguments(String[] args) {
+        if (args.length == 0 || args.length &gt; 1) {
+            return;
+        }
+        if (args[0].equalsIgnoreCase(&quot;derbyclient&quot;)) {
+            framework = &quot;derbyclient&quot;;
+            driver = &quot;org.apache.derby.jdbc.ClientDriver&quot;;
+            protocol = &quot;jdbc:derby://localhost:1527/&quot;;
+        }
+    }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>当然，仅仅有客户端是不够的，我们还需要启动网络服务器。Derby 中控制网络服务器的类是 <code><font face="新宋体">org.apache.derby.drda.NetworkServerControl</font></code>，因此键入以下命令即可。如果想了解 NetworkServerControl 更多的选项，只要把 <code><font face="新宋体">start</font></code> 参数去掉就可以看到帮助信息了。关于网络服务器端的实现，都被 Derby 包含在 derbynet.jar 里。</p> 
+<p><br /> <a name="list6"><strong>清单 6. 启动网络服务器</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">java -cp .;&quot;C:\Program Files\Java\jdk1.6.0\db\lib\derby.jar&quot;;
+&quot;C:\Program Files\Java\jdk1.6.0\db\lib\derbynet.jar&quot; 
+org.apache.derby.drda.NetworkServerControl start</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>相对应的，网络客户端的实现被包含在 derbyclient.jar 中。所以，只需要在 classpath 中加入该 jar 文件，修改后的客户端就可以顺利地读取数据了。再一次尝试着使用两个命令行窗口去连接数据库，就能够得到正确的结果了。如果不再需要服务器，那么使用 NetworkServerControl 的 shutdown 参数就能够关闭服务器。</p> 
+<p><a name="N1011E"><span class="smalltitle">更多</span></a></p> 
+<p>至此，文章介绍了 Java SE 6 中的新成员：Java DB（Derby），也介绍了如何在内嵌模式以及网络服务器模式下使用 Java DB。当然这只是浅尝辄止，更多高级的选项还需要在 Sun 和 Derby 的文档中寻找。在这一章的最后，我们将简单介绍几个 Java DB 的小工具来加快开发速度。它们都位于 org.apache.derby.tools 包内，在开发过程中需要获取信息或者测试可以用到。</p> 
+<ul> 
+ <li><strong>ij</strong>：一个用来运行 SQL 脚本的工具；</li> 
+ <li><strong>dblook</strong>：为 Derby 数据库作模式提取（Schema extraction），生成 DDL 的工具；</li> 
+ <li><strong>sysinfo</strong>：显示系统以及 Derby 信息的工具类；</li> 
+</ul> 
+<p><a name="N1013B"><span class="atitle">JDBC 4.0：新功能，新 API</span></a></p> 
+<p>如果说上一章介绍了 Java 6 中的一个新成员，它本来就存在，但是没有被加入进 JDK。那么这一章，我们将关注在 JDBC 4.0 中又增加了哪些新功能以及与之相对应的新 API。</p> 
+<p><a name="N10143"><span class="smalltitle">自动加载驱动</span></a></p> 
+<p>在 JDBC 4.0 之前，编写 JDBC 程序都需要加上以下这句有点丑陋的代码：</p> 
+<p><br /> <a name="list7"><strong>清单 7. 注册 JDBC 驱动</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Class.forName(&quot;org.apache.derby.jdbc.EmbeddedDriver&quot;).newInstance();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><code><font face="新宋体">Java.sql.DriverManager</font></code> 的内部实现机制决定了这样代码的出现。只有先通过 <code><font face="新宋体">Class.forName</font></code> 找到特定驱动的 class 文件，<code><font face="新宋体">DriverManager.getConnection</font></code> 方法才能顺利地获得 Java 应用和数据库的连接。这样的代码为编写程序增加了不必要的负担，JDK 的开发者也意识到了这一点。从 Java 6 开始，应用程序不再需要显式地加载驱动程序了，DriverManager 开始能够自动地承担这项任务。作为试验，我们可以将 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list1">清单 1</a> 中的相关代码删除，重新编译后在 JRE 6.0 下运行，结果和原先的程序一样。</p> 
+<p>好奇的读者也许会问，DriverManager 为什么能够做到自动加载呢？这就要归功于一种被称为 Service Provider 的新机制。熟悉 Java 安全编程的程序员可能对其已经是司空见惯，而它现在又出现在 JDBC 模块中。JDBC 4.0 的规范规定，所有 JDBC 4.0 的驱动 jar 文件必须包含一个 <code><font face="新宋体">java.sql.Driver</font></code>，它位于 jar 文件的 META-INF/services 目录下。这个文件里每一行便描述了一个对应的驱动类。其实，编写这个文件的方式和编写一个只有关键字（key）而没有值（value）的 properties 文件类似。同样地，‘#’之后的文字被认为是注释。有了这样的描述，DriverManager 就可以从当前在 CLASSPATH 中的驱动文件中找到，它应该去加载哪些类。而如果我们在 CLASSPATH 里没有任何 JDBC 4.0 的驱动文件的情况下，调用 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list8">清单 8</a> 中的代码会输出一个 <code><font face="新宋体">sun.jdbc.odbc.JdbcOdbcDriver</font></code> 类型的对象。而仔细浏览 JDK 6 的目录，这个类型正是在 <code><font face="新宋体">%JAVA_HOME%/jre/lib/resources.jar</font></code> 的 META-INF/services 目录下的 <code><font face="新宋体">java.sql.Driver</font></code> 文件中描述的。也就是说，这是 JDK 中默认的驱动。而如果开发人员想使得自己的驱动也能够被 DriverManager 找到，只需要将对应的 jar 文件加入到 CLASSPATH 中就可以了。当然，对于那些 JDBC 4.0 之前的驱动文件，我们还是只能显式地去加载了。</p> 
+<p><br /> <a name="list8"><strong>清单 8. 罗列本地机器上的 JDBC 驱动</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Enumeration&lt;Driver&gt; drivers = DriverManager.getDrivers();
+
+while(drivers.hasMoreElements()) {
+    System.out.println(drivers.nextElement());
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="rowid"><span class="smalltitle">RowId</span></a></p> 
+<p>熟悉 DB2、Oracle 等大型 DBMS 的人一定不会对 ROWID 这个概念陌生：它是数据表中一个“隐藏”的列，是每一行独一无二的标识，表明这一行的物理或者逻辑位置。由于 ROWID 类型的广泛使用，Java SE 6 中新增了 <code><font face="新宋体">java.sql.RowId</font></code> 的数据类型，允许 JDBC 程序能够访问 SQL 中的 ROWID 类型。诚然，不是所有的 DBMS 都支持 ROWID 类型。即使支持，不同的 ROWID 也会有不同的生命周期。因此使用 <code><font face="新宋体">DatabaseMetaData.getRowIdLifetime</font></code> 来判断类型的生命周期不失为一项良好的实践经验。我们在 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list1">清单 1</a> 的程序获得连接之后增加以下代码，便可以了解 ROWID 类型的支持情况。</p> 
+<p><br /> <a name="list9"><strong>清单 9. 了解 ROWID 类型的支持情况</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">DatabaseMetaData meta = conn.getMetaData();
+System.out.println(meta.getRowIdLifetime());</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>Java SE 6 的 API 规范中，<code><font face="新宋体">java.sql.RowIdLifetime</font></code> 规定了 5 种不同的生命周期：<code><font face="新宋体">ROWID_UNSUPPORTED</font></code>、<code><font face="新宋体">ROWID_VALID_FOREVER</font></code>、<code><font face="新宋体">ROWID_VALID_OTHER</font></code>、<code><font face="新宋体">ROWID_VALID_SESSION</font></code> 和 <code><font face="新宋体">ROWID_VALID_TRANSACTION</font></code>。从字面上不难理解它们表示了不支持 ROWID、ROWID 永远有效等等。具体的信息，还可以参看相关的 JavaDoc。读者可以尝试着连接 Derby 进行试验，会发现运行结果是 <code><font face="新宋体">ROWID_UNSUPPORTED</font></code> ，即 Derby 并不支持 ROWID。</p> 
+<p>既然提供了新的数据类型，那么一些相应的获取、更新数据表内容的新 API 也在 Java 6 中被添加进来。和其它已有的类型一样，在得到 <code><font face="新宋体">ResultSet</font></code> 或者 <code><font face="新宋体">CallableStatement</font></code> 之后，调用 get/set/update 方法得到/设置/更新 RowId 对象，示例的代码如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list10">清单 10</a> 所示。</p> 
+<p><br /> <a name="list10"><strong>清单 10. 获得/设置 RowId 对象</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">// Initialize a PreparedStatement
+PreparedStatement pstmt = connection.prepareStatement(
+    &quot;SELECT rowid, name, score FROM hellotable WHERE rowid = ?&quot;);
+// Bind rowid into prepared statement. 
+pstmt.setRowId(1, rowid);
+// Execute the statement
+ResultSet rset = pstmt.executeQuery(); 
+// List the records
+while(rs.next()) {
+  RowId id = rs.getRowId(1); // get the immutable rowid object
+  String name = rs.getString(2);
+   int score = rs.getInt(3);
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>鉴于不同 DBMS 的不同实现，RowID 对象通常在不同的数据源（datasource）之间并不是可移植的。因此 JDBC 4.0 的 API 规范并不建议从连接 A 取出一个 RowID 对象，将它用在连接 B 中，以避免不同系统的差异而带来的难以解释的错误。而至于像 Derby 这样不支持 RowId 的 DBMS，程序将直接在 setRowId 方法处抛出 <code><font face="新宋体">SQLFeatureNotSupportedException</font></code>。</p> 
+<p><a name="N101E2"><span class="smalltitle">SQLXML</span></a></p> 
+<p>SQL：2003 标准引入了 SQL/XML，作为 SQL 标准的扩展。SQL/XML 定义了 SQL 语言怎样和 XML 交互：如何创建 XML 数据；如何在 SQL 语句中嵌入 XQuery 表达式等等。作为 JDBC 4.0 的一部分，Java 6 增加了 <code><font face="新宋体">java.sql.SQLXML</font></code> 的类型。JDBC 应用程序可以利用该类型初始化、读取、存储 XML 数据。<code><font face="新宋体">java.sql.Connection.createSQLXML</font></code> 方法就可以创建一个空白的 SQLXML 对象。当获得这个对象之后，便可以利用 <code><font face="新宋体">setString</font></code>、<code><font face="新宋体">setBinaryStream</font></code>、<code><font face="新宋体">setCharacterStream</font></code> 或者 <code><font face="新宋体">setResult</font></code> 等方法来初始化所表示的 XML 数据。以 <code><font face="新宋体">setCharacterStream</font></code> 为例，<a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list11">清单 11</a> 表示了一个 SQLXML 对象如何获取 <code><font face="新宋体">java.io.Writer</font></code> 对象，从外部的 XML 文件中逐行读取内容，从而完成初始化。</p> 
+<p><br /> <a name="list11"><strong>清单 11. 利用 setCharacterStream 方法来初始化 SQLXML 对象</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SQLXML xml = con.createSQLXML();
+Writer writer = xml.setCharacterStream();
+BufferedReader reader = new BufferedReader(new FileReader(&quot;test.xml&quot;));
+String line= null;
+while((line = reader.readLine() != null) {
+      writer.write(line);
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>由于 SQLXML 对象有可能与各种外部的资源有联系，并且在一个事务中一直持有这些资源。为了防止应用程序耗尽资源，Java 6 提供了 free 方法来释放其资源。类似的设计在 <code><font face="新宋体">java.sql.Array</font></code>、<code><font face="新宋体">Clob</font></code> 中都有出现。</p> 
+<p>至于如何使用 SQLXML 与数据库进行交互，其方法与其它的类型都十分相似。可以参照 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#rowid">RowId 一节</a> 中的例子在 Java SE 6 的 API 规范中找到 SQLXML 中对应的 get/set/update 方法构建类似的程序，此处不再赘述。</p> 
+<p><a name="N10229"><span class="smalltitle">SQLExcpetion 的增强</span></a></p> 
+<p>在 Java SE 6 之前，有关 JDBC 的异常类型不超过 10 个。这似乎已经不足以描述日渐复杂的数据库异常情况。因此，Java SE 6 的设计人员对以 <code><font face="新宋体">java.sql.SQLException</font></code> 为根的异常体系作了大幅度的改进。首先，SQLException 新实现了 <code><font face="新宋体">Iterable&lt;Throwable&gt;</font></code> 接口。<a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list12">清单 12</a> 实现了 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list1">清单 1</a> 程序的异常处理机制。这样简洁地遍历了每一个 SQLException 和它潜在的原因（cause）。</p> 
+<p><br /> <a name="list12"><strong>清单 12. SQLException 的 for-each loop</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">// Java 6 code
+catch (Throwable e) {
+   if (e instanceof SQLException) {
+       for(Throwable ex : (SQLException)e ){
+            System.err.println(ex.toString());
+        }
+    }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>此外，<a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#fig004">图 4</a> 表示了全部的 SQLException 异常体系。除去原有的 SQLException 的子类，Java 6 中新增的异常类被分为 3 种：<code><font face="新宋体">SQLReoverableException</font></code>、<code><font face="新宋体">SQLNonTransientException</font></code>、<code><font face="新宋体">SQLTransientException</font></code>。在 <code><font face="新宋体">SQLNonTransientException</font></code> 和 <code><font face="新宋体">SQLTransientException</font></code> 之下还有若干子类，详细地区分了 JDBC 程序中可能出现的各种错误情况。大多数子类都会有对应的标准 <code><font face="新宋体">SQLState</font></code> 值，很好地将 SQL 标准和 Java 6 类库结合在一起。</p> 
+<p><br /> <a name="fig004"><strong>图 4. SQLException 异常体系</strong></a><br /> <img alt="图 4. SQLException 异常体系" src="image/Java SE 6 新特性- Java .fig004.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-jse65/fig004.gif</p></p> 
+<p>在众多的异常类中，比较常见的有 <code><font face="新宋体">SQLFeatureNotSupportedException</font></code>，用来表示 JDBC 驱动不支持某项 JDBC 的特性。例如在 Derby 下运行 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html#list10">清单 10</a> 中的程序，就可以发现 Derby 的驱动并不支持 RowId 的特性。另外值得一提的是，<code><font face="新宋体">SQLClientInfoException</font></code> 直接继承自 SQLException，表示当一些客户端的属性不能被设置在一个数据库连接时所发生的异常。</p> 
+<p><a name="N10284"><span class="atitle">小结：更多新特性与展望</span></a></p> 
+<p>在本文中，我们已经向读者介绍了 Java SE 6 中 JDBC 最重要的一些新特性：它们包括嵌在 JDK 中的 Java DB （Derby）和 JDBC 4.0 的一部分。当然，还有很多本文还没有覆盖到的新特性。比如增加了对 SQL 语言中 <code><font face="新宋体">NCHAR</font></code>、<code><font face="新宋体">NVARCHAR</font></code>、<code><font face="新宋体">LONGNVARCHAR</font></code> 和 <code><font face="新宋体">NCLOB</font></code> 类型的支持；在数据库连接池的环境下为管理 <code><font face="新宋体">Statement</font></code> 对象提供更多灵活、便利的方法等。</p> 
+<p>此外，在 Java SE 6 的 beta 版中，曾经将 Annotation Query 的特性包含进来。这项特性定义了一系列 Query 和 DataSet 接口，程序员可以通过撰写一些 Annotation 来自定义查询并获得定制的数据集结果。但是，由于这一特性的参考实现最终不能满足 JDK 的质量需求，Sun 公司忍痛割爱，取消了在 Java SE 6 中发布其的计划。我们有理由相信，在以后的 JDK 版本中，这一特性以及更多新的功能将被包含进来，利用 Java 语言构建数据库的应用也会变得更为自然、顺畅。</p> 
+<p>阅读 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse6/"><em>Java SE 6 新特性系列</em> </a>文章的完整列表，了解 Java SE 6 其它重要的增强。</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html">http://www.ibm.com/developerworks/cn/java/j-lo-jse65/index.html</a></p> 
+<p> </p></div></body></html>

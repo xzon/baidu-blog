@@ -1,0 +1,291 @@
+<html><head><title><div class="tit">
+  第9章 WPF开发实例（续3）9.5 WPF实例--TextReader
+</div></title></head><body><div id='tit'>第9章 WPF开发实例（续3）9.5 WPF实例--TextReader</div><div id='cate'>代码备份</div><div id='date'>2009年04月25日 星期六 08:33 P.M.</div><div id='page'>53</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/779b5a607a25d9d78cb10d24.html'>http://hi.baidu.com/hxzon/blog/item/779b5a607a25d9d78cb10d24.html</a><div id='cnt'><div> 
+ <div> 
+  <div>
+   <strong>9.5 WPF实例--TextReader</strong>
+  </div> 
+  <div>
+   前面简单介绍了WPF应用程序的类型和开发模式，本节将通过一个WPF独立应用程序实例TextReader进一步介绍WPF应用程序开发的一般过程。
+  </div> 
+  <div>
+   <strong>9.5.1 TextReader界面设计</strong>
+  </div> 
+  <div>
+   实例TextReader将开发一个可以打开文本文档的小软件，它具有自动刷新目录、自动判断文件类型是否为文本类型，并查看文本类型的功能，同时还可以查看文件和目录等详细属性。
+  </div> 
+  <div>
+   由于WPF修改了应用程序中窗体的布局方式，使得界面布局更加灵活，但也对开发人员提出了更高的要求，而且使对WPF还不太熟悉的初学者更加不知所措。WPF应用程序的界面设计有以下4个步骤：
+  </div> 
+  <div>
+   （1） 根据软件需求，整理出软件中大致的窗体数量以及各个窗体的功能。在TextReader实例中，需要两个窗体，其中一个是主窗体（也是启动窗体），它具有提供文件导航、文件内容查看功能；另外一个窗体是关于窗体，提供实例程序的版本信息等。
+  </div> 
+  <div>
+   （2）对每个窗体根据功能进行大体布局上的考虑，重点考虑界面分几层、各层的布局方式（网格、绝对定位、流等）、各层区域的划分、每个区域内的布局和进一步分区，逐层进行，直到全部完成。以TextReader主窗体为例，最下层用Grid整体布局，共分3行2列，第1行作为菜单，第3行作为状态栏，第2行则是主界面。主界面区域按列分成左右两部分，左边为目录和文件导航树，右边为文件内容显示区域，如图9-12所示。
+  </div> 
+  <div>
+   （3）重复第（2）步操作，知道界面大致框架基本完成，还涉及控件的选择、控件停靠方向、控件边框位置等细节问题。
+  </div> 
+  <div>
+   （4）基本框架完成，开始进行着色，根据界面风格要求，对各控件进行背景色、前景色、背景图片等外观美化，从下到上，直到满意为止。其中，实例TextReader的界面设计效果如图9-12所示。
+  </div> 
+  <div> 
+   <table cellspacing="0" bordercolordark="#ffffff" align="center" bgcolor="#ddddd0" bordercolorlight="#999999" border="1"> 
+    <tbody> 
+     <tr> 
+      <td bgcolor="#ffffff"><a target="_blank" href="http://new.51cto.com/files/uploadimg/20080929/180003147.jpg"><img style="width: 498px" height="520" width="610" border="0" src="image/第9章 WPF开发实例（续3）9.5 W.180003147.jpg" /><p class="origImg">http://new.51cto.com/files/uploadimg/20080929/180003147.jpg</p></a></td> 
+     </tr> 
+     <tr> 
+      <td align="center" bgcolor="#dddddd">（点击查看大图）图9-12 实例TextReader界面设计效果</td> 
+     </tr> 
+    </tbody> 
+   </table> 
+  </div> 
+  <div>
+   注意：界面设计图中只有窗体工作区，不包括窗体标题栏等非工作区内容。
+  </div> 
+  <div>
+   示例代码9-15是该窗体布局的XAML代码，其中还包括了事件处理函数等，这些将在随后的几节中进行介绍，这里主要关心界面的布局和外观代码。其中，&lt;Menu&gt;空间表示菜单；&lt;MenuItem&gt;表示具体菜单项；&lt;StatuBar&gt;表示状态栏；&lt;StatuBarItem&gt;表示具体的状态栏项；&lt;GridSpliter&gt;节点表示一个分隔条，可以调整左右Grid列的宽度；&lt;TreeView&gt;是树形控件，在本例中用来加载目录和文件信息；&lt;RichTextBox&gt;是一个文本编辑框，本例中用来以只读方式加载和浏览文件内容；&lt;TextBox&gt;控件是文本输入框，用来以只读方式显示文件和目录的详细属性。
+  </div> 
+  <div>
+   示例代码9-15：
+  </div> 
+  <div> 
+   <table cellspacing="0" bordercolordark="#ffffff" cellpadding="2" width="400" align="center" bordercolorlight="#000000" border="1"> 
+    <tbody> 
+     <tr> 
+      <td bgcolor="#e6e6e6"> <pre>&lt;Window x:Class=&quot;FileViewer.WndMain&quot;<br />xmlns=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml/presentation">http://schemas.microsoft.com/winfx/2006/xaml/presentation</a>&quot;<br />xmlns:x=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml">http://schemas.microsoft.com/winfx/2006/xaml</a>&quot;<br />Title=&quot;WPF实例--TextReader&quot; Height=&quot;513&quot; Width=&quot;602&quot;<br />WindowStartupLocation=&quot;CenterScreen&quot; Icon=&quot;logo.ico&quot;<br />Closing=&quot;Window_Closing&quot; Loaded=&quot;Window_Loaded&quot; Name=&quot;wndMain&quot;&gt;<br />&lt;Grid Name=&quot;grid1&quot; ShowGridLines=&quot;False&quot; Background=&quot;DarkGoldenrod&quot;&gt;<br />&lt;Grid.RowDefinitions&gt;<br />&lt;RowDefinition Height=&quot;30&quot; /&gt;<br />&lt;RowDefinition Height=&quot;416*&quot; /&gt;<br />&lt;RowDefinition Height=&quot;29&quot; /&gt;<br />&lt;/Grid.RowDefinitions&gt;<br />&lt;Grid.ColumnDefinitions&gt;<br />&lt;ColumnDefinition Width=&quot;200&quot; /&gt;<br />&lt;ColumnDefinition Width=&quot;417*&quot; /&gt;<br />&lt;/Grid.ColumnDefinitions&gt;<br /><br />&lt;Menu Grid.ColumnSpan=&quot;2&quot; Name=&quot;menu1&quot; FontSize=&quot;15&quot; Background=&quot;DarkKhaki&quot;&gt;<br />&lt;MenuItem Header=&quot;开始&quot; Name=&quot;miStart&quot; Background=&quot;DarkKhaki&quot;&gt;<br />&lt;MenuItem Header=&quot;关于&quot; Name=&quot;miAbout&quot; Click=&quot;miAbout_Click&quot; <br />Background=&quot;LightCoral&quot; /&gt;<br />&lt;Separator /&gt;<br />&lt;MenuItem Header=&quot;退出&quot; Name=&quot;MiExit&quot; Click=&quot;MiExit_Click&quot; <br />Background =&quot;LightCoral&quot; /&gt;<br />&lt;/MenuItem&gt;<br />&lt;/Menu&gt;<br /><br />&lt;TreeView Grid.Row=&quot;1&quot; Margin=&quot;0,9&quot; Name=&quot;tvDic&quot; <br />SelectedItemChanged=&quot;tvDic_SelectedItemChanged&quot; <br />MouseDoubleClick=&quot;tvDic_MouseDoubleClick&quot;/&gt;<br /><br />&lt;GridSplitter Grid.Column=&quot;1&quot; Margin=&quot;6,0,0,0&quot; Name=&quot;gridSplitter1&quot; MinWidth=&quot;2&quot; <br />HorizontalAlignment=&quot;Left&quot; Width=&quot;2&quot; Grid.Row=&quot;1&quot; Background=&quot;Beige&quot; /&gt;</pre> <p> </p> 
+       <div> 
+       </div> 
+       <div>
+        &lt;TabControl Grid.Column=&quot;1&quot; Grid.Row=&quot;1&quot; Margin=&quot;14,9,8,9&quot; Name=&quot;tabView&quot; 
+        <br /> FontSize=&quot;15&quot; Background=&quot;Tan&quot;&gt;
+        <br /> &lt;TabItem Header=&quot;属性&quot; Name=&quot;tbiProp&quot; Cursor=&quot;IBeam&quot; 
+        <br /> ToolTip=&quot;选中文件或目录的详细属性&quot; Background=&quot;Tan&quot;&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+        <br /> &lt;TextBox Grid.Column=&quot;1&quot; Grid.Row=&quot;1&quot; Margin=&quot;10,10,10,10&quot; Name=&quot;tbProp&quot; 
+        <br /> HorizontalScrollBarVisibility=&quot;Visible&quot; VerticalScrollBarVisibility=&quot;Visible&quot;
+        <br /> IsReadOnly=&quot;True&quot; FontSize=&quot;15&quot; Foreground=&quot;Blue&quot; 
+        <br /> Background=&quot;SlateGray&quot;&gt;&lt;/TextBox&gt;
+        <br /> &lt;/TabItem&gt;
+        <br /> &lt;TabItem Header=&quot;文件内容&quot; Background=&quot;Tan&quot;&gt;
+        <br /> &lt;RichTextBox Name=&quot;rtbText&quot; IsReadOnly=&quot;True&quot; VerticalScrollBarVisibility= &quot;Visible&quot;
+        <br /> HorizontalScrollBarVisibility=&quot;Visible&quot; /&gt;
+        <br /> &lt;/TabItem&gt;
+        <br /> &lt;/TabControl&gt;
+        <br /> 
+        <br /> &lt;StatusBar Grid.Row=&quot;2&quot; Margin=&quot;0,0,0,-3&quot; Name=&quot;sbMain&quot; Grid.ColumnSpan=&quot;2&quot; Height=&quot;32&quot; 
+        <br /> VerticalAlignment=&quot;Bottom&quot;&gt;
+        <br /> &lt;StatusBarItem Name=&quot;sbiFile&quot; Background=&quot;Wheat&quot;&gt;打开文件...&lt;/StatusBarItem&gt;
+        <br /> &lt;/StatusBar&gt;
+        <br /> &lt;/Grid&gt;
+        <br /> &lt;/Window&gt;
+       </div> </td> 
+     </tr> 
+    </tbody> 
+   </table> 
+   <p> </p> 
+   <div>
+    <strong>9.5.2 显示子窗体</strong>
+   </div> 
+   <div>
+    在应用程序开发过程中，经常需要弹出新的窗体。在WPF中，窗体有两种弹出模式，一种是通过 System.Windows.Window.Show()方法显示新窗体，新窗体和父窗体之间相互独立，可以同时捕获用户操作。另一种是通过 System.Windows.Window.ShowDialog()方法以模式对话框的方式显示新窗体，新窗体捕获用户操作，父窗体在子窗体存在期间不能进行任何操作，常见的属性设置等窗体就是这种模式。
+   </div> 
+   <div>
+    在TextReader实例中，以模式对话框形式显示关于对话框，要显示一个新的窗体大致有以下3个步骤：
+   </div> 
+   <div>
+    （1）创建要显示的新窗体的对象。
+   </div> 
+   <div>
+    （2）初始化要显示的窗体，如果没有需要初始化的数据，则不进行此操作。
+   </div> 
+   <div>
+    （3）通过System.Windows.Window.Show()或System.Windows.Window.ShowDialog() 方法显示新的对话框。
+   </div> 
+   <div>
+    示例代码9-16是TextReader实例中显示About子窗体的具体实现，首先创建WndAbout窗体新对象wnd，然后进行wnd的Owner参数初始化，最后通过ShowDialog()方法显示对话框。
+   </div> 
+   <div>
+    示例代码9-16：
+   </div> 
+   <div> 
+    <table cellspacing="0" bordercolordark="#ffffff" cellpadding="2" width="400" align="center" bordercolorlight="#000000" border="1"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#e6e6e6"> <pre>//关于菜单处理函数<br />private void miAbout_Click(object sender, RoutedEventArgs e)<br />{<br />//创建&quot;关于&quot;对话框对象<br />WndAbout wnd = new WndAbout();<br />//设置新建的关于窗体属于当前窗体<br />wnd.Owner = this;<br />//用模式对话框形式显示&quot;关于&quot;对话框<br />wnd.ShowDialog();<br />}</pre> </td> 
+      </tr> 
+     </tbody> 
+    </table> 
+   </div> 
+   <div>
+    <strong>9.5.3 关闭窗体</strong>
+   </div> 
+   <div>
+    在WPF应用程序中，关闭窗体通过System.Windows.Window.Close()方法实现，在调用Close()方法之后，会立即引发窗体的Closing事件，开发人员可以在Closing事件处理函数中取消关闭操作。
+   </div> 
+   <div>
+    如示例代码9-17所示，其中MiExit_Click()方法中通过this.Close()语句关闭当前窗体，而在Window_Closing()事件处理函数中，则通过e.Cancel=true语句取消关闭操作。
+   </div> 
+   <div>
+    示例代码9-17：
+   </div> 
+   <div> 
+    <table cellspacing="0" bordercolordark="#ffffff" cellpadding="2" width="400" align="center" bordercolorlight="#000000" border="1"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#e6e6e6"> <pre>//退出菜单事件处理函数<br />private void MiExit_Click(object sender, RoutedEventArgs e)<br />{<br />//关闭程序<br />this.Close( );<br />}</pre> <pre>//退出前Closing事件处理函数<br />private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)<br />{<br />//退出提示<br />if (MessageBox.Show(&quot;你真的要退出应用程序吗？&quot;, <br />&quot;提示&quot;, MessageBoxButton.YesNo, <br />MessageBoxImage.Question) == MessageBoxResult.No)<br />{<br />e.Cancel = true;&nbsp;&nbsp;&nbsp;   //取消退出操作<br />return;<br />}<br />}</pre> </td> 
+      </tr> 
+     </tbody> 
+    </table> 
+   </div> 
+   <div>
+    <strong>9.5.4 使用TreeView控件</strong>
+   </div> 
+   <div>
+    树形控件是以树形结构表达元素的方式，是比较常用的控件之一，在WPF控件库中，同样提供了树形控件--TreeView。
+   </div> 
+   <div>
+    在WPF中，TreeView控件只是提供显示容器，具体的节点通过TreeViewItem完成，TreeView控件的Items属性表示了它所包含的子节点。TreeViewItem控件是一个可递归的控件，它也用Items属性表示子节点，层层深入，构成一个完整的树形结构。
+   </div> 
+   <div>
+    可以通过TreeView控件的Items属性添加和删除它的子节点，Items属性的每个元素都是object类型，所以可以包含任意类型的元素，TreeView在显示时会自动通过元素的ToString()方法获取要显示的文本。在这一点上TreeViewItem和TreeView是完全一致的。
+   </div> 
+   <div>
+    TreeView控件不包含节点展开和收拢事件（这和Win Form窗体中的Tree控件不同），它包含SelectedItemChanged事件，用来监视树形结构中选中节点的变化。
+   </div> 
+   <div>
+    TreeViewItem控件具有展开（Expanded）事件和收拢（Collapsed）事件，通过这两个事件可以监视节点的展开和收拢，并给出相应的处理。
+   </div> 
+   <div>
+    在TextReader实例中，要显示目录和文件结构，需要用一种典型的树状结构，所以TreeView控件是首选。本例通过以下思路来完成目录的动态加载：
+   </div> 
+   <div>
+    （1）文件系统中的目录和文件都作为TreeView控件中的节点，用TreeViewItem空间表示，而目录和文件的详细路径则保存在TreeViewItem.Tag属性中。
+   </div> 
+   <div>
+    （2）在窗体启动时加载操作系统中所有的逻辑分区（例如，C:\、D:\等），实际上它们都是目录。
+   </div> 
+   <div>
+    （3）监视树中节点的Expanded事件，如果是一个目录第一次展开，则加载该目录下直接的所有子目录和文件，不包括子目录的子目录和文件。
+   </div> 
+   <div>
+    （4）监视TreeView控件的SelectedItemChanged事件，并根据当前选中节点的路径获取目录或文件的详细属性，并显示到界面上。
+   </div> 
+   <div>
+    （5）当双击TreeView控件中的节点时，如果节点是文件，则判断文件类型；如果节点是文本格式文件，则将文本内容加载到界面上。
+   </div> 
+   <div>
+    示例代码9-18是TextReader中与TreeView控件有关的代码，其中LoadLogicDrive()方法将系统中的逻辑分区信息加载到TreeView控件中，LoadDicTree()方法则将选中目录中的子目录和文件加载到该目录节点下。Dic_Expanded()是所有目录节点的Expanded事件处理函数，它首先判断该目录是不是第一次展开，如果是则加载该目录下的信息，否则不加载。
+   </div> 
+   <div>
+    示例代码9-18：
+   </div> 
+   <div> 
+    <table cellspacing="0" bordercolordark="#ffffff" cellpadding="2" width="400" align="center" bordercolorlight="#000000" border="1"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#e6e6e6"> <pre>namespace FileViewer<br />{<br />/// &lt;summary&gt;<br />/// Window1.xaml 的交互逻辑<br />/// &lt;/summary&gt;<br />public partial class WndMain : Window<br />{<br />public WndMain( )<br />{<br />InitializeComponent( );<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   /// &lt;summary&gt;<br />/// 加载指定目录下的文件和目录<br />/// &lt;/summary&gt;<br />/// &lt;param name=&quot;tv&quot;&gt;要展开的目录&lt;/param&gt;<br />/// &lt;returns&gt;true则表示加载成功&lt;/returns&gt;<br />private bool LoadDicTree(TreeViewItem tvi)<br />{<br />tvi.Items.Clear( );&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //清除原有的所有节点（第一次展开标记）&nbsp;&nbsp;   <br />//获取目录路径<br />string dicStr = ((string) tvi.Tag).Trim( );<br />if (Directory.Exists(dicStr))&nbsp;&nbsp;   //如果目录存在<br />{<br />//获取目录信息<br />DirectoryInfo dicInfo = new DirectoryInfo(dicStr);<br />//遍历目录中所有子目录<br />foreach (DirectoryInfo item in dicInfo.GetDirectories())<br />{<br />//如果为系统目录，则不显示到界面<br />if ((item.Attributes &amp; FileAttributes.System) == <br />FileAttributes.System)<br />continue;<br />//创建TreeViewItem对象<br />TreeViewItem tviDic = new TreeViewItem( );<br />//保存目录路径到Tag属性<br />tviDic.Tag = item.FullName;<br />//设置节点显示文本<br />tviDic.Header = item.Name;<br />//节点添加一个子节点&quot;tmp&quot;作为第一次展开标记<br />tviDic.Items.Add(&quot;tmp&quot;);<br />//添加节点Expanded事件处理函数<br />tvi.Expanded += new RoutedEventHandler(this.Dic_Expanded);<br />//将节点添加到该父目录下<br />tvi.Items.Add(tviDic);<br />}<br />//遍历目录中所有子文件<br />foreach (FileInfo item in dicInfo.GetFiles())<br />{<br />//创建TreeViewItem对象<br />TreeViewItem tviFile = new TreeViewItem( );<br />//保存文件路径到Tag属性<br />tviFile.Tag = item.FullName;<br />//设置节点显示文本<br />tviFile.Header = item.Name;<br />//将节点添加到父目录下<br />tvi.Items.Add(tviFile);<br />}<br />return true;<br />}<br />else&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //目录不存在，不处理<br />{<br />return false;<br />}<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //加载系统中逻辑分区信息到目录树<br />private void LoadLogicDrive( )<br />{<br />//遍历所有逻辑分区<br />foreach (string drv in Directory.GetLogicalDrives())<br />{<br />//创建TreeViewItem对象<br />TreeViewItem tvi = new TreeViewItem( );<br />//将分区路径保存到Tag属性&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   <br />tvi.Tag = drv;<br />//设置节点显示文本<br />tvi.Header = drv;<br />//添加节点Expanded事件处理函数<br />tvi.Expanded += new RoutedEventHandler(this.Dic_Expanded);<br />//是目录，则添加&quot;tmp&quot;字符串子节点，用作第一次展开标记<br />tvi.Items.Add(&quot;tmp&quot;);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   <br />//将节点添加到目录树<br />this.tvDic.Items.Add(tvi);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   <br />}<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //窗体加载事件处理函数<br />private void Window_Loaded(object sender, RoutedEventArgs e)<br />{<br />this.tvDic.Items.Clear( );&nbsp;&nbsp;  //清除目录树中所有节点<br />this.LoadLogicDrive( );&nbsp;&nbsp;&nbsp;  //加载操作系统中所有逻辑分区<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //节点展开事件处理函数<br />void Dic_Expanded(object sender, RoutedEventArgs e)<br />{<br />//获取展开的节点<br />TreeViewItem tvi = (TreeViewItem) e.Source;<br />if (tvi.Tag == null)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //如果节点不带有Tag数据，则返回<br />{<br />return;<br />}<br />if ((tvi.Items.Count == 1) &amp;&amp;&nbsp;&nbsp;   //如果节点Tag数据是string类型且为&quot;tmp&quot;<br />(tvi.Items[0] is string) &amp;&amp; //则是第一次展开，则加载子<br />目录等信息到树形结构中<br />((string) tvi.Items[0] == &quot;tmp&quot;))<br />{<br />this.LoadDicTree(tvi);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //加载目录的子目录和文件<br />}<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //选中文件或目录发生变化事件处理函数<br />privatevoidtvDic_SelectedItemChanged(objectsender,RoutedProperty<br />ChangedEventArgs &lt;object&gt; e)<br />{<br />//获取该节点的路径<br />string dicStr = (string)((TreeViewItem) this.tvDic.SelectedItem).Tag;<br />if (Directory.Exists(dicStr))&nbsp;&nbsp;   //是一个目录<br />{<br />//显示属性面板<br />this.tabView.Visibility =  Visibility.Visible;<br />//获取目录信息<br />DirectoryInfo dicInfo = new DirectoryInfo(dicStr);<br />string hint = &quot;&quot;;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //生成目录属性文本<br />hint += string.Format(&quot;目&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   录:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.Name);<br />hint += string.Format(&quot;路&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   径&nbsp;&nbsp;&nbsp;   {0}\n&quot;, dicInfo.FullName);<br />hint += string.Format(&quot;根&nbsp;&nbsp;   目&nbsp;&nbsp;   录:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.Root);<br />hint += string.Format(&quot;父&nbsp;&nbsp;   目&nbsp;&nbsp;   录:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.Parent);<br />hint += string.Format(&quot;子 目  录 数:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.<br />GetDirectories( ).Length);<br />hint += string.Format(&quot;文&nbsp;&nbsp;   件&nbsp;&nbsp;   数:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.<br />GetFiles( ).Length);<br />hint += string.Format(&quot;创 建  时 间:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.CreationTime);<br />hint += string.Format(&quot;最近访问时间:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.LastAccessTime);<br />hint += string.Format(&quot;最近修改时间:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.LastWriteTime);<br />hint += string.Format(&quot;目 录  属 性:&nbsp;&nbsp;   {0}\n&quot;, dicInfo.Attributes);<br />this.tbProp.Text = hint;&nbsp;&nbsp;&nbsp;   //显示目录属性到界面<br />}<br />else if (File.Exists(dicStr))&nbsp;&nbsp;&nbsp;   //是一个文件<br />{<br />//显示属性面板<br />this.tabView.Visibility = Visibility.Visible;<br />//获取文件属性<br />FileInfo fileInfo = new FileInfo(dicStr);<br />string hint = &quot;&quot;;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //生成文件属性文本<br />hint += string.Format(&quot;文&nbsp;&nbsp;   件&nbsp;&nbsp;   名:&nbsp;&nbsp;   {0}\n&quot;, fileInfo.Name);<br />hint += string.Format(&quot;完 整  路 径:&nbsp;&nbsp;   {0}\n&quot;, fileInfo.FullName);<br />hint += string.Format(&quot;扩&nbsp;&nbsp;   展&nbsp;&nbsp;   名:&nbsp;&nbsp;   {0}\n&quot;, fileInfo.Extension);<br />hint += string.Format(&quot;父&nbsp;&nbsp;   目&nbsp;&nbsp;   录:&nbsp;&nbsp;   {0}\n&quot;, fileInfo.Directory);<br />hint += string.Format(&quot;创 建  时 间:&nbsp;&nbsp;   {0}\n&quot;, fileInfo.CreationTime);<br />hint += string.Format(&quot;最近访问时间:&nbsp;&nbsp;   {0}\n&quot;, fileInfo.LastAccessTime);<br />hint += string.Format(&quot;最近修改时间:&nbsp;&nbsp;   {0}\n&quot;, fileInfo.LastWriteTime);<br />hint += string.Format(&quot;文 件  属 性:&nbsp;&nbsp;   {0}\n&quot;, fileInfo.Attributes);<br />this.tbProp.Text = hint;&nbsp;&nbsp;&nbsp;   //显示文件属性到界面<br />}<br />else<br />{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   <br />//不是文件也不是目录，隐藏属性面板<br />this.tabView.Visibility = Visibility.Hidden;<br />}<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //目录树双击事件处理函数<br />private void tvDic_MouseDoubleClick(object sender, MouseButtonEventArgs e)<br />{<br />//获取双击发生的节点<br />TreeViewItem tvi = (TreeViewItem) this.tvDic.SelectedItem;</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   if (tvi == null)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //如果节点为空，返回<br />{<br />return;<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   if (tvi.Items.Count &gt; 0)&nbsp;&nbsp;&nbsp;   //是目录，不是文件，返回<br />{<br />return;<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   string fileName = (string) tvi.Tag; //获取文件名<br />if (!File.Exists(fileName))&nbsp;&nbsp;&nbsp;&nbsp;   //文件不存在，返回<br />{<br />return;<br />}<br /><br />//获取文件信息<br />FileInfo fInfo = new FileInfo(fileName);<br />//根据后缀名判断是否为文本格式的文件<br />switch (fInfo.Extension.ToUpper( ))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   <br />{<br />case &quot;.TXT&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //文本文件<br />case &quot;.LOG&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //日志文件<br />case &quot;.INI&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //ini配置信息<br />case &quot;.XML&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //xml文件<br />case &quot;.XAML&quot;:&nbsp;&nbsp;&nbsp;  //xaml代码文件<br />case &quot;.BAT&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //批处理文件<br />case &quot;.CPP&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //C++代码文件<br />case &quot;.C&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //C代码文件<br />case &quot;.H&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //C、C++头文件<br />case &quot;.CS&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //C#代码文件<br />case &quot;.VB&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //VB代码文件<br />case &quot;.HTML&quot;:&nbsp;&nbsp;&nbsp;  //Html网页代码文件<br />case &quot;.ASPX&quot;:&nbsp;&nbsp;&nbsp;  //ASP.NET代码文件<br />case &quot;.VBS&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //VBScript代码文件<br />case &quot;.JS&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //JavaScript代码文件<br />case &quot;.CSS&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //CSS格式定义文件<br />case &quot;.SLN&quot;:&nbsp;&nbsp;&nbsp;&nbsp;  //VS解决方案文件<br />this.ViewTxtFile(fileName); //加载文本文件到界面上<br />break;<br />case &quot;.RTF&quot;:<br />this.ViewRtfFile(fileName); //加载rtf文件到界面上<br />break;<br />default:<br />//提示不支持的文件格式<br />MessageBox.Show(&quot;暂时还不支持该类型文件查看！&quot;, &quot;提示&quot;,<br />MessageBoxButton.OK, MessageBoxImage.Information);<br />break;<br />}<br />}<br />}<br />}</pre> </td> 
+      </tr> 
+     </tbody> 
+    </table> 实例TextReader中目录树的运行效果如图9-13所示，其中，界面左边是目录树，没有展开的目录也没有加载任何信息，只有在第一次展开之后才会加载具体的目录信息。界面右边的属性页面显示了当前选中文件或目录的详细属性，通过代码中的tvDic_SelectedItem Changed()方法实现。
+    <br /> 
+    <table cellspacing="0" bordercolordark="#ffffff" align="center" bgcolor="#ddddd0" bordercolorlight="#999999" border="1"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#ffffff"><a target="_blank" href="http://new.51cto.com/files/uploadimg/20080929/181251990.jpg"><img style="width: 498px" height="513" width="687" border="0" src="image/第9章 WPF开发实例（续3）9.5 W.181251990.jpg" /><p class="origImg">http://new.51cto.com/files/uploadimg/20080929/181251990.jpg</p></a></td> 
+      </tr> 
+      <tr> 
+       <td align="center" bgcolor="#dddddd">（点击查看大图）图9-13 TextReader目录树运行效果</td> 
+      </tr> 
+     </tbody> 
+    </table> 技巧：在实例TextReader中，目录树加载之所以分目录进行加载，主要是为了提高效率，一次性加载所有目录信息需要等待很长时间，而且并不是所有目录信息都会用到，真正使用的其实是很少的一部分。
+   </div> 
+   <div>
+    <strong>9.5.5 使用RichTextBox控件</strong>
+   </div> 
+   <div>
+    文本编辑和阅读是应用软件最常用的功能之一，WPF中提供两个最基本的文本输入控件：TextBox控件和RichTextBox控件。 TextBox控件提供简单的文本编辑和阅读支持，可以进行多行显示，也可以设置字体、字号、颜色等信息，但这些信息并不能保存并记录到文件中，TextBox控件的使用相当简单，这里就不再进一步介绍。
+   </div> 
+   <div>
+    顾名思义，RichTextBox控件也是用于文本编辑和阅读的，但是它比TextBox功能强大，它可以编辑RTF格式的文档信息。要加载文档信息到RichTextBox通常需要以下5个步骤：
+   </div> 
+   <div>
+    （1）准备文件路径、文件类型（如文本格式、RTF格式等）信息，确保文件存在等。
+   </div> 
+   <div>
+    （2）获取基于要显示的RichTextBox控件的TextRange对象。
+   </div> 
+   <div>
+    （3）通过FileString用读取的方式打开文件。
+   </div> 
+   <div>
+    （4）通过TextRange用指定的文件格式从文件流加载数据。
+   </div> 
+   <div>
+    （5）加载完成后关闭文件。
+   </div> 
+   <div>
+    示例代码9-19演示了如何加载文件信息到RichTextBox控件中，其中ViewTxtFile()方法加载文本（Text）格式的文件，ViewRtfFile()方法加载RTF（Rich Text Format）格式的文件。
+   </div> 
+   <div>
+    示例代码9-19：
+   </div> 
+   <div> 
+    <table cellspacing="0" bordercolordark="#ffffff" cellpadding="2" width="400" align="center" bordercolorlight="#000000" border="1"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#e6e6e6"> <pre>//加载文件内容到RichTextBox控件<br />private void ViewTxtFile(string fileName)<br />{<br />FileStream fStream = null;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //文件流<br />this.tabView.SelectedIndex = 1; //界面切换到文件内容</pre> <pre>&nbsp;&nbsp;&nbsp;   try&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //异常处理<br />{<br />TextRange range;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //获取TextRange对象<br />range = new TextRange(this.rtbText.Document.ContentStart,<br />this.rtbText. Document. ContentEnd);<br />//打开文件<br />fStream = new FileStream(fileName, FileMode.Open);<br />//加载到RichTextBox控件<br />range.Load(fStream, DataFormats.Text);<br />//添加提示信息到状态栏<br />this.sbiFile.Content = string.Format(&quot;打开文件--{0}&quot;, fileName);<br />}<br />catch (Exception ex)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //捕获异常并提示<br />{<br />MessageBox.Show(&quot;加载文件发生错误: \n&quot; + ex.Message, &quot;提示&quot;, <br />MessageBoxButton.OK, MessageBoxImage.Information);<br />}<br />finally<br />{<br />if (fStream != null)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //最终关闭文件<br />{<br />fStream.Close( );<br />}<br />}<br />}</pre> <pre>//加载文件内容到RichTextBox控件<br />private void ViewRtfFile(string fileName)<br />{<br />FileStream fStream = null;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //文件流<br />this.tabView.SelectedIndex = 1; //界面切换到文件内容</pre> <pre>&nbsp;&nbsp;&nbsp;   try&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //异常处理<br />{<br />TextRange range;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //获取TextRange对象<br />range = new TextRange(this.rtbText.Document.ContentStart,<br />this.rtbText.Document. ContentEnd);<br />//打开文件<br />fStream = new FileStream(fileName, FileMode.Open);<br />//加载到RichTextBox控件<br />range.Load(fStream, DataFormats.Rtf);<br />//添加提示信息到状态栏<br />this.sbiFile.Content = string.Format(&quot;打开文件--{0}&quot;, fileName);<br />}<br />catch (Exception ex)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //捕获异常并提示<br />{<br />MessageBox.Show(&quot;加载文件发生错误: \n&quot; + ex.Message, &quot;提示&quot;,<br />MessageBoxButton.OK, MessageBoxImage.Information);<br />}<br />finally<br />{<br />if (fStream != null)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   //最终关闭文件<br />{<br />fStream.Close( );<br />}<br />}<br />}</pre> </td> 
+      </tr> 
+     </tbody> 
+    </table> 在实例TextReader中，文件浏览的运行效果如图9-14所示，其中，界面左边是目录树，右边的&quot;文件内容&quot;选项卡显示了打开文件的具体内容，包括文字、图形等数据。状态栏提示了打开文件的路径。
+    <br /> 
+    <table cellspacing="0" bordercolordark="#ffffff" align="center" bgcolor="#ddddd0" bordercolorlight="#999999" border="1"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#ffffff"><a target="_blank" href="http://new.51cto.com/files/uploadimg/20080929/181439247.jpg"><img style="width: 498px" height="573" width="718" border="0" src="image/第9章 WPF开发实例（续3）9.5 W.181439247.jpg" /><p class="origImg">http://new.51cto.com/files/uploadimg/20080929/181439247.jpg</p></a></td> 
+      </tr> 
+      <tr> 
+       <td align="center" bgcolor="#dddddd">（点击查看大图）图9-14 文件浏览的运行效果</td> 
+      </tr> 
+     </tbody> 
+    </table> 
+   </div> 
+   <div>
+    <strong>9.6 小结</strong>
+   </div> 
+   <div>
+    Windows Presentation Foundation（WPF）是.NET 3.0推出的新组件，并且在.NET 3.5中得到增强，本章首先从WPF的基础概念、体系结构开始，让读者了解WPF的基本原理；然后，介绍WPF的开发模式、XAML代码等知识；最后，通过实例介绍WPF独立应用程序和WPF浏览器应用程序的开发过程。
+   </div> 
+   <div>
+    通过本章的学习，读者应该对WPF有一个简单的了解，并能够用WPF开发出简单的应用程序。读者应该掌握以下知识点：
+   </div> 
+   <div>
+    什么是WPF？WPF有什么作用？
+   </div> 
+   <div>
+    什么是XAML？XAML在WPF开发中起到什么作用？
+   </div> 
+   <div>
+    WPF开发模式是什么样的？
+   </div> 
+   <div>
+    如何进行WPF独立应用程序的开发？
+   </div> 
+   <div>
+    如何使用WPF窗体和控件？
+   </div> 
+   <div>
+    在WPF应用程序中应该如何布局？
+   </div> 
+   <div>
+    如何进行WPF浏览器应用程序的开发？
+   </div> 
+   <div>
+    在WPF浏览器应用程序中如何进行页面的导航？
+   </div> 
+   <div>
+    RichTextBox的使用方法。
+   </div> 
+  </div> 
+ </div> 
+</div></div></body></html>

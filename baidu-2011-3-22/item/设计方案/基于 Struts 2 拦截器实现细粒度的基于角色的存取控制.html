@@ -1,0 +1,364 @@
+<html><head><title><div class="tit">
+  基于 Struts 2 拦截器实现细粒度的基于角色的存取控制
+</div></title></head><body><div id='tit'>基于 Struts 2 拦截器实现细粒度的基于角色的存取控制</div><div id='cate'>设计方案</div><div id='date'>2010年01月20日 星期三 10:39 P.M.</div><div id='page'>18</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/4ba01fd8cb0dde3e33fa1c8d.html'>http://hi.baidu.com/hxzon/blog/item/4ba01fd8cb0dde3e33fa1c8d.html</a><div id='cnt'><h1>基于 Struts 2 拦截器实现细粒度的基于角色的存取控制</h1> 
+<p>级别： 初级</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-struts2-rbac/#author">刘 哲</a>, 软件工程师, IBM<br /> <a href="http://www.ibm.com/developerworks/cn/java/j-lo-struts2-rbac/#author">于 有志</a>, 软件工程师, IBM</p> 
+<p>2008 年 9 月 19 日</p> 
+<blockquote>
+ 本文介绍如何利用 Struts 2 拦截器来为 Java Web 应用添加应用管理的基于角色的存取控制（Role-Based Access Control，RBAC）的设计和实现方法。相对于容器提供的存取控制，它能够更细粒度地控制资源，处理更加复杂的情况。
+</blockquote> 
+<p></p> 
+<p><img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>Apache Struts 作为最成功的 MVC Web 框架早已得到了广泛的应用，但是其自身也暴露出不少缺点，从而引出了 Struts 2 。 Struts 2 摒弃了原来 Struts 1 的设计, 而是转向了 webwork2，并结合 Struts 已有的优点，试图打造出一个集众家所长的完美 Web 框架。 Struts 2 因此也具备 webwork2 中的一个非常重要的特性 - 拦截器 (Interceptor) 。拦截器会在 Action 执行之前和之后被执行（如下图），是一种典型 AOP 实现。</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> <img height="341" src="image/基于 Struts 2 拦截器实现细粒度.fig001.jpg" width="337" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-struts2-rbac/fig001.jpg</p></p> 
+<p>Struts 2 本身提供了一个 <code><font face="新宋体">org.apache.struts2.interceptor.RolesInterceptor</font></code> 拦截器以方便开发人员来实现存取控制。但该拦截器的实现是建立在 J2EE 容器提供的存取控制机制之上的。容器提供的存取控制实现粒度较粗，往往无法满足多数应用的需求。在许多项目中，用户所应该具有的权限是由多种因素而决定，往往在不同的上下文中拥有不同的角色。例如在一个社交项目中，一个用户会在不同的社团里拥有不同的角色，如成员，管理员，来宾等。他的具体角色取决于当前所处社团的标识符。另外，用户的角色还和他所要操作的资源类型有关。比如，在这个社交站点中，用户可以创建自己的日程表，把这个日程表共享给其他用户或者委托给其他人管理。这样对日程表这种类型资源，就会有创建者，阅览者和管理者三种角色。在更复杂应用中，用户的角色可能还会受更多因素决定，这就要求存取控制要有更细的粒度，能够处理更加复杂的逻辑。</p> 
+<p>为了满足这个需求，在基于 Struts 2 的 Web 应用开发中，我们也可以利用拦截器来实现一个应用托管的基于角色的存取控制（RBAC, Role-Based Access Control）系统，让其能够管理更细粒度的资源。该系统在 Struts 2 的配置文件中定义 Action 可以由那些角色来调用，即对角色进行授权。拦截器在 Action 调用之前，对当前用户进行权限认证来决定 Action 是否应该被执行。</p> 
+<p>下面我们就基于 Hibernate+Spring+Struts2 框架来完成这个系统的实现。为了使系统结构更加清晰易于维护，我们将这个系统分为域模型层、持久层和服务层来实现。这种分层结构是目前 Web 开发广为使用的一种模式。</p> 
+<p><img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>这系统中我们只需要一个实体 UserRole, 用来定义用户在不同的上下文中所具有的角色。在清单中，我们使用了 Java Persistence API （Hibernate 从 3.2 开始已经开始支持 JPA）中提供的 JDK 5.0 注解来对模型到数据库表之间的映射进行定义。</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">@Entity 
+ public class UserRole { 
+  private Long id; 
+  private User user; 
+  private String objectType; 
+  private Long objectId; 
+  private String role; 
+  public UserRole(Long userId, String role, String objectType, Long objectId) { 
+    User user = new User(); 
+    user.setId(userId); 
+    this.user = user; 
+    this.role = role; 
+    this.objectType = objectType; 
+    this.objectId = objectId; 
+  } 
+  @Id 
+  @GeneratedValue(strategy = GenerationType.AUTO) 
+  public Long getId() { 
+    return id; 
+  } 
+  public void setId(Long id) { 
+    this.id = id; 
+  } 
+  @ManyToOne 
+  @JoinColumn(name = &quot;userId&quot;, nullable = false) 
+  public User getUser() { 
+    return user; 
+  } 
+  public void setUser(User user) { 
+    this.user = user; 
+  } 
+  public String getObjectType() { 
+    return objectType; 
+  } 
+  public void setObjectType(String objectType) { 
+    this.objectType = objectType; 
+  } 
+  public Long getObjectId() { 
+    return objectId; 
+  } 
+  public void setObjectId(Long objectId) { 
+    this.objectId = objectId; 
+  } 
+  public String getRole() { 
+    return role; 
+  } 
+  public void setRole(String role) { 
+    this.role = role; 
+  } 
+ }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>注意这里边有两个比较特殊的字段 <code><font face="新宋体">objectType</font></code> 和 <code><font face="新宋体">objectId</font></code>，它们用来表明用户在具体哪个资源上拥有的角色。 <code><font face="新宋体">objectType</font></code> 指资源的类型，<code><font face="新宋体">objectId</font></code> 指资源的标识。比如我们要将用户 Mike 加为某个日程表的管理员，则表中新增记录的 <code><font face="新宋体">user</font></code> 字段为 Mike 在 user 表中的 ID，<code><font face="新宋体">objectType</font></code> 为“calendar”，<code><font face="新宋体">objectID</font></code> 为这个日程表 ID，<code><font face="新宋体">role</font></code> 为角色的名字“admin”。当然，如果您的应用中不同类型资源都使用唯一的全局 ID，<code><font face="新宋体">objectType</font></code> 这个字段也可以省略。</p> 
+<p><img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>代码清单 2 定义了对 UserRole 进行 CRUD 的 DAO 接口，代码清单 3 则是它的实现。通过 <code><font face="新宋体">@PersistenceContext</font></code> 注解来让容器注入 JPA 中的实体管理器 EntityManager 。 UserRoleDaoImpl 调用 EntityManager 来对 UserRole 进行持久化到数据库中。</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public interface UserRoleDao { 
+ public void create(UserRole userRole); 
+ public void update(UserRole userRole); 
+ public UserRole find(Long userId, String objectType, Long objectId); 
+ }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" />
+<p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p>
+<br /> 
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public class UserRoleDaoImpl implements UserRoleDao { 
+  private EntityManager entityManager; 
+  public EntityManager getEntityManager() { 
+    return entityManager; 
+  } 
+
+  @PersistenceContext 
+  public void setEntityManager(EntityManager entityManager) { 
+    this.entityManager = entityManager; 
+  } 
+
+  public void create(UserRole userRole) { 
+    entityManager.persist(userRole); 
+  } 
+
+  public UserRole find(Long userId, String objectType, Long objectId) { 
+    Query query = entityManager.createQuery(
+      &quot;FROM UserRole ur WHERE ur.user.id=&quot; + 
+      userId + 
+      &quot; AND ur.objectType='&quot; + 
+      objectType + 
+      &quot;' AND ur.objectId=&quot; + 
+      objectId); 
+    List result = query.getResultList(); 
+    if (result.size() == 0) 
+      return null; 
+    return (UserRole)result.get(0); 
+  } 
+
+  public void update(UserRole userRole) { 
+    entityManager.merge(userRole); 
+  } 
+ }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>创建一个 <code><font face="新宋体">RoleService</font></code> 接口 (清单 4) 作为 fa&ccedil;ade， 清单 5 是具体实现。 <code><font face="新宋体">RoleServiceImpl</font></code> 的实现很简单，主要是封装了为用户分配角色和查询用户角色。注解 Transactional 用来将方法放置在一个事务中进行。在类声明上的 <code><font face="新宋体">@Transactional(readOnly = true)</font></code> 表示默认的事务为只读。 <code><font face="新宋体">setUserRole</font></code> 方法需要写入数据到数据库中，因此我们将其 <code><font face="新宋体">readOnly</font></code> 属性设置成 false.</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public interface RoleService { 
+    public void setUserRole(Long userId, String role, String objectType, Long objectId); 
+    public String findRole(Long userId, String objectType, Long objectId); 
+ }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" />
+<p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p>
+<br /> 
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">@Transactional(readOnly = true) 
+ public class RoleServiceImpl implements RoleService { 
+
+ private UserRoleDao userRoleDao; 
+
+ public void setUserRoleDao(UserRoleDao userRoleDao) { 
+    this.userRoleDao = userRoleDao; 
+ } 
+
+  @Transactional(readOnly = false) 
+  public void setUserRole(Long userId, String role, String objectType, Long objectId) { 
+    UserRole userRole = new UserRole(userId, role, objectType, objectId); 
+    UserRole userRoleInDB = userRoleDao.find(userId, objectType, objectId); 
+    if (null == userRoleInDB) { 
+      userRoleDao.create(userRole); 
+    } else { 
+      userRole.setId(userRoleInDB.getId()); 
+      userRoleDao.update(userRole); 
+    } 
+  } 
+
+  public String findRole(Long userId, String objectType, Long objectId) { 
+    UserRole userRole = userRoleDao.find(userId, objectType, objectId); 
+    if (userRole == null) { 
+      return null; 
+    } 
+    return userRole.getRole(); 
+  } 
+ }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>拦截器会在 Action 被执行之前被 Struts 2 框架所调用，我们利用这个特性来完成对用户身份的认证，只有用户具有正确角色方能执行 Action 。具体哪些角色可以执行 Action，需要在 Struts 2 的配置文件中指定，将在下一小节中详细阐述。这一点和 Struts 2 内置的 RolesInterceptor 类似，但我们的拦截器可以通过 <code><font face="新宋体">objectType</font></code> 和 <code><font face="新宋体">objectId</font></code> 来实现更加细粒度的认证。</p> 
+<p>要创建一个用于用户角色认证的拦截器。需要让其实现 <code><font face="新宋体">com.opensymphony.xwork2.interceptor.Interceptor</font></code> 接口并对 <code><font face="新宋体">String intercept(ActionInvocation actionInvocation) throws Exception</font></code> 方法进行实现。 如清单 6 。成员变量 <code><font face="新宋体">roleService</font></code> 是通过 Spring 的依赖注入被赋予 RoleServiceImpl 。 <code><font face="新宋体">allowedRoles</font></code> 和 <code><font face="新宋体">disallowedRoles</font></code> 分别存储了允许和不允许执行 Action 的角色，两者不能同时存在。 <code><font face="新宋体">objectType</font></code> 和 <code><font face="新宋体">objectIdKey</font></code> 分别表示资源的类型和资源 ID 在 HTTP 请求中的参数名。它们是做为 Interceptor 的参数在 Struts 2 配置文件中进行设置，会自动由 Struts 2 框架填充进来。</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public class RBACInterceptor implements Interceptor { 
+   public static final String FORBIDDEN = &quot;forbidden&quot;; 
+   private List&lt;String&gt; allowedRoles = new ArrayList&lt;String&gt;(); 
+   private List&lt;String&gt; disallowedRoles = new ArrayList&lt;String&gt;(); 
+   private RoleService roleService; 
+   private String objectType; 
+   private String objectIdKey;   
+    
+   public void setRoleService(RoleService roleService) { 
+  this.roleService = roleService; 
+   } 
+
+   public void setObjectType(String objectType) { 
+    this.objectType = objectType; 
+  } 
+  public void setObjectIdKey(String objectIdKey) { 
+    this.objectIdKey = objectIdKey; 
+  } 
+
+  public void setAllowedRoles(String roles) { 
+    if (roles != null) 
+      allowedRoles = Arrays.asList(roles.split(&quot;[ ]*,[ ]*&quot;)); 
+  } 
+
+  public void setDisallowedRoles(String roles) { 
+    if (roles != null) 
+      disallowedRoles = Arrays.asList(roles.split(&quot;[ ]*,[ ]*&quot;)); 
+  } 
+
+  public void init() { 
+  } 
+    
+  public void destroy() { 
+  } 
+    
+  public String intercept(ActionInvocation actionInvocation) throws Exception { 
+    HttpServletRequest request = ServletActionContext.getRequest(); 
+    // Get object id 
+    Long objectId = Long.valueOf(request.getParameter(objectIdKey)); 
+    Map session = actionInvocation.getInvocationContext().getSession(); 
+    // Get current user id 
+    Long userId = (Long) session.get(Constant.KEY_CURRENT_USER); 
+    // Get the user role 
+    String userRole = roleService.findRole(userId, objectType, objectId); 
+
+    if (!isAllowed(userRole)) { 
+      // forbid invoking the action 
+      return FORBIDDEN; 
+    } else { 
+      // allow invoking the action 
+      return actionInvocation.invoke(); 
+    } 
+  } 
+
+  // Check if the current user has correct role to invoke the action 
+  protected boolean isAllowed(String userRole) { 
+    if (allowedRoles.size() &gt; 0) { 
+      if (userRole == null) 
+        return false; 
+      return allowedRoles.contains(userRole); 
+    } else if (disallowedRoles.size() &gt; 0) { 
+      if (userRole == null) 
+        return true; 
+      return !disallowedRoles.contains(userRole); 
+    } 
+    return true; 
+  } 
+ }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在 <code><font face="新宋体">intercept</font></code> 方法中我们根据当前用户的 ID，HTTP 请求参数中获得资源的 ID，所存取的资源类型来调用 <code><font face="新宋体">RoleService</font></code> 获得用户的角色。 然后再判断该角色是否在 <code><font face="新宋体">allowedRoles</font></code> 和 <code><font face="新宋体">disallowedRoles</font></code> 中来确定用户是否有权限调用 Action 。如果用户没权限，则将请求发送到名为“forbidden”的 result 。从这里可以看出，用户的角色验证与身份验证的作用完全不同。身份验证是验证用户是否网站注册用户，而角色认证是在用户为注册用户的前提下对用户相对于站内各种资源扮演的角色的辨别。</p> 
+<p>上面代码中用到了判断用户是否具有运行 Action 所要求的角色的函数 <code><font face="新宋体">isAllowed()</font></code>。它首先根据用户 ID 和 Action 作用于的对象的类型和 ID 从数据库查询到用户对应的角色，然后将用户角色与允许角色的列表逐个比较。如果允许角色列表包含用户实际角色则返回真，否则返回假；如果允许角色列表为空，则将用户角色与禁止角色的列表比较，如果用户的角色被禁止，则返回假，否则返回真。如果两个列表都为空，也返回真。这样既可以对某个 Action 配置允许访问角色列表，也可以配置拒绝访问列表。</p> 
+<p><img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>首先我需要在 Spring 的配置文件中添加系统中所涉及到各个 POJO，如清单 7 。</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;!-- Data Access Objects --&gt; 
+  &lt;bean id=&quot;userRoleDao&quot; class=&quot;com.sample.security.dao.impl.UserRoleDaoImpl&quot;/&gt; 
+   
+  &lt;!-- Service Objects --&gt; 
+  &lt;bean id=&quot;roleService&quot; 
+    class=&quot;com. sample.security.service.impl.RoleServiceImpl&quot; &gt; 
+    &lt;property name=&quot;userRoleDao&quot; ref=&quot;userRoleDao&quot; /&gt; 
+  &lt;/bean&gt; 
+  
+  &lt;!-- Interceptor Objects --&gt; 
+  &lt;bean id=&quot;RBACInterceptor&quot; scope=&quot;prototype&quot; 
+    class=&quot;com. sample.security.interceptor. RBACInterceptor &quot;&gt; 
+    &lt;property name=&quot;roleService&quot;  ref=&quot;roleService&quot; /&gt; 
+  &lt;/bean&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>然后需要在 Struts 配置文件中对需要进行存取控制的 Action 进行配置。首先定义我们实现的拦截器，并把其加到拦截器栈中。在 <code><font face="新宋体">&lt;interceptors&gt; …… &lt;/interceptors&gt;</font></code> 中添加下面的代码。</p> 
+<p> </p>
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;interceptor name=&quot;RBAC ” class=&quot;RBACInterceptor&quot; /&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>现在我们可以将 RBAC 拦截器添加到任意的 interceptor-stack 中，或者直接配置到任意的 Action 。添加下面清单中的内容到 Struts 2 配置文件中，将能够对在一个日程表中删除会议进行控制。</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;action name=&quot;deleteMeeting&quot; class=&quot;com.demo.action.DeleteMeetingAction&quot;&gt; 
+ &lt;result&gt;/WEB-INF/jsp/deleteMeetingResult.jsp&lt;/result&gt; 
+ &lt;result name=&quot;forbidden&quot;&gt;/WEB-INF/jsp/forbidden.jsp&lt;/result&gt; 
+    &lt;interceptor-ref name=&quot;RBAC&quot;&gt; 
+        &lt;param name=&quot;allowedRoles&quot;&gt;admin, owner&lt;/param&gt; 
+        &lt;param name=&quot;objectType&quot;&gt;calendar&lt;/param&gt; 
+ &lt;param name=&quot;objectIdKey&quot;&gt;id&lt;/param&gt; 
+ &lt;/interceptor-ref&gt; 
+ &lt;interceptor-ref name=&quot;defaultStack&quot; /&gt; 
+ &lt;/action&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>至于用户角色的分配，我们可以定义一个 Action 通过 <code><font face="新宋体">RoleService</font></code> 来创建。如下面清单 9 的配置和清单 10 的代码实现了一个 Action 允许日程表的创建者来分配角色给其它人。</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;action name=&quot;assignCalendarRole&quot; class=&quot;com.demo.action.AssignCalendarRoleAction&quot;&gt; 
+ &lt;result&gt;/WEB-INF/jsp/deleteMeetingResult.jsp&lt;/result&gt; 
+ &lt;result name=&quot;forbidden&quot;&gt;/WEB-INF/jsp/forbidden.jsp&lt;/result&gt; 
+    &lt;interceptor-ref name=&quot;RBAC&quot;&gt; 
+        &lt;param name=&quot;allowedRoles&quot;&gt;owner&lt;/param&gt; 
+        &lt;param name=&quot;objectType&quot;&gt;calendar&lt;/param&gt; 
+ &lt;param name=&quot;objectIdKey&quot;&gt;id&lt;/param&gt; 
+ &lt;/interceptor-ref&gt; 
+ &lt;interceptor-ref name=&quot;defaultStack&quot; /&gt; 
+ &lt;/action&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" />
+<p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p>
+<br /> 
+<table class="cke_show_border" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public class AssignCalendarRoleAction extends ActionSupport { 
+  private RoleService roleService; 
+  private Long userId = 0; 
+  private String userRole = &quot;reader&quot;; 
+ private Long id = 0; 
+
+  public AssignCalendarRoleAction (RoleService roleService) { 
+    this.roleService = roleService; 
+  } 
+
+ public String execute() { 
+ roleService.setUserRole(userId, userRole, &quot;calendar&quot;, id); 
+ return SUCCESS; 
+  } 
+ }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><img class="cke_anchor" alt="锚点" src="image/基于 Struts 2 拦截器实现细粒度.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>本文介绍了如何在 Spring+Hibernate+Struts2 框架中实现一个应用托管的 RBAC 系统，不同于容器提供的 RBAC，它能够更加细粒度地对各种资源进行存取控制。这里的实现非常简单，还需要许多地方可以进行扩展和完善（比如对用户组的支持），希望能对读者起到抛砖引玉的作用。</p> 
+<p> </p></div></body></html>

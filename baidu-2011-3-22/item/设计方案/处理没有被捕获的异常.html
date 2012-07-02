@@ -1,0 +1,148 @@
+<html><head><title><div class="tit">
+  处理没有被捕获的异常
+</div></title></head><body><div id='tit'>处理没有被捕获的异常</div><div id='cate'>设计方案</div><div id='date'>2009年09月02日 星期三 03:50 P.M.</div><div id='page'>32</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5728d75834228688810a1836.html'>http://hi.baidu.com/hxzon/blog/item/5728d75834228688810a1836.html</a><div id='cnt'><div>
+ 处理没有被捕获的异常
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 在我们的程序中并不是所有的异常都被捕获，有些是因为我们不想捕获，因为我们认为那些异常没必要捕获
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 而有些是我们无法捕获的，因为我们不能确定它们会在什么地方出现，例如像 NullPointerException，ClassCastException，IndexOutOfBoundsException这些 RuntimeException。我们也许可以在所有它们有可能发生的地方去捕获它们，但这确实是很坏的解决方案。但在有些情况下，我们又必须在一些未捕获的异常发生时做一些事情，像释放资源、让程序离开错误状态等等。
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 这里通过ThreadGroup提供的一个方法，解决了这个问题，让我们的程序可以变得更健壮。ThreadGroup提供一个uncaughtException回调方法，当线程组中的线程有未被捕获的异常发生时，JVM就会去调用这个方法。
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; /*当有未被捕获的异常发生导致线程停止时，这个方法就会被虚拟机调用，我们只要在自己的ThreadGroup子类中override这个方法，在其中对异常进行相应的处理*/
+</div> 
+<div> 
+</div> 
+<div>
+ public class LauncherTest extends ThreadGroup {
+ <br /> private LauncherTest() {
+ <br /> &nbsp;&nbsp; super(&quot;laucherTest&quot;);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public static void main(final String args[]){
+ <br /> &nbsp;&nbsp; Runnable start=new Runnable(){
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void run() {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; AppLauncher.main(args);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; };
+ <br /> &nbsp;&nbsp; new Thread(new LauncherTest(),start).start();
+ <br /> }
+ <br /> 
+ <br /> public void uncaughtException(Thread t,Throwable e){
+ <br /> &nbsp;&nbsp; e.printStackTrace();
+ <br /> }
+ <br /> }
+ <br /> ===============
+</div> 
+<pre>java.lang.Object
+  <img alt="继承者 " src="image/处理没有被捕获的异常.html.inherit.gif" /><p class="origImg">mk:@MSITStore:I: javabook JDK_API_1_6_zh_CN.CHM::/resources/inherit.gif</p><strong>java.lang.Throwable</strong></pre> 
+<dl>
+ <dt>
+  <strong>所有已实现的接口：</strong> 
+ </dt>
+ <dd>
+  Serializable 
+ </dd>
+</dl>
+<dl>
+ <dt>
+  <strong>直接已知子类：</strong> 
+ </dt>
+ <dd>
+  Error, Exception 
+  <br /> 
+ </dd>
+</dl> 
+<div> 
+ <p>类 Error</p> 
+ <pre>java.lang.Object
+  <img alt="继承者 " src="image/处理没有被捕获的异常.html.inherit.gif" /><p class="origImg">mk:@MSITStore:I: javabook JDK_API_1_6_zh_CN.CHM::/resources/inherit.gif</p>java.lang.Throwable
+      <img alt="继承者 " src="image/处理没有被捕获的异常.html.inherit.gif" /><p class="origImg">mk:@MSITStore:I: javabook JDK_API_1_6_zh_CN.CHM::/resources/inherit.gif</p><strong>java.lang.Error</strong></pre> 
+ <dl>
+  <dt>
+   <strong>所有已实现的接口：</strong> 
+  </dt>
+  <dd>
+   Serializable 
+  </dd>
+ </dl>
+ <dl>
+  <dt>
+   <strong>直接已知子类：</strong> 
+  </dt>
+  <dd>
+   AnnotationFormatError, AssertionError, AWTError, CoderMalfunctionError, FactoryConfigurationError, FactoryConfigurationError, IOError, LinkageError, ServiceConfigurationError, ThreadDeath, TransformerFactoryConfigurationError, VirtualMachineError 
+  </dd>
+ </dl> 
+ <p><code><font face="NSimsun">Error</font></code> 是 <code><font face="NSimsun">Throwable</font></code> 的子类，用于指示合理的应用程序不应该试图捕获的严重问题。大多数这样的错误都是异常条件。虽然 <code><font face="NSimsun">ThreadDeath</font></code> 错误是一个“正规”的条件，但它也是 <code><font face="NSimsun">Error</font></code> 的子类，因为大多数应用程序都不应该试图捕获它。</p> 
+ <p>在执行该方法期间，无需在其 <code><font face="NSimsun">throws</font></code> 子句中声明可能抛出但是未能捕获的 <code><font face="NSimsun">Error</font></code> 的任何子类，因为这些错误可能是再也不会发生的异常条件。</p> 
+ <p>类 Exception</p> 
+ <pre>java.lang.Object
+  <img alt="继承者 " src="image/处理没有被捕获的异常.html.inherit.gif" /><p class="origImg">mk:@MSITStore:I: javabook JDK_API_1_6_zh_CN.CHM::/resources/inherit.gif</p>java.lang.Throwable
+      <img alt="继承者 " src="image/处理没有被捕获的异常.html.inherit.gif" /><p class="origImg">mk:@MSITStore:I: javabook JDK_API_1_6_zh_CN.CHM::/resources/inherit.gif</p><strong>java.lang.Exception</strong></pre> 
+ <dl>
+  <dt>
+   <strong>所有已实现的接口：</strong> 
+  </dt>
+  <dd>
+   Serializable 
+  </dd>
+ </dl>
+ <dl>
+  <dt>
+   <strong>直接已知子类：</strong> 
+  </dt>
+  <dd>
+   AclNotFoundException, ActivationException, AlreadyBoundException, ApplicationException, AWTException, BackingStoreException, BadAttributeValueExpException, BadBinaryOpValueExpException, BadLocationException, BadStringOperationException, BrokenBarrierException, CertificateException, ClassNotFoundException, CloneNotSupportedException, DataFormatException, DatatypeConfigurationException, DestroyFailedException, ExecutionException, ExpandVetoException, FontFormatException, GeneralSecurityException, GSSException, IllegalAccessException, IllegalClassFormatException, InstantiationException, InterruptedException, IntrospectionException, InvalidApplicationException, InvalidMidiDataException, InvalidPreferencesFormatException, InvalidTargetObjectTypeException, InvocationTargetException, IOException, JAXBException, JMException, KeySelectorException, LastOwnerException, LineUnavailableException, MarshalException, MidiUnavailableException, MimeTypeParseException, MimeTypeParseException, NamingException, NoninvertibleTransformException, NoSuchFieldException, NoSuchMethodException, NotBoundException, NotOwnerException, ParseException, ParserConfigurationException, PrinterException, PrintException, PrivilegedActionException, PropertyVetoException, RefreshFailedException, RemarshalException, RuntimeException, SAXException, ScriptException, ServerNotActiveException, SOAPException, SQLException, TimeoutException, TooManyListenersException, TransformerException, TransformException, UnmodifiableClassException, UnsupportedAudioFileException, UnsupportedCallbackException, UnsupportedFlavorException, UnsupportedLookAndFeelException, URIReferenceException, URISyntaxException, UserException, XAException, XMLParseException, XMLSignatureException, XMLStreamException, XPathException 
+  </dd>
+ </dl> 
+ <p><font face="NSimsun">Exception</font> 类及其子类是 <code><font face="NSimsun">Throwable</font></code> 的一种形式，它指出了合理的应用程序想要捕获的条件。</p> 
+ <p>===============<br /> 类 RuntimeException</p> 
+ <pre>java.lang.Object
+  <img alt="继承者 " src="image/处理没有被捕获的异常.html.inherit.gif" /><p class="origImg">mk:@MSITStore:I: javabook JDK_API_1_6_zh_CN.CHM::/resources/inherit.gif</p>java.lang.Throwable
+      <img alt="继承者 " src="image/处理没有被捕获的异常.html.inherit.gif" /><p class="origImg">mk:@MSITStore:I: javabook JDK_API_1_6_zh_CN.CHM::/resources/inherit.gif</p>java.lang.Exception
+          <img alt="继承者 " src="image/处理没有被捕获的异常.html.inherit.gif" /><p class="origImg">mk:@MSITStore:I: javabook JDK_API_1_6_zh_CN.CHM::/resources/inherit.gif</p><strong>java.lang.RuntimeException</strong></pre> 
+ <dl>
+  <dt>
+   <strong>所有已实现的接口：</strong> 
+  </dt>
+  <dd>
+   Serializable 
+  </dd>
+ </dl>
+ <dl>
+  <dt>
+   <strong>直接已知子类：</strong> 
+  </dt>
+  <dd>
+   AnnotationTypeMismatchException, ArithmeticException, ArrayStoreException, BufferOverflowException, BufferUnderflowException, CannotRedoException, CannotUndoException, ClassCastException, CMMException, ConcurrentModificationException, DOMException, EmptyStackException, EnumConstantNotPresentException, EventException, IllegalArgumentException, IllegalMonitorStateException, IllegalPathStateException, IllegalStateException, ImagingOpException, IncompleteAnnotationException, IndexOutOfBoundsException, JMRuntimeException, LSException, MalformedParameterizedTypeException, MirroredTypeException, MirroredTypesException, MissingResourceException, NegativeArraySizeException, NoSuchElementException, NoSuchMechanismException, NullPointerException, ProfileDataException, ProviderException, RasterFormatException, RejectedExecutionException, SecurityException, SystemException, TypeConstraintException, TypeNotPresentException, UndeclaredThrowableException, UnknownAnnotationValueException, UnknownElementException, UnknownTypeException, UnmodifiableSetException, UnsupportedOperationException, WebServiceException 
+  </dd>
+ </dl> 
+ <p><code><font face="NSimsun">RuntimeException</font></code> 是那些可能在 Java 虚拟机正常运行期间抛出的异常的超类。</p> 
+ <p>可能在执行方法期间抛出但未被捕获的 <code><font face="NSimsun">RuntimeException</font></code> 的任何子类都无需在 <code><font face="NSimsun">throws</font></code> 子句中进行声明。</p> 
+ <p>===============<br /> hxzon:<br /> catch (RuntimeException e);</p> 
+</div></div></body></html>

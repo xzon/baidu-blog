@@ -1,0 +1,121 @@
+<html><head><title><div class="tit">
+  DataChooser 日期选择器修改-swingcode
+</div></title></head><body><div id='tit'>DataChooser 日期选择器修改-swingcode</div><div id='cate'>代码备份</div><div id='date'>2007年12月12日 星期三 01:27 A.M.</div><div id='page'>194</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/9105a20f74b017eeab64579d.html'>http://hi.baidu.com/hxzon/blog/item/9105a20f74b017eeab64579d.html</a><div id='cnt'><div>
+ DataChooser 日期选择器修改-swingcode
+ <br />
+ <br />修改网上搜索的一个日期选择器DataChooser，原DateChooser 继承Jpanel,日期保存在Label中。为了方便使用，修改DateChooser 继承JTextField,日期保存在JTextField.使用netbeans很容易把它加入到项目中。
+ <br />
+ <br />/*
+ <br />* DateChooser.java
+ <br />*
+ <br />* Created on 2007年8月20日, 下午6:07
+ <br />*
+ <br />* To change this template, choose Tools | Template Manager
+ <br />* and open the template in the editor.
+ <br />*/
+ <br />import java.awt.BasicStroke;
+ <br />import java.awt.BorderLayout;
+ <br />import java.awt.Color;
+ <br />import java.awt.Component;
+ <br />import java.awt.Cursor;
+ <br />import java.awt.Dimension;
+ <br />import java.awt.Font;
+ <br />import java.awt.Graphics;
+ <br />import java.awt.Graphics2D;
+ <br />import java.awt.GridLayout;
+ <br />import java.awt.Point;
+ <br />import java.awt.Polygon;
+ <br />import java.awt.Stroke;
+ <br />import java.awt.Toolkit;
+ <br />import java.awt.event.FocusEvent;
+ <br />import java.awt.event.FocusListener;
+ <br />import java.awt.event.MouseAdapter;
+ <br />import java.awt.event.MouseEvent;
+ <br />import java.awt.event.MouseListener;
+ <br />import java.awt.event.MouseMotionListener;
+ <br />import java.text.SimpleDateFormat;
+ <br />import java.util.ArrayList;
+ <br />import java.util.Calendar;
+ <br />import java.util.Comparator;
+ <br />import java.util.Date;
+ <br />import java.util.List;
+ <br />import javax.swing.BorderFactory;
+ <br />import javax.swing.JButton;
+ <br />import javax.swing.JFrame;
+ <br />import javax.swing.JLabel;
+ <br />import javax.swing.JTextField;
+ <br />import javax.swing.JPanel;
+ <br />import javax.swing.Popup;
+ <br />import javax.swing.PopupFactory;
+ <br />import javax.swing.SwingUtilities;
+ <br />import javax.swing.event.AncestorEvent;
+ <br />import javax.swing.event.AncestorListener;
+ <br />
+ <br />/**
+ <br />*
+ <br />* @author hadeslee
+ <br />*/
+ <br />public class DateChooser extends JTextField{
+ <br />&nbsp;&nbsp;&nbsp; private Date initDate;
+ <br />&nbsp;&nbsp;&nbsp; private Calendar now=Calendar.getInstance();
+ <br />&nbsp;&nbsp;&nbsp; private Calendar select;
+ <br />&nbsp;&nbsp;&nbsp; private JPanel monthPanel;//月历
+ <br />&nbsp;&nbsp;&nbsp; private JP1 jp1;//四块面板,组成
+ <br />&nbsp;&nbsp;&nbsp; private JP2 jp2;
+ <br />&nbsp;&nbsp;&nbsp; private JP3 jp3;
+ <br />&nbsp;&nbsp;&nbsp; private JP4 jp4;
+ <br />&nbsp;&nbsp;&nbsp; private Font font=new Font(&quot;宋体&quot;,Font.PLAIN,12);
+ <br />&nbsp;&nbsp;&nbsp; private final LabelManager lm=new LabelManager();
+ <br />&nbsp;&nbsp;&nbsp; //private JTextField this;//,toSelect;
+ <br />&nbsp;&nbsp;&nbsp; private SimpleDateFormat sdf=new SimpleDateFormat(&quot;yyyy-MM-dd&quot;);
+ <br />&nbsp;&nbsp;&nbsp; private boolean isShow=false;
+ <br />&nbsp;&nbsp;&nbsp; private Popup pop;
+ <br />&nbsp;&nbsp;&nbsp; /**
+ <br />&nbsp;&nbsp;&nbsp;&nbsp; * Creates a new instance of DateChooser
+ <br />&nbsp;&nbsp;&nbsp;&nbsp; */
+ <br />&nbsp;&nbsp;&nbsp; public DateChooser() {
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this(new Date());
+ <br />&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp; public DateChooser(Date date){
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; initDate=date;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; select=Calendar.getInstance();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; select.setTime(initDate);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; initPanel();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; initTextField();
+ <br />&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp; public void setEnabled(boolean b){
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //super.setEnabled(b);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.setEnabled(b);
+ <br />&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp; /**
+ <br />&nbsp;&nbsp;&nbsp;&nbsp; *得到当前选择框的日期
+ <br />&nbsp;&nbsp;&nbsp;&nbsp; */
+ <br />&nbsp;&nbsp;&nbsp; public Date getDate(){
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return select.getTime();
+ <br />&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp; //根据初始化的日期,初始化面板
+ <br />&nbsp;&nbsp;&nbsp; private void initPanel(){
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; monthPanel=new JPanel(new BorderLayout());
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; monthPanel.setBorder(BorderFactory.createLineBorder(Color.BLUE));
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JPanel up=new JPanel(new BorderLayout());
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; up.add(jp1=new JP1(),BorderLayout.NORTH);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; up.add(jp2=new JP2(),BorderLayout.CENTER);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; monthPanel.add(jp3=new JP3(),BorderLayout.CENTER);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; monthPanel.add(up,BorderLayout.NORTH);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; monthPanel.add(jp4=new JP4(),BorderLayout.SOUTH);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.addAncestorListener(new AncestorListener(){
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void ancestorAdded(AncestorEvent event) {
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void ancestorRemoved(AncestorEvent event) {
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //只要祖先组件一移动,马上就让popup消失
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void ancestorMoved(AncestorEvent event) {
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hidePanel();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br />
+ <br />Trackback: 
+ <a href="http://tb.blog.csdn.net/TrackBack.aspx?PostId=1779624">http://tb.blog.csdn.net/TrackBack.aspx?PostId=1779624</a>
+</div></div></body></html>

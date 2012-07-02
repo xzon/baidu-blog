@@ -1,0 +1,150 @@
+<html><head><title><div class="tit">
+  使用Swing Worker线程 --执行后台任务的新方法
+</div></title></head><body><div id='tit'>使用Swing Worker线程 --执行后台任务的新方法</div><div id='cate'>设计方案</div><div id='date'>2008年04月01日 星期二 10:14 A.M.</div><div id='page'>150</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/166e57daa2f6d6dfb6fd4888.html'>http://hi.baidu.com/hxzon/blog/item/166e57daa2f6d6dfb6fd4888.html</a><div id='cnt'><table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td> 
+    <table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+     <tbody> 
+      <tr> 
+       <td class="title1" align="center" width="100%" bgcolor="#eeeeee" colspan="3" height="40"><strong>使用Swing Worker线程 --执行后台任务的新方法</strong></td> 
+      </tr> 
+      <tr> 
+       <td align="center" width="100%" bgcolor="#eeeeee"><a href="mailto:foosleeper@hotmail.com">FooSleeper</a> 翻译&nbsp;&nbsp;&nbsp; 更新：2003-07-13 23:21:49&nbsp;&nbsp; 版本: 1.0 &nbsp;&nbsp;</td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+  <tr> 
+   <td valign="top" align="center" width="100%"> 
+    <table class="rtable FCK__ShowTableBorders" width="98%" border="0"> 
+     <tbody> 
+      <tr> 
+       <td class="text" align="left" width="100%"><br /> <strong>作者：Hans Muller，Kathy Walrath </strong><br /> 翻译：郭晓刚（foosleeper@163.net）<br /> <a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/threads2.html">原文来自java.sun.com</a><br /> <br /> 本文给出了一些使用SwingWorker类的例子。SwingWorker类的目的是实现一个后台线程，让你可以用它来执行一些费时的操作，而不影响你的程序的GUI的性能。关于SwingWorker类的一些基本信息，请参阅《<a class="l2" target="_blank" href="http://www.javaresearch.org/article/showarticle.jsp?column=287&amp;thread=7787">线程和Swing</a>》。<br /> <strong>注意</strong>：在2000年9月我们修改了这篇文章和它的例子以适用于一个更新版本的SwingWorker类。SwingWorker类的这个版本修正了一些微妙的线程bug。<br /> 对执行一些费时或可阻塞操作的Swing程序来说，线程是基本的解决之道。例如，如果你的应用程序要根据用户选择的菜单项发出一个数据库请求或加载一个文件，那么你应该在一个单独的线程中完成这些工作。本文阐述了在一个分离的worker线程中完成上述工作的途径。<br /> 本文包括以下主要内容：<br /> 
+        <ul> 
+         <li><strong>SwingWorker类：</strong>这一部分告诉你怎样下载SwingWorker类并描述了SwingWorker类的用途。介绍了SwingWorker类的interrupt()方法。</li> 
+         <li><strong>引入Worker线程的例子</strong>：演示一个运用SwingWorker类的应用程序。</li> 
+         <li><strong>例一：中断一个Swing Worker线程</strong>：解释如何运用interrupt()方法来中断worker线程。</li> 
+         <li><strong>例二：从Swing Worker线程反馈给用户：</strong>例一的增强，添加了一个模式对话框以提示用户输入。</li> 
+        </ul> <br /> <br /> <h4>概览：SwingWorker类</h4> <br /> 因为SwingWorker类并不是Java发行版的一部分，你需要下载和编译它才能使用。它的源代码在这里：<br /> <a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/src/SwingWorker.java">SwingWorker.java</a><br /> <h5>SwingWorker类简介</h5> <br /> SwingWorker类可以简单且方便地用于在一个新的线程中计算一个数值。要使用这个类，你只要创建一个SwingWorker的子类并覆盖SwingWorker.construct()方法来执行计算。然后你实例化它，并在这个新实例上调用start()方法。<br /> 例如，下面的代码片断中产生了一个线程，其中构造了一个字符串。然后，片断中使用了get()方法来取得前面由construct方法所返回的值，并且在必要时将等待。最后，在显示器上显示出字符串的值。<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li>SwingWorker worker = <strong><font color="#0000ff">new</font></strong> SwingWorker() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Object.java.html"><font class="classLink"><u>Object</u></font></a></strong> construct() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">return</font></strong> <font color="#ff33ff">&quot;Hello&quot;</font> + <font color="#ff33ff">&quot; &quot;</font> + <font color="#ff33ff">&quot;World&quot;</font>;</li> 
+          <li>&nbsp;&nbsp;&nbsp; }</li> 
+          <li>};</li> 
+          <li>worker.start();</li> 
+          <li><strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/System.java.html"><font class="classLink"><u>System</u></font></a></strong>.out.println(worker.get().toString());</li> 
+         </ol> 
+        </div> <br /> 在实际的应用程序中，construct方法会做些更有用（但可能很费时）的事情。比如，它可能做下列工作之一：<br /> 
+        <ul> 
+         <li>执行大量的运算</li> 
+         <li>执行可能导致大量的类被装载的代码</li> 
+         <li>为网络或磁盘I/O阻塞</li> 
+         <li>等待其他资源</li> 
+        </ul> <br /> 在上面的代码片断中没有展示的一个SwingWorker类的特性是，当construct()返回后，SwingWorker可以让你在事件派发线程中执行一些代码。你可以通过覆盖SwingWorker的finished()方法来做到这一点。典型地，你可以用finished()来显示刚刚构造的一些组件或设置组件上显示的数据。<br /> 原始版本的SwingWorker类的一个局限是，一旦一个worker线程开始运行，你无法中断它。（译注：本文、本文的例子及SwingWorker类曾被更新。）不管怎么说，对于一个交互应用程序来说，让用户在工作线程完成前一直等待是相当糟糕的风格。如果用户希望终止一项正在执行中的操作，执行此操作的线程应该能够尽快中止。<br /> <h5>使用interrupt()方法</h5> <br /> 在第二版的SwingWorker类中加入了一个interrupt()方法以允许中断一个线程。你的线程应该以下面两种途径之一得到中断的通知：<br /> 
+        <ul> 
+         <li>正在执行诸如sleep()或wait()方法的线程在interrupt()被调用时会抛出一个InterruptedException。</li> 
+         <li>线程可以显式询问它是否已被中断，通过形如以下代码：<br /> 
+          <div class="codeStyle"> 
+           <ol> 
+            <li><strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Thread.java.html"><font class="classLink"><u>Thread</u></font></a></strong>.interrupted()</li> 
+           </ol> 
+          </div> </li> 
+        </ul> <br /> 使用sleep()或wait()方法的工作线程（如后面例子中的线程）一般不需要显式检查是否被中断。通常让sleep()或wait()方法抛出InterruptedException就足够了。<br /> 不过，如果你希望能够中断一个不含定时循环的SwingWorker，还是需要用interrupted()方法来显式检查中断。<br /> <h4>引入Worker线程的例子</h4> <br /> 本文余下的部分讨论一个包含两个worker线程的例子的程序。下图是程序主窗口的截图，和它弹出的一个对话框：<br /> <img src="image/使用Swing Worker线程 --执.frame.gif" /><p class="origImg">http://java.sun.com/products/jfc/tsc/articles/threads/images/frame.gif</p><br /> <img src="image/使用Swing Worker线程 --执.dialog.gif" /><p class="origImg">http://java.sun.com/products/jfc/tsc/articles/threads/images/dialog.gif</p><br /> 例子的源代码由以下文件组成：<br /> 
+        <ul> 
+         <li><a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/src/SwingWorker.java">SwingWorker.java </a></li> 
+         <li><a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/src/ThreadsExample.java">ThreadsExample.java </a></li> 
+         <li><a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/src/Example1.java">Example1.java </a></li> 
+         <li><a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/src/Example2.java">Example2.java </a></li> 
+        </ul> <br /> 你可以下载一个包含上面所有文件的<a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/downloads/src.zip">zip文件</a>。在此zip文件中还包含一个带有HTML格式的说明的例子，这个版本的例子更能说明问题（但也更复杂）。<br /> 运行此例子前要先编译：<br /> /usr/local/java/jdk1.3.0/bin/javac ThreadsExample.java<br /> 用以下命令行运行此例子：<br /> /usr/local/java/jdk1.3.0/bin/java ThreadsExample<br /> 当你按下“Start”按钮，相应例子的worker线程将被创建。你可以在进度条中查看它的进度。你可以按下“Cancel”按钮来中断worker线程。在启动例子二稍等几秒，你会看到一个对话框提示你确认是否执行。稍后我们再详述这个。<br /> <h4>例子一：中断Swing Worker线程</h4> <br /> 接着我们要讨论的例子是Example1.java。这个例子中的worker线程包含一个执行100次的循环，并在两次循环之间睡眠半秒。<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li><em><font color="#339900">//progressBar maximum is NUMLOOPS (100) progressBar的最大值是NUMLOOPS (100)</font></em></li> 
+          <li><strong><font color="#0000ff">for</font></strong>(<strong><font color="#0000ff">int</font></strong> i = 0; i &lt; NUMLOOPS; i++) {</li> 
+          <li>&nbsp;&nbsp;&nbsp; updateStatus(i);</li> 
+          <li>&nbsp;&nbsp;&nbsp; ...</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Thread.java.html"><font class="classLink"><u>Thread</u></font></a></strong>.sleep(500);</li> 
+          <li>}</li> 
+         </ol> 
+        </div> <br /> 为了向你展示如何使用interrupt()方法，我们的例子程序可以让你启动一个SwingWorker然后等待它完成或者中断它。程序中的SwingWorker子类的construct()方法所作的唯一一件事就是调用Example1的doWork()方法。doWork()方法的完整源码列在下面。这个例子在处理worker线程时会重置进度条并把标签设为“Interrupted”。因为中断可能发生在sleep()方法调用之外，所以代码中在调用sleep()方法之前要先检查中断与否。<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li><strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Object.java.html"><font class="classLink"><u>Object</u></font></a></strong> doWork() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">try</font></strong> {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">for</font></strong>(<strong><font color="#0000ff">int</font></strong> i = 0; i &lt; NUMLOOPS; i++) {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; updateStatus(i);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">if</font></strong> (<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Thread.java.html"><font class="classLink"><u>Thread</u></font></a></strong>.interrupted()) {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">throw</font></strong> <strong><font color="#0000ff">new</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/InterruptedException.java.html"><font class="classLink"><u>InterruptedException</u></font></a></strong>();</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Thread.java.html"><font class="classLink"><u>Thread</u></font></a></strong>.sleep(500);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">catch</font></strong> (<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/InterruptedException.java.html"><font class="classLink"><u>InterruptedException</u></font></a></strong> e) {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; updateStatus(0);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">return</font></strong> <font color="#ff33ff">&quot;Interrupted&quot;</font>;&nbsp;&nbsp;</li> 
+          <li>&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">return</font></strong> <font color="#ff33ff">&quot;All Done&quot;</font>;</li> 
+          <li>}</li> 
+         </ol> 
+        </div> <br /> 在此方法中执行的费时操作应该：周期性地让用户知道它有所进展。updateStatus()方法会为事件派发线程排队Runnable对象（记住：不要在其他线程中执行GUI工作）。一旦按下“Start”按钮，动作监听器（action listener）会创建SwingWorker，使得worker线程被创建。Worker线程启动后，它将执行它的construct()方法，该方法将调用doWork()（如下面的代码所示）。下面的代码例示了Example1实现的SwingWorker的子类。<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li>worker = <strong><font color="#0000ff">new</font></strong> SwingWorker() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Object.java.html"><font class="classLink"><u>Object</u></font></a></strong> construct() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">return</font></strong> doWork();</li> 
+          <li>&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">void</font></strong> finished() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; startButton.setEnabled(<strong><font color="#0000ff">true</font></strong>);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; interruptButton.setEnabled(<strong><font color="#0000ff">false</font></strong>);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; statusField.setText(get().toString());</li> 
+          <li>&nbsp;&nbsp;&nbsp; }</li> 
+          <li>};</li> 
+         </ol> 
+        </div> <br /> finished()方法在construct()方法返回后执行（即worker线程完成后）。它的任务只是简单地重新使“Start”按钮有效，同时使“Cancel”按钮无效，并将状态域显示的值设置成worker的计算结果。记住finished()方法是在事件派发线程中执行的，所以它可以安全地直接更新GUI。<br /> <h4>例子二：从Worker线程提示用户</h4> <br /> 这个例子实现为Example1的子类。唯一的区别是，在worker线程执行了大约两秒后，它将阻塞直到用户响应一个Continue/Cancel模态对话框。如果用户选择的不是“Continue”，我们就退出doWork()循环。<br /> 这个例子演示了一个在许多worker线程中应用的惯用法：如果worker执行中到达一个不期望的状态，它将阻塞起来直到用户被提醒或用一个模态对话框从用户那里收集到了更多信息。这种做法有一点复杂，因为对话框的显示需要放到事件派发线程中，且worker线程需要被阻塞直到用户解除了该模式对话框。<br /> 我们使用SwingUtilities的invokeAndWait()方法来在事件派发线程中弹出对话框。与invokeLater()不同，invokeAndWait()会阻塞起来直到它的Runnable对象返回。在我们的例子中，Runnable对象直到对话框被解除才返回。我们创建一个内部Runnable类DoShowDialog，来完成弹出对话框。一个实例变量DoShowDialog.proceedConfirmed，被用来记录用户的选择：<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li><strong><font color="#0000ff">class</font></strong> DoShowDialog <strong><font color="#0000ff">implements</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Runnable.java.html"><font class="classLink"><u>Runnable</u></font></a></strong> {</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">boolean</font></strong> proceedConfirmed;</li> 
+          <li>&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">void</font></strong> run() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Object.java.html"><font class="classLink"><u>Object</u></font></a></strong>[] options = {<font color="#ff33ff">&quot;Continue&quot;</font>, <font color="#ff33ff">&quot;Cancel&quot;</font>};</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">int</font></strong> n = <font color="#ff0000">JOptionPane</font>.showOptionDialog</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (Example2.<strong><font color="#0000ff">this</font></strong>,</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff33ff">&quot;Example2: Continue?&quot;</font>,</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff33ff">&quot;Example2&quot;</font>,</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff0000">JOptionPane</font>.YES_NO_OPTION,</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OptionPane.QUESTION_MESSAGE,</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">null</font></strong>,</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; options,</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff33ff">&quot;Continue&quot;</font>);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proceedConfirmed =</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (n == <font color="#ff0000">JOptionPane</font>.YES_OPTION);</li> 
+          <li>&nbsp;&nbsp;&nbsp; }</li> 
+          <li>}</li> 
+         </ol> 
+        </div> <br /> 因为showConfirmDialog()方法弹出一个模态对话框，调用会阻塞直到用户解除该对话框。<br /> 为了显示对话框并阻塞调用线程（worker线程）直到对话框被解除，worker线程调用invokeAndWait()方法，定义一个DoShowDialog的实例：<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li>DoShowDialog doShowDialog = <strong><font color="#0000ff">new</font></strong> DoShowDialog();</li> 
+          <li><strong><font color="#0000ff">try</font></strong> {</li> 
+          <li>&nbsp;&nbsp;&nbsp;<font color="#ff0000">SwingUtilities</font>.invokeAndWait(doShowDialog);</li> 
+          <li>}</li> 
+          <li><strong><font color="#0000ff">catch</font></strong></li> 
+          <li>&nbsp;&nbsp;&nbsp; (java.lang.reflect.</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/reflect/InvocationTargetException.java.html"><font class="classLink"><u>InvocationTargetException</u></font></a></strong> e) {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();</li> 
+          <li>}</li> 
+         </ol> 
+        </div> <br /> 代码中捕获的InvocationTargetException是调试DoShowDialog的run()方法的残留。当invokeAndWait()方法返回后，worker线程可以读取doShowDialog.proceedConfirmed来获得用户的响应。<br /> <br /> 我们要感谢Doug Lea（《Concurrent Programming in Java》的作者）、Joseph Bowbeer和其他给我们的线程文章和SwingWorker类做出回馈的读者。<br /> -- Hans Muller and Kathy Walrath</td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

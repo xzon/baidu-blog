@@ -1,0 +1,811 @@
+<html><head><title><div class="tit">
+  第3章 了解Ruby前提下的Rails开发
+</div></title></head><body><div id='tit'>第3章 了解Ruby前提下的Rails开发</div><div id='cate'>异域</div><div id='date'>2008年10月26日 星期日 10:49 A.M.</div><div id='page'>89</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/fd79d3392ae1c2f53b87cef7.html'>http://hi.baidu.com/hxzon/blog/item/fd79d3392ae1c2f53b87cef7.html</a><div id='cnt'><div> 
+ <div> 
+  <div>
+   第3章 了解Ruby前提下的Rails开发
+  </div> 
+  <div>
+   本章内容
+  </div> 
+  <div>
+   探索作为Ruby代码的Rails代码
+  </div> 
+  <div>
+   Rails作为领域特定语言
+  </div> 
+  <div>
+   配置风格的编程以及编程风格的配置
+  </div> 
+  <div>
+   对控制器和模型文件的改进示例
+  </div> 
+  <div>
+   用Ruby进行遗留数据转换的技巧
+  </div> 
+  <div>
+   本章讲述一些重要的知识点。本章之后还会有很多的内容：接下来的两个部分是一个Ruby语言学习指南，最后一部分在了解Ruby的前提之下，再次回顾并总结第2章中创建的Rails应用R4RMusic。现在，我们已经对Ruby和Rails进行了一次完整的广度优先的分析，你可以更清楚地看到学习Ruby对于一个Rails开发者的意义了。
+  </div> 
+  <div>
+   本章集中讲述怎样（how）和为什么（why）。深入学习Ruby的所有好处不能也不会完全在本章体现，更多的好处将体现在第二部分和第三部分（本书Ruby指南的核心部分）以及第四部分进一步开发音乐店应用的过程中。但是现在我们所学到的足以使我们通过实际的例子而不仅仅是依赖信念来清楚地看到，对Ruby基础的全面掌握给Rails开发者带来的各种好处。
+  </div> 
+  <div>
+   在“关于本书”那一介绍性的小节中，列出了了解Ruby有助于Rails开发者的四种方式：
+  </div> 
+  <div>
+   帮助你了解应用中的代码（包括Rails样板代码）在做什么。
+  </div> 
+  <div>
+   帮助你在Rails应用中做更多的事，以及用Rails应用做更多的事，比你将自己限制在已有的Rails惯用法和技术中所能做到的更多，而且像它们一样强大。
+  </div> 
+  <div>
+   可以让你去熟悉Rails源代码，之后你就能够参与到Rails的讨论中，甚至可能提交bug报告和补丁代码。
+  </div> 
+  <div>
+   给你一个强大的工具来组织和管理与你的应用程序相关的任务（例如，遗留代码转换）。
+  </div> 
+  <div>
+   正如在那一小节后面所说的，这四项中的前两项是本书的核心。本章的主要目的是说明，读完本书头两章后，这两项就变得更具体和更有意义了。在后面的各章中还有更多的东西需要学习和完成——我们仍然是在一个相当高的层次描绘Ruby/Rails的概貌，但是我们仍在不断前进。
+  </div> 
+  <div>
+   为了达到“了解代码在做什么”的目标，我们将关注某些典型的Rails编码惯用法和它们所处的更大的Ruby语言环境之间的关系。为了帮助你做更多的事情，通过定制Ruby代码，我们将对Rails应用的模型、辅助文件和控制器文件进行一些有代表性的改进。其目的是使你对本书后面将介绍的内容有一个全面的预览。
+  </div> 
+  <div>
+   最后，列表中的第四项（实现应用相关的任务）将只在本章进行讨论。这方面的Ruby用法，大部分在本书的讨论范围之外。但是值得注意的是，对于Rails开发者来说，Ruby的用处并不局限于在Rails应用中编写的Ruby代码行；我们将通过看一些问题来说明这个观点，这些问题与转换遗留数据使其可在Rails应用中使用的过程相关。在一般性地讨论Ruby如何帮助Rails开发者这个主题的同时，我们将谈及一些较为具体的内容，并了解如何在预加载了Rails应用的特殊性的情况下来运行交互式Ruby（即irb）。
+  </div> 
+  <div>
+   本章将为进一步了解Ruby以及进一步去探索Rails打下基础。
+   <br /> ========================================================
+  </div> 
+  <div>
+   3.1 了解代码在做什么的第一次尝试
+  </div> 
+  <div>
+   很难想像为了理解你自己的代码竞然需要专门创建一个例子，但这还是值得的。
+  </div> 
+  <div>
+   在本书后面的部分，我们讨论Ruby并回过头去看Rails的时候，有很多的特殊的代码例子，专门设计用来使你了解你的Rails代码在做什么。在本节中，我们将关注关于代码在做什么的某些要点和假定——具体地说，是关于Ruby和Rails关系的一些要点。
+  </div> 
+  <div>
+   Rails框架能够很好地完成两件事（当然还有其他很多事情）：它让你觉得不仅仅是在使用Ruby，而且是在使用一门用Ruby编写的DSL（领域特定语言，Domain-Specific Language）；它也让你觉得自己其实不是在编程，而主要是在编写配置文件。这两个特性证明了Ruby的威力（Ruby很适合做DSL的宿主语言）以及它在Rails框架中的灵巧的部署。
+  </div> 
+  <div>
+   虽然Rails编码感觉像是配置——或者说就是编码，但用的是Rails自己的语言，不管怎样，它其实还是Ruby。这意味着你要细心地关注各个层次是怎么结合在一起的：关注Ruby和Rails之间的关系，以及在让Rails有时感觉像是一门有别于Ruby的语言的过程中，Ruby扮演了什么样的角色。
+  </div> 
+  <div>
+   在本节中，我们将从“Rails感觉像是配置”和“Rails感觉自身像是一门编程语言”这两个角度来分析Ruby和Rails之间的关系——也就是说，Rails编程事实上就是Ruby编程。这将使你比较充分地看到“了解Rails代码在做什么”的一个重要方面。
+  </div> 
+  <div>
+   3.1.1 把Rails看作领域特定语言
+  </div> 
+  <div>
+   感觉Rails（以及所有可以使用的Rails指令和技术）像是配置的一个重要结果是：使用Rails经常感觉像是在使用一门DSL。DSL是一种专门为一个特定领域中的一项特定任务或一组任务而设计的，而不是针对通用编程。DSL中的指令集相对较小。举例来说，一个虚构的、用于仿真扑克牌游戏的DSL类似下面这样：
+  </div> 
+  <div>
+   <img width="130" height="38" src="image/第3章 了解Ruby前提下的Rails开.image188.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image188.jpg</p>
+  </div> 
+  <div>
+   <img width="130" height="75" src="image/第3章 了解Ruby前提下的Rails开.image189.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image189.jpg</p>
+  </div> 
+  <div>
+   该语言的指令集局限于扑克牌游戏相关的术语，它（根据假定）会有一些内建的功能，这些功能用于计算赢家、出现某手牌的几率，等等。
+  </div> 
+  <div>
+   与任何编程语言或工具一样，DSL在被程序员使用之前，必须先由某人设计或编写。如果你在编写一个DSL，就要用某种其他的编程语言来编写。
+  </div> 
+  <div>
+   已经证实，Ruby的一个威力是它作为DSL宿主语言的能力：Ruby是一个通用目的的编程语言，用它来编写特殊目的的编程语言很容易。这有两个原因。首先，Ruby相对简单的语法，使得不是程序员的人也能很容易学习该语言构造的一个有用的子集。如果将这样一个子集打包成一个独立的小的计算机语言，就可能编成一个DSL。其次，Ruby允许大量地重定义语言构造，这意味着，对于语言元素的含义，你有很大的控制权。
+  </div> 
+  <div>
+   下面是（仍然是虚构的）Ruby版的扑克牌DSL代码片段：
+  </div> 
+  <div>
+   <img width="176" height="114" src="image/第3章 了解Ruby前提下的Rails开.image191.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image191.jpg</p>
+  </div> 
+  <div>
+   这只是一个代码片段；在编写它之前，你需要编写诸如定义Game这样的代码。但是使用这个小DSL的人不需要了解那是怎么做到的。人们可以容易地学会像“deal命令后面跟随值:down或:up”这样的规则，也可以在不知道怎样从Ruby的角度来理解这些代码的情况下，学会这些规则的语法。
+  </div> 
+  <div>
+   从某些方面说来，Rails同样是一个用Ruby编写的DSL。确实，Rails应用的使用范围很广；看看Rails应用的整个范围，从购物网站到BBS到bug跟踪器，也许看不到Rails领域任何特殊的东西。但这恰恰反映了Web站点的广泛应用。从编程的角度来说，Rails确实有一个特定的领域：Web应用，更准确地说，交互的、数据库驱动的Web应用。所以从很多方面来说，Rails提供了一个领域特定的编程语言。
+  </div> 
+  <div>
+   了解Rails的特性是怎样设计的以及Rails与Ruby的关系是非常重要的。特别是对于没有在Rails之外见过很多Ruby代码的人来说，Rails在两个层次上展现了其特殊性：语法和术语。我们将分别看看这两个层次。
+  </div> 
+  <div>
+   1．语法和领域特殊性
+  </div> 
+  <div>
+   我们已经（或者可能以前）见过的一个常见的Rails惯用法如下所示：
+  </div> 
+  <div>
+   <img width="114" height="10" src="image/第3章 了解Ruby前提下的Rails开.image192.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image192.jpg</p>
+  </div> 
+  <div>
+   这里使用的语法（左边是一条基于动词的指令，右边看起来像是配置说明）看起来像是为一个Rails框架这样的系统专门创建的。事实上，它只是一个简单的Ruby方法调用。方法的名字是has_many，参数是Ruby符号对象。
+  </div> 
+  <div>
+   任何人每次使用该方法时，它基本上都是一样的。几乎可以肯定，你不会看到下面这种情况：
+  </div> 
+  <div>
+   <img width="220" height="10" src="image/第3章 了解Ruby前提下的Rails开.image193.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image193.jpg</p>
+  </div> 
+  <div>
+   它和前面的例子是等价的（send以自助的方式发送消息到对象；intern将字符串对象转换为符号对象）。不可否认，这个基于send的版本还不完备，不能用作通用的调用，但是你可能从没见过像下面这样的代码，在前面的基础上做了少量的改变：
+  </div> 
+  <div>
+   <img width="118" height="10" src="image/第3章 了解Ruby前提下的Rails开.image194.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image194.jpg</p>
+  </div> 
+  <div>
+   很多的Ruby程序员喜欢用圆括号括住方法参数，甚至在圆括号是可选的时候也这样。但是在编写Rails应用时，即使是这些程序员（我也是其中之一）也不使用圆括号——这不是因为Ruby有什么限制（Ruby不管这个），而是因为不用括号是标准的Rails约定。
+  </div> 
+  <div>
+   在Rails中使用的常见惯用法不是用来替代Ruby的；它们都是Ruby中的选项员。远在Rails出现之前，就可以调用一个带有Symbol参数的方法。
+  </div> 
+  <div>
+   <img width="210" height="9" src="image/第3章 了解Ruby前提下的Rails开.image196.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image196.jpg</p>
+  </div> 
+  <div>
+   在Rails的发展过程中，它的创建者、核心开发者以及开发者社区就设定了这种调用方法的风格。同时，Ruby也接受这一做法；这种方法调用的风格已成为主流的、惯用的Ruby技术。
+  </div> 
+  <div>
+   作为一个Rails实践者，学习Ruby的部分原因就是为了能够知道自己的代码在做什么，那么第一点要记住的就是，所有这些都是Ruby代码。如果Rails应用之间代码风格的差异比Ruby允许的差异要小——即，如果你数千次地看到下面的代码：
+  </div> 
+  <div>
+   <img width="114" height="10" src="image/第3章 了解Ruby前提下的Rails开.image192.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image192.jpg</p>
+  </div> 
+  <div>
+   但从未见过下面的代码：
+  </div> 
+  <div>
+   <img width="220" height="10" src="image/第3章 了解Ruby前提下的Rails开.image193.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image193.jpg</p>
+  </div> 
+  <div>
+   也没见过下面的代码：
+  </div> 
+  <div>
+   <img width="118" height="10" src="image/第3章 了解Ruby前提下的Rails开.image194.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image194.jpg</p>
+  </div> 
+  <div>
+   那么，这不是因为Rails有特殊的语法或规则，而是因为Rails社区已经达成共识，采用相对少的编码约定，以获得视觉效果上的一致性，也获得了一个专门针对Rails开发的事实标准语言。
+  </div> 
+  <div>
+   2．术语和领域特殊性
+  </div> 
+  <div>
+   领域特殊性的另一面就是术语。举例来说，有一个像has_many这样的术语是一回事，是否在使用该术语时使用圆括号又是另一回事。
+  </div> 
+  <div>
+   完整的Rails领域特殊性表现在术语和语义两方面。可用来操作数据库记录的方法；在目录和文件名中出现的术语model、view和controller；底层的库和数据结构的名字（ActionView等）——所有这些说明，当从事Rails应用的开发时，你是在一个特定的上下文中工作，比如一个特殊的商店，有它自己的行话，以及特殊的规则和过程。
+  </div> 
+  <div>
+   这一点与这样一个事实很吻合，那就是Rails编码实践是非常一致的。语法上的共识使得程序外观一致且熟悉，而方法、数据、文件名的不同语义给予了Rails编程环境独有的特性。
+  </div> 
+  <div>
+   同时，Rails环境不是一个自成一体、自给自足且封闭的世界。它是一个Ruby环境，一个优雅地定义了自己的边界同时仍然包含所有Ruby特性的环境。
+  </div> 
+  <div>
+   这意味着，如果你在编写一个Rails应用时决定编写一个新的方法（因为默认可用的方法中没有能满足你的要求的），那么你可能会像下面这样去调用新的方法：
+  </div> 
+  <div>
+   <img width="127" height="9" src="image/第3章 了解Ruby前提下的Rails开.image198.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image198.jpg</p>
+  </div> 
+  <div>
+   或者像某个其他的Rails惯用法那样去调用。因为Ruby的缘故，Rails环境可以不受限制地扩展，它也鼓励程序员在遵循风格约定的情况下进行扩展。而这些约定，一般来说是Ruby提供的各种选择中最为清晰和整洁的那部分。
+  </div> 
+  <div>
+   因此，这门语言支持框架领域的特殊性，同时框架也支持该语言的参与。
+  </div> 
+  <div>
+   对Rails编码风格的讨论总是会回到这个主题：即频繁地使用符号对象（如：editions）作为方法参数以及/或者频繁地在Rails应用中使用散列键。我们已经讨论了该主题的某些方面，下面，我们返回来讨论符号，但从一个稍微不同的角度：即Rails编程感觉更像配置而不像编程。这个子主题和领域特殊性一样，也是为了让你了解你的Rails代码在做什么。
+  </div> 
+  <div>
+   3.1.2 以配置的风格编写程序代码
+  </div> 
+  <div>
+   Rails一个吸引人的地方是，当你编写Rails应用时常常会感到，相对于编写程序，你更像是在配置系统，尽管你是在编写Ruby代码。感觉是在编写程序并没有什么错。但是配置系统肯定会让人觉得更容易些。当你在app/models/work.rb文件中键入代码
+  </div> 
+  <div>
+   <img width="114" height="23" src="image/第3章 了解Ruby前提下的Rails开.image199.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image199.jpg</p>
+  </div> 
+  <div>
+   时，可能不会觉得是在编写事件的路线图，而是觉得你是在告知系统它运转的一些条件。
+  </div> 
+  <div>
+   Rails常常让你觉得编程像是配置。配置的准确含义常常取决于你在配置什么。简单说来，这么说是合理的——配置文件通常包含声明性的赋值：
+  </div> 
+  <div>
+   <img width="140" height="9" src="image/第3章 了解Ruby前提下的Rails开.image201.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image201.jpg</p>
+  </div> 
+  <div>
+   这样的例子很多。Linux内核配置文件看起来就是这样的，其中，所有的东西不是注释，就是赋值：
+  </div> 
+  <div>
+   <img width="146" height="89" src="image/第3章 了解Ruby前提下的Rails开.image202.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image202.jpg</p>
+  </div> 
+  <div>
+   Apache风格的授权文件看起来也是这样的，其中，冒号（：）用作名字和加密的密码之间的关联或赋值操作符：
+  </div> 
+  <div>
+   <img width="125" height="20" src="image/第3章 了解Ruby前提下的Rails开.image203.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image203.jpg</p>
+  </div> 
+  <div>
+   配置文件有可能比这更复杂，但通常不会。这类简单的赋值风格的配置其优点是容易键入和维护（如果有一个工具程序来帮助你做这些，那会更容易）。
+  </div> 
+  <div>
+   Rails为Web应用开发提供一个容易理解且相对简单的领域特定语言，部分策略就是在Rails中编写的很多代码（当然不是全部，而是很多）感觉就像是在配置文件。这个事实能以多种方式证明。我们已经看到了常用的将符号对象用做方法参数的一些例子。在很多情况下，通常是在参数列表很长的情况下，符号最终不是用作独立的参数，而是出现在一个参数项的左侧，这个参数项的形式与配置文件里指定项/值对的句式相似：
+  </div> 
+  <div>
+   <img width="281" height="34" src="image/第3章 了解Ruby前提下的Rails开.image204.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image204.jpg</p>
+  </div> 
+  <div>
+   在这个例子中，每一个符号和一个值关联：符号:controller和字符串&quot;main&quot;关联，符号:action和字符串&quot;welcome&quot;关联（这两个符号是散列键，这两个字符串是相应的散列值。散列作为一个整体是方法的第二个参数；第一个参数是头一个字符串&quot;A hyperlink...&quot;）。这是标准的Ruby语法；尽管它与典型的item:value形式的配置文件语法不完全一样，但它还是具有某种同样的简单性和视觉均衡性。 
+  </div> 
+  <div>
+   同样值得注意的是，当代码变得更复杂的时候，Rails开发人员要更坚持用某种风格的约定。如果有人开始使用类似下面这样的替代方案，那么前面的例子中所使用的配置风格的符号/字符串对就会被弃置一旁：
+  </div> 
+  <div>
+   <img width="356" height="22" src="image/第3章 了解Ruby前提下的Rails开.image206.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image206.jpg</p>
+  </div> 
+  <div>
+   坚持约定可以很好地向上扩展。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  </div> 
+  <div>
+   程序代码会因此而看起来像是配置文件中的片段，这有很多好处：清晰容易地掌握其逻辑、便于开发人员之间的沟通，等等。同时，有些奇怪的是，配置文件（并且也看起来像是配置文件）可以是（某种特殊类型的）程序代码。下面我们将看看这种现象，因为它是与Rails相关的现象。
+  </div> 
+  <div>
+   3.1.3 YAML和实际是编程的配置
+  </div> 
+  <div>
+   配置数据是程序代码的一个重要的例子是文件config/database.yml，该文件指定后端数据库的详细信息。这个文件不是用Ruby编写的，而是用一种可以直接读入到Ruby对象中也可以直接从Ruby对象写出的格式YAML编写的。
+  </div> 
+  <div>
+   YAML（按UNIX平台的传统，最初代表Yet Another Markup Language，现在却代表YAML Ain't Markup Language），可以说是一个标记语言，也可以说是一个串行化的格式，取决于你看问题的角度。不管是哪一个，YAML提供了将Ruby对象（包括嵌套的数据结构）保存为文本字符串的办法，同时也提供了从这些字符串中恢复出Ruby对象的办法。下面是一个简单的例子：一个嵌套的数组结构转变成一个YAML表示，然后再由它恢复成一个数组。
+  </div> 
+  <div>
+   <img width="257" height="131" src="image/第3章 了解Ruby前提下的Rails开.image208.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image208.jpg</p>
+  </div> 
+  <div>
+   （在这个例子中的inspect方法
+   <img width="15" height="13" src="image/第3章 了解Ruby前提下的Rails开.image147.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image147.jpg</p>，为对象产生一个详细的字符串表示；还有p方法
+   <img width="16" height="13" src="image/第3章 了解Ruby前提下的Rails开.image209.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image209.jpg</p>，它等价于用puts输出inspect的结果。）
+  </div> 
+  <div>
+   运行这段脚本的输出如下：
+  </div> 
+  <div>
+   <img width="206" height="142" src="image/第3章 了解Ruby前提下的Rails开.image210.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image210.jpg</p>
+  </div> 
+  <div>
+   请注意，YAML不仅仅记住了数组的嵌套结构，也记住了&quot;five&quot;是一个字符串，:six是一个符号。Rails在几种上下文中使用YAML。在database.yml中会看到如下的块：
+  </div> 
+  <div>
+   <img width="207" height="75" src="image/第3章 了解Ruby前提下的Rails开.image211.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image211.jpg</p>
+  </div> 
+  <div>
+   用YAML.load方法运行它，看看会发生什么。将这些行放到一个文件（如sample.yml）中，然后运行下面的命令。该命令读入文件并将YAML字符串转换成一个Ruby对象，然后输出该对象（使用p方法）：
+  </div> 
+  <div>
+   <img width="336" height="9" src="image/第3章 了解Ruby前提下的Rails开.image212.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image212.jpg</p>
+  </div> 
+  <div>
+   命令的输出（在这里处理了一下，使其在屏幕上不会挤在一起）是下面这样的：
+  </div> 
+  <div>
+   <img width="338" height="91" src="image/第3章 了解Ruby前提下的Rails开.image213.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image213.jpg</p>
+  </div> 
+  <div>
+   你看到的是一个Ruby散列的输出，Ruby散列是一个由多个成对的键和值构成的数据结构。实际上，你看到的是两个散列。第一个散列只有一个键development；该键对应的值是另一个散列。另一个散列有socket、username等键，该散列的值，位于=&gt;分隔符的右边。
+  </div> 
+  <div>
+   Rails将它的配置数据保存为潜在的Ruby数据，这些数据很容易通过YAML操作恢复。这里再次提一下，编程和配置二者可融为一体，这都是因为那些在Ruby中可访问的设施和工具，以及提供给Ruby的设施和工具。
+  </div> 
+  <div>
+   为了解在使用Rails惯用法和约定时发生了什么，还需要更多的学习。这里的目的不是要给出所有的知识，而是要激发你的好奇心，让你即使是对最常用的Rails技术，也想要一探究竟。毫无疑问，这会导致你不再简单地看待Rails；不再将Rails代码看作是独立存在的。而是记住了Ruby非常适合支持像Rails这种类型的领域特定语言或方言。用Ruby来编写Rails是有原因的。
+  </div> 
+  <div>
+   同时，除了知道Rails惯用法的含义之外（这个过程还在进行，并不仅限于你已经看到过的例子），学习Ruby的重要性还在于，可以通过编写规定的代码来补充和增强Rails提供的默认的技术，由此为你的Rails应用增加价值和威力。
+   <br /> ========================================
+  </div> 
+  <div>
+   3.2 开始用Ruby在代码中做更多的事
+  </div> 
+  <div>
+   你肯定希望了解Ruby的各种技术来增加应用的功能，并且使得应用操作起来更容易。但这并不意味着你做的每一件事有多么了不起。它只是意味着你有能力做更多的事，并且做得更容易。
+  </div> 
+  <div>
+   在这个过程中Rails是你的伙伴。当你利用Ruby技能增强了Rails应用时，并不是你比Rails更聪明。你只是在做你该做的事：在Rails框架中工作，尽可能获得最好的结果。
+  </div> 
+  <div>
+   这也不是陈词滥调。它是对Rails框架设计的一个描述。你在每一个Rails项目中做的具体的事情（不仅仅是代码，还有具体的设置和配置）可以分为三类，它们覆盖了较广泛的约束和自由：
+  </div> 
+  <div>
+   需要按照Rails的规则要求的方式去做的事；
+  </div> 
+  <div>
+   你可能想要做的定制，Rails为此提供了公共基础设施（同时给了很多的自由来特化）；
+  </div> 
+  <div>
+   对程序无限制的增强和扩展，可以使用任意的Ruby语言技术，在任意行进行扩展。
+  </div> 
+  <div>
+   第一类包含基础级的应用特性，如文件布局，也包括需要指定应用所使用的数据库。它还包含不是总要执行但期望用特定方式完成的任务，如声明实体间的关联（has_one:composer等等）、使用layout来指定布局，等等。它们是使用一个框架时必须接受的约束。
+  </div> 
+  <div>
+   第二类是重要且有趣的。举例来说，app/helpers目录属于这一类，该目录用来存放某些程序文件，这些文件包含可以在你的模板中使用的常规例程。你有权命名和编写这些方法，但是Rails提供了一个公共基础设施为你合理化和预先系统化这些代码。
+  </div> 
+  <div>
+   第二类“Rails提供了支持设施并鼓励你扩展”（我们也称之为“结构化的自由”）——的另一个例子是，可以在模型定义文件中使用的钩子方法（method hook）。钩子方法是一种可以编写但不是必须编写的方法；但是一旦编写了它，它就会在程序执行的预定义的点上自动被调用。举例来说，如果在一个模型文件中编写了一个叫做before_create的方法，那么每次与该模型实例相对应的一个数据库记录生成的时候，这个方法会被自动地调用。这允许以有序的方式看管数据，并允许在一个低的层次管理数据库，同时，仍然还用Ruby编写所有的代码。
+  </div> 
+  <div>
+   前面的列表中的第三类“无限制的自由”包含了这样一个事实：你总是在编写Ruby代码。Rails赋予你的对象某些能力：有些是固有的，有些是基于你的数据库的组织和命名方案。可以赋予这些对象任意的更多的能力。在很多情况下，并不需要为此付出很多努力：Rails的默认功能很丰富，它提供了大量的对象功能。但是它也不可能为所有可能的应用提供所有的东西。它没有提供的东西就由你来提供。
+  </div> 
+  <div>
+   紧接着的例子和讨论将包含所有这三类的示例，当你（开发者/程序员）编写Rails应用时，你所做的事情都可以划分到这三类中。我们将从“结构化的自由”这一类开始，先看控制器编程的例子。
+  </div> 
+  <div>
+   3.2.1 给控制器增加功能
+  </div> 
+  <div>
+   控制器是Rails应用的交通警察。它们从数据库收集数据（一般是通过ActiveRecord模型提供的友好的编程接口），按要求处理和组织数据，然后将其传递出来以便插入到视图模板中。
+  </div> 
+  <div>
+   就这其中的“数据处理和组织”部分来说，你在控制器文件中为其编写的代码，在功能和灵活性上都是可扩展的。下面是来自Ruby Change Request站点——RCRchive（http://www.rcrchive. net）——的一个例子。在这个站点上，大家可以提交Ruby的功能增强和修改的建议，以及浏览被提议的修改（也可以对各种RCR进行评议和投票）。
+  </div> 
+  <div>
+   你看到的第一个视图包含一个待决的RCR列表，紧随该列表之后的是被接受的、被拒绝的、被取代的和被撤回的RCR列表。根据不同的RCR状态，这个初始的视图是预先组织好的。
+  </div> 
+  <div>
+   但是，其中有一个链接可以进入另一个视图，在该视图中可以看到所有存档的RCR（也可以通过链接http://www.rcrchive.net/rcr/all直接到达那里）。该列表在默认方式下按RCR编号降序排列，所以最新的RCR位于列表的最前面。通过点击合适的列标题，可以让列表以不同的方式排序：
+  </div> 
+  <div>
+   按标题；
+  </div> 
+  <div>
+   按作者；
+  </div> 
+  <div>
+   按状态（待决的、被接受的和被拒绝的）。
+  </div> 
+  <div>
+   举例来说，当点击列标题Title时，就触发了对同一个动作——rcr控制器文件中的all动作——的另一个调用，但是这次CGI参数order的值是“title”。all方法根据你的要求，将所有按请求的顺序排序后的RCR放到变量@rcrs中。然后这个排好序的RCR列表被递交给视图。
+  </div> 
+  <div>
+   控制器中的排序逻辑是下面这样的：
+  </div> 
+  <div>
+   (1) 如果排序字段是
+   <em>author</em>（作者），则先用作者名字排序，然后用RCR编号降序排序；
+  </div> 
+  <div>
+   (2) 如果排序字段是
+   <em>status</em>（状态）或
+   <em>title</em>（标题），则先用状态或标题排序，然后用RCR编号降序排序；
+  </div> 
+  <div>
+   (3) 如果排序字段是
+   <em>number</em>（编号），用RCR编号降序排序。
+  </div> 
+  <div>
+   完成此任务的Ruby方法——rcr_controller.rb中的rcr/all动作如下：
+  </div> 
+  <div>
+   <img width="453" height="127" src="image/第3章 了解Ruby前提下的Rails开.image218.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image218.jpg</p>
+  </div> 
+  <div>
+   变量@order（一个实例变量）设置为CGI变量order
+   <img width="15" height="13" src="image/第3章 了解Ruby前提下的Rails开.image147.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image147.jpg</p>的值；如果该CGI变量的值没有设置，则它的默认值是字符串&quot;number&quot;。然后，变量sort_proc（排序过程）被设置为三个可能的lambda表达式（匿名函数）中的一个。选择哪一个lambda表达式取决于@order的值，这个选择是通过一个case语句
+   <img width="16" height="13" src="image/第3章 了解Ruby前提下的Rails开.image219.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image219.jpg</p>来执行的。
+  </div> 
+  <div>
+   一旦选定了正确的lambda表达式，所有现存的RCR将根据该lambda表达式的逻辑排序
+   <img width="14" height="13" src="image/第3章 了解Ruby前提下的Rails开.image220.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image220.jpg</p>，这个排序需使用ActiveRecord的find方法来获取所有的RCR，以及根据sort_proc中保存的lambda表达式来使用Ruby的sort_by方法过滤这个列表。
+  </div> 
+  <div>
+   如果了解Ruby，则该方法很容易编写。但是一定要了解Ruby！确切地说，需要了解下面这些内容：
+  </div> 
+  <div>
+   case语句；
+  </div> 
+  <div>
+   lambda关键字，用它生成一个匿名函数；
+  </div> 
+  <div>
+   send方法（请注意
+   <em>status</em>和
+   <em>title</em>是怎样一起处理的）；
+  </div> 
+  <div>
+   sort_by方法，需要给它传递一个lambda表达式。
+  </div> 
+  <div>
+   这段代码并没有做什么重要的事。即使不使用其中的某些技术，也可以编写出同样功能的代码（但会更长一些）。真正重要的是，当了解这些Ruby技术时，你获得更好的适应性，开发会更容易。
+  </div> 
+  <div>
+   Rails知道应当给予编程人员自由。在使用这种自由时，你会得到一些帮助。其中一个重要的帮助是Rails提供的辅助文件，我们接下来就要讨论它。
+  </div> 
+  <div>
+   3.2.2 部署Rails的辅助文件
+  </div> 
+  <div>
+   Rails提供了最通用的惯用法和技术——“通用”的意思是说很多应用都使用它们。但Rails也提供了处理特殊需求的办法。
+  </div> 
+  <div>
+   位于app/helpers下的辅助文件，是一个很好的例子，也是一个重要的资源。它们也是3.2节开始介绍的列表中的第二个类别的基本例子：不是必须使用，但可能很想使用的Rails设施，用来定制和增强你的应用。
+  </div> 
+  <div>
+   对每一个你创建的控制器都会自动产生一个辅助文件。在此辅助文件中，你可以编写任意多的Ruby方法；在你的视图模板代码中，这些方法自动地成为可访问的。
+  </div> 
+  <div>
+   这种安排的好处是可以减少重复。如果你在一个或多个模板中多次使用一个构造，那么你可以编写一个产生该构造的方法，然后从模板中调用该方法。
+  </div> 
+  <div>
+   下面是一个从RCRchive列表排序代码中提取的例子。在RCR的每一个视图中的每一个列标题，都超链接到rcr/all动作。这些链接只在一个方面有区别：order参数的值（“author”、“title”、“number”或“Status”）。这意味着这四个链接使用几乎完全相同的代码。为减少重复，可用一个辅助方法自动产生合适的链接。你所需要做的仅仅是传递给它一个order参数。
+  </div> 
+  <div>
+   该辅助方法定义在文件rcr_helper.rb中，如下所示：
+  </div> 
+  <div>
+   <img width="287" height="74" src="image/第3章 了解Ruby前提下的Rails开.image222.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image222.jpg</p>
+  </div> 
+  <div>
+   正如你所看到的，它基于Rails的link_to方法。它使用link_to来给出合适的HTML与正确的动作链接，该HTML链接指向正确的动作——同时将order参数设置为变量order的值，变量order是作为link_to方法的参数传入的。
+  </div> 
+  <div>
+   在视图（app/views/rcr/all.rhtml）中，下面四行产生表的列标题：
+  </div> 
+  <div>
+   <img width="324" height="50" src="image/第3章 了解Ruby前提下的Rails开.image223.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image223.jpg</p>
+  </div> 
+  <div>
+   其中每一行调用定制的链接生成方法link_to_order。生成的HTML如下所示：
+  </div> 
+  <div>
+   <img width="401" height="49" src="image/第3章 了解Ruby前提下的Rails开.image225.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image225.jpg</p>
+  </div> 
+  <div>
+   为什么不直接在视图文件中键入这四行HTML？因为使用辅助方法可以更好地封装。假设决定使用全部大写的列标题，而不是现在这样的首字母大写的格式——换句话说，用NUMBER代替Number、TITLE代替Title，等等。由于所有的列标题都用同样的辅助方法处理，因此可以通过对该方法的一次修改达到此目的。只需将order.capitalize改为order.upcase，所有的列标题就自动获得了这个新的格式。如果HTML行被硬编码到模板文件中，就必须到模板文件中找出所有需要修改的地方，逐一手动地修改它们，这既麻烦又容易出错。
+  </div> 
+  <div>
+   辅助方法以两种不同但又相关的方式在Rails中存在。Rails提供了apps/helpers目录和大量文件，鼓励你编写封装了多种功能的方法，同时保持视图模板的组织。同时Rails也提供了大量预定义的辅助方法。link_to就是一个理想的例子：它是一个内建的Rails辅助方法，它给你一个编程接口（一种通过方法调用而不是全部用手工编写来完成工作的方式），用于生成你需要的HTML。
+  </div> 
+  <div>
+   当编写辅助方法时，你是在向Rails已经提供给你的该类方法的仓库中加入新的方法。Rails期望你向上和向外扩展：要符合某个特定的结构，但是以一种无限制的方式。
+  </div> 
+  <div>
+   说到无限制，我们立刻就要进入一个完全开放的领域：增强ActiveRecord模型的功能。
+  </div> 
+  <div>
+   3.2.3 给模型增加功能
+  </div> 
+  <div>
+   ActiveRecord模型是数据库设计领域在Ruby中的体现。你有一个
+   <em>editions</em>表，也有一个Edition模型。于是你就有任意数目的edition对象。借助于内建在ActiveRecord库中的那些方法，这些对象可以执行某些确定的动作——如果为其编写代码，它们也可以执行任意的动作。
+  </div> 
+  <div>
+   在本书的第四部分，当我们再次回到音乐店应用时，将编写定制的模型代码。这里为了与本章的目的一致，我们只了解足够说明这个概念重要性的内容。
+  </div> 
+  <div>
+   可以执行两个级别的模型改进：编写一个方法，该方法的名字对应于一个预定义的回调或钩子方法；从零开始编写一个方法。前一个属于我们在3.2节开始时做的三个自由度分类中的第二类：结构化的自由，改进是鼓励而非必需的。后一个，从零开始编写方法，属于第三类：无限制的编程自由。我们来看它们各自的例子。
+  </div> 
+  <div>
+   1．实现预定义的回调方法
+  </div> 
+  <div>
+   3.2节的介绍中曾经提到一个before_create的钩子方法：如果在一个ActiveRecord模型文件中编写一个名为before_create的方法，该方法会在该模型的实例的数据库记录产生之前被执行。
+  </div> 
+  <div>
+   通过对r4rmusic应用的app/models/editon.rb文件做一个小而无害的修改，可以看到这个行为。每一个edition有一个
+   <em>description</em>字段——基本上它是一个自由形式的文本字段，用来保存描述性的信息，如revised（修订版）或者编者的名字。如果没有指定一个字符串来填充此字段，那么默认该字段的值是nil（没有值）。
+  </div> 
+  <div>
+   如果
+   <em>description</em>字段有默认的字符串值，那应该更好。如果在数据库记录首次产生的时候，该edition不存在描述信息，让我们给它一个默认值&quot;standard&quot;。
+  </div> 
+  <div>
+   为此，在edition.rb中插入下面的方法定义（在该文件结束处的end之前插入）：
+  </div> 
+  <div>
+   <img width="315" height="34" src="image/第3章 了解Ruby前提下的Rails开.image227.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image227.jpg</p>
+  </div> 
+  <div>
+   该代码主要是说：如果
+   <em>description</em>是nil，将其设置为&quot;standard&quot;。该代码在一个新的edition保存到数据库之前执行。于是，任何没有描述的edition便得到了一个描述。
+  </div> 
+  <div>
+   （可以试一试，通过修改第2章生成的records文件中的某个edition的
+   <em>description</em>字段为NULL[等价于Ruby中的nil的SQL元素]，并且重新初始化数据库和来自文件的记录。当你在浏览器中查看edition时，你将看到我们设定的&quot;standard&quot;。）
+  </div> 
+  <div>
+   Rails预定义了相当多的像before_create这样的回调方法和过滤方法，它预测你想要在应用中执行的编程动作，但是它并不指定这些动作应该做什么。这些过滤方法与辅助文件设施很类似：它们是半成品，很容易把它们加工为成品。
+  </div> 
+  <div>
+   也可以为模型从零开始编写方法。这是在Rails中锻炼Ruby技能最有威力和最有用的领域之一。
+  </div> 
+  <div>
+   2．自由形式的编程的模型改进
+  </div> 
+  <div>
+   假设有一个Rails应用，你在其中保存人名——也许是在数据库中保存客户名。假定有一个名为
+   <em>customers</em>的表，其中的字段是title、first_name、middle_initial以及last_name。在Ruby一侧，有一个customer.rb模型文件。借助于数据库表字段的名称，可以容易地检索一个给定的客户的头衔和名字。
+  </div> 
+  <div>
+   举例来说，假设在一个视图模板中，变量@customer包含一个客户对象，你可以像下面这样显示这个人的名字：
+  </div> 
+  <div>
+   <img width="415" height="36" src="image/第3章 了解Ruby前提下的Rails开.image229.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image229.jpg</p>
+  </div> 
+  <div>
+   你可能是想要巧妙地处理某些人没有中间名首字母的情况，不过我们的基本目的是显示一个名字，将名字的各部分合起来放在一个字符串中。
+  </div> 
+  <div>
+   无论如何，这段代码对于一个模板来说太长了。而且，你可能想要多次显示该名字。如果有一个专门的方法来做此事就好了。可以编写一个辅助方法，就像我们在link_to_order那个例子中所做的一样。但是你可能想要在应用中的其他地方（也许在给客户发Email时）访问该名字的友好版本，而不仅仅是在视图中访问。
+  </div> 
+  <div>
+   最符合逻辑的办法是让customer对象自己来产生该名字的友好版本。为此，需要在模型文件中编写一个方法。该方法的输出是一个字符串，该字符串由名字的各个部分组合形成（我们甚至可以内插一个空串，以防该客户没有中间名首字母）。你要编写的customer.rb文件如下所示：
+  </div> 
+  <div>
+   <img width="416" height="87" src="image/第3章 了解Ruby前提下的Rails开.image230.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image230.jpg</p>
+  </div> 
+  <div>
+   如果你在设计一个视图，想让其中的人名以这种格式显示，而且你的控制器已经将相关的Customer实例保存在变量@customer中，那么可以编写下面的代码，@customer就知道该怎么做了：
+  </div> 
+  <div>
+   <img width="305" height="10" src="image/第3章 了解Ruby前提下的Rails开.image231.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image231.jpg</p>
+  </div> 
+  <div>
+   在这个例子中，因为Ruby允许通过加号将字符串连接起来，所以你能够为所有的customer对象添加改进。同样，条件逻辑（处理中间名首字母的if/else语句）保证了最终不会得到错误的圆点和空格。总的说来，通过使用Ruby的一个小技能，你赋予了Customer模型一个新的功能——给出它的名字的友好版本——而且做得很不错。
+  </div> 
+  <div>
+   知道更多的Ruby知识，就可以实现更多这样的功能，而且可以更快更准确地完成。Rails和Ruby作为一个系统来运转，编写Ruby代码是你在该系统中所扮演的一部分角色。
+   <br /> ==============================================
+  </div> 
+  <div>
+   3.3 实现与应用相关的技能和任务
+  </div> 
+  <div>
+   正如本章介绍中所说的，在后续章节中，管理和组织任务不会作为重点内容来介绍，但是这方面的知识肯定值得花一节的内容来介绍。最好能在Rails工作中通过各种方式使用Ruby，本节的目的就是鼓励你去寻找这样的机会。
+  </div> 
+  <div>
+   我们将使用一个常见的情况作为主要的例子：将遗留数据转换为Rails可用的格式。在这个领域Ruby可以给你很大的帮助：因为目标格式是ActiveRecord，同时也因为Ruby擅长以多种格式和多种形式处理数据。
+  </div> 
+  <div>
+   本节也介绍了一个基于irb的应用控制台，它基本上是一个预加载了模型文件的irb会话。可以采取交互的方式使用这个会话来检查和修改数据库记录，并运行为了使用模型而定义的任何方法。作为一个子话题，该应用控制台并不完全与本节的主话题切合；但是因为它是基于irb的，而irb又是通用Ruby环境的一部分，我们将其看作是Ruby提供的用来改进工作环境的设施之一（如果你最终觉得该应用控制台是一个完整的Rails开发工具，那更好）。
+  </div> 
+  <div>
+   3.3.1 将遗留数据转换为ActiveRecord
+  </div> 
+  <div>
+   关于数据转换，主要取决于要转换什么。可能要处理一个旧的关系数据库，那么需要将其转换为Rails友好的SQL。或者需要将纯文本文件中的信息转换为数据库记录。关于遗留数据的处理，没有一个唯一的方法。但Ruby技能几乎在任何情况下都可以帮你将数据转换为Rails可访问的形式。
+  </div> 
+  <div>
+   我们要看一个大一点的例子，它基于一个实际的案例（可能与很多实际的案例相似），其中的数据来自一个讨论组并保存在一些小的文本文件中。我们很幸运，因为这些文本文件是YAML文件。这使得我们能让Ruby和随后的Rails理解文件的内容。
+  </div> 
+  <div>
+   每个文件有很多字段：
+  </div> 
+  <div>
+   <img width="392" height="89" src="image/第3章 了解Ruby前提下的Rails开.image234.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image234.jpg</p>
+  </div> 
+  <div>
+   你一直使用的这个软件是基于消息编号和跟踪应答，将所有的事情按线程处理的。现在，你想将它转换成一个Rails站点。
+  </div> 
+  <div>
+   首先，设计和创建新的数据库。基于前面的例子，一组合适的表可能如下所示：
+  </div> 
+  <div>
+   <img width="224" height="158" src="image/第3章 了解Ruby前提下的Rails开.image235.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image235.jpg</p>
+  </div> 
+  <div>
+   <img width="225" height="51" src="image/第3章 了解Ruby前提下的Rails开.image236.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image236.jpg</p>
+  </div> 
+  <div>
+   现在，创建Rails应用：
+  </div> 
+  <div>
+   <img width="228" height="49" src="image/第3章 了解Ruby前提下的Rails开.image237.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image237.jpg</p>
+  </div> 
+  <div>
+   在app/models/user.rb中，加入下面这些内容：
+  </div> 
+  <div>
+   <img width="195" height="34" src="image/第3章 了解Ruby前提下的Rails开.image238.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image238.jpg</p>
+  </div> 
+  <div>
+   并在app/models/message.rb中放入这些代码：
+  </div> 
+  <div>
+   <img width="326" height="60" src="image/第3章 了解Ruby前提下的Rails开.image240.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image240.jpg</p>
+  </div> 
+  <div>
+   然后，设置config/database.yml。
+  </div> 
+  <div>
+   现在，你可以把旧的数据过滤到新的Rails环境中。方法如下：
+  </div> 
+  <div>
+   (1) 通过YAML读入消息文件。
+  </div> 
+  <div>
+   (2) 从数据库中检索出与消息中的用户名对应的用户（如果数据库中没有这样一个用户，就创建一个新用户）。
+  </div> 
+  <div>
+   (3) 生成一个新的消息对象，将它的user属性设置为刚刚检索出来的用户（或刚创建的用户）。
+  </div> 
+  <div>
+   (4) 用旧的值设置新消息对象的data、number、title以及body属性。
+  </div> 
+  <div>
+   (5) 如果消息有一个
+   <em>previous</em>字段（用于线程处理），那么将该消息的previous属性值设置为那条消息的id。
+  </div> 
+  <div>
+   代码清单3-1显示了执行所有这些步骤的Ruby脚本。其中包含了一些黑盒技术；但是后面的注释会帮助你理解它在做什么，以及它如何映射到刚刚描述过的算法。该脚本是精心设计的，从这个新的（虚构的）Rails应用的根目录运行；从那里，它可以容易地找到和加载config/environ- ment.rb文件，该文件可使它访问必需的数据库以及其他应用特定的信息。
+  </div> 
+  <div>
+   代码清单3-1 用于将遗留的YAML数据加载到Rails应用数据库的转换脚本
+  </div> 
+  <div>
+   <img width="295" height="50" src="image/第3章 了解Ruby前提下的Rails开.image241.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image241.jpg</p>
+  </div> 
+  <div>
+   <img width="295" height="252" src="image/第3章 了解Ruby前提下的Rails开.image243.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image243.jpg</p>
+  </div> 
+  <div>
+   <img width="338" height="127" src="image/第3章 了解Ruby前提下的Rails开.image245.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image245.jpg</p>
+  </div> 
+  <div>
+   脚本初始化一个名为mnums的空散列（键/值集合），当一条消息是对另一条消息的应答时，该散列用于存放被应答消息的id字段
+   <img width="15" height="13" src="image/第3章 了解Ruby前提下的Rails开.image147.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image147.jpg</p>。另外，所有相关的遗留数据文件的名字集中起来，按字母顺序存入数组files中。然后该脚本使用each方法
+   <img width="16" height="13" src="image/第3章 了解Ruby前提下的Rails开.image219.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image219.jpg</p>，一次一个地循环遍历所有原始的遗留数据文件。（请确保这些文件以这样一个方式命名：在按字母顺序排名的基础上，再按照消息日期排序；举例来说，可以把它们命名为file000、file001，等等）。
+  </div> 
+  <div>
+   脚本基于YAML读入的文件内容为每个文件创建一个Ruby对象
+   <img width="14" height="13" src="image/第3章 了解Ruby前提下的Rails开.image220.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image220.jpg</p>。[记住，YAML可以将Ruby数据串行化为字符串形式，然后又可以将字符串（在这个例子里是保存在文件中）加载为运行时内存中的数据。]变量prev和num保存消息中previous和number字段的值。number总是有值，但是previous仅在该消息是对另一条消息的应答时才会有值。
+  </div> 
+  <div>
+   脚本接下来在数据库中搜索与文件中的用户名匹配的用户。如果没有找到则创建一个新的用户
+   <img width="14" height="13" src="image/第3章 了解Ruby前提下的Rails开.image246.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image246.jpg</p>。这保证每一条消息都有一个与之关联的合法用户。
+  </div> 
+  <div>
+   脚本的剩余部分处理消息。创建一个新的消息对象，用来保存从文件中解析出来的消息
+   <img width="14" height="13" src="image/第3章 了解Ruby前提下的Rails开.image248.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image248.jpg</p>。新消息的id字段保存在散列mnums中，并使用遗留消息的编号作为键。这提供了从旧的消息编号序列到新的消息数据库中的id值序列之间的一个映射。
+  </div> 
+  <div>
+   新消息对象的各个字段被初始化为文件中相应的值：user、number、body和date
+   <img width="14" height="13" src="image/第3章 了解Ruby前提下的Rails开.image250.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image250.jpg</p>。如果存在一条以前的消息，而本消息是它的应答（我们可以根据变量prev是否有值来判断这一点），则那条已存在的消息将用来设置新消息的previous字段
+   <img width="13" height="13" src="image/第3章 了解Ruby前提下的Rails开.image251.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image251.jpg</p>。最后，将新消息保存到数据库中，新消息的属性反映其创建者，同时还包含其作为应答（如果有的话）的源消息
+   <img width="14" height="13" src="image/第3章 了解Ruby前提下的Rails开.image252.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image252.jpg</p>。
+  </div> 
+  <div>
+   这里所讨论的是，如何将数据从一个环境转换到另一个环境。Ruby可以为你做这其中所有的事：读入旧的数据（在这个例子中很容易，因为它是YAML文件，但是即使是在其他基于文本或者数据库的格式中，这也不困难），测试这些数据并决定应该做什么，然后创建ActiveRecord对象，将其属性设置为初始的数据集合中的属性。不仅仅Rails是无限制的，Ruby本身也一样对所有类型的任务没有限制，包括像数据转换这样的任务，该任务并不是Rails应用的一部分，但它首先使得Rails应用的开发成为可能。
+  </div> 
+  <div>
+   3.3.2 基于irb的Rails应用控制台
+  </div> 
+  <div>
+   本章的最后一个子主题可以放到本书中的任何章节中。它是与应用相关的技能，所以放到这一节也是合适的。你会发现Rails应用控制台非常有用。
+  </div> 
+  <div>
+   你已经使用过irb来测试Ruby代码片段和做快速计算。完整的Rails应用包括一个基于irb的控制台，从本质上说，它是一个预加载了应用程序组件的irb会话。
+  </div> 
+  <div>
+   执行下面的命令运行该控制台（从应用的顶层目录开始）：
+  </div> 
+  <div>
+   <img width="132" height="10" src="image/第3章 了解Ruby前提下的Rails开.image253.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image253.jpg</p>
+  </div> 
+  <div>
+   现在，你进入了一个irb会话（使用简单的提示选项；提示符&gt;&gt;）。在这个会话中，可以检查数据，创建新的数据实例，等等。代码清单3-2显示了一个会话，它创建一个新的Edition对象，并填充其属性（description除外，由于我们在3.2.3节所编写的钩子方法before_create，所以在保存对象时会自动填充其属性）。
+  </div> 
+  <div>
+   代码清单3-2 创建一个Edition对象并填充其属性的irb会话
+  </div> 
+  <div>
+   <img width="461" height="181" src="image/第3章 了解Ruby前提下的Rails开.image254.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image254.jpg</p>
+  </div> 
+  <div>
+   <img width="291" height="49" src="image/第3章 了解Ruby前提下的Rails开.image256.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image256.jpg</p>
+  </div> 
+  <div> 
+   <table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" align="left"> 
+    <tbody> 
+    </tbody> 
+   </table> 
+  </div> 
+  <div>
+   该控制台会话对数据库进行修改（默认情况下是开发数据库）。在此，我们创建一个Edition对象，给它的work属性赋值为某个作品值
+   <img width="15" height="13" src="image/第3章 了解Ruby前提下的Rails开.image147.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image147.jpg</p>（这样它就成为该作品的一个版本），同时也对publisher和year赋值
+   <img width="16" height="13" src="image/第3章 了解Ruby前提下的Rails开.image219.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image219.jpg</p>，并将该对象保存到数据库。save操作返回true
+   <img width="14" height="13" src="image/第3章 了解Ruby前提下的Rails开.image220.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image220.jpg</p>，这意味着保存成功完成。按照我们前面的安排，新的edition的description属性被自动设置为“standard”
+   <img width="14" height="13" src="image/第3章 了解Ruby前提下的Rails开.image246.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image246.jpg</p>。
+  </div> 
+  <div>
+   在会话进行过程中可以直接修改应用的程序文件。如果你这样做，就必须重新加载修改过的文件。可以使用load命令（它与require不同，即使曾经加载过该文件，它还会再次加载）来重新加载。举例来说，如果修改了edition.rb，那么在控制台会话中键入以下内容：
+  </div> 
+  <div>
+   <img width="124" height="7" src="image/第3章 了解Ruby前提下的Rails开.image257.jpg" />
+   <p class="origImg">http://book.csdn.net/BookFiles/393/img/image257.jpg</p>
+  </div> 
+  <div>
+   Rails知道如何找到该文件并再次读入。
+  </div> 
+  <div>
+   不要忘记应用控制台也是一个常规的irb会话。如果像很多Ruby程序员一样，你也喜欢上了irb，那么，当一个应用控制台已经在运行，并且你想要做一个快速的irb计算或代码测试时，就不需要再次启动一个额外的irb会话。
+   <br /> ======================================
+  </div> 
+  <div>
+   3.4 小结
+  </div> 
+  <div>
+   第3章为你打了一个基础，作为一个Rails开发者，掌握Ruby可以给你很多帮助。本章是一个枢纽：就Ruby或Rails的适用性来说，它不如本书后续章节讲得那么详细或广泛，但是比前两章所讲述的更为详细一些。
+  </div> 
+  <div>
+   你已经看到过一些例子，明白了“了解Rails代码在做什么”的意义，这些例子主要是关于看起来像配置语法的Rails代码和Ruby编程代码之间的互动关系（对于理解Ruby /Rails的关系，这并不是唯一值得学习的领域，但它是一个有利于抓住关键的领域）。同时也看到一些关于如何部署自己代码的基本例子，这其中既有使用Rails提供的基础设施的例子（辅助方法和预定义的钩子方法），也有为了某种目的从零开始编写方法的例子。正如3.2节所介绍的，Rails的设计提供了不同层次的选择和自由；你也看到了相应的例子，从规定的、不能改变的应用特性（如目录的布局和命名）到无限制的编程选择（如向模型文件中添加方法，允许使用任意的Ruby技术来影响Rails应用的行为）。
+  </div> 
+  <div>
+   我们也看到了（在本书中是第一次也几乎是最后一次看到）Ruby帮助你处理与Rails应用相关但并不是Rails应用本身的任务时的威力。3.3.1节的遗留数据转换的例子中指出了处理大量此类任务的方法；希望你以后可以有效地使用Ruby来完成这些任务。另外，在讲述“Ruby怎样帮助你进行Rails开发”时，我们还介绍了基于irb的应用控制台，其本身就是一个很有用的工具，同时也是一个说明Ruby编程环境和Rails开发过程之间交互的很好的例子。
+  </div> 
+  <div>
+   现在，我们将开始系统地探索Ruby编程语言。Rails还会提到，但是接下来两个部分的中心内容是Ruby。你现在已经大概了解了，掌握更多的Ruby知识可以为Rails开发提供更多的帮助；你所投入的时间，只有在你不断继续的过程中才会得到更大的回报。
+  </div> 
+ </div> 
+</div></div></body></html>

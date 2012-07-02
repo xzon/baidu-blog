@@ -1,0 +1,461 @@
+<html><head><title><div class="tit">
+  《程序员》2007第十期算法擂台之JAVA解法
+</div></title></head><body><div id='tit'>《程序员》2007第十期算法擂台之JAVA解法</div><div id='cate'>算法&middot;数学</div><div id='date'>2008年05月01日 星期四 10:33 A.M.</div><div id='page'>139</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/f1593c87b7080c2fc75cc36c.html'>http://hi.baidu.com/hxzon/blog/item/f1593c87b7080c2fc75cc36c.html</a><div id='cnt'><div>
+ 《程序员》2007第十期算法擂台之JAVA解法
+</div> 
+<div> 
+</div> 
+<div>
+ 关键字: 算法 猜数字 程序员 算法擂台
+</div> 
+<div> 
+</div> 
+<div>
+ 题目：
+</div> 
+<div> 
+</div> 
+<div>
+ 引用
+</div> 
+<div> 
+</div> 
+<div>
+ 人和计算机做猜数游戏.人默想一个四位数,由计算机来猜.计算机将所猜的数据显示到屏幕上,并问两个问题:一,有几个数字猜对了;二,猜对的数字中有几个位置也对了.人通过键盘来回答这两个问题。计算机一次又一次地猜,直到猜对位置。 
+ <br /> 为了简化输入输出,计算机每次输出一个四位数,然后人输入两个用空格分开的数，分别表示有几个数字猜对，有几个数字位置也对。下面有某次猜数过程:人默认的数是3422，奇数行是计算机猜的数，偶数行是人输入的信息。在这个例子中，计算机第五次猜中了数，在人输入4 4后程序结束退出. 
+ <br /> 请你写一个这样的猜数游戏，看看你所想的数能在几次后被程序猜中。如果在猜数过程中，计算机发现人故意欺骗，输入了不正确的信息,那么程序将输出0然后直接退出.
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 例子: 
+ <br /> 6897 
+ <br /> 0 0 
+ <br /> 5555 
+ <br /> 0 0 
+ <br /> 4444 
+ <br /> 1 1 
+ <br /> 4333 
+ <br /> 2 0 
+ <br /> 3422 
+ <br /> 4 4
+</div> 
+<div> 
+</div> 
+<div>
+ 算法描叙： 
+ <br /> 每次从剩下的可能值中选择能使下一次筛选后可能值最少（平均意义下）的数去猜。
+</div> 
+<div> 
+</div> 
+<div>
+ 算法效果： 
+ <br /> 不甚理想，平均需要5.8步才能猜对。下面是统计数据： 
+ <br /> Step[k] n x 表示使用k步猜对的数字有n个,x表示在总游戏数中占得比例: 
+ <br /> Step[ 1] 1 0.0001 
+ <br /> Step[ 2] 13 0.0013 
+ <br /> Step[ 3] 110 0.0110 
+ <br /> Step[ 4] 713 0.0713 
+ <br /> Step[ 5] 2792 0.2792 
+ <br /> Step[ 6] 4440 0.4440 
+ <br /> Step[ 7] 1553 0.1553 
+ <br /> Step[ 8] 277 0.0277 
+ <br /> Step[ 9] 82 0.0082 
+ <br /> Step[10] 19 0.0019 
+ <br /> Total: 57824 steps 10000 games 
+ <br /> Use time: 420266 ms
+</div> 
+<div> 
+</div> 
+<div>
+ 代码：
+</div> 
+<div> 
+</div> 
+<div>
+ Java代码 
+ <br /> 
+ <br /> import java.util.*;&nbsp;&nbsp; 
+ <br /> 
+ <br /> /** 
+ <br /> 猜数字游戏 
+ <br /> &nbsp;&nbsp; @author Eastsun 
+ <br /> &nbsp;&nbsp; @version 2.0 2007/10/15 
+ <br /> */ 
+ <br /> public class NumberGuess{&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public static void main(String[] args){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Scanner s =new Scanner(System.in);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AI solver =new AI();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try{&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(solver.firstGuess());&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int b =s.nextInt();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int a =s.nextInt();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(!(a==Item.SIZE&amp;&amp;b==Item.SIZE)){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(solver.nextGuess(a,b));&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b =s.nextInt();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a =s.nextInt();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }catch(IllegalArgumentException ex){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;0&quot;);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> }&nbsp;&nbsp; 
+ <br /> 
+ <br /> class AI{&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; private static final Item[] ITEMS_BUFFER ={&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(56),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(156),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(256),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(145),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(135),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(235),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(123),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1322),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1124),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(234),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(2341),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1342),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1243),&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; null,&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1234)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; };&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //可能的答案&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; private List＜Item＞ candidates;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //最近一次的猜测&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; private Item lastGuess;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //已经猜过的次数&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; private int step;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 第一次猜测 
+ <br /> &nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public Item firstGuess(){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; step =1;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //初始化candidates为所有可能的答案&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; candidates =new LinkedList＜Item＞(Item.ALL_POSSIBLE_ITEMS);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //选择&quot;1234&quot;作为第一次的猜测.事实上任意一个四个数字各不相同的都可以,在统计意义下效果一样&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lastGuess = new Item(1234); //&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return lastGuess;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 根据上次的猜测结果得到下一次猜测 
+ <br /> &nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public Item nextGuess(int a,int b){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; step ++;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //根据上次结果对候选集进行过滤&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; filter(candidates,lastGuess,a,b);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //如果候选集为空,说明输入的数据有误&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(candidates.isEmpty()) throw new IllegalArgumentException();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(step ==2){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lastGuess = ITEMS_BUFFER[b*(b+1)/2+a];&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return lastGuess;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //从剩下的候选集中取出权重最小那个作为下一次的猜测&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int min =Integer.MAX_VALUE;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Item guess : candidates){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int weight =weight(candidates, guess);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(weight ＜min){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; min =weight;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lastGuess =guess;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return lastGuess;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 将list中所有用guess猜答案不是(b,a)的过滤掉 
+ <br /> &nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public static void filter(List＜Item＞ list,Item guess,int a,int b){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Iterator＜Item＞ itr =list.iterator();itr.hasNext();){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(!Item.isMatch(itr.next(),guess,a,b)) itr.remove();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用guess去猜结果集list时的权重,这个值越小越好 
+ <br /> &nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public static int weight(List＜Item＞ list,Item guess){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int[] count =new int[(Item.SIZE+1)*(Item.SIZE+2)/2];&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Item word :list){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int a =Item.getA(word,guess);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int b =Item.getB(word,guess);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int index =(b+1)*b/2 +a; //hash for (b,a)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count[index] ++;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int value =0;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int c : count)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value += c*c;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return value;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> }&nbsp;&nbsp; 
+ <br /> 
+ <br /> class Item {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 数字位数 
+ <br /> &nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public static final int SIZE =4;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //一个包含了所有可能解的不可修改的list&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public static final List＜Item＞ ALL_POSSIBLE_ITEMS;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; static{&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List＜Item＞ list =new ArrayList＜Item＞(10000);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int num =0;num ＜10000;num ++)&nbsp;&nbsp;&nbsp;&nbsp; //magic number: 10000 is result of 10^Item.SIZE&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list.add(new Item(num));&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ALL_POSSIBLE_ITEMS =Collections.unmodifiableList(list);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //数字的各位,从高位到低位排列&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; int[] bits;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public Item(int num){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bits =new int[SIZE];&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int index=SIZE-1;num＞0;num/=10)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bits[index--] = num%10;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; @Override 
+ <br /> &nbsp;&nbsp;&nbsp; public String toString(){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StringBuilder sb =new StringBuilder(SIZE);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int index =0;index＜ SIZE;index ++)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append(bits[index]);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return sb.toString();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用guess去猜word,结果是否返回(b,a) 
+ <br /> &nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public static boolean isMatch(Item word,Item guess,int a,int b){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return (getA(word,guess)==a&amp;&amp;getB(word,guess)==b);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; word 为谜底,guess去猜. 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; @return guess与word中位置相同数字也相同的个数 
+ <br /> &nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public static int getA(Item word,Item guess){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int count =0;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int index =0;index＜SIZE; index++)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(word.bits[index]==guess.bits[index]) count ++;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return count;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; word 为谜底,guess去猜. 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; @return 猜对的数字个数 
+ <br /> &nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public static int getB(Item word,Item guess){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int count =0;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; boolean[] flags =new boolean[SIZE];&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int i =0;i ＜SIZE;i ++)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int j =0;j ＜SIZE;j ++)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if((!flags[j])&amp;&amp;word.bits[i]==guess.bits[j]){&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count ++;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; flags[j] =true;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return count;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> } 
+ <br /> import java.util.*;
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> 猜数字游戏
+ <br /> &nbsp;&nbsp; @author Eastsun
+ <br /> &nbsp;&nbsp; @version 2.0 2007/10/15
+ <br /> */
+ <br /> public class NumberGuess{
+ <br /> &nbsp;&nbsp;&nbsp; public static void main(String[] args){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Scanner s =new Scanner(System.in);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AI solver =new AI();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(solver.firstGuess());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int b =s.nextInt();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int a =s.nextInt();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(!(a==Item.SIZE&amp;&amp;b==Item.SIZE)){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(solver.nextGuess(a,b));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b =s.nextInt();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a =s.nextInt();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }catch(IllegalArgumentException ex){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;0&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ class AI{
+ <br /> &nbsp;&nbsp;&nbsp; private static final Item[] ITEMS_BUFFER ={
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(56),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(156),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(256),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(145),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(135),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(235),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(123),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1322),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1124),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(234),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(2341),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1342),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1243),
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; null,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Item(1234)
+ <br /> &nbsp;&nbsp;&nbsp; };
+ <br /> &nbsp;&nbsp;&nbsp; //可能的答案
+ <br /> &nbsp;&nbsp;&nbsp; private List＜Item＞ candidates;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //最近一次的猜测
+ <br /> &nbsp;&nbsp;&nbsp; private Item lastGuess;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //已经猜过的次数
+ <br /> &nbsp;&nbsp;&nbsp; private int step;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 第一次猜测
+ <br /> &nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public Item firstGuess(){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; step =1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //初始化candidates为所有可能的答案
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; candidates =new LinkedList＜Item＞(Item.ALL_POSSIBLE_ITEMS);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //选择&quot;1234&quot;作为第一次的猜测.事实上任意一个四个数字各不相同的都可以,在统计意义下效果一样
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lastGuess = new Item(1234); //
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return lastGuess;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 根据上次的猜测结果得到下一次猜测
+ <br /> &nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public Item nextGuess(int a,int b){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; step ++;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //根据上次结果对候选集进行过滤
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; filter(candidates,lastGuess,a,b);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //如果候选集为空,说明输入的数据有误
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(candidates.isEmpty()) throw new IllegalArgumentException();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(step ==2){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lastGuess = ITEMS_BUFFER[b*(b+1)/2+a];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return lastGuess;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //从剩下的候选集中取出权重最小那个作为下一次的猜测
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int min =Integer.MAX_VALUE;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Item guess : candidates){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int weight =weight(candidates, guess);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(weight ＜min){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; min =weight;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lastGuess =guess;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return lastGuess;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 将list中所有用guess猜答案不是(b,a)的过滤掉
+ <br /> &nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static void filter(List＜Item＞ list,Item guess,int a,int b){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Iterator＜Item＞ itr =list.iterator();itr.hasNext();){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(!Item.isMatch(itr.next(),guess,a,b)) itr.remove();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用guess去猜结果集list时的权重,这个值越小越好
+ <br /> &nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static int weight(List＜Item＞ list,Item guess){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int[] count =new int[(Item.SIZE+1)*(Item.SIZE+2)/2];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Item word :list){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int a =Item.getA(word,guess);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int b =Item.getB(word,guess);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int index =(b+1)*b/2 +a; //hash for (b,a)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count[index] ++;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int value =0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int c : count)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value += c*c;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return value;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ class Item {
+ <br /> &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 数字位数
+ <br /> &nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static final int SIZE =4;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //一个包含了所有可能解的不可修改的list
+ <br /> &nbsp;&nbsp;&nbsp; public static final List＜Item＞ ALL_POSSIBLE_ITEMS;
+ <br /> &nbsp;&nbsp;&nbsp; static{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List＜Item＞ list =new ArrayList＜Item＞(10000);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int num =0;num ＜10000;num ++)&nbsp;&nbsp;&nbsp;&nbsp; //magic number: 10000 is result of 10^Item.SIZE
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list.add(new Item(num));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ALL_POSSIBLE_ITEMS =Collections.unmodifiableList(list);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; //数字的各位,从高位到低位排列
+ <br /> &nbsp;&nbsp;&nbsp; int[] bits;
+ <br /> &nbsp;&nbsp;&nbsp; public Item(int num){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bits =new int[SIZE];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int index=SIZE-1;num＞0;num/=10)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bits[index--] = num%10;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; @Override
+ <br /> &nbsp;&nbsp;&nbsp; public String toString(){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StringBuilder sb =new StringBuilder(SIZE);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int index =0;index＜ SIZE;index ++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append(bits[index]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return sb.toString();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用guess去猜word,结果是否返回(b,a)
+ <br /> &nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static boolean isMatch(Item word,Item guess,int a,int b){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return (getA(word,guess)==a&amp;&amp;getB(word,guess)==b);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; word 为谜底,guess去猜.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; @return guess与word中位置相同数字也相同的个数
+ <br /> &nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static int getA(Item word,Item guess){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int count =0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int index =0;index＜SIZE; index++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(word.bits[index]==guess.bits[index]) count ++;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return count;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; word 为谜底,guess去猜.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; @return 猜对的数字个数
+ <br /> &nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static int getB(Item word,Item guess){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int count =0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; boolean[] flags =new boolean[SIZE];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int i =0;i ＜SIZE;i ++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int j =0;j ＜SIZE;j ++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if((!flags[j])&amp;&amp;word.bits[i]==guess.bits[j]){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count ++;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; flags[j] =true;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return count;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 
+ <a href="http://eastsun.javaeye.com/topics/download/f0ab8fdf-a93e-4da3-8da1-f2062c1bf4c7"><font color="#7d0000">NumberGuess.rar</font></a> (2.7 KB) 描述: 本文所用代码以及测试用代码 
+ <br /> 下载次数: 31 
+ <br /> 
+ <a href="http://eastsun.javaeye.com/blog/132139">http://eastsun.javaeye.com/blog/132139</a>
+</div></div></body></html>

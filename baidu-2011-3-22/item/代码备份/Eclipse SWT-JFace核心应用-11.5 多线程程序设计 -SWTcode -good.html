@@ -1,0 +1,192 @@
+<html><head><title><div class="tit">
+  Eclipse SWT/JFace核心应用-11.5 多线程程序设计 -SWTcode -good
+</div></title></head><body><div id='tit'>Eclipse SWT/JFace核心应用-11.5 多线程程序设计 -SWTcode -good</div><div id='cate'>代码备份</div><div id='date'>2008年04月02日 星期三 12:13 P.M.</div><div id='page'>150</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/670528dd63058ddd8c10291d.html'>http://hi.baidu.com/hxzon/blog/item/670528dd63058ddd8c10291d.html</a><div id='cnt'><div> 
+ <p><font color="#000000">Eclipse SWT/JFace核心应用-11.5 多线程程序设计 -SWTcode -good</font></p> 
+ <h3>11.5 多线程程序设计</h3> 
+ <p class="MsoNormal">通过以上的讲解，读者已经对线程有了一定的认识，有了上述对线程知识的基础，再理解多线程的程序就不难了。在9.9.10节中，学习了如何创建一个带有进度条的表格，当然那里举的示例程序是静态的，并没有涉及多线程的运用。下面对这个带进度条的表格进行改进，再结合上个示例程序中对线程的控制，改进一下该程序。如图11.3所示为使用多线程后，带进度条的表格程序运行后的示意图。</p> 
+ <p align="center"><img height="130" width="262" src="image/Eclipse SWT-JFace核心应.image003.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/304/img/image003.jpg</p></p> 
+ <p align="center">图11.3 多线程带进度条的表格</p> 
+ <p class="MsoNormal">之前使用的程序几乎都是在main()方法创建的，这样根本没有发挥Java的面向对象思想，而在实际的运用中肯定是会用到大量的面向对象的类，读者应该熟悉OO的编程方式。所以这里就采用面向对象的方式，读者可以仔细体会一下与之前写的程序有什么不同之处。</p> 
+ <p class="MsoNormal">（1）编写一个MutiTaskTestDrive类，作为该系统的入口。该类比较简单，代码如下：</p> 
+ <p class="af">MutiTaskTestDrive.java</p> 
+ <p class="a0">package com.fengmanfei.ch11;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.Display;</p> 
+ <p class="a0">import com.fengmanfei.util.ImageFactory;</p> 
+ <p class="a0">public class MutiTaskTestDrive {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public static void main(String[] args) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Display display = Display.getDefault();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MutiTaskGUI mutiTask= new MutiTaskGUI();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mutiTask.getShell().open();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while (!mutiTask.getShell().isDisposed()) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!display.readAndDispatch()) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; display.sleep();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ImageFactory.dispose();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; display.dispose();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a8">}</p> 
+ <p class="MsoNormal">（2）MutiTaskGUI类为主窗口类，也就是放置表格的窗口，该类具体的代码如下：</p> 
+ <p class="af">MutiTaskGUI.java</p> 
+ <p class="a0">package com.fengmanfei.ch11;</p> 
+ <p class="a0">import org.eclipse.swt.SWT;</p> 
+ <p class="a0">import org.eclipse.swt.events.SelectionAdapter;</p> 
+ <p class="a0">import org.eclipse.swt.events.SelectionEvent;</p> 
+ <p class="a0">import org.eclipse.swt.layout.GridData;</p> 
+ <p class="a0">import org.eclipse.swt.layout.GridLayout;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.Button;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.Shell;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.Table;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.TableColumn;</p> 
+ <p class="a0">public class MutiTaskGUI {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; private Shell shell = null;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; private Table table = null;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public MutiTaskGUI( ){</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //构造方法中调用初始化窗口的方法</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; init();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; //初始化窗口方法</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public void init() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; shell = new Shell();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; shell.setLayout(new GridLayout());</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; shell.setText(&quot;多线程&quot;);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Button bt = new Button ( shell , SWT.NONE);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bt.setText(&quot;开始一个任务&quot;);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 创建表格对象</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table = new Table(shell, SWT.BORDER);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table.setLayoutData( new GridData(SWT.FILL,SWT.FILL,true,true));</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table.setHeaderVisible(true);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table.setLinesVisible(true);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String[] header = new String[]{&quot;任务&quot;,&quot;进度&quot;,&quot;操作&quot;};</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 创建表头</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (int i = 0; i &lt; 3; i++) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TableColumn col = new TableColumn(table, SWT.NONE);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; col.setText( header[i] );</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //设置表头宽度</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table.getColumn(0).setWidth(80);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table.getColumn(1).setWidth(150);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table.getColumn(2).setWidth(80);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; shell.pack();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //注册创建任务按钮事件</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bt.addSelectionListener( new SelectionAdapter(){</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //当单击创建一个任务按钮时</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void widgetSelected(SelectionEvent e) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //首先创建一个Task对象</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Task task = new Task ( table );</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //然后在表格中添加一行</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; task.createTableItem();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //最后启动该任务，该任务为一个线程</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; task.start();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; //获得和设置属性的getter和setter方法</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public Shell getShell() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return shell;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public void setShell(Shell shell) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.shell = shell;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public Table getTable() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return table;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public void setTable(Table table) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.table = table;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a8">}</p> 
+ <p class="MsoNormal">该类需要注意的地方是，“开始一个任务”按钮事件的处理。当单击该按钮时，就创建一表格中的一行，并且启动一个线程。添加表格中的一行和启动线程是使用Task对象来完成的。</p> 
+ <p class="MsoNormal">（3）Task类继承自Thread，并覆盖了run()方法，具有线程的特性。Task类具体实现的代码如下：</p> 
+ <p class="af">Task.java</p> 
+ <p class="a0">package com.fengmanfei.ch11;</p> 
+ <p class="a0">import org.eclipse.swt.SWT;</p> 
+ <p class="a0">import org.eclipse.swt.custom.TableEditor;</p> 
+ <p class="a0">import org.eclipse.swt.events.SelectionAdapter;</p> 
+ <p class="a0">import org.eclipse.swt.events.SelectionEvent;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.Button;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.ProgressBar;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.Table;</p> 
+ <p class="a0">import org.eclipse.swt.widgets.TableItem;</p> 
+ <p class="a0">import com.fengmanfei.util.ImageFactory;</p> 
+ <p class="a0">//该Task类继承自Thread，并且覆盖了run()方法</p> 
+ <p class="a0">public class Task extends Thread {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; //该类的一些属性</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; private Table table = null;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; //是否停止的标志</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; private boolean done = false;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; //声明进度条对象</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; private ProgressBar bar = null;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; private int min = 0;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; private int max = 100;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public Task(Table table) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.table = table;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; //创建表格中的一行</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public void createTableItem() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TableItem item = new TableItem(table, SWT.NONE);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; item.setText(this.getName());</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; item.setImage(ImageFactory.loadImage(table.getDisplay(), ImageFactory.PROGRESS_TASK));</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 创建一个进度条</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bar = new ProgressBar(table, SWT.NONE);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bar.setMinimum(min);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bar.setMaximum(max);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 创建一个可编辑的表格对象</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TableEditor editor = new TableEditor(table);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; editor.grabHorizontal = true;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; editor.grabVertical = true;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 将进度条绑定到第二列中</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; editor.setEditor(bar, item, 1);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //重新创建一个可编辑的表格对象</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; editor = new TableEditor(table);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; editor.grabHorizontal = true;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; editor.grabVertical = true;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //创建一个按钮</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Button stop = new Button(table, SWT.NONE);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; stop.setText(&quot;Stop&quot;);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; editor.setEditor(stop, item, 2);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; stop.addSelectionListener(new SelectionAdapter() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //当停止按钮按下时，设置停止标记true</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void widgetSelected(SelectionEvent e) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!isDone())</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setDone(true);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; //线程方法体，与前面单个的进度条的程序类似</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public void run() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (int i = min; i &lt; max; i++) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Thread.sleep(100);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (InterruptedException e) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table.getDisplay().asyncExec(new Runnable() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void run() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (bar.isDisposed())</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bar.setSelection(bar.getSelection() + 1);</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //如果停止，则结束该线程</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (isDone()) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; //获得和设置属性的getter和setter方法</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public Table getTable() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return table;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public void setTable(Table table) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.table = table;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public boolean isDone() {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return done;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; public void setDone(boolean done) {</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.done = done;</p> 
+ <p class="a0">&nbsp;&nbsp;&nbsp; }</p> 
+ <p class="a8">}</p> 
+ <p class="MsoNormal">Task类中的run()方法体中的代码与之前单个进度条的处理方式类似。从以上的程序代码中可以看出，类中大量使用了bean的方式，也就是通过一些getter和setter方法来设置和访问类的属性，又将常用的操作封装为方法，这才是涉及结构合理的类。</p> 
+ <p class="MsoNormal">//hxzon good</p> 
+</div></div></body></html>

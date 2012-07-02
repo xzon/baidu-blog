@@ -1,0 +1,245 @@
+<html><head><title><div class="tit">
+  树在asn.1解码中的应用
+</div></title></head><body><div id='tit'>树在asn.1解码中的应用</div><div id='cate'>算法&middot;数学</div><div id='date'>2009年08月05日 星期三 04:51 P.M.</div><div id='page'>39</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/68667ad9965499e039012f9c.html'>http://hi.baidu.com/hxzon/blog/item/68667ad9965499e039012f9c.html</a><div id='cnt'><div> 
+ <p>树在asn.1解码中的应用</p> 
+ <p> </p> 
+ <p> 最近工作中碰到ASN.1的解码问题，实际上ASN.1三元组的编码流是一种树型结构，只不过以线性的方式进行保存和传输，在进行解码时，很容易会想到用树来解析和保存二进制码流。而且这种树型结构在界面应用中使用起来很方便。</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ 下面是具体代码：
+ <br /> /*start of MMSTree.h*/
+ <br /> #ifndef MMSTREE_H
+ <br /> #define MMSTREE_H
+ <br /> #ifdef __cplusplus
+ <br /> extern &quot;C&quot;{
+ <br /> #endif
+ <br /> typedef char M_bool;
+ <br /> const char M_true=1;
+ <br /> const char M_false =0;
+ <br /> 
+ <br /> struct tag_mms_data;
+ <br /> 
+ <br /> typedef struct tag_mms_data
+ <br /> {
+ <br /> M_bool nested; //是否有子层
+ <br /> int nest_level;//嵌套深度
+ <br /> char *mms_start;//三元组开始处
+ <br /> char *mms_end;//三元组结束处
+ <br /> int total_length;//三元组长度
+ <br /> struct tag_mms_data *next;//指向与本三元组同一层的下一个三元组
+ <br /> struct tag_mms_data *child;//指向三元组的第一个子三元组
+ <br /> struct tag_mms_data *parent;//指向本三元组的上一层三元组
+ <br /> int name_length;//名字长度
+ <br /> char *name;//名字
+ <br /> int value_length;//三元组的数据长度域
+ <br /> char *value;//三元组的数据域
+ <br /> int value_type;//三元组的类型域
+ <br /> //QListViewItem *qlist_item;
+ <br /> }MY_MMS_DATA;//三元组单元结构
+ <br /> 
+ <br /> //三元组解析接口
+ <br /> extern buffer_to_mms_data(char *buf,int buf_len,MY_MMS_DATA*mms_data);
+ <br /> extern printTree(MY_MMS_DATA*mms_data);
+ <br /> #ifdef __cplusplus
+ <br /> }
+ <br /> #endif
+ <br /> #endif
+ <br /> /*end of MMSTree.h*/
+ <br /> 
+ <br /> /*********************************************************************/
+ <br /> 
+ <br /> /*start of MMSTree.c*/
+ <br /> 
+ <br /> #include &quot;MMSTree.h&quot;
+ <br /> /**************************************************************
+ <br /> function name: buffer_to_mms_data;
+ <br /> param: char*buf, a pointer to the buffer where mms data is stored;
+ <br /> int buf_len,the length of the buffer;
+ <br /> MY_MMS_DATA*mms_data,a pointer to a clean MY_MMS_DATA structure,where the result will be stored;
+ <br /> return: none
+ <br /> 
+ <br /> author: subject
+ <br /> 
+ <br /> data: 2007.12.5
+ <br /> /**************************************************************/
+ <br /> buffer_to_mms_data(char *buf,int buf_len,MY_MMS_DATA*mms_data)
+ <br /> {
+ <br /> MY_MMS_DATA *current_data;
+ <br /> char *p=buf;
+ <br /> //initial the clean structure
+ <br /> mms_data-&gt;parent=0;//no parent
+ <br /> mms_data-&gt;nest_level=0;//nest_level is 0
+ <br /> mms_data-&gt;mms_start=p;//start from p
+ <br /> mms_data-&gt;mms_end=p+buf_len;//end at the end of the buffer
+ <br /> mms_data-&gt;total_length=buf_len;//total_length is the length of buffer
+ <br /> //char *p=mms_start
+ <br /> current_data=mms_data;
+ <br /> while(p {
+ <br /> if(((*p)&amp;(0xe0))==0xa0)//if the data is a structure
+ <br /> {
+ <br /> MY_MMS_DATA *parent;
+ <br /> MY_MMS_DATA *temp;
+ <br /> current_data-&gt;nested=M_true;//since it's a structure,it must be nested
+ <br /> current_data-&gt;mms_start=p;//start from p
+ <br /> current_data-&gt;next=0;//suppose no brothers
+ <br /> current_data-&gt;child=0;//it has child,but we first assign it with 0
+ <br /> current_data-&gt;name_length=0;
+ <br /> current_data-&gt;name=0;
+ <br /> p++;//move to next byte,
+ <br /> if((*(unsigned char *)p)&lt;0x80)//if the length is stored in a single byte,and is less than 0x80
+ <br /> {
+ <br /> current_data-&gt;value_length=*(unsigned char*)p;
+ <br /> } 
+ <br /> else if((*(unsigned char *)p)&gt;=0x80)
+ <br /> {
+ <br /> if((*(unsigned char *)p)==0x81)//if the length is stored in a single byte,and is bigger than 0x80
+ <br /> {
+ <br /> p++;
+ <br /> current_data-&gt;value_length=*(unsigned char*)p;
+ <br /> }
+ <br /> else if((*(unsigned char *)p)==0x82)//if the length is stored in two bytes
+ <br /> {
+ <br /> p++;
+ <br /> current_data-&gt;value_length=(*(unsigned char*)p);
+ <br /> p++;
+ <br /> current_data-&gt;value_length=(current_data-&gt;value_length&lt;&lt;8)+(*(unsigned char*)p);
+ <br /> }
+ <br /> }
+ <br /> p++;
+ <br /> current_data-&gt;mms_end=p+current_data-&gt;value_length;//we get the end of the data
+ <br /> current_data-&gt;total_length=current_data-&gt;mms_end-current_data-&gt;mms_start;//then the total length of this unit
+ <br /> current_data-&gt;value=p;//assign the value
+ <br /> if(current_data-&gt;parent==0)//本层为最外层
+ <br /> {
+ <br /> //create a child,and initialize it
+ <br /> current_data-&gt;child=(MY_MMS_DATA*)malloc(sizeof(MY_MMS_DATA));
+ <br /> current_data-&gt;child-&gt;parent=current_data;
+ <br /> current_data = current_data-&gt;child;//we will step into the child in the next cycle
+ <br /> current_data-&gt;nest_level=current_data-&gt;parent-&gt;nest_level+1;
+ <br /> continue;//turn to next cycle
+ <br /> }
+ <br /> if(pmms_end)//本层未结束，进入子层
+ <br /> {
+ <br /> current_data-&gt;child=(MY_MMS_DATA*)malloc(sizeof(MY_MMS_DATA));
+ <br /> current_data-&gt;child-&gt;parent=current_data;
+ <br /> current_data = current_data-&gt;child;
+ <br /> current_data-&gt;nest_level = current_data-&gt;parent-&gt;nest_level+1;
+ <br /> continue;
+ <br /> }
+ <br /> /*
+ <br /> if(pparent-&gt;mms_end)//进入同一层下一个数据
+ <br /> {
+ <br /> current_data-&gt;next = (MY_MMS_DATA*)malloc(sizeof(MY_MMS_DATA));
+ <br /> current_data-&gt;next-&gt;parent = current_data-&gt;parent;
+ <br /> current_data = current_data-&gt;next;
+ <br /> current_data-&gt;nest_level = current_data-&gt;parent-&gt;nest_level+1;
+ <br /> continue;
+ <br /> }
+ <br /> else//进入
+ <br /> {
+ <br /> current_data = current_data-&gt;parent-&gt;next;
+ <br /> current_data-&gt;nest_level = current_data-&gt;parent-&gt;nest_level+1;
+ <br /> continue;
+ <br /> }
+ <br /> */
+ <br /> //this nest is finished,we have to find the parent which is not finished
+ <br /> parent = current_data-&gt;parent;
+ <br /> while(p&gt;=parent-&gt;mms_end)
+ <br /> {
+ <br /> parent = parent-&gt;parent;
+ <br /> }
+ <br /> //we've got it,then we have to find the last child of this data
+ <br /> temp = parent-&gt;child; 
+ <br /> while(temp-&gt;next!=0)
+ <br /> {
+ <br /> temp=temp-&gt;next;
+ <br /> }
+ <br /> temp-&gt;next = (MY_MMS_DATA*)malloc(sizeof(MY_MMS_DATA));
+ <br /> temp-&gt;next-&gt;parent = parent;
+ <br /> current_data = temp-&gt;next;
+ <br /> current_data-&gt;nest_level = current_data-&gt;parent-&gt;nest_level+1;
+ <br /> continue; 
+ <br /> 
+ <br /> }
+ <br /> else if(((*p)&amp;(0xe0))==0x80)//if the data is simple
+ <br /> {
+ <br /> MY_MMS_DATA *parent;
+ <br /> MY_MMS_DATA *temp;
+ <br /> 
+ <br /> current_data-&gt;nested=M_false;
+ <br /> current_data-&gt;mms_start=p;
+ <br /> current_data-&gt;next = 0;
+ <br /> current_data-&gt;name_length=0;
+ <br /> current_data-&gt;name=0;
+ <br /> current_data-&gt;child=0;
+ <br /> p++;
+ <br /> current_data-&gt;value_length= *(unsigned char*)p;
+ <br /> p++;
+ <br /> current_data-&gt;value=p;
+ <br /> current_data-&gt;mms_end=p+current_data-&gt;value_length;
+ <br /> p+=current_data-&gt;value_length;
+ <br /> 
+ <br /> if(p&gt;=buf+buf_len)break;
+ <br /> parent = current_data-&gt;parent;
+ <br /> while(p&gt;=parent-&gt;mms_end)
+ <br /> {
+ <br /> parent = parent-&gt;parent;
+ <br /> }
+ <br /> temp = parent-&gt;child; 
+ <br /> while(temp-&gt;next!=0)
+ <br /> {
+ <br /> temp=temp-&gt;next;
+ <br /> }
+ <br /> temp-&gt;next = (MY_MMS_DATA*)malloc(sizeof(MY_MMS_DATA));
+ <br /> temp-&gt;next-&gt;parent = parent;
+ <br /> current_data = temp-&gt;next;
+ <br /> current_data-&gt;nest_level = current_data-&gt;parent-&gt;nest_level+1;
+ <br /> continue; 
+ <br /> }
+ <br /> }
+ <br /> return;
+ <br /> }
+ <br /> 
+ <br /> 
+ <br /> printTree(MY_MMS_DATA*mms_data)
+ <br /> {
+ <br /> MY_MMS_DATA*data=mms_data;
+ <br /> int i;
+ <br /> if(data-&gt;child==0)
+ <br /> {
+ <br /> printf(&quot;\n&quot;);
+ <br /> for(i=0;inest_level;i++)
+ <br /> printf(&quot;--&quot;);
+ <br /> for(i=0;imms_end-data-&gt;mms_start;i++)
+ <br /> printf(&quot;%02x &quot;,(unsigned char)data-&gt;mms_start[i]);
+ <br /> }
+ <br /> if(data-&gt;child!=0)
+ <br /> {
+ <br /> printf(&quot;\n&quot;);
+ <br /> for(i=0;inest_level;i++)
+ <br /> printf(&quot;--&quot;);
+ <br /> printf(&quot;{}&quot;);
+ <br /> printTree(data-&gt;child);
+ <br /> }
+ <br /> if(data-&gt;next!=0)
+ <br /> {
+ <br /> printTree(data-&gt;next);
+ <br /> }
+ <br /> }
+ <br /> 
+ <br /> /*end of MMSTree.c*/
+ <br /> 
+ <br /> 上面的代码只是一个比较简单的框架，在这个框架里，可以很方便地进行一些功能扩充，我稍微对printTree做了些修改，就可以拿来作MMS报文解码测试工具的一部分，报文内容很容易就以一颗树的形式展现在窗口中，而以前做报文分析时，常常在一对二进制码中寻找需要的信息。
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+ <p><br /> 本文来自CSDN博客，转载请标明出处：<a href="http://blog.csdn.net/subjectxbj/archive/2007/12/07/1923200.aspx">http://blog.csdn.net/subjectxbj/archive/2007/12/07/1923200.aspx</a></p> 
+ <p><a href="http://sourceforge.net/projects/jac-asn1/">http://sourceforge.net/projects/jac-asn1/</a> asn.1 java</p> 
+</div></div></body></html>

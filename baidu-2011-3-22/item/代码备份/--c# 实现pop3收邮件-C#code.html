@@ -1,0 +1,162 @@
+<html><head><title><div class="tit">
+  //c# 实现pop3收邮件-C#code
+</div></title></head><body><div id='tit'>//c# 实现pop3收邮件-C#code</div><div id='cate'>代码备份</div><div id='date'>2007年12月26日 星期三 12:01 P.M.</div><div id='page'>186</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/f1832bf521fb8921bc3109d0.html'>http://hi.baidu.com/hxzon/blog/item/f1832bf521fb8921bc3109d0.html</a><div id='cnt'><div> 
+ <p>//c# 实现pop3收邮件-C#code</p> 
+ <p>using System.Net.Sockets;<br /> using System.Collections;<br /> using System.IO;<br /> using System.Net;<br /> using System;<br /> using System.Web.Mail;<br /> public class POP3<br /> {<br /> &nbsp;&nbsp; string POPServer;<br /> &nbsp;&nbsp; string user;<br /> &nbsp;&nbsp; string pwd;<br /> &nbsp;&nbsp; NetworkStream ns;<br /> &nbsp;&nbsp; StreamReader sr;<br /> &nbsp;&nbsp; static int&nbsp;&nbsp; count;<br /> &nbsp;&nbsp; //调用Srfile类，写入文件内容和文件名,文件格式：.txt 读邮件信息<br /> &nbsp;&nbsp; // Srfile&nbsp;&nbsp; Filesr = new Srfile();&nbsp;&nbsp;&nbsp; //对邮件标题 base64 解码<br /> &nbsp;&nbsp; /// &lt;summary&gt;<br /> &nbsp;&nbsp; /// base64 解码<br /> &nbsp;&nbsp; /// &lt;/summary&gt;<br /> &nbsp;&nbsp; /// &lt;param name=&quot;code&quot;&gt;&lt;/param&gt;<br /> &nbsp;&nbsp; /// &lt;returns&gt;&lt;/returns&gt;<br /> &nbsp;&nbsp; private string DecodeBase64(string code)&nbsp;&nbsp; //string code_type,<br /> &nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp; string decode = &quot;&quot;;<br /> &nbsp;&nbsp;&nbsp; string st = code+&quot;000&quot;;//<br /> &nbsp;&nbsp;&nbsp; string&nbsp;&nbsp;&nbsp; strcode = st.Substring(0,(st.Length/4)*4);<br /> &nbsp;&nbsp;&nbsp; byte[] bytes = Convert.FromBase64String(strcode);<br /> &nbsp;&nbsp;&nbsp; try<br /> &nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp; decode = System.Text.Encoding.GetEncoding(&quot;GB2312&quot;).GetString(bytes);<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; catch<br /> &nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp; decode = code;<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; return decode;<br /> &nbsp;&nbsp; }</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; //对邮件标题解码&nbsp;&nbsp; quoted-printable
+ <br /> &nbsp;&nbsp; /// &lt;summary&gt;
+ <br /> &nbsp;&nbsp; ///&nbsp;&nbsp; quoted-printable&nbsp;&nbsp; 解码 
+ <br /> &nbsp;&nbsp; /// &lt;/summary&gt;
+ <br /> &nbsp;&nbsp; /// &lt;param name=&quot;code&quot;&gt;&lt;/param&gt;
+ <br /> &nbsp;&nbsp; /// &lt;returns&gt;&lt;/returns&gt;
+ <br /> &nbsp;&nbsp; private&nbsp;&nbsp; string&nbsp;&nbsp; DecodeQ(string code)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; string[] textArray1 = code.Split(new char[] { '=' });
+ <br /> &nbsp;&nbsp;&nbsp; byte[] buf = new byte[textArray1.Length];
+ <br /> &nbsp;&nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; for (int i =0;i&lt;textArray1.Length;i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (textArray1[i].Trim()!=string.Empty)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte[]&nbsp;&nbsp; buftest = new byte[2];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; buf[i] = (byte) int.Parse(textArray1[i].Substring(0,2),System.Globalization.NumberStyles.HexNumber);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; return null;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; return System.Text.Encoding.Default.GetString(buf);
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; public POP3(){}&nbsp;&nbsp; #region
+ <br /> &nbsp;&nbsp; /// &lt;summary&gt;
+ <br /> &nbsp;&nbsp; /// 接收邮件服务器相关信息
+ <br /> &nbsp;&nbsp; /// &lt;/summary&gt;
+ <br /> &nbsp;&nbsp; /// &lt;param name=&quot;server&quot;&gt;参数 pop邮件服务器地址&nbsp;&nbsp; &lt;/param&gt;
+ <br /> &nbsp;&nbsp; /// &lt;param name=&quot;user&quot;&gt;参数 登录到pop邮件服务器的用户名&nbsp;&nbsp; &lt;/param&gt;
+ <br /> &nbsp;&nbsp; /// &lt;param name=&quot;pwd&quot;&gt;参数&nbsp;&nbsp; 登录到pop邮件服务器的密码&lt;/param&gt;
+ <br /> &nbsp;&nbsp; /// &lt;returns&gt;无返回&lt;/returns&gt;
+ <br /> &nbsp;&nbsp; public POP3(string server, string _user, string _pwd)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; POPServer = server;
+ <br /> &nbsp;&nbsp;&nbsp; user = _user;
+ <br /> &nbsp;&nbsp;&nbsp; pwd = _pwd;
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; #endregion
+ <br /> &nbsp;&nbsp; //登陆服务器
+ <br /> &nbsp;&nbsp; private void Connect()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; TcpClient sender = new TcpClient(POPServer,110);
+ <br /> &nbsp;&nbsp;&nbsp; Byte[] outbytes;
+ <br /> &nbsp;&nbsp;&nbsp; string input;
+ <br /> &nbsp;&nbsp;&nbsp; string&nbsp;&nbsp; readuser = string.Empty;
+ <br /> &nbsp;&nbsp;&nbsp; string&nbsp;&nbsp; readpwd = string.Empty;
+ <br /> &nbsp;&nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ns = sender.GetStream();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; sr = new StreamReader(ns);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; sr.ReadLine();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //检查密码
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; input = &quot;user &quot; + user + &quot;rn&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; outbytes = System.Text.Encoding.ASCII.GetBytes(input.ToCharArray());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ns.Write(outbytes,0,outbytes.Length) ;&nbsp;&nbsp;&nbsp;&nbsp; readuser = sr.ReadLine();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; input = &quot;pass &quot; + pwd + &quot;rn&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; outbytes = System.Text.Encoding.ASCII.GetBytes(input.ToCharArray());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ns.Write(outbytes,0,outbytes.Length) ;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; readpwd = sr.ReadLine();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //Console.WriteLine(sr.ReadLine() );
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; System.Windows.Forms.MessageBox.Show(&quot;用户名或密码错误&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; //为了读到数据流中的正确信息，重新建的一个方法（只是在读邮件详细信息是用到《即GetNewMessages（）方法中用到，这样就可以正常显示邮件正文的中英文》）
+ <br /> &nbsp;&nbsp; private&nbsp;&nbsp; void Connecttest(TcpClient&nbsp;&nbsp; tcpc)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; Byte[] outbytes;
+ <br /> &nbsp;&nbsp;&nbsp; string input;
+ <br /> &nbsp;&nbsp;&nbsp; string&nbsp;&nbsp; readuser = string.Empty;
+ <br /> &nbsp;&nbsp;&nbsp; string&nbsp;&nbsp; readpwd = string.Empty;
+ <br /> &nbsp;&nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ns = tcpc.GetStream();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; sr = new StreamReader(ns);&nbsp;&nbsp;&nbsp;&nbsp; sr.ReadLine();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //Console.WriteLine(sr.ReadLine() );&nbsp;&nbsp;&nbsp;&nbsp; input = &quot;user &quot; + user + &quot;rn&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; outbytes = System.Text.Encoding.ASCII.GetBytes(input.ToCharArray());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ns.Write(outbytes,0,outbytes.Length) ;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; readuser = sr.ReadLine();
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; input = &quot;pass &quot; + pwd + &quot;rn&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; outbytes = System.Text.Encoding.ASCII.GetBytes(input.ToCharArray());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ns.Write(outbytes,0,outbytes.Length) ;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; readpwd = sr.ReadLine();&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; System.Windows.Forms.MessageBox.Show(&quot;用户名或密码错误&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; //断开与服务器的连接
+ <br /> &nbsp;&nbsp; private void Disconnect()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; //&quot;quit&quot;&nbsp;&nbsp; 即表示断开连接
+ <br /> &nbsp;&nbsp;&nbsp; string input = &quot;quit&quot; + &quot;rn&quot;;
+ <br /> &nbsp;&nbsp;&nbsp; Byte[] outbytes = System.Text.Encoding.ASCII.GetBytes(input.ToCharArray());
+ <br /> &nbsp;&nbsp;&nbsp; ns.Write(outbytes,0,outbytes.Length);
+ <br /> &nbsp;&nbsp;&nbsp; //关闭数据流
+ <br /> &nbsp;&nbsp;&nbsp; ns.Close();
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; //获得新邮件数目
+ <br /> &nbsp;&nbsp; # region
+ <br /> &nbsp;&nbsp; /// &lt;summary&gt;
+ <br /> &nbsp;&nbsp; /// 获取邮件数目
+ <br /> &nbsp;&nbsp; /// &lt;/summary&gt;
+ <br /> &nbsp;&nbsp; /// &lt;returns&gt;返回&nbsp;&nbsp; int&nbsp;&nbsp; 邮件数目&lt;/returns&gt;
+ <br /> &nbsp;&nbsp; public int GetNumberOfNewMessages()
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; Byte[] outbytes;
+ <br /> &nbsp;&nbsp;&nbsp; string input;&nbsp;&nbsp;&nbsp; int&nbsp;&nbsp; countmail;&nbsp;&nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; Connect();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //&quot;stat&quot;向邮件服务器 表示要取邮件数目
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; input = &quot;stat&quot; + &quot;rn&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //将string input转化为7位的字符，以便可以在网络上传输
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; outbytes = System.Text.Encoding.ASCII.GetBytes(input.ToCharArray());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ns.Write(outbytes,0,outbytes.Length);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; string thisResponse = sr.ReadLine();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if (thisResponse.Substring(0,4) == &quot;-ERR&quot;)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return&nbsp;&nbsp; -1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; string[] tmpArray;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //将从服务器取到的数据以“”分成字符数组
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; tmpArray=thisResponse.Split(' ');
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //断开与服务器的连接
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; Disconnect();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //取到的表示邮件数目
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; countmail = Convert.ToInt32(tmpArray[1]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; count = countmail;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; return countmail;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; System.Windows.Forms.MessageBox.Show(&quot;Could not connect to mail server&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; return -1;//表示读邮件时&nbsp;&nbsp; 出错，将接收邮件的线程 阻塞5分钟
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; # endregion
+</div> 
+<div> 
+</div> 
+<div>
+ <a href="http://hi.baidu.com/15971/blog/item/296061fbf2449667024f567f.html">http://hi.baidu.com/15971/blog/item/296061fbf2449667024f567f.html</a>
+</div></div></body></html>

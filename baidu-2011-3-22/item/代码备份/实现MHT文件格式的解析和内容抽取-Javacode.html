@@ -1,0 +1,187 @@
+<html><head><title><div class="tit">
+  实现MHT文件格式的解析和内容抽取-Javacode
+</div></title></head><body><div id='tit'>实现MHT文件格式的解析和内容抽取-Javacode</div><div id='cate'>代码备份</div><div id='date'>2008年04月09日 星期三 09:27 A.M.</div><div id='page'>144</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/8051fded8176004a78f055a5.html'>http://hi.baidu.com/hxzon/blog/item/8051fded8176004a78f055a5.html</a><div id='cnt'><p> </p> 
+<p>实现MHT文件格式的解析和内容抽取-Javacode</p> 
+<p>时间：2008-03-29 关键字: <strong>mht parser decoder encoder</strong></p> 
+<div class="postbody clearfix"> 
+ <p>由于我们的业务系统中有大量的MHT格式的资料，需要对其建立索引，搜索很久了一直没有找到相关解析的类库，只好自己动手丰衣足食了。已实现内容的提取以及和lucene的整合，稍后会完善编码检测及其他内容的提取，做一个完整的parser出来。&nbsp;&nbsp;</p> 
+ <p> </p> 
+ <ul> 
+  <li><strong>文本内容提取：</strong> 首先提取html部分的内容，解码之后使用nekoHtml提取文本内容；</li> 
+ </ul> 
+ <div class="dp-highlighter"> 
+  <div class="bar"> 
+   <div class="tools">
+    Java代码
+   </div> 
+  </div> 
+  <ol class="dp-j"> 
+   <li><span><span class="keyword"><strong><font color="#7f0055">public</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">class</font></strong></span><span> MhtDocHandler </span><span class="keyword"><strong><font color="#7f0055">extends</font></strong></span><span> HtmDocHandler { &nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">private</font></strong></span><span> DOMFragmentParser parser = </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> DOMFragmentParser(); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">public</font></strong></span><span> Document getDocument(InputStream is) </span><span class="keyword"><strong><font color="#7f0055">throws</font></strong></span><span> DocumentHandlerException { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DocumentFragment node = </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> HTMLDocumentImpl().createDocumentFragment(); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">try</font></strong></span><span> { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String mhts = IOUtils.toString(is); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">int</font></strong></span><span> a1 = mhts.indexOf(</span><span class="string"><font color="#0000ff">&quot;&lt;HTML&quot;</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">int</font></strong></span><span> a2 = mhts.indexOf(</span><span class="string"><font color="#0000ff">&quot;&lt;/HTML&gt;&quot;</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String html = mhts.substring(a1, a2 + </span><span class="number"><font color="#c00000">8</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">//在mht中文本按照QuotedPrintable格式编码 </font></span><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; html = decodeQuotedPrintable(html, </span><span class="string"><font color="#0000ff">&quot;UTF-8&quot;</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StringReader r = </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> StringReader(html); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parser.parse(</span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> InputSource(r), node); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">catch</font></strong></span><span> (Exception e) { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">throw</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> DocumentHandlerException(</span><span class="string"><font color="#0000ff">&quot;Cannot parse MHT document: &quot;</font></span><span>, e); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Document doc = </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> Document(); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StringBuffer sb = </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> StringBuffer(); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; getText(sb, node, </span><span class="string"><font color="#0000ff">&quot;title&quot;</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String title = sb.toString().trim(); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.setLength(</span><span class="number"><font color="#c00000">0</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; getText(sb, node, </span><span class="string"><font color="#0000ff">&quot;body&quot;</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String text = sb.toString().trim(); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (!title.equals(</span><span class="string"><font color="#0000ff">&quot;&quot;</font></span><span>)) { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; doc.add(</span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> Field(WikiDOC.DOC_TITLE, title, &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Field.Store.YES, Field.Index.TOKENIZED, &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Field.TermVector.WITH_POSITIONS_OFFSETS)); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (!text.equals(</span><span class="string"><font color="#0000ff">&quot;&quot;</font></span><span>)) { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; doc.add(</span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> Field(WikiDOC.DOC_CONTENT, text, &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Field.Store.COMPRESS, Field.Index.TOKENIZED, &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Field.TermVector.WITH_POSITIONS_OFFSETS)); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">return</font></strong></span><span> doc; &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">public</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">static</font></strong></span><span> String decodeQuotedPrintable(String str, String encoding) { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (str == </span><span class="keyword"><strong><font color="#7f0055">null</font></strong></span><span>) { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">return</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">null</font></strong></span><span>; &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">try</font></strong></span><span> { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">//str = str.replaceAll(&quot;=\n&quot;, &quot;&quot;);//?? </font></span><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">byte</font></strong></span><span>[] bytes = str.getBytes(</span><span class="string"><font color="#0000ff">&quot;US-ASCII&quot;</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ByteArrayOutputStream buffer = </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> ByteArrayOutputStream(); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">for</font></strong></span><span> (</span><span class="keyword"><strong><font color="#7f0055">int</font></strong></span><span> i = </span><span class="number"><font color="#c00000">0</font></span><span>; i &lt; bytes.length; i++) { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">int</font></strong></span><span> b = bytes[i]; &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (b == </span><span class="string"><font color="#0000ff">'='</font></span><span>) { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">int</font></strong></span><span> u = Character.digit((</span><span class="keyword"><strong><font color="#7f0055">char</font></strong></span><span>) bytes[++i], </span><span class="number"><font color="#c00000">16</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">int</font></strong></span><span> l = Character.digit((</span><span class="keyword"><strong><font color="#7f0055">char</font></strong></span><span>) bytes[++i], </span><span class="number"><font color="#c00000">16</font></span><span>); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (u == -</span><span class="number"><font color="#c00000">1</font></span><span> || l == -</span><span class="number"><font color="#c00000">1</font></span><span>) {</span><span class="comment"><font color="#008200">//?? </font></span><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">continue</font></strong></span><span>; &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; buffer.write((</span><span class="keyword"><strong><font color="#7f0055">char</font></strong></span><span>) ((u &lt;&lt; </span><span class="number"><font color="#c00000">4</font></span><span>) + l)); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } </span><span class="keyword"><strong><font color="#7f0055">else</font></strong></span><span> { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; buffer.write(b); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">return</font></strong></span><span> buffer.toString(encoding); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">catch</font></strong></span><span> (Exception e) { &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace(); &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">return</font></strong></span><span> str; &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; } &nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>}&nbsp;&nbsp;</span></li> 
+  </ol> 
+ </div> 
+ <pre class="java" style="display: none" name="code">public class MhtDocHandler extends HtmDocHandler {
+
+    private DOMFragmentParser parser = new DOMFragmentParser();
+
+    public Document getDocument(InputStream is) throws DocumentHandlerException {
+
+        DocumentFragment node = new HTMLDocumentImpl().createDocumentFragment();
+        try {
+
+            String mhts = IOUtils.toString(is);
+            int a1 = mhts.indexOf(&quot;&lt;HTML&quot;);
+            int a2 = mhts.indexOf(&quot;&lt;/HTML&gt;&quot;);
+
+            String html = mhts.substring(a1, a2 + 8);
+
+            //在mht中文本按照QuotedPrintable格式编码
+        html = decodeQuotedPrintable(html, &quot;UTF-8&quot;);
+
+            StringReader r = new StringReader(html);
+
+            parser.parse(new InputSource(r), node);
+        }
+        catch (Exception e) {
+            throw new DocumentHandlerException(&quot;Cannot parse MHT document: &quot;, e);
+        }
+
+        Document doc = new Document();
+
+        StringBuffer sb = new StringBuffer();
+        getText(sb, node, &quot;title&quot;);
+        String title = sb.toString().trim();
+
+        sb.setLength(0);
+        getText(sb, node, &quot;body&quot;);
+        String text = sb.toString().trim();
+
+        if (!title.equals(&quot;&quot;)) {
+            doc.add(new Field(WikiDOC.DOC_TITLE, title, 
+                                  Field.Store.YES, Field.Index.TOKENIZED, 
+                                       Field.TermVector.WITH_POSITIONS_OFFSETS));
+        }
+        if (!text.equals(&quot;&quot;)) {
+            doc.add(new Field(WikiDOC.DOC_CONTENT, text, 
+                                       Field.Store.COMPRESS, Field.Index.TOKENIZED, 
+                                           Field.TermVector.WITH_POSITIONS_OFFSETS));
+        }
+
+        return doc;
+    }
+
+    public static String decodeQuotedPrintable(String str, String encoding) {
+        if (str == null) {
+            return null;
+        }
+        try {
+            //str = str.replaceAll(&quot;=\n&quot;, &quot;&quot;);//??
+            byte[] bytes = str.getBytes(&quot;US-ASCII&quot;);
+
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            for (int i = 0; i &lt; bytes.length; i++) {
+                int b = bytes[i];
+                if (b == '=') {
+                    int u = Character.digit((char) bytes[++i], 16);
+                    int l = Character.digit((char) bytes[++i], 16);
+                    if (u == -1 || l == -1) {//??
+                        continue;
+                    }
+                    buffer.write((char) ((u &lt;&lt; 4) + l));
+                } else {
+                    buffer.write(b);
+                }
+            }
+            return buffer.toString(encoding);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return str;
+        }
+    }
+
+}</pre> 
+ <p><a href="http://www.javaeye.com/post/503532">http://www.javaeye.com/post/503532</a></p> 
+</div> 
+<div>
+ 声明：JavaEye文章版权属于作者，受法律保护。没有作者书面许可不得转载。
+</div></div></body></html>

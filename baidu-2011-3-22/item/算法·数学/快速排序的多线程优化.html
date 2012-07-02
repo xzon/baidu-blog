@@ -1,0 +1,110 @@
+<html><head><title><div class="tit">
+  快速排序的多线程优化
+</div></title></head><body><div id='tit'>快速排序的多线程优化</div><div id='cate'>算法&middot;数学</div><div id='date'>2008年06月10日 星期二 01:52 A.M.</div><div id='page'>129</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/72929d505291746784352467.html'>http://hi.baidu.com/hxzon/blog/item/72929d505291746784352467.html</a><div id='cnt'><div>
+ <font size="3">快速排序的多线程优化</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">大家都知道快速排序通过将数据划分为两个数据段，再对两个数据段分别进行快速排序。对于双核、多核处理器，排序时只有一个核心在工作，那怎么充分发挥处理器的性能呢？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">大家可能已经想到了，通过2个线程并行排序2个划分以后的数据段。下面是实现方式：</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">1、将数据分割成两个数据段</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">2、创建2个线程分别进行快速排序</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">3、主线程等到子线程结束后，返回结果</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">其中的1是快速排序的必然结果。3可以使用WIN32的事件对象来完成同步。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">以下是代码：</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">//Quick sort begin<br /> int QSortPart(int* data,int low,int high)//common 将数据分割为2个数据段<br /> {<br /> int key = data[low];<br /> while(low&lt;high)<br /> {<br /> &nbsp;&nbsp;&nbsp;&nbsp; while(low&lt;high &amp;&amp; data[high]&gt;=key)--high;<br /> &nbsp;&nbsp;&nbsp;&nbsp; data[low] = data[high];<br /> &nbsp;&nbsp;&nbsp;&nbsp; while(low&lt;high &amp;&amp; data[low]&lt;=key) ++ low;<br /> &nbsp;&nbsp;&nbsp;&nbsp; data[high] = data[low];<br /> }<br /> data[low] = key;<br /> return low;<br /> }<br /> //single threaded 单线程<br /> void QSort(int* data,int low,int high)<br /> {<br /> if (low&lt;high)<br /> {<br /> &nbsp;&nbsp;&nbsp;&nbsp; int KeyPos = QSortPart(data,low,high);<br /> &nbsp;&nbsp;&nbsp;&nbsp; QSort(data,low,KeyPos-1);<br /> &nbsp;&nbsp;&nbsp;&nbsp; QSort(data,KeyPos+1,high);<br /> }<br /> }</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">void QuickSort(int* data,int datasize)<br /> {<br /> QSort(data,0,datasize-1);<br /> }<br /> //下面是多线程</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">/////////////////////////////////////////<br /> //multi threaded<br /> typedef struct {//传递的参数<br /> int* data;<br /> int low;<br /> int high;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HANDLE hEvent;//事件<br /> }QuickSortInfo;</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">DWORD WINAPI QSortThread(LPVOID lParam)<br /> {<br /> QuickSortInfo* pInfo = (QuickSortInfo*)lParam;<br /> if(pInfo-&gt;low &lt; pInfo-&gt;high)<br /> {<br /> &nbsp;&nbsp;&nbsp;&nbsp; int KeyPos = QSortPart(pInfo-&gt;data,pInfo-&gt;low,pInfo-&gt;high);//划分2个数据段<br /> &nbsp;&nbsp;&nbsp;&nbsp; if (!pInfo-&gt;hEvent)//如果是主线程<br /> &nbsp;&nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //create a new thread创建子线程<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pInfo-&gt;hEvent = CreateEvent(NULL,1,0,NULL);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int temp = pInfo-&gt;high;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pInfo-&gt;high = KeyPos-1;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CreateThread(NULL,0,QSortThread,(LPVOID) pInfo,0,0);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QSort(pInfo-&gt;data,KeyPos+1,temp);//主线程调用快速排序对一个数据段进行排序<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; WaitForSingleObject(pInfo-&gt;hEvent,1000000);//等待子线程结束<br /> &nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp; else<br /> &nbsp;&nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QSort(pInfo-&gt;data,pInfo-&gt;low,KeyPos-1);//子线程 对传递进来的数据进行快速排序<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QSort(pInfo-&gt;data,KeyPos+1,pInfo-&gt;high);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SetEvent(pInfo-&gt;hEvent);//设置事件 <br /> &nbsp;&nbsp;&nbsp;&nbsp; }<br /> }<br /> else<br /> &nbsp;&nbsp;&nbsp;&nbsp; if(pInfo-&gt;hEvent)SetEvent(pInfo-&gt;hEvent);<br /> return 0;<br /> }</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">void QSortMulti(int* data,int datasize)<br /> {<br /> QuickSortInfo Info;<br /> Info.data=data;<br /> Info.high = datasize-1;<br /> Info.low=0;<br /> Info.hEvent=NULL;//设置参数<br /> QSortThread((LPVOID)&amp;Info);//主线程直接进入<br /> }<br /> //multi thread end</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">以下是测试结果，对100000个随机数据进行单线程和多线程的快速排序，其中QuickSort为单线程，Quick Sort(Multi theraded)为多线程。 测试平台：Core T2300 (1.66 * 2)</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">测试一：</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">QuickSort:24.754822 ms<br /> Quick Sort(Multi theraded):16.141437 ms</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">测试二：</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">QuickSort:24.568206 ms<br /> Quick Sort(Multi theraded):20.253183 ms</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">测试三：</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">QuickSort:24.282695 ms<br /> Quick Sort(Multi theraded):19.294072 ms</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">可见 单线程的排序时间较稳定，而多线程并不稳定。因为划分数据时并不能保证两个数据段的数据量相同。此时可以使用动态创建线程来提高效率，一旦一个线程结束，立即创建另外一个线程。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">总之，多线程对于双核平台的性能提升还是比较多的。对双核平台进行多线程优化可以提高程序的运行效率。具体写程序可以通过判断CPU是否双核来调整运行方式，达到最佳的运行效果。<br /> </font>
+</div></div></body></html>

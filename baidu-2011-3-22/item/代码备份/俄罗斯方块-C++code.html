@@ -1,0 +1,663 @@
+<html><head><title><div class="tit">
+  俄罗斯方块-C++code
+</div></title></head><body><div id='tit'>俄罗斯方块-C++code</div><div id='cate'>代码备份</div><div id='date'>2007年12月21日 星期五 03:58 P.M.</div><div id='page'>187</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/7bfbfe19c4ca357edbb4bde5.html'>http://hi.baidu.com/hxzon/blog/item/7bfbfe19c4ca357edbb4bde5.html</a><div id='cnt'><div>
+ /*俄罗斯方块-C++code
+</div> 
+<div>
+ * Russian Block
+ <br /> * @author cozmic
+ <br /> * @version 0.1
+ <br /> * @e-mail: 
+ <a href="mailto:cozmic@163.com">cozmic@163.com</a>
+ <br /> */
+</div> 
+<div> 
+</div> 
+<div>
+ #include&lt;stdio.h&gt;
+ <br /> #include&lt;math.h&gt;
+ <br /> #include&lt;time.h&gt;
+ <br /> #include&lt;dos.h&gt;
+ <br /> #include&lt;graphics.h&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ /* 组成形状的方块的大小 */
+ <br /> #define BLOCKWIDTH 18
+ <br /> /* 游戏区的大小 */
+ <br /> #define AREAWIDTH&nbsp;&nbsp;&nbsp; 12
+ <br /> #define AREALEN&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 24
+ <br /> /* 定义背景色，函数setbarByIndex()用此颜色来隔开每个形状的方块 */
+ <br /> #define BKCOLOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LIGHTGRAY&nbsp;&nbsp; 
+ <br /> #define CLIP_ON&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1
+ <br /> #define TRUE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1
+ <br /> /* 适中中断的中断号 */
+ <br /> #define TIMER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0x1c
+ <br /> /* 速度为 10/(level*18.2) 秒/格 */
+ <br /> #define LEVEL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2 
+ <br /> /* bioskey(0)左移八位 */ 
+ <br /> #define LEFT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 /* a */
+ <br /> #define RIGHT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 32 /* b */
+ <br /> #define DOWN&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 31 /* s */
+ <br /> #define ROTATE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 17 /* w */
+ <br /> #define QUIT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 16 /* q */
+</div> 
+<div> 
+</div> 
+<div>
+ /* c和C++定义不同 */
+ <br /> #ifdef __cplusplus
+ <br /> #define __CPPARGS ...
+ <br /> #else
+ <br /> #define __CPPARGS
+ <br /> #endif
+</div> 
+<div> 
+</div> 
+<div>
+ struct Point {
+ <br /> int x;
+ <br /> int y;
+ <br /> };
+</div> 
+<div> 
+</div> 
+<div>
+ /* 每个图形都用位于4*4数组中的四个点来表示,points[4]保存了这四个点的坐标.
+ <br /> * 注意: 以[1][3]为原点,得到其余点的坐标.
+ <br /> * rotateTo 记录了逆时针旋转90后的形状的索引.
+ <br /> */
+ <br /> struct Shape {
+ <br /> int color;
+ <br /> struct Point points[4];
+ <br /> int rotateTo;
+ <br /> };
+</div> 
+<div> 
+</div> 
+<div>
+ /* 给出所有可能形状的坐标. 尽可能把图像安排在4*4数组的最左下方 */
+ <br /> struct Shape const shapes[19] = {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {RED,{{-1,-2},{-1,-1},{-1,0},{0,0}},&nbsp;&nbsp;&nbsp;&nbsp; 1},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {YELLOW,{{1,-1},{1,0},{0,0},{-1,0}},&nbsp;&nbsp;&nbsp;&nbsp; 2},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {GREEN, {{-1,-2},{0,-2},{0,-1},{0,0}}, 3},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {YELLOW,{{-1,-1},{0,-1},{1,-1},{-1,0}}, 0},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {CYAN, {{-1,0},{0,0},{0,-1},{0,-2}},&nbsp;&nbsp;&nbsp;&nbsp; 5},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {BLUE, {{-1,-1},{0,-1},{1,-1},{1,0}},&nbsp;&nbsp;&nbsp; 6},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {BROWN,{{-1,0},{-1,-1},{-1,-2},{0,-2}}, 7},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {RED,{{-1,-1},{-1,0},{0,0},{1,0}},&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {YELLOW,{{-1,-1},{0,-1},{-1,0},{0,0}}, 8},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {GREEN,{{0,0},{0,-1},{0,-2},{0,-3}},&nbsp;&nbsp;&nbsp; 10},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {YELLOW,{{-1,0},{0,0},{1,0},{2,0}},&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {CYAN,{{-1,-2},{-1,-1},{0,-1},{0,0}}, 12},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {BLUE,{{-1,0},{0,0},{0,-1},{1,-1}},&nbsp;&nbsp;&nbsp;&nbsp; 11},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {BROWN,{{-1,0},{-1,-1},{0,-1},{0,-2}}, 14},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {RED,{{-1,-1},{0,-1},{0,0},{1,0}},&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 13},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {YELLOW,{{-1,-1},{0,-1},{1,-1},{0,0}}, 16},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {GREEN,{{-1,-2},{-1,-1},{-1,0},{0,-1}},17},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {YELLOW,{{0,-1},{-1,0},{0,0},{1,0}},&nbsp;&nbsp;&nbsp; 18},
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {CYAN,{{-1,-1},{0,-2},{0,-1},{0,0}},&nbsp;&nbsp;&nbsp; 15}
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; };
+ <br /> /* 当前活动形状的索引 */
+ <br /> int CurrentShape; 
+ <br /> /* 下一个活动形状的索引,目的是预览下一个形状 */
+ <br /> int NextShape; 
+ <br /> /* 当前形状的基准点([1][3])在游戏区中的坐标 */&nbsp;&nbsp; 
+ <br /> struct Point BaseLocation; 
+ <br /> /* 标示当前形状是否到达底部 */
+ <br /> int Active; 
+ <br /> /* 协助LEVEL工作 */
+ <br /> int Counter; 
+ <br /> /* 记录当前游戏区的状态游戏数组
+ <br /> * -1 表示边界 
+ <br /> * 0&nbsp;&nbsp;&nbsp;&nbsp; 表示空闲
+ <br /> * 1&nbsp;&nbsp;&nbsp;&nbsp; 表示占用
+ <br /> */
+ <br /> int GameArea[AREAWIDTH][AREALEN];
+</div> 
+<div> 
+</div> 
+<div>
+ void init(void);
+ <br /> void game(void);
+ <br /> void controlPanel(void);
+ <br /> void lineScan(void);
+ <br /> void deletLine(int);
+ <br /> void genShape(void);
+ <br /> void previewWindow(void);
+ <br /> void drawShape(int,struct Point,int);
+ <br /> void setBarByIndex(struct Point,int);
+ <br /> int canMove(int,int);
+ <br /> void setPoint(struct Point *,int,int);
+ <br /> int getShapeMiniY(int);
+ <br /> int getMiniy(void);
+ <br /> void interrupt ( *oldhandler)(__CPPARGS);
+ <br /> void interrupt newhandler(__CPPARGS);
+ <br /> void setTimer(void interrupt (*IntProc)(__CPPARGS));
+ <br /> void killTimer();
+ <br /> void gameOver(void);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> void main(void) {
+</div> 
+<div> 
+</div> 
+<div>
+ int i;
+</div> 
+<div> 
+</div> 
+<div>
+ init();
+ <br /> game();
+ <br /> gameOver();
+ <br /> }
+ <br /> /* 初始化图形设备，游戏界面，游戏数组，时钟中断，当前和下一形状，初始基准点 */
+ <br /> void init(void) {
+</div> 
+<div> 
+</div> 
+<div>
+ int gdriver, gmode, errorCode;
+ <br /> int i,j;
+ <br /> time_t t;
+</div> 
+<div> 
+</div> 
+<div>
+ /* 初始化图像设备 */
+ <br /> gdriver = DETECT;
+ <br /> initgraph(&amp;gdriver, &amp;gmode, &quot;&quot;);
+ <br /> errorCode = graphresult();
+ <br /> if(errorCode != grOk) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;Graphe System error: %s&quot;, grapherrormsg(errorCode));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; getch();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; exit(1);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 初始化游戏界面 */
+ <br /> setbkcolor(BKCOLOR);
+ <br /> setcolor(YELLOW);
+ <br /> setlinestyle(SOLID_LINE, 0, NORM_WIDTH);
+</div> 
+<div> 
+</div> 
+<div>
+ rectangle(BLOCKWIDTH-1, BLOCKWIDTH-1, (AREAWIDTH+1)*BLOCKWIDTH+1, (AREALEN+1)*BLOCKWIDTH+1);
+ <br /> setviewport(BLOCKWIDTH, BLOCKWIDTH, (AREAWIDTH+1)*BLOCKWIDTH, (AREALEN+1)*BLOCKWIDTH ,CLIP_ON);
+</div> 
+<div> 
+</div> 
+<div>
+ setviewport(0, 0, getmaxx(),getmaxy(),CLIP_ON);
+ <br /> rectangle(20*BLOCKWIDTH-1, 4*BLOCKWIDTH-1, 24*BLOCKWIDTH+1, 8*BLOCKWIDTH+1);
+ <br /> setviewport(20*BLOCKWIDTH, 4*BLOCKWIDTH, 24*BLOCKWIDTH, 8*BLOCKWIDTH,CLIP_ON);
+</div> 
+<div> 
+</div> 
+<div>
+ /* 初始化数组，两侧,底部及游戏区 */
+ <br /> for(i=0; i&lt;AREALEN; i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; GameArea[0][i] = -1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; GameArea[AREAWIDTH-1][i] = -1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(i &lt; AREAWIDTH)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GameArea[i][AREALEN-1] =-1;
+ <br /> }
+ <br /> for(i=1; i&lt;AREAWIDTH-1; i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; for(j=0; j&lt;AREALEN-1;j++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GameArea[i][j] = 0;
+</div> 
+<div> 
+</div> 
+<div>
+ /* 设立随机种子 */
+ <br /> srand((unsigned)time(&amp;t));
+ <br /> setPonint(&amp;BaseLocation,(AREAWIDTH-2)/2,0);
+ <br /> /* 当前形状激活 */
+ <br /> CurrentShape = rand()%18;
+ <br /> NextShape = rand()%18;
+ <br /> Active = 1;
+ <br /> /* 设立新时钟中断处理函数和计数器 */
+ <br /> Counter = 0;
+ <br /> setTimer(newhandler);
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 游戏控制主程序*/
+ <br /> void game(void) {
+</div> 
+<div> 
+</div> 
+<div>
+ while(TRUE) {
+ <br /> /* 当前形状到达底部且当前形状最高点超出游戏区 */
+ <br /> if(Active==0&amp;BaseLocation.y+getShapeMiniY(CurrentShape)&lt;0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; gameOver();
+ <br /> /* 如果当前形状到达底部则产生新图形，并更新预览窗口 */
+ <br /> if(Active == 0) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; genShape();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; previewWindow();
+ <br /> }
+ <br /> /* 进入游戏控制面板 */
+ <br /> controlPanel();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+ <br /> /* 游戏控制面板 */
+ <br /> void controlPanel(void) {
+</div> 
+<div> 
+</div> 
+<div>
+ int ch;
+</div> 
+<div> 
+</div> 
+<div>
+ setviewport(BLOCKWIDTH, BLOCKWIDTH, (AREAWIDTH+1)*BLOCKWIDTH, (AREALEN+1)*BLOCKWIDTH ,CLIP_ON);
+ <br /> /* 如果当前形状没有到达底部 */
+ <br /> while(Active) {
+ <br /> /* 每隔一段时间下落一次，如果不可下落证明达到底部，退出游戏面板 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(Counter &gt; 10/LEVEL) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; Counter = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(canMove(DOWN,CurrentShape)) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPoint(&amp;BaseLocation,BaseLocation.x,BaseLocation.y+1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,0);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Active = 0; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; /* 根据键盘输入，进行相应动作 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(bioskey(1)) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ch = bioskey(0);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch(ch&gt;&gt;8) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case DOWN:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(canMove(DOWN,CurrentShape)) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPoint(&amp;BaseLocation,BaseLocation.x,BaseLocation.y+1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,0);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Active = 0; /* 不可下降，表明到达底部，退出游戏面板 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case LEFT:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(canMove(LEFT,CurrentShape)) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPoint(&amp;BaseLocation,BaseLocation.x-1,BaseLocation.y);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,0);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case RIGHT:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(canMove(RIGHT,CurrentShape)) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPoint(&amp;BaseLocation,BaseLocation.x+1,BaseLocation.y);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,0);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case ROTATE:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(canMove(ROTATE,shapes[CurrentShape].rotateTo)) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CurrentShape = shapes[CurrentShape].rotateTo;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; drawShape(CurrentShape,BaseLocation,0);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case QUIT:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; gameOver();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; default:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 扫描是否有可消去的行，这里只扫描当前形状的BaseLocaion.y及其上若干行 */
+ <br /> void lineScan(void) {
+</div> 
+<div> 
+</div> 
+<div>
+ int i,j;
+ <br /> int miniy,flag=1;
+ <br /> /* 得到当前形状的最小y的绝对值,即为扫描次数 */
+ <br /> miniy = abs(getShapeMiniY(CurrentShape));
+ <br /> for(i=0;i&lt;=miniy;i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; for(j=1;j&lt;=AREAWIDTH-2;j++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(BaseLocation.y-i &gt;= 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(GameArea[j][BaseLocation.y-i]==0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; flag = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(flag == 1&amp;BaseLocation.y-i&gt;=0) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; deletLine(BaseLocation.y-i);
+ <br /> /* 删除了移行，则应重新该行，并使扫描次数减少 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; i--;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; miniy--;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; flag = 1;
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 删除一指定行．包括两部分：游戏数组和游戏界面 */
+ <br /> void deletLine(int row) {
+</div> 
+<div> 
+</div> 
+<div>
+ int i,j,size;
+ <br /> void * buf;
+ <br /> int miniy;
+</div> 
+<div> 
+</div> 
+<div>
+ /* 调整数组部分,数组整体下移，并请空最高行 */
+ <br /> miniy = getMiniy();
+ <br /> for(i=row;i&gt;=miniy;i--)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; for(j=1;j&lt;AREAWIDTH-1;j++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GameArea[j][i] = GameArea[j][i-1];
+ <br /> for(i=1;i&lt;AREAWIDTH-1;i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; GameArea[i][miniy] = 0;
+</div> 
+<div> 
+</div> 
+<div>
+ /* 调整图像，利用图像拷贝处理 */
+ <br /> size = imagesize(BLOCKWIDTH,miniy*BLOCKWIDTH,BLOCKWIDTH*(AREAWIDTH-1),row*BLOCKWIDTH);
+ <br /> buf = malloc(size);
+ <br /> getimage(BLOCKWIDTH,miniy*BLOCKWIDTH,BLOCKWIDTH*(AREAWIDTH-1),row*BLOCKWIDTH,buf);
+ <br /> putimage(BLOCKWIDTH,miniy*BLOCKWIDTH,buf,XOR_PUT);
+ <br /> putimage(BLOCKWIDTH,(miniy+1)*BLOCKWIDTH,buf,COPY_PUT);
+ <br /> free(buf); 
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 标示当前固定的形状在游戏数组中占据的位置，消除满行并产生新形状，更新预览视窗 */
+ <br /> void genShape(void) {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; int i,x,y;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; /* 标示当前固定的形状在游戏数组中占据的位置 */
+ <br /> &nbsp;&nbsp;&nbsp; for(i=0; i&lt;4; i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (shapes[CurrentShape]).points[i].x + BaseLocation.x;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (shapes[CurrentShape]).points[i].y + BaseLocation.y;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(x&gt;=0 &amp;&amp; y&gt;=0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GameArea[x][y] = 1;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; /* 消除满行，如果有的话 */
+ <br /> &nbsp;&nbsp;&nbsp; lineScan();
+</div> 
+<div> 
+</div> 
+<div>
+  /* 更新预览视窗,设置下一图形抛出点 */
+ <br /> &nbsp;&nbsp;&nbsp; CurrentShape = NextShape; 
+ <br /> &nbsp;&nbsp;&nbsp; NextShape = rand()%18;
+ <br /> &nbsp;&nbsp;&nbsp; setPoint(&amp;BaseLocation, (AREAWIDTH-2)/2,0);
+ <br /> &nbsp;&nbsp;&nbsp; Active = 1;
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 绘制当前形状．第三个参数表明是插除还是全新绘制 */
+ <br /> void drawShape(int shapeIndex,struct Point basePoint,int isErase) {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; struct Point tmppoint;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(i=0; i&lt;4; i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tmppoint.x = ((shapes[shapeIndex]).points[i]).x+basePoint.x;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tmppoint.y = ((shapes[shapeIndex]).points[i]).y+basePoint.y;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(isErase)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setBarByIndex(tmppoint,-1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setBarByIndex(tmppoint,shapes[shapeIndex].color);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> /* 在游戏区内指定的坐标出绘制方块 */
+ <br /> void setBarByIndex(struct Point index,int color) {
+</div> 
+<div> 
+</div> 
+<div>
+ setlinestyle(SOLID_LINE,0,NORM_WIDTH);
+ <br /> setcolor(BKCOLOR);
+ <br /> if(color &gt;= 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; setfillstyle(SOLID_FILL,color);&nbsp;&nbsp;&nbsp; /* 设置点亮色 */
+ <br /> else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; setfillstyle(SOLID_FILL,BKCOLOR); /* 设置熄灭色 */
+ <br /> bar(index.x*BLOCKWIDTH,index.y*BLOCKWIDTH,(index.x+1)*BLOCKWIDTH,(index.y+1)*BLOCKWIDTH);
+ <br /> /* 用背景色画出方块的边界，即分割形状的每个方块 */
+ <br /> rectangle(index.x*BLOCKWIDTH,index.y*BLOCKWIDTH,(index.x+1)*BLOCKWIDTH,(index.y+1)*BLOCKWIDTH);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 当前形状是否可以进行相应操作. */
+ <br /> int canMove(int direction, int shape) {
+</div> 
+<div> 
+</div> 
+<div>
+ int i,x,y;
+ <br /> int flag = 1;
+ <br /> struct Point tmppoint;
+</div> 
+<div> 
+</div> 
+<div>
+ switch(direction) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; case DOWN:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPoint(&amp;tmppoint, BaseLocation.x,BaseLocation.y+1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; case LEFT:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPoint(&amp;tmppoint, BaseLocation.x-1,BaseLocation.y);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; case RIGHT:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPoint(&amp;tmppoint, BaseLocation.x+1,BaseLocation.y);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; case ROTATE:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPoint(&amp;tmppoint, BaseLocation.x,BaseLocation.y);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; default:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ for(i=0; i&lt;4; i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = shapes[shape].points[i].x + tmppoint.x;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = shapes[shape].points[i].y + tmppoint.y;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; /* 移动后超出边界，不可进行相应操作 */ 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(x == 0 || x == AREAWIDTH-1) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; flag = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return flag;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(x&gt;=0 &amp;&amp; y&gt;=0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* 如果移动后对应的游戏数组中的位置被占用，则不可进行相应操作 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(GameArea[x][y] != 0) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; flag =0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> return flag ;
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 预览下一形状 */
+ <br /> void previewWindow(void) {
+ <br /> /* 设置[1][3]为基准点 */
+ <br /> struct Point basePoint = {1,3};
+</div> 
+<div> 
+</div> 
+<div>
+ setviewport(20*BLOCKWIDTH, 4*BLOCKWIDTH, 24*BLOCKWIDTH, 8*BLOCKWIDTH,CLIP_ON);
+ <br /> drawShape(CurrentShape,basePoint,1);
+ <br /> drawShape(NextShape, basePoint,0);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 设置点坐标 */
+ <br /> void setPoint(struct Point * point,int x,int y) {
+</div> 
+<div> 
+</div> 
+<div>
+ point-&gt;x = x;
+ <br /> point-&gt;y = y;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 新中断处理函数 */
+ <br /> void interrupt newhandler(__CPPARGS) {
+</div> 
+<div> 
+</div> 
+<div>
+ Counter++;
+ <br /> oldhandler();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 设置新中断处理函数 */
+ <br /> void setTimer(void interrupt (*IntProc)(__CPPARGS)) {
+</div> 
+<div> 
+</div> 
+<div>
+ oldhandler=getvect(TIMER);
+ <br /> disable();
+ <br /> setvect(TIMER,IntProc);
+ <br /> enable();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 恢复中断处理函数 */
+ <br /> void killTimer() {
+</div> 
+<div> 
+</div> 
+<div>
+ disable();
+ <br /> setvect(TIMER,oldhandler);
+ <br /> enable();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 得到指定形状中最小的y */
+ <br /> int getShapeMiniY(int index) {
+</div> 
+<div> 
+</div> 
+<div>
+ int i,mini;
+</div> 
+<div> 
+</div> 
+<div>
+ mini = shapes[index].points[0].y;
+ <br /> for(i=1;i&lt;4;i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(mini &gt; shapes[index].points[i].y)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mini = shapes[index].points[i].y;
+</div> 
+<div> 
+</div> 
+<div>
+ return mini;
+ <br /> }&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ /* 得到当前数组中，被占用列中最小的列号 */
+ <br /> int getMiniy(void){
+</div> 
+<div> 
+</div> 
+<div>
+ int i,j;
+</div> 
+<div> 
+</div> 
+<div>
+ for(i=0;i&lt;AREALEN-1;i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; for(j=1;j&lt;AREAWIDTH-1;j++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(GameArea[j][i]== 1)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return i;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /* 游戏结束 */
+ <br /> void gameOver(void) {
+</div> 
+<div> 
+</div> 
+<div>
+ closegraph();
+ <br /> killTimer();
+ <br /> exit(0);
+ <br /> }
+</div></div></body></html>

@@ -1,0 +1,174 @@
+<html><head><title><div class="tit">
+  swt tray demo:右键菜单,单击隐藏,所有事件的例子-托盘区-SWTcode
+</div></title></head><body><div id='tit'>swt tray demo:右键菜单,单击隐藏,所有事件的例子-托盘区-SWTcode</div><div id='cate'>代码备份</div><div id='date'>2008年03月30日 星期日 10:39 P.M.</div><div id='page'>151</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/66e1d713488c6e065baf534f.html'>http://hi.baidu.com/hxzon/blog/item/66e1d713488c6e065baf534f.html</a><div id='cnt'><div>
+ swt tray demo:右键菜单,单击隐藏,所有事件的例子-托盘区-SWTcode
+</div> 
+<div> 
+</div> 
+<div>
+ swt的system tray,只能处理三种事件:左键单击,左键双击和右键双击,右键单击
+ <br /> 这是我看swt 3.0.1 win32的源码所知
+ <br /> 此demo有以下功能:
+ <br /> 1.左键单击时 ,隐藏,显示主窗口
+ <br /> 2.右键单击,弹出菜单
+</div> 
+<div> 
+</div> 
+<div>
+ 注意:
+ <br /> 1.左键双击和右键双击是一种事件,无法区分
+ <br /> 2.左键双击将产生以下事件:左键单击,左键双击,左键单击
+ <br /> 3.关于弹出菜单,menu必须有一个parent,如果程序里没有任何shell,可以建一个不可见的shell专门作为menu的parent.
+</div> 
+<div> 
+</div> 
+<div>
+ import org.eclipse.swt.*;
+ <br /> import org.eclipse.swt.widgets.*;
+ <br /> import org.eclipse.swt.events.*;
+ <br /> import org.eclipse.swt.layout.FillLayout;
+ <br /> import org.eclipse.swt.graphics.Image;
+</div> 
+<div> 
+</div> 
+<div>
+ class HelloTray implements SelectionListener{
+</div> 
+<div> 
+</div> 
+<div>
+ Display display;
+ <br /> Shell shell;
+ <br /> Button hello;
+ <br /> Tray tray;
+ <br /> TrayItem ti;
+ <br /> Menu menu;
+ <br /> MenuItem mi1;
+ <br /> MenuItem mi2;
+ <br /> MenuItem quit;
+</div> 
+<div> 
+</div> 
+<div>
+ public HelloTray(){
+ <br /> display = Display.getDefault();
+ <br /> shell = new Shell();
+</div> 
+<div> 
+</div> 
+<div>
+ FillLayout fillLayout = new FillLayout();
+ <br /> fillLayout.type = SWT.VERTICAL;
+ <br /> shell.setLayout(fillLayout);
+</div> 
+<div> 
+</div> 
+<div>
+ hello = new Button(shell, SWT.NONE);
+ <br /> hello.setText(&quot;Hello World!&quot;);
+ <br /> &nbsp;&nbsp; hello.addSelectionListener(new SelectionAdapter(){
+ <br /> public void widgetSelected(SelectionEvent e){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(hello.getText().equals(&quot;Hello World!&quot;))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hello.setText(&quot;Clicked&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hello.setText(&quot;Hello World!&quot;);
+ <br /> }
+ <br /> });
+</div> 
+<div> 
+</div> 
+<div>
+ menu=new Menu(shell);
+ <br /> mi1=new MenuItem(menu,SWT.PUSH);
+ <br /> mi1.setText(&quot;MenuItem 1&quot;);
+ <br /> mi1.addSelectionListener(this);
+ <br /> mi2=new MenuItem(menu,SWT.PUSH);
+ <br /> mi2.setText(&quot;MenuItem 2&quot;);
+ <br /> mi2.addSelectionListener(this);
+ <br /> quit=new MenuItem(menu,SWT.PUSH);
+ <br /> quit.setText(&quot;Quit&quot;);
+ <br /> quit.addSelectionListener(this);
+</div> 
+<div> 
+</div> 
+<div>
+ //生成swt的tray
+ <br /> tray=display.getSystemTray();
+ <br /> ti=new TrayItem(tray,0);
+ <br /> ti.setToolTipText(&quot;This is a swt Tray!&quot;);
+ <br /> ti.setImage(new Image(display,&quot;happy.gif&quot;));
+</div> 
+<div> 
+</div> 
+<div>
+ //swt,tray的所有事件:
+ <br /> ti.addSelectionListener(new SelectionListener(){
+ <br /> //左键单击
+ <br /> public void widgetSelected(SelectionEvent e){
+ <br /> System.out.println(&quot;Tray Selcted&quot;);
+ <br /> //左键单击时 ,隐藏,显示主窗口
+ <br /> if(shell.isVisible()){
+ <br /> shell.setVisible(false);
+ <br /> }else{
+ <br /> shell.setVisible(true);
+ <br /> shell.forceActive();
+ <br /> }
+ <br /> }
+ <br /> //左键双击,右键双击,都是它
+ <br /> public void widgetDefaultSelected(SelectionEvent e){
+ <br /> System.out.println(&quot;Tray widgetDefaultSelected&quot;);
+ <br /> }
+ <br /> });
+ <br /> //右键单击,弹出菜单
+ <br /> ti.addListener(SWT.MenuDetect,new Listener(){
+ <br /> public void handleEvent(Event event){
+ <br /> System.out.println(&quot;SWT.MenuDetect&quot;);
+ <br /> menu.setLocation(display.getCursorLocation());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; menu.setVisible(true);
+ <br /> }
+ <br /> });
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void start(){
+ <br /> shell.open();
+ <br /> while (!shell.isDisposed()) {
+ <br /> if (!display.readAndDispatch())
+ <br /> display.sleep();
+ <br /> }
+ <br /> display.dispose();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public static void main(String[] args) {
+ <br /> HelloTray app=new HelloTray();
+ <br /> app.start(); 
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void widgetSelected(SelectionEvent e){
+ <br /> System.out.println(e.getSource()+&quot; selected.&quot;);
+ <br /> if(e.getSource()==quit){
+ <br /> System.out.println(&quot;Quit&quot;);
+ <br /> display.dispose();
+ <br /> System.exit(0);
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void widgetDefaultSelected(SelectionEvent e){ 
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

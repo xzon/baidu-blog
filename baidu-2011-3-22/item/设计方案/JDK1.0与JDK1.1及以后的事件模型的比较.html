@@ -1,0 +1,30 @@
+<html><head><title><div class="tit">
+  JDK1.0与JDK1.1及以后的事件模型的比较
+</div></title></head><body><div id='tit'>JDK1.0与JDK1.1及以后的事件模型的比较</div><div id='cate'>设计方案</div><div id='date'>2008年04月06日 星期日 05:53 P.M.</div><div id='page'>146</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/809caaaf9d935ec87cd92a9a.html'>http://hi.baidu.com/hxzon/blog/item/809caaaf9d935ec87cd92a9a.html</a><div id='cnt'><center>
+ <font size="5"><strong>JDK1.0与JDK1.1及以后的事件模型的比较</strong></font> 
+</center> 
+<p> </p> 
+<ul> 
+ <p> </p> 
+ <li><font size="4"><strong>事件的概念</strong></font> <p> </p> <font size="3"> <p>通常当用户在用户接口上进行某种操作时，如按下键盘上某个键或移动鼠标，均会引发一个<strong>事件(event)</strong>。事件是用来描述所发生事情的对象，对应用户操作的不同种类有不同类型的事件类与之对应。</p> </font> <p> </p> </li> 
+ <li><font size="4"><strong>事件源</strong></font> <p> </p> <font size="3"> </font> <p><font size="3"><strong>事件源(event source)</strong>是指一个事件的产生者。例如，当在一个按纽(Button)上单击鼠标时就会产生一个ActionEvent的事件，事件源就是该按纽。通过<a href="http://courseware.ecnudec.com/zsb/zjs/zjs13/API_docs/api/java.awt.event.ActionEvent.html">ActionEvent对象</a>的有关方法可以获得该事件的有关信息，如：</font></p> <font size="3"> </font> 
+  <ol type="A">
+   <font size="3"> <li><strong><a href="http://courseware.ecnudec.com/zsb/zjs/zjs13/API_docs/api/java.awt.event.ActionEvent.html#getActionCommand()">getActionCommand</a></strong> ------ 返回与用户操作有关的命令名，若用鼠标单击按纽，返回的是按纽上的标签名(label)。</li> <li><strong><a href="http://courseware.ecnudec.com/zsb/zjs/zjs13/API_docs/api/java.awt.event.ActionEvent.html#getModifiers()">getModifiers</a></strong> ------- 返回与用户操作有关的修饰符，常用于判别用户在操作时是否按下了Ctrl和Shift等键。</li> </font>
+  </ol> <font size="3"> </font> <p><font size="3"> </font></p> <font size="3"> </font> <p> </p> </li> 
+ <li><font size="4"><strong>事件处理者</strong></font> <p> </p> <font size="3"> <p>事件处理者往往是一个方法，该方法接受一个事件对象，并进行相应的处理。</p> </font> <p> </p> </li> 
+ <li><font size="4"><strong>JDK1.0的事件模型</strong></font> <p> </p> <font size="3"> </font> <p><font size="3">JDK1.0采用了层次型的事件模型。当事件产生时，它先被送往产生该事件的组件(component), 如事件在这里未被处理，它就会被自动送往该组件的Container, 如Container也未对事件进行处理，则还会递交给该Container的上一层Container（如有的话）。</font></p> <font size="3"> </font> 
+  <ul>
+   <font size="3"> </font> 
+   <p><font size="3"> </font></p> 
+   <font size="3"> <li>层次型模型的优点：<br /> 简单，对中小规模的应用比较合适。 <p> </p> <p> </p> </li> <li>层次型模型的缺点：<br /> 
+     <ol type="1"> 
+      <li>事件仅能被产生该事件的组件或它的Container所处理，但实际编程中要对事件作出处理的类往往并不符合这个条件。</li> 
+      <li>大量的CPU周期浪费在一些无关事件的处理上。因为按照这种模型，一些无关或不重要的事件也会被一层一层地传上去。</li> 
+      <li>为了处理事件，程序员必须继承事件源组件对应的类或在它的Container中写一个很大的<a href="http://courseware.ecnudec.com/zsb/zjs/zjs13/API_docs/api/java.awt.Component.html#handleEvent(java.awt.Event)">handleEvent()</a>方法。</li> 
+     </ol> <p> </p> </li> </font>
+  </ul> <font size="3"> </font> <p> </p> </li> 
+ <li><font size="4"><strong>JDK1.1之后的事件模型</strong></font> <p> </p> <font size="3"> </font> <p><font size="3">在JDK1.1中，对事件的接受和处理方式作了很大的变动，其对应的事件模型又称为<strong>委托代理模型(Delegation model)</strong>。该模型的原理如下：</font></p> <font size="3"> </font> <p><font size="3">当事件产生时，该事件被送到产生该事件的组件去处理，而要能够处理这个事件，该组件必须登记(register)有与该事件有关的一个或多个被称为<strong>listeners</strong>的类，这些类包含了相应的方法能接受事件并对事件进行处理。</font></p> <font size="3"> </font> <p><font size="3">在这种模式中，事件的产生者和事件的处理者分离开来了，它们可以是不同的对象。事件的处理者，即那些listeners，是一些实施了Listener接口的类。当事件传到登记的listener时，该listener中必须有相应的方法来接受这种类型的事件并对它进行处理。</font></p> <font size="3"> </font> <p><font size="3">一个组件如没有登记的listeners，则它产生的事件就不会被传递。</font></p> <font size="3"> 下面是这种事件处理模式的一个简单的例子： </font> <pre><font size="3">import java.awt.*;<br />public class TestButton {<br /> public static void main(String args[]) {<br />  Frame f = new Frame(&quot;Test&quot;);<br />  Button b = new Button(&quot;Press Me!&quot;);<br />  b.addActionListener(new ButtonHandler());<br />  f.add(b,&quot;Center&quot;);<br />  f.pack();<br />  f.setVisible(true);<br /> }<br />}<br /><br />import java.awt.event.*;<br />public class ButtonHandler implements ActionListener {<br /> public void actionPerformed(ActionEvent e) {<br />  System.out.println(&quot;action occurred&quot;);<br />  System.out.println(&quot;Button's label is:&quot;+e.getActionCommand());<br /> }<br />}</font></pre> <font size="3"> 在上例中，<a href="http://courseware.ecnudec.com/zsb/zjs/zjs13/API_docs/api/java.awt.Button.html#addActionListener(java.awt.event.ActionListener)">addActionListener(ActionListener)</a>是Button类的方法，当一个Button对象创建时，可通过该方法来登记一个用于处理ActionEvent事件的listener, 该方法的参数对应这种listener的一个实例。另外，listener实施的接口ActionListener只定义了一个方法，<a href="http://courseware.ecnudec.com/zsb/zjs/zjs13/API_docs/api/java.awt.event.ActionListener.html#actionPerformed(java.awt.event.ActionEvent)">actionPerformed()</a>，该方法能接受一个ActionEvent类型的对象，并对它进行处理。 </font> <p><font size="3">委托代理模型的优缺点：</font></p> <font size="3"> </font> 
+  <ul>
+   <font size="3"> <li> <p>优点：该模型较好地解决了层次模型中的问题，并提供了对Java Bean的支持。</p> </li> <li> <p>缺点：虽然JDK的新版本也支持旧的层次模型，但层次模型和委托代理模型不能在程序中混用。</p> </li> </font>
+  </ul> <font size="3"> </font></li> 
+</ul></div></body></html>

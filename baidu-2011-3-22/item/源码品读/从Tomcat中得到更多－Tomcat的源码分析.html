@@ -1,0 +1,86 @@
+<html><head><title><div class="tit">
+  从Tomcat中得到更多－Tomcat的源码分析
+</div></title></head><body><div id='tit'>从Tomcat中得到更多－Tomcat的源码分析</div><div id='cate'>源码品读</div><div id='date'>2008年03月09日 星期日 11:03 P.M.</div><div id='page'>164</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b0610c463347020d6a63e56c.html'>http://hi.baidu.com/hxzon/blog/item/b0610c463347020d6a63e56c.html</a><div id='cnt'><div> 
+ <h1>从Tomcat中得到更多－Tomcat的源码分析</h1> 
+ <p> <a href="http://www.ibm.com/developerworks/cn/java/l-from-tomact/index.html">http://www.ibm.com/developerworks/cn/java/l-from-tomact/index.html</a></p> 
+ <p><span>How Tomcat Works.pdf</span><span class="graytext"> </span><br /> <a href="http://docs.google.com/Doc?id=dc32cxpz_31ghgkhqf3" target="_blank">http://docs.google.com/Doc?id=dc32cxpz_31ghgkhqf3</a> How Tomcat Works中文版</p> 
+ <p>tomcat源码品读</p> 
+ <p><a class="dwauthor" href="http://www.ibm.com/developerworks/cn/java/l-from-tomact/index.html#author1" rel="#authortip1">赵晨希</a> (<a href="mailto:zhaochenxi@vip.sina.com?subject=%E4%BB%8ETomcat%E4%B8%AD%E5%BE%97%E5%88%B0%E6%9B%B4%E5%A4%9A%EF%BC%8DTomcat%E7%9A%84%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90&amp;cc=zhaochenxi@vip.sina.com">zhaochenxi@vip.sina.com</a>),</p> 
+ <p> <strong>简介：</strong> 本文的作者通过对TomCat源代码的研究，向读者描述了在tomcat3.3和TomCat4.0中在设计方面使用的不同设计理念和模式，希望对广大开发者在设计自己的系统时有所帮助。</p> 
+ <p> </p> 
+ <p><a name="1"><span class="atitle">1．关于Tomcat的基本情况</span></a></p> 
+ <p>众所周知Tomcat是一个免费的开放源码的Serlvet容器，它是Apache基金会的Jakarta项目中的一个核心项目，也是 sun公司官方推荐的servlet和jsp容器，同时它还获得过多种荣誉。servlet和jsp的最新规范都可以在tomcat的新版本中得到实现。 Tomcat具有轻量级和灵活嵌入到应用系统中的优点，所以得到了广泛的应用。在Tomcat的发展中，Sun在1999年六月宣布参与Jakarta项目的Tomcat servlet容器和Jsp引擎的开发，使得Tomcat在3.x和4.x版之间系统设计上发生了比较大的变化。Tomcat的其他信息我就不多说了。有兴趣的朋友可以访问http://jakarta.apache.org/ 的官方网站得到更多的信息。</p> 
+ <p>因为工作的原因，我改写了Tomcat的一些代码，所以我粗略的研究了一下Tomcat3.3和Tomcat4.0的源码，深深地被这个开放软件的设计和实现吸引，感觉到这个软件中有许多值得我们学习和借鉴的地方。我把自己的理解介绍给大家算是抛砖引玉，不足和偏差还望大家批评指正。下面就来让我们看看从Tomcat那里我们可以得到什么。</p> 
+ <p><a name="2"><span class="atitle">2．从Tomcat中学习设计模式</span></a></p> 
+ <p>Tomcat的设计和实现处处体现着设计模式的思想，它的基本流程是首先通过解析xml格式的配置文件，获得系统的配置和应用信息，然后加载定制的组件模块提供各种系统服务。系统的各部分功能都是通过可以配置的组件模块来实现的。Tomcat实现中像 Observer，Facade，Adapter，Singleton等多种设计模型在Tomcat的源码中随处可见，为我们提供了一个很好的学习设计模式的平台。我主要介绍一下Tomcat中程序流程控制所采用的设计模式，这是一个程序运行的框架。前面提到由于Sun公司的参与，Tomcat虽然基本的流程没有变化，但是Tomcat3.3和Tomcat4.0版本之间在概念上还是有很大地不同的。Tomcat3.3整体上是模块化的设计，而 Tomcat4.0可以看作是采用面向组件技术进行设计的。组件是比模块更高级的一个层次。我们可以通过比较它们之间的不同来了解实现一个服务器软件可以采用的设计模式和实现方式。</p> 
+ <p><a name="N10051"><span class="smalltitle">2．1Tomcat3.3的基本结构设计</span></a></p> 
+ <p>Tomcat3.3采用的是一种模块化的链状的控制结构，它的主要设计模式有：</p> 
+ <p><strong>Chain of responsibility（责任链）</strong></p> 
+ <p>作为一个基于请求响应模式的服务器，在Tomcat3.3中采用一种链状处理的控制模式。请求在链上的各个环节上传递，在任一环节上可以存在若干个&quot;监听器&quot;处理它。这样做的目的是避免请求的发送者和接受者之间的直接耦合，从而可以为其他的对象提供了参与处理请求的机会。采用这个方式不但可以通过&quot;监听器&quot;实现系统功能，而且可以通过添加新的&quot;监听器&quot;对象实现系统功能的扩展。</p> 
+ <p><strong>Interceptor（监听器）</strong></p> 
+ <p>&quot;监听器&quot;是一个过去使用的名称，它可以看作 &quot;模块(module)&quot;的同义词。它是Tomcat功能模块构建和扩展的方式。Tomcat3.3的大部分功能都是通过&quot;监听器&quot;实现的。在 Tomcat中提供了一种简单的钩子（Hook）机制，监听器对钩子中感兴趣的事件进行注册，事件发生后通过钩子唤醒已注册的&quot;监听器&quot;对象，&quot;监听器&quot; 对象对Tomcat内核事件进行处理。这些模块都是围绕着&quot;责任链&quot;和&quot;策略&quot;的模式进行设计。通过&quot;监听器&quot;你可以监听各种特殊事件，进而控制处理请求的各个步骤---解析，认证，授权，会话，响应提交，缓冲区提交等等。</p> 
+ <p><strong>Strategy（策略）</strong></p> 
+ <p>所谓策略是指&quot;定义一组规则，按照规则进行对象封装，使得他们只在规则内部进行交互&quot;。通过策略模式使得Tomcat作为一个开源项目在开放环境下的开发和演变变得更轻松。通过这种模式把复杂的算法分成模块然后不同的开发组提供各自的实现。从而实现调用模块的代码和模块的具体实现代码的分别开发。这样可以使我们专注于问题的重点，并且减少问题之间的依赖性。在Tomcat中大量采用了策略的设计模式，通过这种方式每一种服务都提供了多种的实现（例如Tomcat中有2－3种认证模块），在代码完成后可以从稳定性和性能表现的考虑选择更好的实现。策略模式对开放式环境下的软件开发非常有用。</p> 
+ <p>我们通过简化的类图(见图一)和时序图(见图二)，描述一下Tomcat3.3的程序流程控制如何通过监听器和责任链实现。</p> 
+ <p><br /> <a name="N1007A"><strong>图一 简化的类图</strong></a><br /> <img alt="图一 简化的类图" src="image/从Tomcat中得到更多－Tomcat的.33b38018ff8da7f44bedbc87.jpg" width="500" height="383" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/33b38018ff8da7f44bedbc87.jpg</p></p> 
+ <p>关于类图的简单说明：</p> 
+ <p>BaseInterceptor：是所有监听器的基类，描述了基本的模块功能和对各种事件的缺省处理。</p> 
+ <p>ContextManage：系统的核心控制对象，进行请求处理和系统配置。它维护了全局的属性、web应用的内容和全局模块等多种信息，责任链的钩子实现也在其中。</p> 
+ <p>PoolTcpConnector：一个处理TCP连接的连接器对象，从BaseIntercepor派生。它包括一个具体处理socket连接的PoolTcpEndPoint类对象。</p> 
+ <p>PoolTcpEndPoint：处理实际的tcp连接。它有一个连接池对象ThreadPool和运行在独立线程中的应用逻辑类TcpWorkThread。</p> 
+ <p>TcpWorkThead：处理socket连接事务，调用接口TcpConnectionHandler中的请求处理方法。</p> 
+ <p>Http10Interceptor：从PoolTcpConnector派生，实现了TcpConnectionHandler接口，是一个真正的监听器对象。它按照Http1.0的协议标准对tcp连接进行处理，调用核心对象ContextManage的服务方法。</p> 
+ <p><br /> <a name="N1009E"><strong>图二 简化的时序图</strong></a><br /> <img alt="图二 简化的时序图" src="image/从Tomcat中得到更多－Tomcat的.78b68101717cfa96267fb587.jpg" width="650" height="867" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/78b68101717cfa96267fb587.jpg</p></p> 
+ <p>关于时序图中需要说明的地方：</p> 
+ <ol> 
+  <li>在contextManager初始化后会根据配置信息，加载基本的应用模块和各种监听器对象，创建钩子（Hook）机制，注册监听器对象，形成一个责任链。然后对各个监听器对象发出engineInit，engineStart消息。</li> 
+  <li>一个请求在经过http10interceptor基本处理后提交到contextManager处理。</li> 
+  <li>ContextManager的processRequest方法进行请求的处理。按照处理的步骤会顺序地发出 H_postReadRequest，H_contextMap， H_requestMap等消息。然后从hook中取得对该消息注册的监听器对象，调用他们的处理方法，从而实现责任链方式。以下的代码片断说明了这种方式： <br /> BaseInterceptor ri[];<br /> //取得注册对象<br /> ri=defaultContainer.getInterceptors(Container.H_postReadRequest);<br /> //执行注册对象的对消息的处理方法<br /> for( int i=0; i&lt; ri.length; i++ ) { status=ri[i].postReadRequest( req ); ......}</li> 
+  <li>系统退出时contextManager发出engineStop消息。</li> 
+ </ol> 
+ <p>Tomcat3.3的基本程序结构就是采用上面介绍的方式设计的。它给我们的设计和开发提供了一个很好的思路，通过这种模式可以轻松的实现一个事件驱动的基于模块化设计的应用程序。各个功能通过模块实现，通过对责任链上的消息和处理步骤的改动或者添加新的监听器对象可以非常方便的扩展 Tomcat的功能。所以这是一个非常好的设计。</p> 
+ <p><a name="N100C5"><span class="smalltitle">2．2Tomcat4.0的基本结构设计</span></a></p> 
+ <p>虽然Tomcat3.x已经实现了一个非常好的设计体系，但是在Sun公司加入后， Tomcat4.0中还是引入了不同的实现方式。主要的区别是Tomcat4.0采用了面向组件的设计方式， Tomcat4.0中的功能是由组件提供的，控制流程通过组件之间的通讯完成。这不同于Tomcat3.3中的基于模块的链式控制结构。</p> 
+ <p>面向组件的技术(CO)是比面向对象的技术(OOP)更高一层的抽象，它融合了面向对象的优点，加入了安全性和可扩展的模块设计，可以更好的映射问题域空间。采用面向组件的设计会带来很多好处，可以提高复用性、降低耦合度和通过组装构成系统等等。面向组件编程中有许多概念与原来面向对象的编程是不同的，例如：</p> 
+ <p>Message(消息)：定义抽象操作； Method(方法)：定义具体的操作； <br /> Interface(接口)：一组消息的集合； Implementation(实现)：一组方法的集合； <br /> Module(模块)：静态的数据结构, Type(类型)：动态的数据结构。</p> 
+ <p>软件组件不同与功能模块，它具有以下特性：</p> 
+ <ul> 
+  <li>组件是一个自包容的模块，具有定义清楚的界线，对外提供它的能力、属性和事件。</li> 
+  <li>组件自身不保留状态。</li> 
+  <li>组件可以是一个类，大部分情况下是一组类。</li> 
+ </ul> 
+ <p>在Java 语言中对面向组件编程的支持是通过JavaBeans模型获得的。JavaBean组件框架提供了对事件和属性的支持。Tomcat4.0的组件的就是通过JavaBean技术实现的。这是它和Tomcat3.3中最大的不同。下面我们来看一下Tomcat4.0是如何通过面向组件编程来实现程序流程控制的。</p> 
+ <p>面向组件编程时设计组件是关键，从Tomcat4.0中可以看出主要使用了以下的设计模式：</p> 
+ <p><strong>Separation of Concerns（SOC）</strong></p> 
+ <p>设计组件时应该从不同的问题领域，站在不同的观点上分析，把每一种属性分别考虑。举一个例子FileLogger组件，它用于把系统日志信息保存到文件系统中。按照这种模式分析，我们从不同的角度看待它：它如何启动服务、停止服务和进行通讯？它的具体的功能有哪些？别的组件可以发给它哪些消息？基于这些考虑，FileLogger组件应该实现两种接口：Lifecycle（生存期接口）和LoggerBase（功能接口）。</p> 
+ <p>Inversion of Control（IOC）这个模式定义的是，组件总是通过外部进行管理的。组件需要的信息总是来源于外部，实际上组件在生存期的各个阶段都是被创建它的组件管理的。在Tomcat4.0中就是通过这种组件之间的相互控制和调用实现各个功能的。</p> 
+ <p>按照这些模式分析得到的Tomcat4.0中的组件是既有共性又有特性。共性是Lifecycle接口，特性是不同的功能接口。其中生存期接口处理组件的整个生存期中的各个阶段的事件,功能接口提供给其他的组件使用。</p> 
+ <p>具体的功能如何实现我在这里不多介绍了，我主要介绍一下Tomcat4.0中组件的Lifecycle接口的设计。Lifecycle 接口实现了组件的生存期管理，控制管理和通讯。创建一个软件组件和创建一个JavaBean对象一样，可以参考JavaBean进行理解。我通过一个模拟的Lifecycle接口组件的类图来描述。(见图三)</p> 
+ <p><br /> <a name="N10101"><strong>图三 Lifecycle接口组件类图</strong></a><br /> <img alt="图三 Lifecycle接口组件类图" src="image/从Tomcat中得到更多－Tomcat的.814728734623ce5c8601b087.jpg" width="650" height="507" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/814728734623ce5c8601b087.jpg</p></p> 
+ <p>对模拟的Lifecycle接口组件的类图的说明</p> 
+ <ol> 
+  <li>Lifecycle Interface(接口)定义一组组件通讯的Message(消息)。</li> 
+  <li>组件实现Lifecycle接口，组件内部定义一个LifecycleSupport对象。需要和该组件通讯的其他组件必须实现LifecycleListener接口，该组件通过add/removeLifecycleListener方法管理需要通讯的其他组件。</li> 
+  <li>组件内部状态改变时如果需要和其他组件通讯时，通过LifecycleSupport对象的fireLifecycleEvent方法通知其他组件。</li> 
+  <li>其他组件通过lifecycleEvent方法获得通知的消息。LifecycleEvent对象是从java.util.EventObject派生的。</li> 
+  <li>当然在组件设计和实现中我们也可以直接使用JavaBeans中已经提供的的类如：java.beans.PropertyChangeListener；java.beans.PropertyChangeSupport这样可以获得更多的功能特性支持。</li> 
+ </ol> 
+ <p>通过上面的分析我们可以看到组件成为Tomcat4.0中的核心概念，系统的功能都是通过组件实现的，组件之间的通讯构成了系统的运行控制机制。我们把Tomcat3.3中模块化的链状控制机制和Tomcat4.0的面向组件的设计进行比较，就会发现Tomcat4.0在设计思想上软件组件的概念非常明确。Tomcat4.0和Tomcat3.3最主要的区别就在于此。至于面向对象和面向组件的关系和区别，我在这里就不介绍了，有兴趣的朋友可以找到很多这方面的资源。</p> 
+ <p><a name="3"><span class="atitle">3．从Tomcat源码中得到高效的软件组件</span></a></p> 
+ <p>Tomcat不但为我们提供了设计和实现系统时的新思路，同时因为它是由组件或者模块构成的，所以它还为我们提供了大量可用的高效软件组件。这些组件都可以在我们的程序开发中使用。我简单列举一些，需要时可以直接从源码中取得。</p> 
+ <ul> 
+  <li>一些特殊集合类数据结构如池、队列、缓存等可用于服务端开发。 <br /> \src\share\org\apache\tomcat\util\collections</li> 
+  <li>一个简单的钩子（Hooks）机制的实现。 <br /> src\share\org\apache\tomcat\util\hooks</li> 
+  <li>一个简单线程池（ThreadPool）的实现。 <br /> src\share\org\apache\tomcat\util\threads</li> 
+  <li>组件Lifecycle接口的设计和实现。 <br /> \src\catalina\src\share\org\apache\Catalina</li> 
+  <li>常用的日志信息的管理（Logger）的实现。 <br /> src\catalina\src\share\org\apache\catalina\logger</li> 
+  <li>对xml格式的配置信息进行处理（XmlMapper）的实现。 <br /> src\catalina\src\share\org\apache\catalina\util\xml</li> 
+  <li>对socket通讯的高级管理和实现（net）。 <br /> \src\catalina\src\share\org\apache\catalina\net</li> 
+ </ul> 
+ <p>通过以上对Tomcat的简单的介绍，我们可以看出，作为一个开放源码的项目，Tomcat不但为我们提供了一个应用的平台，同时它还为我们提供了一个学习和研究设计模式、面向组件技术等理论的实践平台。</p> 
+ <p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+ <p>Tomcat3.3源码和Tomcat4.0源码 <a href="http://jakarta.apache.org/tomcat/index.html">http://jakarta.apache.org/tomcat/index.html</a> <br /> 《设计模式》</p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+</div></div></body></html>

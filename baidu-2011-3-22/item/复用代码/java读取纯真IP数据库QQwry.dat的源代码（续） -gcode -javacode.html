@@ -1,0 +1,506 @@
+<html><head><title><div class="tit">
+  java读取纯真IP数据库QQwry.dat的源代码（续） -gcode -javacode
+</div></title></head><body><div id='tit'>java读取纯真IP数据库QQwry.dat的源代码（续） -gcode -javacode</div><div id='cate'>复用代码</div><div id='date'>2008年08月26日 星期二 04:30 P.M.</div><div id='page'>107</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/e39219300b0fca9fa9018eb9.html'>http://hi.baidu.com/hxzon/blog/item/e39219300b0fca9fa9018eb9.html</a><div id='cnt'><div>
+ java读取纯真IP数据库QQwry.dat的源代码（续） -gcode -javacode
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 根据ip搜索ip信息文件，得到IPLocation结构，所搜索的ip参数从类成员ip中得到
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param ip 要查询的IP
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return IPLocation结构
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private IPLocation getIPLocation(byte[] ip) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; IPLocation info = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long offset = locateIP(ip);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(offset != -1)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; info = getIPLocation(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(info == null) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; info = new IPLocation();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; info.country = &quot;未知国家&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; info.area = &quot;未知地区&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return info;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从offset位置读取4个字节为一个long，因为java为big-endian格式，所以没办法
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 用了这么一个函数来做转换
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 读取的long值，返回-1表示读取文件失败
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private long readLong4(long offset) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long ret = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.seek(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= (ipFile.readByte() &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= ((ipFile.readByte() &lt;&lt; 8) &amp; 0xFF00);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= ((ipFile.readByte() &lt;&lt; 16) &amp; 0xFF0000);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= ((ipFile.readByte() &lt;&lt; 24) &amp; 0xFF000000);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ret;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (IOException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从offset位置读取3个字节为一个long，因为java为big-endian格式，所以没办法
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 用了这么一个函数来做转换
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 读取的long值，返回-1表示读取文件失败
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private long readLong3(long offset) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long ret = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.seek(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.readFully(b3);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= (b3[0] &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= ((b3[1] &lt;&lt; 8) &amp; 0xFF00);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= ((b3[2] &lt;&lt; 16) &amp; 0xFF0000);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ret;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (IOException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从当前位置读取3个字节转换成long
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private long readLong3() {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long ret = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.readFully(b3);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= (b3[0] &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= ((b3[1] &lt;&lt; 8) &amp; 0xFF00);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret |= ((b3[2] &lt;&lt; 16) &amp; 0xFF0000);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ret;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (IOException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从offset位置读取四个字节的ip地址放入ip数组中，读取后的ip为big-endian格式，但是
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 文件中是little-endian形式，将会进行转换
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param ip
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private void readIP(long offset, byte[] ip) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.seek(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.readFully(ip);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte temp = ip[0];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ip[0] = ip[3];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ip[3] = temp;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; temp = ip[1];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ip[1] = ip[2];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ip[2] = temp;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (IOException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(e.getMessage());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从offset位置读取四个字节的ip地址放入ip数组中，读取后的ip为big-endian格式，但是
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 文件中是little-endian形式，将会进行转换
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param ip
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private void readIP(int offset, byte[] ip) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mbb.position(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mbb.get(ip);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte temp = ip[0];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ip[0] = ip[3];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ip[3] = temp;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; temp = ip[1];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ip[1] = ip[2];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ip[2] = temp;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 把类成员ip和beginIp比较，注意这个beginIp是big-endian的
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param ip 要查询的IP
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param beginIp 和被查询IP相比较的IP
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 相等返回0，ip大于beginIp则返回1，小于返回-1。
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private int compareIP(byte[] ip, byte[] beginIp) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int i = 0; i &lt; 4; i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int r = compareByte(ip[i], beginIp[i]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(r != 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return r;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 0;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 把两个byte当作无符号数进行比较
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param b1
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param b2
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 若b1大于b2则返回1，相等返回0，小于返回-1
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private int compareByte(byte b1, byte b2) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if((b1 &amp; 0xFF) &gt; (b2 &amp; 0xFF)) // 比较是否大于
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else if((b1 ^ b2) == 0)// 判断是否相等
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 这个方法将根据ip的内容，定位到包含这个ip国家地区的记录处，返回一个绝对偏移
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 方法使用二分法查找。
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param ip 要查询的IP
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 如果找到了，返回结束IP的偏移，如果没有找到，返回-1
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private long locateIP(byte[] ip) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long m = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int r;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 比较第一个ip项
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; readIP(ipBegin, b4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; r = compareIP(ip, b4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(r == 0) return ipBegin;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else if(r &lt; 0) return -1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 开始二分搜索
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(long i = ipBegin, j = ipEnd; i &lt; j; ) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; m = getMiddleOffset(i, j);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; readIP(m, b4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; r = compareIP(ip, b4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // log.debug(Utils.getIpStringFromBytes(b));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(r &gt; 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; i = m;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else if(r &lt; 0) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(m == j) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; j -= IP_RECORD_LENGTH;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; m = j;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; j = m;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return readLong3(m + 4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 如果循环结束了，那么i和j必定是相等的，这个记录为最可能的记录，但是并非
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //&nbsp;&nbsp;&nbsp;&nbsp; 肯定就是，还要检查一下，如果是，就返回结束地址区的绝对偏移
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; m = readLong3(m + 4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; readIP(m, b4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; r = compareIP(ip, b4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(r &lt;= 0) return m;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else return -1;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 得到begin偏移和end偏移中间位置记录的偏移
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param begin
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param end
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private long getMiddleOffset(long begin, long end) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long records = (end - begin) / IP_RECORD_LENGTH;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; records &gt;&gt;= 1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(records == 0) records = 1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return begin + records * IP_RECORD_LENGTH;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 给定一个ip国家地区记录的偏移，返回一个IPLocation结构
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private IPLocation getIPLocation(long offset) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 跳过4字节ip
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.seek(offset + 4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 读取第一个字节判断是否标志字节
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte b = ipFile.readByte();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(b == AREA_FOLLOWED) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 读取国家偏移
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long countryOffset = readLong3();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 跳转至偏移处
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.seek(countryOffset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 再检查一次标志字节，因为这个时候这个地方仍然可能是个重定向
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b = ipFile.readByte();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(b == NO_AREA) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.country = readString(readLong3());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.seek(countryOffset + 4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.country = readString(countryOffset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 读取地区标志
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.area = readArea(ipFile.getFilePointer());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else if(b == NO_AREA) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.country = readString(readLong3());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.area = readArea(offset + 8);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.country = readString(ipFile.getFilePointer() - 1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.area = readArea(ipFile.getFilePointer());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return loc;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (IOException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private IPLocation getIPLocation(int offset) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 跳过4字节ip
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mbb.position(offset + 4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 读取第一个字节判断是否标志字节
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte b = mbb.get();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(b == AREA_FOLLOWED) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 读取国家偏移
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int countryOffset = readInt3();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 跳转至偏移处
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mbb.position(countryOffset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 再检查一次标志字节，因为这个时候这个地方仍然可能是个重定向
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b = mbb.get();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(b == NO_AREA) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.country = readString(readInt3());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mbb.position(countryOffset + 4);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.country = readString(countryOffset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 读取地区标志
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.area = readArea(mbb.position());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else if(b == NO_AREA) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.country = readString(readInt3());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.area = readArea(offset + 8);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.country = readString(mbb.position() - 1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; loc.area = readArea(mbb.position());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return loc;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从offset偏移开始解析后面的字节，读出一个地区名
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 地区名字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @throws IOException
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private String readArea(long offset) throws IOException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.seek(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte b = ipFile.readByte();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(b == 0x01 || b == 0x02) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long areaOffset = readLong3(offset + 1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(areaOffset == 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return &quot;未知地区&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return readString(areaOffset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return readString(offset);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private String readArea(int offset) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mbb.position(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte b = mbb.get();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(b == 0x01 || b == 0x02) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int areaOffset = readInt3();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(areaOffset == 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return &quot;未知地区&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return readString(areaOffset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return readString(offset);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从offset偏移处读取一个以0结束的字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 读取的字符串，出错返回空字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private String readString(long offset) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ipFile.seek(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(i = 0, buf[i] = ipFile.readByte(); buf[i] != 0; buf[++i] = ipFile.readByte());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(i != 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return Utils.getString(buf, 0, i, &quot;GBK&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (IOException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(e.getMessage());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return &quot;&quot;;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从内存映射文件的offset位置得到一个0结尾字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private String readString(int offset) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mbb.position(offset);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(i = 0, buf[i] = mbb.get(); buf[i] != 0; buf[++i] = mbb.get());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(i != 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return Utils.getString(buf, 0, i, &quot;GBK&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (IllegalArgumentException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(e.getMessage());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return &quot;&quot;;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public String getAddress(String ip){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String country = getCountry(ip).equals(&quot; CZ88.NET&quot;)?&quot;&quot;:getCountry(ip);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String area = getArea(ip).equals(&quot; CZ88.NET&quot;)?&quot;&quot;:getArea(ip);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String address = country+&quot; &quot;+area;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return address.trim();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public static void main(String[] args){
+ <br /> &nbsp;&nbsp;&nbsp; //hxzon
+ <br /> &nbsp;&nbsp;&nbsp; IPSeeker s=new IPSeeker();
+ <br /> &nbsp;&nbsp;&nbsp; String ip=&quot;202.96.128.86&quot;;
+ <br /> &nbsp;&nbsp;&nbsp; String c=s.getCountry(ip);
+ <br /> &nbsp;&nbsp;&nbsp; String a=s.getAddress(ip);
+ <br /> &nbsp;&nbsp;&nbsp; String area=s.getArea(ip);
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(c+a+area);
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;ok---------------------&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> } 
+ <br /> ====Utils================
+</div> 
+<div>
+ /**//*
+ <br /> * Created on 2004-8-4
+ <br /> *
+ <br /> */
+</div> 
+<div> 
+</div> 
+<div>
+ import java.io.UnsupportedEncodingException;
+ <br /> 
+ <br /> /** *//**
+ <br /> * @author LJ-silver
+ <br /> */
+ <br /> public class Utils {
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 从ip的字符串形式得到字节数组形式
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param ip 字符串形式的ip
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 字节数组形式的ip
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static byte[] getIpByteArrayFromString(String ip) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte[] ret = new byte[4];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; java.util.StringTokenizer st = new java.util.StringTokenizer(ip, &quot;.&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret[0] = (byte)(Integer.parseInt(st.nextToken()) &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret[1] = (byte)(Integer.parseInt(st.nextToken()) &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret[2] = (byte)(Integer.parseInt(st.nextToken()) &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ret[3] = (byte)(Integer.parseInt(st.nextToken()) &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(e.getMessage());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ret;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public static void main(String args[]){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte[] a=getIpByteArrayFromString(args[0]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int i=0;i&lt; a.length;i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(a[i]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(getIpStringFromBytes(a)); 
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 对原始字符串进行编码转换，如果失败，返回原始的字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param s 原始字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param srcEncoding 源编码方式
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param destEncoding 目标编码方式
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 转换编码后的字符串，失败返回原始字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static String getString(String s, String srcEncoding, String destEncoding) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new String(s.getBytes(srcEncoding), destEncoding);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (UnsupportedEncodingException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return s;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 根据某种编码方式将字节数组转换成字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param b 字节数组
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param encoding 编码方式
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 如果encoding不支持，返回一个缺省编码的字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static String getString(byte[] b, String encoding) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new String(b, encoding);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (UnsupportedEncodingException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new String(b);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 根据某种编码方式将字节数组转换成字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param b 字节数组
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param offset 要转换的起始位置
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param len 要转换的长度
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param encoding 编码方式
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 如果encoding不支持，返回一个缺省编码的字符串
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static String getString(byte[] b, int offset, int len, String encoding) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new String(b, offset, len, encoding);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (UnsupportedEncodingException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new String(b, offset, len);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param ip ip的字节数组形式
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @return 字符串形式的ip
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public static String getIpStringFromBytes(byte[] ip) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StringBuffer sb = new StringBuffer();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append(ip[0] &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append('.');&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append(ip[1] &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append('.');&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append(ip[2] &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append('.');&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append(ip[3] &amp; 0xFF);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return sb.toString();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> } 
+ <br /> &nbsp;&nbsp;
+ <br /> 
+ <br /> ======IPEntry===================
+</div> 
+<div>
+ /** *//** *
+ <br /> * 一条IP范围记录，不仅包括国家和区域，也包括起始IP和结束IP * 
+ <br /> 
+ <br /> * 
+ <br /> * @author swallow */
+ <br /> public class IPEntry {
+ <br /> &nbsp;&nbsp;&nbsp; public String beginIp;
+ <br /> &nbsp;&nbsp;&nbsp; public String endIp;
+ <br /> &nbsp;&nbsp;&nbsp; public String country;
+ <br /> &nbsp;&nbsp;&nbsp; public String area;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** *//**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 构造函数
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp; 
+ <br /> 
+ <br /> 
+ <br /> public IPEntry() {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; beginIp = endIp = country = area = &quot;&quot;;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public String toString(){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.area+&quot; &quot;+this.country+&quot;IP范围:&quot;+this.beginIp+&quot;-&quot;+this.endIp;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; } 
+ <br /> ============================hxzon：运行成功。Java源代码
+</div></div></body></html>

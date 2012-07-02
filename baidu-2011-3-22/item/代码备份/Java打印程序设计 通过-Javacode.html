@@ -1,0 +1,543 @@
+<html><head><title><div class="tit">
+  Java打印程序设计 通过-Javacode
+</div></title></head><body><div id='tit'>Java打印程序设计 通过-Javacode</div><div id='cate'>代码备份</div><div id='date'>2007年12月21日 星期五 03:45 P.M.</div><div id='page'>188</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/f1832bf52e379a21bd31091c.html'>http://hi.baidu.com/hxzon/blog/item/f1832bf52e379a21bd31091c.html</a><div id='cnt'><div class="tit">
+ Java打印程序设计 通过-Javacode
+</div> 
+<div class="date"> 
+</div> 
+<table style="table-layout: fixed"> 
+ <tbody> 
+  <tr> 
+   <td> 
+    <div class="cnt">
+     <blockquote>
+      SUN公司一直致力于Java打印功能的完善，而Java2平台则终于有了一个健壮的打印模式的开端，该打印模式与Java2D图形包充分结合成一体。更令人鼓舞的是，新发布的jdk1.4则提供了一套完整的“Java 打印服务 API” （Java Print Service API），它对已有的打印功能是积极的补充。利用它，我们可以实现大部分实际应用需求，包括打印文字、图形、文件及打印预览等等。本文将通过一个具体的程序实例来说明如何设计Java打印程序以实现这些功能，并对不同版本的实现方法进行分析比较。希望大家能从中获取一些有益的提示。
+     </blockquote> 
+     <p><a name="1"><span class="atitle">前言</span></a></p> 
+     <p> </p> 
+     <p>在我们的实际工作中，经常需要实现打印功能。但由于历史原因，Java提供的打印功能一直都比较弱。实际上最初的jdk根本不支持打印，直到jdk1.1才引入了很轻量的打印支持。所以，在以前用Java/Applet/JSP/Servlet设计的程序中，较复杂的打印都是通过调用ActiveX/OCX控件或者VB/VC程序来实现的，非常麻烦。实际上，SUN公司也一直致力于Java打印功能的完善，而Java2平台则终于有了一个健壮的打印模式的开端，该打印模式与Java2D图形包充分结合成一体。更令人鼓舞的是，新发布的jdk1.4则提供了一套完整的&quot;Java 打印服务 API&quot; （Java Print Service API），它对已有的打印功能是积极的补充。利用它，我们可以实现大部分实际应用需求，包括打印文字、图形、文件及打印预览等等。本文将通过一个具体的程序实例来说明如何设计Java打印程序以实现这些功能，并对不同版本的实现方法进行分析比较。希望大家能从中获取一些有益的提示。</p> 
+     <br /> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td><img height="1" width="100%" src="image/Java打印程序设计 通过-Javaco.blue_rule.gif" /><p class="origImg">http://www.ibm.com/i/v14/rules/blue_rule.gif</p><br /> <img height="6" width="8" border="0" src="image/Java打印程序设计 通过-Javaco.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <table class="no-print" cellspacing="0" cellpadding="0" align="right"> 
+      <tbody> 
+       <tr align="right"> 
+        <td><img height="4" width="100%" src="image/Java打印程序设计 通过-Javaco.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p><br /> 
+         <table cellspacing="0" cellpadding="0" border="0"> 
+          <tbody> 
+           <tr> 
+            <td valign="middle"><img height="16" width="16" border="0" src="image/Java打印程序设计 通过-Javaco.u_bold.gif" /><p class="origImg">http://www.ibm.com/i/v14/icons/u_bold.gif</p></td> 
+            <td valign="top" align="right"><a class="fbox" href="http://www-128.ibm.com/developerworks/cn/java/l-javaprint/#main"><strong><font color="#996699">回页首</font></strong></a></td> 
+           </tr> 
+          </tbody> 
+         </table> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <br /> 
+     <p><a name="2"><span class="atitle">Java中的打印</span></a></p> 
+     <p> </p> 
+     <p><a name="N10050"><span class="smalltitle"><strong><font size="3">2.1 Java的打印API</font></strong></span></a></p> 
+     <p> </p> 
+     <p>Java的打印API主要存在于java.awt.print包中。而jdk1.4新增的类则主要存在于javax.print包及其相应的子包javax.print.event和javax.print.attribute中。其中javax.print包中主要包含打印服务的相关类，而javax.print.event则包含打印事件的相关定义，javax.print.attribute则包括打印服务的可用属性列表等。</p> 
+     <p><a name="N1005B"><span class="smalltitle"><strong><font size="3">2.2 如何实现打印</font></strong></span></a></p> 
+     <p> </p> 
+     <p>要产生一个打印，至少需要考虑两条：</p> 
+     <ol> 
+      <li>需要一个打印服务对象。这可通过三种方式实现：在jdk1.4之前的版本，必须要实现java.awt.print.Printable接口或通过Toolkit.getDefaultToolkit().getPrintJob来获取打印服务对象；在jdk1.4中则还可以通过javax.print.PrintSerivceLookup来查找定位一个打印服务对象。</li> 
+      <li>需要开始一个打印工作。这也有几种实现方法：在jdk1.4之前可以通过java.awt.print.PrintJob（jdk1.1提供的，现在已经很少用了）调用print或printAll方法开始打印工作；也可以通过java.awt.print.PrinterJob的printDialog显示打印对话框，然后通过print方法开始打印；在jdk1.4中则可以通过javax.print.ServiceUI的printDialog显示打印对话框，然后调用print方法开始一个打印工作。</li> 
+     </ol> 
+     <p><a name="N1006F"><span class="smalltitle"><strong><font size="3">2.3 打印机对话框</font></strong></span></a></p> 
+     <p> </p> 
+     <p><strong>2.3.1 Printable的打印对话框</strong></p> 
+     <p>开始打印工作之前，可以通过PrinterJob.printDialog来显示一个打印对话框。它给用户一个机会以选择应该打印的页码范围，并可供用户改变打印设置。它是一个本地对话框。</p> 
+     <br /> 
+     <img height="394" width="656" src="image/Java打印程序设计 通过-Javaco.1.gif" />
+     <p class="origImg">http://www-128.ibm.com/developerworks/cn/java/l-javaprint/1.gif</p> 
+     <br /> 
+     <p>事实上，当从一个Printable对象进行一个打印工作时，打印对象并不知道需要打印多少页。它只是不停地调用print方法。只要print方法返回Printable.PAGE_EXISTS值，打印工作就不停地产生打印页，直到print方法返回Printable.NO_SUCH_PAGE时，打印工作才停止。</p> 
+     <p>由于打印工作只有在打印完成后才进行准确的页数计算，所以在对话框上的页码范围是尚未初始化的[1,9999]。我们可以通过构建一个java.awt.print.Book对象传递给打印对象；也可以通过指定的格式计算需要打印的页数并传递给打印对象，使其准确地知道要打印多少页。</p> 
+     <p><strong>2.3.2 ServiceUI的打印对话框</strong></p> 
+     <p>与Printable的对话框不同的是，在jdk1.4提供ServiceUI的打印机对话框的缺省行为已经用新的 API 更改了：缺省情况下对话框不显示。我们必须使用ServiceUI类调用printDialog方法创建如下所示的打印对话框。</p> 
+     <br /> 
+     <img height="425" width="491" src="image/Java打印程序设计 通过-Javaco.2.gif" />
+     <p class="origImg">http://www-128.ibm.com/developerworks/cn/java/l-javaprint/2.gif</p> 
+     <br /> 
+     <br /> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td><img height="1" width="100%" src="image/Java打印程序设计 通过-Javaco.blue_rule.gif" /><p class="origImg">http://www.ibm.com/i/v14/rules/blue_rule.gif</p><br /> <img height="6" width="8" border="0" src="image/Java打印程序设计 通过-Javaco.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <table class="no-print" cellspacing="0" cellpadding="0" align="right"> 
+      <tbody> 
+       <tr align="right"> 
+        <td><img height="4" width="100%" src="image/Java打印程序设计 通过-Javaco.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p><br /> 
+         <table cellspacing="0" cellpadding="0" border="0"> 
+          <tbody> 
+           <tr> 
+            <td valign="middle"><img height="16" width="16" border="0" src="image/Java打印程序设计 通过-Javaco.u_bold.gif" /><p class="origImg">http://www.ibm.com/i/v14/icons/u_bold.gif</p></td> 
+            <td valign="top" align="right"><a class="fbox" href="http://www-128.ibm.com/developerworks/cn/java/l-javaprint/#main"><strong><font color="#996699">回页首</font></strong></a></td> 
+           </tr> 
+          </tbody> 
+         </table> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <br /> 
+     <p><a name="3"><span class="atitle">Java打印程序设计实例</span></a></p> 
+     <p> </p> 
+     <p><a name="N100B3"><span class="smalltitle"><strong><font size="3">3.1 打印文本</font></strong></span></a></p> 
+     <p> </p> 
+     <p><strong>3.1.1 应用场景</strong></p> 
+     <p>假设我们需要打印一个窗体的某个文本编辑域（可能只有几行，也可能包含多页）的内容，并且每页最多打印54行，如何实现呢？</p> 
+     <p><strong>3.1.2 解决方法</strong></p> 
+     <p>基本思路如下：首先我们需要实现Printable接口，然后按照每页最多54行的格式计算共需要打印多少页，当打印文本的按钮被点击时，执行相应的打印动作。打印文本的具体操作可通过Graphics2D的drawString方法来实现。</p> 
+     <p>1、实现Printable接口</p> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td class="code-outline"> <pre class="displaycode">/*Graphic指明打印的图形环境；PageFormat指明打印页格式（页面大小以点为计量单位，
+1点为1英才的1/72，1英寸为25.4毫米。A4纸大致为595&times;842点）；page指明页号*/
+public int print(Graphics g, PageFormat pf, int page) throws PrinterException
+{
+    Graphics2D g2 = (Graphics2D)g;
+    g2.setPaint(Color.black); //设置打印颜色为黑色
+ if (page &gt;= PAGES) //当打印页号大于需要打印的总页数时，打印工作结束
+  return Printable.NO_SUCH_PAGE;
+    g2.translate(pf.getImageableX(), pf.getImageableY());//转换坐标，确定打印边界
+    drawCurrentPageText(g2, pf, page); //打印当前页文本
+return Printable.PAGE_EXISTS; //存在打印页时，继续打印工作
+}
+ /*打印指定页号的具体文本内容*/
+    private void drawCurrentPageText(Graphics2D g2, PageFormat pf, int page)
+ {
+  String s = getDrawText(printStr)[page];//获取当前页的待打印文本内容
+        //获取默认字体及相应的尺寸
+FontRenderContext context = g2.getFontRenderContext();
+        Font f = area.getFont();
+        String drawText;
+        float ascent = 16;  //给定字符点阵
+        int k, i = f.getSize(), lines = 0;
+        while(s.length() &gt; 0 &amp;&amp; lines &lt; 54) //每页限定在54行以内
+        {
+         k = s.indexOf('\n'); //获取每一个回车符的位置
+            if (k != -1)  //存在回车符
+            {
+             lines += 1; //计算行数
+                drawText = s.substring(0, k); //获取每一行文本
+                g2.drawString(drawText, 0, ascent); //具体打印每一行文本，同时走纸移位
+                if (s.substring(k + 1).length() &gt; 0)
+                {
+                 s = s.substring(k + 1); //截取尚未打印的文本
+                    ascent += i; 
+                }
+            }
+            else //不存在回车符
+            {
+             lines += 1; //计算行数
+                drawText = s; //获取每一行文本
+                g2.drawString(drawText, 0, ascent); //具体打印每一行文本，同时走纸移位
+                s = &quot;&quot;; //文本已结束
+            }
+        }
+    }
+ /*将打印目标文本按页存放为字符串数组*/
+ public String[] getDrawText(String s)
+    {
+        String[] drawText = new String[PAGES];//根据页数初始化数组
+        for (int i = 0; i &lt; PAGES; i++)
+            drawText[i] = &quot;&quot;; //数组元素初始化为空字符串
+  
+        int k, suffix = 0, lines = 0;
+        while(s.length() &gt; 0)
+        {
+            if(lines &lt; 54) //不够一页时
+            {
+                k = s.indexOf('\n');
+                if (k != -1) //存在回车符
+                {
+                    lines += 1; //行数累加
+     //计算该页的具体文本内容，存放到相应下标的数组元素
+                    drawText[suffix] = drawText[suffix] + s.substring(0, k + 1);
+                    if (s.substring(k + 1).length() &gt; 0)
+                        s = s.substring(k + 1);
+                }
+                else
+                {
+                    lines += 1; //行数累加
+     //将文本内容存放到相应的数组元素
+                    drawText[suffix] = drawText[suffix] + s; 
+                    s = &quot;&quot;;
+                }
+            }
+            else //已满一页时
+            {
+                lines = 0; //行数统计清零
+                suffix++; //数组下标加1
+            }
+        }
+        return drawText;
+    }</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <p>2、计算需要打印的总页数</p> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td class="code-outline"> <pre class="displaycode">public int getPagesCount(String curStr)
+ {
+        int page = 0;
+        int position, count = 0;
+        String str = curStr;
+     while(str.length() &gt; 0) //文本尚未计算完毕
+     {
+         position = str.indexOf('\n'); //计算回车符的位置
+            count += 1; //统计行数
+         if (position != -1)
+                str = str.substring(position + 1); //截取尚未计算的文本
+         else
+             str = &quot;&quot;; //文本已计算完毕
+     }
+     if (count &gt; 0)
+         page = count / 54 + 1; //以总行数除以54获取总页数
+        return page; //返回需打印的总页数
+ }</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <p>3.1、以jdk1.4以前的版本实现打印动作按钮监听，并完成具体的打印操作</p> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td class="code-outline"> <pre class="displaycode">private void printTextAction()
+    {
+        printStr = area.getText().trim(); //获取需要打印的目标文本
+        if (printStr != null &amp;&amp; printStr.length() &gt; 0) //当打印内容不为空时
+        {
+            PAGES = getPagesCount(printStr); //获取打印总页数
+            PrinterJob myPrtJob = PrinterJob.getPrinterJob(); //获取默认打印作业
+            PageFormat pageFormat = myPrtJob.defaultPage(); //获取默认打印页面格式
+            myPrtJob.setPrintable(this, pageFormat); //设置打印工作
+            if (myPrtJob.printDialog()) //显示打印对话框
+            {
+                try
+                {
+                    myPrtJob.print(); //进行每一页的具体打印操作
+                }
+                catch(PrinterException pe)
+                {
+                    pe.printStackTrace();
+                }
+            }
+        }
+        else
+        {
+   //如果打印内容为空时，提示用户打印将取消
+            JOptionPane.showConfirmDialog
+   (null, &quot;Sorry, Printer Job is Empty, Print Cancelled!&quot;, &quot;Empty&quot;, 
+   JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE);
+        }
+    }</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <p>3.2、以jdk1.4新版本提供的API实现打印动作按钮监听，并完成具体的打印操作</p> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td class="code-outline"> <pre class="displaycode">private void printText2Action()
+    {
+        printFlag = 0; //打印标志清零
+        printStr = area.getText().trim();//获取需要打印的目标文本
+        if (printStr != null &amp;&amp; printStr.length() &gt; 0) //当打印内容不为空时
+        {
+            PAGES = getPagesCount(printStr); //获取打印总页数
+   //指定打印输出格式
+            DocFlavor flavor = DocFlavor.SERVICE_FORMATTED.PRINTABLE;
+            //定位默认的打印服务
+PrintService printService = PrintServiceLookup.lookupDefaultPrintService();
+            //创建打印作业
+DocPrintJob job = printService.createPrintJob();
+            //设置打印属性
+PrintRequestAttributeSet pras = new HashPrintRequestAttributeSet();
+            DocAttributeSet das = new HashDocAttributeSet();
+            //指定打印内容
+Doc doc = new SimpleDoc(this, flavor, das);
+   //不显示打印对话框，直接进行打印工作
+            try
+            {
+                job.print(doc, pras); //进行每一页的具体打印操作
+            }
+            catch(PrintException pe)
+            {
+                pe.printStackTrace();
+            }
+        }
+        else
+        {
+            //如果打印内容为空时，提示用户打印将取消
+JOptionPane.showConfirmDialog(null, &quot;Sorry, Printer Job is Empty, Print Cancelled!&quot;,
+ &quot;Empty&quot;, JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE);
+        }
+    }</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <p><a name="N100E9"><span class="smalltitle"><strong><font size="3">3.2 打印预览</font></strong></span></a></p> 
+     <p> </p> 
+     <p><strong>3.2.1应用场景</strong></p> 
+     <p>大多少商业应用都需要提供打印预览机制，它可以让我们在屏幕上看到页面，这样就不会因为不喜欢的打印结果而浪费纸张。假设我们在打印上一节所说的文本之前，需要先进行打印预览。那么该怎么实现呢？</p> 
+     <p>界面实现图示如下：（Next预览下一页，Preview预览前一页，Close则关闭预览）</p> 
+     <br /> 
+     <img height="501" width="501" src="image/Java打印程序设计 通过-Javaco.3.gif" />
+     <p class="origImg">http://www-128.ibm.com/developerworks/cn/java/l-javaprint/3.gif</p> 
+     <br /> 
+     <p><strong>3.2.2解决方法</strong></p> 
+     <p>基本思路：虽然Java2平台的打印API并不提供标准的打印预览对话框，但是自己来进行设计也并不复杂。正常情况下，print方法将页面环境绘制到一个打印机图形环境上，从而实现打印。而事实上，print方法并不能真正产生打印页面，它只是将待打印内容绘制到图形环境上。所以，我们可以忽略掉屏幕图形环境，经过适当的缩放比例，使整个打印页容纳在一个屏幕矩形里，从而实现精确的打印预览。</p> 
+     <p>在打印预览的设计实现中，主要需要解决两个问题。第一，如何将打印内容按合适的比例绘制到屏幕；第二，如何实现前后翻页。下面我给出这两个问题的具体实现方法，完整的实现请参看附件中的PrintPreviewDialog.java文件。</p> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td class="code-outline"> <pre class="displaycode">/*将待打印内容按比例绘制到屏幕*/
+public void paintComponent(Graphics g)
+    {
+super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D)g;
+        PageFormat pf = PrinterJob.getPrinterJob().defaultPage(); //获取页面格式
+        double xoff; //在屏幕上页面初始位置的水平偏移
+        double yoff; //在屏幕上页面初始位置的垂直偏移
+        double scale; //在屏幕上适合页面的比例
+        double px = pf.getWidth(); //页面宽度
+        double py = pf.getHeight(); //页面高度
+        double sx = getWidth() - 1;
+        double sy = getHeight() - 1;
+        if (px / py &lt; sx / sy)
+        {
+         scale = sy / py; //计算比例
+            xoff = 0.5 * (sx - scale * px); //水平偏移量
+            yoff = 0;
+        }
+        else
+        {
+         scale = sx / px; //计算比例
+            xoff = 0;
+            yoff = 0.5 * (sy - scale * py); //垂直偏移量
+        }
+        g2.translate((float)xoff, (float)yoff); //转换坐标
+        g2.scale((float)scale, (float)scale);
+        Rectangle2D page = new Rectangle2D.Double(0, 0, px, py); //绘制页面矩形
+        g2.setPaint(Color.white); //设置页面背景为白色
+        g2.fill(page);
+        g2.setPaint(Color.black);//设置页面文字为黑色
+        g2.draw(page);
+        try
+        {
+         preview.print(g2, pf, currentPage); //显示指定的预览页面
+        }
+        catch(PrinterException pe)
+        {
+         g2.draw(new Line2D.Double(0, 0, px, py));
+            g2.draw(new Line2D.Double(0, px, 0, py));
+        }
+}
+/*预览指定的页面*/
+public void viewPage(int pos)
+    {
+     int newPage = currentPage + pos;
+  //指定页面在实际的范围内
+        if (0 &lt;= newPage &amp;&amp; newPage &lt; preview.getPagesCount(printStr))
+        {
+         currentPage = newPage; //将指定页面赋值为当前页
+            repaint();
+        }
+    }</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <p>这样，在按下&quot;Next&quot;按钮时，只需要调用canvas.viewPage(1)；而在按下&quot;Preview&quot;按钮时，只需要调用canvas.viewPage(-1)即可实现预览的前后翻页。</p> 
+     <p><a name="N1011E"><span class="smalltitle"><strong><font size="3">3.3 打印图形</font></strong></span></a></p> 
+     <p> </p> 
+     <p><strong>3.3.1应用场景</strong></p> 
+     <p>在实际应用中，我们还需要打印图形。譬如，我们有时需要将一个Java Applet的完整界面或一个应用程序窗体及其所包含的全部组件都打印出来，又应该如何实现呢？</p> 
+     <p><strong>3.3.2解决方法</strong></p> 
+     <p>基本思路如下：在Java的Component类及其派生类中都提供了print和printAll方法，只要设置好属性就可以直接调用这两个方法，从而实现对组件及图形的打印。</p> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td class="code-outline"> <pre class="displaycode">/*打印指定的窗体及其包含的组件*/
+private void printFrameAction()
+{
+Toolkit kit = Toolkit.getDefaultToolkit(); //获取工具箱
+    Properties props = new Properties();
+    props.put(&quot;awt.print.printer&quot;, &quot;durango&quot;);//设置打印属性
+    props.put(&quot;awt.print.numCopies&quot;, &quot;2&quot;);
+    if(kit != null)
+    {
+     //获取工具箱自带的打印对象
+PrintJob printJob = kit.getPrintJob(this, &quot;Print Frame&quot;, props); 
+        if(printJob != null)
+        {
+         Graphics pg = printJob.getGraphics();//获取打印对象的图形环境
+            if(pg != null)
+            {
+    try
+    {
+                 this.printAll(pg);//打印该窗体及其所有的组件
+                }
+                finally
+                {
+                 pg.dispose();//注销图形环境
+                }
+            }
+            printJob.end();//结束打印作业
+     }
+    }
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <p><a name="N1013C"><span class="smalltitle"><strong><font size="3">3.4 打印文件</font></strong></span></a></p> 
+     <p> </p> 
+     <p><strong>3.4.1应用场景</strong></p> 
+     <p>在很多实际应用情况下，我们可能都需要打印用户指定的某一个文件。该文件可能是图形文件，如GIF、JPEG等等；也可能是文本文件，如TXT、Java文件等等；还可能是复杂的PDF、DOC文件等等。那么对于这样的打印需求，我们又应该如何实现呢？</p> 
+     <p><strong>3.4.2解决方法</strong></p> 
+     <p>基本思路：在jdk1.4以前的版本，要实现这样的打印功能将非常麻烦和复杂，甚至是难以想象的。但幸运的是，jdk1.4的打印服务API提供了一整套的打印文件流的类和方法。利用它们，我们可以非常方便快捷地实现各式各样不同类型文件的打印功能。下面给出一个通用的处理方法。</p> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td class="code-outline"> <pre class="displaycode">/*打印指定的文件*/
+private void printFileAction()
+{
+//构造一个文件选择器，默认为当前目录
+JFileChooser fileChooser = new JFileChooser(SystemProperties.USER_DIR);
+    int state = fileChooser.showOpenDialog(this);//弹出文件选择对话框
+    if (state == fileChooser.APPROVE_OPTION)//如果用户选定了文件
+    {
+     File file = fileChooser.getSelectedFile();//获取选择的文件
+  //构建打印请求属性集
+        PrintRequestAttributeSet pras = new HashPrintRequestAttributeSet();
+  //设置打印格式，因为未确定文件类型，这里选择AUTOSENSE
+        DocFlavor flavor = DocFlavor.INPUT_STREAM.AUTOSENSE;
+  //查找所有的可用打印服务
+        PrintService printService[] = PrintServiceLookup.lookupPrintServices(flavor, pras);
+  //定位默认的打印服务
+        PrintService defaultService = PrintServiceLookup.lookupDefaultPrintService();
+        //显示打印对话框
+PrintService service = ServiceUI.printDialog(null, 200, 200, printService
+                                           , defaultService, flavor, pras);
+        if (service != null)
+        {
+         try
+            {
+             DocPrintJob job = service.createPrintJob();//创建打印作业
+                FileInputStream fis = new FileInputStream(file);//构造待打印的文件流
+                DocAttributeSet das = new HashDocAttributeSet();
+                Doc doc = new SimpleDoc(fis, flavor, das);//建立打印文件格式
+                job.print(doc, pras);//进行文件的打印
+            }
+            catch(Exception e)
+            {
+             e.printStackTrace();
+            }
+        }
+    }
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <p>在上面的示例中，因尚未确定文件的类型，所以将指定文件的打印格式定义为DocFlavor.INPUT_STREAM.AUTOSENSE。事实上，如果在进行打印之前，就已确定地知道文件的格式，如为GIF，就应定义为DocFlavor.INPUT_STREAM.GIF ；如为PDF，就应该定义为DocFlavor.INPUT_STREAM.PDF；如为纯ASCII文件，就可以定义为 DocFlavor.INPUT_STREAM.TEXT_HTML_US_ASCII。等等。jdk1.4的javax.print.DocFlavor提供了极为丰富的文件流类型，你可以根据具体的应用需求进行合适的选择。具体的API参考文档可见本文的参考资料3。</p> 
+     <br /> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td><img height="1" width="100%" src="image/Java打印程序设计 通过-Javaco.blue_rule.gif" /><p class="origImg">http://www.ibm.com/i/v14/rules/blue_rule.gif</p><br /> <img height="6" width="8" border="0" src="image/Java打印程序设计 通过-Javaco.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <table class="no-print" cellspacing="0" cellpadding="0" align="right"> 
+      <tbody> 
+       <tr align="right"> 
+        <td><img height="4" width="100%" src="image/Java打印程序设计 通过-Javaco.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p><br /> 
+         <table cellspacing="0" cellpadding="0" border="0"> 
+          <tbody> 
+           <tr> 
+            <td valign="middle"><img height="16" width="16" border="0" src="image/Java打印程序设计 通过-Javaco.u_bold.gif" /><p class="origImg">http://www.ibm.com/i/v14/icons/u_bold.gif</p></td> 
+            <td valign="top" align="right"><a class="fbox" href="http://www-128.ibm.com/developerworks/cn/java/l-javaprint/#main"><strong><font color="#996699">回页首</font></strong></a></td> 
+           </tr> 
+          </tbody> 
+         </table> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <br /> 
+     <p><a name="4"><span class="atitle">结束语</span></a></p> 
+     <p> </p> 
+     <p>以上是本人在两年多J2EE应用开发中，总结的关于用Java进行打印程序设计的一些经验，希望能给大家一些启示和裨益。尽管目前用Java来实现打印功能与用Microsoft的MFC API相比确实有更多的麻烦。但jdk1.4的推出，对Java以前较弱的打印功能是一个极好的补充。相信大家如果能够很好地理解前文所述的打印程序设计实例，并加以应用和拓展，应该可以解决目前大部分应用的实际编程问题。而随着Java的进一步发展和完善，必将更好地充实其基础类库及打印API，相信用Java实现高级打印功能也将越来越不成为我们这些Java痴迷者头痛的问题。</p> 
+     <br /> 
+     <table cellspacing="0" cellpadding="0" width="100%" border="0"> 
+      <tbody> 
+       <tr> 
+        <td><img height="1" width="100%" src="image/Java打印程序设计 通过-Javaco.blue_rule.gif" /><p class="origImg">http://www.ibm.com/i/v14/rules/blue_rule.gif</p><br /> <img height="6" width="8" border="0" src="image/Java打印程序设计 通过-Javaco.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <table class="no-print" cellspacing="0" cellpadding="0" align="right"> 
+      <tbody> 
+       <tr align="right"> 
+        <td><img height="4" width="100%" src="image/Java打印程序设计 通过-Javaco.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p><br /> 
+         <table cellspacing="0" cellpadding="0" border="0"> 
+          <tbody> 
+           <tr> 
+            <td valign="middle"><img height="16" width="16" border="0" src="image/Java打印程序设计 通过-Javaco.u_bold.gif" /><p class="origImg">http://www.ibm.com/i/v14/icons/u_bold.gif</p></td> 
+            <td valign="top" align="right"><a class="fbox" href="http://www-128.ibm.com/developerworks/cn/java/l-javaprint/#main"><strong><font color="#996699">回页首</font></strong></a></td> 
+           </tr> 
+          </tbody> 
+         </table> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 
+     <br /> 
+     <p><a name="5"><span class="atitle">例程源码</span></a></p> 
+     <p> </p> 
+     <p><a href="http://www-128.ibm.com/developerworks/cn/java/l-javaprint/PrintSrc.zip"><font color="#5c81a7">PrintSrc.zip</font></a>包含下列java源代码和Class代码：</p> 
+     <ol> 
+      <li>PrintTest.java包含了本文所描述的所有打印功能的实现源代码。相应的打印文本功能通过Print Text和PrintText2（jdk1.4实现）按钮调用；打印文件通过Print File按钮调用；打印图形通过Print Frame按钮调用；而Print Preview则进行打印预览。</li> 
+      <li>PrintPreviewDialog.java包含打印预览源代码，你可以通过PrintTest窗体中的Print Preview按钮来调用。</li> 
+     </ol> 
+     <br /> 
+     <br /> 
+     <p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+     <ol> 
+      <li>《Java2核心技术 卷Ⅱ：高级特性》 机械工业出版社</li> 
+      <li>Java打印服务参考文档： <a href="http://java.sun.com/j2se/1.4/docs/guide/jps/"><font color="#5c81a7">http://java.sun.com/j2se/1.4/docs/guide/jps/</font></a></li> 
+      <li>jdk1.4 API参考文档： <a href="http://java.sun.com/j2se/1.4/docs/api/"><font color="#5c81a7">http://java.sun.com/j2se/1.4/docs/api/</font></a></li> 
+     </ol> 
+     <br /> 
+     <br /> 
+     <p><a name="author"><span class="atitle">关于作者</span></a></p> 
+     <p>文枫，深圳全通数码技术总监。目前专注于J2EE应用与开发。休闲时间喜欢旅游、踢球。你可以通过 <a href="mailto:wenfb@sina.com?cc=wenfb@sina.com"><font color="#5c81a7">wenfb@sina.com</font></a>与我联系。</p> 
+     <p><a href="http://www.cnblogs.com/ctfzh/archive/2007/07/09/811319.html">http://www.cnblogs.com/ctfzh/archive/2007/07/09/811319.html</a></p> 
+    </div> </td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

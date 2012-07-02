@@ -1,0 +1,103 @@
+<html><head><title><div class="tit">
+  构建自己的轻量级XML DOM分析程序
+</div></title></head><body><div id='tit'>构建自己的轻量级XML DOM分析程序</div><div id='cate'>复用代码</div><div id='date'>2008年03月26日 星期三 03:24 P.M.</div><div id='page'>155</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/ea95be0eac8cb5e337d12274.html'>http://hi.baidu.com/hxzon/blog/item/ea95be0eac8cb5e337d12274.html</a><div id='cnt'><p><u><font color="#810081">构建自己的轻量级XML DOM分析程序</font></u></p> 
+<p>XML正迅快速的成为数据存储和交换的标准格式流行开来了。现在可用的完整的Java XML分析器非常庞大而且功能强大--但是实现这些强大的功能的同时也要消耗等量的资源。举例来说，流行的Apache Xerces-J分析器超过1.7 MB，而最新的完整的Sun JAXP（用于XML处理的Java应用编程接口）实现程序包超过了3MB。因此使用一个功能强大的XML分析器可能过于浪费。如果配置环境是一个Java小程序或者是一个J2ME应用程序，网络带宽或者系统存储器的制约可能根本不能够使用完整的XML分析器。本文将告诉你如何构建一个轻量级的XML DOM分析程序。 <br /> <br /> <strong>开始编写SimpleDOMParser</strong><br /> <br /> SimpleDOMParser是一个使用Java写的高度简化和超轻量级的XML DOM分析器。 你可以将配置整个分析器配置为一个小于4KB的.jar文件。源程序还不到400行呢。 <br /> <br /> 显然，使用这么小的代码，SimpleDOMParser将不支持XML域名空间，不能够理解多字符集编码或者以DTD文件或者schema验证文件；但是SimpleDOMParser能做的就是把符合语法规则的XML标记解析为一个类似于DOM的元素树，让你执行从XML格式化文本提取的数据的公共任务。 <br /> <br /> 为什么使用DOM作为模型而不是SAX呢？这是因为DOM提供一个比SAX更加易用的程序接口。与SAX不同的是，当你把一个XML文件作为一个DOM树来处理的时候，这个文件内的所有的信息都是可以利用的。虽然SAX分析模型能够提供比DOM模型更加优异的性能和利用更少的存储空间，但是大部分开发者在使用SAX的时候都会发现他们自己正在创建一个完整的或者部分的DOM树。使用SAX，一个应用程序每次只能处理一条标记。如果其它的标记内容在处理的过程中必须被用到，那你就必须在处理的整个过程保持一种全局状态。而保持全局状态正是DOM模型目的的精髓。但是许多小型的XML应用程序不需要完整的DOM模型。因此，SimpleDOMParser提供到标记名、层次和内容的访问，但是不涉及完整的W3C DOM的许多用不上的功能。 <br /> <br /> <strong>简化DOM模型</strong><br /> <br /> 一个DOM树是由分析XML文件产生的结点组成。结点是一个XML实体的非存储表现。标准W3C DOM模型有几种类型的结点。 举例来说，一个文本结点表示在XML文件中的一段文本，一个元素结点表示XML文件而一个属性结点表示一个元素内部的属性名和值。 <br /> <br /> DOM是一个树，因为除了根或文件结点以外的每个结点都有一个父结点。举例来说，属性结点总是和一个元素结点相关联，而用来封装元素的起始标记和结束标记中的文本是映射到一个文本结点的。文本结点是元素结点的一个子节点。所以，即使很简单的XML文件的表现也可能会需要很多种节点类型。举例来说，图1表示下面XML文件的一个W3C DOM树形表示。 <br /> <br /> <img height="336" width="434" src="image/构建自己的轻量级XML DOM分析程序..jt-2003-5-8-1.jpg" /><p class="origImg">http://www.yesky.com/SoftChannel/72342376223342592/20030508/jt-2003-5-8-1.jpg</p><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>＜parser＞SimpleDOMParser＜/parser＞</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 正如你在图1中所看见的，DOM模型使用一个document类型节点来封装整个XML文件，所以DOM使用三种不同的节点。通过把所有的DOM节点类型抽象成为一个单独的类型SimpleElement来尽可能的简化DOM模型。一个SimpleElement获得一个XML元素的关键的信息，比如标识名、元素属性和任何封装的文本或者XML。此外，SimpleDOMParser不使用任何特殊的节点类型表示最高等级的文档。结果是大大地简化了DOM树，使之只包含SimpleElement节点。图2表示了简化的DOM树。
+<br /> 
+<br /> 
+<img height="148" width="243" src="image/构建自己的轻量级XML DOM分析程序..jt-2003-5-8-2.jpg" />
+<p class="origImg">http://www.yesky.com/SoftChannel/72342376223342592/20030508/jt-2003-5-8-2.jpg</p> 
+<br /> 
+<br /> 代码段1给出了SimpleElement类的完整的源程序。
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>public class SimpleElement {<br /> private String tagName;<br /> private String text;<br /> private HashMap attributes;<br /> private LinkedList childElements;<br /> <br /> public SimpleElement(String tagName) {<br /> this.tagName = tagName;<br /> attributes = new HashMap();<br /> childElements = new LinkedList();<br /> }<br /> <br /> public String getTagName() {<br /> return tagName;<br /> }<br /> <br /> public void setTagName(String tagName) {<br /> this.tagName = tagName;<br /> }<br /> <br /> public String getText() {<br /> return text;<br /> }<br /> <br /> public void setText(String text) {<br /> this.text = text;<br /> }<br /> <br /> public String getAttribute(String name) {<br /> return (String)attributes.get(name);<br /> }<br /> <br /> public void setAttribute(String name, String value) {<br /> attributes.put(name, value);<br /> }<br /> <br /> public void addChildElement(SimpleElement element) {<br /> childElements.add(element);<br /> }<br /> <br /> public Object[] getChildElements() {<br /> return childElements.toArray();<br /> }<br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<strong>定义XML语法分析基本元素<br /> <br /> </strong> 为了把一个XML文件处理成为上面提到的简化的DOM树模型，我们必须定义一些基本的语法分析规则。使用这些规则，语法分析程序就能容易地从输入的XML文件中提取标记或者文本块。 
+<br /> 
+<br /> 第一个是peek，从输入的XML文件中返回下一个字符，而实际上则不必从下层流中获得这个字符。通过保持输入流的完整性，高级函数比如readTag和readText（后面将介绍）可以更加容易地根据它们接下来期待的字符获取需要的内容。 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>private int peek() throws IOException { <br /> <br /> reader.mark(1); <br /> <br /> int result = reader.read(); <br /> <br /> reader.reset(); <br /> <br /> return result; <br /> <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 下一个方法是skipWhitespce，作用是跳过输入的XML流中的空格、制表符或者回车符。 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>private void skipWhitespace() throws IOException { <br /> <br /> while (Character.isWhitespace((char) peek())) { <br /> <br /> reader.read(); <br /> <br /> } <br /> <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 在创建了如上所述的这两个方法后，我们就可以写一个函数从输入文件中检索XML标记。 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>private String readTag() throws IOException { <br /> <br /> skipWhitespace(); <br /> <br /> StringBuffer sb = new StringBuffer(); <br /> <br /> int next = peek(); <br /> <br /> if (next != '＜') { <br /> <br /> throw new IOException <br /> <br /> (&quot;Expected ＞ but got &quot; + (char) next); <br /> <br /> } <br /> <br /> sb.append((char)reader.read()); <br /> <br /> while (peek() != '＞') { <br /> <br /> sb.append((char)reader.read()); <br /> <br /> } <br /> <br /> sb.append((char)reader.read()); <br /> <br /> return sb.toString(); <br /> <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 和peek方法联合使用，readTag函数只获得一个标记的内容，而让别的函数去处理其他的内容。 最后的一个方法是readText函数，用来读取XML标记之间的文本。 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>private String readText() throws IOException { <br /> <br /> int[] cdata_start = {'＜', '!', <br /> <br /> '[', 'C', 'D', 'A', 'T', 'A', '['}; <br /> <br /> int[] cdata_end = {']', ']', '＞'}; <br /> <br /> StringBuffer sb = new StringBuffer(); <br /> <br /> int[] next = new int[cdata_start.length]; <br /> <br /> peek(next); <br /> <br /> if (compareIntArrays(next, cdata_start) == true) { <br /> <br /> // CDATA <br /> <br /> reader.skip(next.length); <br /> <br /> int[] buffer = new int[cdata_end.length]; <br /> <br /> while (true) { <br /> <br /> peek(buffer); <br /> <br /> if (compareIntArrays <br /> <br /> (buffer, cdata_end) == true) { <br /> <br /> reader.skip(buffer.length); <br /> <br /> break; <br /> <br /> } else { <br /> <br /> sb.append((char)reader.read()); <br /> <br /> } <br /> <br /> } <br /> <br /> } else { <br /> <br /> while (peek() != '＜') { <br /> <br /> sb.append((char)reader.read()); <br /> <br /> } <br /> <br /> } <br /> return sb.toString(); <br /> <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><br /> 这次使用的peek方法是前面那个从基本的XML文档返回一个字符串序列的peek方法的变体。这个peek变体让语法分析程序判断它将分析的文本是否被装入一个CDATA块。 compareIntArrays函数是一个执行两个整数数组的深度比较的简单程序。</p> 
+<p><strong>XML语法分析策略和SimpleDOMParser实现<br /> <br /> </strong> 与一个正常的文本文档不同的是，一个符号语法规则的XML文档有一些独特的特点，可以促进语法分析工作： <br /> <br /> 在一个XML文档中所有的标记都必须匹配。每个起始标记都必须有一个匹配的结束标记，除了当标记本身就是两个起始和结束标记的时候，比如＜parser/＞就是＜parser＞＜/parser＞的简易格式。标记和属性名称是大小写敏感的。 <br /> <br /> 在一个XML文档中所有的标记都必须正确地嵌套。XML标记不可以交叉嵌套。 例如：一个包含＜t1＞＜t2＞... ＜/t1＞＜/t2＞的文档就是错误的，因为结束标记＜/t1＞出现在了结束标记＜/t2＞之前。 <br /> <br /> 着眼于这些规则，SimpleDOMParser语法分析策略就应该遵循如下伪代码所示的模式： <br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>While Not EOF(Input XML Document) <br /> <br /> Tag = Next tag from the document <br /> <br /> LastOpenTag = Top tag in Stack <br /> <br /> <br /> <br /> If Tag is an open tag <br /> <br /> Add Tag as the child of LastOpenTag <br /> <br /> Push Tag in Stack <br /> <br /> Else <br /> <br /> // 结束标记 <br /> <br /> If Tag is the matching close tag of LastOpenTag <br /> <br /> Pop Stack <br /> <br /> If Stack is empty <br /> <br /> Parse is complete <br /> <br /> End If <br /> <br /> Else <br /> <br /> // 无效标记嵌套 <br /> <br /> Report error <br /> <br /> End If <br /> <br /> End If <br /> <br /> End While</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 这算法的关键就是标记堆栈，它可以保存从输入文件中获得的但是没有与它们结束标记匹配的起始标记。堆栈的顶部总是最后的一个起始标记。 
+<br /> 
+<br /> 除第一个标记以外，每个新的起始标记将是上一个起始标记的子标记。所以语法分析程序把新的标记添加为上一个起始标记的子标记，然后把它推到堆栈的顶部，它就成了最新的起始标记。 另一方面，如果输入标记是一个结束标记，它必须匹配最后一个起始标记。 基于正确嵌套规则，一个不匹配结束标记会出现XML语法错误。 当结束标记匹配最后一个起始标记，语法分析程序从堆栈中弹出最后一个起始标记，因为对于这个标记的分析是完整的。这个处理继续下去，直到堆栈为空为止。此时，你就完成了整个文档的语法分析过程。代码段2给出了SimpleDOMParser.parse方法的整个源代码。 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>SimpleDOMParser.java<br /> <br /> package simpledomparser;<br /> <br /> <br /> import java.io.Reader;<br /> import java.io.IOException;<br /> import java.io.EOFException;<br /> import java.util.Stack;<br /> <br /> <br /> public class SimpleDOMParser {<br /> private static final int[] cdata_start = {'＜', '!', '[', 'C', 'D', 'A', 'T', 'A', '['};<br /> private static final int[] cdata_end = {']', ']', '＞'};<br /> <br /> private Reader reader;<br /> private Stack elements;<br /> private SimpleElement currentElement;<br /> <br /> public SimpleDOMParser() {<br /> elements = new Stack();<br /> currentElement = null;<br /> }<br /> <br /> public SimpleElement parse(Reader reader) throws IOException {<br /> this.reader = reader;<br /> <br /> skipPrologs();<br /> <br /> while (true) {<br /> int index;<br /> String tagName;<br /> <br /> <br /> String currentTag = readTag().trim();<br /> if (currentTag.startsWith(&quot;＜/&quot;)) {<br /> //结束标记<br /> tagName = currentTag.substring(2, currentTag.length()-1);<br /> <br /> //没有起始标记<br /> if (currentElement == null) {<br /> throw new IOException(&quot;Got close tag '&quot; + tagName +<br /> &quot;' without open tag.&quot;);<br /> }<br /> <br /> //结束标记与起始标记不匹配<br /> if (!tagName.equals(currentElement.getTagName())) {<br /> throw new IOException(&quot;Expected close tag for '&quot; +<br /> currentElement.getTagName() + &quot;' but got '&quot; +<br /> tagName + &quot;'.&quot;);<br /> }<br /> <br /> if (elements.empty()) {<br /> //文本处理结束<br /> return currentElement;<br /> } else {<br /> //弹出前面的起始标记<br /> currentElement = (SimpleElement)elements.pop();<br /> }<br /> } else {<br /> // 起始标记或者带有起始标记和结束标记的标记<br /> index = currentTag.indexOf(&quot; &quot;);<br /> if (index ＜ 0) {<br /> // 不带属性的标记<br /> if (currentTag.endsWith(&quot;/＞&quot;)) {<br /> <br /> tagName = currentTag.substring(1, currentTag.length()-2);<br /> currentTag = &quot;/＞&quot;;<br /> } else {<br /> // 起始标记<br /> tagName = currentTag.substring(1, currentTag.length()-1);<br /> currentTag = &quot;&quot;;<br /> }<br /> } else {<br /> // 带有属性的标记<br /> tagName = currentTag.substring(1, index);<br /> currentTag = currentTag.substring(index+1);<br /> }<br /> <br /> //创建元素<br /> SimpleElement element = new SimpleElement(tagName);<br /> <br /> //分析属性<br /> boolean isTagClosed = false;<br /> while (currentTag.length() ＞ 0) {<br /> <br /> currentTag = currentTag.trim();<br /> <br /> if (currentTag.equals(&quot;/＞&quot;)) {<br /> //结束标记<br /> isTagClosed = true;<br /> break;<br /> } else if (currentTag.equals(&quot;＞&quot;)) {<br /> //起始标记<br /> break;<br /> }<br /> <br /> index = currentTag.indexOf(&quot;=&quot;);<br /> if (index ＜ 0) {<br /> throw new IOException(&quot;Invalid attribute for tag '&quot; +<br /> tagName + &quot;'.&quot;);<br /> }<br /> <br /> // 取得属性名<br /> String attributeName = currentTag.substring(0, index);<br /> currentTag = currentTag.substring(index+1);<br /> <br /> // 取得属性值<br /> String attributeValue;<br /> boolean isQuoted = true;<br /> if (currentTag.startsWith(&quot;\&quot;&quot;)) {<br /> index = currentTag.indexOf('&quot;', 1);<br /> } else if (currentTag.startsWith(&quot;'&quot;)) {<br /> index = currentTag.indexOf('\'', 1);<br /> } else {<br /> isQuoted = false;<br /> index = currentTag.indexOf(' ');<br /> if (index ＜ 0) {<br /> index = currentTag.indexOf('＞');<br /> if (index ＜ 0) {<br /> index = currentTag.indexOf('/');<br /> }<br /> }<br /> }<br /> <br /> if (index ＜ 0) {<br /> throw new IOException(&quot;Invalid attribute for tag '&quot; +<br /> tagName + &quot;'.&quot;);<br /> }<br /> <br /> if (isQuoted) {<br /> attributeValue = currentTag.substring(1, index);<br /> } else {<br /> attributeValue = currentTag.substring(0, index);<br /> }<br /> <br /> // 添加属性到新的元素中<br /> element.setAttribute(attributeName, attributeValue);<br /> <br /> currentTag = currentTag.substring(index+1);<br /> }<br /> <br /> // 读取起始标记和结束标记之间的文本<br /> if (!isTagClosed) {<br /> element.setText(readText());<br /> }<br /> <br /> // 添加一个新的元素作为目前元素的子元素<br /> if (currentElement != null) {<br /> currentElement.addChildElement(element);<br /> }<br /> <br /> if (!isTagClosed) {<br /> if (currentElement != null) {<br /> elements.push(currentElement);<br /> }<br /> <br /> currentElement = element;<br /> } else if (currentElement == null) {<br /> // 在文档中只有一个标记<br /> return element;<br /> }<br /> }<br /> }<br /> }<br /> <br /> private int peek() throws IOException {<br /> reader.mark(1);<br /> int result = reader.read();<br /> reader.reset();<br /> <br /> return result;<br /> }<br /> <br /> private void peek(int[] buffer) throws IOException {<br /> reader.mark(buffer.length);<br /> for (int i=0; i＜buffer.length; i++) {<br /> buffer[i] = reader.read();<br /> }<br /> reader.reset();<br /> }<br /> <br /> private void skipWhitespace() throws IOException {<br /> while (Character.isWhitespace((char)peek())) {<br /> reader.read();<br /> }<br /> }<br /> <br /> private void skipProlog() throws IOException {<br /> //跳过&quot;＜?&quot; or &quot;＜!&quot;<br /> reader.skip(2);<br /> <br /> while (true) {<br /> int next = peek();<br /> <br /> if (next == '＞') {<br /> reader.read();<br /> break;<br /> } else if (next == '＜') {<br /> <br /> skipProlog();<br /> } else {<br /> reader.read();<br /> }<br /> }<br /> }<br /> <br /> private void skipPrologs() throws IOException {<br /> while (true) {<br /> skipWhitespace();<br /> <br /> int[] next = new int[2];<br /> peek(next);<br /> <br /> if (next[0] != '＜') {<br /> throw new IOException(&quot;Expected '＜' but got '&quot; + (char)next[0] + &quot;'.&quot;);<br /> }<br /> <br /> if ((next[1] == '?') || (next[1] == '!')) {<br /> skipProlog();<br /> } else {<br /> break;<br /> }<br /> }<br /> }<br /> <br /> private String readTag() throws IOException {<br /> skipWhitespace();<br /> <br /> StringBuffer sb = new StringBuffer();<br /> <br /> int next = peek();<br /> if (next != '＜') {<br /> throw new IOException(&quot;Expected ＜ but got &quot; + (char)next);<br /> }<br /> <br /> sb.append((char)reader.read());<br /> while (peek() != '＞') {<br /> sb.append((char)reader.read());<br /> }<br /> sb.append((char)reader.read());<br /> <br /> return sb.toString();<br /> }<br /> <br /> private String readText() throws IOException {<br /> StringBuffer sb = new StringBuffer();<br /> <br /> int[] next = new int[cdata_start.length];<br /> peek(next);<br /> if (compareIntArrays(next, cdata_start) == true) {<br /> // CDATA<br /> reader.skip(next.length);<br /> <br /> int[] buffer = new int[cdata_end.length];<br /> while (true) {<br /> peek(buffer);<br /> <br /> if (compareIntArrays(buffer, cdata_end) == true) {<br /> reader.skip(buffer.length);<br /> break;<br /> } else {<br /> sb.append((char)reader.read());<br /> }<br /> }<br /> } else {<br /> while (peek() != '＜') {<br /> sb.append((char)reader.read());<br /> }<br /> }<br /> <br /> return sb.toString();<br /> }<br /> <br /> private boolean compareIntArrays(int[] a1, int[] a2) {<br /> if (a1.length != a2.length) {<br /> return false;<br /> }<br /> <br /> for (int i=0; i＜a1.length; i++) {<br /> if (a1[i] != a2[i]) {<br /> return false;<br /> }<br /> }<br /> <br /> return true;<br /> }<br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 为了简单起见，SimpleDOMParser不允许在XML文档中使用注解，并且完全忽视XML声明和DOCTYPE。它使用下面的程序来跳过XML声明和DOCTYPE元素。这个程序递归调用它本身，就像处理一个内部DTD一样处理DOCTYPE。 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>private void skipProlog() throws IOException { <br /> <br /> //跳过&quot;＜?&quot;或者 &quot;＜!&quot; <br /> <br /> reader.skip(2); <br /> <br /> while (true) { <br /> <br /> int next = peek(); <br /> <br /> if (next == '＞') { <br /> <br /> reader.read(); <br /> <br /> break; <br /> <br /> } else if (next == '＜') { <br /> <br /> skipProlog(); <br /> <br /> } else { <br /> <br /> reader.read(); <br /> <br /> } <br /> <br /> } <br /> <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 虽然本文中介绍的SimpleDOMParser只有有限的功能，但是对于许多简单的应用程序来说，它仍然是非常有用的。比如说，一个Java applet可以使用它以XML格式传送数据到一个后端服务器应用程序中。因为它是极其轻便的，所以SimpleDOMParser在资源非常有限的环境中更是很有吸引力的。此外，SimpleDOMParser的实现还很简单。虽然目前的实现只能保存元素，而不能保存声明或者DOCTYPE，但是你可以修改它来处理你想要处理的XML文本，而这一切都是非常容易的。 
+<br /> 
+<a href="http://blog.csdn.net/wanxw2001/archive/2007/12/10/1926394.aspx">http://blog.csdn.net/wanxw2001/archive/2007/12/10/1926394.aspx</a></div></body></html>

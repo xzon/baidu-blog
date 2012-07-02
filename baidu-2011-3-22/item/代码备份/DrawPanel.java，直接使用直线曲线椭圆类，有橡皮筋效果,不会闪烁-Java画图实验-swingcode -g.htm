@@ -1,0 +1,107 @@
+<html><head><title><div class="tit">
+  DrawPanel.java，直接使用直线曲线椭圆类，有橡皮筋效果,不会闪烁-Java画图实验-swingcode -gcode
+</div></title></head><body><div id='tit'>DrawPanel.java，直接使用直线曲线椭圆类，有橡皮筋效果,不会闪烁-Java画图实验-swingcode -gcode</div><div id='cate'>代码备份</div><div id='date'>2007年12月08日 星期六 12:10 P.M.</div><div id='page'>196</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c350573dafb1bbed3d6d97b1.html'>http://hi.baidu.com/hxzon/blog/item/c350573dafb1bbed3d6d97b1.html</a><div id='cnt'><div>
+ /*DrawPanel.java，直接使用直线曲线椭圆类，有橡皮筋效果,不会闪烁-Java画图实验-swingcode -gcode
+ <br /> *
+ <br /> *LinkedList&lt;Shape&gt; shapeList =new LinkedList&lt;Shape&gt;();
+ <br /> *
+ <br /> *BasicStroke
+ <br /> *Stroke 接口允许 Graphics2D 对象获得一个 Shape
+ <br /> *描绘一个 Shape 如同使用一支具有适当大小和形状的画笔描绘其轮廓。
+ <br /> *画笔着墨的区域是轮廓 Shape 封闭的区域。
+ <br /> *
+ <br /> *Graphics2D，Line2D.Float，Ellipse2D.Float，Rectangle
+ <br /> *
+ <br /> *Shape s:shapeList
+ <br /> *
+ <br /> *panel.setPreferredSize(new Dimension(320,240));
+ <br /> *hxz*/
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.geom.*;//软件包Line2D,Ellipse2D;;;RectangularShape
+ <br /> import java.awt.*;
+ <br /> import java.awt.event.*;
+ <br /> import javax.swing.*;
+ <br /> import java.util.*;//LinkedList
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> *简单的画图程序
+ <br /> 
+ <a href="mailto:*@author">*@author</a> Eastsun
+ <br /> 
+ <a href="mailto:*@version">*@version</a> .1
+ <br /> */
+ <br /> public class DrawPanel extends JFrame{
+ <br /> LinkedList&lt;Shape&gt; shapeList =new LinkedList&lt;Shape&gt;();
+ <br /> Shape shape;
+ <br /> Stroke stroke =new BasicStroke(1.0f,BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0,new float[]{8f,3f},1);
+ <br /> Point start,end;
+ <br /> final String[] type =new String[]{&quot;Line&quot;,&quot;Rectangle&quot;,&quot;Ellipse&quot;};
+ <br /> JComboBox comboBox =new JComboBox(type);
+ <br /> 
+ <br /> public DrawPanel(){
+ <br /> &nbsp;&nbsp;&nbsp; super(&quot;DrawPanel&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; JPanel panel =new JPanel(){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void paintComponent(Graphics g){//paintComponent
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; super.paintComponent(g);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Graphics2D g2 =(Graphics2D)g;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2.setColor(Color.white);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2.fillRect(0,0,getWidth(),getHeight());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2.setColor(Color.black);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Shape s:shapeList) g2.draw(s);//
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(shape!=null){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2.setStroke(stroke);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2.setPaint(Color.blue);//为 Graphics2D 上下文设置 Paint 属性
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2.draw(shape);//使用当前 Graphics2D 上下文的设置勾画 Shape 的轮廓
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; };
+ <br /> &nbsp;&nbsp;&nbsp; panel.addMouseListener(new MouseAdapter(){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void mousePressed(MouseEvent e){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; start =e.getPoint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void mouseReleased(MouseEvent e){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(shape!=null) shapeList.add(shape);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; shape =null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; });
+ <br /> &nbsp;&nbsp;&nbsp; panel.addMouseMotionListener(new MouseMotionAdapter(){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void mouseDragged(MouseEvent e){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; end =e.getPoint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object select =comboBox.getSelectedItem();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(select.equals(type[0])) //Line2D.Float是一个类
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; shape =new Line2D.Float(start,end);//设置形状为直线
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else{ //设置形状为矩形或椭圆
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(select.equals(type[1])) shape =new Rectangle();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; shape =new Ellipse2D.Float();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ((RectangularShape)shape).setFrameFromDiagonal(start,end);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; });
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; panel.setPreferredSize(new Dimension(320,240));
+ <br /> &nbsp;&nbsp;&nbsp; add(panel,BorderLayout.NORTH);
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; add(comboBox,BorderLayout.SOUTH);
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; pack();
+ <br /> &nbsp;&nbsp;&nbsp; setResizable(false);
+ <br /> &nbsp;&nbsp;&nbsp; setDefaultCloseOperation(EXIT_ON_CLOSE);
+ <br /> &nbsp;&nbsp;&nbsp; setVisible(true);
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> }//end DrawPanel()
+ <br /> 
+ <br /> public static void main(String[] args){
+ <br /> &nbsp;&nbsp;&nbsp; new DrawPanel();
+ <br /> }
+ <br /> }
+</div></div></body></html>

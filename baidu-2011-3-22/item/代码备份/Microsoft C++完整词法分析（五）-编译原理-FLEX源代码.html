@@ -1,0 +1,1237 @@
+<html><head><title><div class="tit">
+  Microsoft C++完整词法分析（五）-编译原理-FLEX源代码
+</div></title></head><body><div id='tit'>Microsoft C++完整词法分析（五）-编译原理-FLEX源代码</div><div id='cate'>代码备份</div><div id='date'>2008年03月02日 星期日 09:03 P.M.</div><div id='page'>170</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/2d677d89ec0da3b70e24446f.html'>http://hi.baidu.com/hxzon/blog/item/2d677d89ec0da3b70e24446f.html</a><div id='cnt'><div>
+ Microsoft C++完整词法分析（五）
+ <br /> 8编程实现
+ <br /> 词法分析软件：FLEX。其语句如下：
+</div> 
+<div> 
+</div> 
+<div>
+ %{
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* program by goodzzp 05,10,29&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* remedy by goodzzp 05,11,15&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #include &quot;token.h&quot;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #include &quot;stdlib.h&quot;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int IsKeyWord(char*);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> %}
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> nondigit [_a-zA-Z]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> digit [0-9]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> identifier {nondigit}({digit}|{nondigit})*
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> unsigned_suffix u|U
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> long_suffix l|L
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> integer_suffix {unsigned_suffix}{long_suffix}?|{long_suffix}{unsigned_suffix}?
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> nonzero_digit [1-9]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal_digit [0-7]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hex_digit [0-9a-fA-F]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> dec_constant {nonzero_digit}{digit}*
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal_constant 0{octal_digit}*
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hex_constant 0(x|X){hex_digit}*
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> integer_constant ({dec_constant}|{octal_constant}|{hex_constant}){integer_suffix}?|\'{c_char_sequence}\'
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> simple_escape_sequence [\'\&quot;\?\\\a\b\f\n\r\t\v]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hex_escape_sequence 
+ <a href="file://x%7bhex_digit/">\\x{hex_digit</a>}+
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal_escape_sequence 
+ <a href="file://%7boctal_digit%7d%7b1,3/">\\{octal_digit}{1,3</a>}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> escape_sequence {simple_escape_sequence}|{octal_escape_sequence}|{hex_escape_sequence}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> c_char [^\'\\\n]|{escape_sequence}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> c_char_sequence {c_char}+
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> character_constant [L]?\'{c_char_sequence}\'
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> floating_suffix [fFlL]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> digit_sequence {digit}+
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> sign [+-]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> exponent_part [eE]{sign}?{digit_sequence}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> fractional_constant {digit_sequence}?\.{digit_sequence}|{digit_sequence}\.
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> floating_constant {fractional_constant}{exponent_part}?{floating_suffix}?|{digit_sequence}{exponent_part}{floating_suffix}?
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> s_char [^\&quot;
+ <a>\\\n]|{escape_sequence</a>}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> s_char_sequence {s_char}+
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> string_literal [L]?\&quot;{s_char_sequence}?\&quot;
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> white [ \t\f]+
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> %%
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;/*&quot;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* /* comment:this would eat one '\n'*/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int c0,c1;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c0 = yyinput();
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( ; ; )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c1 = yyinput();
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(c0 == '*' &amp;&amp; c1 == '/')&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c0 = c1;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;//&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* // comment */
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int c2;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c2 = yyinput();
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(;;)
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(c2 == '\n') break;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c2 = yyinput();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> {string_literal}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return SCON;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> {character_constant} return ICON;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> {integer_constant}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; yylval = strtol(yytext,NULL,16);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ICON;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> {floating_constant}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; yylval = strtod(yytext,NULL);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return FCON;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> {identifier}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return IsKeyWord(yytext);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&lt;&lt;=&quot; return LSHIFTEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&gt;&gt;=&quot; return RSHIFTEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;::&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return TCOLON;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;:&gt;&quot;&nbsp;&nbsp;&nbsp;&nbsp; return CBIG;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;.*&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return DAST;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;-&gt;*&quot;&nbsp;&nbsp;&nbsp;&nbsp; return BAST;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;++&quot;&nbsp;&nbsp;&nbsp; return INCR;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;--&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return DECR;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;-&gt;&quot;&nbsp;&nbsp;&nbsp;&nbsp; return DEREF;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&amp;&amp;&quot;&nbsp;&nbsp;&nbsp;&nbsp; return ANDAND;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;||&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return OROR;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&lt;=&quot;&nbsp;&nbsp;&nbsp; return LEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;==&quot;&nbsp;&nbsp;&nbsp; return EQL;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;!=&quot;&nbsp;&nbsp;&nbsp;&nbsp; return NEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&gt;=&quot;&nbsp;&nbsp;&nbsp; return GEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&gt;&gt;&quot;&nbsp;&nbsp;&nbsp; return RSHIFT;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&lt;&lt;&quot;&nbsp;&nbsp;&nbsp; return LSHIFT;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;*=&quot;&nbsp;&nbsp;&nbsp;&nbsp; return MULEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;/=&quot;&nbsp;&nbsp;&nbsp;&nbsp; return DIVEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;%=&quot;&nbsp;&nbsp; return MODEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;+=&quot;&nbsp;&nbsp;&nbsp; return ADDEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;-=&quot;&nbsp;&nbsp;&nbsp;&nbsp; return SUBEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&amp;=&quot;&nbsp;&nbsp;&nbsp; return ANDEQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;|=&quot;&nbsp;&nbsp;&nbsp;&nbsp; return OREQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;^=&quot;&nbsp;&nbsp;&nbsp; return XOREQ;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;!&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '!';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;%&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '%';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&amp;&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '&amp;';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;(&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '(';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;)&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ')';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;*&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '*';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;+&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '+';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;,&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ',';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;-&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '-';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;.&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '.';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;/&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '/';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;:&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ':';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;;&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ';';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&lt;&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '&lt;';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;=&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '=';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;&gt;&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '&gt;';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;?&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '?';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;[&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '[';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;]&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ']';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;^&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '^';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;{&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '{';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;|&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '|';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;}&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '}';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;~&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '~';
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> {white}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* do nothing */
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> \n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return '\n'; /* maybe I need to count the lines' number */
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &lt;&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return EOI; /* the end of file */
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> %%
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> /*保留字*/
+</div> 
+<div> 
+</div> 
+<div>
+ typedef struct
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> {
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; char *name;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int val;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> } KEYWORD;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> KEYWORD keyTable[] =
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> {
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__alignof&quot;,__ALIGNOF},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__asm&quot;,__ASM},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__assume&quot;,__ASSUME},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__based&quot;,__BASED},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__cdecl&quot;,__CDECL},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__declspec&quot;,__DECLSPEC},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__except&quot;,__EXCEPT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__fastcall&quot;,__FASTCALL},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__finally&quot;,__FINALLY},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__forceinline&quot;,__FORCEINLINE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__inline&quot;,__INLINE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__int16&quot;,__INT16},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__int32&quot;,__INT32},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__int64&quot;,__INT64},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__int8&quot;,__INT8},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__interface&quot;,__INTERFACE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__leave&quot;,__LEAVE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__multiple_inheritance&quot;,__MULTIPLE_INHERITANCE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__noop&quot;,__NOOP},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__ptr64&quot;,__PTR64},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__single_inheritance&quot;,__SINGLE_INHERITANCE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__stdcall&quot;,__STDCALL},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__super&quot;,__SUPER},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__try&quot;,__TRY},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__uuidof&quot;,__UUIDOF},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;__virtual_inheritance&quot;,__VIRTUAL_INHERITANCE},
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;align&quot;,ALIGN},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;allocate&quot;,ALLOCATE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;asm&quot;,ASM},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;auto&quot;,AUTO},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;bool&quot;,BOOL},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;break&quot;,BREAK},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;case&quot;,CASE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;catch&quot;,CATCH},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;char&quot;,CHAR},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;class&quot;,CLASS},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;const&quot;,CONST},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;const_cast&quot;,CONST_CAST},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;continue&quot;,CONTINUE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;default&quot;,DEFAULT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;delete&quot;,DELETE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;dllexport&quot;,DLLEXPORT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;dllimport&quot;,DLLIMPORT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;do&quot;,DO},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;double&quot;,DOUBLE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;dynamic_cast&quot;,DYNAMIC_CAST},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;else&quot;,ELSE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;entry&quot;,ENTRY},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;enum&quot;,ENUM},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;extern&quot;,EXTERN},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;false&quot;,FALSE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;float&quot;,FLOAT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;for&quot;,FOR},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;friend&quot;,FRIEND},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;friends&quot;,FRIENDS},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;goto&quot;,GOTO},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;if&quot;,IF},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;inline&quot;,INLINE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;int&quot;,INT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;interface&quot;,INTERFACE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;long&quot;,LONG},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;mutable&quot;,MUTABLE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;naked&quot;,NAKED},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;namespace&quot;,NAMESPACE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;new&quot;,NEW},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;noinline&quot;,NOINLINE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;noreturn&quot;,NORETURN},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;nothrow&quot;,NOTHROW},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;novtable&quot;,NOVTABLE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;operator&quot;,OPERATOR},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;overload&quot;,OVERLOAD},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;private&quot;,PRIVATE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;property&quot;,PROPERTY},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;protect&quot;,PROTECT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;public&quot;,PUBLIC},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;register&quot;,REGISTER},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;reinterpret_cast&quot;,REINTERPRET_CAST},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;return&quot;,RETURN},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;selectany&quot;,SELECTANY},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;short&quot;,SHORT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;signed&quot;,SIGNED},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;sizeof&quot;,SIZEOF},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;static&quot;,STATIC},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;static_cast&quot;,STATIC_CAST},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;struct&quot;,STRUCT},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;super&quot;,SUPER},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;switch&quot;,SWITCH},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;template&quot;,TEMPLATE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;this&quot;,THIS},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;thread&quot;,THREAD},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;throw&quot;,THROW},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;true&quot;,TRUE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;try&quot;,TRY},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;typedef&quot;,TYPEDEF},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;typeid&quot;,TYPEID},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;typename&quot;,TYPENAME},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;union&quot;,UNION},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;unsigned&quot;,UNSIGNED},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;using&quot;,USING},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;uuid&quot;,UUID},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;virtual&quot;,VIRTUAL},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;void&quot;,VOID},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;volatile&quot;,VOLATILE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;while&quot;,WHILE},
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&quot;wmain&quot;,WMAIN}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> };
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> /* 判断字符串是否是保留字 */ 
+ <br /> /* 如果不是就返回 ID(标示符) */ 
+ <br /> int IsKeyWord(char *lex) 
+ <br /> { 
+ <br /> for(int i=0;i〈sizeof(keyTable)/sizeof(KEYWORD);i++) 
+ <br /> { 
+ <br /> if(strcmp(lex,keyTable[i].name) == 0) return keyTable[i].val; 
+ <br /> } 
+ <br /> return ID; 
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 
+ <a href="http://lotusroots.bokee.com/catalog_2005.html">http://lotusroots.bokee.com/catalog_2005.html</a>
+</div></div></body></html>

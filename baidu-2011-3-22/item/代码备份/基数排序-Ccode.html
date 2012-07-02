@@ -1,0 +1,239 @@
+<html><head><title><div class="tit">
+  基数排序-Ccode
+</div></title></head><body><div id='tit'>基数排序-Ccode</div><div id='cate'>代码备份</div><div id='date'>2007年12月30日 星期日 12:46 P.M.</div><div id='page'>184</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/012a6338856e882796ddd80c.html'>http://hi.baidu.com/hxzon/blog/item/012a6338856e882796ddd80c.html</a><div id='cnt'><div> 
+ <h1>基数排序-Ccode</h1> 
+</div> 
+<div> 
+</div> 
+<div> 
+ <div>
+  1.基本思想
+  <br /> 
+  <br /> 实现排序主要是通过关键字间的比较和移动记录这两种操作，而实现基数排序不需要进行记录关键字间的比较，它是一种利用多关键字排序的思想，即借助&quot;分配&quot;和&quot;收集&quot;两种操作对单逻辑关键字进行排序的方法。
+  <br /> 
+  <br /> 基数排序的方法是：一个逻辑关键字可以看成由若干个关键字复合而成的，可把每个排序关键字看成是一个d元组：
+  <br /> 
+  <br /> 例如，如果关键字是数值，且其值在0~99范围内，则可把每一个十进制数字看成是一个关键字，即可认为K由2个关键字（K0，K1）组成，其中K0是十位数，K1是个位数。排序时先按 的值从小到大将记录分配到r个盒子中，然后依次收集这些记录，再按 的值分配到r个盒子中，如此反复，直到对分配后收集起来的序列，便是完全排序的状态，其中r称为基数。这个过程是按LSD（最低位优先法）进行排序的，即从最低数位关键字起，按关键字的不同值对序列中记录&quot;分配&quot;和&quot;收集&quot;的。基数的选择和关键字的分解法因关键字的类型而异。
+  <br /> 
+  <br /> 为了实现记录的&quot;分配&quot;和&quot;收集&quot;，需设立r个队列，排序前将队列设置为空，分配时，将记录插入到各自的队列中去，收集时将这些队列中记录排在一起。
+  <br /> 
+  <br /> 一般采用静态链表作为记录序列的存储结构，并且不另外设置各链队列的结点空间，而是利用静态链表中的结点作为链队列中的结点，这样只需修改指针即可完?quot;分配&quot;和&quot;收集&quot;任务。时间复杂度为O（d（n+rd））
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> 在基数排序算法中，没有进行关键字的比较和记录的移动，而只是顺链扫描链表和进行指针赋值，所以，排序的时间主要耗费在修改指针上。对于n个记录（假设每个记录含d个关键字，每个关键字的取值范围为rd个值）进行一趟分配的时间复杂度为O（n），进行一趟收集的时间复杂度为O（rd），整个排序过程需要进行d趟分配和收集操作。因此，链式基数排序总的时间复杂度为O（d（n+rd））。
+  <br /> 
+  <br /> 当n较小，d较大时，基数排序并不合适。只有当n较大，d较小时，特别是记录的信息量较大时，基数排序最为有效。基数排序中所需辅助空间为2rd个队列指针，另外每个记录中都增加了一个指针域。
+  <br /> 
+  <br /> 2.程序
+  <br /> 
+  <br /> #include &lt;iostream.h&gt;
+  <br /> 
+  <br /> #include &lt;iomanip.h&gt;
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> // constant size must be defined as the array size for bucketSort to work
+  <br /> 
+  <br /> const int SIZE = 12;
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> void bucketSort( int [] );
+  <br /> 
+  <br /> void distributeElements( int [], int [][ SIZE ], int );
+  <br /> 
+  <br /> void collectElements( int [], int [][ SIZE ] );
+  <br /> 
+  <br /> int numberOfDigits( int [], int );
+  <br /> 
+  <br /> void zeroBucket( int [][ SIZE ] );
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> int main()
+  <br /> 
+  <br /> {
+  <br /> 
+  <br /> int array[ SIZE ] = { 19, 13, 5, 27, 1, 26, 31, 16, 2, 9, 11, 21 };
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> cout &lt;&lt; &quot;Array elements in original order:\n&quot;;
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> for ( int i = 0; i &lt; SIZE; ++i )
+  <br /> 
+  <br /> cout &lt;&lt; setw( 3 ) &lt;&lt; array[ i ];
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> cout &lt;&lt; '\n';
+  <br /> 
+  <br /> bucketSort( array );
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> cout &lt;&lt; &quot;\nArray elements in sorted order:\n&quot;;
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> for ( int j = 0; j &lt; SIZE; ++j )
+  <br /> 
+  <br /> cout &lt;&lt; setw( 3 ) &lt;&lt; array[ j ];
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> cout &lt;&lt; endl;
+  <br /> 
+  <br /> return 0;
+  <br /> 
+  <br /> }
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> // Perform the bucket sort algorithm
+  <br /> 
+  <br /> void bucketSort( int a[] )
+  <br /> 
+  <br /> {
+  <br /> 
+  <br /> int totalDigits, bucket[ 10 ][ SIZE ] = { 0 };
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> totalDigits = numberOfDigits( a, SIZE );
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> for ( int i = 1; i &lt;= totalDigits; ++i ) {
+  <br /> 
+  <br /> distributeElements( a, bucket, i );
+  <br /> 
+  <br /> collectElements( a, bucket );
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> if ( i != totalDigits )
+  <br /> 
+  <br /> zeroBucket( bucket ); // set all bucket contents to zero
+  <br /> 
+  <br /> }
+  <br /> 
+  <br /> }
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> // Determine the number of digits in the largest number
+  <br /> 
+  <br /> int numberOfDigits( int b[], int arraySize )
+  <br /> 
+  <br /> {
+  <br /> 
+  <br /> int largest = b[ 0 ], digits = 0;
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> for ( int i = 1; i &lt; arraySize; ++i )
+  <br /> 
+  <br /> if ( b[ i ] &gt; largest )
+  <br /> 
+  <br /> largest = b[ i ];
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> while ( largest != 0 ) {
+  <br /> 
+  <br /> ++digits;
+  <br /> 
+  <br /> largest /= 10;
+  <br /> 
+  <br /> }
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> return digits;
+  <br /> 
+  <br /> }
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> // Distribute elements into buckets based on specified digit
+  <br /> 
+  <br /> void distributeElements( int a[], int buckets[][ SIZE ], int digit )
+  <br /> 
+  <br /> {
+  <br /> 
+  <br /> int divisor = 10, bucketNumber, elementNumber;
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> for ( int i = 1; i &lt; digit; ++i ) // determine the divisor
+  <br /> 
+  <br /> divisor *= 10; // used to get specific digit
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> for ( int k = 0; k &lt; SIZE; ++k ) {
+  <br /> 
+  <br /> // bucketNumber example for hundreds digit:
+  <br /> 
+  <br /> // (1234 % 1000 - 1234 % 100) / 100 --&gt; 2
+  <br /> 
+  <br /> bucketNumber = ( a[ k ] % divisor - a[ k ] % 
+  <br /> 
+  <br /> ( divisor / 10 ) ) / ( divisor / 10 );
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> // retrieve value in buckets[bucketNumber][0] to determine
+  <br /> 
+  <br /> // which element of the row to store a[i] in.
+  <br /> 
+  <br /> elementNumber = ++buckets[ bucketNumber ][ 0 ];
+  <br /> 
+  <br /> buckets[ bucketNumber ][ elementNumber ] = a[ k ];
+  <br /> 
+  <br /> }
+  <br /> 
+  <br /> }
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> // Return elements to original array
+  <br /> 
+  <br /> void collectElements( int a[], int buckets[][ SIZE ])
+  <br /> 
+  <br /> {
+  <br /> 
+  <br /> int subscript = 0;
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> for ( int i = 0; i &lt; 10; ++i )
+  <br /> 
+  <br /> for ( int j = 1; j &lt;= buckets[ i ][ 0 ]; ++j )
+  <br /> 
+  <br /> a[ subscript++ ] = buckets[ i ][ j ];
+  <br /> 
+  <br /> }
+  <br /> 
+  <br /> 
+  <br /> 
+  <br /> // Set all buckets to zero
+  <br /> 
+  <br /> void zeroBucket( int buckets[][ SIZE ] )
+  <br /> 
+  <br /> {
+  <br /> 
+  <br /> for ( int i = 0; i &lt; 10; ++i )
+  <br /> 
+  <br /> for ( int j = 0; j &lt; SIZE; ++j )
+  <br /> 
+  <br /> buckets[ i ][ j ] = 0;
+  <br /> 
+  <br /> }
+  <br /> 数据结构 算法 基数排序
+ </div> 
+</div></div></body></html>

@@ -1,0 +1,100 @@
+<html><head><title><div class="tit">
+  Scala拾趣--从Java7说开来
+</div></title></head><body><div id='tit'>Scala拾趣--从Java7说开来</div><div id='cate'>趋势&middot;演变</div><div id='date'>2010年09月16日 星期四 02:05 P.M.</div><div id='page'>7</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/a0ca0a33b5bbbaf61b4cffdc.html'>http://hi.baidu.com/hxzon/blog/item/a0ca0a33b5bbbaf61b4cffdc.html</a><div id='cnt'><div> 
+ <p><a href="http://www.javaeye.com/topic/190608">Scala拾趣--从Java7说开来</a></p> 
+ <p>http://www.javaeye.com/topic/190608</p> 
+ <p>我们知道，关于当前正在进行中的Java7在Java社区有很多讨论。其焦点集中在要不要在Java7中引入一些新的语言特性，尤其是闭包：不仅有要不要加入闭包的争论，还有采用那种实现方式的问题。在<a target="_blank" href="http://www.javaeye.com/news/598">javapolis举行的关于JAVA7语言特性投票的结果</a>一文中列出了Java7中可能会加入的语言特性，那么我们先来看看在Scala中对于这些语言特性有何解决方式呢？ <br /> 首先把闭包撇出来，因为对闭包不甚了解，所以就不多说。不过以我的看法，因为Scala本身就支持函数式编程，而Java还需要向后兼容性的考虑，所以我觉得Java7中无论以那种方式来实现闭包，也不太可能比Scala中的实现更加有效，或更加优雅。 <br /> 下面我们就逐条来分析Java7中的十种语法提议： <br /> <br /> <span style="font-size: large"><span style="color: blue">1.Property declaration <br /> 2.Property access</span></span> <br /> 这两条都是为了简化书写代码，这里用一个具体的例子来说明： <br /> 考虑一个Person类，这个类有两个属性，一个是表示姓名的forename，在JAVA7中可能的实现方式：</p> 
+ <pre>public class Person {   
+ public property String forename;   
+ public property int age;   
+}</pre> 
+ <p>而使用Scala，则可以使用下列方式（参考资料:<a target="_blank" href="http://scala.sygneca.com/code/defining-bean-properties">Defining a BeanProperty</a>）：</p> 
+ <pre>class Person(@BeanProperty var forename:String,@BeanProperty var age:Int)</pre> 
+ <p>一行代码搞定！ <br /> <br /> <br /> <br /> <span style="font-size: large"><span style="color: blue">3.Improve generics </span></span><br /> Scala中也支持泛型，而且貌似比JAVA中的更灵活。不过其实现方式与目前的JAVA一样，都是使用擦除化。因此对于JAVA中泛型存在 的一些问题，Scala中也存在（唔，至少这条提议中列出的两个问题在Scala中也同样存在。其他的我不太清楚，目前对Scala中的泛型理解尚浅）。 <br /> <br /> <br /> <span style="font-size: large"><span style="color: blue">4.Access List and Map using [] </span></span><br /> 在Scala中可以像下面一样使用Map：</p> 
+ <pre>import scala.collection.mutable.HashMap
+object MapAccess extends Application{
+    var map =new HashMap[Int,String]
+    map(0) =&quot;Zero&quot;
+    map += 1 -&gt; &quot;One&quot;
+    map += 2 -&gt; &quot;Two&quot;
+    var value =map(2)
+    println(value)
+}</pre> 
+ <p>可以看到，在Scala中可以通过map(key)来读取value，通过map(key) =value来写入值对... <br /> 事实上，Scala中并没有对Map提供特别的语法支持。也就是说，对任意的类，你都可以像操作Map一样。只要你在一个类a中定义了apply方法，你就可以把这个类当作一个函数来使： <br /> &nbsp;&nbsp; a(something) <br /> 这等价于： <br /> &nbsp;&nbsp; a.apply(something) <br /> 如果你还定义了update方法，你就可以使用 <br /> &nbsp;&nbsp; a(key) =value <br /> 这等价于 <br /> &nbsp;&nbsp; a.update(key,value) <br /> 怎么样，不赖吧？ <br /> <br /> <span style="font-size: large"><span style="color: blue">5,10.Null-handling and chaining </span></span><br /> 之所以有这两个提议，是由于在Java中存在null以及void类型的方法。在Java中，很多方法会返回一个null表示没有得到预期的 结果或结果为空。事实上大部分情况这样做是不恰当的，这时抛出一个异常或返回一个表示“空”的对象（比如字符串“”，或空的List）可能更合理。而且这 样造成的后果是对于很多方法调用后需要对其结果是否为null进行判断。 <br /> 幸运的是，Scala中没有这些问题。 <br /> 第一：在Scala中没有void，也就是说每个方法都会返回一个实实在在的对象（Java中的void在Scala中有一个对应的类Unit）。 <br /> 第二：对于标准的Scala程序，null不应该出现。相对应的Scala中有个Option类来处理这种返回结果为“空”的情形。 <br /> 这里我也不细说了，有兴趣的可以参看opensdp同学的 <a target="_blank" href="http://www.javaeye.com/topic/72517">用Scala语言中的 Option 对象来处理 null-like 返回值</a>。 <br /> <br /> <br /> <br /> <span style="font-size: large"><span style="color: blue">6.Extension methods</span></span> <br /> 这个有点像Ruby中的“open class”，就是允许在不修改原有代码的情况下给已有的类添加新的方法。 <br /> 由于JAVA是静态类型语言，并且不允许两个名字完全一样的类的存在，所以在这一点的实现肯定会有很多限制，不可能做到像Ruby那样。目前有两种解决方案：</p> 
+ <p>Neal Gafter的提议 写道</p> 
+ <pre>example:
+
+import static java.util.Collections.sort;
+…
+List&lt;String&gt; list = …;
+list.sort();</pre> 
+ <p>Peter Ah&eacute;'s 的提议 写道</p> 
+ <pre>&quot;Declaration-Site Extension Methods&quot;
+
+example:
+
+package java.util;
+interface List&lt;E&gt; … { 
+… 
+void sort() import static java.util.Collections.sort; 
+…
+}</pre> 
+ <p><br /> 第一种实现可以看成是static import的一种扩展；第二种实现同样用到了static import，并且需要修改已有代码。 <br /> 总之，这两种方案看起来都不甚优雅，甚至可以说丑陋。其意义也不大，并且对代码的可读性会造成一定的影响。 <br /> 那么我们来看看Scala中能够如何解决这个问题。Scala中有一个功能很强大的机制：隐式类型转换。这个机制威力巨大，用处远不止 Extension methods，这里我只举个例子说明如何解决Extension methods，有兴趣的可以参看fakechris同学写的<a target="_blank" href="http://www.javaeye.com/topic/107445">scala学习笔记(5) -- implicit type</a> <br /> <br /> 在Ruby中，我们可以通过如下方式向String类中添加print_self方法：</p> 
+ <pre>class String
+  def print_self
+    puts self
+  end
+end</pre> 
+ <p>然后我们就可以对普通的String调用print_self方法：</p> 
+ <pre>&quot;Daniel Spiewak&quot;.print_self    # prints my name</pre> 
+ <p>那么Scala中怎末实现这个呢？很简单：</p> 
+ <pre>object StringTest extends Application{
+    
+    &quot;Eastsun&quot;.printSelf         //对String调用printSelf方法
+    
+    implicit def stringWrapper(s:String) =new {
+        def printSelf = println(s)
+    }
+}</pre> 
+ <p>并且在类StringTest可见的范围内，这个方法都是有效的。（参考资料：<a target="_blank" href="http://www.codecommit.com/blog/scala/scala-for-java-refugees-part-6">Getting Over Java</a>） <br /> <br /> <br /> <br /> <span style="font-size: large"><span style="color: blue">7.String switch </span></span><br /> 在Scala中没有switch关键词，但是有另一个强大得多的机制（不过，也复杂得多）：Pattern match。实现String switch功能，那只不过是小菜一根。</p> 
+ <pre>object MatchTest extends Application{
+    
+    test(&quot;hello&quot;)
+    
+    def test(obj:Any):Unit = obj match{
+        case 1|2|3|4 =&gt; println(&quot;A integer between 1 and 4&quot;)
+        case &quot;hello&quot; =&gt; println(&quot;Hi&quot;)
+        case _       =&gt; println(&quot;something else&quot;)
+    }
+}</pre> 
+ <p><span style="font-size: large"><span style="color: blue">8.Typedef </span></span><br /> 唔，对于这个功能...但是Scala中恰好就有这样一个关键词type，typedef就是这个关键词的作用之一：</p> 
+ <pre>import scala.collection.mutable.HashMap
+object TypeTest extends Application{
+    type ISMap =HashMap[Int,String]
+    var map =new ISMap
+    map(1) =&quot;One&quot;
+}</pre> 
+ <p><span style="font-size: large"><span style="color: blue">9.Multi-catch </span></span><br /> 这里我们又可以来感受一下Scala中Pattern match的威力了：</p> 
+ <pre>import java.io.IOException
+object ExceptionCatch extends Application{
+    
+    exceptionCatch(ioexceptionThrow)
+    
+    def ioexceptionThrow():Unit = throw new IOException
+    
+    def exceptionCatch(func:()=&gt;Unit) =
+        try{
+            func()
+        }catch{
+            case _:IllegalArgumentException|_:IllegalStateException =&gt; println(&quot;RuntimeException&quot;)
+            case _:IOException =&gt; println(&quot;IOException&quot;)
+            case _             =&gt; println(&quot;Something else&quot;)
+        }
+}</pre> 
+ <p><span style="font-size: large"><span style="color: blue">结论</span>：</span>可 以看到，目前在JAVA中想方设法想要加入的语言特性，在Scala中要么是根本不需要的东西，要么是以一种更加优雅的方式实现了。但同时，在学习 Scala的过程中，一方面感受到Scala语法所带来的巨大便利与威力，另一方面其语法比起JAVA来复杂了许多。譬如在Java中粗略来说有 interface,abstract class与普通的class。而Scala中除了普通的class与abstract class还有case class，sealed class,trait,object这些类型的类。更不用说Scala中那些函数式有关的语法了。 <br /> 因此，可能有人会有疑问：有着这么复杂语法的语言有存在的必要吗？会不会成为下一个C++（恐龙）呢？Daniel Spiewak 在他的博客<a target="_blank" href="http://www.codecommit.com/blog/scala/is-scala-really-the-next-c">Is Scala Really the Next C++?</a>中也提出了这个问题，他的答案是否定的。主要的理由是：C++由于兼容的目的背上了C这个沉重的包袱，由于C的影响，很多语言特性不能很好的实现；而Scala不同，Scala与Java在源代码上是不兼容的，因此Scala可以更加自由的发挥。 <br /> 我比较赞同这个观点，同时觉得Java7不应该添加太多的东西进去了。虽然现在Java代码相对其他新式语言来说显得啰嗦，但是Java简 单，这就是它最大的优点。如果Java即要考虑向后兼容性，又想把新的特性一股脑加进去，到后来只可能走向C++的老路。这些新的特性应该由JVM上的其 他语言来实现，比如Groovy，比如Scala。你觉得呢？ <br /> <span style="color: red">PS:</span>根据达尔文的理论，生物的进化包括<span style="color: blue">遗传</span>与<span style="color: blue">变异</span>。而目前的JAVA是只“遗传”不“变异”，这对于语言的进化也是很不好的。</p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+</div></div></body></html>

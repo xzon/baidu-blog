@@ -1,0 +1,331 @@
+<html><head><title><div class="tit">
+  基于J2ME的MD5算法类 -gcode -javacode
+</div></title></head><body><div id='tit'>基于J2ME的MD5算法类 -gcode -javacode</div><div id='cate'>复用代码</div><div id='date'>2008年10月05日 星期日 04:12 P.M.</div><div id='page'>95</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3979512c871c62ea8b139911.html'>http://hi.baidu.com/hxzon/blog/item/3979512c871c62ea8b139911.html</a><div id='cnt'><p>基于J2ME的MD5算法类 -gcode -javacode</p> 
+<div>
+ //实现MD5算法的类，提供一个静态的函数toMD5()供调用；
+ <br /> //还提供一个getMD5ofStr()函数生成一个MD5加密串；
+</div> 
+<div>
+ public class MD5
+ <br /> {
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; static final int S11 = 7;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S12 = 12;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S13 = 17;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S14 = 22;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S21 = 5;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S22 = 9;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S23 = 14;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S24 = 20;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S31 = 4;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S32 = 11;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S33 = 16;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S34 = 23;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S41 = 6;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S42 = 10;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S43 = 15;
+ <br /> &nbsp;&nbsp;&nbsp; static final int S44 = 21;
+ <br /> &nbsp;&nbsp;&nbsp; static final char Hex[]={'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+ <br /> &nbsp;&nbsp;&nbsp; static final byte PADDING[] = {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0, 0, 0, 0
+ <br /> &nbsp;&nbsp;&nbsp; };
+ <br /> &nbsp;&nbsp;&nbsp; private long state[];
+ <br /> &nbsp;&nbsp;&nbsp; private long count[];
+ <br /> &nbsp;&nbsp;&nbsp; private byte buffer[];
+ <br /> &nbsp;&nbsp;&nbsp; public String digestHexStr;
+ <br /> &nbsp;&nbsp;&nbsp; private byte digest[];
+ <br /> &nbsp;&nbsp;&nbsp; private byte test;
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public String getMD5ofStr(String s)
+ <br /> &nbsp;&nbsp;&nbsp; {//返回MD5串；
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Init();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Update(s.getBytes(), s.length());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Final();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digestHexStr = &quot;&quot;;
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(i = 0;i&lt;16;i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digestHexStr=digestHexStr+byteHEX(digest[i]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return digestHexStr;
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public MD5()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state = new long[4];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count = new long[2];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; buffer = new byte[64];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; digest = new byte[16];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Init();
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void md5Init()
+ <br /> &nbsp;&nbsp;&nbsp; {//初始化部分变量；
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count[0] = 0L;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count[1] = 0L;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state[0] = 0x67452301L;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state[1] = 0xefcdab89L;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state[2] = 0x98badcfeL;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state[3] = 0x10325476L;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private long F(long l, long l1, long l2)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return l &amp; l1 | ~l &amp; l2;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private long G(long l, long l1, long l2)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return l &amp; l2 | l1 &amp; ~l2;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private long H(long l, long l1, long l2)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return l ^ l1 ^ l2;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private long I(long l, long l1, long l2)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return l1 ^ (l | ~l2);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private long FF(long l, long l1, long l2, long l3, long l4, long l5, long l6)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l += F(l1, l2, l3) + l4 + l6;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = (int)l &lt;&lt; (int)l5 | (int)l &gt;&gt;&gt; (int)(32L - l5);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l += l1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return l;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private long GG(long l, long l1, long l2, long l3, long l4, long l5, long l6)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l += G(l1, l2, l3) + l4 + l6;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = (int)l &lt;&lt; (int)l5 | (int)l &gt;&gt;&gt; (int)(32L - l5);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l += l1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return l;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private long HH(long l, long l1, long l2, long l3, long l4, long l5, long l6)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l += H(l1, l2, l3) + l4 + l6;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = (int)l &lt;&lt; (int)l5 | (int)l &gt;&gt;&gt; (int)(32L - l5);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l += l1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return l;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private long II(long l, long l1, long l2, long l3, long l4, long l5, long l6)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l += I(l1, l2, l3) + l4 + l6;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = (int)l &lt;&lt; (int)l5 | (int)l &gt;&gt;&gt; (int)(32L - l5);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l += l1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return l;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void md5Update(byte abyte0[], int i)
+ <br /> &nbsp;&nbsp;&nbsp; {//补位操作，abyte0为需要进行MD5加密的字符串，i为字符串长度；
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte abyte1[] = new byte[64];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int k = (int)(count[0] &gt;&gt;&gt; 3) &amp; 0x3f;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if((count[0] += i &lt;&lt; 3) &lt; (long)(i &lt;&lt; 3))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count[1]++;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count[1] += i &gt;&gt;&gt; 29;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int l = 64 - k;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int j;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(i &gt;= l)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Memcpy(buffer, abyte0, k, 0, l);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Transform(buffer);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(j = l; j + 63 &lt; i; j += 64)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Memcpy(abyte1, abyte0, 0, j, 64);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Transform(abyte1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; k = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; j = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Memcpy(buffer, abyte0, k, j, i - j);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void md5Final()
+ <br /> &nbsp;&nbsp;&nbsp; {//最终处理，将得到的128位（16字节）MD5码存放在digest数组中
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte abyte0[] = new byte[8];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Encode(abyte0, count, 8);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i = (int)(count[0] &gt;&gt;&gt; 3) &amp; 0x3f;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int j = i &gt;= 56 ? 120 - i : 56 - i;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Update(PADDING, j);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; md5Update(abyte0, 8);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Encode(digest, state, 16);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void md5Memcpy(byte abyte0[], byte abyte1[], int i, int j, int k)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int l = 0; l &lt; k; l++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; abyte0[i + l] = abyte1[j + l];
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void md5Transform(byte abyte0[])
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long l = state[0];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long l1 = state[1];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long l2 = state[2];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long l3 = state[3];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long al[] = new long[16];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Decode(al, abyte0, 64);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = FF(l, l1, l2, l3, al[0], 7L, 0xd76aa478L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = FF(l3, l, l1, l2, al[1], 12L, 0xe8c7b756L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = FF(l2, l3, l, l1, al[2], 17L, 0x242070dbL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = FF(l1, l2, l3, l, al[3], 22L, 0xc1bdceeeL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = FF(l, l1, l2, l3, al[4], 7L, 0xf57c0fafL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = FF(l3, l, l1, l2, al[5], 12L, 0x4787c62aL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = FF(l2, l3, l, l1, al[6], 17L, 0xa8304613L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = FF(l1, l2, l3, l, al[7], 22L, 0xfd469501L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = FF(l, l1, l2, l3, al[8], 7L, 0x698098d8L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = FF(l3, l, l1, l2, al[9], 12L, 0x8b44f7afL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = FF(l2, l3, l, l1, al[10], 17L, 0xffff5bb1L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = FF(l1, l2, l3, l, al[11], 22L, 0x895cd7beL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = FF(l, l1, l2, l3, al[12], 7L, 0x6b901122L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = FF(l3, l, l1, l2, al[13], 12L, 0xfd987193L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = FF(l2, l3, l, l1, al[14], 17L, 0xa679438eL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = FF(l1, l2, l3, l, al[15], 22L, 0x49b40821L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = GG(l, l1, l2, l3, al[1], 5L, 0xf61e2562L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = GG(l3, l, l1, l2, al[6], 9L, 0xc040b340L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = GG(l2, l3, l, l1, al[11], 14L, 0x265e5a51L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = GG(l1, l2, l3, l, al[0], 20L, 0xe9b6c7aaL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = GG(l, l1, l2, l3, al[5], 5L, 0xd62f105dL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = GG(l3, l, l1, l2, al[10], 9L, 0x2441453L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = GG(l2, l3, l, l1, al[15], 14L, 0xd8a1e681L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = GG(l1, l2, l3, l, al[4], 20L, 0xe7d3fbc8L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = GG(l, l1, l2, l3, al[9], 5L, 0x21e1cde6L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = GG(l3, l, l1, l2, al[14], 9L, 0xc33707d6L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = GG(l2, l3, l, l1, al[3], 14L, 0xf4d50d87L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = GG(l1, l2, l3, l, al[8], 20L, 0x455a14edL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = GG(l, l1, l2, l3, al[13], 5L, 0xa9e3e905L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = GG(l3, l, l1, l2, al[2], 9L, 0xfcefa3f8L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = GG(l2, l3, l, l1, al[7], 14L, 0x676f02d9L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = GG(l1, l2, l3, l, al[12], 20L, 0x8d2a4c8aL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = HH(l, l1, l2, l3, al[5], 4L, 0xfffa3942L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = HH(l3, l, l1, l2, al[8], 11L, 0x8771f681L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = HH(l2, l3, l, l1, al[11], 16L, 0x6d9d6122L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = HH(l1, l2, l3, l, al[14], 23L, 0xfde5380cL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = HH(l, l1, l2, l3, al[1], 4L, 0xa4beea44L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = HH(l3, l, l1, l2, al[4], 11L, 0x4bdecfa9L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = HH(l2, l3, l, l1, al[7], 16L, 0xf6bb4b60L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = HH(l1, l2, l3, l, al[10], 23L, 0xbebfbc70L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = HH(l, l1, l2, l3, al[13], 4L, 0x289b7ec6L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = HH(l3, l, l1, l2, al[0], 11L, 0xeaa127faL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = HH(l2, l3, l, l1, al[3], 16L, 0xd4ef3085L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = HH(l1, l2, l3, l, al[6], 23L, 0x4881d05L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = HH(l, l1, l2, l3, al[9], 4L, 0xd9d4d039L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = HH(l3, l, l1, l2, al[12], 11L, 0xe6db99e5L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = HH(l2, l3, l, l1, al[15], 16L, 0x1fa27cf8L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = HH(l1, l2, l3, l, al[2], 23L, 0xc4ac5665L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = II(l, l1, l2, l3, al[0], 6L, 0xf4292244L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = II(l3, l, l1, l2, al[7], 10L, 0x432aff97L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = II(l2, l3, l, l1, al[14], 15L, 0xab9423a7L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = II(l1, l2, l3, l, al[5], 21L, 0xfc93a039L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = II(l, l1, l2, l3, al[12], 6L, 0x655b59c3L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = II(l3, l, l1, l2, al[3], 10L, 0x8f0ccc92L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = II(l2, l3, l, l1, al[10], 15L, 0xffeff47dL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = II(l1, l2, l3, l, al[1], 21L, 0x85845dd1L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = II(l, l1, l2, l3, al[8], 6L, 0x6fa87e4fL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = II(l3, l, l1, l2, al[15], 10L, 0xfe2ce6e0L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = II(l2, l3, l, l1, al[6], 15L, 0xa3014314L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = II(l1, l2, l3, l, al[13], 21L, 0x4e0811a1L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l = II(l, l1, l2, l3, al[4], 6L, 0xf7537e82L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l3 = II(l3, l, l1, l2, al[11], 10L, 0xbd3af235L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l2 = II(l2, l3, l, l1, al[2], 15L, 0x2ad7d2bbL);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; l1 = II(l1, l2, l3, l, al[9], 21L, 0xeb86d391L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state[0] += l;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state[1] += l1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state[2] += l2;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; state[3] += l3;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void Encode(byte abyte0[], long al[], int i)
+ <br /> &nbsp;&nbsp;&nbsp; {//转换函数，将al中long型的变量输出到byte型的数组abyte0中，
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //低位字节在前，高位字节在后；
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int j = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int k = 0; k &lt; i; k += 4)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; abyte0[k] = (byte)(int)(al[j] &amp; 255L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; abyte0[k + 1] = (byte)(int)(al[j] &gt;&gt;&gt; 8 &amp; 255L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; abyte0[k + 2] = (byte)(int)(al[j] &gt;&gt;&gt; 16 &amp; 255L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; abyte0[k + 3] = (byte)(int)(al[j] &gt;&gt;&gt; 24 &amp; 255L);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; j++;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void Decode(long al[], byte abyte0[], int i)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int j = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int k = 0; k &lt; i; k += 4)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; al[j] = b2iu(abyte0[k]) | b2iu(abyte0[k + 1]) &lt;&lt; 8 | b2iu(abyte0[k + 2]) &lt;&lt; 16 | b2iu(abyte0[k + 3]) &lt;&lt; 24;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; j++;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public static long b2iu(byte byte0)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return byte0 &gt;= 0 ? byte0 : byte0 &amp; 0xff;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public static String byteHEX(byte byte0)
+ <br /> &nbsp;&nbsp;&nbsp; {//字节到十六进制的ASCII码转换
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; char ac[] = {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'A', 'B', 'C', 'D', 'E', 'F'
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; };
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; char ac1[] = new char[2];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ac1[0] = ac[byte0 &gt;&gt;&gt; 4 &amp; 0xf];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ac1[1] = ac[byte0 &amp; 0xf];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String s = new String(ac1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return s;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public static String toMD5(String s)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MD5 md5 = new MD5();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return md5.getMD5ofStr(s);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<p>}</p> 
+<p style="margin: 5px; line-height: 150%"><a href="http://www.ulcms.com/html/java/javame/20070924/555.htm">http://www.ulcms.com/html/java/javame/20070924/555.htm</a></p></div></body></html>

@@ -1,0 +1,51 @@
+<html><head><title><div class="tit">
+  《框架设计（第2版）CLR Via C#》第10章 事件-C#源代码
+</div></title></head><body><div id='tit'>《框架设计（第2版）CLR Via C#》第10章 事件-C#源代码</div><div id='cate'>异域</div><div id='date'>2008年03月08日 星期六 01:12 P.M.</div><div id='page'>166</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3047ad64750fc0f4f736548b.html'>http://hi.baidu.com/hxzon/blog/item/3047ad64750fc0f4f736548b.html</a><div id='cnt'><p> </p> 
+<p>《框架设计（第2版）CLR Via C#》第10章 事件-C#源代码</p> 
+<p>#define NonRobustThreadSafety</p> 
+<p>using System;</p> 
+<p><br /> // Step #1: Define a type that will hold any additional information that <br /> // should be sent to receivers of the event notification <br /> internal class NewMailEventArgs : EventArgs {</p> 
+<p>private readonly String m_from, m_to, m_subject;</p> 
+<p>public NewMailEventArgs(String from, String to, String subject) {<br /> &nbsp;&nbsp; m_from = from; m_to = to; m_subject = subject;<br /> }<br /> &nbsp;&nbsp;<br /> public String From&nbsp;&nbsp;&nbsp; { get { return m_from;&nbsp;&nbsp;&nbsp; } }<br /> public String To&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; { get { return m_to;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } }<br /> public String Subject { get { return m_subject; } }<br /> }</p> 
+<p><br /> ///////////////////////////////////////////////////////////////////////////////</p> 
+<p><br /> internal class MailManager {<br /> #if NonRobustThreadSafety</p> 
+<p>// Step #2: Define the event member <br /> public event EventHandler&lt;NewMailEventArgs&gt; NewMail;</p> 
+<p>#else</p> 
+<p>// Private instance field created to serve as thread synchronization lock<br /> private readonly Object m_eventLock = new Object();</p> 
+<p>// Add private field which refers to the head of the delegate linked-list<br /> private EventHandler&lt;NewMailEventArgs&gt; m_NewMail;</p> 
+<p>// Add an event member to the class<br /> public event EventHandler&lt;NewMailEventArgs&gt; NewMail {<br /> &nbsp;&nbsp; // Explicitly implement the 'add' method<br /> &nbsp;&nbsp; add {<br /> &nbsp;&nbsp;&nbsp; // Take the private lock and add a handler <br /> &nbsp;&nbsp;&nbsp; // (passed as 'value') to the delegate linked list<br /> &nbsp;&nbsp;&nbsp; lock (m_eventLock) { m_NewMail += value; }<br /> &nbsp;&nbsp; }</p> 
+<p>&nbsp;&nbsp; // Explicitly implement the 'remove' method<br /> &nbsp;&nbsp; remove {<br /> &nbsp;&nbsp;&nbsp; // Take the private lock and remove a handler <br /> &nbsp;&nbsp;&nbsp; // (passed as 'value') from the delegate linked list<br /> &nbsp;&nbsp;&nbsp; lock (m_eventLock) { m_NewMail -= value; }<br /> &nbsp;&nbsp; }<br /> }</p> 
+<p>#endif</p> 
+<p>// Step #3: Define a method responsible for raising the event <br /> // to notify registered objects that the event has occurred<br /> // If this class is sealed, make this method private and non-virtual<br /> protected virtual void OnNewMail(NewMailEventArgs e) {</p> 
+<p>#if NonRobustThreadSafety<br /> &nbsp;&nbsp; // Save the delegate field in a temporary field for thread-safety<br /> &nbsp;&nbsp; EventHandler&lt;NewMailEventArgs&gt; temp = NewMail;<br /> #else<br /> &nbsp;&nbsp; // Save the delegate field in a temporary field for thread-safety<br /> &nbsp;&nbsp; EventHandler&lt;NewMailEventArgs&gt; temp = m_NewMail;<br /> #endif</p> 
+<p>&nbsp;&nbsp; // If any objects registered interest with our event, notify them <br /> &nbsp;&nbsp; if (temp != null) temp(this, e);<br /> }</p> 
+<p>// Step #4: Define a method that translates the <br /> // input into the desired event<br /> &nbsp;&nbsp; public void SimulateNewMail(String from, String to, String subject) {</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Construct an object to hold the information we wish<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // to pass to the receivers of our notification<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NewMailEventArgs e = new NewMailEventArgs(from, to, subject);</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Call our virtual method notifying our object that the event<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // occurred. If no type overrides this method, our object will<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // notify all the objects that registered interest in the event<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OnNewMail(e);<br /> &nbsp;&nbsp; }<br /> }</p> 
+<p><br /> ///////////////////////////////////////////////////////////////////////////////</p> 
+<p><br /> internal sealed class Fax {<br /> &nbsp;&nbsp; // Pass the MailManager object to the constructor<br /> &nbsp;&nbsp; public Fax(MailManager mm) {</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Construct an instance of the EventHandler&lt;NewMailEventArgs&gt; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // delegate that refers to our FaxMsg callback method.<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Register our callback with MailManager's NewMail event<br /> &nbsp;&nbsp; mm.NewMail += FaxMsg;<br /> }</p> 
+<p>&nbsp;&nbsp; // This is the method the MailManager will call<br /> &nbsp;&nbsp; // when a new e-mail message arrives<br /> &nbsp;&nbsp; private void FaxMsg(Object sender, NewMailEventArgs e) {</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 'sender' identifies the MailManager object in case <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // we want to communicate back to it.</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 'e' identifies the additional event information <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // the MailManager wants to give us.</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Normally, the code here would fax the e-mail message.<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // This test implementation displays the info in the console<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(&quot;Faxing mail message:&quot;);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(&quot;&nbsp;&nbsp; From={0}, To={1}, Subject={2}&quot;,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.From, e.To, e.Subject);<br /> &nbsp;&nbsp; }</p> 
+<p>// This method could be executed to have the Fax object unregister <br /> // itself with the NewMail event so that it no longer receives <br /> &nbsp;&nbsp; // notifications<br /> &nbsp;&nbsp; public void Unregister(MailManager mm) {</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Unregister ourself with MailManager's NewMail event<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mm.NewMail -= FaxMsg;<br /> &nbsp;&nbsp; }<br /> }</p> 
+<p><br /> ///////////////////////////////////////////////////////////////////////////////</p> 
+<p><br /> internal sealed class Pager {<br /> &nbsp;&nbsp; // Pass the MailManager object to the constructor<br /> &nbsp;&nbsp; public Pager(MailManager mm) {</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Construct an instance of the ProcessMailMsgEventHandler <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // delegate that refers to our SendMsgToPager callback method.<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Register our callback with MailManager's ProcessMailMsg event<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mm.NewMail += SendMsgToPager;<br /> &nbsp;&nbsp; }</p> 
+<p>&nbsp;&nbsp; // This is the method that the MailManager will call<br /> &nbsp;&nbsp; // when a new e-mail message arrives<br /> &nbsp;&nbsp; private void SendMsgToPager(Object sender, NewMailEventArgs e) {</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 'sender' identifies the MailManager in case <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // we want to communicate back to it.</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 'e' identifies the additional event information <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // that the MailManager wants to give us.</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Normally, the code here would send the e-mail message to a pager.<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // This test implementation displays the info on the console<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(&quot;Sending mail message to pager:&quot;);<br /> &nbsp;&nbsp; Console.WriteLine(&quot;&nbsp;&nbsp; From={0}, To={1}, Subject={2}&quot;,<br /> &nbsp;&nbsp;&nbsp; e.From, e.To, e.Subject);<br /> }</p> 
+<p>public void Unregister(MailManager mm) {</p> 
+<p>&nbsp;&nbsp; // Construct an instance of the ProcessMailMsgEventHandler <br /> &nbsp;&nbsp; // delegate that refers to our FaxMsg callback method.<br /> &nbsp;&nbsp; //MailManager.ProcessMailMsgEventHandler callback = new MailManager.ProcessMailMsgEventHandler(FaxMsg);</p> 
+<p>&nbsp;&nbsp; // Unregister ourself with MailManager's ProcessMailMsg event<br /> &nbsp;&nbsp; mm.NewMail -= SendMsgToPager;<br /> }<br /> }</p> 
+<p><br /> ///////////////////////////////////////////////////////////////////////////////</p> 
+<p><br /> public sealed class Program {<br /> &nbsp;&nbsp; public static void Main() {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Construct a MailManager object<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MailManager mm = new MailManager();</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Construct a Fax object passing it the MailManager object<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Fax fax = new Fax(mm);</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Construct a Pager object passing it the MailManager object<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Pager pager = new Pager(mm);</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Simulate an incoming mail message<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mm.SimulateNewMail(&quot;Jeffrey&quot;, &quot;Kristin&quot;, &quot;I Love You!&quot;);</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Force the Fax object to unregister itself with the MailManager<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fax.Unregister(mm);</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Simulate an incoming mail message<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mm.SimulateNewMail(&quot;Jeffrey&quot;, &quot;Mom &amp; Dad&quot;, &quot;Happy Birthday.&quot;);<br /> &nbsp;&nbsp; }<br /> }</p> 
+<p><br /> //////////////////////////////// End of File //////////////////////////////////</p></div></body></html>

@@ -1,0 +1,79 @@
+<html><head><title><div class="tit">
+  RBAC原理介绍及开源框架kasai使用分析
+</div></title></head><body><div id='tit'>RBAC原理介绍及开源框架kasai使用分析</div><div id='cate'>设计方案</div><div id='date'>2009年08月13日 星期四 08:35 P.M.</div><div id='page'>37</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/39b5b809a5e8472d6a60fb24.html'>http://hi.baidu.com/hxzon/blog/item/39b5b809a5e8472d6a60fb24.html</a><div id='cnt'><h3 class="type_original" title="原创"><a href="http://danlley.javaeye.com/blog/227575">RBAC原理介绍及开源框架kasai使用分析</a></h3> 
+<p>&nbsp;&nbsp;&nbsp; RBAC 模型作为目前最为广泛接受的权限模型。而Kasai是基于Java开发的开源RBAC软件，网上很多关于Kasai的介绍都仅仅是局限于一些低层次的新闻介绍性质的。而对于该软件的使用以及它与RBAC模型的关系却是很少涉及。这也是我写此片文章的初衷。</p> 
+<p> </p> 
+<p>Kasai的官方网址：<a href="http://kasai.manentiasoftware.com/">http://kasai.manentiasoftware.com/</a></p> 
+<p> </p> 
+<p>NIST （The National Institute of Standards and Technology，美国国家标准与技术研究院）标准RBAC模型由4个部件模型组成，这4个部件模型分别是基本模型RBAC0（Core RBAC）、角色分级模型RBAC1（Hierarchal RBAC）、角色限制模型RBAC2（Constraint RBAC）和统一模型RBAC3（Combines RBAC）</p> 
+<p> </p> 
+<p>在Kasai系统中，角色之间没有继承关系，也没有责任分离关系，因此基本上是按照RBAC0的方式的。基本上实现了用户 users(USERS)、角色roles(ROLES)、目标objects(OBS)、操作operations(OPS)、许可权 permissions(PRMS)五个基本数据元素。同时Kasai也引入了Group的概念。由于缺乏角色继承关系，新建的角色没有包含任何的资源可供使用，因此角色资源的添加也就变成了一项比较冗繁的工作。但总的来说对RBAC0模式下来说Kasai还是一款比较让人满意的权限系统。</p> 
+<p> </p> 
+<p>在开源RBAC中，除了Kasai值得称道外，还有其他几个项目也是很值得我们去关注：Role Manager项目、RIWS (Rbac Implement as Web Services)项目。在RIWS项目的开发计划中，RIWS开发团队扬言要实现RBAC0、RBAC1、RBAC2和RBAC3，所以如果有机会还是应该去关注一下这个项目的进展。</p> 
+<p> </p> 
+<p>RBAC0 定义了能构成一个RBAC控制系统的最小的元素集合</p> 
+<p>在RBAC之中,包含用户users(USERS)、角色roles(ROLES)、目标objects(OBS)、操作 operations(OPS)、许可权permissions(PRMS)五个基本数据元素，权限被赋予角色,而不是用户，当一个角色被指定给一个用户时，此用户就拥有了该角色所包含的权限。会话sessions是用户与激活的角色集合之间的映射。RBAC0与传统访问控制的差别在于增加一层间接性带来了灵活性，RBAC1、RBAC2、RBAC3都是先后在RBAC0上的扩展</p> 
+<p> </p> 
+<p>RBAC1 引入角色间的继承关系</p> 
+<p>角色间的继承关系可分为一般继承关系和受限继承关系。一般继承关系仅要求角色继承关系是一个绝对偏序关系，允许角色间的多继承。而受限继承关系则进一步要求角色继承关系是一个树结构。</p> 
+<p> </p> 
+<p>RBAC2 模型中添加了责任分离关系</p> 
+<p>RBAC2 的约束规定了权限被赋予角色时,或角色被赋予用户时,以及当用户在某一时刻激活一个角色时所应遵循的强制性规则。责任分离包括静态责任分离和动态责任分离。约束与用户-角色-权限关系一起决定了RBAC2模型中用户的访问许可。</p> 
+<p> </p> 
+<p>RBAC3 包含了RBAC1和RBAC2</p> 
+<p>既提供了角色间的继承关系，又提供了责任分离关系。建立角色定义表。定出当前系统中角色。因为有继承的问题，所以角色体现出的是一个树形结构。</p> 
+<p><br /> 一般来说权限系统的核心由以下三部分构成：<br /> 1. 创造权限， 2. 分配权限， 3. 使用权限，</p> 
+<p><br /> 然后，系统各部分的主要参与者对照如下： 1. 创造权限 - Creator 创造， 2. 分配权限 - Administrator 分配， 3. 使用权限 - User ：</p> 
+<p> </p> 
+<p>1. Creator 创造 Privilege ， Creator 在设计和实现系统时会划分，一个子系统或称为模块，应该有哪些权限。这里完成的是 Privilege 与 Resource 的对象声明，并没有真正将 Privilege 与具体 Resource 实例联系在一起，形成 Operator 。</p> 
+<p> </p> 
+<p>Kasai中所有的资源都是放在kasai_operatives表中，不过不知道是出于什么原因，Kasai并没有提供可以添加资源的入口界面，因此，如果需要在库中添加额外资源的时候，还是需要费一些周折。</p> 
+<p> </p> 
+<p>2. Administrator 指定 Privilege 与 Resource Instance 的关联 。在这一步，权限真正与资源实例联系到了一起， 产生了 Operator （ Privilege Instance ）。 Administrator 利用 Operator 这个基本元素，来创造他理想中的权限模型。如，创建角色，创建用户组，给用户组分配用户，将用户组与角色关联等等 ... 这些操作都是由 Administrator 来完成的。</p> 
+<p> </p> 
+<p>3. User 使用 Administrator 分配给的权限去使用各个子系统。 Administrator 是用户，在他的心目中有一个比较适合他管理和维护的权限模型。于是，程序员只要回答一个问题，就是什么权限可以访问什么资源，也就是前面说的 Operator 。程序员提供 Operator 就意味着给系统穿上了盔甲。 Administrator 就可以按照他的意愿来建立他所希望的权限框架 可以自行增加，删除，管理 Resource 和 Privilege 之间关系。可以自行设定用户 User 和角色 Role 的对应关系。 ( 如果将 Creator 看作是 Basic 的发明者， Administrator 就是 Basic 的使用者，他可以做一些脚本式的编程 ) Operator 是这个系统中最关键的部分，它是一个纽带，一个系在 Programmer ， Administrator ， User 之间的纽带。</p> 
+<p>在Kasai中，系统的权限是在一个kasai_objects表中存放，在权限的分配上，首先由一个Administrators组（Group）拥有一个根权限“/kasai/”，享有根权限。在权限的分配上，Group、Role以及User都拥有一个自身的根节点：“ /kasai/group/”、“/kasai/role/”和“/kasai/user/”，新加的group、role或者user都将在此节点之下进行扩充。由于用户的权限是在“/kasai/user/”节点之下进行扩充，因此也就注定了通常情况下创建的用户是无法获得对用户的操作权限（如：新建用户）的。为了解决这个问题，Kasai的开发团队在开发Kasai系统时，引入了一个Super User的概念，对kasai_users表进行扩充，增加了一个标识字段用来表示一个超级用户，对于超级用户，系统不再进行繁琐的权限判断，直接允许进行所有全部操作。</p> 
+<p> </p> 
+<p>Kasai对用户密码使用一套开源加密算法————Jasypt加密算法，这个Java类包为开发人员提供一种简单的方式来为项目增加加密功能，包括：密码Digest认证，文本和对象加密，集成hibernate，Spring Security(Acegi)来增强密码管理。Jasypt遵循RSA标准提供单向和双向的加密技术，对用户的密码更安全的保护，二进制加密支持，Jasypt可以根据需要加密对象或文件、数字加密支持，除了text和binaries，Jasypt也可以分类和数字值的加密（BigInteger，BigDecimal或其他类型），支持Hibernate持久化加密 ，安全的线程 ，提供非配置的加密工具和灵活的配置 ，在Hibernate映射文件中定义域的加密，无缝的与Spring应用程序集成，Spring安全（Acegi Security）选项集成适合执行密码加密和匹配任务，通过使用安全的密码加密机制和提供更高程度的配置和控制，从而提高了用户密码的安全性，比较有意思的是对于相同的“明文”，在通过Jasypt加密后的“密文”值却是不同的，因此怀疑“密钥”应该就在密文本身，而且此所用的加密算法应该是“可逆加密算法”。</p> 
+<p> </p> 
+<p>其实，角色访问控制（RBAC）引入了Role的概念,目的是为了隔离User(即动作主体，Subject)与Privilege(权限，表示对Resource的一个操作，即Operation+Resource)。</p> 
+<p> </p> 
+<p>Role作为一个用户(User)与权限(Privilege)的代理层，解耦了权限和用户的关系，所有的授权应该给予Role而不是直接给 User或Group。Privilege是权限颗粒，由Operation和Resource组成，表示对Resource的一个Operation。例如，对于新闻的删除操作。Role-Privilege是many-to-many的关系，这就是权限的核心。</p> 
+<p> </p> 
+<p>对Kasai来说，这个many-to-many的关系是由3张表（kasai_users, kasai_roles, kasai_objects）来完成的。为了构建many-to-many的关系，Kasai增加了一张关系表 kasai_objects_users_roles。同时，所有的资源都是由role来管理，这样，用户、角色和资源之间就构成了一种权限关系。</p> 
+<p> </p> 
+<p>基于角色的访问控制方法（RBAC）的显著的两大特征是：</p> 
+<p>1.由于角色/权限之间的变化比角色/用户关系之间的变化相对要慢得多，减小了授权管理的复杂性，降低管理开销。<br /> 2.灵活地支持企业的安全策略，并对企业的变化有很大的伸缩性。</p> 
+<p> </p> 
+<p>RBAC认为权限授权实际上是Who、What、How的问题。在RBAC模型中，who、what、how构成了访问权限三元组,也就是“Who对What(Which)进行How的操作”。</p> 
+<p>Who：权限的拥用者或主体（如Principal、User、Group、Role、Actor等等）<br /> What：权限针对的对象或资源（Resource、Class）。<br /> How：具体的权限（Privilege,正向授权与负向授权）。<br /> Operator：操作。表明对What的How操作。也就是Privilege+Resource<br /> Role：角色，一定数量的权限的集合。权限分配的单位与载体,目的是隔离User与Privilege的逻辑关系.<br /> Group：用户组，权限分配的单位与载体。权限不考虑分配给特定的用户而给组。组可以包括组(以实现权限的继承)，也可以包含用户，组内用户继承组的权限。User与Group是多对多的关系。Group可以层次化，以满足不同层级权限控制的要求。</p> 
+<p> </p> 
+<p> </p> 
+<p>RBAC的关注点在于Role和User, Permission的关系。称为 User assignment(UA)和Permission assignment(PA).关系的左右两边都是Many-to-Many关系。就是 user可以有多个role，role可以包括多个user。</p> 
+<p>凡是用过RDBMS都知道，n:m 的关系需要一个中间表来保存两个表的关系。这UA和PA就相当于中间表。事实上，整个RBAC都是基于关系模型。</p> 
+<p> </p> 
+<p>事实上Kasai的开发团队在开发过程中开发了多种认证机制（基于AS/400 server的认证、基于关系数据库的认证、基于Unix的认证方式以及基于Win32的认证方式），但是从发布产品的情况来看，除了对基于关系数据库的认证方式实现的比较彻底，其他几种方式却依然是犹抱琵琶半遮面。不过没关系，对于普通的应用，提供关系数据库认证方式的支持就已经足够了。</p> 
+<p> </p> 
+<p> </p> 
+<p>在RBAC系统中，User实际上是在扮演角色(Role)，可以用Actor来取代 User，这个想法来自于Business Modeling With UML一书Actor-Role模式。考虑到多人可以有相同权限，RBAC引入了Group的概念。Group同样也看作是Actor。而User的概念就具象到一个人。</p> 
+<p> </p> 
+<p>这里的Group和GBAC（Group-Based Access Control）中的Group（组）不同。GBAC多用于操作系统中。其中的Group直接和权限相关联，实际上RBAC也借鉴了一些GBAC的概念。</p> 
+<p>Group和User都和组织机构有关，但不是组织机构。二者在概念上是不同的。组织机构是物理存在的公司结构的抽象模型，包括部门，人，职位等等，而权限模型是对抽象概念描述。组织结构一般用Martin fowler的Party或责任模式来建模。</p> 
+<p> </p> 
+<p> </p> 
+<p>Party模式中的Person和User的关系，是每个Person可以对应到一个 User，但可能不是所有的User都有对应的Person。Party中的部门Department或组织Organization，都可以对应到 Group。反之Group未必对应一个实际的机构。例如，可以有副经理这个Group，这是多人有相同职责。</p> 
+<p> </p> 
+<p> </p> 
+<p>引入Group这个概念，除了用来解决多人相同角色问题外，还用以解决组织机构的另一种授权问题：例如，A部门的新闻我希望所有的A部门的人都能看。有了这样一个A部门对应的Group，就可直接授权给这个Group。</p> 
+<p> </p> 
+<p>Role 作为一个用户(User)与权限(Privilege)的代理层，解耦了权限和用户的关系，所有的授权应该给予Role而不是直接给User或 Group。Privilege是权限颗粒，由Operation和Resource组成，表示对Resource的一个Operation。例如，对于新闻的删除操作。Role-Privilege是many-to-many的关系，这就是权限的核心。</p> 
+<p> </p> 
+<p>因此，从这个角度来看，对于Kasai系统的使用，首先需要理清现有系统中对于部门、角色、用户之间的权限关系，同时分清当前应用系统中的角色用户的概念与RBAC概念中对于角色、权限、用户概念的异同。对于现有系统来说，如果需要使用RBAC系统，我们可以暂时先抛开对这些概念性的纠缠。对于 WEB应用来说，首先是对应用系统中将要使用的“权限管理粒度”做深入的分析。其次，在“权限粒度”的把握下，对系统资源（如：链接、按钮、图片。。。等等）进行整理，根据整理出的资源进行归类，对于系统共有的资源，如果系统暂时无法保证将来是否会依然是共有资源的，可以将其归属于某一个特定的角色，而对于大多数公有资源，可以不用考虑进行权限限制。最后，根据现有应用系统中各个角色和用户的日常权限对资源进行归类，并将相应的资源纳入相应角色之中。</p> 
+<p> </p> 
+<p> </p> 
+<p>参考资料：</p> 
+<p><a href="http://sourceforge.net/projects/soap-rbac">http://sourceforge.net/projects/soap-rbac</a>&nbsp;&nbsp; hxzon:被遗弃了？</p> 
+<p><a href="http://sourceforge.net/projects/rolemanager">http://sourceforge.net/projects/rolemanager</a><br /> <a href="http://tech.ddvip.com/2008-01/120138480041599.html">http://tech.ddvip.com/2008-01/120138480041599.html</a><br /> <a href="http://www.phpchina.com/html/73/5173_itemid_10049.html">http://www.phpchina.com/html/73/5173_itemid_10049.html</a></p> 
+<p><a href="http://java.ccidnet.com/art/3539/20080123/1350845_1.html">http://java.ccidnet.com/art/3539/20080123/1350845_1.html</a></p> 
+<p><a href="http://java.e800.com.cn/articles/2007/413/1176400843016628730_1.html">http://java.e800.com.cn/articles/2007/413/1176400843016628730_1.html</a></p> 
+<p> </p></div></body></html>

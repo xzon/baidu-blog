@@ -1,0 +1,72 @@
+<html><head><title><div class="tit">
+  com.oreilly.servlet.MultipartRequest
+</div></title></head><body><div id='tit'>com.oreilly.servlet.MultipartRequest</div><div id='cate'>复用代码</div><div id='date'>2008年07月18日 星期五 10:59 A.M.</div><div id='page'>118</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/8d890ff7ff479f24720eeca2.html'>http://hi.baidu.com/hxzon/blog/item/8d890ff7ff479f24720eeca2.html</a><div id='cnt'><div> 
+ <p>package com.oreilly.servlet;</p> 
+ <p>/**<br /> &nbsp;&nbsp; * Constructs a new MultipartRequest to handle the specified request, <br /> &nbsp;&nbsp; * saving any uploaded files to the given directory, and limiting the <br /> &nbsp;&nbsp; * upload size to the specified length. If the content is too large, an <br /> &nbsp;&nbsp; * IOException is thrown. This constructor actually parses the <br /> &nbsp;&nbsp; * &lt;tt&gt;multipart/form-data&lt;/tt&gt; and throws an IOException if there's any <br /> &nbsp;&nbsp; * problem reading or parsing the request.<br /> &nbsp;&nbsp; *<br /> &nbsp;&nbsp; * To avoid file collisions, this constructor takes an implementation of the<br /> &nbsp;&nbsp; * FileRenamePolicy interface to allow a pluggable rename policy.<br /> &nbsp;&nbsp; *<br /> &nbsp;&nbsp; * @param request the servlet request.<br /> &nbsp;&nbsp; * @param saveDirectory the directory in which to save any uploaded files.<br /> &nbsp;&nbsp; * @param maxPostSize the maximum size of the POST content.<br /> &nbsp;&nbsp; * @param encoding the encoding of the response, such as ISO-8859-1<br /> &nbsp;&nbsp; * @param policy a pluggable file rename policy<br /> &nbsp;&nbsp; * @exception IOException if the uploaded content is larger than <br /> &nbsp;&nbsp; * &lt;tt&gt;maxPostSize&lt;/tt&gt; or there's a problem reading or parsing the request.<br /> &nbsp;&nbsp; */<br /> public <font style="background-color: #ffff00" color="#ff0000">MultipartRequest(HttpServletRequest request,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String saveDirectory,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int maxPostSize,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String encoding,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FileRenamePolicy policy) throws IOException</font> {<br /> &nbsp;&nbsp;&nbsp; // Sanity check values<br /> &nbsp;&nbsp;&nbsp; if (request == null)<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IllegalArgumentException(&quot;request cannot be null&quot;);<br /> &nbsp;&nbsp;&nbsp; if (saveDirectory == null)<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IllegalArgumentException(&quot;saveDirectory cannot be null&quot;);<br /> &nbsp;&nbsp;&nbsp; if (maxPostSize &lt;= 0) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IllegalArgumentException(&quot;maxPostSize must be positive&quot;);<br /> &nbsp;&nbsp;&nbsp; }</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Save the dir
+ <br /> &nbsp;&nbsp;&nbsp; File dir = new File(saveDirectory);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Check saveDirectory is truly a directory
+ <br /> &nbsp;&nbsp;&nbsp; if (!dir.isDirectory())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IllegalArgumentException(&quot;Not a directory: &quot; + saveDirectory);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Check saveDirectory is writable
+ <br /> &nbsp;&nbsp;&nbsp; if (!dir.canWrite())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IllegalArgumentException(&quot;Not writable: &quot; + saveDirectory);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Parse the incoming multipart, storing files in the dir provided, 
+ <br /> &nbsp;&nbsp;&nbsp; // and populate the meta objects which describe what we found
+ <br /> &nbsp;&nbsp;&nbsp; MultipartParser parser =
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new 
+ <font style="background-color: #ffff00">MultipartParser</font>(request, maxPostSize, true, true, encoding);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Some people like to fetch query string parameters from
+ <br /> &nbsp;&nbsp;&nbsp; // MultipartRequest, so here we make that possible. Thanks to 
+ <br /> &nbsp;&nbsp;&nbsp; // Ben Johnson, 
+ <a href="mailto:ben.johnson@merrillcorp.com">ben.johnson@merrillcorp.com</a>, for the idea.
+ <br /> &nbsp;&nbsp;&nbsp; if (request.getQueryString() != null) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Let HttpUtils create a name-&gt;String[] structure
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Hashtable queryParameters =
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpUtils.parseQueryString(request.getQueryString());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // For our own use, name it a name-&gt;Vector structure
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Enumeration queryParameterNames = queryParameters.keys();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while (queryParameterNames.hasMoreElements()) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object paramName = queryParameterNames.nextElement();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String[] values = (String[])queryParameters.get(paramName);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Vector newValues = new Vector();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (int i = 0; i &lt; values.length; i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; newValues.add(values[i]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parameters.put(paramName, newValues);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div> 
+ <p>&nbsp;&nbsp;&nbsp; Part part;<br /> &nbsp;&nbsp;&nbsp; while ((part = parser.readNextPart()) != null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String name = part.getName();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (part.isParam()) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // It's a parameter part, add it to the vector of values<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ParamPart paramPart = (ParamPart) part;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String value = paramPart.getStringValue();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Vector existingValues = (Vector)parameters.get(name);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (existingValues == null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; existingValues = new Vector();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parameters.put(name, existingValues);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; existingValues.addElement(value);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else if (part.isFile()) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // It's a file part<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FilePart filePart = (FilePart) part;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String fileName = filePart.getFileName();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (fileName != null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; filePart.setRenamePolicy(policy); // null policy is OK<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // The part actually contained a file<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; filePart.writeTo(dir);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; files.put(name, new UploadedFile(dir.toString(),<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; filePart.getFileName(),<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fileName,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; filePart.getContentType()));<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else { <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // The field did not contain a file<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; files.put(name, new UploadedFile(null, null, null, null));<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; }<br /> }<br /> ==================================================</p> 
+ <p>package com.oreilly.servlet.multipart;</p> 
+ <p>public <font style="background-color: #ffff00" color="#ff0000">MultipartParser(HttpServletRequest req, int maxSize, boolean buffer, <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; boolean limitLength, String encoding)<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throws IOException </font>{<br /> &nbsp;&nbsp;&nbsp; // First make sure we know the encoding to handle chars correctly.<br /> &nbsp;&nbsp;&nbsp; // Thanks to Andreas Granzer, <a href="mailto:andreas.granzer@wave-solutions.com">andreas.granzer@wave-solutions.com</a>,<br /> &nbsp;&nbsp;&nbsp; // for pointing out the need to have this in the constructor.<br /> &nbsp;&nbsp;&nbsp; if (encoding != null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setEncoding(encoding);<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p>&nbsp;&nbsp;&nbsp; // Check the content type to make sure it's &quot;multipart/form-data&quot;<br /> &nbsp;&nbsp;&nbsp; // Access header two ways to work around WebSphere oddities<br /> &nbsp;&nbsp;&nbsp; String type = null;<br /> &nbsp;&nbsp;&nbsp; String type1 = req.getHeader(&quot;Content-Type&quot;);<br /> &nbsp;&nbsp;&nbsp; String type2 = req.getContentType();<br /> &nbsp;&nbsp;&nbsp; // If one value is null, choose the other value<br /> &nbsp;&nbsp;&nbsp; if (type1 == null &amp;&amp; type2 != null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type = type2;<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; else if (type2 == null &amp;&amp; type1 != null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type = type1;<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; // If neither value is null, choose the longer value<br /> &nbsp;&nbsp;&nbsp; else if (type1 != null &amp;&amp; type2 != null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type = (type1.length() &gt; type2.length() ? type1 : type2);<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p>&nbsp;&nbsp;&nbsp; if (type == null || <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; !type.toLowerCase().startsWith(&quot;multipart/form-data&quot;)) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IOException(&quot;Posted content type isn't multipart/form-data&quot;);<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p>&nbsp;&nbsp;&nbsp; // Check the content length to prevent denial of service attacks<br /> &nbsp;&nbsp;&nbsp; int length = req.getContentLength();<br /> &nbsp;&nbsp;&nbsp; if (length &gt; maxSize) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IOException(&quot;Posted content length of &quot; + length + <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot; exceeds limit of &quot; + maxSize);<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p>&nbsp;&nbsp;&nbsp; // Get the boundary string; it's included in the content type.<br /> &nbsp;&nbsp;&nbsp; // Should look something like &quot;------------------------12012133613061&quot;<br /> &nbsp;&nbsp;&nbsp; String boundary = extractBoundary(type);<br /> &nbsp;&nbsp;&nbsp; if (boundary == null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IOException(&quot;Separation boundary was not specified&quot;);<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p>&nbsp;&nbsp;&nbsp; ServletInputStream in = req.getInputStream();<br /> &nbsp;&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp; // If required, wrap the real input stream with classes that <br /> &nbsp;&nbsp;&nbsp; // &quot;enhance&quot; its behaviour for performance and stability<br /> &nbsp;&nbsp;&nbsp; if (buffer) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; in = new BufferedServletInputStream(in);<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; if (limitLength) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; in = new LimitedServletInputStream(in, length);<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p>&nbsp;&nbsp;&nbsp; // Save our values for later<br /> &nbsp;&nbsp;&nbsp; this.in = in;<br /> &nbsp;&nbsp;&nbsp; this.boundary = boundary;<br /> &nbsp;&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp; // Read until we hit the boundary<br /> &nbsp;&nbsp;&nbsp; // Some clients send a preamble (per RFC 2046), so ignore that<br /> &nbsp;&nbsp;&nbsp; // Thanks to Ben Johnson, <a href="mailto:ben.johnson@merrillcorp.com">ben.johnson@merrillcorp.com</a>, for pointing out<br /> &nbsp;&nbsp;&nbsp; // the need for preamble support.<br /> &nbsp;&nbsp;&nbsp; do {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String line = readLine();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (line == null) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IOException(&quot;Corrupt form data: premature ending&quot;);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // See if this line is the boundary, and if so break<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (line.startsWith(boundary)) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break; // success<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; } while (true);<br /> }</p> 
+</div></div></body></html>

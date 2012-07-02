@@ -1,0 +1,123 @@
+<html><head><title><div class="tit">
+  第1章 Ruby工作原理（续） -Ruby for Rails中文版
+</div></title></head><body><div id='tit'>第1章 Ruby工作原理（续） -Ruby for Rails中文版</div><div id='cate'>异域</div><div id='date'>2008年10月26日 星期日 11:01 A.M.</div><div id='page'>88</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/8051fded9e8cfb4979f055fd.html'>http://hi.baidu.com/hxzon/blog/item/8051fded9e8cfb4979f055fd.html</a><div id='cnt'><p> </p> 
+<div>
+ 第1章 Ruby工作原理（续） -Ruby for Rails中文版
+</div> 
+<p>======================================<br /> 1.3 Ruby扩展和程序库</p> 
+<p style="text-indent: 20pt" class="MsoNormal">在前面，有一个在程序执行过程中使用require一个一个读入文件的简单例子。require奠定了Ruby这门编程语言强大丰富的功能的基础。特别地，对于很多与Ruby编程语言捆绑在一起的扩展和编程库，这个机制提供了访问它们的方法——对于由其他程序员独立编写的，可以与Ruby一起使用的更多的扩展和库，也是如此。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">全面地介绍Ruby标准库超出了本书的范围。本节给出了Ruby所提供的以及如何在程序中使用库的指南和要点。</p> 
+<p style="margin: 7.5pt 0cm" class="111">1.3.1 使用标准扩展和库</p> 
+<p style="text-indent: 20pt" class="MsoNormal">当在自己的系统中安装Ruby时，你实际上安装了几个软件层。首先是核心Ruby语言，即在你运行Ruby解释器时可使用的基本的操作和编程技术。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">其次是与Ruby捆绑在一起的大量的扩展和编程库——可在不同的专业领域中帮助你编写程序的添加（add-on）。通常它们作为一个整体被称为标准库。Ruby捆绑了针对各种各样的项目和任务的扩展，有数据库管理、网络、专门的数学运算、XML处理，等等。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">要使用Ruby扩展，需要请求加载（require）它：</p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="150" height="22" src="image/第1章 Ruby工作原理（续） -Rub.image067.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image067.jpg</p></p> 
+<p style="text-indent: 20pt" class="MsoNormal">扩展本质上是一种程序文件（或一簇相互请求加载的相关的程序文件），它包含了专用于某一特殊编程领域的特殊代码。在前面的那个例子中，当你使用CGI扩展时，你立即可以访问为帮助你编写CGI程序而设计的各种编程命令和技术（Ruby on Rails就是这么做的；在构成Rails包的很多文件中，你可以看到代码行require'cgi'）。任何扩展的目的都是为了给使用者省却很多的麻烦。因为所有这些CGI编程技术可通过简单的require命令使用，所以每个人都可以使用它们。否则，也可以每个人都自己写支持这些技术的代码，但那会很困难且浪费时间。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">请注意你用的是require'cgi'，而不是require'cgi.rb'。采用裸词的方式引用扩展不光为了好看，也是必需的，因为并非所有的扩展都使用.rb文件名后缀。确切地说，用C（下一节会更多地讨论）编写的扩展保存在以.so或.dll为后缀的文件中。为使这个过程透明，也就是说，为了省却了解你想要的扩展是否以.rb为文件名后缀的麻烦，Ruby接受一个裸词，然后做自动的文件搜索，试探各种可能的文件名，直到找到与你所请求的扩展相对应的文件。</p> 
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt"> 
+ <p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">注释&nbsp;&nbsp;&nbsp; 叫扩展还是库？ 库是一个广义的术语，指一个编程命令和技术的集合，该集合可用require语句引入到你自己的程序中。术语扩展通常保留给与Ruby一起发行的库，而不是那些由第三方的程序员编写且可以被别人在其应用程序中使用的库。一个例外是用C编写的扩展通常都被称为扩展，包括与Ruby一起发行的和那些作为外加物（add-on）编写的。</p> 
+</div> 
+<p style="margin: 7.5pt 0cm" class="111">1.3.2 使用C的扩展</p> 
+<p style="text-indent: 20pt" class="MsoNormal">某些与Ruby一起发行的扩展是用Ruby编写的。它们使用核心语言提供的技术来实现更多层的功能和语言特性。还有一些扩展是用C编写的。Ruby发行版中的C扩展包含套接字编程库（针对网络应用）、syslog（系统日志）编程设施以及几个用于数据库处理的库。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">其中的某些C扩展本可以用Ruby来编写，但用C来编写是有原因的。其中主要的原因是考虑执行速度。某些C扩展必须用C来写，其目的是在Ruby和C程序员已有的东西之间搭建桥梁。因为这些C扩展要将这些C特性引入Ruby，所以不能用Ruby来编写。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">Ruby解释器处理扩展的方式，使得你在使用扩展时不需要考虑它是用Ruby还是C来编写的。你只需要请求加载它。</p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="86" height="9" src="image/第1章 Ruby工作原理（续） -Rub.image069.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image069.jpg</p></p> 
+<p style="text-indent: 0cm" class="MsoNormal">Ruby会找到它需要加载的文件，不管它们是Ruby文件还是从C源文件编译生成的二进制文件。</p> 
+<p style="margin: 7.5pt 0cm" class="111">1.3.3 编写扩展和库</p> 
+<p style="text-indent: 20pt" class="MsoNormal">很多扩展和外加库是捆绑在Ruby编程语言的官方发行中的，且在你安装Ruby的时候就被安装到系统上了。但是任何人都能编写扩展或库。当编写Ruby代码，而这些代码可以让你或别的程序员能用Ruby做一些新的且有价值的事时，那么就已经编写了一个扩展。你的代码可能没有进入到与Ruby捆绑在一起发行的扩展集中，但仍然可以将它提供给别的程序员，因此就给Ruby编程环境增添了新的价值。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">编写一个库和将一个程序拆解为多个文件的区别在于如何使用这些代码。是否在多个程序中使用它？别人是否使用它？如果是，那么把它称做库就是合理的。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">Rails框架是一个库（实际上是一系列相关的库）。作为Rails开发者，你可能不会去编写Ruby库。但你是能这么做的，而且并不罕见的是，许多不同项目中的Ruby程序员将他们的工作的几部分发布为可供其他程序员使用的库或扩展。</p> 
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt"> 
+ <p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">提示&nbsp;&nbsp;&nbsp; 访问Ruby应用存档和RubyForge 如果你对别的Ruby人提供了什么样的项目感兴趣——包括应用以及编程库和扩展——查看此类信息的最好的地方是Ruby应用存档（RAA, http:// raa.ruby-lang.org）和RubyForge（http://www.rubyforge.net）。</p> 
+</div> 
+<p style="text-indent: 20pt" class="MsoNormal">我们将以对Ruby编程环境的考查来结束本章：与Ruby捆绑发行的东西都是什么（包括Ruby的源代码）；Ruby安装在系统中的什么位置；Ruby提供了哪些应用和编程设施。</p> 
+<p>===============================<br /> 1.4 剖析Ruby编程环境</p> 
+<p style="text-indent: 20pt" class="MsoNormal">在你的系统上安装Ruby意味着安装了该语言的很多组件，其中可能包含该语言的源代码，肯定包含很多用于保存Ruby语言库和支持文件的磁盘目录。你不会在每次用Ruby编写程序时都用到本节介绍的所有东西，但是知道有些什么还是有好处的。另外，有不少捆绑在Ruby上的Ruby库是用Ruby编写的——那么了解了Ruby的安装目录，就使你有能力去查阅好的Ruby代码，并吸取一些好的编码习惯（我们希望如此）。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">我们将从Ruby源代码开始。</p> 
+<p style="margin: 7.5pt 0cm" class="111">1.4.1<em> </em>Ruby源代码的布局</p> 
+<p style="text-indent: 20pt" class="MsoNormal">Ruby源代码目录（树）包含Ruby解释器源代码文件，以及很多与Ruby捆绑发行的外加库的源代码文件。核心Ruby语言是用C编写的，所以为了阅读和完全理解这些文件，C知识是必需的。但是即使不懂C，也可以从源代码文件中的注释和文档中学到很多东西。</p> 
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt"> 
+ <p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">提示&nbsp;&nbsp;&nbsp; 确保你的包管理器安装了全部的Ruby 如果通过一个远程包管理器安装Ruby，最终有可能Ruby源代码并没有安装在你的机器上。如果是这样，而你又想要源代码，请查找名为“ruby-source”或类似名字的包。如果没有这样的包，你可以从ruby-lang.org下载源代码并解包（un-tar）它。关于Ruby安装的更多信息，以及平台特定信息的相关线索，请参考本书的附录。</p> 
+</div> 
+<p style="text-indent: 20pt" class="MsoNormal">如果你查看Ruby源代码树顶层目录的目录列表，你将看到以下内容：</p> 
+<p class="a2">几个子目录，包括ext/和lib/（只有简短的讨论）。</p> 
+<p class="a2">提供信息文件、合法性文件以及与许可证相关的文件（如COPYING、GPL和README）。</p> 
+<p class="a2">构建和安装Ruby的过程中使用的文件（所有的config*文件、Makefile.in、install- sh，等等）。</p> 
+<p class="a2">C程序文件和头文件（*.c和*.h）。</p> 
+<p style="text-indent: 0cm" class="MsoNormal">其中的某些文件仅在构建Ruby的时候使用。某些文件在Ruby安装时被直接复制。另外，构建过程显然也生成了很多新文件（包括解释器ruby），这些文件在安装Ruby时永久地进入到你的系统。</p> 
+<p style="margin: 7.5pt 0cm" class="111">1.4.2<em> </em>Ruby安装目录导航</p> 
+<p style="text-indent: 20pt" class="MsoNormal">我们将查看Ruby安装目录下的几个子目录，以泛泛地了解其中包含了什么。这仅仅是一个概览。最好的（事实上也是唯一的）了解和熟悉并Ruby安装目录布局并对此感到轻松的办法是浏览它，看看其中都有些什么。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">在大致地浏览安装目录或者特别地关注其中某些文件之前，你需要知道Ruby安装在系统的什么位置。获取答案最好的办法是询问Ruby。</p> 
+<p style="text-indent: 20pt" class="4">1．如何让Ruby告诉你它安装在什么位置</p> 
+<p style="text-indent: 20pt" class="MsoNormal">在不同的平台上，和/或通过不同的包管理系统，Ruby会被安装到具有不同名字的目录中。可以通过使用irb找出Ruby安装在系统中的什么位置。首先，用–r标志启动irb，请求加载一个叫做rbconfig的扩展：</p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="101" height="9" src="image/第1章 Ruby工作原理（续） -Rub.image072.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image072.jpg</p></p> 
+<p style="text-indent: 0cm" class="MsoNormal">该命令使得irb预加载一些特定安装的配置信息，包括关于Ruby各组件安装位置的信息。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">为获取该信息，在irb中键入这样一个表达式：</p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="258" height="9" src="image/第1章 Ruby工作原理（续） -Rub.image073.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image073.jpg</p></p> 
+<p style="text-indent: 0cm" class="MsoNormal">该请求显示Ruby可执行文件（包括ruby和irb）的安装目录——bindir。获取其他信息需要用别的术语来替代irb命令中的bindir。但是每一次都会使用相同的基本公式：Config::CONFIG [&quot;<em>term</em>&quot;]。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">在后面的各小节中，各节标题的括号中包含了你需要的术语。将该术语插入irb命令中，就可以得到相应的目录名。</p> 
+<p style="text-indent: 20pt" class="4">2．扩展和库的子目录（rubylibdir）</p> 
+<p style="text-indent: 20pt" class="MsoNormal">在扩展和库的子目录rubylibdir对应的目录中（不管在你的系统中是什么名字）会看到用Ruby编写的程序文件。这些文件提供了标准库设施（standard library facility），如果需要它们提供的功能，你可以在你的程序中请求加载。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">下面是此目录下一些文件的例子：</p> 
+<p class="a2">cgi.rb——方便CGI编程的工具。</p> 
+<p class="a2">fileutils.rb——可在Ruby程序中容易地处理文件的工具。</p> 
+<p class="a2">tempfile.rb——用于自动生成临时文件的机制。</p> 
+<p class="a2">tk.rb——Tk图形库编程接口。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">某些标准扩展，如Tk图形库（上面列表中的最后一项），分布在多个文件中；你将看到大量以tk开头的文件以及一个完整的tk子目录，所有这些都是Ruby Tk库的组成部分。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">浏览rubylibdir目录，可以了解很多任务（虽然可能有些被动，但却是一种很好的方式）Ruby为这些任务提供了编程设施。大多数程序员仅使用了其中的一部分功能，但是由于编程库集相当庞大，所以即使是一个子集，也会产生很大的影响。</p> 
+<p style="text-indent: 20pt" class="4">3．C扩展目录（archdir）</p> 
+<p style="text-indent: 20pt" class="MsoNormal">C扩展目录通常是rubylibdir目录的下一级目录，它包含与体系结构相关的扩展和库。此目录下的文件通常以.so或.dll为后缀（这取决于你的平台）。这些文件是Ruby的C语言扩展，或者更准确地说，它们是二进制的、运行时可加载的文件，产生于Ruby的C语言扩展代码，并在Ruby安装过程中编译为二进制形式。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">正如rubylibdir目录下的Ruby语言程序文件一样，archdir目录下的文件包含了可请求加载到你的程序的标准库组件（在其他目录中，将会看到rbconfig扩展对应的文件，利用rbconfig扩展和irb可以找到这些目录的名字）这些文件是不可读的，但是在请求加载它们时，Ruby解释器知道该怎么做。从Ruby程序员的角度来看，所有的标准库用起来都一样，不管它们是用Ruby编写的，还是用C编写然后编译为二进制格式的。</p> 
+<p style="text-indent: 20pt" class="4">4．site_ruby目录（sitedir）和它的子目录（sitelibdir，sitearchdir）</p> 
+<p style="text-indent: 20pt" class="MsoNormal">Ruby安装目录包含一个叫site_ruby的子目录。正如它的名字所暗示的（尽管是简略的），site_ruby目录是你或者你的系统管理员保存第三方扩展和库的地方。其中的一些也许是你自己编写的代码，另外一些是你从别人的站点或Ruby库存档中下载的工具。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">site_ruby目录平行于Ruby的主安装目录，这是从它具有自己的Ruby语言和C语言扩展的子目录这个意义上来说的（分别对应Config中的sitelibdir和sitearchdir）。当请求加载一个扩展时，Ruby解释器会在site_ruby的这些子目录以及rubylibdir和archdir两个主目录中查找该扩展。</p> 
+<p style="text-indent: 20pt" class="4">5．gems目录（gems）</p> 
+<p style="text-indent: 20.8pt" class="MsoNormal">该目录和其他目录有一点不同，它不在Ruby的内部配置信息中，因为它是针对独立安装的——Ruby的Gems包系统。但在任何安装了Rails的系统中，你可能会看到它，原因很简单，Rails框架常常使用RubyGems系统来发布和安装。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">gems目录通常位于与site_ruby相同的层；所以，如果你找到了site_ruby，可以看看在它之后还安装了什么。gems目录下有一个或多个子目录；如果你探究一下它们的内容，会（也可能是在其他的内容里面）发现Rails框架的源代码。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">我们先讲到这里，因为Rails源代码是本书后面（特别是最后一章，第17章）的主题。但你已了解Ruby目录和文件的位置。在本节最后，我们将看看Ruby自带的一些应用程序和其他的编程设施。</p> 
+<p style="margin: 7.5pt 0cm" class="111">1.4.3<em> </em>重要的标准Ruby 工具和应用程序</p> 
+<p style="text-indent: 20pt" class="MsoNormal">通过介绍Ruby提供给程序员的一些最重要的工具，我们将圆满结束对Ruby编程环境的概览（irb属于其中之一，但已经讨论过，所以不再在此介绍）。</p> 
+<p style="text-indent: 20pt" class="4">1．调试器</p> 
+<p style="text-indent: 20pt" class="MsoNormal">调试，即修正错误，是编程工作的一部分。有很多调试程序的技术，从严格的测试一直到在聊天频道里征求建议。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">Ruby的调试设施（在库文件debug.rb中）帮助你调试程序，它允许一次运行一条指令，然后暂停。在暂停期间，它会显示一个提示符；在这个提示符下，你可以检查变量的值，查看你在一系列嵌套的命令中的位置，然后继续执行。你也可以设置断点——在程序中你想要调试器停止执行并显示提示符的地方设置。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">下面是通过调试器运行c2fi.rb（从键盘获取输入的摄氏—华氏转换程序）的过程。请注意step命令的使用，它告诉调试器运行下一条指令。同时请注意调试器的提示信息不要与print命令的输出混在一起——记住，print不会自动在它的输出后面加换行符。可用vl命令来检查局部变量c和f的值。Ruby运行这个例子时加载了debug扩展。</p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="372" height="247" src="image/第1章 Ruby工作原理（续） -Rub.image077.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image077.jpg</p></p> 
+<p style="text-indent: 0cm" class="MsoNormal">有些程序员更习惯使用调试器。以这种方式运行程序与通常的运行方式大不相同。有些人喜欢在程序中插入指令来调试程序，这样在程序运行期间屏幕上会显示信息。因为必须回到程序文件中去禁止或者删除显示信息的行，所以这种调试方法可能会很乱。不过换一个角度来说，你总是要回到文件中去修改错误（bug）。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">不管你个人习惯于什么调试方式，了解Ruby提供的调试设施还是有用的。</p> 
+<p style="text-indent: 20pt" class="4">2．性能分析</p> 
+<p style="text-indent: 20pt" class="MsoNormal">编程术语性能分析（profiling）的意思是测量程序的不同部分使用了多少系统资源——主要是时间资源。当程序较长时，这就重要了，特别是多次循环执行指令的程序（举例来说，一个程序读入长文件的同时检查或者修改它读入的每一行内容）</p> 
+<p style="text-indent: 20pt" class="MsoNormal">到目前为止的例子都不需要性能分析，因为它们都很短也很简单。但是如果想看看性能分析器会给出什么样的信息——如果你可以耐心对待它而不会着急，因为在这个阶段，信息的很多内容很难解释清楚——那么试运行下面的命令：</p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="158" height="9" src="image/第1章 Ruby工作原理（续） -Rub.image079.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image079.jpg</p></p> 
+<p style="text-indent: 0cm" class="MsoNormal">请退后以便给输出留下空间。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">性能分析可查出程序中哪些代码使用了大量的资源从而导致程序变慢。性能分析提供的信息可用于优化程序的某个部分使其更高效地运行；或者，如果没有相对容易的办法克服资源瓶颈，那么你可能会用C重写程序的某部分，以使其更快地运行。</p> 
+<p style="text-indent: 20pt" class="4">3．ri和RDoc</p> 
+<p style="text-indent: 20pt" class="MsoNormal">ri（Ruby索引）和RDoc（Ruby文档）是两个紧密相关的工具，提供Ruby程序的文档。ri是一个命令行工具；RDoc系统包括命令行工具rdoc。ri和rdoc是两个独立的程序；你可以从命令行运行它们。也可以在Ruby程序内部使用它们提供的设施。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">RDoc是一个文档系统。如果你在程序文件（Ruby或者C）中用指定的RDoc格式编写注释，rdoc会扫描你的文件，抽取注释并巧妙地加以组织（根据注释的内容建立索引），然后生成良好的格式化文档。在Ruby源代码树的很多C文件中，以及Ruby安装目录下的很多Ruby文件中，可以看到RDoc标记。</p> 
+<p style="text-indent: 20.4pt" class="MsoNormal">ri与RDoc紧密协作，提供了查看RDoc提取和组织的信息的方式。特别地（尽管不是专用的，除非你定制它）ri是为显示来自Ruby源文件的RDoc信息而设置的。所以在任何已经全部安装了Ruby的系统上，通过一个简单的命令行ri调用就可以获取关于Ruby的详细信息。举例来说，如果想要得到require功能的完整的、官方的描述，可以键入</p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="75" height="9" src="image/第1章 Ruby工作原理（续） -Rub.image080.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image080.jpg</p></p> 
+<p style="text-indent: 0cm" class="MsoNormal">（就目前来说，你得到的信息，会比你需要的或想要的更多，但是一旦你彻底地掌握了require机制，你会发现那些信息不多也不少。）</p> 
+<p style="text-indent: 20pt" class="MsoNormal">ri和RDoc是Dave Thomas的作品。</p> 
+<p style="text-indent: 20pt" class="4">4．ERb</p> 
+<p style="text-indent: 20pt" class="MsoNormal">最后但并非最不重要的（就Rails来说，非常重要）是，Ruby提供了一个叫ERb（Embedded Ruby）的程序，它由Seki Masatoshi编写。ERb允许你将Ruby代码嵌入HTML文件，或者应该说可以将HTML嵌入Ruby程序文件？事实上两者都对：你把Ruby嵌入（ERb因此得名）非Ruby程序中，ERb解释器把它作为一个整体看作程序的输入。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">ERb读入一个文件——ERb文档——然后再将它输出。只是不允许你在文档中插入Ruby程序指令（使用特殊的语法，稍后进行说明）。当ERb碰到这些Ruby指令时，就执行它们。ERb要么继续处理，要么输出指令执行的结果，这取决于你的要求。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">ERb逐字地读入，然后在某个点（当它看到嵌入在文档中的Ruby代码时），它明白它必须填补空白，它是通过执行Ruby代码来做到的这一点的。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">为准备一个ERb文档，你只需要了解两件事：</p> 
+<p class="a2">如果想要某些已执行的Ruby代码，用&lt;%和%&gt;将它括起来。</p> 
+<p class="a2">如果想把代码执行的结果作为输出的一部分来输出，那么用&lt;%=和%&gt;将代码括起来。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">ERb碰到&lt;%或&lt;%=时，会自己判断做什么。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">下面是一个例子：请在ruby4rails目录下将代码清单1-5的代码保存为erbdemo.rb：</p> 
+<p style="text-indent: 18pt; margin: 11.25pt 2pt 7.5pt" class="ad">代码清单1-5 ERb实例（erbdemo.rb）</p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="435" height="12" src="image/第1章 Ruby工作原理（续） -Rub.image082.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image082.jpg</p></p> 
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="435" height="131" src="image/第1章 Ruby工作原理（续） -Rub.image084.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image084.jpg</p></p> 
+<p style="text-indent: 20pt" class="MsoNormal">现在，使用命令行工具erb而不是ruby来运行下面的程序：</p> 
+<p style="margin: 6pt 0.5pt 3pt 1.4pt" class="a1"><img width="238" height="102" src="image/第1章 Ruby工作原理（续） -Rub.image086.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image086.jpg</p></p> 
+<p style="margin: 0cm 0.5pt 6pt 1.4pt" class="a1"><img width="435" height="36" src="image/第1章 Ruby工作原理（续） -Rub.image087.jpg" /><p class="origImg">http://book.csdn.net/BookFiles/393/img/image087.jpg</p></p> 
+<p style="text-indent: 20pt" class="MsoNormal">如果你了解ERb如何读入和解释其输入，那么上面程序的输出就正好是你所预想的。程序的头两行是Ruby指令（即在&lt;%…%&gt;标记内的部分，而标记本身被忽略）。一旦这两行被读入，你就有了两个可用的变量：page_title和salutation。HTML标记指令&lt;html&gt;按字面读入，然后按字面输出，没有任何改变。这就是输出的第一行（不算那两个空行；erb为每一个&lt;%…%&gt;输出一个空行）。&lt;head&gt;标签也和它在输入中一样，没有改变地输出。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">在&lt;title&gt;标签里，你可以看到&lt;%=…%&gt;这一对分隔符中的Ruby代码。当需要将代码求值结果插入到ERb输出中时，就要用到这一对分隔符。在这个例子中，Ruby代码就是单个变量page_title，其值是字符串“Demonstration of ERb”（因为你在第一行把这个值赋给了标题变量）。于是，在输出中的这个位置，ERb用“Demonstration of ERb”来填充感知到的空白。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">ERb在Ruby on Rails框架中扮演非常重要的角色。本质上说来，当你连接一个Rails应用时，你在屏幕上所看到的在很多情况下是来自ERb文档的输出。这是Rails工作原理的一个主要部分：它基于所使用的数据库（以及你指定的多种公式和操作）设置变量的值，然后，基于这些变量的值产生一屏HTML，请求ERb将这些值插入到文档中合适的位置。此阶段中对于ERb的概念性的了解，在今后使用Rails的过程中，会为你提供很好的帮助。<br /> =========================================</p> 
+<p style="margin: 7.5pt 0cm" class="11">1.5 小结</p> 
+<p style="text-indent: 20pt" class="MsoNormal">在本章中，我们浏览了一些重要的Ruby基础知识和设施。学到了一些重要的术语，包括Ruby（整个编程语言）和ruby（Ruby解释器程序的名字）的区别。你经历了一个完整的过程（虽然小，但也是从头到尾完成的），包括编写一个Ruby程序，将它保存到文件，检查它的语法错误，并且运行。你也尝试了怎样在Ruby中进行键盘输入以及文件输入和输出。你也学习了怎样使用require和load，在一个程序文件中读入另一个程序文件。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">1.2节介绍了激活解释器的一些详细内容，特别是Ruby的命令行开关（不是所有的，只选择了最常见和最有用的）和如何使用交互式Ruby解释器irb来测试、学习和使用Ruby。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">然后我们介绍了Ruby的扩展和库，给出了一些具体的例子，主要说明在代码中调用扩展的机制（用require实现）。我们也提到了C扩展，它常常用来提高速度，或用来与非Ruby语言编写的现存的C库交互。</p> 
+<p style="text-indent: 19.6pt" class="MsoNormal">本章的最后一节介绍Ruby的编程环境。我们查看了Ruby源代码树——信息和细节的源泉——以及Ruby安装目录。编程环境也包括Ruby免费提供的一些有用的应用程序和程序开发设施，如ERb、RDoc、ri以及调试和性能分析库。</p> 
+<p style="text-indent: 20pt" class="MsoNormal">现在你已经基本了解了Ruby工作原理以及Ruby编程环境所提供的工具。下一章会对Rails开发环境做一个相似的介绍，但是在编写实际的代码方面将更进一步。你会看到Ruby和Rails的环境非常有效地交互。</p></div></body></html>

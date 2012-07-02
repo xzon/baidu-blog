@@ -1,0 +1,157 @@
+<html><head><title><div class="tit">
+  getOutputStream() has already been called for this response -hxzon动手 -gdo -gcode
+</div></title></head><body><div id='tit'>getOutputStream() has already been called for this response -hxzon动手 -gdo -gcode</div><div id='cate'>复用代码</div><div id='date'>2008年09月23日 星期二 03:35 P.M.</div><div id='page'>98</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/00457009b6441da92fddd440.html'>http://hi.baidu.com/hxzon/blog/item/00457009b6441da92fddd440.html</a><div id='cnt'><div>
+ java.lang.IllegalStateException: getOutputStream() has already been called for this response -hxzon动手 -gdo -gcode
+ <br /> 
+ <br /> --------------------------------------
+ <br /> java.lang.IllegalStateException: getOutputStream() has already been called for this response
+ <br /> at org.apache.catalina.connector.Response.getWriter(Response.java:604)
+ <br /> at org.apache.catalina.connector.ResponseFacade.getWriter(ResponseFacade.java:198)
+</div> 
+<div> 
+</div> 
+<div>
+ 每次进入或刷新login页面都出现此错。
+ <br /> 原因在于login.jsp页面，里面有此段生成验证码
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;tr&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;td class=tdStyleOne&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 验证码:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/td&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;td class=tdStyleOne&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;input type=&quot;text&quot; class=&quot;input&quot; name=&quot;rand&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;img alt=&quot;验证码&quot; name=&quot;randImage&quot; id=&quot;randImage&quot; src=&quot;image.jsp&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;60&quot; height=&quot;20&quot; border=&quot;1&quot; align=&quot;middle&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/td&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/tr&gt;
+ <br /> 导致出错在于src=&quot;image.jsp&quot;。
+ <br /> ---------------------------------------
+ <br /> image.jsp原文如下
+ <br /> &lt;%@ page language=&quot;java&quot; import=&quot;java.util.*&quot; pageEncoding=&quot;UTF-8&quot;%&gt;
+ <br /> &lt;%@ page contentType=&quot;image/jpeg&quot; import=&quot;java.awt.*,java.awt.image.*,java.util.*,javax.imageio.*&quot; %&gt;
+ <br /> &lt;%!
+ <br /> Color getRandColor(int fc,int bc){//给定范围获得随机颜色
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Random random = new Random();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(fc&gt;255) fc=255;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(bc&gt;255) bc=255;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int r=fc+random.nextInt(bc-fc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int g=fc+random.nextInt(bc-fc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int b=fc+random.nextInt(bc-fc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new Color(r,g,b);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> %&gt;
+ <br /> &lt;%
+ <br /> //设置页面不缓存
+ <br /> response.setHeader(&quot;Pragma&quot;,&quot;No-cache&quot;);
+ <br /> response.setHeader(&quot;Cache-Control&quot;,&quot;no-cache&quot;);
+ <br /> response.setDateHeader(&quot;Expires&quot;, 0);
+</div> 
+<div> 
+</div> 
+<div>
+ // 在内存中创建图象
+ <br /> int width=60, height=20;
+ <br /> BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+</div> 
+<div> 
+</div> 
+<div>
+ // 获取图形上下文
+ <br /> Graphics g = image.getGraphics();
+</div> 
+<div> 
+</div> 
+<div>
+ //生成随机类
+ <br /> Random random = new Random();
+</div> 
+<div> 
+</div> 
+<div>
+ // 设定背景色
+ <br /> g.setColor(getRandColor(200,250));
+ <br /> g.fillRect(0, 0, width, height);
+</div> 
+<div> 
+</div> 
+<div>
+ //设定字体
+ <br /> g.setFont(new Font(&quot;Times New Roman&quot;,Font.PLAIN,18));
+</div> 
+<div> 
+</div> 
+<div>
+ //画边框
+ <br /> //g.setColor(new Color());
+ <br /> //g.drawRect(0,0,width-1,height-1);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> // 随机产生155条干扰线，使图象中的认证码不易被其它程序探测到
+ <br /> g.setColor(getRandColor(160,200));
+ <br /> for (int i=0;i&lt;155;i++)
+ <br /> {
+ <br /> int x = random.nextInt(width);
+ <br /> int y = random.nextInt(height);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int xl = random.nextInt(12);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int yl = random.nextInt(12);
+ <br /> g.drawLine(x,y,x+xl,y+yl);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // 取随机产生的认证码(4位数字)
+ <br /> String sRand=&quot;&quot;;
+ <br /> for (int i=0;i&lt;4;i++){
+ <br /> &nbsp;&nbsp;&nbsp; String rand=String.valueOf(random.nextInt(10));
+ <br /> &nbsp;&nbsp;&nbsp; sRand=sRand.concat(rand);
+ <br /> &nbsp;&nbsp;&nbsp; // 将认证码显示到图象中
+ <br /> &nbsp;&nbsp;&nbsp; g.setColor(new Color(20+random.nextInt(110),20+random.nextInt(110),20+random.nextInt(110)));
+ <br /> &nbsp;&nbsp;&nbsp; g.drawString(rand,13*i+6,16);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // 将认证码存入SESSION
+ <br /> session.setAttribute(&quot;rand&quot;,sRand);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> // 图象生效
+ <br /> g.dispose();
+</div> 
+<div> 
+</div> 
+<div>
+ // 输出图象到页面
+ <br /> ImageIO.write(image, &quot;JPEG&quot;, response.getOutputStream());
+</div> 
+<div>
+ out.clear();//hxzon add
+ <br /> out = pageContext.pushBody();
+ <br /> 
+ <br /> %&gt;
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ ------------------------------------
+ <br /> 在末尾加入
+ <br /> out.clear();
+ <br /> out = pageContext.pushBody();
+ <br /> 不再出错。
+ <br /> ------------------------------------
+ <br /> shbbs出错 hxzon
+</div></div></body></html>

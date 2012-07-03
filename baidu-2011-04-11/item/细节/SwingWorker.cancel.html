@@ -1,0 +1,152 @@
+<html><head><title>SwingWorker.cancel</title></head><body><div id='tit'>SwingWorker.cancel</div><div id='cate'>细节</div><div id='date'>2009年10月23日 星期五 10:45 P.M.</div><div id='page'>27</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/0045700974ccc3a52fddd4cb.html'>http://hi.baidu.com/hxzon/blog/item/0045700974ccc3a52fddd4cb.html</a><div id='cnt'><div> 
+ <p>SwingWorker.cancel</p> 
+ <p><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/">http://java.sun.com/developer/technicalArticles/javase/swingworker/</a></p> 
+ <p>实现ImageSearcher</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; SwingWorker的子类可能既会生成最终结果也会产生中间结果，记住线程在doInBackground方法结束后才产生最后结果，但任务线程也可以产生和公布中间数据。比如当ImageSearcher类从Flickr Web服务中获取缩略图列表时，每当下载一个缩略图时，列表便应显示这个缩略图，没理由要等待所有匹配图像下载完毕才把结果放在列表中。<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp; 实现SwingWorker子类时，在类声明处要指定最终和中间结果的类型，ImageSearcher搜索并下载匹配的缩略图。由于该类在任务结束时产生匹配图像的列表，所以该类使用List作为类的类型参数，为表明它中间发布的数据是匹配图片，它还使用ImageInfo作为类型参数，</p> 
+ <p> </p> 
+ <p>ImageSearcher的定义如下：<br /> <br /> public class ImageSearcher <br /> extends SwingWorker&lt;List&lt;ImageInfo&gt;, ImageInfo&gt; {<br /> public ImageSearcher(DefaultListModel model, String key,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String search, int page) {<br /> &nbsp;&nbsp;&nbsp; this.model = model;<br /> &nbsp;&nbsp;&nbsp; this.key = key;<br /> &nbsp;&nbsp;&nbsp; this.search = search;<br /> &nbsp;&nbsp;&nbsp; this.page = page;<br /> }<br /> ...<br /> }</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 这部分说明了几点：首先List&lt;ImageInfo&gt;类型参数说明任务结束时ImageSearcher的doInBackground和get方法返回一个ImageInfo对象列表；其次当类下载图像时它会发布一些ImageInfo对象，在它们可用后可以立即可以显示出来。因为类的构造函数参数之一是列表模型，因此任务线程会直接更新模型。正如后面看到的一样，它的确是直接更新列表模型；另外，任务线程需要一个Flickr API主键（由Flickr提供）和一个查询项。因为该web服务使用分页方式提供结果，还需要一个页码参数来决定选择哪些匹配的图集。为方便起见，该演示总是返回匹配页面的第一页。因为doInBackground方法是任何任务线程的重心，先来看以下ImageSearcher的实现：</p> 
+ <p> </p> 
+ <p>@Override<br /> protected List&lt;ImageInfo&gt; doInBackground() {<br /> ...<br /> Object strResults = null;<br /> InputStream is = null;<br /> URL url = null;<br /> List&lt;ImageInfo&gt; infoList = null;<br /> try {<br /> &nbsp;&nbsp;&nbsp; url = new URL(searchURL);<br /> &nbsp;&nbsp;&nbsp; is = url.openStream();<br /> &nbsp;&nbsp;&nbsp; infoList = parseImageInfo(is);<br /> &nbsp;&nbsp;&nbsp; retrieveAndProcessThumbnails(infoList);<br /> } catch(MalformedURLException mfe) {<br /> &nbsp;&nbsp;&nbsp; ...<br /> }<br /> return infoList;<br /> }</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 它从Web服务打开一个流，提供一个查询URL，parseImageInfo方法产生匹配图片的信息列表，解析由该web服务返回的一个XML文件。retrieveAndProcessThumbnails方法使用解析过的列表下载所有的缩略图。最终结果是一个完整的包含缩略图数据的ImageInfo对象列表。infoList对象同先前提到的类和方法定义类型相同，是List&lt;ImageInfo&gt;类型。</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 该类同ImageRetriever类相似，因为它也需要更新进度条，并提供图像数据。本文不再详细叙述ImageSearcher的doInBackground、done、get和setProgress方法，因为它们基本上同前面类中的方法相似。但是，ImageSearcher类不仅仅下载单个图片，它还要下载匹配的前100个缩略图片，这儿是演示SwingWorker其他功能的好地方：publish和process方法。</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 你可以使用publish方法来发布要处理的中间数据，当ImageSearcher线程下载缩略图时，它会随着下载而更新图片信息列表，还会发布每一批图像信息，以便UI能在图片数据到达时显示这些图片。如果SwingWorker子类发布了一些数据，那么也应该实现process方法来处理这些中间结果。任务对象的父类会在EDT线程上激活process方法，因此在此方法中程序可以安全的更新UI组件。</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 下面代码显示了ImageSearcher是如何使用publish和process方法的：</p> 
+ <p> </p> 
+ <p>private void retrieveAndProcessThumbnails(List&lt;ImageInfo&gt; infoList) {<br /> for (int x=0; x &lt;infoList.size() &amp;&amp; !isCancelled(); ++x) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp; ImageInfo info = infoList.get(x);<br /> &nbsp;&nbsp;&nbsp; String strImageUrl = String.format(&quot;%s/%s/%s_%s_s.jpg&quot;,<br /> &nbsp;&nbsp;&nbsp; IMAGE_URL, info.getServer(), info.getId(), info.getSecret());<br /> &nbsp;&nbsp;&nbsp; Icon thumbNail = retrieveThumbNail(strImageUrl);<br /> &nbsp;&nbsp;&nbsp; info.setThumbnail(thumbNail);<br /> &nbsp;&nbsp;&nbsp; publish(info);<br /> &nbsp;&nbsp;&nbsp; setProgress(100 * (x+1)/infoList.size());<br /> }<br /> }&nbsp;&nbsp; <br /> /**<br /> * Process is called as a result of this worker thread's calling the<br /> * publish method. This method runs on the event dispatch thread.<br /> *<br /> * As image thumbnails are retrieved, the worker adds them to the<br /> * list model.<br /> *<br /> */<br /> @Override<br /> protected void process(List&lt;ImageInfo&gt; infoList) {<br /> for(ImageInfo info: infoList) {<br /> &nbsp;&nbsp;&nbsp; if (isCancelled()) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; model.addElement(info);<br /> }&nbsp;&nbsp;&nbsp;&nbsp; <br /> }</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 为在任务执行中而非任务结束时发布数据，要调用publish方法，并以参数的形式提供要发布的数据。当然像前面所说的那样，必须在类声明中指定中间数据的类型。在本例中这个类型是ImageInfo。前面所述retrieveAndProcessThumbnails方法显示了如何在线程下载缩略图时发布ImageInfo对象。</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 当从任务线程调用publish方法时，SwingWorker类调度process方法。有意思的是process方法是在EDT上面执行，这意味着可以同Swing组件和其模型直接交互。process方法将ImageInfo对象的缩略图添加到列表模型中，这样图片就会立即显现在列表中。</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 注意process方法的参数，它并没有使用单个ImagInfo对象，而是这种对象的一个列表。原因是publish方法能够以批模式来调用process方法，就是说，每个publish调用并不总是产生相应的process调用。如果可能，publish方法会收集对象并以对象的列表为参数调用process方法。实现process方法要以对象列表的方式处理，就像下面的代码： @Override<br /> protected void process(List&lt;ImageInfo&gt; infoList) {<br /> for(ImageInfo info: infoList) {<br /> &nbsp;&nbsp;&nbsp; ...<br /> &nbsp;&nbsp;&nbsp; model.addElement(info);<br /> }&nbsp;&nbsp;&nbsp;&nbsp; <br /> }</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 如果想允许程序用户取消任务，实现代码要在SwingWorker子类中周期性地检查取消请求。调用isCancelled方法来检查是否有取消请求。ImageSearcher代码的许多地方都有isCancelled方法的调用，在循环迭代或者其他检查点调用这个方法确保线程能即时获得取消请求。线程周期性地检查这种请求并停止工作。比如ImageSearcher类在以下几个点检查取消请求：</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; * doInBackground方法的子任务在获取每个缩略图之前<br /> &nbsp;&nbsp;&nbsp; * process方法中在更新GUI列表模型之前<br /> &nbsp;&nbsp;&nbsp; * done方法中在更新GUI列表模型最终结果之前</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; doInBackground方法调用retrieveAndProcessThumbnails方法，该方法循环列表的图像数据并获取这些图像的缩略图。然而当任务线程正在执行循环时，用户可以启动新的查询。因此这儿也需要检查取消请求： private void retrieveAndProcessThumbnails(List&lt;ImageInfo&gt; infoList) {<br /> ? for (int x=0; x&lt;infoList.size(); ++x) {<br /> &nbsp;&nbsp;&nbsp; // Check whether this thread has been cancelled.<br /> &nbsp;&nbsp;&nbsp; // Stop all thumbnail retrieval.<br /> &nbsp;&nbsp;&nbsp; if (isCancelled()) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; ...<br /> } 该类处理缩略图的同时就发布它们，其结果是在EDT上运行process方法。如果用户请求取消，或者启动新的搜索，可以通过在process方法内检查来避免这种情况的发生。 protected void process(List&lt;ImageInfo&gt; infoList) {<br /> ? for (ImageInfo info: infoList) {<br /> &nbsp;&nbsp;&nbsp; if (isCancelled()) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; model.addElement(info);<br /> }<br /> } 最后，一旦任务线程完成，它还有一个机会更新GUI的模型，这就是在done方法中。因此在这儿也要检查取消请求： @Override<br /> protected void done() {<br /> ...<br /> if (isCancelled()) {<br /> &nbsp;&nbsp;&nbsp; return;<br /> }<br /> ...<br /> // Update the model.<br /> } ImageSearcher类是一个更为完整的SwingWorker的例子，它比ImageRetriever做的更多，ImageSearcher类往GUI上发布中间数据，并处理任务取消请求。两个类都在后台执行任务，并通过事件处理器跟踪进度。<br /> 使用ImageSearcher类<br /> 演示程序提供一个搜索输入栏。当用户输入图片查询条件时，MainFrame类创建一个ImageSearcher实例，输入一个查询条件并产生一个键盘事件，输入栏的键盘事件激活searchImage方法，该方法实例化一个ImageSearcher对象并执行之： private void searchImages(String strSearchText, int page) {<br /> ? if (searcher != null &amp;&amp; !searcher.isDone()) {<br /> &nbsp;&nbsp;&nbsp; // Cancel current search to begin a new one.<br /> &nbsp;&nbsp;&nbsp; // You want only one image search at a time.<br /> &nbsp;&nbsp;&nbsp; searcher.cancel(true);<br /> &nbsp;&nbsp;&nbsp; searcher = null;<br /> }<br /> ...<br /> // Provide the list model so that the ImageSearcher can publish<br /> // images to the list immediately as they are available.<br /> searcher = new ImageSearcher(listModel, API_KEY, strEncodedText, page);<br /> searcher.addPropertyChangeListener(listenerMatchedImages);<br /> progressMatchedImages.setIndeterminate(true);<br /> // Start the search!<br /> searcher.execute();<br /> // This event thread continues immediately here without blocking.<br /> }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 注意代码在ImageSearcher构造函数中提供一个listModel作为参数，这个模型允许任务线程能直接访问更新列表内容。也可以向任务对象添加一个属性改变处理器。上文添加了一个属性改变处理器来更新进度条。除此外还需要添加一个处理器以响应任务线程的状态变化，特别是要侦听DONE状态并使用前文提到的get方法获取任务结果。<br /> 一旦执行任务线程，就会搜索并下载缩略图。该程序向任务对象提供了一个列表模型，因此它会直接更新列表。另外，ImageSearcher类提供了中间数据，因此可以在下载图片的同时更新JList组件。其运行的直接效果就是改善了程序的性能。如下图8所示，搜索结果是列表中显示的小图片：</p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+ <p><br /> 图8. 缩略图是任务线程发布的中间数据</p> 
+ <p> </p> 
+ <p>&nbsp;&nbsp;&nbsp; 你可以通过调用其cancel方法取消SwingWorker线程。用户可以在当前搜索正在进行时输入新的搜索条件并提交来取消当前图像搜索。搜索输入栏的事件处理器检查现有线程是否正在运行，如果正在运行则调用cancel来取消之： private void searchImages(String strSearchText, int page) {<br /> ? if (searcher != null &amp;&amp; !searcher.isDone()) {<br /> &nbsp;&nbsp;&nbsp; // Cancel current search to begin a new one.<br /> &nbsp;&nbsp;&nbsp; // You want only one image search at a time.<br /> &nbsp;&nbsp;&nbsp; searcher.cancel(true);<br /> &nbsp;&nbsp;&nbsp; searcher = null;<br /> }<br /> ...<br /> } 当调用cancel方法时，代码产生新的任务实例，每一个新的搜索需要自己的任务实例。<br /> 总结<br /> 所有的GUI事件和交互都运行在EDT上，在EDT上运行耗时或者I/O密集型处理会导致界面变得缓慢失去响应，为改善这种状况应使用Java SE 6中提供的SwingWorker类将这些任务转移到任务线程中。<br /> 使用SwingWorker，你可以执行相同的任务而不会延迟EDT运行，会提高程序的性能。并且，任务线程可以安全同界面组件交互，因为有回调方法可以在EDT上运行，允许任务运行和完成时更新GUI组件。</p> 
+ <p>=============================</p> 
+ <p><a href="http://blogs.sun.com/swinger/entry/swingworker_stop_that_train">http://blogs.sun.com/swinger/entry/swingworker_stop_that_train</a></p> 
+ <h2>SwingWorker: stop that train!!</h2> 
+ <p> </p> 
+ <table cellspacing="0" cellpadding="5" border="0"> 
+  <tbody> 
+   <tr> 
+    <td> <p>Or how to cancel SwingWorkers.</p> <p>Imagine you have a SwingWorker that does some computations in the &quot;doInBackground()&quot; method. You want to cancel execution and you invoke &quot;SwingWorker.cancel()&quot;. But, suprisingly, the job being performed is not cancelled. Your SwingWorker just keeps on doing the job!!</p> <p>Why, you ask? Well, to understand why we need to go a little bit deep on how Threads are <a href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/Thread.html#interrupt()">interrupt()</a>ed (because SwingWorker.cancel() is just a hidden call to Thread.interrupt()). When you invoke &quot;Thread.interrupt()&quot; you're just setting a flag on the Thread, the &quot;interrupt status&quot; mentioned in the API, but you're not really interrupting the Thread, you're just setting a status flag.</p> <p>Case I: If the operation you're performing on the &quot;doInBackground()&quot; method is not doing any I/O or is not wait()ing or sleep()ing (or doing those things mentioned in the API) then the Thread just keeps on running, executing its &quot;run()&quot; method (or &quot;doInBackground()&quot; in our case). No &quot;InterruptedException&quot; is thrown in this case.</p> <p>Case II: On the other hand, if the operations in your SwingWorker.doInBackground() are performing I/O operations (such as reading data with JDBC or writing to disk) then the interrupted status is detected and an InterruptedException is thrown and, of course, the Thread just stops whatever it's doing.</p> <p>So, if your &quot;doInBackground()&quot; fits in the &quot;Case I&quot; category then you need to take that into account when building your &quot;doInBackground()&quot; method. A good idea is to test if &quot;Thread.currentThread().isInterrupted()&quot; is true inside any loop you may have in your method. Another option is to invoke &quot;Thread.currentThread().sleep()&quot; (or Thread.sleep()) for some time in your loop. By doing so you allow &quot;SwingWorker.cancel()&quot; to really cancel whatever you're doing.</p> <p>So here it comes my first suggestion for SwingWorkers:</p> <p> </p> 
+     <blockquote>
+      SwingWorker suggestion I: make your doInBackground() cancellable
+      <br /> If your &quot;doInBackground()&quot; does not perform any I/O then either periodically sleep() from a little bit of time or check if Thread.currentThread().isInterrupted().
+     </blockquote> <p>(Note, by the way, that this applies to any Thread you extend, not just SwingWorkers!).</p> <p>If you see the <a href="http://blogs.sun.com/roller/page/swinger?entry=mandelbrot_on_fire">source code</a> of MandelbrotSwingWorker.java you'll notice that I'm sleeping for 1 millisecond each 5% of work done. Exact location is here:</p> <p> </p> <pre>120  if ( 0 == progress%5 ) 
+121  {
+122    setProgress( progress  );
+123    // This is important!! I'll comment on this later.
+124    Thread.sleep(1L);
+125  }</pre> <p>By doing so I allow a MandelbrotSwingWorker (a SwingWorker that does not have any I/O operations) to be cancelled (and, well, slow things a little bit too, MandelbrotSwingWorker is too fast on my Pentium IV ;-).</p> <p>I think this is good enough for today. Next week I'll talk about why cancelling SwingWorkers may not be a very good idea.</p> <p>Happy Swinging,<br /> Antonio</p> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <p><img alt="锚点" src="image/SwingWorker.cancel.h.spacer.gif-t=99GE" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.0.1/images/spacer.gif?t=99GE</p></p> 
+ <div> 
+  <div>
+   Comentarios:
+  </div> 
+  <br /> 
+  <img alt="锚点" src="image/SwingWorker.cancel.h.spacer.gif-t=99GE" />
+  <p class="origImg">http://ckeditor.com/apps/ckeditor/3.0.1/images/spacer.gif?t=99GE</p> 
+  <div>
+   good one. have u look into Foxtrot and Spin? they handle swing threading issues better thann swingworker. they uses swingworker internally though. i guess jdk 5 has some good stuff on this too. regards kams 
+   <p>Enviado por Kams en agosto 13, 2005 a las 05:47 PM CEST <a title="enlace permanente del comentario" href="http://blogs.sun.com/swinger/entry/swingworker_stop_that_train#comment-1123948049000">#</a></p> 
+  </div> 
+  <img alt="锚点" src="image/SwingWorker.cancel.h.spacer.gif-t=99GE" />
+  <p class="origImg">http://ckeditor.com/apps/ckeditor/3.0.1/images/spacer.gif?t=99GE</p> 
+  <div>
+   Hi Kams, 
+   <p>Please define &quot;better&quot;.</p> 
+   <p>Thanks<br /> Antonio</p> 
+   <p>Enviado por Antonio en agosto 15, 2005 a las 05:28 PM CEST <a title="enlace permanente del comentario" href="http://blogs.sun.com/swinger/entry/swingworker_stop_that_train#comment-1124119702000">#</a></p> 
+  </div> 
+  <img alt="锚点" src="image/SwingWorker.cancel.h.spacer.gif-t=99GE" />
+  <p class="origImg">http://ckeditor.com/apps/ckeditor/3.0.1/images/spacer.gif?t=99GE</p> 
+  <div>
+   You mentioned to call Thread.sleep(1L) so that InterruptedException is thrown. Does this method throw InterruptedException even if the thread has been interrupted before this call. I feel it throws. as Thread.interrupt() just makes a boolean flag to true. nice tip. Stopping SwingWorker is more important in some scenarios like: execution of a database query call. 
+   <p>Enviado por <a rel="nofollow" href="http://www.jroller.com/page/santhosh">Santhosh Kumar T</a> en agosto 16, 2005 a las 12:56 AM CEST <a title="enlace permanente del comentario" href="http://blogs.sun.com/swinger/entry/swingworker_stop_that_train#comment-1124146608000">#</a></p> 
+  </div> 
+  <img alt="锚点" src="image/SwingWorker.cancel.h.spacer.gif-t=99GE" />
+  <p class="origImg">http://ckeditor.com/apps/ckeditor/3.0.1/images/spacer.gif?t=99GE</p> 
+  <div>
+   The main advantage of 
+   <a rel="nofollow" href="http://foxtrot.sourceforge.net/">Foxtrot</a> is that the code can appear inline in your event handler. The call to Foxtrot's Worker doesn't return until after the offloaded task has completed, but EDT events will continue to be pumped anyway.
+   <br /> 
+   <br /> So it looks like this: 
+   <pre>// Do something before doing stuff on another thread
+
+Object result = Worker.post(new Task()
+{
+   public Object
+   run()
+   {
+      // Do something on another thread
+   }
+});
+
+// Do something afterwards (back on the EDT),
+// possibly using the result from the other thread.</pre> The other advantages are that the Task (unlike a Runnable) can return an Object and it's cousin Job can also throw Exceptions. This allows the final work (updating models or displaying error dialogs) to happen in the EDT without having to post yet another anonymous Runnable to the EventQueue. 
+   <p>Enviado por <a rel="nofollow" href="http://www.grlea.org/">Graham Lea</a> en agosto 16, 2005 a las 06:15 AM CEST <a title="enlace permanente del comentario" href="http://blogs.sun.com/swinger/entry/swingworker_stop_that_train#comment-1124165732000">#</a></p> 
+  </div> 
+  <img alt="锚点" src="image/SwingWorker.cancel.h.spacer.gif-t=99GE" />
+  <p class="origImg">http://ckeditor.com/apps/ckeditor/3.0.1/images/spacer.gif?t=99GE</p> 
+  <div>
+   Hi Graham, 
+   <p>I can do the same thing with SwingWorkers (I think). What about:</p> 
+   <pre>// Do something before doing stuff on another thread
+
+SwingWorker&lt;String,String&gt;  task = 
+  new SwingWorker&lt;String,String&gt;
+  {
+    public String doInBackground()
+    {
+      // Do something on another thread
+      // (and return a String as result).
+    }
+  } );
+
+task.execute();
+
+// Do something afterwards (back on the EDT),
+// possibly using the result from the
+// swingworker &quot;task&quot; by invoking &quot;task.get()&quot;.</pre> 
+   <p>So I don't really see the difference!.</p> 
+   <p>The &quot;doInBackground()&quot; method can also throw Exceptions!!</p> 
+   <p>So, I'm afraid, I can't still see the real advantage. BTW, can Foxtrot/Spin cancel() running tasks? I'm afraid not!!</p> 
+   <p>So I think this is a matter of taste. I think SwingWorker is a Swiss army knife. I'll keep on playing with it. Keep tuned for more interesting entries to come.</p> 
+   <p> </p> 
+   <p>Enviado por Antonio en agosto 16, 2005 a las 09:57 AM CEST <a title="enlace permanente del comentario" href="http://blogs.sun.com/swinger/entry/swingworker_stop_that_train#comment-1124179068000">#</a></p> 
+  </div> 
+  <img alt="锚点" src="image/SwingWorker.cancel.h.spacer.gif-t=99GE" />
+  <p class="origImg">http://ckeditor.com/apps/ckeditor/3.0.1/images/spacer.gif?t=99GE</p> 
+  <div>
+   A little bit late, but one objection to Antonios comment: Your code comments are misleading... // Do something afterwards (back on the EDT), // possibly using the result from the // swingworker &quot;task&quot; by invoking &quot;task.get()&quot; ... as this code will not be executed afterwards but in parallel to the SwingWorker. If you call task.get() you'll block the EDT, something you probably wanted to circumvent in the first place. Foxtrot and Spin are different! Sven 
+   <p>Enviado por svenmeier en octubre 19, 2005 a las 03:58 PM CEST <a title="enlace permanente del comentario" href="http://blogs.sun.com/swinger/entry/swingworker_stop_that_train#comment-1129730284000">#</a></p> 
+  </div> 
+ </div> 
+ <div> 
+  <div>
+   Enviar un comentario:
+  </div> 
+  <br /> Los comentarios han sido deshabilitados.
+ </div> 
+ <p> </p> 
+</div></div></body></html>

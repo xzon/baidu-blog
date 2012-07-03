@@ -1,0 +1,381 @@
+<html><head><title>实现非阻塞套接字的一种简单方法</title></head><body><div id='tit'>实现非阻塞套接字的一种简单方法</div><div id='cate'>细节</div><div id='date'>2008年04月09日 星期三 01:04 A.M.</div><div id='page'>140</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/4db2307a9f6548e82f73b3e5.html'>http://hi.baidu.com/hxzon/blog/item/4db2307a9f6548e82f73b3e5.html</a><div id='cnt'><h1>实现非阻塞套接字的一种简单方法</h1> 
+<p>使用 JSSE 和 NIO 实现非阻塞通信的一种快速方法</p> 
+<p>级别： 初级</p> 
+<p><a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-sslnb/#author"><font color="#5c81a7">Kenneth Ballard</font></a> (<a cmimpressionsent="1" href="mailto:kenneth.ballard@ptk.org?subject=实现非阻塞套接字的一种简单方法&amp;cc=kenneth.ballard@ptk.org"><font color="#5c81a7">kenneth.ballard@ptk.org</font></a>), 计算机科学系学生, 珀鲁州立大学</p> 
+<p>2003 年 11 月 24 日</p> 
+<blockquote>
+ 尽管 SSL 阻塞操作――当读写数据的时候套接字的访问被阻塞――与对应的非阻塞方式相比提供了更好的 I/O 错误通知，但是非阻塞操作允许调用的线程继续运行。本文中，作者同时就客户端和服务器端描述了如何使用Java Secure Socket Extensions （JSSE） 和 Java NIO （新 I/O）库创建非阻塞的安全连接，并且介绍了创建非阻塞套接字的传统方法，以及使用JSSE 和 NIO 的一种可选的（必需的）方法。
+</blockquote> 
+<p>阻塞，还是非阻塞？这就是问题所在。无论在程序员的头脑中多么高贵……当然这不是莎士比亚，本文提出了任何程序员在编写 Internet 客户程序时都应该考虑的一个重要问题。通信操作应该是阻塞的还是非阻塞的？</p> 
+<p>许多程序员在使用 Java 语言编写 Internet 客户程序时并没有考虑这个问题，主要是因为在以前只有一种选择――阻塞通信。但是现在 Java 程序员有了新的选择，因此我们编写的每个客户程序也许都应该考虑一下。</p> 
+<p>非阻塞通信在 Java 2 SDK 的 1.4 版被引入 Java 语言。如果您曾经使用该版本编过程序，可能会对新的 I/O 库（NIO）留下了印象。在引入它之前，非阻塞通信只有在实现第三方库的时候才能使用，而第三方库常常会给应用程序引入缺陷。</p> 
+<p>NIO 库包含了文件、管道以及客户机和服务器套接字的非阻塞功能。库中缺少的一个特性是安全的非阻塞套接字连接。在 NIO 或者 JSSE 库中没有建立安全的非阻塞通道类，但这并不意味着不能使用安全的非阻塞通信。只不过稍微麻烦一点。</p> 
+<p>要完全领会本文，您需要熟悉：</p> 
+<ul> 
+ <li>Java 套接字通信的概念。您也应该实际编写过应用程序。而且不只是打开连接、读取一行然后退出的简单应用程序，应该是实现 POP3 或 HTTP 之类协议的客户机或通信库这样的程序。</li> 
+ <li>SSL 基本概念和加密之类的概念。基本上就是知道如何设置一个安全连接（但不必担心 JSSE ――这就是关于它的一个“紧急教程”）。</li> 
+ <li>NIO 库。</li> 
+ <li>在您选择的平台上安装 Java 2 SDK 1.4 或以后的版本。（我是在 Windows 98 上使用 1.4.1_01 版。）</li> 
+</ul> 
+<p>如果需要关于这些技术的介绍，请参阅 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-sslnb/#resources"><font color="#5c81a7">参考资料</font></a>部分。</p> 
+<p>那么到底什么是阻塞和非阻塞通信呢？</p> 
+<p><a name="1"><span class="atitle">阻塞和非阻塞通信</span></a></p> 
+<p>阻塞通信意味着通信方法在尝试访问套接字或者读写数据时阻塞了对套接字的访问。在 JDK 1.4 之前，绕过阻塞限制的方法是无限制地使用线程，但这样常常会造成大量的线程开销，对系统的性能和可伸缩性产生影响。java.nio 包改变了这种状况，允许服务器有效地使用 I/O 流，在合理的时间内处理所服务的客户请求。</p> 
+<p>没有非阻塞通信，这个过程就像我所喜欢说的“为所欲为”那样。基本上，这个过程就是发送和读取任何能够发送/读取的东西。如果没有可以读取的东西，它就中止读操作，做其他的事情直到能够读取为止。当发送数据时，该过程将试图发送所有的数据，但返回实际发送出的内容。可能是全部数据、部分数据或者根本没有发送数据。</p> 
+<p>阻塞与非阻塞相比确实有一些优点，特别是遇到错误控制问题的时候。在阻塞套接字通信中，如果出现错误，该访问会自动返回标志错误的代码。错误可能是由于网络超时、套接字关闭或者任何类型的 I/O 错误造成的。在非阻塞套接字通信中，该方法能够处理的唯一错误是网络超时。为了检测使用非阻塞通信的网络超时，需要编写稍微多一点的代码，以确定自从上一次收到数据以来已经多长时间了。</p> 
+<p>哪种方式更好取决于应用程序。如果使用的是同步通信，如果数据不必在读取任何数据之前处理的话，阻塞通信更好一些，而非阻塞通信则提供了处理任何已经读取的数据的机会。而异步通信，如 IRC 和聊天客户机则要求非阻塞通信以避免冻结套接字。</p> 
+<p><a name="2"><span class="atitle">创建传统的非阻塞客户机套接字</span></a></p> 
+<p>Java NIO 库使用通道而非流。通道可同时用于阻塞和非阻塞通信，但创建时默认为非阻塞版本。但是所有的非阻塞通信都要通过一个名字中包含 <code><font face="NSimsun">Channel</font></code> 的类完成。在套接字通信中使用的类是 <code><font face="NSimsun">SocketChannel，</font></code> 而创建该类的对象的过程不同于典型的套接字所用的过程，如清单 1 所示。</p> 
+<p><br /> <a name="listing1"><strong>清单 1. 创建并连接 SocketChannel 对象</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SocketChannel sc = SocketChannel.open();
+sc.connect(&quot;www.ibm.com&quot;,80);
+sc.finishConnect();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>必须声明一个 <code><font face="NSimsun">SocketChannel</font></code> 类型的指针，但是不能使用 <code><font face="NSimsun">new</font></code> 操作符创建对象。相反，必须调用 <code><font face="NSimsun">SocketChannel</font></code> 类的一个静态方法打开通道。打开通道后，可以通过调用 <code><font face="NSimsun">connect()</font></code> 方法与它连接。但是当该方法返回时，套接字不一定是连接的。为了确保套接字已经连接，必须接着调用 <code><font face="NSimsun">finishConnect()</font></code> 。</p> 
+<p>当套接字连接之后，非阻塞通信就可以开始使用 <code><font face="NSimsun">SocketChannel</font></code> 类的 <code><font face="NSimsun">read()</font></code> 和 <code><font face="NSimsun">write()</font></code> 方法了。也可以把该对象强制转换成单独的 <code><font face="NSimsun">ReadableByteChannel</font></code> 和 <code><font face="NSimsun">WritableByteChannel</font></code> 对象。无论哪种方式，都要对数据使用 <code><font face="NSimsun">Buffer</font></code> 对象。因为 NIO 库的使用超出了本文的范围，我们不再对此进一步讨论。</p> 
+<p>当不再需要套接字时，可以使用 <code><font face="NSimsun">close()</font></code> 方法将其关闭：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">sc.close();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>这样就会同时关闭套接字连接和底层的通信通道。</p> 
+<p><a name="3"><span class="atitle">创建替代的非阻塞的客户机套接字</span></a></p> 
+<p>上述方法比传统的创建套接字连接的例程稍微麻烦一点。不过，传统的例程也能用于创建非阻塞套接字，不过需要增加几个步骤以支持非阻塞通信。</p> 
+<p><code><font face="NSimsun">SocketChannel</font></code> 对象中的底层通信包括两个 <code><font face="NSimsun">Channel</font></code> 类： <code><font face="NSimsun">ReadableByteChannel</font></code> 和 <code><font face="NSimsun">WritableByteChannel。</font></code> 这两个类可以分别从现有的 <code><font face="NSimsun">InputStream</font></code> 和 <code><font face="NSimsun">OutputStream</font></code> <code><font face="NSimsun">阻塞流中使用 <code>Channels</code> 类的 <code>newChannel()</code> 方法创建，如清单 2 所示： </font></code></p> 
+<p><br /> <a name="listing2"><strong>清单 2. 从流中派生通道</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">ReadableByteChannel rbc = Channels.newChannel(s.getInputStream());
+WriteableByteChannel wbc = Channels.newChannel(s.getOutputStream());</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><code>Channels</code> 类也用于把通道转换成流或者 reader 和 writer。这似乎是把通信切换到阻塞模式，但并非如此。如果试图读取从通道派生的流，读方法将抛出 <code>IllegalBlockingModeException </code>异常。</p> 
+<p>相反方向的转换也是如此。不能使用 <code>Channels</code> 类把流转换成通道而指望进行非阻塞通信。如果试图读从流派生的通道，读仍然是阻塞的。但是像编程中的许多事情一样，这一规则也有例外。</p> 
+<p>这种例外适合于实现 <code>SelectableChannel</code> 抽象类的类。 <code>SelectableChannel</code> 和它的派生类能够选择使用阻塞或者非阻塞模式。 <code>SocketChannel</code> 就是这样的一个派生类。</p> 
+<p>但是，为了能够在两者之间来回切换，接口必须作为 <code>SelectableChannel </code>实现。对于套接字而言，为了实现这种能力必须使用 <code>SocketChannel</code> 而不是 <code>Socket</code> 。</p> 
+<p>回顾一下，要创建套接字，首先必须像通常使用 <code>Socket</code> 类那样创建一个套接字。套接字连接之后，使用 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-sslnb/#listing2"><font color="#5c81a7">清单 2</font></a>中的两行代码把流转换成通道。</p> 
+<p><br /> <a name="listing3"><strong>清单 3. 创建套接字的另一种方法</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Socket s = new Socket(&quot;www.ibm.com&quot;, 80);
+ReadableByteChannel rbc = Channels.newChannel(s.getInputStream());
+WriteableByteChannel wbc = Channels.newChannel(s.getOutputStream());</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>如前所述，这样并不能实现非阻塞套接字通信――所有的通信仍然在阻塞模式下。在这种情况下，非阻塞通信必须模拟实现。模拟层不需要多少代码。让我们来看一看。</p> 
+<p><a name="N1015A"><span class="smalltitle"><strong><font face="Arial" size="3">从模拟层读数据</font></strong></span></a></p> 
+<p>模拟层在尝试读操作之前首先检查数据的可用性。如果数据可读则开始读。如果没有数据可用，可能是因为套接字被关闭，则返回表示这种情况的代码。在清单 4 中要注意仍然使用了 <code>ReadableByteChannel</code> 读，尽管 <code>InputStream</code> 完全可以执行这个动作。为什么这样做呢？为了造成是 NIO 而不是模拟层执行通信的假象。此外，还可以使模拟层与其他通道更容易结合，比如向文件通道内写入数据。</p> 
+<p><br /> <a name="listing4"><strong>清单 4. 模拟非阻塞的读操作</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">/* The checkConnection method returns the character read when 
+   determining if a connection is open.
+ */
+y = checkConnection();
+if(y &lt;= 0) return y;
+buffer.putChar((char ) y);
+return rbc.read(buffer);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N10175"><span class="smalltitle"><strong><font face="Arial" size="3">向模拟层写入数据</font></strong></span></a></p> 
+<p>对于非阻塞通信，写操作只写入能够写的数据。发送缓冲区的大小和一次可以写入的数据多少有很大关系。缓冲区的大小可以通过调用 <code>Socket</code> 对象的 <code>getSendBufferSize()</code> 方法确定。在尝试非阻塞写操作时必须考虑到这个大小。如果尝试写入比缓冲块更大的数据，必须拆开放到多个非阻塞写操作中。太大的单个写操作可能被阻塞。</p> 
+<p><br /> <a name="listing5"><strong>清单 5. 模拟非阻塞的写操作</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">int x, y = s.getSendBufferSize(), z = 0;
+int expectedWrite;
+byte [] p = buffer.array();
+ByteBuffer buf = ByteBuffer.allocateDirect(y);
+/* If there isn't any data to write, return, otherwise flush the stream */
+if(buffer.remaining() == 0) return 0;
+os.flush()
+for(x = 0; x &lt; p.length; x += y)
+{
+    if(p.length - x &lt; y)
+    {
+        buf.put(p, x, p.length - x);
+        expectedWrite = p.length - x;
+    }
+    else
+    {
+        buf.put(p, x, y);
+        expectedWrite = y;
+    }
+    
+    /* Check the status of the socket to make sure it's still open */
+    
+    if(!s.isConnected()) break;
+    /* Write the data to the stream, flushing immediately afterward */
+    buf.flip(); 
+    z = wbc.write(buf); os.flush();
+    if(z &lt; expectedWrite) break;
+    buf.clear();
+    
+}
+if(x &gt; p.length) return p.length;
+else if(x == 0) return -1;
+else return x + z;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>与读操作类似，首先要检查套接字是否仍然连接。但是如果把数据写入 <code>WritableByteBuffer</code> 对象，就像清单 5 那样，该对象将自动进行检查并在没有连接时抛出必要的异常。在这个动作之后开始写数据之前，流必须立即被清空，以保证发送缓冲区中有发送数据的空间。任何写操作都要这样做。发送到块中的数据与发送缓冲区的大小相同。执行清除操作可以保证发送缓冲不会溢出而导致写操作被阻塞。</p> 
+<p>因为假定写操作只能写入能够写的内容，这个过程还必须检查套接字保证它在每个数据块写入后仍然是打开的。如果在写入数据时套接字被关闭，则必须中止写操作并返回套接字关闭之前能够发送的数据量。</p> 
+<p><code>BufferedOutputReader</code> 可用于模拟非阻塞写操作。如果试图写入超过缓冲区两倍长度的数据，则直接写入缓冲区整倍数长度的数据（缓冲余下的数据）。比如说，如果缓冲区的长度是 256 字节而需要写入 529 字节的数据，则该对象将清除当前缓冲区、发送 512 字节然后保存剩下的 17 字节。</p> 
+<p>对于非阻塞写而言，这并非我们所期望的。我们希望分次把数据写入同样大小的缓冲区中，并最终把全部数据都写完。如果发送的大块数据留下一些数据被缓冲，那么在所有数据被发送的时候，写操作就会被阻塞。</p> 
+<p><a name="N101A4"><span class="smalltitle"><strong><font face="Arial" size="3">模拟层类模板</font></strong></span></a></p> 
+<p>整个模拟层可以放到一个类中，以便更容易和应用程序集成。如果要这样做，我建议从 <code>ByteChannel </code>派生这个类。这个类可以强制转换成单独的 <code>ReadableByteChannel</code> 和 <code>WritableByteChannel</code> 类。</p> 
+<p>清单 6 给出了从 <code>ByteChannel</code> 派生的模拟层类模板的一个例子。本文后面将一直使用这个类表示通过阻塞连接执行的非阻塞操作。</p> 
+<p><br /> <a name="listing6"><strong>清单 6. 模拟层的类模板</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public class nbChannel implements ByteChannel
+{
+    Socket s;
+    InputStream is; OutputStream os;
+    ReadableByteChannel rbc;
+    WritableByteChannel wbc;
+    
+    public nbChannel(Socket socket);
+    public int read(ByteBuffer dest);
+    public int write(ByteBuffer src);
+    public void close();
+  
+    protected int checkConnection();
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N101CA"><span class="smalltitle"><strong><font face="Arial" size="3">使用模拟层创建套接字</font></strong></span></a></p> 
+<p>使用新建的模拟层创建套接字非常简单。只要像通常那样创建 <code>Socket</code> 对象，然后创建 <code>nbChannel</code> 对象就可以了，如清单 7 所示：</p> 
+<p><br /> <a name="listing7"><strong>清单 7. 使用模拟层</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Socket s = new Socket(&quot;www.ibm.com&quot;, 80);
+nbChannel socketChannel = new nbChannel(s);
+ReadableByteChannel rbc = (ReadableByteChannel)socketChannel;
+WritableByteChannel wbc = (WritableByteChannel)socketChannel;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="4"><span class="atitle">创建传统的非阻塞服务器套接字</span></a></p> 
+<p>服务器端的非阻塞套接字和客户端上的没有很大差别。稍微麻烦一点的只是建立接受输入连接的套接字。套接字必须通过从服务器套接字通道派生一个阻塞的服务器套接字绑定到阻塞模式。清单 8 列出了需要做的步骤。</p> 
+<p><br /> <a name="listing8"><strong>清单 8. 创建非阻塞的服务器套接字（SocketChannel）</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">ServerSocketChannel ssc = ServerSocketChannel.open();
+ServerSocket ss = ssc.socket();
+ss.bind(new InetSocketAddress(port));
+SocketChannel sc = ssc.accept();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>与客户机套接字通道相似，服务器套接字通道也必须打开而不是使用 <code>new</code> 操作符或者构造函数。在打开之后，必须派生服务器套接字对象以便把套接字通道绑定到一个端口。一旦套接字被绑定，服务器套接字对象就可以丢弃了。</p> 
+<p>通道使用 <code>accept()</code> 方法接收到来的连接并把它们转给套接字通道。一旦接收了到来的连接并转给套接字通道对象，通信就可以通过 <code>read()</code> 和 <code>write()</code> 方法开始进行了。</p> 
+<p><a name="5"><span class="atitle">创建替代的非阻塞服务器套接字</span></a></p> 
+<p>实际上，并非真正的替代。因为服务器套接字通道必须使用服务器套接字对象绑定，为何不完全绕开服务器套接字通道而仅使用服务器套接字对象呢？不过这里的通信不使用 <code>SocketChannel</code> ，而要使用模拟层 <code>nbChannel。</code></p> 
+<p><br /> <a name="listing9"><strong>清单 9. 建立服务器套接字的另一种方法</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">ServerSocket ss = new ServerSocket(port);
+Socket s = ss.accept();
+nbChannel socketChannel = new nbChannel(s);
+ReadableByteChannel rbc = (ReadableByteChannel)socketChannel;
+WritableByteChannel wbc = (WritableByteChannel)socketChannel;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="6"><span class="atitle">创建 SSL 连接</span></a></p> 
+<p>创建SSL连接，我们要分别从客户端和服务器端考察。</p> 
+<p><a name="N10232"><span class="smalltitle"><strong><font face="Arial" size="3">从客户端</font></strong></span></a></p> 
+<p>创建 SS L连接的传统方法涉及到使用套接字工厂和其他一些东西。我将不会详细讨论如何创建SSL连接，不过有一本很好的教程，“Secure your sockets with JSSE”（请参阅 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-sslnb/#resources"><font color="#5c81a7">参考资料</font></a>），从中您可以了解到更多的信息。</p> 
+<p>创建 SSL 套接字的默认方法非常简单，只包括几个很短的步骤：</p> 
+<ol> 
+ <li>创建套接字工厂。</li> 
+ <li>创建连接的套接字。</li> 
+ <li>开始握手。</li> 
+ <li>派生流。</li> 
+ <li>通信。</li> 
+</ol> 
+<p>清单 10 说明了这些步骤：</p> 
+<p><br /> <a name="listing10"><strong>清单 10. 创建安全的客户机套接字</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SSLSocketFactory sslFactory = 
+  (SSLSocketFactory)SSLSocketFactory.getDefault();
+SSLSocket ssl = (SSLSocket)sslFactory.createSocket(host, port);
+ssl.startHandshake();
+InputStream is = ssl.getInputStream();
+OutputStream os = ssl.getOutputStream();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>默认方法不包括客户验证、用户证书和其他特定连接可能需要的东西。</p> 
+<p><a name="N10264"><span class="smalltitle"><strong><font face="Arial" size="3">从服务器端</font></strong></span></a></p> 
+<p>建立SSL服务器连接的传统方法稍微麻烦一点，需要加上一些类型转换。因为这些超出了本文的范围，我将不再进一步介绍，而是说说支持SSL服务器连接的默认方法。</p> 
+<p>创建默认的 SSL 服务器套接字也包括几个很短的步骤：</p> 
+<ol> 
+ <li>创建服务器套接字工厂。</li> 
+ <li>创建并绑定服务器套接字。</li> 
+ <li>接受传入的连接。</li> 
+ <li>开始握手。</li> 
+ <li>派生流。</li> 
+ <li>通信。</li> 
+</ol> 
+<p>尽管看起来似乎与客户端的步骤相似，要注意这里去掉了很多安全选项，比如客户验证。</p> 
+<p>清单 11 说明这些步骤：</p> 
+<p><br /> <a name="listing11"><strong>清单 11. 创建安全的服务器套接字</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SSLServerSocketFactory sslssf = 
+  (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+SSLServerSocket sslss = (SSLServerSocket)sslssf.createServerSocket(port);
+SSLSocket ssls = (SSLSocket)sslss.accept();
+ssls.startHandshake();
+InputStream is = ssls.getInputStream();
+OutputStream os = ssls.getOutputStream();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="7"><span class="atitle">创建安全的非阻塞连接</span></a></p> 
+<p>要精心实现安全的非阻塞连接，也需要分别从客户端和服务器端来看。</p> 
+<p><a name="N1029E"><span class="smalltitle"><strong><font face="Arial" size="3">从客户端</font></strong></span></a></p> 
+<p>在客户端建立安全的非阻塞连接非常简单：</p> 
+<ol> 
+ <li>创建并连接 <code>Socket</code> 对象。</li> 
+ <li>把 <code>Socket</code> 对象添加到模拟层上。</li> 
+ <li>通过模拟层通信。</li> 
+</ol> 
+<p>清单 12 说明了这些步骤：</p> 
+<p><br /> <a name="listing12"><strong>清单 12. 创建安全的客户机连接</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">/* Create the factory, then the secure socket */
+SSLSocketFactory sslFactory = 
+  (SSLSocketFactory)SSLSocketFactory.getDefault();
+SSLSocket ssl = (SSLSocket)sslFactory.createSocket(host, port);
+/* Start the handshake.  Should be done before deriving channels */
+ssl.startHandshake();
+/* Put it into the emulation layer and create separate channels */
+nbChannel socketChannel = new nbChannel(ssl);
+ReadableByteChannel rbc = (ReadableByteChannel)socketChannel;
+WritableByteChannel wbc = (WritableByteChannel)socketChannel;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>利用前面给出的 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-sslnb/#emulclass"><font color="#5c81a7">模拟层类</font></a> 就可以实现非阻塞的安全连接。因为安全套接字通道不能使用 <code>SocketChannel</code> 类打开，而 Java API 中又没有完成这项工作的类，所以创建了一个模拟类。模拟类可以实现非阻塞通信，无论使用安全套接字连接还是非安全套接字连接。</p> 
+<p>列出的步骤包括默认的安全设置。对于更高级的安全性，比如用户证书和客户验证， <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-sslnb/#resources"><font color="#5c81a7">参考资料</font></a> 部分提供了说明如何实现的文章。</p> 
+<p><a name="N102DA"><span class="smalltitle"><strong><font face="Arial" size="3">从服务器端</font></strong></span></a></p> 
+<p>在服务器端建立套接字需要对默认安全稍加设置。但是一旦套接字被接收和路由，设置必须与客户端的设置完全相同，如清单 13 所示：</p> 
+<p><br /> <a name="listing13"><strong>清单 13. 创建安全的非阻塞服务器套接字</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">/* Create the factory, then the socket, and put it into listening mode */               
+                
+SSLServerSocketFactory sslssf = 
+  (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+SSLServerSocket sslss = (SSLServerSocket)sslssf.createServerSocket(port);
+SSLSocket ssls = (SSLSocket)sslss.accept();
+/* Start the handshake on the new socket */
+ssls.startHandshake();
+/* Put it into the emulation layer and create separate channels */
+nbChannel socketChannel = new nbChannel(ssls);
+ReadableByteChannel rbc = (ReadableByteChannel)socketChannel;
+WritableByteChannel wbc = (WritableByteChannel)socketChannel;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>同样，要记住这些步骤使用的是默认安全设置。</p> 
+<p><a name="8"><span class="atitle">集成安全的和非安全的客户机连接</span></a></p> 
+<p>多数 Internet 客户机应用程序，无论使用 Java 语言还是其他语言编写，都需要提供安全和非安全连接。Java Secure Socket Extensions 库使得这项工作非常容易，我最近在编写一个 HTTP 客户库时就使用了这种方法。</p> 
+<p><code>SSLSocket</code> 类派生自 <code>Socket。</code> 您可能已经猜到我要怎么做了。所需要的只是该对象的一个 <code>Socket</code> 指针。如果套接字连接不使用SSL，则可以像通常那样创建套接字。如果要使用 SSL，就稍微麻烦一点，但此后的代码就很简单了。清单 14 给出了一个例子：</p> 
+<p><br /> <a name="listing14"><strong>清单 14. 集成安全的和非安全的客户机连接</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Socket s;
+ReadableByteChannel rbc;
+WritableByteChannel wbc;
+nbChannel socketChannel;
+if(!useSSL) s = new Socket(host, port);
+else
+{
+    SSLSocketFactory sslsf = SSLSocketFactory.getDefault();
+    SSLSocket ssls = (SSLSocket)SSLSocketFactory.createSocket(host, port);
+    ssls.startHandshake();
+    s = ssls;
+}
+socketChannel = new nbChannel(s);
+rbc = (ReadableByteChannel)socketChannel;
+wbc = (WritableByteChannel)socketChannel;
+...
+s.close();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>创建通道之后，如果套接字使用了SSL，那么就是安全通信，否则就是普通通信。如果使用了 SSL，关闭套接字将导致握手中止。</p> 
+<p>这种设置的一种可能是使用两个单独的类。一个类负责处理通过套接字沿着与非安全套接字的连接进行的所有通信。一个单独的类应该负责创建安全的连接，包括安全连接的所有必要设置，无论是否是默认的。安全类应该直接插入通信类，只有在使用安全连接时被调用。</p> 
+<p><a name="9"><span class="atitle">最简单的集成方法</span></a></p> 
+<p>本文提出的方法是我所知道的把 JSSE 和 NIO 集成到同一代码中以提供非阻塞安全通信的最简单方法。尽管还有其他方法，但是都需要准备实现这一过程的程序员花费大量的时间和精力。</p> 
+<p>一种可能是使用 Java Cryptography Extensions 在 NIO 上实现自己的 SSL 层。另一种方法是修改现有的称为 EspreSSL （以前称为 jSSL）的定制 SSL 层， 把它改到 NIO 库中。我建议只有在您有很充裕的时间时才使用这两种方法。</p> 
+<p><a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-sslnb/#resources"><font color="#5c81a7">参考资料</font></a> 部分的可下载 zip 文件提供了示例代码，帮助您实践本文所述的技术，其中包括：</p> 
+<ul> 
+ <li>nbChannel，清单 7 所介绍的模拟层的源代码。</li> 
+ <li>连接到 Verisign's Web 站点并下载主页的示例 HTTPS 客户程序。</li> 
+ <li>一个简单的非阻塞安全服务器 （Secure Daytime Server）。</li> 
+ <li>集成的安全和非安全客户程序。</li> 
+</ul> 
+<p> </p> 
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+<ul> 
+ <li>您可以参阅本文在 developerWorks 全球站点上的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/j-sslnb.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">英文原文</font></a>.</li> 
+ <li>下载本文的 <a cmimpressionsent="1" href="http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/j-sslnb.zip"><font color="#5c81a7">源代码</font></a>。</li> 
+ <li>&quot; <a cmimpressionsent="1" href="ftp://ftp.pgpi.org/pub/pgp/7.0/docs/english/IntroToCrypto.pdf"><font color="#5c81a7">Introduction to Cryptography</font></a>&quot; 通过介绍 SSL 提供了加密的基本原理（PDF 格式）。</li> 
+ <li>&quot; <a cmimpressionsent="1" href="http://www.onjava.com/pub/a/onjava/2001/05/03/java_security.html"><font color="#5c81a7">Secure Your Sockets with JSSE</font></a>&quot; 是应用 JSSE 的入门指南。</li> 
+ <li>&quot; <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-javaio/"><font color="#5c81a7">Merlin 给 Java 平台带来了非阻塞 I/O</font></a>&quot; ( <em>developerWorks</em>，2002 年 3 月)介绍了 Merlin 的 NIO 包的非阻塞特性，并提供了套接字编程的例子。</li> 
+ <li>&quot; <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-mer03253/"><font color="#996699">Merlin 的新 I/O 缓冲区的输入和输出</font></a>&quot; ( <em>developerWorks</em>，2003 年 3 月) 展示了如何为读/写基本数据类型这样的任务操作数据缓冲区和使用内存映射文件。</li> 
+ <li>&quot; <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-customssl/"><font color="#5c81a7">为高级 JSSE 开发人员定制 SSL</font></a>&quot; ( <em>developerWorks</em>，2002 年 9 月) 示范了如何编程绕过 SSL 的一些限制。</li> 
+ <li>教程 &quot; <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/java/edu/j-dw-java-nio-i.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">Getting started with new I/O (NIO)</font></a>&quot; ( <em>developerWorks</em>，2003 年 7 月)非常详细地讨论了 NIO 库，从高级概念到隐藏的编程细节。</li> 
+ <li><a cmimpressionsent="1" href="http://www.ibm.com/servers/eserver/zseries/software/java/jsse.html"><font color="#5c81a7">IBMJSSE Overview</font></a>概要介绍了 Java Secure Socket Extension。</li> 
+ <li><a cmimpressionsent="1" href="http://java.sun.com/j2se/1.4.2/docs/guide/security/jsse/JSSERefGuide.html"><font color="#5c81a7">JSSE reference guide</font></a>是该技术巨细无遗的参考资料。</li> 
+ <li>Ron Hitchens 所著的 <a cmimpressionsent="1" href="http://www.oreilly.com/catalog/javanio/index.html"><font color="#5c81a7"><em>Java NIO</em> </font></a>(O'Reilly &amp; Associates, 2002)，深入探索了 1.4 版的新I/O功能。</li> 
+ <li><em>Java NIO</em>还有一个支持网站， <a cmimpressionsent="1" href="http://www.javanio.info/"><font color="#5c81a7">JavaNIO.info</font></a>, 提供了代码开发的幻灯片、GUI 演示工具和该书的其他补充资料。</li> 
+ <li>在 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java"><font color="#5c81a7"><em>developerWorks</em> Java 技术专区 </font></a>上可以找到数百篇关于 Java 各个方面的文章。</li> 
+</ul> 
+<p><a name="author"><span class="atitle">关于作者</span></a></p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td colspan="3"><img height="5" width="100%" src="image/实现非阻塞套接字的一种简单方法.html.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+  </tr> 
+  <tr valign="top" align="left"> 
+   <td> <p> </p> </td> 
+   <td><img height="5" width="4" src="image/实现非阻塞套接字的一种简单方法.html.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td width="100%"> <p>Kenneth Ballard 目前在内布拉斯加州珀鲁州立大学学习计算机科学。他还是校内的学生报纸 <em>Peru State Times </em>的职业作者。他从爱荷华州 Creston 的 Southwestern Community College 获得了计算机编程 Associate of Science 学位，在那里作为 PC 技术人员参加了一个工作效率研究项目。他的研究范围包括 Java 技术、C++、COBOL、Visual Basic 和网络。可以通过 <a cmimpressionsent="1" href="mailto:kenneth.ballard@ptk.org?cc=kenneth.ballard@ptk.org"><font color="#5c81a7">kenneth.ballard@ptk.org</font></a> 与 Kenneth 联系。</p> </td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

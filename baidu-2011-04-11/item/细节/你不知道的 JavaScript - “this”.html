@@ -1,0 +1,94 @@
+<html><head><title>你不知道的 JavaScript - “this”</title></head><body><div id='tit'>你不知道的 JavaScript - “this”</div><div id='cate'>细节</div><div id='date'>2010年09月08日 星期三 10:58 A.M.</div><div id='page'>9</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5c77a744c02b608cb2b7dcbc.html'>http://hi.baidu.com/hxzon/blog/item/5c77a744c02b608cb2b7dcbc.html</a><div id='cnt'><p>你不知道的 JavaScript - “this”</p> 
+<h1>ECMAScript 对象作用域</h1> 
+<p>http://www.w3school.com.cn/js/pro_js_object_scope.asp</p> 
+<div> 
+ <p>作用域指的是变量的适用范围。</p> 
+</div> 
+<div> 
+ <h2>公用、私有和受保护作用域</h2> 
+ <h3>概念</h3> 
+ <p>在传统的面向对象程序设计中，主要关注于公用和私有作用域。公用作用域中的对象属性可以从对象外部访问，即开发者创建对象的实例后，就可使用它的公 用属性。而私有作用域中的属性只能在对象内部访问，即对于外部世界来说，这些属性并不存在。这意味着如果类定义了私有属性和方法，则它的子类也不能访问这 些属性和方法。</p> 
+ <p>受保护作用域也是用于定义私有的属性和方法，只是这些属性和方法还能被其子类访问。</p> 
+ <h3>ECMAScript 只有公用作用域</h3> 
+ <p>对 ECMAScript 讨论上面这些作用域几乎毫无意义，因为 ECMAScript 中只存在一种作用域 - 公用作用域。ECMAScript 中的所有对象的所有属性和方法都是公用的。因此，定义自己的类和对象时，必须格外小心。记住，所有属性和方法默认都是公用的！</p> 
+ <h3>建议性的解决方法</h3> 
+ <p>许多开发者都在网上提出了有效的属性作用域模式，解决了 ECMAScript 的这种问题。</p> 
+ <p>由于缺少私有作用域，开发者确定了一个规约，说明哪些属性和方法应该被看做私有的。这种规约规定在属性前后加下划线：</p> 
+ <pre>obj._color_ = &quot;blue&quot;;</pre> 
+ <p>这段代码中，属性 color 是私有的。注意，下划线并不改变属性是公用属性的事实，它只是告诉其他开发者，应该把该属性看作私有的。</p> 
+ <p>有些开发者还喜欢用单下划线说明私有成员，例如：obj._color。</p> 
+</div> 
+<div> 
+ <h2>静态作用域</h2> 
+ <p>静态作用域定义的属性和方法任何时候都能从同一位置访问。在 Java 中，类可具有属性和方法，无需实例化该类的对象，即可访问这些属性和方法，例如 java.net.URLEncoder 类，它的函数 encode() 就是静态方法。</p> 
+ <h3>ECMAScript 没有静态作用域</h3> 
+ <p>严格来说，ECMAScript 并没有静态作用域。不过，它可以给构造函数提供属性和方法。还记得吗，构造函数只是函数。函数是对象，对象可以有属性和方法。例如：</p> 
+ <pre>function sayHello() {<br />  alert(&quot;hello&quot;);<br />}<br /><br />sayHello.alternate = function() {<br />  alert(&quot;hi&quot;);<br />}<br /><br />sayHello();  //输出 &quot;hello&quot;<br />sayHello.alternate(); //输出 &quot;hi&quot;</pre> 
+ <p><a href="http://www.w3school.com.cn/tiy/t.asp?f=jseg_pro_object_scope_static">TIY</a></p> 
+ <p>这里，方法 alternate() 实际上是函数 sayHello 的方法。可以像调用常规函数一样调用 sayHello() 输出 &quot;hello&quot;，也可以调用 sayHello.alternate() 输出 &quot;hi&quot;。即使如此，alternate() 也是 sayHello() 公用作用域中的方法，而不是静态方法。</p> 
+</div> 
+<div> 
+ <h2>关键字 this</h2> 
+ <h3>this 的功能</h3> 
+ <p>在 ECMAScript 中，要掌握的最重要的概念之一是关键字 this 的用法，它用在对象的方法中。关键字 this 总是指向调用该方法的对象，例如：</p> 
+ <pre>var oCar = new Object;<br />oCar.color = &quot;red&quot;;<br />oCar.showColor = function() {<br />  alert(this.color);<br />};<br /><br />oCar.showColor();  //输出 &quot;red&quot;</pre> 
+ <p><a href="http://www.w3school.com.cn/tiy/t.asp?f=jseg_pro_object_scope_this_1">TIY</a></p> 
+ <p>在上面的代码中，关键字 this 用在对象的 showColor() 方法中。在此环境中，this 等于 oCar。下面的代码与上面的代码的功能相同：</p> 
+ <pre>var oCar = new Object;<br />oCar.color = &quot;red&quot;;<br />oCar.showColor = function() {<br />  alert(oCar.color);<br />};<br /><br />oCar.showColor();  //输出 &quot;red&quot;</pre> 
+ <p><a href="http://www.w3school.com.cn/tiy/t.asp?f=jseg_pro_object_scope_this_2">TIY</a></p> 
+ <h3>使用 this 的原因</h3> 
+ <p>为什么使用 this 呢？因为在实例化对象时，总是不能确定开发者会使用什么样的变量名。使用 this，即可在任何多个地方重用同一个函数。请思考下面的例子：</p> 
+ <pre>function showColor() {<br />  alert(this.color);<br />};<br /><br />var oCar1 = new Object;<br />oCar1.color = &quot;red&quot;;<br />oCar1.showColor = showColor;<br /><br />var oCar2 = new Object;<br />oCar2.color = &quot;blue&quot;;<br />oCar2.showColor = showColor;<br /><br />oCar1.showColor();  //输出 &quot;red&quot;<br />oCar2.showColor();  //输出 &quot;blue&quot;</pre> 
+ <p><a href="http://www.w3school.com.cn/tiy/t.asp?f=jseg_pro_object_scope_this_3">TIY</a></p> 
+ <p>在上面的代码中，首先用 this 定义函数 showColor()，然后创建两个对象（oCar1 和 oCar2），一个对象的 color 属性被设置为 &quot;red&quot;，另一个对象的 color 属性被设置为 &quot;blue&quot;。两个对象都被赋予了属性 showColor，指向原始的 showColor () 函数（注意这里不存在命名问题，因为一个是全局函数，而另一个是对象的属性）。调用每个对象的 showColor()，oCar1 输出是 &quot;red&quot;，而 oCar2 的输出是 &quot;blue&quot;。这是因为调用 oCar1.showColor() 时，函数中的 this 关键字等于 oCar1。调用 oCar2.showColor() 时，函数中的 this 关键字等于 oCar2。</p> 
+ <p>注意，引用对象的属性时，必须使用 this 关键字。例如，如果采用下面的代码，showColor() 方法不能运行：</p> 
+ <pre>function showColor() {<br />  alert(color);<br />};</pre> 
+ <p>如果不用对象或 this 关键字引用变量，ECMAScript 就会把它看作局部变量或全局变量。然后该函数将查找名为 color 的局部或全局变量，但是不会找到。结果如何呢？该函数将在警告中显示 &quot;null&quot;。</p> 
+</div> 
+<p>===============================</p> 
+<h2>[图解] 你不知道的 JavaScript - “this”</h2> 
+<p>http://www.cnblogs.com/ruxpinsp1/archive/2008/04/20/1162463.html</p> 
+<p>JavaScript 里的 this 到底指得是什么？很多人都会告诉你 this 指的是当前对象。这样理解对么？在大多数情况下确实没错。比如我们经常会在网页上写这样的 JavaScript：</p> 
+<pre>&lt;input type=&quot;submit&quot;&nbsp;value=&quot;提交&quot;&nbsp;onclick=&quot;this.value='正在提交数据'&quot;&nbsp;/&gt;</pre> 
+<p>这里的this显然指的是当前对象，即这个提交按钮。通常，我们使用this的情况都与此类似。但是有什么情况不是这样的呢？</p> 
+<p>大家看看这个例子：</p> 
+<pre>var foo = function() {<br />    console.log(this);<br />}<br />foo();<br />new foo();</pre> 
+<p>比较一下 foo() 和 new foo() 的运行结果，你会发现，前者 this 指向的并非 foo 本身，而是当前页面的window对象，而后者才真正的指向foo。这是为什么呢？</p> 
+<p>其实这牵涉到JavaScript的一条重要特性，就是所谓的“闭包”。闭包这个概念说复杂也不复杂，但也不是简单到能用一两句话说清。偶会在以后 的文章中深入探讨这个Javascript 最重要的特性。现在，我要告诉大家的是，因为闭包的存在，JavaScript中的作用域变得相当重要。</p> 
+<p>所谓的作用域，简单的说，就是创建一个函数时在什么环境下创建的。而this变量的值，如果没有指定的话，就是函数当前的作用域。</p> 
+<p>在前面的例子里，foo() 函数是在全局作用域（这里就是window对象），所以this的值是当前的window对象。而通过 new foo() 这样的形式，其实是创建了一个foo()的副本，并在这个副本上进行的操作，所以这里的this就是foo()的这个副本。</p> 
+<p>这样讲可能有点抽象，大家来看个实际的例子：</p> 
+<pre>&lt;input type=&quot;button&quot;&nbsp;id=&quot;aButton&quot;&nbsp;value=&quot;demo&quot; onclick=&quot;&quot; /&gt;<br />&lt;script&nbsp;type=&quot;text/javascript&quot;&gt;<br />function&nbsp;demo() {<br />&nbsp;&nbsp;&nbsp; this.value&nbsp;=&nbsp;Math.random();<br />}<br />&lt;/script&gt;</pre> 
+<p>如果直接调用demo()&nbsp;函数，程序就会报错，因为demo函数是在window对象中定义的，所以demo的拥有者（作用域）是window，demo的this也是window。而window是没有value属性的，所以就报错了。</p> 
+<p><img src="image/你不知道的 JavaScript - “.da75afec4694f46263d09f1c.jpg" alt="图解" title="图解" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/da75afec4694f46263d09f1c.jpg</p></p> 
+<p>如果我们通过创建副本的方式，将这个函数的副本添加到一个HTML元素，那么他的所有者就成了这个元素，this也指代了这个元素：</p> 
+<pre>document.getElementById(&quot;aButton&quot;).onclick&nbsp;=&nbsp;demo;</pre> 
+<p>这样就将aButton的onlick属性设置为demo()的一个副本，this也指向了aButton。</p> 
+<p><img src="image/你不知道的 JavaScript - “.41b96527ac576046908f9d1c.jpg" alt="图解" title="图解" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/41b96527ac576046908f9d1c.jpg</p></p> 
+<p>你甚至可以为多个不同的HTML元素创建不同的函数副本。每个副本的拥有者都是相对应的HTML元素，各自的this也都指向他们的拥有者，不会造成混乱。</p> 
+<p><img src="image/你不知道的 JavaScript - “.a97af103410837a909fa931c.jpg" alt="图解" title="图解" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/a97af103410837a909fa931c.jpg</p></p> 
+<p>但是，如果你这样定义某个元素的onlick事件：</p> 
+<pre>&lt;input&nbsp;type=&quot;button&quot;&nbsp;id=&quot;aButton&quot;&nbsp;value=&quot;demo&quot;&nbsp;onclick=&quot;demo()&quot; /&gt;</pre> 
+<p>点击这个button之后，你会发现，程序又会报错了——this又指向了window！</p> 
+<p>其实，这种方法并没有为程序创建一个函数，而只是引用了这个函数。</p> 
+<p>具体看一下区别吧。</p> 
+<p>使用创建函数副本的方法：</p> 
+<pre>&lt;input&nbsp;type=&quot;button&quot;&nbsp;id=&quot;aButton&quot;&nbsp;value=&quot;demo&quot;&nbsp;/&gt;<br />&lt;script&nbsp;type=&quot;text/javascript&quot;&gt;<br />var&nbsp;button&nbsp;=&nbsp;document.getElementById(&quot;aButton&quot;);<br />function&nbsp;demo() {<br />&nbsp;&nbsp;&nbsp; this.value&nbsp;=&nbsp;Math.random();<br />}<br />button.onclick=&nbsp;demo;<br />alert(button.onclick);<br />&lt;/script&gt;&nbsp;</pre> 
+<p>得到的输出是：&nbsp;</p> 
+<pre>function demo() {<br />    this.value = Math.random();<br />}</pre> 
+<p>使用函数引用的方法：</p> 
+<pre>&lt;input&nbsp;type=&quot;button&quot;&nbsp;id=&quot;aButton&quot;&nbsp;value=&quot;demo&quot;&nbsp;onclick=&quot;demo()&quot;&nbsp;/&gt;<br />&lt;script&nbsp;type=&quot;text/javascript&quot;&gt;<br />var&nbsp;button&nbsp;=&nbsp;document.getElementById(&quot;aButton&quot;);<br />function&nbsp;demo() {<br />&nbsp;&nbsp;&nbsp; this.value&nbsp;=&nbsp;Math.random();<br />}<br />alert(button.onclick);<br />&lt;/script&gt;</pre> 
+<p>&nbsp;得到的输出是：</p> 
+<pre>function onclick() {<br />    demo();<br />}</pre> 
+<p>这样就能看出区别了吧。函数引用的方式中，onclick事件只是直接调用demo()函数，而demo()函数的作用域仍旧是window对象，所以this仍然指向window。</p> 
+<p><img src="image/你不知道的 JavaScript - “.5a25a6ecda7dc6782797911c.jpg" alt="图解" title="图解" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/5a25a6ecda7dc6782797911c.jpg</p></p> 
+<p>&nbsp;这样就又引出了一个问题：既然函数副本这么好用，为什么还需要函数引用的方法呢？答案是性能。每新建一个函数的副本，程序就会为这个函数副本分配 一 定的内存。而实际应用中，大多数函数并不一定会被调用，于是这部分内存就被白白浪费了。而使用函数引用的方式，程序就只会给函数的本体分配内存，而引用只 分配指针，这样效率就高很多。程序员么，节约为主，恩&nbsp;</p> 
+<p>所以我们来看一个更好的解决方案：</p> 
+<pre>&lt;script&nbsp;type=&quot;text/javascript&quot;&gt;<br />function&nbsp;demo(obj) {<br />&nbsp;&nbsp;&nbsp; obj.value&nbsp;=&nbsp;Math.random();<br />}<br />&lt;/script&gt;<br />&lt;input&nbsp;type=&quot;button&quot;&nbsp;value=&quot;demo&quot;&nbsp;onclick=&quot;demo(this)&quot;&nbsp;/&gt;<br />&lt;input&nbsp;type=&quot;button&quot;&nbsp;value=&quot;demo&quot;&nbsp;onclick=&quot;demo(this)&quot;&nbsp;/&gt;<br />&lt;input&nbsp;type=&quot;button&quot;&nbsp;value=&quot;demo&quot;&nbsp;onclick=&quot;demo(this)&quot;&nbsp;/&gt;</pre> 
+<p>&nbsp;这样，效率和需求就都能兼顾了。</p> 
+<p>&nbsp;最后再多讲一句：在前面的文章里，我特别强调了“如果没有指定this的话”。其实this是可以指定的。Function对象有两个方 法：call()和apply()。这两个方法都支持指定一个函数中的this。有兴趣的话您可以去查一下Javascript的手册，看看这两个函数都 是干什么用的。而我们经常用的 new foo() 可以用以下这段伪代码来描述：&nbsp;</p> 
+<pre>function new (somefunction) {<br />    var args = [].slice.call(arguments, 1);<br />    somefunction.prototype.constructor = somefunction;<br />    somefunction.apply(somefunction.prototype, args);<br />    return somefunction.prototype;<br />}</pre> 
+<p>现在明白了，在本文开头的第一个例子里，new foo() 的 this 为什么是 foo 了吧&nbsp;</p> 
+<p>&nbsp;文中部分内容引自 http://www.quirksmode.org/js/this.html</p> 
+<p>&nbsp;</p> 
+<p>&nbsp;</p></div></body></html>

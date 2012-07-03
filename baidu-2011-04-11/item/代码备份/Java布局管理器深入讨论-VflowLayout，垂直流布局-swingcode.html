@@ -1,0 +1,247 @@
+<html><head><title>Java布局管理器深入讨论-VflowLayout，垂直流布局-swingcode</title></head><body><div id='tit'>Java布局管理器深入讨论-VflowLayout，垂直流布局-swingcode</div><div id='cate'>代码备份</div><div id='date'>2008年04月16日 星期三 04:51 P.M.</div><div id='page'>137</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/a72b860ac9cfa93bb1351da3.html'>http://hi.baidu.com/hxzon/blog/item/a72b860ac9cfa93bb1351da3.html</a><div id='cnt'><div>
+ Java布局管理器深入讨论-VflowLayout，垂直流布局-swingcode
+ <br /> 2001-05-18 17:05 作者： 刘之佑 出处： yesky 责任编辑：方舟
+</div> 
+<div> 
+</div> 
+<div>
+ 我们都知道，java的GUI界面定义是由awt类和swing类来完成的。它在布局管理上面采用了容器和布局管理分离的方案。也就是说，容器只管将其他小件放入其中，而不管这些小件是如何放置的。对于布局的管理交给专门的布局管理器类（LayoutManager）来完成。
+</div> 
+<div> 
+</div> 
+<div>
+  其实，java在GUI方面应该是并不成功的。Awt类和swing类的结构非常复杂，加上充斥其间的子类继承和接口实现，使得要想掌握这两个类非常困难。这也是很多的java程序员抱怨的事情，但GUI已经成了程序发展的方向，所以这里我们也得勉为其难了。
+</div> 
+<div> 
+</div> 
+<div>
+  现在我们来看java中布局管理器的具体实现。我们前面说过，java中的容器类（Container），它们只管加入小件（Meta），也就是说，它只使用自己的add()方法向自己内部加入小件。同时他记录这些加入其内部的小件的个数，可以通过container.getComponentCount()方法类获得小件的数目，通过container.getComponent(i)来获得相应小件的句柄。然后LayoutManager类就可以通过这些信息来实际布局其中的小件了。
+</div> 
+<div> 
+</div> 
+<div>
+  java已经为我们提供了几个常用的布局管理器类，例如：BorderLayout、FlowLayout、GridBagLayout等等。但在实际的布局上，我们还是会有其他的需要。我在不久前的一个问题中曾经要一个垂直的流式布局，我称之为VflowLayout，其实BoxLayout和GridBagLayout可以完成类似的工作，但前者是swing类的成员，我的客户端是一个applet，不能使用，而后者必须在类生成的时候指定列数，而失去了灵活性，所以我决定重写一个自己的布局管理器来实现。经过分析，所有的LayoutManager都要实现一个接口，就是LayoutManager Inerface或者是他的一个子接口LayoutManager2 Interface，后者用于复杂的布局管理，例如GridCardLayout。LayoutManager有五个方法需要实现，分别是：
+</div> 
+<div> 
+</div> 
+<div>
+  1、public void addLayoutComponent(String name, Component comp);
+</div> 
+<div> 
+</div> 
+<div>
+  2、public void removeLayoutComponent(Component comp);
+</div> 
+<div> 
+</div> 
+<div>
+  3、public Dimension preferredLayoutSize(Container container);
+</div> 
+<div> 
+</div> 
+<div>
+  4、public Dimension minimumLayoutSize(Container container);
+</div> 
+<div> 
+</div> 
+<div>
+  5、public void layoutContainer(Container container);
+</div> 
+<div> 
+</div> 
+<div>
+  第一个方法其实就是你在使用container.add(String name,component comp);时调用的方法，例如BorderLayout为布局管理器时。但在FlowLayout中由于没有其他的附加信息，所以不需要填充这个方法。相应的第二个方法也就不需要填充了。真正核心的方法是第三个和第五个方法，前者是最终确定Container有多大的，而后者就是决定Container中各个小件的实际位置的了。也就是说，当我们用container.setLayout(LayoutManager)后，再加入小件后，最后系统做的工作其实是LayoutManager. layoutContainer(container);和container.setSize(LayoutManager. PreferredLayoutSize(container));。
+</div> 
+<div> 
+</div> 
+<div>
+  下面是我的新类：VflowLayout。 
+ <br /> package render_account;
+</div> 
+<div> 
+</div> 
+<div>
+  import java.awt.*;
+ <br /> import java.io.*;
+</div> 
+<div> 
+</div> 
+<div>
+  public class VFlowLayout implements LayoutManager,Serializable{
+</div> 
+<div> 
+</div> 
+<div>
+  int hgap;
+ <br /> int vgap;
+</div> 
+<div> 
+</div> 
+<div>
+  public VFlowLayout(){
+ <br /> this(5,5);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public VFlowLayout(int i,int j){
+ <br /> this.hgap=i;
+ <br /> this.vgap=j;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public void addLayoutComponent(String name, Component comp){
+</div> 
+<div> 
+</div> 
+<div>
+  }
+</div> 
+<div> 
+</div> 
+<div>
+  public void removeLayoutComponent(Component comp){
+</div> 
+<div> 
+</div> 
+<div>
+  }
+</div> 
+<div> 
+</div> 
+<div>
+  public Dimension preferredLayoutSize(Container container){
+ <br /> synchronized(container.getTreeLock()){
+ <br /> Dimension dimension1=new Dimension(0,0);
+ <br /> int i=container.getComponentCount();
+ <br /> for(int j=0;j Component component = container.getComponent(j);
+ <br /> if(component.isVisible()){
+ <br /> Dimension dimension2=component.getPreferredSize();
+ <br /> dimension1.width=Math.max(dimension1.width,dimension2.width);
+ <br /> if(j&gt;0)
+ <br /> dimension1.height+=vgap;
+ <br /> dimension1.height+=dimension2.height;
+ <br /> }
+ <br /> }
+ <br /> Insets insets=container.getInsets();
+ <br /> dimension1.height+=insets.top+insets.bottom+vgap*2;
+ <br /> dimension1.width+=insets.left+insets.right+hgap*2;
+ <br /> Dimension dimension=dimension1;
+ <br /> return dimension;
+ <br /> file://return(new Dimension(50,200));
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public Dimension minimumLayoutSize(Container container){
+ <br /> synchronized(container.getTreeLock()){
+ <br /> Dimension dimension1=new Dimension(0,0);
+ <br /> int i=container.getComponentCount();
+ <br /> for(int j=0;j Component component = container.getComponent(j);
+ <br /> if(component.isVisible()){
+ <br /> Dimension dimension2=component.getMinimumSize();
+ <br /> dimension1.width=Math.max(dimension1.width,dimension2.width);
+ <br /> if(j&gt;0)
+ <br /> dimension1.height+=vgap;
+ <br /> dimension1.height+=dimension2.height;
+ <br /> }
+ <br /> }
+ <br /> Insets insets=container.getInsets();
+ <br /> dimension1.height+=insets.top+insets.bottom+vgap*2;
+ <br /> dimension1.width+=insets.left+insets.right+hgap*2;
+ <br /> Dimension dimension=dimension1;
+ <br /> return dimension;
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public void layoutContainer(Container container){
+ <br /> synchronized(container.getTreeLock()){
+ <br /> Insets insets=container.getInsets();
+ <br /> int vSpace=container.getSize().height-(insets.top+insets.bottom+vgap*2);
+ <br /> int componentCount=container.getComponentCount();
+ <br /> int left=insets.left+hgap;
+ <br /> int totalHeight=0;
+ <br /> int width=0;
+ <br /> int componentStart=0;
+ <br /> for(int i=0;i Component component=container.getComponent(i);
+ <br /> if(component.isVisible()){
+ <br /> Dimension dimension=component.getPreferredSize();
+ <br /> component.setSize(dimension.width,dimension.height);
+ <br /> if(totalHeight==0 || totalHeight+dimension.height&lt;=vSpace){
+ <br /> if(totalHeight&gt;0)
+ <br /> totalHeight+=vgap;
+ <br /> totalHeight+=dimension.height;
+ <br /> width=Math.max(width,dimension.width);
+ <br /> }else{
+ <br /> moveComponents(container,insets.top+vgap,left,width,componentStart,i);
+ <br /> totalHeight=0;
+ <br /> left+=hgap+width;
+ <br /> width=dimension.width;
+ <br /> componentStart=i;
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> moveComponents(container,insets.top+vgap,left,width,componentStart,componentCount);
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  private void moveComponents(Container container,int top,int left,int width,int componentStart,int componentEnd){
+ <br /> synchronized(container.getTreeLock()){
+ <br /> for(int i=componentStart;i Component component=container.getComponent(i);
+ <br /> if(component.isVisible()){
+ <br /> component.setLocation(left,top);
+ <br /> top+=component.getPreferredSize().height+vgap;
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public void setHgap(int i){
+ <br /> this.hgap=i;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public void setVgap(int i){
+ <br /> this.vgap=i;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public int getHgap(){
+ <br /> return(this.hgap);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public int getVgap(){
+ <br /> return(this.vgap);
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  大家可以试一下。
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

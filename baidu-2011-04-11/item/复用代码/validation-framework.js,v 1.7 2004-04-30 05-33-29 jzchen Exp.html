@@ -1,0 +1,571 @@
+<html><head><title>validation-framework.js,v 1.7 2004/04/30 05:33:29 jzchen Exp</title></head><body><div id='tit'>validation-framework.js,v 1.7 2004/04/30 05:33:29 jzchen Exp</div><div id='cate'>复用代码</div><div id='date'>2008年09月08日 星期一 08:17 P.M.</div><div id='page'>102</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6b460efa88e4b79158ee90ef.html'>http://hi.baidu.com/hxzon/blog/item/6b460efa88e4b79158ee90ef.html</a><div id='cnt'><div>
+ /*
+ <br /> * JavaScript Validation Framework
+ <br /> *
+ <br /> * Author: Michael Chen(mechiland) on 2004/03
+ <br /> * This software is on the http://www.cosoft.org.cn/projects/jsvalidation
+ <br /> * for update, bugfix, etc, you can goto the homepage and submit your request 
+ <br /> * and question.
+ <br /> * Apache License 2.0
+ <br /> * You should use this software under the terms.
+ <br /> *
+ <br /> * Please, please keep above words. At least ,please make a note that such as 
+ <br /> * &quot;This software developed by Michael Chen(http://www.jzchen.net)&quot; .
+ <br /> * $Id: validation-framework.js,v 1.7 2004/04/30 05:33:29 jzchen Exp $
+ <br /> */
+</div> 
+<div> 
+</div> 
+<div>
+ /** Config Section, Config these fields to make this framework work. **/
+</div> 
+<div> 
+</div> 
+<div>
+ // If there is only one config file in your system, use this property. otherwise, use
+ <br /> //&nbsp;&nbsp;&nbsp;&nbsp; ValidationFramework.init(&quot;configfile&quot;)&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> // instead.
+ <br /> var ValidationRoot = &quot;/webproject2/js/&quot;;
+</div> 
+<div> 
+</div> 
+<div>
+ // the field style when validation fails. it aim to provide more beautiful UI and more good
+ <br /> // experience to the end-user. 
+ <br /> // NOTE: this will be buggy. Please report the error to me.
+ <br /> var ValidationFailCssStyle = &quot;border:2px solid #FFCC88;&quot;;
+</div> 
+<div> 
+</div> 
+<div>
+ //Validation function. The entry point of the framework.
+ <br /> function doValidate(formRef) {
+ <br /> try {
+ <br /> &nbsp;&nbsp; var formId = formRef;
+ <br /> &nbsp;&nbsp; if (typeof (formRef) == &quot;string&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp; formId = formRef;
+ <br /> &nbsp;&nbsp; } else if (typeof (formRef) == &quot;object&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp; formId = formRef.getAttribute(&quot;id&quot;);
+ <br /> &nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; var form = FormFactory.getFormFromId(formId);
+ <br /> &nbsp;&nbsp; if (form != null) {
+ <br /> &nbsp;&nbsp;&nbsp; return ValidationFramework.validateForm(form);
+ <br /> &nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp; return false;
+ <br /> &nbsp;&nbsp; }
+ <br /> } catch (e) {
+ <br /> &nbsp;&nbsp; ValidationFramework.exception(e.name+&quot;:&quot; +e.description);
+ <br /> &nbsp;&nbsp; return false;
+ <br /> }
+ <br /> 
+ <br /> }
+ <br /> /**===================================================================**/
+ <br /> /*
+ <br /> * JSValidation Framework Code Started 
+ <br /> * 
+ <br /> * Please do not modify the code unless you are very familiar with JavaScript.
+ <br /> * The best way to solve problem is report the problem to our project page.
+ <br /> * url: http://cosoft.org.cn/projects/jsvalidation
+ <br /> */
+ <br /> // The Xml document. To process cross-browser. Thanks Eric.
+ <br /> function XmlDocument() {}
+ <br /> XmlDocument.create = function () {
+ <br /> if (document.implementation &amp;&amp; document.implementation.createDocument) {
+ <br /> &nbsp;&nbsp; return document.implementation.createDocument(&quot;&quot;, &quot;&quot;, null);
+ <br /> } else if (window.ActiveXObject) {
+ <br /> &nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp; var prefix = [&quot;MSXML2&quot;, &quot;MSXML&quot;, &quot;Microsoft&quot;, &quot;MSXML3&quot;];
+ <br /> &nbsp;&nbsp;&nbsp; for (var i = 0; i &lt; prefix.length; i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //return new ActiveXObject(prefix[i] + &quot;.DomDocument&quot;); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; var obj = new ActiveXObject(prefix[i] + &quot;.DomDocument&quot;); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if (obj == null || typeof(obj) == 'undefined') {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; continue;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return obj;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; } catch (e) {
+ <br /> &nbsp;&nbsp;&nbsp; //^_^
+ <br /> &nbsp;&nbsp;&nbsp; throw new Error(&quot;My God, What version of IE are you using? IE5&amp;+ is requiered.&quot;);
+ <br /> &nbsp;&nbsp; }
+ <br /> } else
+ <br /> &nbsp;&nbsp; throw new Error(&quot;Cannot create DOM Document!&quot;);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ function ValidationFramework() {}
+ <br /> ValidationFramework._validationCache = null;
+ <br /> ValidationFramework._currentForm = null;
+ <br /> ValidationFramework._userLanguage=&quot;auto&quot;;
+ <br /> /**
+ <br /> * Validate a form.
+ <br /> * NOTE: the form is Framework virture form, not the HTML Form. 
+ <br /> * Html Form can be transform to Virture form by 
+ <br /> *&nbsp;&nbsp;&nbsp;&nbsp; FormFactory.getFormFromId(htmlFormId);
+ <br /> * See the doc for more information.
+ <br /> * @param form the virtual form.
+ <br /> */
+ <br /> ValidationFramework.validateForm = function(fform) {
+ <br /> ValidationFramework._currentForm = fform;
+ <br /> var failFields = [];
+ <br /> var id = fform.getId();
+ <br /> var showError = fform.getShowError();
+ <br /> var showType = fform.getShowType();
+</div> 
+<div> 
+</div> 
+<div>
+ var br = null;
+ <br /> if (showError != &quot;alert&quot;) {
+ <br /> &nbsp;&nbsp; br = &quot;&lt;br /&gt;&quot;;
+ <br /> } else {
+ <br /> &nbsp;&nbsp; br = &quot;\n&quot;;
+ <br /> }
+ <br /> var errorStrArray = [];
+ <br /> var ret = false;
+ <br /> var formObj = document.getElementById(id);
+ <br /> var fields = fform.getFields();
+ <br /> var rightnum = 0;
+ <br /> for (var i = 0; i &lt; fields.length; i++) {
+ <br /> &nbsp;&nbsp; var retVal = ValidationFramework.validateField(fields[i]);
+ <br /> &nbsp;&nbsp; var fo=formObj[fields[i].getName()];
+ <br /> &nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; if (typeof (fo) !='undefined' &amp;&amp; 
+ <br /> &nbsp;&nbsp;&nbsp; fo != null &amp;&amp;
+ <br /> &nbsp;&nbsp;&nbsp; typeof(fo.type) != &quot;undefined&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp; fo.style.cssText = &quot;&quot;;
+ <br /> &nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; if (retVal != &quot;OK&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp; errorStrArray[errorStrArray.length] = retVal;
+ <br /> &nbsp;&nbsp;&nbsp; failFields[failFields.length] = formObj[fields[i].getName()];
+ <br /> &nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp; rightnum ++;
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ if (rightnum == fields.length) {
+ <br /> &nbsp;&nbsp; ret = true;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ if (errorStrArray.length &gt; 0) {
+ <br /> &nbsp;&nbsp; if (showError == &quot;alert&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp; if (showType == &quot;first&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; alert(errorStrArray[0]);
+ <br /> &nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; alert(errorStrArray.join(br));
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp; var errObj = document.getElementById(showError);
+ <br /> &nbsp;&nbsp;&nbsp; if (showType == &quot;first&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; errObj.innerHTML = errorStrArray[0];
+ <br /> &nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; errObj.innerHTML = errorStrArray.join(br);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; if (typeof (failFields[0]) !='undefined' &amp;&amp; 
+ <br /> &nbsp;&nbsp;&nbsp; failFields[0] != null &amp;&amp;
+ <br /> &nbsp;&nbsp;&nbsp; typeof(failFields[0].type) != &quot;undefined&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp; failFields[0].focus();
+ <br /> &nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; for (var i = 0; i &lt; failFields.length; i++) {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; var o = failFields[i];
+ <br /> &nbsp;&nbsp;&nbsp; if ( typeof (o) !='undefined' &amp;&amp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; o != null &amp;&amp; typeof(o.type) != &quot;undefined&quot;) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; o.style.cssText = ValidationFailCssStyle;
+ <br /> &nbsp;&nbsp;&nbsp; } 
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ return ret;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * Validation the field
+ <br /> * @param filed the field you want to validate.
+ <br /> */
+ <br /> ValidationFramework.validateField = function(field) {
+ <br /> var depends = field.getDepends();
+ <br /> var retStr = &quot;OK&quot;;
+ <br /> for (var i = 0; i &lt; depends.length; i++) {
+ <br /> &nbsp;&nbsp; if (!ValidationFramework.validateDepend(field, depends[i])) {
+ <br /> &nbsp;&nbsp;&nbsp; retStr = ValidationFramework.getErrorString(field, depends[i]);
+ <br /> &nbsp;&nbsp;&nbsp; return retStr; //Break;
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> return retStr;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * Validate the field depend.
+ <br /> * This function dispatch the various depends into ValidateMethodFactory.validateXXX
+ <br /> */
+ <br /> ValidationFramework.validateDepend = function(field, depend) {
+ <br /> if (depend.getName() == &quot;required&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateRequired(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;integer&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateInteger(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;double&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateDouble(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;commonChar&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateCommonChar(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;chineseChar&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateChineseChar(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;minLength&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateMinLength(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;maxLength&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateMaxLength(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;email&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateEmail(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;date&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateDate(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;time&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateTime(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;mask&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateMask(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;integerRange&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateIntegerRange(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;doubleRange&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateDoubleRange(field, depend.getParams());
+ <br /> } else if (depend.getName() == &quot;equalsField&quot;) {
+ <br /> &nbsp;&nbsp; return ValidateMethodFactory.validateEqualsField(field, depend.getParams());
+ <br /> } else {
+ <br /> &nbsp;&nbsp; ValidationFramework.exception(&quot;还未实现该依赖： &quot; + depend.getName());
+ <br /> &nbsp;&nbsp; return false;
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> // hold the current config file
+ <br /> var _validationConfigFile = &quot;&quot;;
+ <br /> ValidationFramework.getDocumentElement = function() {
+ <br /> if (ValidationFramework._validationCache != null) {
+ <br /> &nbsp;&nbsp; return ValidationFramework._validationCache;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ var file = &quot;&quot;;
+ <br /> if (_validationConfigFile != &quot;&quot;) {
+ <br /> &nbsp;&nbsp; file = _validationConfigFile;
+ <br /> } else {
+ <br /> &nbsp;&nbsp; file = ValidationRoot + &quot;validation-config.xml&quot;;
+ <br /> }
+ <br /> var xmlDoc = XmlDocument.create();
+ <br /> xmlDoc.async = false; // Damn!!! it cost me half an hour to fix it!
+ <br /> xmlDoc.load(file);
+ <br /> if (xmlDoc.documentElement == null) {
+ <br /> &nbsp;&nbsp; ValidationFramework.exception(&quot;配置文件读取错误，请检查。&quot;);
+ <br /> &nbsp;&nbsp; return null;
+ <br /> }
+ <br /> // TODO: parse the document if it's a valid document.
+ <br /> ValidationFramework._validationCache = xmlDoc.documentElement;
+ <br /> var lang=ValidationFramework._validationCache.getAttribute(&quot;lang&quot;);
+ <br /> ValidationFramework._userLanguage = (lang==null) ? &quot;auto&quot; : lang;
+ <br /> return ValidationFramework._validationCache;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ ValidationFramework.init = function(configFile) {
+ <br /> _validationConfigFile = configFile;
+ <br /> ValidationFramework.getDocumentElement();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ ValidationFramework.getAllForms = function() {
+ <br /> var vforms = [];
+ <br /> var root = ValidationFramework.getDocumentElement();
+ <br /> if (root != null) {
+ <br /> &nbsp;&nbsp; var fs = root.childNodes;
+ <br /> &nbsp;&nbsp; for (var i = 0;i &lt; fs.length ;i++ ) {
+ <br /> &nbsp;&nbsp;&nbsp; vforms[i] = new ValidationForm(fs.item(i));
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> return vforms;
+ <br /> }
+ <br /> ValidationFramework.getErrorString = function(field, depend) {
+ <br /> var stringResource = null;
+ <br /> var lang = ValidationFramework._userLanguage.toLowerCase();
+ <br /> //if lang == auto, get the user's browser language.
+ <br /> if (lang == &quot;auto&quot;) {
+ <br /> &nbsp;&nbsp; // different browser has the different method the get the 
+ <br /> &nbsp;&nbsp; // user's language. so this is a stupid way to detect the 
+ <br /> &nbsp;&nbsp; // most common browser IE and Mozilla.
+ <br /> &nbsp;&nbsp; if (typeof navigator.userLanguage == 'undefined')
+ <br /> &nbsp;&nbsp;&nbsp; lang = navigator.language.toLowerCase();
+ <br /> &nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp; lang = navigator.userLanguage.toLowerCase();
+ <br /> }
+ <br /> // get the language
+ <br /> if (typeof ValidationErrorString[lang] != 'object') {
+ <br /> &nbsp;&nbsp; stringResource = ValidationErrorString['zh-cn'];
+ <br /> } else {
+ <br /> &nbsp;&nbsp; stringResource = ValidationErrorString[lang];
+ <br /> }
+ <br /> var dep = depend.getName().toLowerCase();
+ <br /> var retStr = stringResource[dep];
+ <br /> //If the specified depend not defined, use the default error string.
+ <br /> if (typeof retStr != 'string') {
+ <br /> &nbsp;&nbsp; retStr = stringResource[&quot;default&quot;];
+ <br /> &nbsp;&nbsp; retStr = retStr.replace(&quot;{0}&quot;, field.getDisplayName());
+ <br /> &nbsp;&nbsp; return retStr;
+ <br /> }
+ <br /> retStr = retStr.replace(&quot;{0}&quot;, field.getDisplayName());
+ <br /> if (dep == &quot;minlength&quot; || dep == &quot;maxlength&quot; || dep == &quot;date&quot; ) {
+ <br /> &nbsp;&nbsp; retStr = retStr.replace(&quot;{1}&quot;, depend.getParams()[0]);
+ <br /> } else if ( dep == &quot;equalsfield&quot;) {
+ <br /> &nbsp;&nbsp; var eqField = field.getForm().findField(depend.getParams()[0]);
+ <br /> &nbsp;&nbsp; if (eqField == null) {
+ <br /> &nbsp;&nbsp;&nbsp; ValidationFramework.exception(&quot;找不到名称为[&quot; + depend.getParams()[0]+&quot;]的域，请检查xml配置文件。&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; retStr = &quot;&lt;&lt;配置错误&gt;&gt;&quot;;
+ <br /> &nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp; retStr = retStr.replace(&quot;{1}&quot;, field.getForm().findField(depend.getParams()[0]).getDisplayName());
+ <br /> &nbsp;&nbsp; }
+ <br /> } else if (dep == &quot;integerrange&quot; || dep == &quot;doublerange&quot;) {
+ <br /> &nbsp;&nbsp; retStr = retStr.replace(&quot;{1}&quot;, depend.getParams()[0]);
+ <br /> &nbsp;&nbsp; retStr = retStr.replace(&quot;{2}&quot;, depend.getParams()[1]);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ return retStr;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ ValidationFramework.getWebFormFieldObj = function(field) {
+ <br /> var obj = null;
+ <br /> if (ValidationFramework._currentForm != null) {
+ <br /> &nbsp;&nbsp; var formObj = document.getElementById(ValidationFramework._currentForm.getId());
+ <br /> &nbsp;&nbsp; obj = formObj[field.getName()];
+ <br /> &nbsp;&nbsp; if (typeof(obj) == 'undefined') {
+ <br /> &nbsp;&nbsp;&nbsp; obj = null;
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> if (obj == null) {
+ <br /> &nbsp;&nbsp; ValidationFramework.exception(&quot;在配置文件中有需要验证的域，但在实际网页表单中不存在：[name=&quot; + field.getName() + &quot;]。&quot;);
+ <br /> }
+ <br /> return obj;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ ValidationFramework.exception = function(str) {
+ <br /> var ex = &quot;JavaScript Validation Framework 运行时错误:\n\n&quot;;
+ <br /> ex += str;
+ <br /> ex += &quot;\n\n\n任何运行错误都会导致该域验证失败。&quot;;
+ <br /> alert(ex);
+ <br /> }
+ <br /> ValidationFramework.getIntegerValue = function(val) {
+ <br /> var intvalue = parseInt(val);
+ <br /> if (isNaN(intvalue)) {
+ <br /> &nbsp;&nbsp; ValidationFramework.exception(&quot;期待一个整型参数。&quot;);
+ <br /> }
+ <br /> return intvalue;
+ <br /> }
+ <br /> ValidationFramework.getFloatValue = function(val) {
+ <br /> var floatvalue = parseFloat(val);
+ <br /> if (isNaN(floatvalue)) {
+ <br /> &nbsp;&nbsp; ValidationFramework.exception(&quot;期待一个浮点型参数。&quot;);
+ <br /> }
+ <br /> return floatvalue;
+ <br /> }
+ <br /> /**
+ <br /> * FormFactory
+ <br /> * Build virture form from Html Form.
+ <br /> */
+ <br /> function FormFactory() {}
+ <br /> FormFactory.getFormFromDOM = function(dom) {
+ <br /> var form = new ValidationForm();
+ <br /> form.setId(dom.getAttribute(&quot;id&quot;));
+ <br /> form.setShowError(dom.getAttribute(&quot;show-error&quot;));
+ <br /> form.setOnFail(dom.getAttribute(&quot;onfail&quot;));
+ <br /> form.setShowType(dom.getAttribute(&quot;show-type&quot;));
+</div> 
+<div> 
+</div> 
+<div>
+ if (dom.hasChildNodes()) {
+ <br /> &nbsp;&nbsp; var f = dom.childNodes;
+ <br /> &nbsp;&nbsp; for (var i = 0; i &lt; f.length; i++) {
+ <br /> &nbsp;&nbsp;&nbsp; if (f.item(i) == null||typeof(f.item(i).tagName) == 'undefined' || f.item(i).tagName != 'field') {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; continue;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; var field = FieldFactory.getFieldFromDOM(f.item(i));
+ <br /> &nbsp;&nbsp;&nbsp; if (field != null) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; form.addField(field);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> return form;
+ <br /> }
+ <br /> /// Get the Form from ID
+ <br /> FormFactory.getFormFromId = function(id) {
+ <br /> var root = ValidationFramework.getDocumentElement();
+ <br /> if ( root == null || (!root.hasChildNodes()) ) return null;
+ <br /> var vforms = root.childNodes;
+ <br /> for (var i = 0; i &lt; vforms.length; i++) {
+ <br /> &nbsp;&nbsp; var f = vforms.item(i);
+ <br /> &nbsp;&nbsp; if (typeof(f.tagName) != 'undefined' &amp;&amp; f.tagName == 'form' &amp;&amp; f.getAttribute(&quot;id&quot;) == id) {
+ <br /> &nbsp;&nbsp;&nbsp; return FormFactory.getFormFromDOM(f);
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> return null;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * A validation form object.
+ <br /> */
+ <br /> function ValidationForm() {
+ <br /> this._fields = [];
+ <br /> this._id = null;
+ <br /> this._showError = null;
+ <br /> this._onFail = null;
+ <br /> this._showType = null;
+</div> 
+<div> 
+</div> 
+<div>
+ this.getFields = function() { return this._fields; }
+ <br /> this.setFields = function(p0) { this._fields = p0; }
+</div> 
+<div> 
+</div> 
+<div>
+ this.getId = function() { return this._id; }
+ <br /> this.setId = function(p0) { this._id = p0; }
+</div> 
+<div> 
+</div> 
+<div>
+ this.getShowError = function() { return this._showError; }
+ <br /> this.setShowError = function(p0) { this._showError = p0; }
+</div> 
+<div> 
+</div> 
+<div>
+ this.getShowType = function() { return this._showType; }
+ <br /> this.setShowType = function(p0) { this._showType = p0; }
+</div> 
+<div> 
+</div> 
+<div>
+ this.getOnFail = function() { return this._onFail; }
+ <br /> this.setOnFail = function(p0) { this._onFail = p0; }
+ <br /> 
+ <br /> // find field by it's name
+ <br /> this.findField = function(p0) {
+ <br /> &nbsp;&nbsp; for (var i = 0; i &lt; this._fields.length; i++) {
+ <br /> &nbsp;&nbsp;&nbsp; if (this._fields[i].getName() == p0) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; return this._fields[i];
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return null;
+ <br /> }
+ <br /> 
+ <br /> this.addField = function(p0) {
+ <br /> &nbsp;&nbsp; this._fields[this._fields.length] = p0;
+ <br /> &nbsp;&nbsp; p0.setForm(this);
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * A form filed. virtual.
+ <br /> */
+ <br /> function ValidationField() {
+ <br /> this._name = null;
+ <br /> this._depends = [];
+ <br /> this._displayName = null;
+ <br /> this._onFail = null;
+ <br /> this._form = null;
+</div> 
+<div> 
+</div> 
+<div>
+ this.getName = function() { return this._name; }
+ <br /> this.setName = function(p0) { this._name = p0; }
+</div> 
+<div> 
+</div> 
+<div>
+ this.getDepends = function() { return this._depends; }
+ <br /> this.setDepends = function(p0) { this._depends = p0; }
+</div> 
+<div> 
+</div> 
+<div>
+ this.getDisplayName = function() { return this._displayName; }
+ <br /> this.setDisplayName = function(p0) { this._displayName = p0; }
+</div> 
+<div> 
+</div> 
+<div>
+ this.getOnFail = function() { return this._onFail; }
+ <br /> this.setOnFail = function(p0) { this._onFail = p0; }
+ <br /> 
+ <br /> this.getForm = function() { return this._form; }
+ <br /> this.setForm = function(p0) { this._form = p0; }
+</div> 
+<div> 
+</div> 
+<div>
+ this.addDepend = function(p0) {
+ <br /> &nbsp;&nbsp; this._depends[this._depends.length] = p0;
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

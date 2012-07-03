@@ -1,0 +1,229 @@
+<html><head><title>Steer clear of Java pitfalls</title></head><body><div id='tit'>Steer clear of Java pitfalls</div><div id='cate'>细节</div><div id='date'>2009年09月05日 星期六 11:10 P.M.</div><div id='page'>32</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5585010877fdec39e824881e.html'>http://hi.baidu.com/hxzon/blog/item/5585010877fdec39e824881e.html</a><div id='cnt'><div> 
+ <div> 
+  <h1>Steer clear of Java pitfalls</h1> 
+  <h3>Three tips to keep you from falling into a Java trap</h3> 
+  <p>Though the Java language and platform strive to make programmers' lives easier, unfortunately, as in all systems, overly complex and poorly designed areas crop up. Every other month, I will present workarounds to these pitfalls in this new column, Java Traps.</p> 
+  <p>The book Java Pitfalls (John Wiley &amp; Sons, 2000), written by Eric Monk, J. Paul Keller, Keith Bohnenberger, and myself, defines a pitfall as &quot;code that compiles fine but when executed produces unintended and sometimes disastrous results.&quot; This broad definition encompasses improper language usage, overly complex APIs, and less effective implementation options. The book details 50 pitfalls. Here, we will discuss three new ones: two API pitfalls and one long-standing bug. All of these problems arose during real-world development projects.</p> 
+  <h3>Pitfall 1: When setSize() doesn't work</h3> 
+  <p>Most developers stumble upon pitfalls sequentially as they become more experienced with Java. The setSize() pitfall usually presents itself soon after Java developers begin serious GUI development -- specifically, when they first attempt to set the size of a custom component. BadSetSizeApplet below intends to create a simple custom button, sized at 100 pixels by 100 pixels. Here is the code to create our custom button:</p> 
+  <div> 
+   <div> 
+    <pre>class CustomButton extends Button
+{
+    public CustomButton(String title)
+    {
+        super(title);    
+        setSize(100,100);
+    }
+}</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>In the constructor, developers often assume that they can use setSize()(width, height), as they do when sizing a frame. But this code will only work in certain situations -- here, setSize() will fail to correctly size the component. When we place our custom button in the applet with other components using a simple grid layout, we get the results below. Our button is 66 by 23, not 100 by 100! What happened to our call to setSize()? The method was executed, of course. However, it did not give the final word on the size of our component.</p> 
+  <p></p> 
+  <p>You will find the complete source code for BadSetSizeApplet.java, and for all applets discussed in this article, in <a href="http://www.javaworld.com/javaworld/jw-09-2000/jw-0922-javatraps.html#resources">Resources</a>.</p> 
+  <p>Let's examine the correct approach to sizing a component.</p> 
+  <p>Our code failed because after we created the component, the layout manager (GridLayout) reshaped the component in accordance with its own rules. This presents us with several solutions. We could eliminate the layout manager by calling setLayout(null), but since the layout manager provides numerous benefits to our code (it allows us to automatically resize our user interface, even if the user resizes the window), this is a poor remedy. Another alternative would be to call setSize() after the layout manager has completed its work. This is just a quick fix: calling repaint() would change the size, but it would change again when the browser was resized. That leaves us with only one real option: work only with the layout manager to resize the component. Below we rewrite our custom component:</p> 
+  <div> 
+   <div> 
+    <pre>class CustomButton2 extends Button
+{
+    public CustomButton2(String title)
+    {
+        super(title);    
+        // setSize(100,100); - unnecessary
+    }
+    public Dimension getMinimumSize()
+    { return new Dimension(100,100); }
+    
+    public Dimension getPreferredSize()
+    { return getMinimumSize(); }
+}</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>Our custom component overrides the getMinimumSize() and getPreferredSize() methods of the Component class to set the component size. The layout manager implements those methods to decide how to size an individual component. Some layout managers will disregard the methods' advice, if their pattern calls for that. For example, if this button was placed in the center of a BorderLayout, the button would not be 100 by 100, but would stretch to fit the available center space. GridLayout will abide by those sizes and anchor the component in the center. The GoodSetSizeApplet below uses the CustomButton2 class.</p> 
+  <p></p> 
+  <p> </p> 
+  <p>Interestingly, our solution did not involve the setSize() method. This pitfall stems from the design complexity of a cross-platform user interface, and a developer's unfamiliarity with the chain of events necessary to display and resize an interface. Unfortunately, the supplied documentation of setSize() fails to suggest these prerequisites.</p> 
+  <p>This solution also highlights the importance of properly naming methods and parameters. Should you use setSize() when you only need to set internal values that may or may not be used by your display mechanisms? A better choice would be setInternalValues(), which at least clearly warns a developer of the limited guarantee this method offers.</p> 
+  <h3>Pitfall 2: A misleading StringTokenizer parameter</h3> 
+  <p>This pitfall, also a result of poor naming conventions, revealed itself when a junior developer needed to parse a text file that used a three-character delimiter (his was the string ###) between tokens. In his first attempt, he used the StringTokenizer class to parse the input text. He sought my advice when he discovered what he considered to be strange behavior. The applet below demonstrates code similar to his.</p> 
+  <p></p> 
+  <p>The developer expected six tokens, but if a single # character was present in any token, he received more. He wanted the delimiter to be the group of three # characters, not a single # character.</p> 
+  <p>Here is the key code used to parse the input string into an array of tokens:</p> 
+  <div> 
+   <div> 
+    <pre>public static String [] tokenize(String input, String delimiter)
+    {
+        Vector v = new Vector();
+        StringTokenizer t = new StringTokenizer(input, delimiter);
+        String cmd[] = null;
+        while (t.hasMoreTokens())
+            v.addElement(t.nextToken());
+        
+        int cnt = v.size();
+        if (cnt &gt; 0)
+        {
+            cmd = new String[cnt];
+            v.copyInto(cmd);
+        }
+        return cmd;        
+    }</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>The tokenize() method is a wrapper for the StringTokenizer class. The StringTokenizer constructor takes two String arguments: one for the input and one for the delimiter. The junior developer incorrectly inferred that the delimiter parameter would be treated as a group of characters, not a set of single characters. I don't think that's such a poor assumption. With thousands of classes in the Java APIs, the burden of design simplicity rests on the designer's shoulders, not the application developer's. It is reasonable to assume that a String would be treated as a single group. After all, a String commonly represents a related grouping of characters.</p> 
+  <p>A more correct StringTokenizer constructor would require the developer to provide an array of characters, which would clarify the fact that the delimiters for the current implementation of StringTokenizer are only single characters -- though you can specify more than one. This particular API designer was more concerned with his implementation's rapid development than its intuitiveness.</p> 
+  <p>To fix the problem, we create two new static tokenize() methods: one that takes an array of characters as delimiters, one that accepts a Boolean flag to signify whether the String delimiter should be regarded as a single group. Here is the code for those two methods:</p> 
+  <p>Page 2 of 2</p> 
+  <div> 
+   <div> 
+    <pre>// String tokenizer with current behavior
+    public static String [] tokenize(String input, char [] delimiters)
+    {
+        return tokenize(input, new String(delimiters), false);
+    }
+    public static String [] tokenize(String input, String delimiters, 
+               boolean delimiterAsGroup)
+    {
+        Vector v = new Vector();
+        String toks[] = null;
+        if (!delimiterAsGroup)
+        {
+            StringTokenizer t = new StringTokenizer(input, delimiters);
+            while (t.hasMoreTokens())
+                v.addElement(t.nextToken());
+        }
+        else
+        {
+            int start = 0;
+            int end = input.length();
+            while (start &lt; end)
+            {
+                    int delimIdx = input.indexOf(delimiters,start);
+                    if (delimIdx &lt; 0)
+                    {
+                            String tok = input.substring(start);
+                            v.addElement(tok);
+                            start = end;
+                    }
+                    else
+                    {
+                            String tok = input.substring(start, delimIdx);
+                            v.addElement(tok);
+                            start = delimIdx + delimiters.length();
+                    }
+            }
+        }
+        int cnt = v.size();
+        if (cnt &gt; 0)
+        {
+            toks = new String[cnt];
+            v.copyInto(toks);
+        }
+        
+        return toks;
+    }</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>Below is an applet demonstrating the new static method, tokenize(), that treats the token String ### as a single delimiter.</p> 
+  <p></p> 
+  <p>While some may consider the above pitfall relatively harmless, the next is extremely dangerous and should be seriously considered in any Java development project.</p> 
+  <h3>Pitfall 3: Don't mix floats and doubles when generating text or XML messages</h3> 
+  <p>While developing an order execution system for an online brokerage, I stumbled across a serious bug that incorrectly converted certain values from doubles to strings. Here is the scenario: The Website presents a stock-trade form to the user. A Java servlet processes the form and sends the trade information to the order execution server, a Java RMI server. The Java RMI server formats the message as either XML or another text format -- the common message switch (CMS) format, for example -- and passes it to one of several executing agents. One of the fields in the stock-trade message is the stock price, which is stored as a double. For certain double values, the Java platform incorrectly converts the price when formatting the order message, and the trade is rejected. Customers don't like that!</p> 
+  <p>What if this was embedded software in a medical device, and the double value represented the amount of radiation administered to a patient? A low-level bug like this can be extremely dangerous.</p> 
+  <p>Below is an applet that simulates the above scenario and generates two stock transaction messages. The first price formats correctly, while the second value -- 100.28 -- formats incorrectly.</p> 
+  <p></p> 
+  <p>I originally labeled this problem a bug, and I did find that Sun's JDC bug database reports it several times, in numbers 4030639, 4087318, 4068996, and 4169083. Unfortunately, these similar bugs are described inconsistently. Some are reported fixed, others are not even considered bugs, and one is labeled as a bug &quot;in progress.&quot; Unfortunately for the many application developers who must generate XML messages that contain double values, this bug exists in JDK 1.1, 1.2, and 1.3. Thus I consider it a pitfall.</p> 
+  <p>The following is a simple example of the bug. The problem lies in converting a float to a double, prior to converting to a String. This occurred in the brokerage software when one developer primarily used floats for decimals, but another implemented doubles. That caused the bug to surface; this crashed the executing agent's stock trading system, which received our incorrectly formatted trade message. Notice that the method genTradeMessage() uses a float to represent the price. The purpose of genTradeMessage() is to generate a simple text XML order message. In turn, genTradeMessage() calls formatStockPrice(), which takes a double as the price parameter. Here is the invocation of genTradeMessage() that fails:</p> 
+  <p>String msg2 = genTradeMessage(&quot;SUNW&quot;, &quot;BUY&quot;, 1000, 100.28f);</p> 
+  <p>Notice that a float of 100.28 is passed into genTradeMessage(). Here is the code for genTradeMessage() and formatStockPrice():</p> 
+  <div> 
+   <div> 
+    <pre>public String genTradeMessage(String symbol,
+                                  String action,
+                                  int shares,
+                                  float price)
+    {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        pw.println(&quot;&lt;TRADE&gt;&quot;);
+        pw.println(&quot;\t&lt;ACTION&gt;&quot; + action + &quot;&lt;/ACTION&gt;&quot;);
+        pw.println(&quot;\t&lt;SYMBOL&gt;&quot; + symbol + &quot;&lt;/SYMBOL&gt;&quot;);        
+        pw.println(&quot;\t&lt;QUANTITY&gt;&quot; + shares + &quot;&lt;/QUANTITY&gt;&quot;);
+        pw.println(&quot;\t&quot; + formatStockPrice(price));        
+        pw.println(&quot;&lt;/TRADE&gt;&quot;);
+        return sw.toString();
+    }
+    
+    public String formatStockPrice(double d)
+    {
+        return &quot;&lt;PRICE&gt;&quot; + d + &quot;&lt;/PRICE&gt;&quot;;    
+    }</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>There are two workarounds to this problem. One solution is to implement only doubles or only floats in your APIs. That would mean rewriting formatStockPrice() to use a float. Here is that code:</p> 
+  <div> 
+   <div> 
+    <pre>public String formatStockPrice(float f)
+    {
+        return &quot;&lt;PRICE&gt;&quot; + f + &quot;&lt;/PRICE&gt;&quot;;    
+    }</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>Below is the GoodTradeMessageApplet that features the revised formatStockPrice().</p> 
+  <p></p> 
+  <p>Another potential workaround is to calculate using doubles, but cast to float when converting to a String. Of course, this solution is only viable if you are not losing precision on the cast.</p> 
+  <p>Here is that version of formatStockPrice():</p> 
+  <div> 
+   <div> 
+    <pre>public String formatStockPrice(double d)
+    {
+        float f = (float) d;
+        return &quot;&lt;PRICE&gt;&quot; + f + &quot;&lt;/PRICE&gt;&quot;;    
+    }</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>This pitfall can also trip you up when you use JDBC. In the aforementioned order execution system, trades were stored in an SQL server database. When retrieving the day's trades to format a report, the getString() method would incorrectly format the price value -- as an 8-byte SQL float type -- from the database. Here is the JDBC call that would return the erroneous value:</p> 
+  <div> 
+   <div> 
+    <pre>String sprice = rslt.getString(&quot;price&quot;);</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>A run of the program produced the following results:</p> 
+  <ul> 
+   <li>Getting a connection to jdbc:odbc:CustomerTrades...</li> 
+   <li>Symbol: SUNW</li> 
+   <li>Action: BUY</li> 
+   <li>Price as String: 91.090000000000003</li> 
+  </ul> 
+  <p><br /> <br /> </p> 
+  <p>The solution is to use the getFloat() method in the ResultSet class to retrieve the value as a float, which then properly converts to a String. Here is the replaced code:</p> 
+  <div> 
+   <div> 
+    <pre>float price = rslt.getFloat(&quot;price&quot;);</pre> 
+   </div> 
+  </div> 
+  <p><br /> <br /> </p> 
+  <p>A run of TestGetPrice2.java produces:</p> 
+  <ul> 
+   <li>Getting a connection to jdbc:odbc:CustomerTrades...</li> 
+   <li>Symbol: SUNW</li> 
+   <li>Action: BUY</li> 
+   <li>Price as Float: 91.09</li> 
+  </ul> 
+  <p><br /> <br /> </p> 
+  <p>Editor's note: Michael makes a correction to this pitfall in <a href="http://www.javaworld.com/javaworld/jw-12-2000/jw-1229-traps.html">&quot;When Runtime.exec() won't.&quot;</a></p> 
+  <h3>Conclusion</h3> 
+  <p>Each pitfall discussed in this article was found in valid Java code that compiled well. However, when executed, the code produced erroneous results. There are many pitfalls in every Java package; however, many Java beginners are unaware of them. I hope senior Java developers will use the Web, newsgroups, and publications like JavaWorld to educate junior and midlevel developers about these frustrating, time-wasting problems.</p> 
+  <h3>About the author</h3> 
+  <p>Michael C. Daconta is the director of Web and technology services for McDonald Bradley, Inc (MBI), where he conducts training seminars and develops advanced systems with Java, JavaScript, and XML. In the last 15 years, Daconta has held every major development position, including chief scientist, technical director, chief developer, team leader, systems analyst, and programmer. He is a Sun-certified Java programmer, the author of C++ Pointers and Dynamic Memory Management, and the coauthor of three books: Java Pitfalls, Java 2 and JavaScript for C and C++ Programmers, and the forthcoming XML Development with Java 2, to be published by Sams Publishing in September.</p> 
+  <p><a href="http://www.javaworld.com/javaworld/jw-09-2000/jw-0922-javatraps.html?page=2">http://www.javaworld.com/javaworld/jw-09-2000/jw-0922-javatraps.html?page=2</a></p> 
+ </div> 
+</div></div></body></html>

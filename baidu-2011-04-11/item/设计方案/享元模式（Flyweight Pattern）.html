@@ -1,0 +1,929 @@
+<html><head><title>享元模式（Flyweight Pattern）</title></head><body><div id='tit'>享元模式（Flyweight Pattern）</div><div id='cate'>设计方案</div><div id='date'>2008年04月08日 星期二 10:35 P.M.</div><div id='page'>141</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/9a972097337b3f6854fb9621.html'>http://hi.baidu.com/hxzon/blog/item/9a972097337b3f6854fb9621.html</a><div id='cnt'><div>
+ 享元模式（Flyweight Pattern）
+ <br /> ——.NET设计模式系列之十三
+</div> 
+<div> 
+</div> 
+<div>
+ Terrylee，2006年3月
+</div> 
+<div> 
+</div> 
+<div>
+ 摘要：面向对象的思想很好地解决了抽象性的问题，一般也不会出现性能上的问题。但是在某些情况下，对象的数量可能会太多，从而导致了运行时的代价。那么我们如何去避免大量细粒度的对象，同时又不影响客户程序使用面向对象的方式进行操作？
+</div> 
+<div> 
+</div> 
+<div>
+ 本文试图通过一个简单的字符处理的例子，运用重构的手段，一步步带你走进Flyweight模式，在这个过程中我们一同思考、探索、权衡，通过比较而得出好的实现方式，而不是给你最终的一个完美解决方案。
+</div> 
+<div> 
+</div> 
+<div>
+ 主要内容：
+</div> 
+<div> 
+</div> 
+<div>
+ 1． Flyweight模式解说
+</div> 
+<div> 
+</div> 
+<div>
+ 2．.NET中的Flyweight模式
+</div> 
+<div> 
+</div> 
+<div>
+ 3．Flyweight模式的实现要点
+</div> 
+<div> 
+</div> 
+<div>
+ ……
+</div> 
+<div> 
+</div> 
+<div>
+ 概述
+</div> 
+<div> 
+</div> 
+<div>
+ 面向对象的思想很好地解决了抽象性的问题，一般也不会出现性能上的问题。但是在某些情况下，对象的数量可能会太多，从而导致了运行时的代价。那么我们如何去避免大量细粒度的对象，同时又不影响客户程序使用面向对象的方式进行操作？
+</div> 
+<div> 
+</div> 
+<div>
+ 意图
+</div> 
+<div> 
+</div> 
+<div>
+ 运用共享技术有效地支持大量细粒度的对象。[GOF 《设计模式》]
+</div> 
+<div> 
+</div> 
+<div>
+ 结构图
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 图1 Flyweight模式结构图
+</div> 
+<div> 
+</div> 
+<div>
+ 生活中的例子
+</div> 
+<div> 
+</div> 
+<div>
+ 享元模式使用共享技术有效地支持大量细粒度的对象。公共交换电话网（PSTN）是享元的一个例子。有一些资源例如拨号音发生器、振铃发生器和拨号接收器是必须由所有用户共享的。当一个用户拿起听筒打电话时，他不需要知道使用了多少资源。对于用户而言所有的事情就是有拨号音，拨打号码，拨通电话。
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 图2 使用拨号音发生器例子的享元模式对象图
+</div> 
+<div> 
+</div> 
+<div>
+ Flyweight模式解说
+</div> 
+<div> 
+</div> 
+<div>
+ Flyweight在拳击比赛中指最轻量级，即“蝇量级”，这里翻译为“享元”，可以理解为共享元对象（细粒度对象）的意思。提到Flyweight模式都会一般都会用编辑器例子来说明，这里也不例外，但我会尝试着通过重构来看待Flyweight模式。考虑这样一个字处理软件，它需要处理的对象可能有单个的字符，由字符组成的段落以及整篇文档，根据面向对象的设计思想和Composite模式，不管是字符还是段落，文档都应该作为单个的对象去看待，这里只考虑单个的字符，不考虑段落及文档等对象，于是可以很容易的得到下面的结构图：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 图3
+</div> 
+<div> 
+</div> 
+<div>
+ 示意性实现代码：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> // &quot;Charactor&quot;
+ <br /> public abstract class Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; //Fields
+ <br /> &nbsp;&nbsp;&nbsp; protected char _symbol;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _width;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _height;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _ascent;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _descent;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _pointSize;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public abstract void Display();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorA&quot;
+ <br /> public class CharactorA : Charactor
+ <br /> { 
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorA()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'A';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 120;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 70;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._pointSize = 12;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorB&quot;
+ <br /> public class CharactorB : Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorB()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'B';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 140;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 72;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._pointSize = 10;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorC&quot;
+ <br /> public class CharactorC : Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorC()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'C';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 160;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 74;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._pointSize = 14;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 好了，现在看到的这段代码可以说是很好地符合了面向对象的思想，但是同时我们也为此付出了沉重的代价，那就是性能上的开销，可以想象，在一篇文档中，字符的数量远不止几百个这么简单，可能上千上万，内存中就同时存在了上千上万个Charactor对象，这样的内存开销是可想而知的。进一步分析可以发现，虽然我们需要的Charactor实例非常多，这些实例之间只不过是状态不同而已，也就是说这些实例的状态数量是很少的。所以我们并不需要这么多的独立的Charactor实例，而只需要为每一种Charactor状态创建一个实例，让整个字符处理软件共享这些实例就可以了。看这样一幅示意图：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 图4
+</div> 
+<div> 
+</div> 
+<div>
+ 现在我们看到的A，B，C三个字符是共享的，也就是说如果文档中任何地方需要这三个字符，只需要使用共享的这三个实例就可以了。然而我们发现单纯的这样共享也是有问题的。虽然文档中的用到了很多的A字符，虽然字符的symbol等是相同的，它可以共享；但是它们的pointSize却是不相同的，即字符在文档中中的大小是不相同的，这个状态不可以共享。为解决这个问题，首先我们将不可共享的状态从类里面剔除出去，即去掉pointSize这个状态（只是暂时的J），类结构图如下所示：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 图5
+</div> 
+<div> 
+</div> 
+<div>
+ 示意性实现代码：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;Charactor&quot;
+ <br /> public abstract class Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; //Fields
+ <br /> &nbsp;&nbsp;&nbsp; protected char _symbol;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _width;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _height;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _ascent;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _descent;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public abstract void Display();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorA&quot;
+ <br /> public class CharactorA : Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorA()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'A';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 120;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 70;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorB&quot;
+ <br /> public class CharactorB : Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorB()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'B';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 140;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 72;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorC&quot;
+ <br /> public class CharactorC : Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorC()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'C';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 160;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 74;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 好，现在类里面剩下的状态都可以共享了，下面我们要做的工作就是控制Charactor类的创建过程，即如果已经存在了“A”字符这样的实例，就不需要再创建，直接返回实例；如果没有，则创建一个新的实例。如果把这项工作交给Charactor类，即Charactor类在负责它自身职责的同时也要负责管理Charactor实例的管理工作，这在一定程度上有可能违背类的单一职责原则，因此，需要一个单独的类来做这项工作，引入CharactorFactory类，结构图如下：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 图6
+</div> 
+<div> 
+</div> 
+<div>
+ 示意性实现代码：
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorFactory&quot;
+ <br /> public class CharactorFactory
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Fields
+ <br /> &nbsp;&nbsp;&nbsp; private Hashtable charactors = new Hashtable();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorFactory()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;A&quot;, new CharactorA());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;B&quot;, new CharactorB());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;C&quot;, new CharactorC());
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; // Method
+ <br /> &nbsp;&nbsp;&nbsp; public Charactor GetCharactor(string key)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Charactor charactor = charactors[key] as Charactor;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (charactor == null)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch (key)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;A&quot;: charactor = new CharactorA(); break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;B&quot;: charactor = new CharactorB(); break; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;C&quot;: charactor = new CharactorC(); break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(key, charactor);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return charactor;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 到这里已经完全解决了可以共享的状态（这里很丑陋的一个地方是出现了switch语句，但这可以通过别的办法消除，为了简单期间我们先保持这种写法）。下面的工作就是处理刚才被我们剔除出去的那些不可共享的状态，因为虽然将那些状态移除了，但是Charactor对象仍然需要这些状态，被我们剥离后这些对象根本就无法工作，所以需要将这些状态外部化。首先会想到一种比较简单的解决方案就是对于不能共享的那些状态，不需要去在Charactor类中设置，而直接在客户程序代码中进行设置，类结构图如下：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 图7
+</div> 
+<div> 
+</div> 
+<div>
+ 示意性实现代码：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ public class Program
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; public static void Main()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Charactor ca = new CharactorA();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Charactor cb = new CharactorB();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Charactor cc = new CharactorC();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //显示字符
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //设置字符的大小ChangeSize();
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void ChangeSize()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //在这里设置字符的大小
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 按照这样的实现思路，可以发现如果有多个客户端程序使用的话，会出现大量的重复性的逻辑，用重构的术语来说是出现了代码的坏味道，不利于代码的复用和维护；另外把这些状态和行为移到客户程序里面破坏了封装性的原则。再次转变我们的实现思路，可以确定的是这些状态仍然属于Charactor对象，所以它还是应该出现在Charactor类中，对于不同的状态可以采取在客户程序中通过参数化的方式传入。类结构图如下：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 图8
+</div> 
+<div> 
+</div> 
+<div>
+ 示意性实现代码：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;Charactor&quot;
+ <br /> public abstract class Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; //Fields
+ <br /> &nbsp;&nbsp;&nbsp; protected char _symbol;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _width;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _height;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _ascent;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _descent;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; protected int _pointSize;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public abstract void SetPointSize(int size);
+ <br /> &nbsp;&nbsp;&nbsp; public abstract void Display();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorA&quot;
+ <br /> public class CharactorA : Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorA()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'A';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 120;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 70;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void SetPointSize(int size)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._pointSize = size;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol +
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;pointsize:&quot; + this._pointSize);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorB&quot;
+ <br /> public class CharactorB : Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorB()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'B';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 140;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 72;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void SetPointSize(int size)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._pointSize = size;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol +
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;pointsize:&quot; + this._pointSize);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorC&quot;
+ <br /> public class CharactorC : Charactor
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorC()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._symbol = 'C';
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._height = 100;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._width = 160;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._ascent = 74;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._descent = 0;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; //Method
+ <br /> &nbsp;&nbsp;&nbsp; public override void SetPointSize(int size)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this._pointSize = size;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public override void Display()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(this._symbol +
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;pointsize:&quot; + this._pointSize);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // &quot;CharactorFactory&quot;
+ <br /> public class CharactorFactory
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Fields
+ <br /> &nbsp;&nbsp;&nbsp; private Hashtable charactors = new Hashtable();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorFactory()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;A&quot;, new CharactorA());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;B&quot;, new CharactorB());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;C&quot;, new CharactorC());
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; // Method
+ <br /> &nbsp;&nbsp;&nbsp; public Charactor GetCharactor(string key)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Charactor charactor = charactors[key] as Charactor;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (charactor == null)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch (key)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;A&quot;: charactor = new CharactorA(); break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;B&quot;: charactor = new CharactorB(); break; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;C&quot;: charactor = new CharactorC(); break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(key, charactor);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return charactor;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public class Program
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; public static void Main()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CharactorFactory factory = new CharactorFactory();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Charactor &quot;A&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CharactorA ca = (CharactorA)factory.GetCharactor(&quot;A&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ca.SetPointSize(12);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ca.Display();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Charactor &quot;B&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CharactorB cb = (CharactorB)factory.GetCharactor(&quot;B&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ca.SetPointSize(10);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ca.Display();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Charactor &quot;C&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CharactorC cc = (CharactorC)factory.GetCharactor(&quot;C&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ca.SetPointSize(14);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ca.Display();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 可以看到这样的实现明显优于第一种实现思路。好了，到这里我们就到到了通过Flyweight模式实现了优化资源的这样一个目的。在这个过程中，还有如下几点需要说明：
+</div> 
+<div> 
+</div> 
+<div>
+ 1．引入CharactorFactory是个关键，在这里创建对象已经不是new一个Charactor对象那么简单，而必须用工厂方法封装起来。
+</div> 
+<div> 
+</div> 
+<div>
+ 2．在这个例子中把Charactor对象作为Flyweight对象是否准确值的考虑，这里只是为了说明Flyweight模式，至于在实际应用中，哪些对象需要作为Flyweight对象是要经过很好的计算得知，而绝不是凭空臆想。
+</div> 
+<div> 
+</div> 
+<div>
+ 3．区分内外部状态很重要，这是享元对象能做到享元的关键所在。
+</div> 
+<div> 
+</div> 
+<div>
+ 到这里，其实我们的讨论还没有结束。有人可能会提出如下问题，享元对象（Charactor）在这个系统中相对于每一个内部状态而言它是唯一的，这跟单件模式有什么区别呢？这个问题已经很好回答了，那就是单件类是不能直接被实例化的，而享元类是可以被实例化的。事实上在这里面真正被设计为单件的应该是享元工厂（不是享元）类，因为如果创建很多个享元工厂的实例，那我们所做的一切努力都是白费的，并没有减少对象的个数。修改后的类结构图如下：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 图9
+</div> 
+<div> 
+</div> 
+<div>
+ 示意性实现代码：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> // &quot;CharactorFactory&quot;
+ <br /> public class CharactorFactory
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; // Fields
+ <br /> &nbsp;&nbsp;&nbsp; private Hashtable charactors = new Hashtable();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private CharactorFactory instance;
+ <br /> &nbsp;&nbsp;&nbsp; // Constructor 
+ <br /> &nbsp;&nbsp;&nbsp; private CharactorFactory()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;A&quot;, new CharactorA());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;B&quot;, new CharactorB());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(&quot;C&quot;, new CharactorC());
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; // Property
+ <br /> &nbsp;&nbsp;&nbsp; public CharactorFactory Instance
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; get 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (instance != null)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; instance = new CharactorFactory();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return instance;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Method
+ <br /> &nbsp;&nbsp;&nbsp; public Charactor GetCharactor(string key)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Charactor charactor = charactors[key] as Charactor;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (charactor == null)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch (key)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;A&quot;: charactor = new CharactorA(); break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;B&quot;: charactor = new CharactorB(); break; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case &quot;C&quot;: charactor = new CharactorC(); break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charactors.Add(key, charactor);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return charactor;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> .NET框架中的Flyweight
+</div> 
+<div> 
+</div> 
+<div>
+ Flyweight更多时候的时候一种底层的设计模式，在我们的实际应用程序中使用的并不是很多。在.NET中的String类型其实就是运用了Flyweight模式。可以想象，如果每次执行string s1 = “abcd”操作，都创建一个新的字符串对象的话，内存的开销会很大。所以.NET中如果第一次创建了这样的一个字符串对象s1，下次再创建相同的字符串s2时只是把它的引用指向“abcd”，这样就实现了“abcd”在内存中的共享。可以通过下面一个简单的程序来演示s1和s2的引用是否一致：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ public class Program
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; public static void Main(string[] args)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; string s1 = &quot;abcd&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; string s2 = &quot;abcd&quot;;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(Object.ReferenceEquals(s1,s2));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.ReadLine();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 可以看到，输出的结果为True。但是大家要注意的是如果再有一个字符串s3，它的初始值为“ab”，再对它进行操作s3 = s3 + “cd”，这时虽然s1和s3的值相同，但是它们的引用是不同的。关于String的详细情况大家可以参考SDK，这里不再讨论了。
+</div> 
+<div> 
+</div> 
+<div>
+ 效果及实现要点
+</div> 
+<div> 
+</div> 
+<div>
+ 1．面向对象很好的解决了抽象性的问题，但是作为一个运行在机器中的程序实体，我们需要考虑对象的代价问题。Flyweight设计模式主要解决面向对象的代价问题，一般不触及面向对象的抽象性问题。
+</div> 
+<div> 
+</div> 
+<div>
+ 2．Flyweight采用对象共享的做法来降低系统中对象的个数，从而降低细粒度对象给系统带来的内存压力。在具体实现方面，要注意对象状态的处理。
+</div> 
+<div> 
+</div> 
+<div>
+ 3．享元模式的优点在于它大幅度地降低内存中对象的数量。但是，它做到这一点所付出的代价也是很高的：享元模式使得系统更加复杂。为了使对象可以共享，需要将一些状态外部化，这使得程序的逻辑复杂化。另外它将享元对象的状态外部化，而读取外部状态使得运行时间稍微变长。
+</div> 
+<div> 
+</div> 
+<div>
+ 适用性
+</div> 
+<div> 
+</div> 
+<div>
+ 当以下所有的条件都满足时，可以考虑使用享元模式：
+</div> 
+<div> 
+</div> 
+<div>
+ 1、&nbsp;&nbsp; 一个系统有大量的对象。
+</div> 
+<div> 
+</div> 
+<div>
+ 2、&nbsp;&nbsp; 这些对象耗费大量的内存。
+</div> 
+<div> 
+</div> 
+<div>
+ 3、&nbsp;&nbsp; 这些对象的状态中的大部分都可以外部化。
+</div> 
+<div> 
+</div> 
+<div>
+ 4、&nbsp;&nbsp; 这些对象可以按照内蕴状态分成很多的组，当把外蕴对象从对象中剔除时，每一个组都可以仅用一个对象代替。
+</div> 
+<div> 
+</div> 
+<div>
+ 5、&nbsp;&nbsp; 软件系统不依赖于这些对象的身份，换言之，这些对象可以是不可分辨的。
+</div> 
+<div> 
+</div> 
+<div>
+ 满足以上的这些条件的系统可以使用享元对象。最后，使用享元模式需要维护一个记录了系统已有的所有享元的表，而这需要耗费资源。因此，应当在有足够多的享元实例可供共享时才值得使用享元模式。
+</div> 
+<div> 
+</div> 
+<div>
+ 总结
+</div> 
+<div> 
+</div> 
+<div>
+ Flyweight模式解决的是由于大量的细粒度对象所造成的内存开销的问题，它在实际的开发中并不常用，但是作为底层的提升性能的一种手段却很有效。
+</div></div></body></html>

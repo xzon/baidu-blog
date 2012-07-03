@@ -1,0 +1,373 @@
+<html><head><title>介绍一种效率极高的分类算法</title></head><body><div id='tit'>介绍一种效率极高的分类算法</div><div id='cate'>复用代码</div><div id='date'>2007年12月26日 星期三 05:47 P.M.</div><div id='page'>179</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/791dd6a2962421a9caefd01b.html'>http://hi.baidu.com/hxzon/blog/item/791dd6a2962421a9caefd01b.html</a><div id='cnt'><div>
+ 介绍一种效率极高的分类算法
+</div> 
+<div> 
+</div> 
+<div>
+ 在网站建设中，分类算法的应用非常的普遍。在设计一个电子商店时，要涉及到商品分类；在设计发布系统时，要涉及到栏目或者频道分类；在设计软件下载这样的程序时，要涉及到软件的分类；如此等等。可以说，分类是一个很普遍的问题。
+ <br /> 我常常面试一些程序员，而且我几乎毫无例外地要问他们一些关于分类算法的问题。下面的举几个我常常询问的问题。你认为你可以很轻松地回答么^_^.
+ <br /> 1、 分类算法常常表现为树的表示和遍历问题。那么，请问：如果用数据库中的一个Table来表达树型分类，应该有几个字段？
+ <br /> 2、 如何快速地从这个Table恢复出一棵树；
+ <br /> 3、 如何判断某个分类是否是另一个分类的子类；
+ <br /> 4、 如何查找某个分类的所有产品；
+ <br /> 5、 如何生成分类所在的路径。
+ <br /> 6、 如何新增分类；
+ <br /> 在不限制分类的级数和每级分类的个数时，这些问题并不是可以轻松回答的。本文试图解决这些问题。
+ <br /> 分类的数据结构
+ <br /> 我们知道：分类的数据结构实际上是一棵树。在《数据结构》课程中，大家可能学过Tree的算法。由于在网站建设中我们大量使用数据库，所以我们将从Tree在数据库中的存储谈起。
+ <br /> 为简化问题，我们假设每个节点只需要保留Name这一个信息。我们需要为每个节点编号。编号的方法有很多种。在数据库中常用的就是自动编号。这在Access、SQL Server、Oracle中都是这样。假设编号字段为ID。
+ <br /> 为了表示某个节点ID1是另外一个节点ID2的父节点，我们需要在数据库中再保留一个字段，说明这个分类是属于哪个节点的儿子。把这个字段取名为FatherID。如这里的ID2，其FatherID就是ID1。
+ <br /> 这样，我们就得到了分类Catalog的数据表定义：
+ <br /> Create Table [Catalog](
+ <br /> [ID] [int] NOT NULL,
+ <br /> [Name] [nvarchar](50) NOT NULL,
+ <br /> [FatherID] [int] NOT NULL
+ <br /> );
+ <br /> 约定：我们约定用-1作为最上面一层分类的父亲编码。编号为-1的分类。这是一个虚拟的分类。它在数据库中没有记录。
+ <br /> 如何恢复出一棵树
+ <br /> 上面的Catalog定义的最大优势，就在于用它可以轻松地恢复出一棵树-分类树。为了更清楚地展示算法，我们先考虑一个简单的问题：怎样显示某个分类的下一级分类。我们知道，要查询某个分类FID的下一级分类，SQL语句非常简单：
+ <br /> select Name from catalog where FatherID=FID
+ <br /> 显示这些类别时，我们简单地用&lt;LI&gt;来做到：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &lt;%
+ <br /> REM oConn---数据库连接，调用GetChildren时已经打开
+ <br /> REM FID-----当前分类的编号
+</div> 
+<div> 
+</div> 
+<div>
+ Function GetChildren(oConn,FID)
+ <br /> strSQL = &quot;select ID,Name from catalog where FatherID=&quot;&amp;FID
+ <br /> set rsCatalog = oConn.Execute(strSQL)
+ <br /> %&gt;
+ <br /> &lt;UL&gt;
+ <br /> &lt;%
+ <br /> Do while not rsCatalog.Eof 
+ <br /> %&gt;
+ <br /> &lt;LI&gt;&lt;%=rsCatalog(&quot;Name&quot;)%&gt;
+ <br /> &lt;%
+ <br /> Loop
+ <br /> %&gt;
+ <br /> &lt;/UL&gt;
+ <br /> &lt;% 
+ <br /> rsCatalog.Close
+ <br /> End Function
+ <br /> %&gt;
+ <br /> 现在我们来看看如何显示FID下的所有分类。这需要用到递归算法。我们只需要在GetChildren函数中简单地对所有ID进行调用：GetChildren(oConn,Catalog(&quot;ID&quot;))就可以了。
+ <br /> &lt;%
+ <br /> REM oConn---数据库连接，已经打开
+ <br /> REM FID-----当前分类的编号
+</div> 
+<div> 
+</div> 
+<div>
+ Function GetChildren(oConn,FID)
+ <br /> strSQL = &quot;select Name from catalog where FatherID=&quot;&amp;FID
+ <br /> set rsCatalog = oConn.Execute(strSQL)
+ <br /> %&gt;
+ <br /> &lt;UL&gt;
+ <br /> &lt;%
+ <br /> Do while not rsCatalog.Eof 
+ <br /> %&gt;
+ <br /> &lt;LI&gt;&lt;%=rsCatalog(&quot;Name&quot;)%&gt;
+ <br /> &lt;%=GetChildren(oConn,Catalog(&quot;ID&quot;))%&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;%
+ <br /> Loop
+ <br /> %&gt;
+ <br /> &lt;/UL&gt;
+ <br /> &lt;% 
+ <br /> rsCatalog.Close
+ <br /> End Function
+ <br /> %&gt;
+ <br /> 修改后的GetChildren就可以完成显示FID分类的所有子分类的任务。要显示所有的分类，只需要如此调用就可以了：
+ <br /> &lt;%
+ <br /> REM strConn--连接数据库的字符串，请根据情况修改
+ <br /> set oConn = Server.CreateObject(&quot;ADODB.Connection&quot;)
+ <br /> oConn.Open strConn
+ <br /> =GetChildren(oConn,-1)
+ <br /> oConn.Close
+ <br /> %&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ 如何查找某个分类的所有产品；
+ <br /> 现在来解决我们在前面提出的第四个问题。第三个问题留作习题。我们假设产品的数据表如下定义：
+ <br /> Create Table Product(
+ <br /> [ID] [int] NOT NULL,
+ <br /> [Name] [nvchar] NOT NULL,
+ <br /> [FatherID] [int] NOT NULL
+ <br /> );
+ <br /> 其中，ID是产品的编号，Name是产品的名称，而FatherID是产品所属的分类。
+ <br /> 对第四个问题，很容易想到的办法是：先找到这个分类FID的所有子类，然后查询所有子类下的所有产品。实现这个算法实际上很复杂。代码大致如下：
+ <br /> &lt;%
+ <br /> Function GetAllID(oConn,FID)
+ <br /> Dim strTemp
+</div> 
+<div> 
+</div> 
+<div>
+ If FID=-1 then
+ <br /> strTemp = &quot;&quot;
+ <br /> else
+ <br /> strTemp =&quot;,&quot;
+ <br /> end if
+</div> 
+<div> 
+</div> 
+<div>
+  strSQL = &quot;select Name from catalog where FatherID=&quot;&amp;FID
+ <br /> set rsCatalog = oConn.Execute(strSQL)
+ <br /> Do while not rsCatalog.Eof 
+ <br /> strTemp=strTemp&amp;rsCatalog(&quot;ID&quot;)&amp;GetAllID(oConn,Catalog(&quot;ID&quot;)) REM 递归调用
+ <br /> Loop
+ <br /> rsCatalog.Close
+</div> 
+<div> 
+</div> 
+<div>
+  GetAllID = strTemp
+ <br /> End Function
+</div> 
+<div> 
+</div> 
+<div>
+ REM strConn--连接数据库的字符串，请根据情况修改
+ <br /> set oConn = Server.CreateObject(&quot;ADODB.Connection&quot;)
+ <br /> oConn.Open strConn
+</div> 
+<div> 
+</div> 
+<div>
+  FID = Request.QueryString(&quot;FID&quot;)
+</div> 
+<div> 
+</div> 
+<div>
+  strSQL = &quot;select top 100 * from Product where FatherID in (&quot;&amp;GetAllID(oConn,FID)&amp;&quot;)&quot;
+ <br /> set rsProduct=oConn.Execute(strSQL)
+ <br /> %&gt;
+ <br /> &lt;UL&gt;&lt;%
+ <br /> Do while not rsProduct.EOF
+ <br /> %&gt;
+ <br /> &lt;LI&gt;&lt;%=rsProduct(&quot;Name&quot;)%&gt;
+ <br /> &lt;% 
+ <br /> Loop
+ <br /> %&gt;
+ <br /> &lt;/UL&gt;
+ <br /> &lt;%rsProduct.Close
+ <br /> oConn.Close 
+ <br /> %&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ 这个算法有很多缺点。试列举几个如下：
+ <br /> 1、 由于我们需要查询FID下的所有分类，当分类非常多时，算法将非常地不经济，而且，由于要构造一个很大的strSQL，试想如果有1000个分类，这个strSQL将很大，能否执行就是一个问题。
+ <br /> 2、 我们知道，在SQL中使用In子句的效率是非常低的。这个算法不可避免地要使用In子句，效率很低。
+</div> 
+<div> 
+</div> 
+<div>
+  我发现80%以上的程序员钟爱这样的算法，并在很多系统中大量地使用。细心的程序员会发现他们写出了很慢的程序，但苦于找不到原因。他们反复地检查SQL的执行效率，提高机器的档次，但效率的增加很少。
+ <br /> 最根本的问题就出在这个算法本身。算法定了，能够再优化的机会就不多了。我们下面来介绍一种算法，效率将是上面算法的10倍以上。
+ <br /> 分类编码算法
+ <br /> 问题就出在前面我们采用了顺序编码，这是一种最简单的编码方法。大家知道，简单并不意味着效率。实际上，编码科学是程序员必修的课程。下面，我们通过设计一种编码算法，使分类的编号ID中同时包含了其父类的信息。一个五级分类的例子如下：
+</div> 
+<div> 
+</div> 
+<div>
+  此例中，用32(4+7+7+7+7)位整数来编码，其中，第一级分类有4位，可以表达16种分类。第二级到第五级分类分别有7位，可以表达128个子分类。
+ <br /> 显然，如果我们得到一个编码为 1092787200 的分类，我们就知道：由于其编码为
+ <br /> 0100 0001001 0001010 0111000 0000000
+ <br /> 所以它是第四级分类。其父类的二进制编码是0100 0001001 0001010 0000000 0000000，十进制编号为1092780032。依次我们还可以知道，其父类的父类编码是0100 0001001 0000000 0000000 0000000，其父类的父类的父类编码是0100 0000000 0000000 0000000 0000000。(我是不是太罗嗦了J，但这一点很重要。再回头看看我们前面提到的第五个问题。哈哈，这不就已经得到了分类1092787200所在的分类路径了吗？)。
+ <br /> 现在我们在一般的情况下来讨论类别编码问题。设类别的层次为k，第i层的编码位数为Ni， 那么总的编码位数为N(N1+N2+..+Nk)。我们就得到任何一个类别的编码形式如下：
+ <br /> 2^(N-(N1+N2+…+Ni))*j + 父类编码
+ <br /> 其中，i表示第i层，j表示当前层的第j个分类。
+ <br /> 这样我们就把任何分类的编码分成了两个部分，其中一部分是它的层编码，一部分是它的父类编码。
+ <br /> 由下面公式定一的k个编码我们称为特征码：（因为i可以取k个值，所以有k个）
+ <br /> 2^N-2^(N-(N1+N2+…+Ni))
+ <br /> 对于任何给定的类别ID，如果我们把ID和k个特征码&quot;相与&quot;，得到的非0编码，就是其所有父类的编码！
+</div> 
+<div> 
+</div> 
+<div>
+ 位编码算法
+ <br /> 对任何顺序编码的Catalog表，我们可以设计一个位编码算法，将所有的类别编码规格化为位编码。在具体实现时，我们先创建一个临时表：
+ <br /> Create TempCatalog(
+ <br /> [OldID] [int] NOT NULL,
+ <br /> [NewID] [int] NOT NULL,
+ <br /> [OldFatherID] [int] NOT NULL,
+ <br /> [NewFatherID] [int] NOT NULL
+ <br /> );
+ <br /> 在这个表中，我们保留所有原来的类别编号OldID和其父类编号OldFatherID，以及重新计算的满足位编码要求的相应编号NewID、NewFatherID。
+ <br /> 程序如下：
+ <br /> &lt;%
+ <br /> REM oConn---数据库连接，已经打开
+ <br /> REM OldFather---原来的父类编号
+ <br /> REM NewFather---新的父类编号
+ <br /> REM N---编码总位数
+ <br /> REM Ni--每一级的编码位数数组
+ <br /> REM Level--当前的级数
+</div> 
+<div> 
+</div> 
+<div>
+ sub FormatAllID(oConn,OldFather,NewFather,N,Nm,Ni byref,Level)
+ <br /> strSQL = &quot;select CatalogID , FatherID from Catalog where FatherID=&quot; &amp; OldFather
+ <br /> set rsCatalog=oConn.Execute( strSQL )
+</div> 
+<div> 
+</div> 
+<div>
+ j = 1
+ <br /> do while not rsCatalog.EOF
+ <br /> i = 2 ^(N - Nm) * j
+ <br /> if Level then i= i + NewFather
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> OldCatalog = rsCatalog(&quot;CatalogID&quot;)
+ <br /> NewCatalog = i
+</div> 
+<div> 
+</div> 
+<div>
+ REM 写入临时表
+ <br /> strSQL = &quot;Insert into TempCatalog (OldCatalogID , NewCatalogID , OldFatherID , NewFatherID)&quot;
+ <br /> strSQL = strSQL &amp; &quot; values(&quot; &amp; OldCatalog &amp; &quot; , &quot; &amp; NewCatalog &amp; &quot; , &quot; &amp; OldFather &amp; &quot; , &quot; &amp; NewFather &amp; &quot;)&quot;
+</div> 
+<div> 
+</div> 
+<div>
+ Conn.Execute strSQL
+</div> 
+<div> 
+</div> 
+<div>
+ REM 递归调用FormatAllID
+ <br /> Nm = Nm + Ni(Level+1) 
+ <br /> FormatAllID oConn,OldCatalog , NewCatalog ,N,Nm,Ni,Level + 1
+</div> 
+<div> 
+</div> 
+<div>
+ rsCatalog.MoveNext
+</div> 
+<div> 
+</div> 
+<div>
+ j = j+1
+ <br /> loop
+</div> 
+<div> 
+</div> 
+<div>
+ rsCatalog.Close
+ <br /> end sub
+ <br /> %&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ 调用这个算法的一个例子如下：
+ <br /> &lt;%
+ <br /> REM 定义编码参数，其中N为总位数，Ni为每一级的位数。
+ <br /> Dim N,Ni(5)
+</div> 
+<div> 
+</div> 
+<div>
+ Ni(1) = 4
+</div> 
+<div> 
+</div> 
+<div>
+ N = Ni(1)
+</div> 
+<div> 
+</div> 
+<div>
+ for i=2 to 5
+ <br /> Ni(i) = 7
+ <br /> N = N + Ni(i)
+ <br /> next
+</div> 
+<div> 
+</div> 
+<div>
+ REM 打开数据库，创建临时表 
+ <br /> strSQL = &quot;Create TempCatalog( [OldID] [int] NOT NULL, [NewID] [int] NOT NULL, [OldFatherID] [int] NOT NULL, [NewFatherID] [int] NOT NULL);&quot;
+ <br /> Set Conn = Server.CreateObject(&quot;ADODB.Connection&quot;) 
+ <br /> Conn.Open Application(&quot;strConn&quot;)
+ <br /> Conn.Execute strSQL
+</div> 
+<div> 
+</div> 
+<div>
+ REM 调用规格化例程
+ <br /> FormatAllID Conn,-1,-1,N,Ni(1),Ni,0
+</div> 
+<div> 
+</div> 
+<div>
+ REM ------------------------------------------------------------------------
+ <br /> REM 在此处更新所有相关表的类别编码为新的编码即可。
+ <br /> REM ------------------------------------------------------------------------
+</div> 
+<div> 
+</div> 
+<div>
+ REM 关闭数据库
+ <br /> strSQL= &quot;drop table TempCatalog;&quot;
+ <br /> Conn.Execute strSQL
+ <br /> Conn.Close
+ <br /> %&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ 第四个问题
+ <br /> 现在我们回头看看第四个问题：怎样得到某个分类下的所有产品。由于采用了位编码，现在问题变得很简单。我们很容易推算：某个产品属于某个类别的条件是Product.FatherID&amp;（Catalog.ID的特征码）=Catalog.ID。其中&quot;&amp;&quot;代表位与算法。这在SQL Server中是直接支持的。
+ <br /> 举例来说：产品所属的类别为：1092787200，而当前类别为1092780032。当前类别对应的特征值为：4294950912，由于1092787200&amp;4294950912=8537400，所以这个产品属于分类8537400。
+ <br /> 我们前面已经给出了计算特征码的公式。特征码并不多，而且很容易计算，可以考虑在Global.asa中Application_OnStart时间触发时计算出来，存放在Application(&quot;Mark&quot;)数组中。
+ <br /> 当然，有了特征码，我们还可以得到更加有效率的算法。我们知道，虽然我们采用了位编码，实际上还是一种顺序编码的方法。表现出第I级的分类编码肯定比第I+1级分类的编码要小。根据这个特点，我们还可以由FID得到两个特征码，其中一个是本级位特征码FID0，一个是上级位特征码FID1。而产品属于某个分类FID的充分必要条件是：
+ <br /> Product.FatherID&gt;FID0 and Product.FatherID&lt;FID1
+ <br /> 下面的程序显示分类FID下的所有产品。由于数据表Product已经对FatherID进行索引，故查询速度极快：
+ <br /> &lt;%
+ <br /> REM oConn---数据库连接，已经打开
+ <br /> REM FID---当前分类
+ <br /> REM FIDMark---特征值数组，典型的情况下为Application(&quot;Mark&quot;)
+ <br /> REM k---数组元素个数，也是分类的级数
+ <br /> Sub GetAllProduct(oConn,FID,FIDMark byref,k)
+ <br /> REM 根据FID计算出特征值FID0,FID1
+ <br /> for i=k to 1
+ <br /> if (FID and FIDMark = FID ) then exit
+ <br /> next
+</div> 
+<div> 
+</div> 
+<div>
+ strSQL = &quot;select Name from Product where FatherID&gt;&quot;FIDMark(i)&amp;&quot; and FatherID&lt;&quot;FIDMark(i-1)
+ <br /> set rsProduct=oConn.Execute(strSQL)%&gt;
+ <br /> &lt;UL&gt;&lt;%
+ <br /> Do While Not rsProduct.Eof%&gt;
+ <br /> &lt;LI&gt;&lt;%=rsProduct(&quot;Name&quot;)
+ <br /> Loop%&gt;
+ <br /> &lt;/UL&gt;&lt;%
+ <br /> rsProduct.Close
+ <br /> End Sub
+ <br /> %&gt;
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

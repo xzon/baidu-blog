@@ -1,0 +1,39 @@
+<html><head><title>我的JNI 高性能程序开发经验：</title></head><body><div id='tit'>我的JNI 高性能程序开发经验：</div><div id='cate'>细节</div><div id='date'>2009年08月25日 星期二 10:36 P.M.</div><div id='page'>35</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/9aa5dff9643cb550252df2af.html'>http://hi.baidu.com/hxzon/blog/item/9aa5dff9643cb550252df2af.html</a><div id='cnt'><p>我的JNI 高性能程序开发经验：</p> 
+<p> </p> 1. 尽可能不要创建global reference和global weak reference. 创建这两类引用的JNI接口NewGlobalReference和NewGlobalWeakReference内部实现
+<br /> 有一个锁。这个锁使得在多处理器上的可扩展性非常差，因为各个线程都在等待这个锁。所以尽量不要在native保存java 对象的引用，情愿在每次
+<br /> JNI call时都带点参数。当然，在native保持java对象的local reference是非常危险的，绝对不能那样干。
+<br /> 
+<br /> 2. 尽量不要使用GetPrimitiveArrayCritical/ReleasePrimitiveArrayCritical来pin住Java内存。JVM本身没有提供任何只pin住一块Java内存而不影
+<br /> 响GC的操作，所以这个操作是会阻止GC进行的。作为补偿，ReleasePrimitiveArrayCritical会产生一次隐式的GC调用。这样就可能出现在需要GC的时
+<br /> 候无法GC，而在不需要GC时进行无意义GC的情况。另外，这两个操作的实现中在某些情况下也可能触发锁。解决方法：如果是小块内存的话，情愿使
+<br /> 用Get&lt;Type&gt;ArrayRegion和Set&lt;Type&gt;ArrayRegion来在native和Java之间复制内存。
+<br /> 
+<br /> 3. 在Java appliation中尽量不要创建phantom reference或者soft reference。这些reference会极大的影响GC。
+<br /> 我们先来谈谈JVM的GC。GC分为minor GC和full GC。Java内存分为young和old两代。在young memory中，每个线程都有自己的内存分配块（不和其它
+<br /> 线程共享），而old memory是由所有线程共享的。minor GC只对young memory作GC，而full GC对所有内存都做GC。minor GC是可以多线程并行进行的
+<br /> ，而full GC默认只能单线程执行。所以，一次full GC需要的时间可以是minor GC是10倍以上（可以用-verbose:gc观察）。所以在一般应用中，
+<br /> minor GC的次数应该是full GC的10倍左右是比较理想的。minor GC会将无法收集的对象移动到old memory中去。
+<br /> 
+<p>minor GC不会对phantom reference和soft reference进行收集，只有full GC才会。这样的问题就是大量的这类对象积聚起来，产生许多的内存复制。</p> 
+<p>这样每次minor GC可能就基本上没有释放多少内存，使得full GC就会被频繁触发。可能出现minor GC和full GC次数1：1的情况，甚至全是full GC。</p> 
+<p>这样，无论是性能还是可扩展性都是非常差的。</p> weak reference的影响好像小一些，但也应该尽量避免。
+<br /> 
+<p> </p> 
+<p>在JNI开发中，使用这3种reference的主要目的是保证native资源的释放。因为java对象的finalize方法是不保证被调用的，所以必须用这些</p> reference来帮助实现native资源释放。为了避免上述的问题，一种可行的方法是将native资源serialize成一块内存，然后放到java对象中保存，从
+<br /> 而避免使用这些reference。
+<br /> 
+<br /> 4. NIO是不错的Java和native之间share memory的方法。但要注意它的性能。首先一定要设置对big endian还是little endian，防止JVM做额外的
+<br /> endian转换动作。其次是在启动JVM时一定要加上-server选项，否则nio性能会非常差。在-server mode下，nio性能大概比java数组慢30%~50%.在-
+<br /> client mode下，性能差1倍以上。
+<br /> 
+<br /> 5. 尽量不要在JNI去new Java String对象。这个比在java层new慢很多。
+<br /> 
+<br /> 6. 对java大对象（比方说数组），一定要仔细的tune他的大小。一般来说，小对象对GC比较友好。因为对象分配时先看每个线程自己的young memory
+<br /> ，如果找的到足够大的内存的话，就分配。否则在old memory中分配。因为old memory是shared，所以可能有锁开销。而且old memory中的对象只有
+<br /> full GC才能释放它。所以对象比较小是比较好的。JVM的内存分配算法是为小对象优化过的，大量小对象的分配是很高效的，所以不用怕把大对象拆小。
+<br /> 在某些情况下，如果知道对象会活的很久的话，就让它大一点，增加它直接分配在old memory中的概率。这样可以节约young GC拷贝这个对象到old 
+<br /> 
+<p>memory中的开销。</p> 
+<p> </p> 
+<p>姜伟华</p> 
+<p>2009/02/10</p></div></body></html>

@@ -1,0 +1,743 @@
+<html><head><title>/*pb.java，有保存和打开功能，没限制后缀名-Java画图实验-swingcode</title></head><body><div id='tit'>/*pb.java，有保存和打开功能，没限制后缀名-Java画图实验-swingcode</div><div id='cate'>代码备份</div><div id='date'>2007年12月09日 星期日 02:45 P.M.</div><div id='page'>189</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3d8e6d6091a26247eaf8f824.html'>http://hi.baidu.com/hxzon/blog/item/3d8e6d6091a26247eaf8f824.html</a><div id='cnt'><div>
+ /*pb.java，有保存和打开功能，没限制后缀名-Java画图实验-swingcode
+ <br /> *
+ <br /> *界面与houyang.java相同,但解决了闪烁问题，增加了存储功能
+ <br /> *但橡皮擦仍然闪烁，而且会显示未擦除前的全部旧图形
+ <br /> *
+ <br /> *画直线，曲线，矩形，椭圆，可调颜色，有橡皮擦功能
+ <br /> *可调画笔粗细
+ <br /> *
+ <br /> *hxz*/
+ <br /> 
+ <br /> //powered by compower
+ <br /> import java.applet.*;
+ <br /> import java.awt.*;
+ <br /> import java.awt.event.*;
+ <br /> import java.util.*;
+ <br /> import javax.swing.*;
+ <br /> import java.awt.geom.*;
+ <br /> import java.io.*;
+</div> 
+<div> 
+</div> 
+<div>
+ class Point implements Serializable
+ <br /> {
+ <br /> int x,y;
+ <br /> Color col;
+ <br /> int tool;
+ <br /> int boarder;
+</div> 
+<div> 
+</div> 
+<div>
+ Point(int x, int y, Color col, int tool, int boarder)
+ <br /> {
+ <br /> this.x = x; 
+ <br /> this.y = y;
+ <br /> this.col = col;
+ <br /> this.tool = tool;
+ <br /> this.boarder = boarder;
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> class paintboard extends Frame implements ActionListener,MouseMotionListener,MouseListener,ItemListener
+ <br /> {
+ <br /> int x = -1, y = -1;
+ <br /> int con = 1;//画笔大小
+ <br /> int Econ = 5;//橡皮大小
+</div> 
+<div> 
+</div> 
+<div>
+ int toolFlag = 0;//toolFlag:工具标记
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //toolFlag工具对应表：
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //（0--画笔）；（1--橡皮）；（2--清除）；
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //（3--直线）；（4--圆）；（5--矩形）；
+</div> 
+<div> 
+</div> 
+<div>
+ Color c = new Color(0,0,0); //画笔颜色
+ <br /> BasicStroke size = new BasicStroke(con,BasicStroke.CAP_BUTT,BasicStroke.JOIN_BEVEL);//画笔粗细
+ <br /> Point cutflag = new Point(-1, -1, c, 6, con);//截断标志
+</div> 
+<div> 
+</div> 
+<div>
+ Vector paintInfo = null;//点信息向量组
+ <br /> int n = 1;
+</div> 
+<div> 
+</div> 
+<div>
+ FileInputStream picIn = null;
+ <br /> FileOutputStream picOut = null;
+ <br /> 
+ <br /> ObjectInputStream VIn = null;
+ <br /> ObjectOutputStream VOut = null;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> // *工具面板--画笔，直线，圆，矩形，多边形,橡皮，清除*/
+ <br /> Panel toolPanel;
+ <br /> Button eraser, drLine,drCircle,drRect;
+ <br /> Button clear ,pen;
+ <br /> Choice ColChoice,SizeChoice,EraserChoice;
+ <br /> Button colchooser;
+ <br /> Label 颜色,大小B,大小E;
+ <br /> //保存功能
+ <br /> Button openPic,savePic;
+ <br /> FileDialog openPicture,savePicture;
+</div> 
+<div> 
+</div> 
+<div>
+ paintboard(String s)
+ <br /> { 
+ <br /> super(s);
+ <br /> addMouseMotionListener(this);
+ <br /> addMouseListener(this);
+</div> 
+<div> 
+</div> 
+<div>
+ paintInfo = new Vector();
+</div> 
+<div> 
+</div> 
+<div>
+ /*各工具按钮及选择项*/
+ <br /> //颜色选择
+ <br /> ColChoice = new Choice();
+ <br /> ColChoice.add(&quot;black&quot;);
+ <br /> ColChoice.add(&quot;red&quot;);
+ <br /> ColChoice.add(&quot;blue&quot;);
+ <br /> ColChoice.add(&quot;green&quot;);
+ <br /> ColChoice.addItemListener(this);
+ <br /> //画笔大小选择
+ <br /> SizeChoice = new Choice();
+ <br /> SizeChoice.add(&quot;1&quot;);
+ <br /> SizeChoice.add(&quot;3&quot;); 
+ <br /> SizeChoice.add(&quot;5&quot;);
+ <br /> SizeChoice.add(&quot;7&quot;);
+ <br /> SizeChoice.add(&quot;9&quot;);
+ <br /> SizeChoice.addItemListener(this);
+ <br /> //橡皮大小选择
+ <br /> EraserChoice = new Choice();
+ <br /> EraserChoice.add(&quot;5&quot;);
+ <br /> EraserChoice.add(&quot;9&quot;);
+ <br /> EraserChoice.add(&quot;13&quot;);
+ <br /> EraserChoice.add(&quot;17&quot;);
+ <br /> EraserChoice.addItemListener(this);
+ <br /> ////////////////////////////////////////////////////
+ <br /> toolPanel = new Panel();
+</div> 
+<div> 
+</div> 
+<div>
+ clear = new Button(&quot;清除&quot;);
+ <br /> eraser = new Button(&quot;橡皮&quot;);
+ <br /> pen = new Button(&quot;画笔&quot;);
+ <br /> drLine = new Button(&quot;画直线&quot;);
+ <br /> drCircle = new Button(&quot;画圆形&quot;);
+ <br /> drRect = new Button(&quot;画矩形&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ openPic = new Button(&quot;打开图画&quot;);
+ <br /> savePic = new Button(&quot;保存图画&quot;);
+ <br /> 
+ <br /> colchooser = new Button(&quot;显示调色板&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ //各组件事件监听
+ <br /> clear.addActionListener(this);
+ <br /> eraser.addActionListener(this);
+ <br /> pen.addActionListener(this);
+ <br /> drLine.addActionListener(this);
+ <br /> drCircle.addActionListener(this);
+ <br /> drRect.addActionListener(this);
+ <br /> openPic.addActionListener(this);
+ <br /> savePic.addActionListener(this);
+ <br /> colchooser.addActionListener(this);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 颜色 = new Label(&quot;画笔颜色&quot;,Label.CENTER);
+ <br /> 大小B = new Label(&quot;画笔大小&quot;,Label.CENTER);
+ <br /> 大小E = new Label(&quot;橡皮大小&quot;,Label.CENTER);
+ <br /> //面板添加组件
+ <br /> toolPanel.add(openPic);
+ <br /> toolPanel.add(savePic);
+ <br /> 
+ <br /> toolPanel.add(pen);
+ <br /> toolPanel.add(drLine);
+ <br /> toolPanel.add(drCircle);
+ <br /> toolPanel.add(drRect);
+</div> 
+<div> 
+</div> 
+<div>
+ toolPanel.add(颜色); toolPanel.add(ColChoice); 
+ <br /> toolPanel.add(大小B); toolPanel.add(SizeChoice);
+ <br /> toolPanel.add(colchooser);
+</div> 
+<div> 
+</div> 
+<div>
+ toolPanel.add(eraser);
+ <br /> toolPanel.add(大小E); toolPanel.add(EraserChoice);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> toolPanel.add(clear);
+ <br /> //工具面板到APPLET面板
+ <br /> add(toolPanel,BorderLayout.NORTH);
+</div> 
+<div> 
+</div> 
+<div>
+ setBounds(60,60,900,600); setVisible(true);
+ <br /> validate();
+ <br /> //dialog for save and load
+</div> 
+<div> 
+</div> 
+<div>
+ openPicture = new FileDialog(this,&quot;打开图画&quot;,FileDialog.LOAD);
+ <br /> openPicture.setVisible(false);
+ <br /> savePicture = new FileDialog(this,&quot;保存图画&quot;,FileDialog.SAVE);
+ <br /> savePicture.setVisible(false);
+</div> 
+<div> 
+</div> 
+<div>
+ openPicture.addWindowListener(new WindowAdapter()
+ <br /> {
+ <br /> &nbsp;&nbsp; public void windowClosing(WindowEvent e)
+ <br /> &nbsp;&nbsp; { openPicture.setVisible(false); }
+ <br /> });
+</div> 
+<div> 
+</div> 
+<div>
+ savePicture.addWindowListener(new WindowAdapter()
+ <br /> {
+ <br /> &nbsp;&nbsp; public void windowClosing(WindowEvent e)
+ <br /> &nbsp;&nbsp; { savePicture.setVisible(false); }
+ <br /> });
+</div> 
+<div> 
+</div> 
+<div>
+ addWindowListener(new WindowAdapter()
+ <br /> {
+ <br /> &nbsp;&nbsp; public void windowClosing(WindowEvent e)
+ <br /> &nbsp;&nbsp; { System.exit(0);}
+ <br /> });
+ <br /> 
+ <br /> 
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void paint(Graphics g)
+ <br /> {
+ <br /> Graphics2D g2d = (Graphics2D)g;
+</div> 
+<div> 
+</div> 
+<div>
+ Point p1,p2;
+</div> 
+<div> 
+</div> 
+<div>
+ n = paintInfo.size();
+ <br /> 
+ <br /> if(toolFlag==2)
+ <br /> &nbsp;&nbsp;&nbsp; g.clearRect(0,0,getSize().width,getSize().height);//清除
+</div> 
+<div> 
+</div> 
+<div>
+ for(int i=0; i&lt;n-1; i++)
+ <br /> {
+ <br /> &nbsp;&nbsp; p1 = (Point)paintInfo.elementAt(i);
+ <br /> &nbsp;&nbsp; p2 = (Point)paintInfo.elementAt(i+1);
+ <br /> &nbsp;&nbsp; size = new BasicStroke(p1.boarder,BasicStroke.CAP_BUTT,BasicStroke.JOIN_BEVEL);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2d.setColor(p1.col);
+ <br /> &nbsp;&nbsp; g2d.setStroke(size);
+</div> 
+<div> 
+</div> 
+<div>
+ if(p1.tool==p2.tool)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp; switch(p1.tool)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; case 0://画笔
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Line2D line1 = new Line2D.Double(p1.x, p1.y, p2.x, p2.y);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2d.draw(line1);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; case 1://橡皮
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.clearRect(p1.x, p1.y, p1.boarder, p1.boarder);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; case 3://画直线
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Line2D line2 = new Line2D.Double(p1.x, p1.y, p2.x, p2.y);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2d.draw(line2);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; case 4://画圆
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ellipse2D ellipse = new Ellipse2D.Double(p1.x, p1.y, Math.abs(p2.x-p1.x) , Math.abs(p2.y-p1.y));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2d.draw(ellipse);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; case 5://画矩形
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Rectangle2D rect = new Rectangle2D.Double(p1.x, p1.y, Math.abs(p2.x-p1.x) , Math.abs(p2.y-p1.y));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g2d.draw(rect);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; case 6://截断，跳过
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; i=i+1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; default :
+ <br /> &nbsp;&nbsp; }//end switch
+ <br /> &nbsp;&nbsp; }//end if
+ <br /> }//end for
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> public void itemStateChanged(ItemEvent e)
+ <br /> {
+ <br /> if(e.getSource()==ColChoice)//预选颜色
+ <br /> {
+ <br /> &nbsp;&nbsp; String name = ColChoice.getSelectedItem();
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; if(name==&quot;black&quot;)
+ <br /> &nbsp;&nbsp; { c = new Color(0,0,0); }
+ <br /> &nbsp;&nbsp; else if(name==&quot;red&quot;)
+ <br /> &nbsp;&nbsp; { c = new Color(255,0,0); }
+ <br /> &nbsp;&nbsp; else if(name==&quot;green&quot;)
+ <br /> &nbsp;&nbsp; { c = new Color(0,255,0); }
+ <br /> &nbsp;&nbsp; else if(name==&quot;blue&quot;)
+ <br /> &nbsp;&nbsp; { c = new Color(0,0,255); }
+ <br /> }
+ <br /> else if(e.getSource()==SizeChoice)//画笔大小
+ <br /> {
+ <br /> &nbsp;&nbsp; String selected = SizeChoice.getSelectedItem();
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; if(selected==&quot;1&quot;)
+ <br /> &nbsp;&nbsp; { 
+ <br /> &nbsp;&nbsp;&nbsp; con = 1; 
+ <br /> &nbsp;&nbsp;&nbsp; size = new BasicStroke(con,BasicStroke.CAP_BUTT,BasicStroke.JOIN_BEVEL);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; else if(selected==&quot;3&quot;)
+ <br /> &nbsp;&nbsp; { 
+ <br /> &nbsp;&nbsp;&nbsp; con = 3; 
+ <br /> &nbsp;&nbsp;&nbsp; size = new BasicStroke(con,BasicStroke.CAP_BUTT,BasicStroke.JOIN_BEVEL);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; else if(selected==&quot;5&quot;)
+ <br /> &nbsp;&nbsp; { con = 5; 
+ <br /> &nbsp;&nbsp;&nbsp; size = new BasicStroke(con,BasicStroke.CAP_BUTT,BasicStroke.JOIN_BEVEL);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; else if(selected==&quot;7&quot;)
+ <br /> &nbsp;&nbsp; { con = 7; 
+ <br /> &nbsp;&nbsp;&nbsp; size = new BasicStroke(con,BasicStroke.CAP_BUTT,BasicStroke.JOIN_BEVEL);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; else if(selected==&quot;9&quot;)
+ <br /> &nbsp;&nbsp; { con = 9; 
+ <br /> &nbsp;&nbsp;&nbsp; size = new BasicStroke(con,BasicStroke.CAP_BUTT,BasicStroke.JOIN_BEVEL);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; }
+ <br /> }
+ <br /> else if(e.getSource()==EraserChoice)//橡皮大小
+ <br /> {
+ <br /> &nbsp;&nbsp; String Esize = EraserChoice.getSelectedItem();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; if(Esize==&quot;5&quot;)
+ <br /> &nbsp;&nbsp; { Econ = 5*2; }
+ <br /> &nbsp;&nbsp; else if(Esize==&quot;9&quot;)
+ <br /> &nbsp;&nbsp; { Econ = 9*2; }
+ <br /> &nbsp;&nbsp; else if(Esize==&quot;13&quot;)
+ <br /> &nbsp;&nbsp; { Econ = 13*2; }
+ <br /> &nbsp;&nbsp; else if(Esize==&quot;17&quot;)
+ <br /> &nbsp;&nbsp; { Econ = 17*3; }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseDragged(MouseEvent e)
+ <br /> {
+ <br /> Point p1 ;
+ <br /> switch(toolFlag){
+ <br /> &nbsp;&nbsp; case 0://画笔
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (int)e.getX(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (int)e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; p1 = new Point(x, y, c, toolFlag, con);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(p1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; case 1://橡皮
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (int)e.getX(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (int)e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; p1 = new Point(x, y, null, toolFlag, Econ);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(p1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; default :
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseMoved(MouseEvent e) {}
+</div> 
+<div> 
+</div> 
+<div>
+ public void update(Graphics g)
+ <br /> {
+ <br /> paint(g);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> public void mousePressed(MouseEvent e) 
+ <br /> { 
+ <br /> Point p2;
+ <br /> switch(toolFlag){
+ <br /> &nbsp;&nbsp; case 3://直线
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (int)e.getX(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (int)e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; p2 = new Point(x, y, c, toolFlag, con);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(p2);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; case 4: //圆
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (int)e.getX(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (int)e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; p2 = new Point(x, y, c, toolFlag, con);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(p2);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; case 5: //矩形
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (int)e.getX(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (int)e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; p2 = new Point(x, y, c, toolFlag, con);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(p2);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; default :
+ <br /> } 
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseReleased(MouseEvent e)
+ <br /> { 
+ <br /> Point p3; 
+ <br /> switch(toolFlag){
+ <br /> &nbsp;&nbsp; case 0: //画笔
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(cutflag);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; case 1: //eraser
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(cutflag);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; case 3: //直线
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (int)e.getX(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (int)e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; p3 = new Point(x, y, c, toolFlag, con);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(p3);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(cutflag);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; case 4: //圆
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (int)e.getX(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (int)e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; p3 = new Point(x, y, c, toolFlag, con);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(p3);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(cutflag);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; case 5: //矩形
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; x = (int)e.getX(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; y = (int)e.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; p3 = new Point(x, y, c, toolFlag, con);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(p3);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; paintInfo.addElement(cutflag);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; break;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; default:
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseEntered(MouseEvent e){}
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseExited(MouseEvent e){}
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseClicked(MouseEvent e){}
+</div> 
+<div> 
+</div> 
+<div>
+ public void actionPerformed(ActionEvent e)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> if(e.getSource()==pen)//画笔
+ <br /> { toolFlag = 0; }
+</div> 
+<div> 
+</div> 
+<div>
+ if(e.getSource()==eraser)//橡皮
+ <br /> { toolFlag = 1; }
+ <br /> 
+ <br /> if(e.getSource()==clear)//清除
+ <br /> {
+ <br /> &nbsp;&nbsp; toolFlag = 2;
+ <br /> &nbsp;&nbsp; paintInfo.removeAllElements();
+ <br /> &nbsp;&nbsp; repaint(); 
+ <br /> }
+ <br /> 
+ <br /> if(e.getSource()==drLine)//画线
+ <br /> { toolFlag = 3; }
+</div> 
+<div> 
+</div> 
+<div>
+ if(e.getSource()==drCircle)//画圆
+ <br /> { toolFlag = 4; }
+</div> 
+<div> 
+</div> 
+<div>
+ if(e.getSource()==drRect)//画矩形
+ <br /> { toolFlag = 5; }
+</div> 
+<div> 
+</div> 
+<div>
+ if(e.getSource()==colchooser)//调色板
+ <br /> {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; Color newColor = JColorChooser.showDialog(this,&quot;调色板&quot;,c);
+ <br /> &nbsp;&nbsp; c = newColor;&nbsp;&nbsp; 
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ if(e.getSource()==openPic)//打开图画
+ <br /> {
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; openPicture.setVisible(true);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; if(openPicture.getFile()!=null)
+ <br /> &nbsp;&nbsp; { 
+ <br /> &nbsp;&nbsp;&nbsp; int tempflag;
+ <br /> &nbsp;&nbsp;&nbsp; tempflag = toolFlag;
+ <br /> &nbsp;&nbsp;&nbsp; toolFlag = 2 ;
+ <br /> &nbsp;&nbsp;&nbsp; repaint();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; try{ 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; paintInfo.removeAllElements();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; File filein = new File(openPicture.getDirectory(),openPicture.getFile());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; picIn = new FileInputStream(filein);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VIn = new ObjectInputStream(picIn);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; paintInfo = (Vector)VIn.readObject();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VIn.close();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; toolFlag = tempflag;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; catch(ClassNotFoundException IOe2)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; toolFlag = tempflag;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;can not read object&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch(IOException IOe) 
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; toolFlag = tempflag;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;can not read file&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ if(e.getSource()==savePic)//保存图画
+ <br /> {
+ <br /> &nbsp;&nbsp; savePicture.setVisible(true);
+ <br /> &nbsp;&nbsp; try{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; File fileout = new File(savePicture.getDirectory(),savePicture.getFile());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; picOut = new FileOutputStream(fileout);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; VOut = new ObjectOutputStream(picOut);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; VOut.writeObject(paintInfo);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; VOut.close();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; catch(IOException IOe) 
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;can not write object&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; 
+ <br /> }
+ <br /> }
+ <br /> }//end paintboard
+</div> 
+<div> 
+</div> 
+<div>
+ public class pb
+ <br /> {
+ <br /> public static void main(String args[])
+ <br /> { new paintboard(&quot;画图程序&quot;); }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

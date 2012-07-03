@@ -1,0 +1,102 @@
+<html><head><title>C#与C++、Java之比较概览（续）</title></head><body><div id='tit'>C#与C++、Java之比较概览（续）</div><div id='cate'>趋势&middot;演变</div><div id='date'>2007年12月19日 星期三 00:32 A.M.</div><div id='page'>183</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b05e0cd102c80cd0572c84a4.html'>http://hi.baidu.com/hxzon/blog/item/b05e0cd102c80cd0572c84a4.html</a><div id='cnt'><p align="center"><span style="font-size: 9pt; font-weight: 700">C#与C++、Java之比较概览（续）</span></p> 
+<p align="left"><span style="font-size: 9pt; font-weight: 700">11.多态</span></p> 
+<p align="left"><span style="font-size: 9pt">面向对象的语言使用虚方法表达多态。这就意味着派生类可以有和父类具有同样签名的方法，并且父类可以调用派生类的方法。在Java中，默认情况下方法就是虚的。在C#中，必须使用virtual关键字才能使方法被父类调用。 </span></p> 
+<p align="left"><span style="font-size: 9pt">在C#中，还需要override关键字以指明一个方法将覆写（或实现一个抽象方法）其父类的方法：</span></p> 
+<p align="left"><span style="font-size: 9pt">class B <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; public virtual void foo () {} <br /> } <br /> <br /> class D : B <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; public override void foo () {} <br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt">试图覆写一个非虚方法将会导致一个编译错误，除非对该方法加上new关键字，以指明该方法意欲隐藏父类的方法。 </span></p> 
+<p align="left"><span style="font-size: 9pt">class N : D <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; public new void foo () {} <br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt">N n = new N (); <br /> n.foo();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008000">&nbsp;&nbsp; // 调用N的foo</font> <br /> ((D)n).foo(); <font color="#008000">&nbsp;&nbsp; // 调用D的foo</font> <br /> ((B)n).foo(); <font color="#008000">&nbsp;&nbsp; // 调用D的foo</font> </span></p> 
+<p align="left"><span style="font-size: 9pt">和C++、Java相比，C#的override关键字使得阅读源代码时可以清晰地看出哪些方法是覆写的。不过，使用虚方法有利有弊。首先，避免使用虚方法可以略微提高 运行速度，其次，可以清楚地知道哪些方法会被覆写。然而，利也可能是弊。相较而言，Java中默认忽略final修饰符，C++中默认忽略virtual修饰符。Java中的默认选项使你的程序略微损失一些效率，而在C++中，它可能妨碍了扩展性，虽然这对基类的实现者来说是不可预料的。</span></p> 
+<p align="left"><span style="font-size: 9pt; font-weight: 700">12.接口</span></p> 
+<p align="left"><span style="font-size: 9pt">C#中的接口和Java中的接口差不多，但有更大的弹性。类可以随意地显式实现某个接口： </span></p> 
+<p align="left"><span style="font-size: 9pt">public interface ITeller <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; void Next (); <br /> } <br /> <br /> public interface IIterator <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; void Next (); <br /> } <br /> <br /> public class Clark : ITeller, IIterator <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; void ITeller.Next () {} <br /> &nbsp;&nbsp;&nbsp;&nbsp; void IIterator.Next () {} <br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt">这给实现接口的类带来了两个好处。其一，一个类可以实现若干接口而不必担心命名冲突问题。其二，如果某方法对一般用户没有用，类能够隐藏该方法。对显式实现的方法的调用，需将对象转型为相应的接口：</span></p> 
+<p align="left"><span style="font-size: 9pt">Clark clark = new Clark(); <br /> ((ITeller)clark).Next(); </span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>13.版本处理</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">解决版本问题已成为.NET框架一个主要考虑，这些考虑的大多数都体现于程序集中。在C#中，可以在同一个进程中运行同一程序集的不同版本，这种能力 给人留下了深刻的印象。</span></p> 
+<p align="left"><span style="font-size: 9pt">当代码的新版本（尤其是.NET库）被创建时，C#可以防止软件失败。C#语言参考中详细地描述了该问题。我用一个例子简要讲解如下： </span></p> 
+<p align="left"><span style="font-size: 9pt">在Java中，假定我们部署一个称为D的类，它是从一个通过VM发布的叫B的类派生下来的。类D有一个叫foo的方法，而它在B发布时，B还没有这个方法。后来，对类B做了升级，B也包括了一个叫foo的方法，新的VM现在安装在使用类D的机器上了。现在，使用D的软件可能会发生故障了，因为类B的新实现可能会导致一个对D的虚函数调用，这就执行了一个类B始料未及的动作<font color="#000080">[译注：因Java中方法 默认是虚的]。</font>在C#中，类D的foo方法应该声明为不用override修饰符的（这真正表达了程序员的意愿），因此，运行时（runtime）知道让类D的foo方法隐藏类B的foo方法，而不是覆写它。</span></p> 
+<p align="left"><span style="font-size: 9pt">在此引用C#参考手册中一句有意思的话：“C#处理版本问题，是通过要求开发人员明确自己的意图而实现的”。尽管使用override是一个表达意图的办法，但编译器也能自动生成 — 通过在编译期检查方法是否在执行（而不是声明）一个覆写。这就意味着，你仍然能够拥有象Java一样的语言（Java不用virtual和override关键字），并且仍然能够正确处理版本问题。</span></p> 
+<p align="left"><span style="font-size: 9pt">参见<strong>字段修饰符</strong>部分 。</span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>14.参数修饰符</strong> </span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>(1)ref参数修饰符</strong> </span></p> 
+<p align="left"><span style="font-size: 9pt">C#（和Java相比）可以让你按引用传递参数。描述这一点的最明显的例子是通用swap方法。不像C++，在C#中，不但在声明时，调用时也要加上ref指示符： </span></p> 
+<p align="left"><span style="font-size: 9pt">public class Test <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; public static void Main () <br /> &nbsp;&nbsp;&nbsp;&nbsp; { <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int a = 1; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int b = 2; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; swap (ref a, ref b); <br /> &nbsp;&nbsp;&nbsp;&nbsp; } <br /> <br /> &nbsp;&nbsp;&nbsp;&nbsp; public static void swap (ref int a, ref int b) <br /> &nbsp;&nbsp;&nbsp;&nbsp; { <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int temp = a; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a = b; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b = temp; <br /> &nbsp;&nbsp;&nbsp;&nbsp; } <br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>(2)out参数修饰符</strong> </span></p> 
+<p align="left"><span style="font-size: 9pt">out关键字是对ref参数修饰符的自然补充。ref修饰符要求参数在传入方法之前必须被赋值，而out修饰符则明确表明当方法返回时需显式给参数赋值。 </span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>(3)params参数修饰符</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">params修饰符可以加在方法的最后的参数上，意思是方法将接受任意数量的指定类型的参数。例如： </span></p> 
+<p align="left"><span style="font-size: 9pt">public class Test<br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; public static void Main () <br /> &nbsp;&nbsp;&nbsp;&nbsp; { <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine (add (1, 2, 3, 4).ToString()); <br /> &nbsp;&nbsp;&nbsp;&nbsp; } <br /> <br /> &nbsp;&nbsp;&nbsp;&nbsp; public static int add (params int[] array) <br /> &nbsp;&nbsp;&nbsp;&nbsp; { <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int sum = 0; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; foreach (int i in array) <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sum += i; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return sum; <br /> &nbsp;&nbsp;&nbsp;&nbsp; } <br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt"><font color="#008080">作者注：在学习Java时，一件非常令人诧异的事情是发现Java不能按引用传递参数，尽管不久以后，你很少再想这个功能，并且写代码时也不需要它了。当我第一次阅读C#规范的时候，我常想，“他们 干吗要加上这个功能，没有它我也能写代码”。经过反思以后，我意识到这其实并不是说明某些功能是否有用的问题，更多是说明了没有它你就另需别的条件才能实现的问题。 <br /> <br /> 当考虑到C++是怎么做的时候，Java是干了件好事，它简化了参数如何传递的问题。在C++中，方法的参数和方法调用通过传值、引用、指针使得代码变得不必要的复杂。C#显式传递引用，不管是方法声明时还是调用时。它大大地减少了混乱</font><font color="#000080">[译注：比方说，在C++中，有时你并不知道你是在使用一个对象还是一个对象引用，本节后有示例]</font><font color="#008080">，并达到了和Java同样的目标，但C#的方式更有表达力。显然这是C#的主旨 — 它不把程序员圈在一个圈里，使他们必须绕一个大弯子才能做成某件事。还记得Java吗？Java指南 对如何解决传递引用的问题建议如下：你应该传递一个具有1个元素的数组以便保存你的值，或者另做一个类以保存这个值。</font><br /> <br /> <font color="#000080">译注：</font></span></p> 
+<p align="left"><span style="font-size: 9pt"><font color="#000080">class ParentCls <br /> { <br /> public: <br /> &nbsp;&nbsp;&nbsp;&nbsp; virtual void f(){printf(&quot;ParentCls\t&quot;);} <br /> }; <br /> <br /> class ChildCls : public ParentCls <br /> { <br /> public: <br /> &nbsp;&nbsp;&nbsp;&nbsp; virtual void f(){printf(&quot;ChildCls\t&quot;);} <br /> <br /> };<br /> <br /> void Test1(ParentCls pc) {pc.f();} <br /> void Test2(ParentCls&amp; pc) {pc.f();} <br /> <br /> int main(int argc, char* argv[]) <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; ChildCls cc; <br /> <br /> &nbsp;&nbsp;</font><font color="#008000">&nbsp;&nbsp; // 只看调用处，我们不知道使用的是引用还是对象，但运行结果迥异！ </font><font color="#000080"><br /> &nbsp;&nbsp;&nbsp;&nbsp; Test1(cc);&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#008000">// 输出ParentCls</font><font color="#000080"> <br /> &nbsp;&nbsp;&nbsp;&nbsp; Test2(cc);&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#008000">// 输出ChildCls</font><font color="#000080"> <br /> &nbsp;&nbsp;&nbsp;&nbsp; return 0; <br /> } </font></span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>15.特性（attribute）</strong> <br /> <br /> C#和Java的编译代码里都包括类似于字段访问级别的信息。C#扩展了这个能力，对类中的任何元素，比如类、方法、字段甚至是独立参数，你都可以编译自定义的信息，并可以于运行时获取这些信息。这儿有一个非常简单的使用特性的类 的例子：</span></p> 
+<p align="left"><span style="font-size: 9pt">[AuthorAttribute (&quot;Ben Albahari&quot;)] <br /> class A <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; [Localizable(true)] <br /> &nbsp;&nbsp;&nbsp;&nbsp; public string Text <br /> &nbsp;&nbsp;&nbsp;&nbsp; { <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; get {return text;} <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008000">//... </font><br /> &nbsp;&nbsp;&nbsp;&nbsp; } <br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt">Java使用一对/** */和@标签注释以包含类和方法的附加信息，但这些信息（除了@deprecated<font color="#000080">[译注：Java1.1版本及以后]</font>）并未build到字节码中。C#使用预定义的特性Obsolete特性，编译器可以警告你，排除废代码（就象@deprecated），并用Conditional特性使得可以 进行条件编译。微软新的XML库使用特性来表达字段如何序列化到XML中，这就意味着你可以很容易地把一个类序列化到XML中，并可以再次重建它。另一个对特性的恰当应用是创建真正有威力的类浏览工具。C#语言规范详尽地解释了怎样创建和使用特性。</span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>16.switch语句</strong> </span></p> 
+<p align="left"><span style="font-size: 9pt">C#中的switch语句可以使用整型、字符、枚举或字符串（C++和Java不可以）。在Java和C++中，如果你在任何一个case语句里忽略了一个break语句，你就有其它case语句被执行的危险。我想不通为什么这个很少需要并容易出错的行为在Java和C++中都成了默认行为，我也很高兴看到C#不是这个样子。 </span></p> 
+<p align="left"><font color="#000080"><span style="font-size: 9pt">译注： C#不允许从一个case标签贯穿到另一个case标签。果真需要如此，可以使用goto case或goto default实现。</span></font></p> 
+<p align="left"><span style="font-size: 9pt"><strong>17.预定义类型</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">C#基本类型基本上和Java的差不多，除了前者还加入了无符号的类型。C#中有sbyte、byte、short、ushort、int、uint、long、ulong、char、float和double。唯一令人感到惊奇的地方是这儿有一个16个字节<font color="#000080">[译注：原文误写为12个字节]</font>的浮点型数值类型decimal，它可以充分利用最新的处理器。</span></p> 
+<p align="left"><font color="#000080"><span style="font-size: 9pt">译注：补充一下，尽管decimal占用128位，但它的取值范围比float（32位）、double（64位）小得多，而其精度则比后两者要高得多，可以满足精度要求很高的财务计算等。</span></font></p> 
+<p align="left"><span style="font-size: 9pt; font-weight: 700">18.字段修饰符 </span></p> 
+<p align="left"><span style="font-size: 9pt">C#中字段修饰符基本上Java相同。为了表示不可被修改的字段，C#使用const和readonly修饰符。const字段修饰符如同Java的final字段修饰符，该字段的实际值被编译成IL代码的一部分。只读字段在运行时计算值。对标准C#库来说，这 允许在不会破坏你已经部署的代码的前提下进行升级。</span></p> 
+<p align="left"><span style="font-size: 9pt; font-weight: 700">19.跳转语句</span></p> 
+<p align="left"><span style="font-size: 9pt">可能除了臭名卓著的goto语句外，这儿没有更多令人惊讶的东西。然而，这和我们 记忆中麻烦多多的20年前basic的goto语句大不相同。一个goto语句必须指向一个标签<font color="#000080">[译注：goto语句必须在该标签的作用域内。只允许使用goto语句将控制权传递出一个嵌套的作用域，而不能将控制权传递进一个嵌套域]</font>或是switch语句里的一个选择支<font color="#000080">[译注：即所谓的goto case语句]</font>。指向标签的用法和continue差不多。Java里的标签自由度大一些<font color="#000080">[译注：Java中的break和continue语句后可跟标签]</font>。在C#中，goto语句可以指向其作用域的任意一个地方，这个作用域是指同一个方法或finally程序块<font color="#000080">[译注：如果goto语句出现在finally语句块内，则goto语句的目的地也必须在同一个finally语句块内]</font>。C#中的continue语句和Java中的基本等价，但在C#中不可以指向一个标签。</span></p> 
+<p align="left"><font color="#000080"><span style="font-size: 9pt">译注：Java把goto作为保留字，但并未实现它。</span></font></p> 
+<p align="left"><span style="font-size: 9pt; font-weight: 700">20.程序集、名字空间和访问级别</span></p> 
+<p align="left"><span style="font-size: 9pt">在C#中，你可以把你源代码中的组件（类、结构、委托和枚举等）组织到文件、名字空间和程序集中。 </span></p> 
+<p align="left"><span style="font-size: 9pt">名字空间不过是长类名的语法上的小蜜糖而已。例如，用不着这么写Genamics.WinForms.Grid，你可以这样声明类Grid并将其包含起来： </span></p> 
+<p align="left"><span style="font-size: 9pt">namespace Genamics.WinForms<br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; public class Grid<br /> &nbsp;&nbsp;&nbsp;&nbsp; { <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008000">//....</font> <br /> &nbsp;&nbsp;&nbsp;&nbsp; }<br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt">对于使用Grid的类，你可以用using关键字导入<font color="#000080">[译注：即using Genamics.WinForms]</font>，而不必用其完整类名字Genamics.WinForms.Grid。 </span></p> 
+<p align="left"><span style="font-size: 9pt">程序集是从项目文件编译出来的exe或dll。.NET运行时使用可配置的特性和版本法则，把它们创建到程序集，这大大简化了部署 ：不需要写注册表，只要把程序集拷到相关目录中去即可。程序集还可以形成一个类型边界，从而解决类名冲突问题。同一程序集的多个版本可以共存于同一进程中。每一个文件都可以包含多个类、多个名字空间。一个名字空间可以横跨若干个程序集。如此以来，系统将可获得更大的自由度。 </span></p> 
+<p align="left"><span style="font-size: 9pt">C#中有五种访问级别：private、internal、protected、internal protected和public。private和public和Java中意思一样。在C#中，没有标明访问级别的就是private，而非包（package）范围的。internal访问被局限在程序集中而不是名字空间（这和Java更相似）中。Internal protected等价于Java的protected。protected等价于Java的private protected，后者已被Java废弃。 </span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>21.指针运算</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">在C#中，指针运算可以使用在被标为unsafe修饰符的方法里。当指针指向一个可被垃圾收集的对象时，编译器强迫你使用fixed关键字将对象固定住，这是因为垃圾收集器是靠移动对象来回收内存的。如果正当你使用原始指针时，它所指的对象却被移动了，那么你的指针将指向垃圾。我认为这儿用unsafe这个关键字是个好的选择 — 它不鼓励开发人员使用指针，除非他们真的想这么做。</span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>22.多维数组</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">C#可以创建交错数组<font color="#000080">[译注：交错数组是元素为数组的数组，其元素的维度和大小可以不同]</font>和多维数组。交错数组和Java的数组非常类似。多维数组使得可以更有效、更准确地表达特定问题。以下是这种数组的一个例子：</span></p> 
+<p align="left"><span style="font-size: 9pt">int [,,] array = new int [3, 4, 5]; <font color="#008000">&nbsp;&nbsp; // 创建一个数组</font> <br /> int [1,1,1] = 5;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008000">&nbsp;&nbsp; // 译注：此行代码有误，应为array[1,1,1] = 5;</font></span></p> 
+<p align="left"><span style="font-size: 9pt">使用交错数组： </span></p> 
+<p align="left"><span style="font-size: 9pt">int [][][] array = new int [3][4][5]; <font color="#008000">// 译注：此行代码有误，应为：int [][][] array = new int[3][][];</font><br /> int [1][1][1] = 5;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#008000">// 译注：此行代码有误，应为array[1][1][1] = 5;</font></span></p> 
+<p align="left"><span style="font-size: 9pt">若和结构联合使用，C#提供的高效率使得数组成为图形和数学领域的一个好的选择。 </span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>23.构造器和析构器</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">你可以指定可选的构造器参数： </span></p> 
+<p align="left"><span style="font-size: 9pt">class Test <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; public Test() : this (0, null) {} <br /> &nbsp;&nbsp;&nbsp;&nbsp; public Test(int x, object o) {} <br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt">你也可以指定静态构造器： </span></p> 
+<p align="left"><span style="font-size: 9pt">class Test <br /> { <br /> &nbsp;&nbsp;&nbsp;&nbsp; static int[] ascendingArray = new int [100]; <br /> &nbsp;&nbsp;&nbsp;&nbsp; static Test() <br /> &nbsp;&nbsp;&nbsp;&nbsp; { <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (int i = 0; i &lt; ascendingArray.Length; i++) <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ascendingArray [i] = i; <br /> &nbsp;&nbsp;&nbsp;&nbsp; } <br /> } </span></p> 
+<p align="left"><span style="font-size: 9pt">析构器的命名采用C++的命名约定，使用~符号。析构器只能应用于引用类型，值类型不可以，并且不可被重载。析构器不可被显式调用，这是因为对象的生命期被垃圾收集器所管制。在对象占用的内存被回收前，对象继承层次中的每一个析构器都会被调用。 </span></p> 
+<p align="left"><span style="font-size: 9pt">尽管和C++的命名相似，但C#中的析构器更象Java中的finalize方法。这是因为它们都是被垃圾收集器调用而不是显式地被程序员调用。而且，就象Java的finalize，它们不能保证在各种情况下都肯定被调用（这常常使第一次发现这一点的每一个人都感到震惊）。如果你已习惯于采用确定性的析构编程模式 （你知道什么时候对象的析构器被调用），那么，当你转移到Java或C#时，你必须适应这种不同的编程模型。微软推荐的和实现的、贯穿于整个.NET框架的是Dipose模式。你要为那些需要管理的外部资源（如图形句柄或数据库连接）的类定义一个Dispose()方法。对于分布式编程，.NET框架提供一个约定的基本模型，以改进DCOM的引用计数问题。</span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>24. 托管运行环境</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">对[C#/IL码/CLR]和[Java/字节码/JVM]进行比较是不可避免的也是正当的。我想，最好的办法是首先搞清楚为什么会创造出这些技术来。 </span></p> 
+<p align="left"><span style="font-size: 9pt">用C和C++写程序，一般是把源代码编译成汇编语言代码<font color="#000080">[译注：应该是机器码]</font>，它只能运行在特定的处理器和特定的操作系统上。编译器需要知道目标处理器，因为不同的处理器指令集不同。编译器也要知道目标操作系统，因为不同的操作系统关于如何执行工作以及怎样实现象内存分配等基本C/C++概念不同。C/C++这种模型获得了巨大的成功（你所使用的大多数软件可能都是这样编译的），但也有其局限性：</span></p> 
+<ul> 
+ <li> <p align="left"><span style="font-size: 9pt">程序无丰富的接口以和其它程序进行交互（微软的COM就是为了克服这个限制而创建的）</span></p> </li> 
+ <li> <p align="left"><span style="font-size: 9pt">程序不能以跨平台的形式分发</span></p> </li> 
+ <li> <p align="left"><span style="font-size: 9pt">不能将程序限制在一个安全操作的沙箱中运行</span></p> </li> 
+</ul> 
+<p align="left"><span style="font-size: 9pt">为了解决这些问题，Java使用了Smalltalk采用过的方式，即编译成字节码，运行在虚拟机里。在被编译前，字节码维持程序的基本结构。这就使得Java程序和其它程序进行各种交互成为可能。字节码也是机器中立的，这也意味着同样的class文件可以运行于不同的平台。最后，Java语言没有显式内存操作（通过指针）的事实使得它很适合于编写“沙箱程序”。 </span></p> 
+<p align="left"><span style="font-size: 9pt">最初的虚拟机利用解释器来把字节码指令流转换为机器码，但这个过程慢得可怕，以致于对那些关注性能的程序员来说从来都没有吸引力。如今，绝大多数JVM都利用JIT编译器，在进入类框架范围之前和方法体执行之前，基本编译成机器码。在它运行前，还可以将Java程序转换为汇编语言，可以避免启动时间和即时编译的内存负担。和编译Visual C++程序相比，这个过程并不需要移去程序对运行时的依赖。Java运行时（这个术语隐藏在术语Java虚拟机下之下）将处理关于程序运行的很多至关重要的方面，比如垃圾收集和安全管理。运行时也被认为是托管运行环境。 </span></p> 
+<p align="left"><span style="font-size: 9pt">尽管术语有点含糊不清，尽管从不用解释器，但.NET基本模型也是使用如上所述方式。.NET重要的改进将来自于IL自身设计的改进。Java可以匹敌的唯一方式是修改字节码规范以达到严格的兼容。我不想讨论这些改进的细节，这应该留给那些极个别既了解字节码也了解IL码的开发人员去讨论。99%的像我这样的开发人员都不打算去研究IL代码规范，这儿列出了一些意欲改进字节码的IL设计决策： </span></p> 
+<ul> 
+ <li> <p align="left"><span style="font-size: 9pt">提供更好的类型中立（有助于实现模板）</span></p> </li> 
+ <li> <p align="left"><span style="font-size: 9pt">提供更好的语言中立</span></p> </li> 
+ <li> <p align="left"><span style="font-size: 9pt">运行前永远都编译成汇编语言，从不解释</span></p> </li> 
+ <li> <p align="left"><span style="font-size: 9pt">能够向类、方法等加入附加的声明性信息。参见<strong>15.特性</strong></span></p> </li> 
+</ul> 
+<p align="left"><span style="font-size: 9pt">目前，CLR还提供多操作系统支持，在其它领域还提供了对JVM更好的互操作支持。参见<strong>26.互操作能力</strong>。</span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>25.库</strong> </span></p> 
+<p align="left"><span style="font-size: 9pt">如果没有库，语言是没什么用的。C#以没有核心库著称，但它利用了.NET框架库（它们中的一些就是用C#创建的）。本文着重于讲述C#语言的特别之处，而不是.NET的 — 那应该另文说明。简单地说，.NET库包括丰富的线程、集合、XML、ADO+、ASP+、GDI+以及WinForm库<font color="#000080">[译注：现在这些+多已变成了.NET]</font>。有些库是跨平台的，有些则依赖于Windows，请阅读下一 节关于平台支持的讨论。</span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>26.互操作能力</strong> </span></p> 
+<p align="left"><span style="font-size: 9pt">我认为把互操作分成三个部份论述是比较合适的：语言互操作、平台互操作和标准互操作。Java长于平台互操作，C#长于语言互操作。而在标准互操作方面，二者都各有长短。</span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>(1)语言互操作</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">和其它语言集成能力只存在集成度和难易程度的区别。JVM和CLR都允许你使用多种语言编写代码，只要 将其编译成字节码或IL码即可。然而，.NET平台做了大量的工作 — 不仅仅能够把其它语言代码编译成IL码，它还使得多种语言可以自由共享和扩展彼此的库。例如，Eiffel或Visual Basic程序员可以导入C#类，覆写其虚方法；C#对象也可以使用Visual Basic方法（多态）。如果你怀疑的话，VB.NET已经被大幅升级，它已具有现代面向对象特性（当然付出了和VB6兼容性的损失）。 </span></p> 
+<p align="left"><span style="font-size: 9pt">第三方.NET语言通常可被插入Visual Studio.NET环境中，假如需要的话，可以使用同样的RAD框架。这就克服了使用其它语言的是“二等公民”的印象。 </span></p> 
+<p align="left"><span style="font-size: 9pt">C#提供了P/Invoke<font color="#000080">[译注：Platform Invocation Service，平台调用服务]</font>，这比Java的JNI和C代码交互起来要简单得多（不需要dll）。这个特性很象J/direct，后者是微软Visual J++的一个特性。</span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>(2)平台互操作</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">一般而言，这意味着操作系统互操作，但在过去的几年里，IE自身已经越来越象个平台了。 </span></p> 
+<p align="left"><span style="font-size: 9pt">C#代码运行在一个托管运行环境里。这是使C#能够运行在不同操作系统之上的重要一步。然而，一些.NET库是基于Windows的，特别是WinForms库，它依赖于多如牛毛的Windows API。有个从Windows API移植到Unix系统项目，但目前还没有启动，而且微软也没有明确暗示要这么做。 </span></p> 
+<p align="left"><span style="font-size: 9pt">然而，微软并没有忽视平台互操作。.NET库提供了编写HTML/DHTML解决方案的扩展能力。对于可以用HTML/DHTML来实现的客户端来说，C#/.NET是个不错的选择。对于跨平台的需要更为复杂的客户界面的项目而言，Java是个好的选择。Kylix — Delphi的一个版本，允许同样的代码既可以在Windows上也可以在Linux上编译，或许将来也会成为跨平台解决方案的一个好选择。 </span></p> 
+<p align="left"><span style="font-size: 9pt"><strong>(3)标准互操作</strong></span></p> 
+<p align="left"><span style="font-size: 9pt">几乎所有标准，例如数据库系统、图形库、internet协议和对象通讯标准如COM和CORBA，都可以经由C#访问。由于微软在制订其中大多数标准 方面拥有权力或发挥了很大的作用，因此他们对这些标准的支持处于一个很有利的位置。微软当然会因为商业上的动机（我没有说他们是否公正）而对和他们竞争的东西（比如CORBA — COM的竞争对手，以及OpenGL — DirectX的竞争对手）提供较少的标准支持。类似地，Sun的商业动机（再一次，我没有说他们是否公正）意味着Java也不会尽其所能地支持微软的标准。 </span></p> 
+<p align="left"><span style="font-size: 9pt">由于C#对象被实现为.NET对象，因此它可以自动暴露为COM对象，这样，C#就既可以暴露COM对象也可以使用COM对象，从而我们可以将COM代码和C#项目集成起来。.NET是一个有能力最终替代COM的框架，但是，已经有那么多已部署的COM组件，我相信，不等.NET取代掉COM，它就被下一波技术取代了。但无论如何，我们希望.NET能有一个长久而有趣的历史！</span></p> 
+<p align="left"><span style="font-size: 9pt; font-weight: 700">27.结论</span></p> 
+<p align="left"><span style="font-size: 9pt">至此，我希望已为你展示了C#与Java、C++概念上的比较。总的来说，比起Java，我认为C#提供了更好的表达力并且更适于编写性能要求严格的代码，而且它同样具有Java的优雅和简单，这也是它们比C++更具吸引力之处。</span></p></div></body></html>

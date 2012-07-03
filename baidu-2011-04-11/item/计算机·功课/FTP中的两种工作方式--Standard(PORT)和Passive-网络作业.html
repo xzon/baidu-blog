@@ -1,0 +1,69 @@
+<html><head><title>FTP中的两种工作方式--Standard(PORT)和Passive-网络作业</title></head><body><div id='tit'>FTP中的两种工作方式--Standard(PORT)和Passive-网络作业</div><div id='cate'>计算机&middot;功课</div><div id='date'>2007年11月15日 星期四 01:37 A.M.</div><div id='page'>201</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/d49aef24157101024d088df3.html'>http://hi.baidu.com/hxzon/blog/item/d49aef24157101024d088df3.html</a><div id='cnt'><div>
+ FTP中的两种工作方式--Standard(PORT)和Passive-网络作业 
+ <br /> 作者：momo 电子信箱：
+ <a href="mailto:momo@371.net">momo@371.net</a>
+</div> 
+<div> 
+</div> 
+<div>
+ 下面的文章介绍了FTP的两种模式和在实际工作中的一些注意事项和使用技巧，希望对大家有所帮助，并和大家一起来探讨、交流。 
+ <br /> FTP是一种文件传输协议，它支持两种模式,一种方式叫做Standard (也就是 Active,主动方式),一种是 Passive (也就是PASV,被动方式)。 Standard模式 FTP的客户端发送 PORT 命令到FTP server。Passive 
+ <br /> 模式FTP的客户端发送 PASV命令到 FTP Server。
+</div> 
+<div> 
+</div> 
+<div>
+ 下面介绍一个这两种方式的工作原理: 
+ <br /> Standard模式FTP 客户端首先和FTP Server的TCP 21端口建立连接，通过这个通道发送命令，客户端需要接收数据的时候在这个通道上发送PORT命令。 PORT命令包含了客户端用什么端口接收数据。在传送数据的时候，服务器端通过自己的TCP 20端口发送数据。 FTP server必须和客户端建立一个新的连接用来传送数据。
+</div> 
+<div> 
+</div> 
+<div>
+ Passive模式在建立控制通道的时候和Standard模式类似，当客户端通过这个通道发送PASV 命令的时候，FTP server打开一个位于1024和5000之间的随机端口并且通知客户端在这个端口上传送数据的请求， 
+ <br /> 然后FTP server 将通过这个端口进行数据的传送，这个时候FTP server不再需要建立一个新的和客户端之间的连接。
+</div> 
+<div> 
+</div> 
+<div>
+ 现在的FTP软件里面包括在IE5以上的版本里面也已经支持这两种模式了。一般一些FTP客户端的软件就比较好设置了，一般都有一个PASV的选项，比如CuteFTP，传输的方式都有Standard和PASV的选项，可以自己进行选择；另外在IE里面如果要设置成PASV模式的话可以选中工具－Internet选项－高级－为FTP站点启用文件夹视图，否则就采用Standard模式。
+</div> 
+<div> 
+</div> 
+<div>
+ 很多防火墙在设置的时候都是不允许接受外部发起的连接的，所以FTP的Standard模式在许多时候在内部网络的机器通过防火墙出去的时候受到了限制，因为从服务器的TCP 20无法和内部网络的客户端建立一个新的连接，造成无法工作。当然也可以设置成功，首先要创建一条规则就是允许内部的IP连接外部的IP的21端口；第二条就是禁止外部IP的TCP 20端口连接内部IP的&lt;1024的端口，这条是为了防止外部连接内部的常规端口；第三条验证ACK是否等于1，这个的原理就参见TCP建立连接的三次握手吧。所以如果安全的配置的话非常困难，这个时候就想起来了PASV模式，因为不用建立新的连接，所以也就不会涉及到后面的问题了。
+</div> 
+<div> 
+</div> 
+<div>
+ 但是管理员可能不想使用PASV模式，因为这个时候FTP Server会开放一个随机的高端口，尽管在IIS4和IIS5里面端口的范围是1024－5000，但是许多FTP Server的端口范围达到了1024－65535，这个时候在这个主动开放的随机端口上是有完全的访问权限的，如果IIS也要设置成开放的端口为1024－65535， 具体方法如下： 
+ <br /> 1. regedt32 
+ <br /> 2. 找到HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters 
+ <br /> 3. 编辑－添加－数值 
+ <br /> value Name: MaxUserPort Data Type: REG_DWORD value: 65534
+</div> 
+<div> 
+</div> 
+<div>
+ 所以如果遇到了有防火墙的话或者怕配置麻烦的话还是采用PASV模式比较好些，但是如果真的对安全的需求很高的话建议采用Standard模式。
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> ===========================================
+ <br /> 也许在设计FTP协议的时候，还没有防火墙的概念，或者IP数量还没有到不够用，总之，FTP协议对防火墙墙的支持很不好。
+</div> 
+<div> 
+</div> 
+<div>
+ 最近因为一个实际的问题，赶紧去查了一下资料，才发现，原来FTP的传输有两种方式。当登陆，认证之后，就要传输数据了，这时可以使用PORT命令或者是PASV，其中PORT表示客户端开个端口由服务起来连，PASV则表示服务器开个端口由客户端来连。这样工作得很好，如果没有NAT路由器之类的。但加了防火墙就麻烦了，如果没有设置端口映射，那么连接只能从防火墙内发起。也就是说，如果客户端在防火墙内，那么只能用PASV命令，如果服务器在防火墙内，那么只能用PORT命令，如果两个都在防火墙内，那就麻烦了。
+</div> 
+<div> 
+</div> 
+<div>
+ 然而我不知道为什么FTP在设计的时候，用来传输数据的目的端口可以变换的。不过好在现在的无论是客户端还是服务器，比如CuteFtp或者是Serv-U都可以指定一个范围内的端口。此外，对于支持UPnp的NAT路由器，它们也可以自动打开那个端口的映射。
+ <br /> ===========================================
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

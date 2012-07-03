@@ -1,0 +1,58 @@
+<html><head><title>探讨struts,ajax乱码解决方案</title></head><body><div id='tit'>探讨struts,ajax乱码解决方案</div><div id='cate'>出错&middot;经验</div><div id='date'>2008年07月20日 星期日 02:00 A.M.</div><div id='page'>113</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/78b68101e37d8cd0267fb5c3.html'>http://hi.baidu.com/hxzon/blog/item/78b68101e37d8cd0267fb5c3.html</a><div id='cnt'><div>
+ <font size="3">探讨struts,ajax乱码解决方案</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">乱码问题好像跟我们中国程序员特别有缘，一直困扰着我们，从开始的JSP乱码问题，STRUTS乱码问题，到现在的AJAX乱码问题，无一不是搞得许多程序员焦头烂额的，整天骂XXX产品对中文支持不了，UTF-8无法使用中文啊什么的，其实这里面被骂的产品中其实99％以上是对中文支持非常好的，而出现乱码的原因只是因为自身对国际化支持以及文件编码等信息的认识不知造成的。要知道一个产品那么流行，怎么可能对中文支持不了呢，下面就开始一一帮大家解决这些问题。 <br /> 1 、编码 －－ 想要解决好中文问题，对编码肯定是不能一概不懂了，编码是解决中文乱码问题的根本。 编码比较常用的有： UTF-8 ， GBK ， GB2312 ， ISO-8859-1 ，除了 iso-8859-1 之外的其它三个编码都能很好的支持中文，但它们都兼容 ISO-8859-1 的编码（就是说无论编码怎么改变,只要是ISO-8859-1中的字符，永远不会出现乱码）。 这四种编码中， GB2312 是中国规定的汉字编码，也可以说是简体中文的字符集编码 ; GBK 是 GB2312 的扩展 , 除了兼容 GB2312 外，它还能显示繁体中文，还有日文的假名 ; 而 UTF-8 虽然也支持中文，但却与GB码不兼容（编码值不同)。 UTF-8 使用的是可变长的UNICODE编码，编码可能是1位16进制（即 ISO-8859-1中的字符，其编码也是相同的）也有可能是2位或3位的16进制。 </font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">UTF-8 的优点是： 1 、与CPU字节顺序无关,可以在不同平台之间交流。 2 、容错能力高,任何一个字节损坏后,最多只会导致一个编码码位损失 , 不会链锁错误 ( 如 GB 码错一个字节就会整行乱码 ) ，所以在国际化处理中基本都是建议使用 UTF-8 作为编码。 </font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">2、文件的编码 虽然说只要设置了正确的编码就可以使字符正确显示了，但如果忽略了文件保存时的编码的话，那可是会让你走进迷雾中的。 文件编码最常使用的有两种：ANSI和UTF-8，光看名字估计你都可以猜到了，ANSI就是我们保存文件时使用的默认编码，而UTF-8则需自己设置。对于编码的改变，我使用的工具是NOTEPAD和ECLIPSE，NOTEPAD使用最简单，只要打开文件后在另存为中选择相应的编码就行了，而且它对编码的支持非常好;而在ECLIPSE中，只要稍微设置一下就行了，打开首选项，然后选择：常规-&gt;内容类型(ContentType)，在右边选中你想改变保存编码的文件类型，然后在下方的缺省编码中改变其值，最后点击更新（UPDATE）按钮即可。 而在其它的编辑器中，默认保存的内容都是GB2312或者GBK（NOTEPAD中对应ANSI）.而根据前面所说的UTF-8和GBK,GB2312等的编码值是不同的这一点，可以知道，如果文件使用了UTF-8，那么字符编码就必须使用UTF-8，否则编码值的不同就可能造成乱码。而这也就是为什么那么多的人使用了UTF-8编码后还会产生乱码的根本原因。（JS和JSP都是这个道理） </font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">3、JSP,STRUTS等的中文乱码解决方案 其实解决的方法只有一个： request.setCharacterEncoding(encoding); 方法只有一种，但处理方式就多种多样了，初学者会在JSP页面上直接使用，而有经验的程序员会使用过滤器。而现在所要说的方法也是过滤器。这里以统一使用UTF-8作为编码作为例子说明。具体过程就不多说了，网上有很多教程。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">偷懒一点的，到TOMCAT中复制就行了。在TOMCAT的目录下的webappsjsp-examplesWEB-INFclassesfilters找到SetCharacterEncodingFilter.java 这个类，放到你的程序中并配置好映射路径。配置好后基本上你的乱码问题就解决了。但要映射路径中需要注意的就是不能使用 * &lt; filter-mapping &gt; &lt; filter-name &gt; Set Character Encoding &lt; servlet-name &gt; * 像上面这样配置的话(可能也是网上大多教程的做法，想当年也是害苦了我)，可能你只有JSP的乱码解决了，要解决STRUTS的乱码需要映射 *.do 或者 servletActionName。然后在初始化参数中设置encoding的值就行了。 &lt; init-param &gt; &lt; param-name &gt; encoding &lt; param-value &gt; UTF-8 当然，最重要的是要记得根据前面所说的方法，改变你所使用的编辑器保存文件的编码要与使用的字符编码一致。 而在JSP内容中，还是使用如网上教程所说的那种技俩，在所有页面的页首加入： 至此，相信JSP,ACTION都不太可能出现乱码了。 </font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">4、资源文件的乱码解决方案 资源文件谁都知道是国际化支持不可或缺的一部分，如果资源文件都出现乱码了那还了得？其实资源文件的乱码是很好解决的，其原因也是因为使用了UTF-8做为JSP编码后，没有相应地改变资源文件的文件编码造成的，所以只要对资源文件保存的编码进行更正后，乱码问题也就解决了。当然，你的中文要使用 native2ascii 命令进行正确的转换。 </font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">5、调用JS时，JS内容乱码的解决方案。 其实JS的乱码还是跟文件的编码有关系的，如果JS中有中文的话，那JS文件保存的编码就必须跟调用此JS的页面编码相同，否则，你的所有中文都要从JSP页面传给JS才会显示正常。可以看出对于调用JS出现的乱码是最容易解决的（也是建立在前面的辛苦之下的）。 </font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">6、AJAX提交数据乱码，返回数据乱码的解决方案 随着AJAX的流行，乱码问题也开始困扰着许多刚开始使用它的程序员，幸好我之前对JSP乱码有过一点研究，在遇到AJAX后，并没有给我带来多大的困扰，在此将我的一些心得共享给大家。 万变不离其宗，AJAX的乱码问题自然跟编码有关了，其实很多人跟我一样想到了对文件编码进行设置，并且在接数据时设置了requet的编码，在返回的数据时设置了response的编码一切都以为会很顺利，可是这一切都是徒劳无功的，讨厌的乱码再一次出现在你眼前。在你试了N多种方法，包括JS自身的escape,unescape方法后，你发现乱码仍然猖狂地出现在屏幕上。 </font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">其实在试过这N多方法后，很多人都没发现，解决的方法其实很简单，而且其答案就在我们之前处理的JSP乱码之中。让我们先看一下AJAX的经典请求代码 xmlhttp.open( &quot;post&quot;, url, async ); xmlhttp.setRequestHeader( &quot;Content-Type&quot;, &quot;text/html&quot; ); xmlhttp.send( params ); 通过前面的说明，不知道你现在看出端倪了没有。不知道是受了网上教程的影响还是其它方面影响，setRequestHeader并是万年不变的，也没人想过去改它，而问题就正好出在这个地方。回想一个JSP页面内容的编码设置，其中有这么一节： contentType=&quot;text/html; charset=UTF-8&quot; 现在知道问题了吧，<br /> 所以我们要把第二句代码改为： xmlhttp.setRequestHeader( &quot;Content-Type&quot;, &quot;text/html;charset=UTF-8&quot; ); 最后别忘了在返回数据时也设置上： response.setContentType( &quot;text/xml&quot; ); response.setCharacterEncoding( &quot;UTF-8&quot; ); 是不是很简单，一点都不麻烦呢？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">如果要问为什么的话，其实我们可以把xmlhttp看成是一个临时页面，它由浏览器动态生成，主要作用是在后台获得请求的数据（可以看成是一个高级的iframe）。所以对于普通页面设置的编码，对它也要同样设置。而在servlet中返回数据为什么要设置contentType和encoding其道理也是一样的。众所周知，jsp的最后形态就是servlet，而jsp页首设置的那个内容其实也就是让生成的servlet中生成这么两句话： response.setContentType( &quot;text/html&quot; ); response.setCharacterEncoding( &quot;UTF-8&quot; ); 而pageEncoding则是跟jvm说明了这个页面的内容要使用什么编码保存（这跟之后生成的CLASS有关系）。所以在servlet设置response的编码也是理所当然的了。 </font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3"><br /> </font>
+</div></div></body></html>

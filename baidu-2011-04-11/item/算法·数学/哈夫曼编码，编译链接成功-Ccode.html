@@ -1,0 +1,115 @@
+<html><head><title>哈夫曼编码，编译链接成功-Ccode</title></head><body><div id='tit'>哈夫曼编码，编译链接成功-Ccode</div><div id='cate'>算法&middot;数学</div><div id='date'>2007年12月31日 星期一 10:21 A.M.</div><div id='page'>178</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5497fedc3115a6a5cd1166a0.html'>http://hi.baidu.com/hxzon/blog/item/5497fedc3115a6a5cd1166a0.html</a><div id='cnt'>#include &lt;string.h&gt; 
+<br /> #include &lt;stdio.h&gt; 
+<br /> #include &lt;stdlib.h&gt; 
+<br /> #define n 6 
+<br /> #define m 2*n-1 
+<br /> typedef struct 
+<br /> { float weight; 
+<br /> int lchild,rchild,parent; 
+<br /> }codenode; 
+<br /> typedef codenode huffmantree[m]; 
+<br /> typedef struct 
+<br /> { char ch; 
+<br /> char bits[n+1]; 
+<br /> }code; 
+<br /> typedef code huffmancode[n]; 
+<br /> void inithf(huffmantree T)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //－哈夫曼树的初始化 
+<br /> { int i; 
+<br /> for(i=0;i&lt;m;i++) 
+<br /> { T[i].weight=0; 
+<br /> &nbsp;&nbsp;&nbsp; T[i].parent=-1; 
+<br /> &nbsp;&nbsp;&nbsp; T[i].lchild=-1; 
+<br /> &nbsp;&nbsp;&nbsp; T[i].rchild=-1; 
+<br /> } 
+<br /> } 
+<br /> void inputhf(huffmantree T)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //－输入哈夫曼树的树据 
+<br /> { int i;float k; 
+<br /> for(i=0;i&lt;n;i++) 
+<br /> { scanf(&quot;%f&quot;,&amp;k); 
+<br /> &nbsp;&nbsp;&nbsp; T[i].weight=k; 
+<br /> } 
+<br /> } 
+<br /> void selectmin(huffmantree T,int k,int *p1,int *p2) 
+<br /> { int i;float small1=10000,small2=10000; 
+<br /> for(i=0;i&lt;=k;i++) 
+<br /> { if(T[i].parent==-1) 
+<br /> if(T[i].weight&lt;small1) 
+<br /> { small2=small1; 
+<br /> &nbsp;&nbsp;&nbsp; small1=T[i].weight; 
+<br /> &nbsp;&nbsp;&nbsp; *p2=*p1; 
+<br /> &nbsp;&nbsp;&nbsp; *p1=i; 
+<br /> } 
+<br /> else 
+<br /> &nbsp;&nbsp; if(T[i].weight&lt;small2) 
+<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; { small2=T[i].weight; 
+<br /> *p2=i; 
+<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } 
+<br /> } 
+<br /> } 
+<br /> void creathftree(huffmantree T)&nbsp;&nbsp;&nbsp; //－建哈夫曼树 
+<br /> { int i,p1,p2; 
+<br /> inithf(T); 
+<br /> inputhf(T); 
+<br /> for(i=n;i&lt;m;i++) 
+<br /> { selectmin(T,i-1,&amp;p1,&amp;p2); 
+<br /> &nbsp;&nbsp;&nbsp; T[p1].parent=T[p2].parent=i; 
+<br /> &nbsp;&nbsp;&nbsp; T[i].lchild=p1; 
+<br /> &nbsp;&nbsp;&nbsp; T[i].rchild=p2; 
+<br /> &nbsp;&nbsp;&nbsp; T[i].weight=T[p1].weight+T[p2].weight; 
+<br /> } 
+<br /> } 
+<br /> void creathfcode(huffmantree T, huffmancode H) //－哈夫曼编码表 
+<br /> { int i,c,p,start;char cd[n+1]; 
+<br /> cd[n]='\0'; 
+<br /> for(i=0;i&lt;n;i++) 
+<br /> { H[i].ch=getchar(); 
+<br /> &nbsp;&nbsp;&nbsp; start=n; 
+<br /> &nbsp;&nbsp;&nbsp; c=i; 
+<br /> &nbsp;&nbsp;&nbsp; while((p=T[c].parent)&gt;=0) 
+<br /> &nbsp;&nbsp;&nbsp;&nbsp; { 
+<br /> cd[--start]=(T[p].lchild==c)?'0':'1'; 
+<br /> c=p; 
+<br /> &nbsp;&nbsp;&nbsp;&nbsp; } 
+<br /> &nbsp;&nbsp;&nbsp; strcpy(H[i].bits,&amp;cd[start]); 
+<br /> } 
+<br /> } 
+<br /> void zip(huffmancode H,char *ch,char *s)&nbsp;&nbsp;&nbsp; //－编码 
+<br /> { int j=0;char *p[n]; unsigned int i;
+<br /> for(i=0;i&lt;strlen(ch);i++) 
+<br /> &nbsp;&nbsp; { while(ch[i]!=H[j].ch) j++; 
+<br /> &nbsp;&nbsp;&nbsp;&nbsp; p[i]=H[j].bits; 
+<br /> &nbsp;&nbsp; } 
+<br /> strcpy(s,p[0]); 
+<br /> for(i=1;i&lt;n;i++) 
+<br /> &nbsp;&nbsp;&nbsp; strcat(s,p[i]); 
+<br /> puts(s); 
+<br /> } 
+<br /> void uzip(huffmancode H,char *s,huffmantree T) //－解码 
+<br /> { int j=0,p;
+<br /> unsigned int i; 
+<br /> char ch[n+1]; 
+<br /> while(i&lt;strlen(s)) 
+<br /> { p=m-1; 
+<br /> &nbsp;&nbsp;&nbsp; while(T[p].lchild!=-1) 
+<br /> &nbsp;&nbsp;&nbsp;&nbsp; { if(s[ i ]=='0') 
+<br /> { p=T[p].lchild;i++;} 
+<br /> else 
+<br /> { p=T[p].rchild;i++;} 
+<br /> &nbsp;&nbsp;&nbsp;&nbsp; } 
+<br /> &nbsp;&nbsp;&nbsp; ch[j]=H[p].ch; 
+<br /> &nbsp;&nbsp;&nbsp; j++; 
+<br /> } 
+<br /> ch[j]='\0'; 
+<br /> puts(ch); 
+<br /> } 
+<br /> main() 
+<br /> { char ch[]=&quot;abcdef&quot;, s[36]; 
+<br /> huffmantree T; 
+<br /> huffmancode H; 
+<br /> creathftree(T); 
+<br /> getchar(); 
+<br /> creathfcode(T,H); 
+<br /> zip(H,ch,s); 
+<br /> uzip(H,s,T); 
+<br /> } 
+<br /> 数据结构 算法 哈夫曼编码</div></body></html>

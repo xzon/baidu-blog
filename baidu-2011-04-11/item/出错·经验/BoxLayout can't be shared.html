@@ -1,0 +1,16 @@
+<html><head><title>BoxLayout can't be shared</title></head><body><div id='tit'>BoxLayout can't be shared</div><div id='cate'>出错&middot;经验</div><div id='date'>2009年12月02日 星期三 04:11 P.M.</div><div id='page'>23</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/88bc6b22dd96c0ae4723e8f6.html'>http://hi.baidu.com/hxzon/blog/item/88bc6b22dd96c0ae4723e8f6.html</a><div id='cnt'><div class="postTitle">
+ BoxLayout can't be shared
+</div> 
+<table style="table-layout: fixed" class="FCK__ShowTableBorders" border="0"> 
+ <tbody> 
+  <tr> 
+   <td>
+    <blockquote>
+     <span style="color: #0000a0"><strong>topher wrote:</strong> <br /> 想請教一個關於BoxLayout的問題 <br /> <br /> 我在JFrame (以下稱Frame)底下加入了兩個JPanel (Panel1與Panel2) <br /> 當我直接用Frame.setLayout(new BoxLayout(Frame, BoxLayout.Y_AXIS))去設定時 <br /> 程式執行都會出現 BoxLayout can't be shared 的錯誤訊息 <br /> 但是如果我在Frame底下先加入一個JPanel (MainPanel) <br /> 然後把Panel1 和Panel2 加到MainPanel 底下 <br /> 再呼叫 MainPanel.setLayout(new BoxLayout(MainPanel, BoxLayout.Y_AXIS)) <br /> 這時程式執行便沒有問題 <br /> <br /> 我不懂的是這兩者有什麼差別？ <br /> 為什麼一個會出現錯誤一個卻又沒問題呢？ <br /> </span>
+    </blockquote><br /> <br /> 講清楚你的環境是很基本的工作。 <br /> <br /> 我想你使用了 JDK1.5 才有這問題，<a class="ilink" href="http://developer.j***a.sun.com/developer/bugParade/bugs/4753342.html" target="_blank">1.5 changes</a> 有提到對 RootPaneContainer(如 JFrame, JWindow, JDialog, JInternalFrame)的 add/remove/setLayout layout method 會 redirect 到 content pane。所以當你對 JFrame instance invoke setLayout method 時，實際上是去設定 JFrame 裡的 content pane 的 layout，但是你在建構 BoxLayout 時卻告訴 BoxLayout 說這是給 JFrame object 使用，所以 BoxLayout 告訴你 BoxLayout 不能共用(給 content pane 又給 JFrame 用)。 <br /> <br /> 在 1.5 以前，對 RootPaneContainer 操作 add method 會丟出 runtime exception，告訴你不要直接把元件塞入 RootPaneContainer 裡(除程式有透過 <a class="ilink" href="http://j***a.sun.com/j2se/1.4.2/docs/api/j***ax/swing/JFrame.html#setRootPaneCheckingEnabled(boolean)" target="_blank">setRootPaneCheckingEnabled</a> method 把這機制關掉。 <br /> <br /> RootPaneContainer 的架構請參考舊文。 <br /> <a class="ilink" href="http://www.j***aworld.com.tw/jute/post/view?bid=5&amp;id=6986&amp;sty=3&amp;keywords=JRootPane" target="_blank">http://www.j***aworld.com.tw/jute/post/view?bid=5&amp;id=6986&amp;sty=3&amp;keywords=JRootPane</a> <br /> <br /> 有太多剛接觸 swing 的人不了解這件事(swing 引進的 RootPaneContainer)，老是問為什麼不能把元件放進 JFrame via add method，於是 sun 應觀眾要求上演了讓 JFrame/JWindow/JDialog/JInternalFrame 預設會聰明地把 add/remove/setLayout redirect 到 content pane，我個人倒是不怎麼贊同這&quot;聰明&quot;的作法。 <br /> <br /> 1.5 以後把 add/remove/setLayout redirect 到 content pane 的行為由 <a class="ilink" href="http://j***a.sun.com/j2se/1.5.0/docs/api/j***ax/swing/JFrame.html#setRootPaneCheckingEnabled(boolean)" target="_blank">setRootPaneCheckingEnabled</a> method 控制(不再是丟出 exception)，但其意義與 method name 已經較不直覺了，&quot;enable&quot; rootpane cheching 會讓 JFrame redirect add/remove/setLayout 到其內的 content pane，&quot;disable&quot; rootpane cheching 是直接操作在 JFrame instance 上(不會丟出 runtime exception 提醒有 rootpane 在 JFrame 裡)。</td> 
+  </tr> 
+ </tbody> 
+</table> ==========================
+<br /> hxzon:
+<br /> frame.setLayout(new BoxLayout(frame,BoxLayout.Y_AXIS));改为
+<br /> frame.setLayout(new BoxLayout(frame.getContentPane(),BoxLayout.Y_AXIS));</div></body></html>

@@ -1,0 +1,84 @@
+<html><head><title>dom4j无法解析xml命名空间</title></head><body><div id='tit'>dom4j无法解析xml命名空间</div><div id='cate'>出错&middot;经验</div><div id='date'>2009年08月11日 星期二 03:12 P.M.</div><div id='page'>39</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/7bfbfe191d359c73dab4bd86.html'>http://hi.baidu.com/hxzon/blog/item/7bfbfe191d359c73dab4bd86.html</a><div id='cnt'><div>
+ dom4j无法解析xml命名空间
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; 1. &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt; 
+ <br /> &nbsp;&nbsp; 2. &lt;MyXML xmlns=&quot;http://www.ttt.com/ttt-TrdInfo-1-0&quot; xmlns:x=&quot;http://www.ttt.com/ttt/metadata.xsd&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;res286.xsd&quot;&gt; 
+ <br /> &nbsp;&nbsp; 3. &lt;Hdr&gt; 
+ <br /> &nbsp;&nbsp; 4.&nbsp;&nbsp;&nbsp;&nbsp; &lt;ReqId&gt;001&lt;/ReqId&gt; 
+ <br /> &nbsp;&nbsp; 5.&nbsp;&nbsp;&nbsp;&nbsp; &lt;Tid&gt;1002&lt;/Tid&gt; 
+ <br /> &nbsp;&nbsp; 6.&nbsp;&nbsp;&nbsp;&nbsp; &lt;Cid&gt;500&lt;/Cid&gt; 
+ <br /> &nbsp;&nbsp; 7.&nbsp;&nbsp;&nbsp;&nbsp; &lt;user&gt;cuishen&lt;/user&gt; 
+ <br /> &nbsp;&nbsp; 8.&nbsp;&nbsp;&nbsp;&nbsp; &lt;Mname&gt;supermarket&lt;/Mname&gt;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; 9.&nbsp;&nbsp;&nbsp;&nbsp; &lt;pwd&gt;543200210&lt;/pwd&gt; 
+ <br /> 10. &lt;/Hdr&gt; 
+ <br /> 11. &lt;Car&gt; 
+ <br /> 12.&nbsp;&nbsp;&nbsp;&nbsp; &lt;Flg&gt;T&lt;/Flg&gt; 
+ <br /> 13.&nbsp;&nbsp;&nbsp;&nbsp; &lt;Cod&gt;ccc&lt;/Cod&gt; 
+ <br /> 14.&nbsp;&nbsp;&nbsp;&nbsp; &lt;Door&gt;kkk&lt;/Door&gt; 
+ <br /> 15.&nbsp;&nbsp;&nbsp;&nbsp; &lt;mktId&gt;b01&lt;/mktId&gt; 
+ <br /> 16.&nbsp;&nbsp;&nbsp;&nbsp; &lt;Key&gt; 
+ <br /> 17.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;KeyID&gt;t01&lt;/KeyID&gt; 
+ <br /> 18.&nbsp;&nbsp;&nbsp;&nbsp; &lt;/Key&gt; 
+ <br /> 19. &lt;/Car&gt; 
+ <br /> 20. &lt;/MyXML&gt; 
+ <br /> 
+ <br /> # public class ReadMyXML{ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp; public static void main(String args[]){ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; File xmlFile = new File(&quot;c:/myXML.xml&quot;); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SAXReader xmlReader = new SAXReader(); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try{ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Document document = xmlReader.read(xmlFile); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ///*测试代码&nbsp;&nbsp;&nbsp; 适用于读取xml的节点 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HashMap xmlMap = new HashMap(); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlMap.put(&quot;mo&quot;,&quot;http://www.ttt.com/ttt-TrdInfo-1-0&quot;); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; XPath x = document.createXPath(&quot;//mo:ReqId&quot;); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x.setNamespaceURIs(xmlMap);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element valueElement = (Element)x.selectSingleNode(document); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(valueElement.getText()); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //*/ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }catch(DocumentException e){ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace(); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp; } 
+ <br /> # } 
+</div> 
+<div> 
+</div> 
+<div>
+ 上面就是运用dom4j解析带命名空间的xml文件的节点的例子，只要给XPath设置默认的命名空间就行了，这个xml文件尽管定义了其他命名空间，但是没有用到它，所以不必管它，那个HashMap里的键是随便定义的字符串，值就是默认的命名空间对应的字符串。 document.createXPath()里传的参数是要读取的节点的XPath，即“//”+ HashMap里的键名 + “:”+ 要读取的节点名组成的字符串，简单吧，后面怎么做我就不用说了吧^_^
+ <br /> 如果要读取的是xml文件里的属性该怎么办呢，不用急，看看下面的例子你就明白了，原理一样，只要在造XPath字符串的时候在属性前加个“@”就行了。
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; 1. &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt; 
+ <br /> &nbsp;&nbsp; 2. &lt;MyXML xmlns=&quot;http://www.ttt.com/ttt-TrdInfo-1-0&quot; xmlns:x=&quot;http://www.ttt.com/ttt/metadata.xsd&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;res286.xsd&quot;&gt; 
+ <br /> &nbsp;&nbsp; 3. &lt;Hdr ReqId=&quot;001&quot; Tid=&quot;1002&quot; Cid=&quot;500&quot; user=&quot;cuishen&quot; Mname=&quot;supermarket&quot; pwd=&quot;543200210&quot;/&gt; 
+ <br /> &nbsp;&nbsp; 4. &lt;Car Flg=&quot;T&quot; Cod=&quot;ccc&quot; Door=&quot;kkk&quot; mktId=&quot;b01&quot;&gt; 
+ <br /> &nbsp;&nbsp; 5. &lt;Key KeyID=&quot;t01&quot;/&gt; 
+ <br /> &nbsp;&nbsp; 6. &lt;/Car&gt; 
+ <br /> &nbsp;&nbsp; 7. &lt;/MyXML&gt; 
+ <br /> &nbsp;&nbsp; 
+ <br /> # public class ReadMyXML2{ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp; public static void main(String args[]){ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; File xmlFile = new File(&quot;c:/myXML2.xml&quot;); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SAXReader xmlReader = new SAXReader(); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try{ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Document document = xmlReader.read(xmlFile); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ///*测试代码 解析xml的属性 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HashMap xmlMap = new HashMap(); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlMap.put(&quot;mo&quot;,&quot;http://www.ttt.com/ttt-TrdInfo-1-0&quot;); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; XPath x = document.createXPath(&quot;//mo:Hdr/@ReqId&quot;); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x.setNamespaceURIs(xmlMap); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Attribute valueAttribute = (Attribute)x.selectSingleNode(document); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(valueAttribute.getText()); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //*/ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }catch(DocumentException e){ 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace(); 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } 
+ <br /> #&nbsp;&nbsp;&nbsp;&nbsp; } 
+ <br /> # } 
+</div></div></body></html>

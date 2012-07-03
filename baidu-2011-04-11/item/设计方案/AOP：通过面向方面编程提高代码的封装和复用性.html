@@ -1,0 +1,345 @@
+<html><head><title>AOP：通过面向方面编程提高代码的封装和复用性</title></head><body><div id='tit'>AOP：通过面向方面编程提高代码的封装和复用性</div><div id='cate'>设计方案</div><div id='date'>2008年04月22日 星期二 09:40 A.M.</div><div id='page'>136</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/7951451623326c4f20a4e9a4.html'>http://hi.baidu.com/hxzon/blog/item/7951451623326c4f20a4e9a4.html</a><div id='cnt'><h1>AOP：通过面向方面编程提高代码的封装和复用性</h1> 
+<div class="date">
+ 发布日期： 4/8/2004
+ <span class="datePipe"> | </span>更新日期： 5/28/2004
+</div> 
+<div class="overview"> 
+ <p>Dharma Shukla，Simon Fell，和 Chris Sells</p> 
+ <p>Level of Difficulty 1 2 3</p> 
+ <p>下载本文代码：<a target="_blank" href="http://download.microsoft.com/download/msdnmagazine/code/Mar02/WXP/EN-US/AOP.exe">(538KB) </a></p> 
+ <p>摘要面向方面编程 (AOP) 是施乐公司帕洛阿尔托研究中心 (Xerox PARC) 在上世纪 90 年代发明的一种编程范式，它使开发人员可以更好地将本不该彼此纠缠在一起的任务（例如数学运算和异常处理）分离开来。 AOP 方法有很多优点。首先，由于操作更为简洁，所以改进了性能。其次，它使程序员可以花费更少的时间重写相同的代码。总之，AOP 能够为不同过程提供更好的封装性，提高未来的互操作性。</p> 
+ <p>是什么使软件工程师都希望自己能成为硬件工程师呢？自从函数发明以来，程序员花费了大量时间（及其老板的大多数资金）试图设计这样的系统：它们不过是一些组合模型，由其他人创建的部件构成，布置成独特的形状，再覆盖上一些悦目的颜色。函数、模板、类、组件等等一切，都是软件工程师自己创建“软件集成电路”（模拟硬件设计师的电子器件）的种种尝试。</p> 
+ <p>我把这些都归咎于 Lego（乐高玩具）。把两个玩具块（即组件）拼起时发出的悦耳的咔哒声很让人上瘾，会促使许多程序员发明一种又一种新的封装和重用的新机制。这方面最新的进展就称为面向方面编程 (AOP) 。 AOP 的核心是安排（一个摞在另一个之上）组件的一种方式，可以获得其他种类基于组件的开发方法无法得到的重用级别。这种安排是在客户端和对象之间的调用堆栈中进行的，其结果是为对象创建了一种特定的环境。这种环境正是 AOP 程序员主要追求的东西，继续阅读本文，您将了解这一点。</p> 
+ <p>随本文一起提供的代码示例分为两部分：COM 部分和 Microsoft .NET 部分。 COM 部分创建了一种基础结构，可以在 COM 对象中添加方面，提供用户界面来配置类的方面，还给出了在我们提供的基础结构上创建的一个示例方面实现。 .NET 部分说明了如何使用内置于 .NET 基础结构来完成 COM 版本同样的任务，但是所用代码更少，选择也更多。也提供了适合此基础结构的示例方面。本文后面将讲述所有这些代码。</p> 
+</div> 
+<center>
+ <img height="6" alt="*" width="30" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.3squares.gif" />
+ <p class="origImg">http://img.microsoft.com/library/gallery/templates/MNP2.Common/images/3squares.gif</p>
+</center> 
+<div style="height: 18px"> 
+</div> 
+<h5 style="padding-top: 2px">本页内容</h5> 
+<table class="FCK__ShowTableBorders" style="margin-top: 7px; margin-bottom: 12px" cellspacing="0" cellpadding="0" border="0"> 
+ <tbody> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#E4B"><img height="9" alt="何谓面向方面编程?" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#E4B">何谓面向方面编程？</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EOC"><img height="9" alt="常规用途 AOP" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EOC">常规用途 AOP</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EWC"><img height="9" alt="设计方面框架" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EWC">设计方面框架</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EED"><img height="9" alt="作为 COM 对象的方面" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EED">作为 COM 对象的方面</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#ETD"><img height="9" alt="对象激活" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#ETD">对象激活</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EBF"><img height="9" alt="Aspect Builder" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EBF">Aspect Builder</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EPF"><img height="9" alt=".NET 中的方面" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EPF">.NET 中的方面</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EXF"><img height="9" alt="上下文绑定对象" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EXF">上下文绑定对象</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EJG"><img height="9" alt=".NET 方面" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EJG">.NET 方面</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EXG"><img height="9" alt="方面和上下文" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#EXG">方面和上下文</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#E6G"><img height="9" alt="结论" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#E6G">结论</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#ECH"><img height="9" alt="相关文章请参阅:" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#ECH">相关文章请参阅：</a></td> 
+  </tr> 
+  <tr valign="top"> 
+   <td><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#ENH"><img height="9" alt="有关背景信息,请参阅:" hspace="4" width="7" vspace="2" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_down.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_down.gif</p></a></td> 
+   <td class="onThisPage"><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#ENH">有关背景信息，请参阅：</a></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<a name="E4B"></a> 
+<h2>何谓面向方面编程？</h2> 
+<p>一般情况下，对象是由一行行的代码“粘合”在一起的。创建这个对象。创建那个对象。为那个对象（其值为这个对象）设置属性。其间还点缀着一些用户数据。将一切搅拌在一起。在运行时达到 450 度时就可以执行了。将多个组件以这种方式连接起来会出现这样的问题：要实现不同的方法时，需要花费大量时间编写同样的代码。这些代码行中往往会有以下操作：将这个方法的活动记录日志到一个文件中以备调试，运行安全性检查，启动一个事务，打开一个数据库连接，记住捕捉 C++ 异常或者 Win32 结构化异常以转换为 COM 异常，还要验证参数。而且，还要切记在方法执行完之后销毁方法开始时的设置。</p> 
+<p>这种重复代码经常出现的原因在于，开发人员被训练为根据软件新闻稿中的名词来设计系统。如果设计的是银行系统，Account 类和 Customer 类必不可少，它们都将自己独特的详细信息收集到一处，但是它们的每个方法也都需要进行日志、安全检查、事务管理等操作。区别在于，日志等操作是一些与特定应用无关的系统方面。人人都需要它们。人人都编写这些代码。人人都讨厌这样。</p> 
+<p>噢，并不是人人……人人都需要使用这些服务，人人都讨厌编写重复的代码，但并不是人人都需要编写这些代码。例如，COM+ 和 .NET 程序员可以进行所谓的属性化编程，也称声明性编程。这种技术允许程序员用属性来修饰类型或者方法，声明需要运行时提供某种服务。例如 COM+ 提供的一些服务，包括基于角色的安全性、实时激活、分布式事务管理和封送处理。在调用方法时，运行时会放置一组在客户端和服务器之间获得的对象（对于 COM+ 程序员而言称为“侦听器”，对于 .NET 程序员而言称为“消息接收”），为每个方法提供服务，无须组件开发人员编写任何代码。这是面向方面编程（20 世纪 90 年代施乐公司帕洛阿尔托研究中心 Gregor Kiczales 发明的一种编程范式，参见<a target="_blank" href="http://www.parc.xerox.com/csl/groups/sda/publications/papers/Kiczales-ECOOP97/for-web.pdf">http://www.parc.xerox.com/csl/groups/sda/publications/papers/Kiczales-ECOOP97/for-web.pdf</a> 最简单的形式。</p> 
+<p>在 AOP 的领域中，COM+ 侦听器就是通过元数据与组件相关联的一些方面。运行时使用元数据来构造这组方面，通常是在创建对象时进行的。当客户端调用方法时，那些特殊的方面依次获得了处理调用、执行其服务的机会，最后再调用对象的方法。返程时，每个方面又有机会进行展开。这样，就可以将每个组件的每个方法中都要编写的相同样代码行提取出来并放在各个方面中，让运行时来放置它们。这组方面共同为组件方法的执行提供了上下文。上下文在环境中提供了方法的实现，其中的操作具有特殊的意义。</p> 
+<div style="width: 228px">
+ <img height="117" alt="图 1 安全地存在于上下文中的对象" width="228" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.AOPfig01.gif" />
+ <p class="origImg">http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/art/AOPfig01.gif</p>
+ <br /> 
+ <p class="figureCaption">图 1 安全地存在于上下文中的对象</p> 
+ <div class="figureRule"> 
+ </div> 
+</div> 
+<p>例如，图 1显示了一个安全地存在于上下文中的对象，该上下文提供了错误传播、事务管理和同步。与 Win32 控制台应用程序中的程序能够假定在上下文中存在控制台，而且调用 printf 的结果将显示在控制台上一样，AOP 对象也可以假设事务已经建立，且调用数据库将是该事务的一部分。如果设置这些服务出现了问题（例如没有足够资源建立事务），对象将不会被调用，因此也就无须担心了。</p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="EOC"></a> 
+<h2>常规用途 AOP</h2> 
+<p>虽然 COM+ 提供了 AOP 所需的大多数服务，但是若要用来作为常规用途 AOP 环境，它还缺乏一个必需的重要细节：定义自定义方面的能力。例如，如果基于角色的安全性不适合的话，就不能实现基于角色扮演的安全性（如同让最危险的人保护自己的对象）。如果程序员有这种能力，许多 COM 惯用法都可以用 AOP 框架实现。<a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/aop/figures.asp#fig2">图 2 </a>提供了示例的简短列表。</p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="EWC"></a> 
+<h2>设计方面框架</h2> 
+<p>当然，有了这样的框架构思之后，我们还必须把它构建出来。我们希望这个框架具备以下功能：</p> 
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="listBullet" valign="top">•</td> 
+   <td class="listItem"> <p>将客户端和对象之间的方面串联起来的运行时。</p> </td> 
+  </tr> 
+  <tr> 
+   <td class="listBullet" valign="top">•</td> 
+   <td class="listItem"> <p>用户定义的方面，以 COM 组件实现。</p> </td> 
+  </tr> 
+  <tr> 
+   <td class="listBullet" valign="top">•</td> 
+   <td class="listItem"> <p>有关哪个方面与每个 COM 组件相关联的元数据描述，如 COM+ 目录一样。</p> </td> 
+  </tr> 
+  <tr> 
+   <td class="listBullet" valign="top">•</td> 
+   <td class="listItem"> <p>在方面就绪时客户端可以用来激活组件的方法。</p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p>有关 AOP 框架的概念很简单。关键就是侦听和委托。侦听的技巧在于，让调用者相信它持有的接口指针指向它所请求的对象，而实际上这是一个指向侦听器的指针，可以通过本文后面讲述的激活技术之一获取该侦听器。侦听器需要实现与目标组件相同的接口，但是需要通过与组件相关联的方面堆栈来委托所有调用。在调用方法时，侦听器将为每个方面提供预处理和后处理调用的机会，以及传播或者取消当前调用的能力。</p> 
+<p>AOP 框架执行两个不同的步骤，组件激活和方法调用。在组件激活中，AOP 框架构建方面实现对象的堆栈，并返回一个侦听器的引用，而不是实际对象的引用。在方法调用中，当调用者对侦听器进行方法调用时，侦听器将调用委托给所有已经注册的方面，从而对调用堆栈中的 [in] 和 [in,out] 参数进行预处理，并将实际调用提供给对象。然后通过传递组件返回的调用返回值，以及调用堆栈上的 [in,out] 和 [out] 参数，将调用提供给方面进行后处理。</p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="EED"></a> 
+<h2>作为 COM 对象的方面</h2> 
+<p>在我们的 AOP 框架中，方面是实现了 IAspect 接口的 COM 类，如 <a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/aop/figures.asp#fig3">图 3 </a>所示。框架在将方法调用传递给实际的底层组件实例（以下称之为被委托者）之前，会调用所有指定方面的 IAspect::PreProcess 方法。它把被委托者的身份、接口的 IID、方法名、方法发生的 vtbl 槽以及对 [in] 和 [in,out] 参数的枚举器传递给相应的方面。如果方面从 PreProcess 返回故障 HRESULT，框架就不把调用提供给被委托者，实际上是取消了调用。</p> 
+<p>方面预处理成功返回后，框架将实际调用提供给被委托者。无论是否从被委托者返回 HRESULT，框架都会调用 IAspect::PostProcess 方法，传递被委托者返回的 HRESULT 和 PostProcess 方法需要的所有参数，只不过这一次枚举器是建立在 [out], [in,out] 和 [out,retval] 参数之上的。</p> 
+<p><a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/aop/figures.asp#fig4">图 4</a> 显示了如何编写调用跟踪方面，它能够跟踪传递给被委托者方法的所有调用者提供的参数。</p> 
+<p>既然已经有了一个用来调用方面的框架和一个可以使用的方面，我们需要一种机制将它们串联起来。这种操作在对象激活时进行。</p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="ETD"></a> 
+<h2>对象激活</h2> 
+<p>尽管我们要将客户端和对象之间任意数量的方面堆放起来，客户端应该可以创建对象并调用其方法，正如没有侦听时的方式一样。糟糕的是，COM 如果不采取一些奇特的技术手段（这正是 Microsoft 事务服务在集成到 COM 基础结构中并改名为 COM+ 之前必须实现的），就无法支持在其主激活 API CoCreateInstance 中注入的任意扩展性代码。但是，COM 确实提供了完全扩展的激活 API ：Visual Basic 中的 GetObject（对于 C++ 程序员是 CoGetObject ）。我们使用自定义名字对象基于该 API 构建 AOP 激活代码。</p> 
+<p>COM 名字对象是将任意字符串（称为显示名）转换为 COM 对象的一段代码，这意味着可以创建一个新的，或者从文件中找到一个，甚至从月球上下载。我们的 AOP 名字对象获得元数据（描述与此处谈论的类相关联的方面），创建该类的实例，构造方面堆栈，通过 AOP 侦听器将它们串联在一起，然后将侦听器返回给客户端。下面是一个示例：</p> 
+<pre class="codeSample">Private Sub Form_Load() 
+    Set myfoo = GetObject(&quot;AOActivator:c:\AopFoo.xml&quot;) 
+    myfoo.DoSomethingFooish 
+End Sub</pre> 
+<p>请注意，除了获取 Foo 的实例，客户端使用组件不需要任何特殊操作。尽管 AopFoo.xml 文件会将任意数量的方面与 Foo 的该特定实例关联起来，它还是实现相同的接口，更重要的是，它具有相同的语义。</p> 
+<p>实现自定义 COM 名字对象在某种意义上是一种神奇的技术，主要涉及以前 OLE 细节的内幕知识。幸运的是，实现的大部分内容都是陈词滥调，而 COM 社区很久以前就把名字对象的基本实现都写进了一个称为 CComMoniker 的 ATL 类中。（可以访问 <a target="_blank" href="http://www.sellsbrothers.com/tools">http://www.sellsbrothers.com/tools</a> 获取该 COM 名字对象框架。）使用这个框架，我们真正需要关心的就是实现 ParseDisplayName（这是一个分析自定义显示名语法的枯燥方法）和 BindToObject（属于名字对象的一部分，该名字对象用于激活客户端提供的显示名称所指示的 COM 对象）（参见<a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/aop/figures.asp#fig5">图 5 </a>）。</p> 
+<p>请注意，<a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/aop/figures.asp#fig5">图 5 </a>中的代码没有显示最困难的部分 — 侦听器的创建和初始化。之所以困难，不在于侦听器本身，而是侦听器必须要做的工作。请记住，通用 AOP 框架要想通用地发挥功能，必须能够用与所包装的任何组件完全相同的一组接口来响应 QueryInterface 方法。而返回的接口必须能够获得每个方法的客户端所提供的调用堆栈，将其传递给所有方面，并一直传递到组件本身，保持参数完整 — 无论有多少，以及是何种类型。这是一项非常困难的任务，涉及到大量的 __declspec(naked) 和 ASM thunk。</p> 
+<p>幸运的是，因为 COM 社区已经非常成熟，我们得以站在巨人的肩膀上使用通用委托器 (UD)，一个由 Keith Brown 创建的执行这一任务的 COM 组件。 Keith 曾在 MSJ 中分两部分撰文描述了其 UD，文章名为“ <a target="_blank" href="http://msdn.microsoft.com/isapi/gomscom.asp?TARGET=/msj/0199/intercept/intercept.aspx">Building a Lightweight COM Interception Framework, Part I:The Universal Delegator</a> ”，和 Part II：“ <a target="_blank" href="http://msdn.microsoft.com/isapi/gomscom.asp?TARGET=/msj/0299/intercept2/intercept2.aspx">The Guts of the UD</a> ”。我们用 Keith 的 UD 实现 AOP 框架，这减少了 BindToObject 实现中“神奇” 的部分，如 <a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/aop/figures.asp#fig6">图 6 </a>所示。</p> 
+<p>为了包装目标组件供客户端使用，执行以下四个步骤：</p> 
+<p>1. 使用组件的 CLSID 创建实际组件，该 CLSID 传递给原来在元数据 XML 文件中的名字对象。</p> 
+<p>2. 创建了一个 DelegatorHook 对象，侦听对对象的 QueryInterface 调用。挂钩负责将方法调用路由到每个方面。</p> 
+<p>3. 接下来，创建 UD 对象，检索 IDelegatorFactory 接口。</p> 
+<p>4. 使用 IDelegatorFactory 调用 CreateDelegator，传递实际对象的接口、委托器挂钩、源调用者请求的接口的 IID (riidResult)，以及指向接口指针的指针 (ppvResult)。委托器返回指向侦听器的指针，可以调用每个调用的委托器挂钩。</p> 
+<div style="width: 195px">
+ <img height="116" width="195" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.AOPfig07.gif" />
+ <p class="origImg">http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/art/AOPfig07.gif</p>
+ <br /> 
+ <p class="figureCaption">图 7 COM AOP 结构</p> 
+ <div class="figureRule"> 
+ </div> 
+</div> 
+<p>结果如图 7 所示。由此开始，客户端可以将侦听器用作目标组件的实际接口指针。调用后，它们沿着路径上的方面路由到目标组件。</p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="EBF"></a> 
+<h2>Aspect Builder</h2> 
+<p>为了激活组件，并使所有方面都正确的串联起来，我们的 AOP 名字对象依赖一个 XML 文件来描述组件和相关联的方面。其格式非常简单，只包含组件的 CLSID 和方面组件的 CLSID 。<a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/aop/figures.asp#fig8">图 8</a> 的示例包装了带有两个方面的 Microsoft FlexGrid Control。为了简化 AOP 元数据实例的创建任务，我们创建了 Aspect Builder （如 图 9 所示）。</p> 
+<div style="width: 380px">
+ <img height="423" width="380" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.AOPfig09.gif" />
+ <p class="origImg">http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/art/AOPfig09.gif</p>
+ <br /> 
+ <p class="figureCaption">图 9 Aspect Builder</p> 
+ <div class="figureRule"> 
+ </div> 
+</div> 
+<p>Aspect Builder 会枚举机器上注册的所有方面，并在左边的列表视图中用云状图将它们都显示出来。Aspect Builder 的客户端区域包含组件的图形表示。可以双击它（或者使用相应的菜单项）并指定组件的 ProgID。选择了一个组件之后，可以将方面拖放到客户端区域中，将方面添加到组件的 AOP 元数据中。</p> 
+<p>要生成提供给 AOP 名字对象所必需的 XML 格式，可以在 “Tools” 菜单中选择 “Compile” 菜单项，元数据就会显示在底部窗格中。可以在 Verify Aspects 窗格中实际编写脚本，验证元数据确实正确。可以将已经编译的 XML 实例保存在磁盘上，也可以用 Aspect Builder 重载它们。</p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="EPF"></a> 
+<h2>.NET 中的方面</h2> 
+<p>尽管 Aspect Builder 使工作大大简化，但是由于方面元数据与组件分开存储，这使得在 COM 中进行 AOP 编程并不方便。糟糕的是，COM 的元数据在扩展性方面缺乏很多必要的功能，这正是我们感到首先需要将元数据和类分开存储的原因。但是，作为 COM 显然的继承者，.NET 就没有这种问题。 .NET 的元数据是完全可扩展的，因此具备所有必要的基础，可以将方面通过属性直接与类本身相关联。例如，给定一个自定义的 .NET 属性，我们就可以轻松地将调用跟踪属性与 .NET 方法相关联：</p> 
+<pre class="codeSample">public class Bar { 
+    [CallTracingAttribute(&quot;In Bar ctor&quot;)] 
+    public Bar() {} 
+    [CallTracingAttribute(&quot;In Bar.Calculate method&quot;)] 
+    public int Calculate(int x, int y){ return x + y; } 
+  }</pre> 
+<p>请注意，方括号中包含 CallTracingAttribute 和访问方法时输出的字符串。这是将自定义元数据与 Bar 的两个方法相关联的属性语法。与 COM 中的 AOP 框架一样，.NET 中的属性根据 .NET 中的组件分类。.NET 中的自定义属性是用派生自 Attribute 的类实现的，如下所示：</p> 
+<pre class="codeSample">using System; 
+  using System.Reflection; 
+  [AttributeUsage( AttributeTargets.ClassMembers,  
+   AllowMultiple = false )] 
+  public class CallTracingAttribute : Attribute {     
+      public CallTracingAttribute(string s) { 
+        Console.WriteLine(s);     
+      } 
+  }</pre> 
+<p>我们的属性类本身也有属性，这些属性会修改其行为。在这种情况下，我们要求该属性只与方法，而不是程序集、类或者字段关联，并且每个方法只能有一个跟踪属性与之关联。</p> 
+<p>将属性与方法关联以后，我们就成功了一半。为了提供 AOP 功能，还需要在每个方法建立执行组件所必需的环境的前后访问调用堆栈。这就需要一个侦听器，以及组件赖以生存的上下文。在 COM 中，我们要求客户端使用 AOP 名字对象激活组件，从而实现该任务。幸运的是，.NET 已经内置了挂钩，因此客户端无须做任何特殊的工作。</p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="EXF"></a> 
+<h2>上下文绑定对象</h2> 
+<p>.NET 中侦听的关键（与 COM 中一样）在于，要为 COM 组件提供上下文。在 COM+ 和自定义的 AOP 框架中，通过在客户端和对象之间堆放方面，在方法执行之前为组件建立上下文的属性来提供上下文。而在 .NET 中，将为任何从 System.ContextBoundObject 派生的类提供上下文：</p> 
+<pre class="codeSample">public class LikeToLiveAlone : ContextBoundObject {...}</pre> 
+<p>当 LikeToLiveAlone 类的实例被激活时，.NET 运行时将自动创建一个单独的上下文供其生存，并建立一个侦听器，可以从中挂起我们自己的方面。.NET 侦听器是两个对象的组合 — 透明代理和真实代理。透明代理的行为与目标对象相同，与 COM AOP 侦听器也一样，它将调用堆栈序列化为一个称为消息的对象，然后再将消息传递给真实代理。真实代理接收消息，并将其发送给第一个消息接收进行处理。第一个消息接收对消息进行预处理，将其继续发送给位于客户端和对象之间的消息接收堆栈中的下一个消息接收，然后对消息进行后处理。下一个消息接收也如此照办，以此类推，直到到达堆栈构建器接收，它将消息反序列化回调用堆栈，调用对象，序列化出站参数和返回值，并返回到前面的消息接收。这个调用链如图 10 所示。</p> 
+<div style="width: 91px">
+ <img height="299" width="91" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.AOPfig10.gif" />
+ <p class="origImg">http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/art/AOPfig10.gif</p>
+ <br /> 
+ <p class="figureCaption">图 10 侦听</p> 
+ <div class="figureRule"> 
+ </div> 
+</div> 
+<p>为了参与到这个消息接收链中，我们首先需要从 ContextAttribute （而不只是 Attribute）派生属性，并提供所谓上下文属性，将属性更新为参与上下文绑定对象：</p> 
+<pre class="codeSample">{[AttributeUsage(AttributeTargets.Class)] 
+public class CallTracingAttribute : ContextAttribute { 
+    public CallTracingAttribute() :  
+    base(&quot;CallTrace&quot;) {} 
+    public override void    
+    GetPropertiesForNewContext 
+(IConstructionCallMessage ccm) { 
+ccm.ContextProperties.Add(new  
+CallTracingProperty()); 
+    } 
+    ??? 
+}</pre> 
+<p>当激活这个对象时，为每个上下文属性调用 GetPropertiesForNewContext 方法。这样我们就能将自己的上下文属性添加到与为对象创建的新上下文关联的属性列表中。上下文属性允许我们将消息接收与消息接收链中的对象关联起来。属性类通过实现 IContextObject 和 IContextObjectSink 作为方面消息接收的工厂：</p> 
+<pre class="codeSample">public class CallTracingProperty : IContextProperty,  
+    IContributeObjectSink { 
+    public IMessageSink GetObjectSink(MarshalByRefObject o,  
+        IMessageSink next) { 
+        return new CallTracingAspect(next); 
+    } 
+    ??? 
+}</pre> 
+<p>代理创建属性的过程如图 11 所示，其中先创建上下文属性，然后创建消息接收。</p> 
+<div style="width: 190px">
+ <img height="209" width="190" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.AOPfig11.gif" />
+ <p class="origImg">http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/art/AOPfig11.gif</p>
+ <br /> 
+ <p class="figureCaption">图 11 .NET MessageSink 的创建</p> 
+ <div class="figureRule"> 
+ </div> 
+</div> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="EJG"></a> 
+<h2>.NET 方面</h2> 
+<p>当一切都正确附加后，每个调用都会进入方面的 IMessageSink 实现。SyncProcessMessage 允许我们预处理和后处理消息，如<a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/aop/figures.asp#fig12">图 12</a> 所示。最后，希望将自己与调用跟踪方面相关联的上下文绑定类使用 CallTracingAttribute 声明其首选项：</p> 
+<p>最后，希望将自己与调用跟踪方面相关联的上下文绑定类使用 CallTracingAttribute 声明其首选项：</p> 
+<pre class="codeSample">{[AOP.Experiments.CallTracingAttribute()] 
+public class TraceMe : ContextBoundObject { 
+    public int ReturnFive(String s) { 
+return 5; 
+    } 
+}</pre> 
+<p>请注意，我们把上下文属性与类而非每个方法相关联。.NET 上下文结构将自动通知我们每个方法，因此我们的调用跟踪属性拥有所有需要的信息，这为我们避免了以前处理普通属性时，需要手工将属性和每个方法相关联的麻烦。当客户端类实例化类并调用一个方法时，方面就被激活了：</p> 
+<pre class="codeSample">public class client { 
+    public static void Main() { 
+        TraceMe traceMe = new TraceMe(); 
+        traceMe.ReturnFive(&quot;stringArg&quot;); 
+    } 
+}</pre> 
+<p>运行时，客户端和面向方面的对象输出如下内容：</p> 
+<pre class="codeSample">PreProcessing: TraceMe.ReturnFive(s= stringArg) 
+PostProcessing: TraceMe.ReturnFive( returned [5])</pre> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="EXG"></a> 
+<h2>方面和上下文</h2> 
+<p>迄今为止，我们这个简单的方面还没能真正实现预期的 AOP 理想。尽管方面确实可以用来对方法调用进行单独的预处理和后处理，但真正有趣的还是方面对方法执行本身的影响。例如，COM+ 事务性方面会使对象方法中使用的所有资源提供程序参与同一个事务，这样方法就可以仅通过中止 COM+ 事务性方面提供的事务来中止所有活动。为此，COM+ 方面增加了 COM 调用上下文，后者为有兴趣访问当前事务的所有组件提供了聚集点。同样，.NET 也提供了可以用来允许方法参与的可扩展的调用上下文。例如，可以通过将自身置于 .NET 上下文中，使对象（它封装在调用跟踪方面中）能够在跟踪消息流中添加信息，如下所示：</p> 
+<pre class="codeSample">internal class CallTracingAspect : IMessageSink { 
+    public static string ContextName { 
+        get { return &quot;CallTrace&quot; ; } 
+    } 
+    private void Preprocess(IMessage msg) { 
+        ??? 
+        // set us up in the call context 
+        call.LogicalCallContext.SetData(ContextName, this); 
+    } 
+    ??? 
+}</pre> 
+<p>一旦将方面添加到调用上下文后，方法可以再次将其抽出，并参与到跟踪中：</p> 
+<pre class="codeSample">[CallTracingAttribute()] 
+public class TraceMe : ContextBoundObject { 
+    public int ReturnFive(String s) { 
+        Object obj =  
+            CallContext.GetData(CallTracingAspect.ContextName) ; 
+        CallTracingAspect aspect = (CallTracingAspect)obj ; 
+        aspect.Trace(&quot;Inside MethodCall&quot;); 
+        return 5; 
+    }</pre> 
+<p>通过提供一种方式来增加调用上下文，.NET 允许方面为对象设置真实的环境。在我们的例子中，允许对象向流添加跟踪语句，而无需知道流的目的地、如何建立流以及何时销毁流，这很像 COM+ 的事务性方面，如下所示：</p> 
+<pre class="codeSample">PreProcessing: TraceMe.ReturnFive(s= stringArg) 
+During: TraceMe.ReturnFive: Inside MethodCall 
+PostProcessing: TraceMe.ReturnFive( returned [5])</pre> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="E6G"></a> 
+<h2>结论</h2> 
+<p>借助面向方面编程，开发人员可以用与封装组件本身相同的方式跨组件封装公共服务的使用。通过使用元数据和侦听器，可以在客户端和对象之间放置任意服务，这种操作在 COM 中是半无缝的，在 .NET 中是无缝的。本文介绍的方面可以在进出方法调用的过程中访问调用堆栈，它们提供增加了的上下文，供对象在其中生存。虽然与结构化编程或者面向对象编程相比 AOP 尚不成熟，但是 .NET 中对 AOP 的本地支持为我们追求像乐高玩具那样的软件梦想提供了宝贵的工具。</p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="ECH"></a> 
+<h2>相关文章请参阅：</h2> 
+<p>Keith Brown 关于通用委托器的系列文章：</p> 
+<p><a target="_blank" href="http://msdn.microsoft.com/isapi/gomscom.asp?TARGET=/mSJ/0199/intercept/intercept.aspx">Building a Lightweight COM Interception Framework, Part 1:The Universal Delegator</a></p> 
+<p><a target="_blank" href="http://msdn.microsoft.com/isapi/gomscom.asp?TARGET=/MSJ/0299/intercept2/intercept2.aspx">Building a Lightweight COM Interception Framework, Part II:The Guts of the UD</a></p> 
+<div style="margin-top: 3px; margin-bottom: 10px">
+ <a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top"><img height="9" alt="返回页首" width="7" border="0" src="image/AOP：通过面向方面编程提高代码的封装和.arrow_px_up.gif" /><p class="origImg">http://www.microsoft.com/library/gallery/templates/MNP2.Common/images/arrow_px_up.gif</p></a>
+ <a class="topOfPage" href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx#top">返回页首</a>
+</div> 
+<a name="ENH"></a> 
+<h2>有关背景信息，请参阅：</h2> 
+<p><a target="_blank" href="http://portal.acm.org/portal.cfm">http://portal.acm.org/portal.cfm</a></p> 
+<p><a target="_blank" href="http://www.aosd.net/">http://www.aosd.net</a></p> 
+<p>Krzysztof Czarnecki 和 Ulrich Eisenecker 撰写的 Generative Programming （Addison-Wesley, 2000 年）</p> 
+<p><a target="_blank" href="http://www.aspectj.org/">AspectJ—a Java implementation of AOP</a></p> 
+<p><strong>Dharma Shukla</strong> 是 Microsoft 公司 BizTalk Server 小组的开发组长。Dharma 目前正在从事下一代企业工具的开发工作。可以发邮件到 <a target="_blank" href="mailto:dharmas@microsoft.com">dharmas@microsoft.com </a>与他联系。</p> 
+<p><strong>Simon Fell</strong> 是 Provada 公司的杰出工程师，使用 XML、.NET 和 COM 开发分布式系统。Simon 是 pocketSOAP 开放源代码 SOAP 工具包的作者，并与 Chris Sells 创建了 COM TraceHook，目前从事 Avian Carrier 的 SOAP 绑定的开发。要联系 Simon，可以发送电子邮件至 <a target="_blank" href="http://www.pocketsoap.com/">http://www.pocketsoap.com</a>。</p> 
+<p><strong>Chris Sells</strong> 是一位独立咨询师，专长于 .NET 和 COM 中的分布式应用程序，并在 DevelopMentors 公司任教。他创作了几本著作，包括 ATL Internals ，这本书今年应该更新了。他正在撰写一本 Windows 窗体方面的书，将于 2002 年出版。可以发送电子邮件至 <a target="_blank" href="http://www.sellsbrothers.com/">http://www.sellsbrothers.com</a>http://www.sellsbrothers.com 联系 Chris。</p> 
+<p>摘自 <a target="_blank" href="http://msdn.microsoft.com/msdnmag/issues/02/03/default.aspx">2002 年 3 月</a>的 <a target="_blank" href="http://msdn.microsoft.com/msdnmag/default.aspx">MSDN Magazine</a>。</p> 
+<p><a href="http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx?mfr=true">http://www.microsoft.com/china/MSDN/library/windev/COMponentdev/AspectOrientedProgrammingEnablesBetterCodeEncapsulationandReuse.mspx?mfr=true</a></p></div></body></html>

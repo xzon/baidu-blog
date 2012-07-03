@@ -1,0 +1,636 @@
+<html><head><title>2.2.5. 映射实体Bean的关联关系 -Hibernate Annotations</title></head><body><div id='tit'>2.2.5. 映射实体Bean的关联关系 -Hibernate Annotations</div><div id='cate'>默认分类</div><div id='date'>2009年03月13日 星期五 00:39 A.M.</div><div id='page'>61</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/0864c5fd1a2f8d4dd6887dbb.html'>http://hi.baidu.com/hxzon/blog/item/0864c5fd1a2f8d4dd6887dbb.html</a><div id='cnt'><p> </p> 
+<p>2.2.5. 映射实体Bean的关联关系 -Hibernate Annotations</p> 
+<p><a href="http://www.hibernate.org/hib_docs/annotations/reference/zh_cn/html/">http://www.hibernate.org/hib_docs/annotations/reference/zh_cn/html/</a><br /> <a href="http://docs.jboss.org/hibernate/stable/annotations/reference/zh_cn/html/">http://docs.jboss.org/hibernate/stable/annotations/reference/zh_cn/html/</a></p> 
+<div> 
+ <h1 class="title">Hibernate Annotations</h1> 
+</div> 
+<div> 
+ <h2 class="subtitle">参考文档</h2> 
+</div> 
+<div> 
+ <p class="releaseinfo">3.2.0 CR1</p> 
+ <div class="sect1"> 
+  <div class="sect2"> 
+   <div class="titlepage"> 
+    <div> 
+     <div> 
+      <h3 class="title">2.2.5. 映射实体Bean的关联关系</h3> 
+     </div> 
+    </div> 
+    <div> 
+    </div> 
+   </div> 
+   <div class="sect3"> 
+    <div class="titlepage"> 
+     <div> 
+      <div> 
+       <h4 class="title"><a name="d0e1148"></a>2.2.5.1. 一对一(One-to-one)</h4> 
+      </div> 
+     </div> 
+     <div> 
+     </div> 
+    </div> 
+    <p>使用<tt class="literal"><font face="新宋体">@OneToOne</font></tt>注解可以建立实体bean之间的一对一的关联. 一对一关联有三种情况： 一是关联的实体都共享同样的主键, 二是其中一个实体通过外键关联到另一个实体的主键 (注意要模拟一对一关联必须在外键列上添加唯一约束). 三是通过关联表来保存两个实体之间的连接关系 (注意要模拟一对一关联必须在每一个外键上添加唯一约束).</p> 
+    <p>首先,我们通过共享主键来进行一对一关联映射:</p> 
+    <pre class="programlisting">@Entity
+public class Body {
+    @Id
+    public Long getId() { return id; }
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @PrimaryKeyJoinColumn
+    public Heart getHeart() {
+        return heart;
+    }
+    ...
+}</pre> 
+    <pre class="programlisting">@Entity
+public class Heart {
+    @Id
+    public Long getId() { ...}
+}</pre> 
+    <p>上面的例子通过使用注解<tt class="literal"><font face="新宋体">@PrimaryKeyJoinColumn</font></tt>定义了一对一关联.</p> 
+    <p>下面这个例子使用外键列进行实体的关联.</p> 
+    <pre class="programlisting">@Entity
+public class Customer implements Serializable {
+    @OneToOne(cascade = CascadeType.ALL)
+    <span class="bold"><strong>@JoinColumn(name=&quot;passport_fk&quot;)</strong></span>
+    public Passport getPassport() {
+        ...
+    }
+
+@Entity
+public class Passport implements Serializable {
+    @OneToOne(<span class="bold"><strong>mappedBy = &quot;passport&quot;</strong></span>)
+    public Customer getOwner() {
+    ...
+}</pre> 
+    <p>上面这个例子中,<tt class="classname"><font face="新宋体">Customer</font></tt> 通过<tt class="literal"><font face="新宋体">Customer</font></tt> 表中名为的<tt class="literal"><font face="新宋体">passport_fk</font></tt> 外键列和 <tt class="classname"><font face="新宋体">Passport</font></tt>关联. <tt class="literal"><font face="新宋体">@JoinColumn</font></tt>注解定义了联接列(join column). 该注解和<tt class="literal"><font face="新宋体">@Column</font></tt>注解有点类似, 但是多了一个名为<tt class="literal"><font face="新宋体">referencedColumnName</font></tt>的参数. 该参数定义了所关联目标实体中的联接列. 注意,当<tt class="literal"><tt class="literal"><font face="新宋体">referencedColumnName</font></tt></tt>关联到非主键列的时候, 关联的目标类必须实现<tt class="classname"><font face="新宋体">Serializable</font></tt>, 还要注意的是所映射的属性对应单个列(否则映射无效).</p> 
+    <p>一对一关联可能是双向的.在双向关联中, 有且仅有一端是作为主体(owner)端存在的：主体端负责维护联接列(即更新). 对于不需要维护这种关系的从表则通过mappedBy属性进行声明. <tt class="literal"><font face="新宋体">mappedBy</font></tt>的值指向主体的关联属性. 在上面这个例子中,<tt class="literal"><font face="新宋体">mappedBy</font></tt>的值为 <tt class="literal"><font face="新宋体">passport</font></tt>. 最后,不必也不能再在被关联端(owned side)定义联接列了,因为已经在主体端进行了声明.</p> 
+    <p>如果在主体没有声明<tt class="literal"><font face="新宋体">@JoinColumn</font></tt>,系统自动进行处理： 在主表(owner table)中将创建联接列, 列名为：主体的关联属性名＋下划线＋被关联端的主键列名. 在上面这个例子中是<tt class="literal"><font face="新宋体">passport_id</font></tt>, 因为<tt class="literal"><font face="新宋体">Customer</font></tt>中关联属性名为<tt class="literal"><font face="新宋体">passport</font></tt>, <tt class="literal"><font face="新宋体">Passport</font></tt>的主键是<tt class="literal"><font face="新宋体">id</font></tt>.</p> 
+    <p>The third possibility (using an association table) is very exotic.</p> 
+    <p>第三种方式也许是最另类的(通过关联表).</p> 
+    <pre class="programlisting">@Entity
+public class Customer implements Serializable {
+    @OneToOne(cascade = CascadeType.ALL)
+    <span class="bold"><strong>@JoinTable(name = &quot;CustomerPassports&quot;,
+        joinColumns = @JoinColumn(name=&quot;customer_fk&quot;),
+        inverseJoinColumns = @JoinColumn(name=&quot;passport_fk&quot;)</strong></span>
+    )
+    public Passport getPassport() {
+        ...
+    }
+
+@Entity
+public class Passport implements Serializable {
+    @OneToOne(<span class="bold"><strong>mappedBy = &quot;passport&quot;</strong></span>)
+    public Customer getOwner() {
+    ...
+}</pre> 
+    <p><tt class="classname"><font face="新宋体">Customer</font></tt>通过名为 <tt class="literal"><font face="新宋体">CustomerPassports</font></tt>的关联表和 <tt class="classname"><font face="新宋体">Passport</font></tt>关联; 该关联表拥有名为<tt class="literal"><font face="新宋体">passport_fk</font></tt>的外键列,该 外键指向<tt class="literal"><font face="新宋体">Passport</font></tt>表,该信息定义为<tt class="literal"><font face="新宋体">inverseJoinColumn</font></tt>的属性值, 而<tt class="literal"><font face="新宋体">customer_fk</font></tt>外键列指向<tt class="literal"><font face="新宋体">Customer</font></tt>表, 该信息定义为 <tt class="literal"><font face="新宋体">joinColumns</font></tt>的属性值.</p> 
+    <p>这种关联可能是双向的.在双向关联中, 有且仅有一端是作为主体端存在的：主体端负责维护联接列(即更新). 对于不需要维护这种关系的从表则通过mappedBy属性进行声明. <tt class="literal"><font face="新宋体">mappedBy</font></tt>的值指向主体的关联属性. 在上面这个例子中,<tt class="literal"><font face="新宋体">mappedBy</font></tt>的值为 <tt class="literal"><font face="新宋体">passport</font></tt>. 最后,不必也不能再在被关联端(owned side)定义联接列了,因为已经在主体端进行了声明.</p> 
+    <p>你必须明确定义关联表名和关联列名.</p> 
+   </div> 
+   <div class="sect3"> 
+    <div class="titlepage"> 
+     <div> 
+      <div> 
+       <h4 class="title"><a name="d0e1291"></a>2.2.5.2. 多对一(Many-to-one)</h4> 
+      </div> 
+     </div> 
+     <div> 
+     </div> 
+    </div> 
+    <p>在实体属性一级使用<tt class="literal"><font face="新宋体">@ManyToOne</font></tt>注解来定义多对一关联:</p> 
+    <pre class="programlisting">@Entity()
+public class Flight implements Serializable {
+    <span class="bold"><strong>@ManyToOne</strong></span>( cascade = {CascadeType.PERSIST, CascadeType.MERGE} )
+    @JoinColumn(name=&quot;COMP_ID&quot;)
+    public Company getCompany() {
+        return company;
+    }
+    ...
+}</pre> 
+    <p>其中<tt class="literal"><font face="新宋体">@JoinColumn</font></tt>是可选的,关联字段默认值和一对一 (one to one)关联的情况相似, 列名为：主体的关联属性名＋下划线＋被关联端的主键列名. 在这个例子中是<tt class="literal"><font face="新宋体">company_id</font></tt>, 因为关联的属性是<tt class="literal"><font face="新宋体">company</font></tt>, <tt class="literal"><font face="新宋体">Company</font></tt>的主键是<tt class="literal"><font face="新宋体">id</font></tt>.</p> 
+    <p><tt class="literal"><font face="新宋体">@ManyToOne</font></tt>注解有一个名为<tt class="literal"><font face="新宋体">targetEntity</font></tt>的参数, 该参数定义了目标实体名.通常不需要定义该参数, 因为在大部分情况下默认值(表示关联关系的属性类型)就可以很好的满足要求了. 不过下面这种情况下这个参数就显得有意义了：使用接口作为返回值而不是常见的实体.</p> 
+    <pre class="programlisting">@Entity()
+public class Flight implements Serializable {
+    @ManyToOne( cascade = {CascadeType.PERSIST, CascadeType.MERGE}, <span class="bold"><strong>targetEntity=CompanyImpl.class</strong></span> )
+    @JoinColumn(name=&quot;COMP_ID&quot;)
+    public Company getCompany() {
+        return company;
+    }
+    ...
+}
+
+public interface Company {
+    ...</pre> 
+    <p>对于多对一也可以通过关联表的方式来映射。 通过<tt class="literal"><font face="新宋体">@JoinTable</font></tt>注解可定义关联表， 该关联表包含了指回实体表的外键(通过<tt class="literal"><font face="新宋体">@JoinTable.joinColumns</font></tt>) 以及指向目标实体表的外键(通过<tt class="literal"><font face="新宋体">@JoinTable.inverseJoinColumns</font></tt>).</p> 
+    <pre class="programlisting">@Entity()
+public class Flight implements Serializable {
+    @ManyToOne( cascade = {CascadeType.PERSIST, CascadeType.MERGE} )
+    <span class="bold"><strong>@JoinTable(name=&quot;Flight_Company&quot;,
+        joinColumns = @JoinColumn(name=&quot;FLIGHT_ID&quot;),
+        inverseJoinColumns = @JoinColumn(name=&quot;COMP_ID&quot;)
+    )</strong></span>
+    public Company getCompany() {
+        return company;
+    }
+    ...
+}</pre> 
+   </div> 
+   <div class="sect3"> 
+    <div class="titlepage"> 
+     <div> 
+      <div> 
+       <h4 class="title"><a name="entity-mapping-association-collections"></a>2.2.5.3. 集合类型</h4> 
+      </div> 
+     </div> 
+     <div> 
+     </div> 
+    </div> 
+    <div class="sect4"> 
+     <div class="titlepage"> 
+      <div> 
+       <div> 
+        <h5 class="title"><a name="d0e1352"></a>2.2.5.3.1. 概况</h5> 
+       </div> 
+      </div> 
+      <div> 
+      </div> 
+     </div> 
+     <p>你可以对 <tt class="classname"><font face="新宋体">Collection </font></tt>,<tt class="literal"><font face="新宋体">List</font></tt> (指有序列表, 而不是索引列表), <tt class="literal"><font face="新宋体">Map</font></tt>和<tt class="classname"><font face="新宋体">Set</font></tt>这几种类型进行映射. EJB3规范定义了怎么样使用<tt class="literal"><font face="新宋体">@javax.persistence.OrderBy</font></tt> 注解来对有序列表进行映射： 该注解接受的参数格式：用逗号隔开的(目标实体)属性名及排序指令, 如<font color="#000000"><tt class="code"><font face="新宋体">firstname asc, age desc</font></tt>,如果该参数为空,则默认以id对该集合进行排序. 如果某个集合在数据库中对应一个关联表(association table)的话,你不能在这个集合属性上面使用@OrderBy注解. 对于这种情况的处理方法,请参考</font><a href="http://www.hibernate.org/hib_docs/annotations/reference/zh_cn/html/entity.html#entity-hibspec">Hibernate Annotation Extensions</a>. EJB3 允许你利用目标实体的一个属性作为Map的key, 这个属性可以用<tt class="literal"><font face="新宋体">@MapKey(name=&quot;myProperty&quot;)</font></tt>来声明. 如果使用<tt class="literal"><font face="新宋体">@MapKey</font></tt>注解的时候不提供属性名, 系统默认使用目标实体的主键. map的key使用和属性相同的列：不需要为map key定义专用的列，因为map key实际上就表达了一个目标属性。 注意一旦加载,key不再和属性保持同步, 也就是说,如果你改变了该属性的值,在你的Java模型中的key不会自动更新 (请参考<a href="http://www.hibernate.org/hib_docs/annotations/reference/zh_cn/html/entity.html#entity-hibspec">Hibernate Annotation Extensions</a>). 很多人被<tt class="literal"><font face="新宋体">&lt;map&gt;</font></tt>和<tt class="literal"><font face="新宋体">@MapKey</font></tt>弄糊涂了。 其他它们有两点区别.<tt class="literal"><font face="新宋体">@MapKey</font></tt>目前还有一些限制,详情请查看论坛或者 我们的JIRA缺陷系统。 注意一旦加载,key不再和属性保持同步, 也就是说,如果你改变了该属性的值,在你的Java模型中的key不会自动更新. (Hibernate 3中Map支持的方式在当前的发布版中还未得到支持).</p> 
+     <p>Hibernate将集合分以下几类.</p> 
+     <p> </p> 
+     <div class="table">
+      <a name="d0e1397"></a> 
+      <p class="title"><strong>表 2.1. 集合语义</strong></p> 
+      <table summary="集合语义" border="1"> 
+       <colgroup>
+        <col />
+        <col />
+        <col />
+       </colgroup> 
+       <thead> 
+        <tr> 
+         <th>语义</th> 
+         <th>Java实现类</th> 
+         <th>注解</th> 
+        </tr> 
+       </thead> 
+       <tbody> 
+        <tr> 
+         <td>Bag 语义</td> 
+         <td>java.util.List, java.util.Collection</td> 
+         <td>@org.hibernate.annotations.CollectionOfElements 或 @OneToMany 或 @ManyToMany</td> 
+        </tr> 
+        <tr> 
+         <td>List 语义</td> 
+         <td>java.util.List</td> 
+         <td>(@org.hibernate.annotations.CollectionOfElements 或 @OneToMany 或 @ManyToMany) 以及 @org.hibernate.annotations.IndexColumn</td> 
+        </tr> 
+        <tr> 
+         <td>Set 语义</td> 
+         <td>java.util.Set</td> 
+         <td>@org.hibernate.annotations.CollectionOfElements 或 @OneToMany 或 @ManyToMany</td> 
+        </tr> 
+        <tr> 
+         <td>Map 语义</td> 
+         <td>java.util.Map</td> 
+         <td>(@org.hibernate.annotations.CollectionOfElements 或 @OneToMany 或 @ManyToMany) 以及 (空 或 @org.hibernate.annotations.MapKey/MapKeyManyToMany(支持真正的map), 或 @javax.persistence.MapKey</td> 
+        </tr> 
+       </tbody> 
+      </table> 
+     </div> 
+     <em><span class="remark">从上面可以明确地看到,没有@org.hibernate.annotations.IndexColumn 注解的java.util.List集合将被看作bag类. </span></em> 
+     <p>EJB3规范不支持原始类型,核心类型,嵌入式对象的集合.但是Hibernate对此提供了支持 (详情参考 <a href="http://www.hibernate.org/hib_docs/annotations/reference/zh_cn/html/entity.html#entity-hibspec">Hibernate Annotation Extensions</a>).</p> 
+     <pre class="programlisting">@Entity public class City {
+    @OneToMany(mappedBy=&quot;city&quot;)
+    <span class="bold"><strong>@OrderBy(&quot;streetName&quot;)</strong></span>
+    public List&lt;Street&gt; getStreets() {
+        return streets;
+    }
+...
+}
+
+@Entity public class Street {
+    <span class="bold"><strong>public String getStreetName()</strong></span> {
+        return streetName;
+    }
+
+    @ManyToOne
+    public City getCity() {
+        return city;
+    }
+    ...
+}
+
+@Entity
+public class Software {
+    @OneToMany(mappedBy=&quot;software&quot;)
+    <span class="bold"><strong>@MapKey(name=&quot;codeName&quot;)</strong></span>
+    public Map&lt;String, Version&gt; getVersions() {
+        return versions;
+    }
+...
+}
+
+@Entity
+@Table(name=&quot;tbl_version&quot;)
+public class Version {
+    <span class="bold"><strong>public String getCodeName()</strong></span> {...}
+
+    @ManyToOne
+    public Software getSoftware() { ... }
+...
+}</pre> 
+     <p>上面这个例子中,<tt class="literal"><font face="新宋体">City</font></tt> 中包括了以<tt class="literal"><font face="新宋体">streetName</font></tt>排序的<tt class="literal"><font face="新宋体">Street</font></tt>的集合. 而<tt class="literal"><font face="新宋体">Software</font></tt>中包括了以<tt class="literal"><font face="新宋体">codeName</font></tt>作为 key和以<tt class="literal"><font face="新宋体">Version</font></tt>作为值的Map.</p> 
+     <p>除非集合为generic类型,否则你需要指定<tt class="literal"><font face="新宋体">targetEntity</font></tt>. 这个注解属性接受的参数为目标实体的class.</p> 
+    </div> 
+    <div class="sect4"> 
+     <div class="titlepage"> 
+      <div> 
+       <div> 
+        <h5 class="title"><a name="entity-mapping-association-collection-onetomany"></a>2.2.5.3.2. 一对多(One-to-many)</h5> 
+       </div> 
+      </div> 
+      <div> 
+      </div> 
+     </div> 
+     <p>在属性级使用 <tt class="literal"><font face="新宋体">@OneToMany</font></tt>注解可定义一对多关联.一对多关联可以是双向关联.</p> 
+     <div class="sect5"> 
+      <div class="titlepage"> 
+       <div> 
+        <div> 
+         <h6 class="title"><a name="d0e1494"></a>2.2.5.3.2.1. 双向(Bidirectional)</h6> 
+        </div> 
+       </div> 
+       <div> 
+       </div> 
+      </div> 
+      <p>在EJB3规范中多对一这端几乎总是双向关联中的主体(owner)端, 而一对多这端的关联注解为<tt class="literal"><font face="新宋体">@OneToMany( mappedBy=... )</font></tt></p> 
+      <pre class="programlisting">@Entity
+public class Troop {
+    @OneToMany(mappedBy=&quot;troop&quot;)
+    public Set&lt;Soldier&gt; getSoldiers() {
+    ...
+}
+
+@Entity
+public class Soldier {
+    @ManyToOne
+    @JoinColumn(name=&quot;troop_fk&quot;)
+    public Troop getTroop() {
+    ...
+}</pre> 
+      <p><tt class="classname"><font face="新宋体">Troop</font></tt> 通过<tt class="literal"><font face="新宋体">troop</font></tt> 属性和<tt class="literal"><font face="新宋体">Soldier</font></tt>建立了一对多的双向关联. 在<tt class="literal"><font face="新宋体">mappedBy</font></tt>端不必也不能再定义任何物理映射</p> 
+      <p>对于一对多的双向映射,如果要一对多这一端维护关联关系, 你需要删除<tt class="literal"><font face="新宋体">mappedBy</font></tt>元素并将多对一这端的 <tt class="literal"><font face="新宋体">@JoinColumn</font></tt>的insertable和updatable设置为false. 很明显,这种方案不会得到什么明显的优化,而且还会增加一些附加的UPDATE语句.</p> 
+      <pre class="programlisting">@Entity
+public class Troop {
+    @OneToMany
+    @JoinColumn(name=&quot;troop_fk&quot;) //we need to duplicate the physical information
+    public Set&lt;Soldier&gt; getSoldiers() {
+    ...
+}
+
+@Entity
+public class Soldier {
+    @ManyToOne
+    @JoinColumn(name=&quot;troop_fk&quot;, insertable=false, updatable=false)
+    public Troop getTroop() {
+    ...
+}</pre> 
+     </div> 
+     <div class="sect5"> 
+      <div class="titlepage"> 
+       <div> 
+        <div> 
+         <h6 class="title"><a name="d0e1526"></a>2.2.5.3.2.2. 单向(Unidirectional)</h6> 
+        </div> 
+       </div> 
+       <div> 
+       </div> 
+      </div> 
+      <p>通过在被拥有的实体端(owned entity)增加一个外键列来实现一对多单向关联是很少见的,也是不推荐的. 我们强烈建议通过一个联接表(join table)来实现这种关联(下一节会对此进行解释). 可以通过<tt class="literal"><font face="新宋体">@JoinColumn</font></tt>注解来描述这种单向关联关系.</p> 
+      <pre class="programlisting">@Entity
+public class Customer implements Serializable {
+    @OneToMany(cascade=CascadeType.ALL, fetch=FetchType.EAGER)
+    @JoinColumn(name=&quot;CUST_ID&quot;)
+    public Set&lt;Ticket&gt; getTickets() {
+    ...
+}
+
+@Entity
+public class Ticket implements Serializable {
+    ... //no bidir
+}</pre> 
+      <p><tt class="literal"><font face="新宋体">Customer</font></tt> 通过 <tt class="literal"><font face="新宋体">CUST_ID</font></tt>列和<tt class="literal"><font face="新宋体">Ticket</font></tt> 建立了单向关联关系.</p> 
+     </div> 
+     <div class="sect5"> 
+      <div class="titlepage"> 
+       <div> 
+        <div> 
+         <h6 class="title"><a name="d0e1546"></a>2.2.5.3.2.3. 通过关联表处理单向关联</h6> 
+        </div> 
+       </div> 
+       <div> 
+       </div> 
+      </div> 
+      <p>通过联接表处理单向一对多关联是首选方式.这种关联通过<tt class="literal"><font face="新宋体">@JoinTable</font></tt>注解来进行描述.</p> 
+      <pre class="programlisting">@Entity
+public class Trainer {
+    @OneToMany
+    @JoinTable(
+            name=&quot;TrainedMonkeys&quot;,
+            joinColumns = @JoinColumn( name=&quot;trainer_id&quot;),
+            inverseJoinColumns = @JoinColumn( name=&quot;monkey_id&quot;)
+    )
+    public Set&lt;Monkey&gt; getTrainedMonkeys() {
+    ...
+}
+
+@Entity
+public class Monkey {
+    ... //no bidir
+}</pre> 
+      <p>上面这个例子中,<tt class="literal"><font face="新宋体">Trainer</font></tt>通过 <tt class="classname"><font face="新宋体">TrainedMonkeys</font></tt>表和 <tt class="classname"><font face="新宋体">Monkey</font></tt> 建立了单向关联. 其中外键<tt class="literal"><font face="新宋体">trainer_id</font></tt>关联到<tt class="literal"><font face="新宋体">Trainer</font></tt> (<tt class="literal"><font face="新宋体">joinColumns</font></tt>), 而外键<tt class="literal"><font face="新宋体">monkey_id</font></tt>关联到 <tt class="literal"><font face="新宋体">Monkey</font></tt> (<tt class="literal"><font face="新宋体">inversejoinColumns</font></tt>).</p> 
+     </div> 
+     <div class="sect5"> 
+      <div class="titlepage"> 
+       <div> 
+        <div> 
+         <h6 class="title"><a name="d0e1585"></a>2.2.5.3.2.4. 默认处理机制</h6> 
+        </div> 
+       </div> 
+       <div> 
+       </div> 
+      </div> 
+      <p>通过联接表来建立单向一对多关联不需要描述任何物理映射. 表名由以下三个部分组成:主表(owner table)表名+下划线+从表(the other side table)表名. 指向主表的外键名：主表表名+下划线+主表主键列名 指向从表的外键名：主表所对应实体的属性名+下划线+从表主键列名 指向从表的外键定义为唯一约束,用来表示一对多的关联关系.</p> 
+      <pre class="programlisting">@Entity
+public class Trainer {
+    @OneToMany
+    public Set&lt;Tiger&gt; getTrainedTigers() {
+    ...
+}
+
+@Entity
+public class Tiger {
+    ... //no bidir
+}</pre> 
+      <p>上面这个例子中,<tt class="classname"><font face="新宋体">Trainer</font></tt>和<tt class="classname"><font face="新宋体">Tiger</font></tt> 通过联接表 <tt class="literal"><font face="新宋体">Trainer_Tiger</font></tt>建立单向关联关系, 其中外键<tt class="literal"><font face="新宋体">trainer_id</font></tt>关联到<tt class="literal"><font face="新宋体">Trainer</font></tt> (主表表名, <span><strong class="keycap">_</strong></span>(下划线), trainer id), 而外键<tt class="literal"><font face="新宋体">trainedTigers_id</font></tt>关联到<tt class="literal"><font face="新宋体">Tiger</font></tt> (属性名称, <span><strong class="keycap">_</strong></span>(下划线), Tiger表的主键列名).</p> 
+     </div> 
+    </div> 
+    <div class="sect4"> 
+     <div class="titlepage"> 
+      <div> 
+       <div> 
+        <h5 class="title"><a name="d0e1621"></a>2.2.5.3.3. 多对多(Many-to-many)</h5> 
+       </div> 
+      </div> 
+      <div> 
+      </div> 
+     </div> 
+     <div class="sect5"> 
+      <div class="titlepage"> 
+       <div> 
+        <div> 
+         <h6 class="title"><a name="d0e1624"></a>2.2.5.3.3.1. 定义</h6> 
+        </div> 
+       </div> 
+       <div> 
+       </div> 
+      </div> 
+      <p>你可以通过<tt class="literal"><font face="新宋体">@ManyToMany</font></tt>注解可定义的多对多关联. 同时,你也需要通过注解<tt class="literal"><font face="新宋体">@JoinTable</font></tt>描述关联表和关联条件. 如果是双向关联,其中一段必须定义为owner,另一端必须定义为inverse(在对关联表进行更新操作时这一端将被忽略):</p> 
+      <pre class="programlisting">@Entity
+public class Employer implements Serializable {
+    @ManyToMany(
+        targetEntity=org.hibernate.test.metadata.manytomany.Employee.class,
+        cascade={CascadeType.PERSIST, CascadeType.MERGE}
+    )
+    @JoinTable(
+        name=&quot;EMPLOYER_EMPLOYEE&quot;,
+        joinColumns=@JoinColumn(name=&quot;EMPER_ID&quot;),
+        inverseJoinColumns=@JoinColumn(name=&quot;EMPEE_ID&quot;)
+    )
+    public Collection getEmployees() {
+        return employees;
+    }
+    ...
+}</pre> 
+      <pre class="programlisting">@Entity
+public class Employee implements Serializable {
+    @ManyToMany(
+        cascade = {CascadeType.PERSIST, CascadeType.MERGE},
+        mappedBy = &quot;employees&quot;,
+        targetEntity = Employer.class
+    )
+    public Collection getEmployers() {
+        return employers;
+    }
+}</pre> 
+      <p>至此,我们已经展示了很多跟关联有关的声明定义以及属性细节. 下面我们将深入介绍<tt class="literal"><font face="新宋体">@JoinTable</font></tt>注解,该注解定义了联接表的表名, 联接列数组(注解中定义数组的格式为{ A, B, C }), 以及inverse联接列数组. 后者是关联表中关联到<tt class="classname"><font face="新宋体">Employee</font></tt>主键的列(the &quot;other side&quot;).</p> 
+      <p>正如前面所示,被关联端不必也不能描述物理映射: 只需要一个简单的<tt class="literal"><font face="新宋体">mappedBy</font></tt>参数,该参数包含了主体端的属性名,这样就绑定双方的关系.</p> 
+     </div> 
+     <div class="sect5"> 
+      <div class="titlepage"> 
+       <div> 
+        <div> 
+         <h6 class="title"><a name="d0e1652"></a>2.2.5.3.3.2. 默认值</h6> 
+        </div> 
+       </div> 
+       <div> 
+       </div> 
+      </div> 
+      <p>和其他许多注解一样,在多对多关联中很多值是自动生成. 当双向多对多关联中没有定义任何物理映射时,Hibernate根据以下规则生成相应的值. 关联表名:主表表名+<span><strong class="keycap">_</strong></span>下划线+从表表名, 关联到主表的外键名:主表名+<span><strong class="keycap">_</strong></span>下划线+主表中的主键列名. 关联到从表的外键名:主表中用于关联的属性名+<span><strong class="keycap">_</strong></span>下划线+从表的主键列名. 以上规则对于双向一对多关联同样有效.</p> 
+      <pre class="programlisting">@Entity
+public class Store {
+    @ManyToMany(cascade = CascadeType.PERSIST)
+    public Set&lt;City&gt; getImplantedIn() {
+        ...
+    }
+}
+
+@Entity
+public class City {
+    ... //no bidirectional relationship
+}</pre> 
+      <p>上面这个例子中,<tt class="literal"><font face="新宋体">Store_Table</font></tt>作为联接表. <tt class="literal"><font face="新宋体">Store_id</font></tt>列是联接到<tt class="literal"><font face="新宋体">Store</font></tt>表的外键. 而<tt class="literal"><font face="新宋体">implantedIn_id</font></tt>列则联接到<tt class="literal"><font face="新宋体">City</font></tt>表.</p> 
+      <p>当双向多对多关联中没有定义任何物理映射时, Hibernate根据以下规则生成相应的值 关联表名: :主表表名+<span><strong class="keycap">_</strong></span>下划线+从表表名, 关联到主表的外键名:从表用于关联的属性名+<span><strong class="keycap">_</strong></span>下划线+主表中的主键列名. 关联到从表的外键名:主表用于关联的属性名+<span><strong class="keycap">_</strong></span>下划线+从表的主键列名. 以上规则对于双向一对多关联同样有效.</p> 
+      <pre class="programlisting">@Entity
+public class Store {
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    public Set&lt;Customer&gt; getCustomers() {
+        ...
+    }
+}
+
+@Entity
+public class Customer {
+    @ManyToMany(mappedBy=&quot;customers&quot;)
+    public Set&lt;Store&gt; getStores() {
+        ...
+    }
+}</pre> 
+      <p>在上面这个例子中,<tt class="literal"><font face="新宋体">Store_Customer</font></tt>作为联接表. <tt class="literal"><font face="新宋体">stores_id</font></tt>列是联接到<tt class="literal"><font face="新宋体">Store</font></tt>表的外键, 而<tt class="literal"><font face="新宋体">customers_id</font></tt>列联接到<tt class="literal"><font face="新宋体">City</font></tt>表.</p> 
+     </div> 
+    </div> 
+   </div> 
+   <div class="sect3"> 
+    <div class="titlepage"> 
+     <div> 
+      <div> 
+       <h4 class="title"><a name="d0e1715"></a>2.2.5.4. 用cascading实现传播性持久化(Transitive persistence)</h4> 
+      </div> 
+     </div> 
+     <div> 
+     </div> 
+    </div> 
+    <p>也许你已经注意到了<tt class="literal"><font face="新宋体">cascade</font></tt>属性接受的值为<tt class="classname"><font face="新宋体">CascadeType</font></tt>数组. 在EJB3中的cascade的概念和Hibernate中的传播性持久化以及cascade操作非常类似, 但是在语义上有细微的区别,支持的cascade类型也有点区别:</p> 
+    <div class="itemizedlist"> 
+     <ul type="disc"> 
+      <li>CascadeType.PERSIST: 如果一个实体是受管状态, 或者当persist()函数被调用时, 触发级联创建(create)操作</li> 
+      <li>CascadeType.MERGE: 如果一个实体是受管状态, 或者当merge()函数被调用时, 触发级联合并(merge)操作</li> 
+      <li>CascadeType.REMOVE: 当delete()函数被调用时, 触发级联删除(remove)操作</li> 
+      <li>CascadeType.REFRESH: 当refresh()函数被调用时, 触发级联更新(refresh)操作</li> 
+      <li>CascadeType.ALL: 以上全部</li> 
+     </ul> 
+    </div> 
+    <p>关于cascading, create/merge的语义请参考EJB3规范的6.3章节.</p> 
+   </div> 
+   <div class="sect3"> 
+    <div class="titlepage"> 
+     <div> 
+      <div> 
+       <h4 class="title"><a name="d0e1739"></a>2.2.5.5. 关联关系获取</h4> 
+      </div> 
+     </div> 
+     <div> 
+     </div> 
+    </div> 
+    <p>通过Hibernate你可以获得直接或者延迟获取关联实体的功能. <tt class="literal"><font face="新宋体">fetch</font></tt>参数可以设置为<tt class="literal"><font face="新宋体">FetchType.LAZY</font></tt> 或者 <tt class="literal"><font face="新宋体">FetchType.EAGER</font></tt>. <tt class="literal"><font face="新宋体">EAGER</font></tt>通过<tt class="literal"><font face="新宋体">outer join select</font></tt>直接获取关联的对象, 而<tt class="literal"><font face="新宋体">LAZY</font></tt>(默认值)在第一次访问关联对象的时候才会触发相应的select操作. EJBQL提供了<tt class="literal"><font face="新宋体">fetch</font></tt>关键字,该关键字可以在进行特殊查询的时候覆盖默认值. 这对于提高性能来说非常有效,应该根据实际的用例来判断是否选择fetch关键字.</p> 
+   </div> 
+  </div> 
+  <div class="sect2"> 
+   <div class="titlepage"> 
+    <div> 
+     <div> 
+      <h3 class="title"><a name="d0e1765"></a>2.2.6. 映射复合主键与外键</h3> 
+     </div> 
+    </div> 
+    <div> 
+    </div> 
+   </div> 
+   <p>组合主键使用一个可嵌入的类作为主键表示,因此你需要使用<tt class="literal"><font face="新宋体">@Id</font></tt> 和<tt class="literal"><font face="新宋体">@Embeddable</font></tt>两个注解. 还有一种方式是使用<tt class="literal"><font face="新宋体">@EmbeddedId</font></tt>注解.注意所依赖的类必须实现 serializable以及实现<tt class="methodname"><font face="新宋体">equals()</font></tt>/<tt class="methodname"><font face="新宋体">hashCode()</font></tt>方法. 你也可以如<a href="http://www.hibernate.org/hib_docs/annotations/reference/zh_cn/html/entity.html#mapping-identifier">Mapping identifier properties</a>一章中描述的办法使用<tt class="literal"><font face="新宋体">@IdClass</font></tt>注解.</p> 
+   <pre class="programlisting">@Entity
+public class RegionalArticle implements Serializable {
+
+    @Id
+    public RegionalArticlePk getPk() { ... }
+}
+
+@Embeddable
+public class RegionalArticlePk implements Serializable { ... }</pre> 
+   <p>或者</p> 
+   <pre class="programlisting">@Entity
+public class RegionalArticle implements Serializable {
+
+    @EmbeddedId
+    public RegionalArticlePk getPk() { ... }
+}
+
+public class RegionalArticlePk implements Serializable { ... }</pre> 
+   <p><tt class="literal"><font face="新宋体">@Embeddable</font></tt> 注解默认继承了其所属实体的访问类型, 除非显式使用了Hibernate的<tt class="literal"><font face="新宋体">@AccessType</font></tt>注解(这个注解不是EJB3标准的一部分). 而<tt class="literal"><font face="新宋体">@JoinColumns</font></tt>,即<tt class="literal"><font face="新宋体">@JoinColumn</font></tt>数组, 定义了关联的组合外键(如果不使用缺省值的话). 显式指明<tt class="literal"><font face="新宋体">referencedColumnNames</font></tt>是一个好的实践方式, 否则,Hibernate认为你使用的列顺序和主键声明的顺序一致.</p> 
+   <pre class="programlisting">@Entity
+public class Parent implements Serializable {
+    @Id
+    public ParentPk id;
+    public int age;
+
+    @OneToMany(cascade=CascadeType.ALL)
+    @JoinColumns ({
+        @JoinColumn(name=&quot;parentCivility&quot;, referencedColumnName = &quot;isMale&quot;),
+        @JoinColumn(name=&quot;parentLastName&quot;, referencedColumnName = &quot;lastName&quot;),
+        @JoinColumn(name=&quot;parentFirstName&quot;, referencedColumnName = &quot;firstName&quot;)
+    })
+    public Set&lt;Child&gt; children; //unidirectional
+    ...
+}</pre> 
+   <pre class="programlisting">@Entity
+public class Child implements Serializable {
+    @Id @GeneratedValue
+    public Integer id;
+
+    @ManyToOne
+    @JoinColumns ({
+        @JoinColumn(name=&quot;parentCivility&quot;, referencedColumnName = &quot;isMale&quot;),
+        @JoinColumn(name=&quot;parentLastName&quot;, referencedColumnName = &quot;lastName&quot;),
+        @JoinColumn(name=&quot;parentFirstName&quot;, referencedColumnName = &quot;firstName&quot;)
+    })
+    public Parent parent; //unidirectional
+}</pre> 
+   <pre class="programlisting">@Embeddable
+public class ParentPk implements Serializable {
+    String firstName;
+    String lastName;
+    ...
+}</pre> 
+   <p>注意上面的 <tt class="literal"><font face="新宋体">referencedColumnName</font></tt>显式使用方式.</p> 
+  </div> 
+  <div class="sect2"> 
+   <div class="titlepage"> 
+    <div> 
+     <div> 
+      <h3 class="title"><a name="d0e1823"></a>2.2.7. 映射二级表(secondary tables)</h3> 
+     </div> 
+    </div> 
+    <div> 
+    </div> 
+   </div> 
+   <p>使用类一级的 <tt class="literal"><font face="新宋体">@SecondaryTable </font></tt>或 <tt class="literal"><font face="新宋体">@SecondaryTables </font></tt>注解可以实现单个实体到多个表的映射. 使用 <tt class="literal"><font face="新宋体">@Column </font></tt>或者 <tt class="literal"><font face="新宋体">@JoinColumn </font></tt>注解中的 <tt class="literal"><font face="新宋体">table </font></tt>参数可指定某个列所属的特定表.</p> 
+   <pre class="programlisting">@Entity
+@Table(name=&quot;MainCat&quot;)
+<span class="bold"><strong>@SecondaryTables({
+    @SecondaryTable(name=&quot;Cat1&quot;, pkJoinColumns={
+        @PrimaryKeyJoinColumn(name=&quot;cat_id&quot;, referencedColumnName=&quot;id&quot;)
+    ),
+    @SecondaryTable(name=&quot;Cat2&quot;, uniqueConstraints={@UniqueConstraint(columnNames={&quot;storyPart2&quot;})})
+})</strong></span>
+public class Cat implements Serializable {
+
+    private Integer id;
+    private String name;
+    private String storyPart1;
+    private String storyPart2;
+
+    @Id @GeneratedValue
+    public Integer getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+    
+    <span class="bold"><strong>@Column(table=&quot;Cat1&quot;)</strong></span>
+    public String getStoryPart1() {
+        return storyPart1;
+    }
+
+    <span class="bold"><strong>@Column(table=&quot;Cat2&quot;)</strong></span>
+    public String getStoryPart2() {
+        return storyPart2;
+    }</pre> 
+   <p>在上面这个例子中,<tt class="literal"><font face="新宋体">name</font></tt>保存在<tt class="literal"><font face="新宋体">MainCat</font></tt>表中, <tt class="literal"><font face="新宋体">storyPart1</font></tt>保存在<tt class="literal"><font face="新宋体">Cat1</font></tt>表中, <tt class="literal"><font face="新宋体">storyPart2</font></tt>保存在<tt class="literal"><font face="新宋体">Cat2</font></tt>表中. <tt class="literal"><font face="新宋体">Cat1</font></tt>表通过外键<tt class="literal"><font face="新宋体">cat_id</font></tt>和<tt class="literal"><font face="新宋体">MainCat</font></tt>表关联, <tt class="literal"><font face="新宋体">Cat2</font></tt>表通过<tt class="literal"><font face="新宋体">id</font></tt>列和<tt class="literal"><font face="新宋体">MainCat</font></tt>表关联 (和<tt class="literal"><font face="新宋体">MainCat</font></tt>的<tt class="literal"><font face="新宋体">id</font></tt>列同名). 对<tt class="literal"><font face="新宋体">storyPart2</font></tt>列还定义了唯一约束.</p> 
+   <p>在JBoss EJB 3指南和Hibernate Annotations单元测试代码中还有更多的例子.</p> 
+  </div> 
+ </div> 
+ <div class="sect1"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h2 class="title" style="clear: both"><a name="entity-mapping-query"></a>2.3. 映射查询（略）</h2> 
+    </div> 
+   </div> 
+  </div> 
+ </div> 
+</div></div></body></html>

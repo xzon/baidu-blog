@@ -1,0 +1,802 @@
+<html><head><title>第9章 WPF开发实例 9.2 WPF独立应用程序 -good</title></head><body><div id='tit'>第9章 WPF开发实例 9.2 WPF独立应用程序 -good</div><div id='cate'>异域</div><div id='date'>2009年04月25日 星期六 08:22 P.M.</div><div id='page'>54</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/0356c5cebe787b0b93457e5c.html'>http://hi.baidu.com/hxzon/blog/item/0356c5cebe787b0b93457e5c.html</a><div id='cnt'><div> 
+ <div> 
+ </div> 
+ <div>
+  <strong>第9章 WPF开发实例 9.2 WPF独立应用程序 -good</strong>
+ </div> 
+ <div>
+  Windows Presentation Foundation（WPF）是.NET 3.0之后推出的Windows下的新一代显示系统，在.NET 3.5中进行了增强。通过WPF可以开发极其灵活、美观、震撼用户体验的UI应用程序，包括桌面应用程序和承载于浏览器的应用程序。本章将简单介绍如何利用WPF进行应用程序开发。
+ </div> 
+ <div>
+  <strong>9.1 WPF简介</strong>
+ </div> 
+ <div>
+  在进一步介绍WPF应用程序开发方法之前，首先介绍一下WPF的基本概念、体系结构、开发模式等，同时也介绍一下XAML的概念。只有对这些基本概念有一个基本认识，才可能开发出更好的WPF应用程序。
+ </div> 
+ <div>
+  <strong>9.1.1 什么是WPF</strong>
+ </div> 
+ <div>
+  Windows Presentation Foundation（WPF）是Microsoft在.NET 3.0中推出的一个重要新特性，它为Windows下应用程序开发提供一套全新的显示系统，旨在为用户提供方便的用户操作和震撼视觉体验的界面。WPF支持一套完整的应用程序开发功能，包括应用程序开发模型、资源、控件、图形、动画、布局、数据绑定、文档读写、本地化、安全性等。
+ </div> 
+ <div>
+  WPF的核心是一个与分辨率无关的基于向量的呈现引擎，旨在充分发挥现代图形设备的优势，WPF开发和C#集成可以通过Visual Studio 2008非常方便地进行应用程序开发。WPF和公共语言运行环境（CLR）的完全集成，充分利用了CLR提供的类型安全、跨平台等特性。
+ </div> 
+ <div>
+  另外，WPF在CLR之上提供自身的程序模型和类库，如图9-1所示为MSDN上介绍的WPF体系结构。其中，PresentationFramework和PresentationCore都是基于CLR之上，以托管代码的方式公开应用程序开发接口（API）的。而milcore则在CLR之下，是以非托管代码方式，直接和DirectX紧密集成的，可以充分利用DirectX在图形处理上的巨大便利和性能优势，从而为用户提供具有震撼视觉感受的用户界面。milcore是WPF隐藏于CLR之下的核心驱动组件，在实际应用程序开发中不太可能访问到，这里不再进一步介绍。
+ </div> 
+ <div>
+  WPF体系结构中一个重要原理就是--基于属性，WPF提供的类库、操作方式等都尽可能使用属性，而不是方法或事件。因为属性是声明性的，较之方法和事件更加容易指定对象的意图（这在XAML中相当重要），所以属性系统是WPF体系结构中一个重要部分。在WPF属性系统中，属性可以被继承和监视，当属性被更改时，属性联系的双方都被通知。由于被继承，所以子元素可以感受到父元素属性的变化，例如，父窗体的窗体大小属性被更改时，会自动通知到子窗体，并同步刷新界面。WPF属性系统的根本是System.Windows. DependencyObject类型，它是WPF属性系统的基类。
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#999999" align="center" bgcolor="#ddddd0" border="1" cellspacing="0"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#ffffff"><a target="_blank" href="http://new.51cto.com/files/uploadimg/20080929/171456454.jpg"><img src="image/第9章 WPF开发实例 9.2 WPF独.79514516bf3bd01c21a4e97f.jpg" border="0" height="443" width="366" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/79514516bf3bd01c21a4e97f.jpg</p></a></td> 
+    </tr> 
+    <tr> 
+     <td align="center" bgcolor="#dddddd">图9-1 WPF体系结构</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  在WPF中，System.Windows.Media.Visual类型提供了界面元素的显示支持，它用于生成一个可视化树，树中每个元素都包含特定的绘制和实现能力，从而将需要的数据显示到界面。另外，Visual类还将托管的WPF组件和非托管的milcore组件链接到一起，通过在屏幕上定义一个矩形显示区域来提供显示框架，从而将可视化树中各元素呈现到屏幕上。
+ </div> 
+ <div>
+  WPF中大部分类都是从UIElement、FrameworkElement、ContentElement、Framework ContentElement 4个类派生而来，这4个类称为基元素类。其中，UIElement是主要类，它是从Visual类派生而来，适用于支持大型数据模型的元素，这些元素用于在可以称为矩形屏幕区域的区域内进行呈现和布局，在该区域内，内容模型特意设置得更加开放，以允许不同的元素进行组合。
+ </div> 
+ <div>
+  在WPF中，改变了传统Windows窗体应用程序中的窗体中相对位置计算的布局模式，在WPF中的布局更像网页上元素的布局，显得更加灵活。WPF支持5种常用的布局形式，如表9-1所示。
+ </div> 
+ <div>
+  表9-1 WPF中的常用布局模式
+ </div> 
+ <div align="center"> 
+  <table border="1" cellpadding="0" cellspacing="0" width="524"> 
+   <tbody> 
+    <tr> 
+     <td valign="top" width="104"> 
+      <div>
+       <span style="font-size: 12px;"><span>模</span><span><span>&nbsp;&nbsp;&nbsp; </span></span><span>式</span></span>
+      </div> </td> 
+     <td valign="top" width="420"> 
+      <div>
+       <span style="font-size: 12px;"><span>说</span><span><span>&nbsp;&nbsp;&nbsp; </span></span><span>明</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td width="104"> 
+      <div>
+       <span style="font-size: 12px;"><span>Canvas</span></span>
+      </div> </td> 
+     <td width="420"> 
+      <div>
+       <span style="font-size: 12px;"><span>定义一个区域，在此区域内，可以使用相对于</span><span>Canvas</span><span>区域的坐标显式定位子元素</span><span>，类似于传统的</span><span>Windows</span><span>窗体程序中相对坐标的布局方式</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td width="104"> 
+      <div>
+       <span style="font-size: 12px;"><span>DockPanel</span></span>
+      </div> </td> 
+     <td width="420"> 
+      <div>
+       <span style="font-size: 12px;"><span>定义一个区域，在此区域内，可以使子元素互相水平或垂直排列，对于简单的单行或单列元素布局比较适用</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td width="104"> 
+      <div>
+       <span style="font-size: 12px;"><span>Grid</span></span>
+      </div> </td> 
+     <td width="420"> 
+      <div>
+       <span style="font-size: 12px;"><span>定义由行和列组成的灵活网格区域，类似于网页开发中的网格布局，对于比较复杂而灵活的界面布局比较适用</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td width="104"> 
+      <div>
+       <span style="font-size: 12px;"><span>StackPanel</span></span>
+      </div> </td> 
+     <td width="420"> 
+      <div>
+       <span style="font-size: 12px;"><span>沿水平或垂直方向</span><span>将子元素排列成一行</span><span>，对于简单的行或列布局比较适用</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td width="104"> 
+      <div>
+       <span style="font-size: 12px;"><span>WrapPanel</span></span>
+      </div> </td> 
+     <td width="420"> 
+      <div>
+       <span style="font-size: 12px;"><span>从左至右按顺序位置定位子元素，在包含框的边缘处将内容断开至下一行</span><span>，</span><span>后续排序按照从上至下或从右至左的顺序进行，具体取决于</span><span>Orientation</span><span>属性的值</span></span>
+      </div> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  表9-1中列出的布局模式实际是不同类型的面板控件，这些面板本身可以装入其他类型的面板，这样就可以得到不同布局模式的组合，从而构建丰富灵活的应用程序界面。例如，在一个Grid面板的各单元内放入Canvas面板，就可以得到整体为Grid布局，但内部却是绝对位置布局的界面样式。
+ </div> 
+ <div>
+  除了在窗体布局上的更改之外，WPF支持动画、二维图形、三维图形等图像处理和多媒体技术，另外，WPF还支持文档的打开和阅读等。由于篇幅限制，这里不再详细介绍。总之，通过WPF可以轻松开发出具有丰富UI的应用程序。
+ </div> 
+ <div>
+  <strong>9.1.2 WPF开发模式</strong>
+ </div> 
+ <div>
+  Windows Presentation Foundation（WPF）通过Visual Studio 2008提供了一套新的应用程序开发模式，该模式与ASP.NET网页开发模式有几分相似之处，也是一种前后台开发模式。本节简单介绍一下这种开发模式的一些基本概念。
+ </div> 
+ <div>
+  和普通的Windows窗体应用程序一样，WPF应用程序的开发也分界面设计和后台代码两个部分，WPF应用程序界面设计代码和ASP.NET页面（见本书第19章）相似。WPF的界面代码是一种新的标记性语言--XAML，后台代码则是C#、VB.NET等.NET高级语言（本书实例中都使用 C#）。
+ </div> 
+ <div>
+  XAML可以理解成一种特殊的XML文件，因为它的格式和XML一致，但是，根据节点的不同意义，XAML节点可以描述不同的界面元素，所以 XAML被用作WPF的UI编写语言。XAML简化了为.NET Framework编程模型创建UI的过程，XAML文件是指通常使用.xaml为扩展名的XML文件。
+ </div> 
+ <div>
+  在XAML中，界面上的每个UI元素都是一个节点，该节点包含多个子节点，每个子节点表示了父节点所包含的一个UI元素，从而就可以体现出UI上的控件等元素的布局方式。开发人员可以使用代码隐藏文件将UI定义与运行时逻辑相分离。与普通的XML不同，XAML直接呈现托管对象的实例化，这种常规设计原则简化了使用XAML创建的对象的代码和调试访问。
+ </div> 
+ <div>
+  XAML具有一组规则，这些规则将对象元素映射为类或结构，将XML节点的属性（Attribute）映射为类的属性（Property）或事件，并将XML命名空间映射为CLR命名空间。XAML元素映射为引用的程序集中定义的Microsoft.NET类型，而属性（Attribute）则映射为这些类型的成员。
+ </div> 
+ <div>
+  示例代码9-1演示了一个简单的WPF窗体的XAML代码，层次大致是，一个Windows窗体包含一个Grid，Grid内部包含一个Label 控件和一个Button控件。其中Windows窗体映射到后台代码中的类为HelloWPF.Window1，标题为Title属性的值 --HelloWPF，对象名称（Name属性）为FrmMain等。另外，Button控件的名称为btnShowMsg，Click事件处理函数为 btnShowMsg_Click()。
+ </div> 
+ <div>
+  示例代码9-1：
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#000000" align="center" border="1" cellpadding="2" cellspacing="0" width="400"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#e6e6e6"> 
+      <divre></divre> &lt;Window x:Class=&quot;HelloWPF.Window1&quot;<br /> xmlns=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml/presentation">http://schemas.microsoft.com/winfx/2006/xaml/presentation</a>&quot;<br /> xmlns:x=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml">http://schemas.microsoft.com/winfx/2006/xaml</a>&quot;<br /> Title=&quot;HelloWPF&quot; Height=&quot;179&quot; Width=&quot;262&quot; Name=&quot;FrmMain&quot;&gt;<br /> &lt;Grid&gt;<br /> &lt;Label Height=&quot;28&quot; Margin=&quot;44,31,49,0&quot; Name=&quot;lbHint&quot; <br /> VerticalAlignment=&quot;Top&quot;&gt;Hello WPF, I'm coming !&lt;/Label&gt;<br /> &lt;Button Height=&quot;34&quot; Margin=&quot;32,0,36,35&quot; Name=&quot;btnShowMsg&quot; <br /> VerticalAlignment=&quot;Bottom&quot; Click=&quot;btnShowMsg_Click&quot; &gt;Show Message&lt;/Button &gt;<br /> &lt;/Grid&gt;<br /> &lt;/Window&gt; <pre> </pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  在WPF应用程序中，与XAML所描述的UI界面对应，还包含一个后台代码文件，本书用C#语言开发，名称为XAML文件名后面添加.cs后缀名，如示例代码9-1对应的XAML文件名称为Window1.xaml，对应的后台代码文件名为Window1.xaml.cs，如示例代码9-2所示为与示例代码9-1对应的后台代码。
+ </div> 
+ <div>
+  其中，类Window1从Window类继承，对应到示例代码9-1中的FrmMain窗体所使用的类，btnShowMsg_Click()方法则对应到示例代码9-1中btnShowMsg的Click事件处理函数。这两个代码文件相互关联，并且一一对应，一个发生修改必须同时修改另外一个。
+ </div> 
+ <div>
+  示例代码9-2：
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#000000" align="center" border="1" cellpadding="2" cellspacing="0" width="400"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#e6e6e6"> <pre>namespace HelloWPF<br />{<br />/// &lt;summary&gt;<br />/// Window1.xaml 的交互逻辑<br />/// &lt;/summary&gt;<br />public partial class Window1 : Window<br />{<br />public Window1( )<br />{<br />InitializeComponent( );<br />}</pre> <p> </p> 
+      <div>
+       private void btnShowMsg_Click(object sender, RoutedEventArgs e)
+       <br /> {
+       <br /> MessageBox.Show(&quot;Hello WPF, I'm coming !&quot;);
+       <br /> }
+       <br /> }
+       <br /> }
+      </div> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+  <p> </p> 
+ </div> 
+ <div>
+  <strong>9.1.3 WPF应用程序</strong>
+ </div> 
+ <div>
+  Windows Presentation Foundation（WPF）旨在提供用户界面应用程序开发框架，所以基于WPF的应用程序多为用户界面程序。Visual Studio 2008集成了WPF开发支持，提供下面4种类型的WPF应用程序创建向导。
+ </div> 
+ <div>
+  WPF应用程序：也称WPF独立应用程序，创建一个在客户端直接运行的独立的应用程序，和Windows窗体应用程序类似。
+ </div> 
+ <div>
+  WPF浏览器应用程序：创建一个可以承载在浏览器（IE6、IE7及以上版本）之内的应用程序，可以进行页面导航，但是和Web页面不一样。
+ </div> 
+ <div>
+  WPF用户控件库：创建包含开发人员自行开发的WPF用户控件类库。
+ </div> 
+ <div>
+  WPF自定义控件库：创建包含开发人员自行开发的自定义控件类库。
+ </div> 
+ <div>
+  这些应用程序类型都包含在&quot;C#&quot;→&quot;Windows&quot;分类中。其中，WPF独立应用程序和WPF浏览器应用程序都比较常用，而控件库应用程序则多用在需要自行开发并发布独立的用户控件类库中。
+ </div> 
+ <div>
+  一个可执行的WPF应用程序通常需要一组核心功能，包括创建和管理通用应用程序基础结构、跟踪应用程序的生命周期、检索和处理命令行参数、处理资源文件、拦截未处理异常、返回退出代码等。另外，一个WPF应用程序除了可执行文件之外，还需要其他外部文件的支持，这些文件主要有资源文件、内容文件、源站点文件3类。
+ </div> 
+ <div>
+  WPF应用程序的资源文件和Windows窗体应用程序的资源文件一样，在程序开发时期准备，并且被编译到应用程序内部。
+ </div> 
+ <div>
+  内容文件则是独立于应用程序的文件，但是应用程序运行时这些文件是必需的，例如应用程序配置文件、数据库文件等。这些文件在发布时与应用程序一起发布，在开发期间不一定存在，但在应用程序编译时肯定存在，因为它们会被Visual Studio 2008自动移动到目标目录中。
+ </div> 
+ <div>
+  最后，源站点文件是在编译时无法确定是否存在的文件，这些文件可能保存在远程应用程序中或是保存在远程Web网站上，需要在程序运行时临时从外部站点获取。在WPF应用程序中，如果使用这类文件，必须考虑到文件不存在的情况，并给出相应的处理。
+ </div> 
+ <div>
+  WPF提供了4种类型的应用程序，本章将通过实例详细介绍最常用的两种应用程&nbsp;&nbsp;&nbsp; 序--WPF独立应用程序和WPF浏览器应用程序，并将介绍在Visual Studio 2008中如何开发WPF应用程序。
+ </div> 
+ <div>
+  <strong>9.2 WPF独立应用程序</strong>
+ </div> 
+ <div>
+  WPF独立应用程序是可以在客户端独立运行的应用程序，它在操作界面、运行方式上和Win Form窗体应用程序十分类似，所以也是最常用的WPF应用程序之一，本节将介绍WPF独立应用程序的开发过程、代码结构、窗体和控件的使用等基础知识。
+ </div> 
+ <div>
+  <strong>9.2.1 创建WPF独立应用程序</strong>
+ </div> 
+ <div>
+  在Visual Studio 2008中，要创建一个WPF独立应用程序，只需根据创建向导执行即可，主要包括下面4个步骤：
+ </div> 
+ <div>
+  （1）打开Visual Studio 2008开发环境，通过选择&quot;文件&quot;→&quot;新建&quot;→&quot;项目&quot;命令打开&quot;新建项目&quot;对话框。
+ </div> 
+ <div>
+  （2）在&quot;新建项目&quot;对话框中选择&quot;WPF应用程序&quot;模板，该模板位于&quot;其他语言&quot;→&quot;C#&quot;→&quot;Windows&quot;分类下，如图9-2所示。
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#999999" align="center" bgcolor="#ddddd0" border="1" cellspacing="0"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#ffffff"><a target="_blank" href="http://book.51cto.com/files/uploadimg/20080929/1730170.jpg"><img style="width: 498px" src="image/第9章 WPF开发实例 9.2 WPF独.a688494af4bdd97508f7ef7f.jpg" border="0" height="431" width="683" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/a688494af4bdd97508f7ef7f.jpg</p></a></td> 
+    </tr> 
+    <tr> 
+     <td align="center" bgcolor="#dddddd">（点击查看大图）图9-2 创建WPF独立应用程序</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  （3）选择.NET Framework 3.5，输入项目名称&quot;HelloWPF&quot;，选择项目存放位置，并选中&quot;创建解决方案的目录&quot;复选框。
+ </div> 
+ <div>
+  （4）单击&quot;确定&quot;按钮，完成创建向导的设置，Visual Studio 2008会根据模板自动生成WPF独立应用程序的基本框架以及默认的窗体。
+ </div> 
+ <div>
+  通过Visual Studio 2008自动生成的WPF独立应用程序的代码结构如图9-3所示，其中，包括以下几个主要部分。
+ </div> 
+ <div>
+  Properties： 包含应用程序版本信息（AssemblyInfo.cs定义）、资源文件（Resources.resx定义）、配置信息（Settings.settings定义）。
+ </div> 
+ <div>
+  引用：包含WPF应用程序必需的引用，PresentationCore、PresentationFramework是开发WPF应用程序必需的引用。
+ </div> 
+ <div>
+  App.xaml：应用程序的XAML代码，主导应用程序的启动和退出等，App.xaml.cs是App.xaml的后台代码。
+ </div> 
+ <div>
+  Window1.xaml：默认启动窗体的XAML代码，Window1.xaml.cs是Window1.xaml的后台代码，该窗体通常根据需要进行修改。
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#999999" align="center" bgcolor="#ddddd0" border="1" cellspacing="0"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#ffffff"><a target="_blank" href="http://book.51cto.com/files/uploadimg/20080929/1730171.jpg"><img src="image/第9章 WPF开发实例 9.2 WPF独.eb0e4023dfee0f049922ed7f.jpg" border="0" height="360" width="283" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/eb0e4023dfee0f049922ed7f.jpg</p></a></td> 
+    </tr> 
+    <tr> 
+     <td align="center" bgcolor="#dddddd">图9-3 WPF独立应用程序代码结构</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  这个结构也是WPF应用程序的典型结构，其中代码文件是可以修改的，XAML代码有可视化设计器，可以轻松地进行界面布局和开发。
+ </div> 
+ <div>
+  WPF应用程序的启动和Window Form窗体应用程序不一样，WPF应用程序是类似于网页的方式执行，每个窗体类似于一个页面，可以进行导航。这从应用程序启动代码可以看出，示例代码 9-3是App.xaml的代码，其中&lt;Application&gt;表示一个应用程序，它的StartupUri属性表示了应用程序第一次启动的窗体为Windows1.xaml。
+ </div> 
+ <div>
+  示例代码9-3：
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#000000" align="center" border="1" cellpadding="2" cellspacing="0" width="400"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#e6e6e6"> 
+      <divre></divre> &lt;Application x:Class=&quot;HelloWPF.App&quot;<br /> xmlns=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml/presentation">http://schemas.microsoft.com/winfx/2006/xaml/presentation</a>&quot;<br /> xmlns:x=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml">http://schemas.microsoft.com/winfx/2006/xaml</a>&quot;<br /> StartupUri=&quot;Window1.xaml&quot;&gt;<br /> &lt;Application.Resources&gt;<br /> <br /> &lt;/Application.Resources&gt;<br /> &lt;/Application&gt; <pre> </pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  当一个应用程序中包含多个WPF窗体时，可以修改APP.xaml中的Application节点的StartupUri属性为需要作为主窗体启动的窗体，从而实现从任意窗体启动。
+ </div> 
+ <div>
+  通过代码编辑器编写Window1.xaml和Window1.xaml.cs的代码分别如示例代码9-1和示例代码9-2所示，最后通过选择&quot;调试&quot;→&quot;启动调试&quot;命令生成并执行HelloWPF应用程序，得到的界面如图9-4所示。生成的可执行程序是以.exe作为扩展名的，默认在项目的Bin 目录下。
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#999999" align="center" bgcolor="#ddddd0" border="1" cellspacing="0"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#ffffff"><a target="_blank" href="http://book.51cto.com/files/uploadimg/20080929/1730172.jpg"><img src="image/第9章 WPF开发实例 9.2 WPF独.c25d9652403bed580df3e37f.jpg" border="0" height="180" width="264" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/c25d9652403bed580df3e37f.jpg</p></a></td> 
+    </tr> 
+    <tr> 
+     <td align="center" bgcolor="#dddddd">图9-4 HelloWPF运行效果</td> 
+    </tr> 
+   </tbody> 
+  </table> 从图9-4中可以看出，WPF独立应用程序和Win Form窗体应用程序产生的效果非常相似，但后台的实现原理完全不同，而且WPF的很多高级技术在Windows窗体应用程序中无法做到，这些将在深入学习WPF之后才能体会到。
+ </div> 
+ <div>
+  <strong>9.2.2 WPF窗体介绍</strong>
+ </div> 
+ <div>
+  在WPF中，一个独立的窗体用Window来表示，这和Win Form窗体不一样，Window是&quot;窗口&quot;的意思，这很符合Windows视窗系统的初衷。
+ </div> 
+ <div>
+  和Win Form窗体一样，WPF窗体也分成工作区和非工作区两个区域，如图9-5所示，非工作区由WPF自动实现，包括标题栏、图标、最大化按钮、外围边框（白色的边框）、系统菜单。工作区是由WPF提供的一个矩形区域（灰色的矩形），它具体的内容由开发人员根据软件功能具体实现。
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#999999" align="center" bgcolor="#ddddd0" border="1" cellspacing="0"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#ffffff"><a target="_blank" href="http://new.51cto.com/files/uploadimg/20080929/173607708.jpg"><img src="image/第9章 WPF开发实例 9.2 WPF独.5388740ed6ea489c7acbe17f.jpg" border="0" height="325" width="314" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/5388740ed6ea489c7acbe17f.jpg</p></a></td> 
+    </tr> 
+    <tr> 
+     <td align="center" bgcolor="#dddddd">图9-5 WPF窗体结构</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  在.NET Framework 3.5类库中，所有WPF窗体的基类是System.Windows.Window，该类提供的功能包括绘制窗体、配置窗体外观和管理窗体生命周期等。每个WPF窗体都有一个所谓的生命周期来表示窗体的存在时间，在窗体生命周期内可以访问，否则不能访问。
+ </div> 
+ <div>
+  WPF窗体的生命周期从窗体对象的实例化开始，然后可以进行重复的打开、激活、停用等操作，最后关闭窗口，退出生命周期，在窗体运行期间，通过捕获用户操作，并以事件机制为开发人员提供响应用户操作的接口。
+ </div> 
+ <div>
+  开发人员在开发一个新的WPF窗体时，主要是对窗体工作区进行设计和编码，包括设置窗体外观、响应窗体事件、设置窗体布局、添加控件、设置控件外观、响应控件事件等。在以后小节中将介绍窗体的具体开发。
+ </div> 
+ <div>
+  <strong>9.2.3 修改WPF窗体外观</strong>
+ </div> 
+ <div>
+  在Visual Studio 2008中，要修改窗体的外观有通过属性管理器修改、通过XAML代码直接修改和通过C#代码修改3种方法，无论哪一种方法，最终修改的都是该窗体对应的 XAML代码，但通过属性管理器会更加直观。在动态更改界面外观时则通过C#代码修改这种方法。
+ </div> 
+ <div>
+  WPF窗体中的每一个界面元素都直接映射到XAML代码中的一个节点，WPF窗体本身也映射到XAML代码中的&lt;Window/&gt;节点。节点的属性（Attribute）则对应于窗体类的属性（Property），WPF窗体的外观都可以通过属性进行设置。
+ </div> 
+ <div>
+  如示例代码9-4所示是一个窗体的XAML代码，其中&lt;Window/&gt;节点表示正在描述一个窗体，Class属性则表示该窗体对应的后台代码类型是UseWPFWindow.Window1，通过该属性，编译器&quot;知道&quot;将这个窗体与哪个C#类型相对应，从而完成前后台代码的合并编译。
+ </div> 
+ <div>
+  示例代码9-4：
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#000000" align="center" border="1" cellpadding="2" cellspacing="0" width="400"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#e6e6e6"> <pre>&lt;Window x:Class=&quot;UseWPFWindow.Window1&quot;<br />xmlns=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml/presentation">http://schemas.microsoft.com/winfx/2006/xaml/presentation</a>&quot;<br />xmlns:x=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml">http://schemas.microsoft.com/winfx/2006/xaml</a>&quot;<br />Title=&quot;示例窗体&quot;Height=&quot;300&quot; Width=&quot;300&quot; Name=&quot;wndMain&quot; <br />BorderThickness=&quot;1&quot;Opacity =&quot;2&quot; WindowStyle=&quot;ThreeDBorderWindow&quot; <br />WindowStartupLocation=&quot;CenterScreen&quot; Cursor= &quot;AppStarting&quot; <br />Background=&quot;Aquamarine&quot; BorderBrush=&quot;Azure&quot; OpacityMask=&quot;Aquamarine&quot; <br />MinHeight= &quot;100&quot; MinWidth=&quot;100&quot; Padding=&quot;3&quot;<br />ForceCursor=&quot;False&quot; Icon=&quot;icon1.ico&quot; IsEnabled=&quot;False&quot; <br />Foreground=&quot;Blue&quot; Loaded=&quot;wndMain_Loaded&quot;&gt;<br />&lt;/Window&gt;</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 在示例代码9-4中，除了Class属性外，其他属性都是对窗体外观属性的一些设置，本段代码设置窗体的背景颜色（Background）为蓝绿色（Aquamarine），定义窗体样式（WindowStyle）为三维边框窗体（ThreeDBorderWindow），标题（Title）为&quot;示例窗体&quot;，最小高度和宽度都为100像素等。这段代码绘制出来的WPF窗体如图9-6所示。其中最明显的效果是：背景颜色、标题、图标、边框。
+  <br /> 
+  <table bordercolordark="#ffffff" bordercolorlight="#999999" align="center" bgcolor="#ddddd0" border="1" cellspacing="0"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#ffffff"><a target="_blank" href="http://new.51cto.com/files/uploadimg/20080929/173901169.jpg"><img src="image/第9章 WPF开发实例 9.2 WPF独.b0610c462c06215f6a63e57f.jpg" border="0" height="236" width="246" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/b0610c462c06215f6a63e57f.jpg</p></a></td> 
+    </tr> 
+    <tr> 
+     <td align="center" bgcolor="#dddddd">图9-6 WPF窗体效果</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  注意：由于图9-6是在Windows经典主题下进行截图的，所以三维边框效果不明显，如果是在Windows Vista操作系统下运行该代码，可以得到更加美观的效果，包括标题变成蓝色、三维边框等。
+ </div> 
+ <div>
+  从示例代码9-4可以看出，通过XAML修改WPF窗体的外观非常容易，但XAML设置的外观是静态的，要想动态修改，要用到第3种方法，通过C# 代码修改窗体类属性的值。如示例代码9-5所示，它是示例代码9-4对应的Window1类的代码，其中wndMain_Loaded()方法中通过代码的方式设置窗体标题为&quot;示例窗体--1&quot;，设置字体大小为10。
+ </div> 
+ <div>
+  示例代码9-5：
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#000000" align="center" border="1" cellpadding="2" cellspacing="0" width="400"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#e6e6e6"> <pre>namespace UseWPFWindow<br />{<br />/// &lt;summary&gt;<br />/// Window1.xaml 的交互逻辑<br />/// &lt;/summary&gt;<br />public partial class Window1 : Window<br />{<br />public Window1( )<br />{<br />InitializeComponent( );<br />}</pre> <pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     private void wndMain_Loaded(object sender, RoutedEventArgs e)<br />{<br />this.Title = &quot;示例窗体--1&quot;;<br />this.FontSize = 10;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     <br />}<br />}<br />}</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  开发人员可以为WPF设置多种不同的外观特性，比较常用的属性如表9-2所示，其中包括窗体标题、大小、字体、图标、前景色、背景色、边框样式、光标和右键菜单等，但在实际开发中只是根据需要修改其中的一个或多个即可。
+ </div> 
+ <div>
+  表9-2 WPF窗体属性
+ </div> 
+ <div align="center"> 
+  <table border="1" cellpadding="0" cellspacing="0" width="533"> 
+   <tbody> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span style="font-size: 12px;"><span>属</span><span><span> </span></span><span>性</span> <span>名</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>说</span><span><span>&nbsp;&nbsp;&nbsp; </span></span><span>明</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Tiltle</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的标题</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Icon</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体左上角显示的图标</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Cursor</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体中正常状态下使用的光标类型</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">WindowState</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体处于还原、最大化、最小化中某一种状态</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">WindowStartupLocation</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体启动时的位置，可选屏幕中央、父窗体中央、默认位置</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">WindowStyle</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的边框样式</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Width</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的宽度，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Height</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的高度，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">MinWidth</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的最小宽度，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">MinHeight</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的最小高度，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">MaxWidth</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的最大宽度，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">MaxHeight</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的最大高度，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Top</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体上边沿相对于桌面的位置，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Left</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体左边沿相对于桌面的位置，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">FontFamily</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体上的字体，如宋体、黑体等</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">FontSize</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体上字体的大小</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">FontStretch</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体上字体的压缩或扩展程度</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">FontStyle</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体上字体的样式</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">FontWeight</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体上字体的粗细</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Foreground</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体中用于绘制前景色的画笔</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Background</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体中用于绘制背景颜色的画笔</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">BorderBrush</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体中用于绘制边框背景的画刷</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">BorderThickness</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体中边框的宽度，单位为像素</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Margin</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span style="font-size: 12px;"><span>表示窗体的外边距</span></span>
+      </div> </td> 
+    </tr> 
+    <tr> 
+     <td valign="top" width="158"> 
+      <div>
+       <span><span style="font-size: 12px;">Padding</span></span>
+      </div> </td> 
+     <td valign="top" width="374"> 
+      <div>
+       <span><span style="font-size: 12px;">表示窗体的内边距</span></span>
+      </div> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  <strong>9.2.4 使用WPF窗体事件</strong>
+ </div> 
+ <div>
+  事件是.NET中一种非常重要的消息通知机制，WPF虽然尽量使用属性，但事件同样是必不可少的组成部分。与Win Form窗体一样，WPF窗体也同样具有很多不同的事件，在实际开发中同样需要为这些事件增加事件处理函数。
+ </div> 
+ <div>
+  在WPF窗体的整个生命周期中，下面这些重要的事件控制WPF窗体的执行、显示、用户操作、关闭等关键环节。
+ </div> 
+ <div>
+  Loaded：窗体第一次启动时，需要加载窗体中的内容、空间等，第一次加载完成后引发该事件，通常可以在该事件中进行一些界面以及数据的初始化操作。
+ </div> 
+ <div>
+  ContentRendered：在窗体的内容显示完成后引发该事件。
+ </div> 
+ <div>
+  Actived：在窗体激活（变成前台窗体）时引发该事件。
+ </div> 
+ <div>
+  Deactived：在窗体变成后台窗体时引发该事件。
+ </div> 
+ <div>
+  Closing：在窗体即将关闭时引发该事件，在调用Window.Close()方法请求关闭窗体时引发该事件，可以在事件处理函数中进行关闭前确认、资源释放等操作。
+ </div> 
+ <div>
+  Unloaded：在窗体中的显示元素全部移除之后引发该事件，这时窗体已经接近死 亡，同样可以在事件处理函数中进行资源释放等操作。
+ </div> 
+ <div>
+  Closed：在窗体已经关闭之后引发该事件，这时窗体已经关闭，马上结束生命周期，这是最后一次释放资源的机会。
+ </div> 
+ <div>
+  在WPF应用程序开发中，窗体事件处理函数同样可以用XAML代码通过节点属性指定，其中属性名称为事件名称（如Loaded），属性值为事件处理函数。如示例代码9-6所示为窗体Window1的XAML代码，在&lt;Window&gt;节点中，通过&quot;Loaded=&quot;wndMain_Loaded&quot;&quot;代码指定Loaded事件的处理函数为wndMain_Loaded()。
+ </div> 
+ <div>
+  示例代码9-6：
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#000000" align="center" border="1" cellpadding="2" cellspacing="0" width="400"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#e6e6e6"> <pre>&lt;Window x:Class=&quot;UseWPFWindow.Window1&quot;<br />xmlns=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml/presentation">http://schemas.microsoft.com/winfx/2006/xaml/presentation</a>&quot;<br />xmlns:x=&quot;<a href="http://schemas.microsoft.com/winfx/2006/xaml">http://schemas.microsoft.com/winfx/2006/xaml</a>&quot;<br />Title=&quot;示例窗体&quot; Height=&quot;309&quot; Width=&quot;308&quot; Name=&quot;wndMain&quot; <br />Icon=&quot;icon1.ico&quot; IsEnabled =&quot;True&quot; <br />Foreground=&quot;Blue&quot; Loaded=&quot;wndMain_Loaded&quot; Closing=&quot;<br />wndMain_Closing&quot; Closed=&quot; wndMain_ Closed&quot;<br />Activated=&quot;wndMain_Activated&quot; Deactivated=&quot;wndMain_<br />Deactivated&quot;  Unloaded=&quot;wndMain_ Unloaded&quot;<br />ContentRendered=&quot;wndMain_ContentRendered&quot;&gt;<br />&lt;Canvas Height=&quot;257&quot; Name=&quot;canvas1&quot; Width=&quot;271&quot;&gt;<br />&lt;Label Canvas.Left=&quot;10&quot; Canvas.Top=&quot;9&quot; Height=&quot;28&quot;<br />Name=&quot;label1&quot; Width=&quot;120&quot; FontSize=&quot;15&quot; <br />Foreground=&quot;Blue&quot;&gt;提示信息&lt;/Label&gt;<br />&lt;TextBox Canvas.Left=&quot;10&quot; Canvas.Top=&quot;40&quot; Height=<br />&quot;206&quot; Name=&quot;tbHint&quot; Width=&quot;251&quot; <br />HorizontalScrollBarVisibility=&quot;Auto&quot; <br />VerticalScrollBarVisibility=&quot;Auto&quot;&gt;&lt;/TextBox&gt; <br />&lt;/Canvas&gt;<br />&lt;/Window&gt;</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <div>
+  在XAML中指定事件处理函数之后，还需要保证对应的后台代码中必须包含对应的函数，否则无法正确编译。如示例代码9-7是与上面代码对应的后台代码，它的功能主要是在事件响应函数中增加提示信息，从而监视这些事件发生的顺序。
+ </div> 
+ <div>
+  示例代码9-7：
+ </div> 
+ <div> 
+  <table bordercolordark="#ffffff" bordercolorlight="#000000" align="center" border="1" cellpadding="2" cellspacing="0" width="400"> 
+   <tbody> 
+    <tr> 
+     <td bgcolor="#e6e6e6"> <pre>namespace UseWPFWindow<br />{<br />/// &lt;summary&gt;<br />/// Window1.xaml 的交互逻辑<br />/// &lt;/summary&gt;<br />public partial class Window1 : Window<br />{<br />public Window1( )<br />{<br />InitializeComponent( );<br />}</pre> <p> </p> 
+      <div>
+       private void AppendString(string str)
+       <br /> {
+       <br /> this.tbHint.AppendText(System.DateTime.Now.ToString( ) + &quot;:&quot; 
+       <br /> + str + System.Environment.NewLine);
+       <br /> }
+      </div> 
+      <div>
+       private void wndMain_Loaded(object sender, RoutedEventArgs e)
+       <br /> {
+       <br /> this.AppendString(&quot;wndMain_Loaded&quot;);
+       <br /> }
+      </div> 
+      <div>
+       private void wndMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+       <br /> {
+       <br /> this.AppendString(&quot;wndMain_Closing&quot;);
+       <br /> MessageBox.Show(&quot;wndMain_Closing&quot;);
+       <br /> }
+      </div> 
+      <div>
+       private void wndMain_Closed(object sender, EventArgs e)
+       <br /> {
+       <br /> this.AppendString(&quot;wndMain_Closed&quot;);
+       <br /> MessageBox.Show(&quot;wndMain_Closed&quot;);
+       <br /> }
+      </div> 
+      <div>
+       private void wndMain_Activated(object sender, EventArgs e)
+       <br /> {
+       <br /> this.AppendString(&quot;wndMain_Activated&quot;);
+       <br /> }
+      </div> 
+      <div>
+       private void wndMain_Deactivated(object sender, EventArgs e)
+       <br /> {
+       <br /> this.AppendString(&quot;wndMain_Deactivated&quot;);
+       <br /> }
+      </div> 
+      <div>
+       private void wndMain_ContentRendered(object sender, EventArgs e)
+       <br /> {
+       <br /> this.AppendString(&quot;wndMain_ContentRendered&quot;);
+       <br /> }
+      </div> 
+      <div>
+       private void wndMain_Unloaded(object sender, RoutedEventArgs e)
+       <br /> {
+       <br /> this.AppendString(&quot;wndMain_Unloaded&quot;);
+       <br /> MessageBox.Show(&quot;wndMain_Unloaded&quot;);
+       <br /> }
+       <br /> }
+       <br /> }
+      </div> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+  <p> </p> 
+ </div> 
+ <div>
+  生成并运行示例代码9-6和示例代码9-7，在窗体第一次启动时，首先窗体被激活产生Activated事件，然后是窗体加载需要显示的内容完成，产生Loaded事件，接着是将这些内容显示到界面完成，产生ContentRendered事件。在窗体关闭时，首先产生一个即将关闭的Closing 事件，然后窗体切换到后台窗体，产生Deactivated事件，接着卸载窗体中所有元素完成，产生Unloaded事件，最后窗体彻底关闭，产生 Closed事件。
+ </div> 
+ <div>
+  在WPF窗体的整个生命周期中，除了以上介绍的几个主要事件之外，WPF窗体在运行过程中还要产生很多事件，包括鼠标事件、键盘事件、属性变更事件、拖放事件、焦点变更事件、外观变化事件等，理解并合理处理这些事件，可以大大提高应用程序开发的灵活性和多样性。
+ </div> 
+ <div> 
+ </div> 
+</div></div></body></html>

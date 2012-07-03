@@ -1,0 +1,108 @@
+<html><head><title>关于SQL2000中1433端口的诊断说明</title></head><body><div id='tit'>关于SQL2000中1433端口的诊断说明</div><div id='cate'>动手</div><div id='date'>2007年12月13日 星期四 11:24 P.M.</div><div id='page'>187</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/37a99445c0ab253c879473b5.html'>http://hi.baidu.com/hxzon/blog/item/37a99445c0ab253c879473b5.html</a><div id='cnt'><div class="tit">
+ 关于SQL2000中1433端口的诊断说明
+</div> 
+<div class="date"> 
+</div> 
+<table style="table-layout: fixed"> 
+ <tbody> 
+  <tr> 
+   <td> 
+    <div class="cnt">
+     用了几年的Windows2003和SQL Server2000了，不过这个问题倒是头次遇到。最近调试一个JSP+SQL2000WEB程序遇到个现象，在Win2003简体中文服务器版上安装SQL Server2000，默认安装，一切正常，但是在安装完成后Tomcat运行正常，JSP程序却无法连接SQL2000数据库，查看端口，1433端口居然未开放，当然更不用说远程连接了。
+     <br /> 
+     <br /> 一般分析的都是这样：
+     <br /> 
+     <br /> 1、sql server服务没有启动；
+     <br /> 
+     <br /> 检查服务启动，重新启动服务故障依然。
+     <br /> 
+     <br /> 2、修改了端口号；
+     <br /> 
+     <br /> 打开网络实用工具，检查启用的协议中有TCP/IP协议，查看端口，是1433没错。
+     <br /> 
+     <br /> 3、客户端实用工具作了改动；
+     <br /> 
+     <br /> 打开客户端实用工具，检查协议端口正常，重新创建一个别名，依然不行。
+     <br /> 
+     <br /> 4、安装的问题；
+     <br /> 
+     <br /> 怀疑安装步骤有问题。遂卸载重装，一切默认，故障依然。
+     <br /> 
+     <br /> 5、安装版本的问题；
+     <br /> 
+     <br /> 查看安装光盘，是久经考验的安装盘，应该不会出问题。
+     <br /> 
+     <br /> 6、系统的问题；
+     <br /> 
+     <br /> 也看不出有什么其它的问题，难道是系统的问题？不过重装系统可太过麻烦，还是先想想其它的办法，看能不能找到问题所在。检查系统日志，这个应该是一个比较好的习惯。仔细翻了一遍重新安装后的日志，赫然发现如下内容：您运行的 Microsoft SQL Server 2000 版本或 Microsoft SQL Server 2000 Desktop Engine (也称为 MSDE) 和 
+     <br /> Microsoft Windows Server 2003 家族使用时存在已知的安全弱点。为了减少计算机被某些病毒的攻击，Microsoft SQL Server 2000，MSDE 或 两者的 TCP/IP 和 UDP 网络端口被禁用。要启用这些端口，您必须从 www.microsoft.com/sql/downloads/default.asp或www.microsoft.com/china/sql/downloads/default.asp安装一个修补程序， 或 Microsoft SQL Server 2000 或 MSDE 的最新服务包。 
+     <br /> 
+     <br /> 有关更多信息，请参阅在 go.microsoft.com/fwlink/events.asp 的帮助和支持 
+     <br /> 终于找到问题了，原来是Windows的一个小小的安全考虑。那么为什么以前就没遇到过呢，原来搞惯安全的人，安 
+     <br /> 装好sql以后，在使用前一定会先修补漏洞，所以一直未注意过这个问题。看来什么样的习惯都会有一些弊端！ 
+     <br /> 既然找到问题就简单了，立刻到微软网站：http://www.microsoft.com/downloads/details.aspx?displaylang=zh-cn&amp;FamilyID=8E2DFC8D-C20E-4446-99A9-B7F0213F8BC5 
+     <br /> 
+     <br /> 下载SP4的“数据库组件（下载文件：SQL2000-KB884525-SP4-x86.EXE）” 
+     <br /> 安装SQL Server SP4后，浏览器地址栏测试www.ITstudy.cn一切正常。 
+     <br /> 
+     <br /> 
+     <br /> 附： 
+     <br /> 远程连接sql server 2000服务器的解决方案 
+     <br /> 
+     <br /> 解决方案步骤： 
+     <br /> 一 看ping 服务器IP能否ping通。 
+     <br /> 这个实际上是看和远程sql server 2000服务器的物理连接是否存在。如果不行，请检查网络，查看配置，当然得 
+     <br /> 确保远程sql server 2000服务器的IP拼写正确。 
+     <br /> 二 在Dos或命令行下输入telnet 服务器IP 端口，看能否连通。 
+     <br /> 如telnet 202.114.100.100 1433 
+     <br /> 通常端口值是1433，因为1433是sql server 2000的对于Tcp/IP的默认侦听端口。如果有问题，通常这一步会出问 
+     <br /> 题。通常的提示是“……无法打开连接,连接失败&quot;。 
+     <br /> 如果这一步有问题，应该检查以下选项。 
+     <br /> 1 检查远程服务器是否启动了sql server 2000服务。如果没有，则启动。 
+     <br /> 2 检查服务器端有没启用Tcp/IP协议，因为远程连接（通过因特网）需要靠这个协议。检查方法是，在服务器上 
+     <br /> 打开开始菜单-&gt;程序-&gt;Microsoft SQL Server-&gt;服务器网络实用工具，看启用的协议里是否有tcp/ip协议，如果 
+     <br /> 没有，则启用它。 
+     <br /> 3 检查服务器的tcp/ip端口是否配置为1433端口。仍然在服务器网络实用工具里查看启用协议里面的tcp/ip的属 
+     <br /> 性，确保默认端口为1433，并且隐藏服务器复选框没有勾上。 
+     <br /> 事实上，如果默认端口被修改，也是可以的，但是在客户端做telnet测试时，写服务器端口号时必须与服务器配 
+     <br /> 置的端口号保持一致。如果隐藏服务器复选框被勾选，则意味着客户端无法通过枚举服务器来看到这台服务器， 
+     <br /> 起到了保护的作用，但不影响连接，但是Tcp/ip协议的默认端口将被隐式修改为2433，在客户端连接时必须作相 
+     <br /> 应的改变。 
+     <br /> 4 如果服务器端操作系统打过sp2补丁，则要对windows防火墙作一定的配置，要对它开放1433端口，通常在测试 
+     <br /> 时可以直接关掉windows防火墙（其他的防火墙也关掉最好）。 
+     <br /> 5 检查服务器是否在1433端口侦听。如果服务器没有在tcp连接的1433端口侦听，则是连接不上的。检查方法是在 
+     <br /> 服务器的dos或命令行下面输入 netstat -a -n 或者是netstat -an，在结果列表里看是否有类似 tcp 127.0.0.1 
+     <br /> 1433 listening 的项。如果没有，则通常需要给sql server 2000打上至少sp3的补丁。其实在服务器端启动查询 
+     <br /> 分析器，输入 select @@version 执行后可以看到版本号，版本号在8.0.2039以下的都需要打补丁。 
+     <br /> 如果以上都没问题，这时你再做telnet 服务器ip 1433 测试，将会看到屏幕一闪之后光标在左上角不停闪动。恭 
+     <br /> 喜你，你马上可以开始在企业管理器或查询分析器连接了。 
+     <br /> 
+     <br /> 三 检查客户端设置 
+     <br /> 程序-&gt;Microsoft SQL Server-&gt; 客户端网络使用工具。像在服务器网络实用工具里一样，确保客户端tcp/ip协议 
+     <br /> 启用，并且默认端口为1433（或其他端口，与服务器端保持一致就行）。 
+     <br /> 
+     <br /> 四 在企业管理器里或查询分析器连接测试 
+     <br /> 企业管理器-&gt;右键SQlserver组-&gt;新建sqlserver注册-&gt;下一步-&gt;写入远程IP-&gt;下一步-&gt; 选Sqlserver登陆-&gt;下一 
+     <br /> 步-&gt;写入登陆名与密码（sa,password）-&gt;下一步-&gt;下一步-&gt;完成 
+     <br /> 查询分析器-&gt;文件-&gt;连接-&gt;写入远程IP-&gt;写入登录名和密码（sa,password）-&gt;确定 
+     <br /> 通常建议在查询分析器里做，因为默认情况下，通过企业管理器注册另外一台SQL Server的超时设置是4秒，而查 
+     <br /> 询分析器是15秒。 
+     <br /> 修改默认连接超时的方法： 
+     <br /> 企业管理器-&gt;工具-&gt;选项-&gt;在弹出的&quot;SQL Server企业管理器属性&quot;窗口中，点击&quot;高级&quot;选项卡-&gt;连接设置-&gt;在 登 
+     <br /> 录超时（秒） 后面的框里输入一个较大的数字 
+     <br /> 查询分析器-&gt;工具-&gt;选项-&gt;连接-&gt;在 登录超时（秒） 后面的框里输入一个较大的数字 
+     <br /> 通常就可以连通了，如果提示错误，则进入下一步。 
+     <br /> 五 错误产生的原因通常是由于SQL Server使用了&quot;仅 Windows&quot;的身份验证方式，因此用户无法使用SQL Server的 
+     <br /> 登录帐户（如 sa ）进行连接。解决方法如下所示： 
+     <br /> 1 在服务器端使用企业管理器，并且选择&quot;使用 Windows 身份验证&quot;连接上 SQL Server。 
+     <br /> 2 展开&quot;SQL Server组&quot;，鼠标右键点击SQL Server服务器的名称，选择&quot;属性&quot;，再选择&quot;安全性&quot;选项卡。 
+     <br /> 3 在&quot;身份验证&quot;下，选择&quot;SQL Server和 Windows &quot;。 
+     <br /> 4 重新启动SQL Server服务。（在dos或命令行下面net stop mssqlserver停止服务，net start 
+     <br /> mssqlserver启动服务，也是一种快捷的方法）。 
+     <br /> 
+     <br /> 注：在连接本地服务器时，通常使用的是命名管道协议（在服务器网络实用工具里可以看到启用的协议有这个） 
+     <br /> ，默认端口是445，因此在本地能连通是不能说明什么问题的，连接远程服务器是完全不同的协议）。
+    </div> </td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

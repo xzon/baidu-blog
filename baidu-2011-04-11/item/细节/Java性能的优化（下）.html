@@ -1,0 +1,670 @@
+<html><head><title>Java性能的优化（下）</title></head><body><div id='tit'>Java性能的优化（下）</div><div id='cate'>细节</div><div id='date'>2007年11月14日 星期三 01:25 A.M.</div><div id='page'>201</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/62468c13dd84c4d3f6039e36.html'>http://hi.baidu.com/hxzon/blog/item/62468c13dd84c4d3f6039e36.html</a><div id='cnt'><table class="FCK__ShowTableBorders" width="680" align="center"> 
+ <tbody> 
+  <tr> 
+   <td align="center"> <h2><font color="#0f3ccd">Java性能的优化（下）</font></h2> <br /> <strong>黄伟峰</strong></td> 
+  </tr> 
+  <tr> 
+   <td align="right">01-7-9 上午 10:30:32<br /> 
+    <hr width="660" color="#f46240" size="1" /> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong><font size="4">三．优化JAVA程序设计和编码，提高JAVA程序性能的一些方法。</font></strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">通过使用一些前面介绍过的辅助性工具来找到程序中的瓶颈，然后就可以对瓶颈部分的代码进行优化。一般有两种方案：即优化代码或更改设计方法。我们一般会选择后者，因为不去调用以下代码要比调用一些优化的代码更能提高程序的性能。而一个设计良好的程序能够精简代码，从而提高性能。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">下面将提供一些在JAVA程序的设计和编码中，为了能够提高JAVA程序的性能，而经常采用的一些方法和技巧。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>1．对象的生成和大小的调整。</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">JAVA程序设计中一个普遍的问题就是没有好好的利用JAVA语言本身提供的函数，从而常常会生成大量的对象（或实例）。由于系统不仅要花时间生成对象，以后可能还需花时间对这些对象进行垃圾回收和处理。因此，生成过多的对象将会给程序的性能带来很大的影响。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">例1：关于String ,StringBuffer，+和append</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">JAVA语言提供了对于String类型变量的操作。但如果使用不当，会给程序的性能带来影响。如下面的语句：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">String name=new String(“HuangWeiFeng”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.out.println(name+”is my name”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">看似已经很精简了，其实并非如此。为了生成二进制的代码，要进行如下的步骤和操作。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（1） 生成新的字符串 new String(STR_1);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（2） 复制该字符串。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（3） 加载字符串常量”HuangWeiFeng”(STR_2);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（4） 调用字符串的构架器（Constructor）;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（5） 保存该字符串到数组中（从位置0开始）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（6） 从java.io.PrintStream类中得到静态的out变量</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（7） 生成新的字符串缓冲变量new StringBuffer(STR_BUF_1);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（8） 复制该字符串缓冲变量</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（9） 调用字符串缓冲的构架器（Constructor）;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（10） 保存该字符串缓冲到数组中（从位置1开始）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（11） 以STR_1为参数，调用字符串缓冲(StringBuffer)类中的append方法。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（12） 加载字符串常量”is my name”(STR_3);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（13） 以STR_3为参数，调用字符串缓冲(StringBuffer)类中的append方法。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（14） 对于STR_BUF_1执行toString命令。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（15） 调用out变量中的println方法，输出结果。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">由此可以看出，这两行简单的代码，就生成了STR_1,STR_2,STR_3,STR_4和STR_BUF_1五个对象变量。这些生成的类的实例一般都存放在堆中。堆要对所有类的超类，类的实例进行初始化，同时还要调用类极其每个超类的构架器。而这些操作都是非常消耗系统资源的。因此，对对象的生成进行限制，是完全有必要的。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">经修改，上面的代码可以用如下的代码来替换。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">StringBuffer name=new StringBuffer(“HuangWeiFeng”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.out.println(name.append(“is my name.”).toString());</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">系统将进行如下的操作。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(1) 生成新的字符串缓冲变量new StringBuffer(STR_BUF_1);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(2) 复制该字符串缓冲变量</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(3) 加载字符串常量”HuangWeiFeng”(STR_1);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(4) 调用字符串缓冲的构架器（Constructor）;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(5) 保存该字符串缓冲到数组中（从位置1开始）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(6) 从java.io.PrintStream类中得到静态的out变量</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(7) 加载STR_BUF_1;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(8) 加载字符串常量”is my name”(STR_2);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(9) 以STR_2为参数，调用字符串缓冲(StringBuffer)实例中的append方法。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(10) 对于STR_BUF_1执行toString命令。(STR_3)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(11)调用out变量中的println方法，输出结果。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">由此可以看出，经过改进后的代码只生成了四个对象变量：STR_1,STR_2,STR_3和STR_BUF_1.你可能觉得少生成一个对象不会对程序的性能有很大的提高。但下面的代码段2的执行速度将是代码段1的2倍。因为代码段1生成了八个对象，而代码段2只生成了四个对象。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">代码段1：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">String name= new StringBuffer(“HuangWeiFeng”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">name+=”is my”;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">name+=”name”;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">代码段2：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">StringBuffer name=new StringBuffer(“HuangWeiFeng”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">name.append(“is my”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">name.append(“name.”).toString();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">因此，充分的利用JAVA提供的库函数来优化程序，对提高JAVA程序的性能时非常重要的.其注意点主要有如下几方面；</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（1） 尽可能的使用静态变量（Static Class Variables）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">如果类中的变量不会随他的实例而变化，就可以定义为静态变量，从而使他所有的实例都共享这个变量。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">例：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public class foo</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">SomeObject so=new SomeObject();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">就可以定义为：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public class foo</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">static SomeObject so=new SomeObject();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（2） 不要对已生成的对象作过多的改变。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">对于一些类(如：String类)来讲，宁愿在重新生成一个新的对象实例，而不应该修改已经生成的对象实例。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">例：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">String name=”Huang”;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">name=”Wei”;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">name=”Feng”;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">上述代码生成了三个String类型的对象实例。而前两个马上就需要系统进行垃圾回收处理。如果要对字符串进行连接的操作，性能将得更差。因为系统将不得为此生成更多得临时变量。如上例1所示。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（3） 生成对象时，要分配给它合理的空间和大小</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">JAVA中的很多类都有它的默认的空间分配大小。对于StringBuffer类来讲，默认的分配空间大小是16个字符。如果在程序中使用StringBuffer的空间大小不是16个字符，那么就必须进行正确的初始化。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（4） 避免生成不太使用或生命周期短的对象或变量。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">对于这种情况，因该定义一个对象缓冲池。以为管理一个对象缓冲池的开销要比频繁的生成和回收对象的开销小的多。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">（5） 只在对象作用范围内进行初始化。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">JAVA允许在代码的任何地方定义和初始化对象。这样，就可以只在对象作用的范围内进行初始化。从而节约系统的开销。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">例：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">SomeObject so=new SomeObject();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">If(x==1) then</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Foo=so.getXX();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">可以修改为：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">if(x==1) then</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">SomeObject so=new SomeObject();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Foo=so.getXX();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>2．异常(Exceptions)</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">JAVA语言中提供了try/catch来发方便用户捕捉异常，进行异常的处理。但是如果使用不当，也会给JAVA程序的性能带来影响。因此，要注意以下两点。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(1) 避免对应用程序的逻辑使用try/catch</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">如果可以用if,while等逻辑语句来处理，那么就尽可能的不用try/catch语句</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(2) 重用异常</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">在必须要进行异常的处理时，要尽可能的重用已经存在的异常对象。以为在异常的处理中，生成一个异常对象要消耗掉大部分的时间。</td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

@@ -1,0 +1,194 @@
+<html><head><title>线程与Swing</title></head><body><div id='tit'>线程与Swing</div><div id='cate'>设计方案</div><div id='date'>2008年04月01日 星期二 10:15 A.M.</div><div id='page'>145</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3058b4113c2e5f7aca80c489.html'>http://hi.baidu.com/hxzon/blog/item/3058b4113c2e5f7aca80c489.html</a><div id='cnt'><table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td> 
+    <table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" bgcolor="#ffffff" border="0"> 
+     <tbody> 
+      <tr> 
+       <td class="title1" align="center" width="100%" bgcolor="#eeeeee" colspan="3" height="40"><strong>线程与Swing</strong></td> 
+      </tr> 
+      <tr> 
+       <td align="center" width="100%" bgcolor="#eeeeee"><a href="mailto:foosleeper@hotmail.com">FooSleeper</a> 翻译&nbsp;&nbsp;&nbsp; 更新：2003-07-13 23:20:44&nbsp;&nbsp; 版本: 1.0 &nbsp;&nbsp;</td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+  <tr> 
+   <td valign="top" align="center" width="100%"> 
+    <table class="rtable FCK__ShowTableBorders" width="98%" border="0"> 
+     <tbody> 
+      <tr> 
+       <td class="text" align="left" width="100%"><br /> <strong>作者：Hans Muller，Kathy Walrath </strong><br /> 翻译：郭晓刚（foosleeper@163.net）<br /> <a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/threads1.html">原文来自java.sun.com</a><br /> <br /> 本文关于Swing中的多线程，发表于1998年4月。一个月后，我们发表了另一篇文章《<a class="l2" target="_blank" href="http://www.javaresearch.org/article/showarticle.jsp?column=287&amp;thread=7788">使用Swing Worker线程</a>》，该文更深入地讨论了这一主题。要更好地了解多线程在Swing中如何工作，我们建议你把这两篇文章都看一下。<br /> <strong>注意</strong>：在2000年9月我们修改了这篇文章和它的例子以适用于一个更新版本的SwingWorker类。SwingWorker类的这个版本修正了一些微妙的线程bug。<br /> <br /> Swing API的设计目标是强大、灵活和易用。特别地，我们希望能让程序员们方便地建立新的Swing组件，不论是从头开始还是通过扩展我们所提供的一些组件。<br /> 出于这个目的，我们不要求Swing组件支持多线程访问。相反，我们向组件发送请求并在单一线程中执行请求。<br /> 本文讨论线程和Swing组件。目的不仅是为了帮助你以线程安全的方式使用Swing API，而且解释了我们为什么会选择现在这样的线程方案。<br /> 本文包括以下内容：<br /> 
+        <ul> 
+         <li><strong>单线程规则</strong>：Swing线程在同一时刻仅能被一个线程所访问。一般来说，这个线程是事件派发线程（event-dispatching thread）。</li> 
+         <li><strong>规则的例外</strong>：有些操作保证是线程安全的。</li> 
+         <li><strong>事件分发</strong>：如果你需要从事件处理（event-handling）或绘制代码以外的地方访问UI，那么你可以使用SwingUtilities类的invokeLater()或invokeAndWait()方法。</li> 
+         <li><strong>创建线程</strong>：如果你需要创建一个线程――比如用来处理一些耗费大量计算能力或受I/O能力限制的工作――你可以使用一个线程工具类如SwingWorker或Timer。</li> 
+         <li><strong>为什么我们这样实现Swing</strong>：我们用一些关于Swing的线程安全的背景资料来结束这篇文章。</li> 
+        </ul> <br /> Swing的规则是：<br /> <strong>一旦Swing组件被具现化（realized），所有可能影响或依赖于组件状态的代码都应该在事件派发线程中执行。</strong><br /> <br /> 这个规则可能听起来有点吓人，但对许多简单的程序来说，你用不着为线程问题操心。在我们深入如何撰写Swing代码之前，让我们先来定义两个术语：具现化（realized）和事件派发线程（event-dispatching thread）。<br /> 具现化的意思是组建的paint()方法已经或可能会被调用。一个作为顶级窗口的Swing组件当调用以下方法时将被具现化：setVisible(true)、show()或（可能令你惊奇）pack()。当一个窗口被具现化，它包含的所有组件都被具现化。另一个具现化一个组件的方法是将它放入到一个已经具现化的容器中。稍后你会看到一些对组件具现化的例子。<br /> 事件派发线程是执行绘制和事件处理的线程。例如，paint()和actionPerformed()方法会自动在事件派发线程中执行。另一个将代码放到事件派发线程中执行的方法是使用SwingUtilities类的invokeLater()方法。<br /> 所有可能影响一个已具现化的Swing组件的代码都必须在事件派发线程中执行。但这个规则有一些例外：<br /> 
+        <ul> 
+         <li><strong>有些方法是线程安全的</strong>：在Swing API的文档中，线程安全的方法用以下文字标记：<br /> This method is thread safe, although most Swing methods are not. <br /> （这个方法是线程安全的，尽管大多数Swing方法都不是。）</li> 
+         <li><strong>一个应用程序的GUI常常可以在主线程中构建和显示</strong>：下面的典型代码是安全的，只要没有（Swing或其他）组件被具现化：<br /> 
+          <div class="codeStyle"> 
+           <ol> 
+            <li> </li> 
+            <li><strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">class</font></strong> MyApplication {</li> 
+            <li><strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">static</font></strong> <strong><font color="#0000ff">void</font></strong> main(<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/String.java.html"><font class="classLink"><u>String</u></font></a></strong>[] args) {</li> 
+            <li>&nbsp;&nbsp;&nbsp;<font color="#ff0000">JFrame</font> f = <strong><font color="#0000ff">new</font></strong> <font color="#ff0000">JFrame</font>(<font color="#ff33ff">&quot;Labels&quot;</font>);</li> 
+            <li>&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 在这里将各组件 </font></em></li> 
+            <li>&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 加入到主框架…… </font></em></li> 
+            <li>&nbsp;&nbsp;&nbsp; f.pack();</li> 
+            <li>&nbsp;&nbsp;&nbsp; f.show();</li> 
+            <li>&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 不要再做任何GUI工作…… </font></em></li> 
+            <li>&nbsp;&nbsp;&nbsp; }</li> 
+            <li>}</li> 
+           </ol> 
+          </div> </li> 
+        </ul> <br /> 上面所示的代码全部在“main”线程中运行。对f.pack()的调用使得JFrame以下的组件都被具现化。这意味着，f.show()调用是不安全的且应该在事件派发线程中执行。尽管如此，只要程序还没有一个看得到的GUI，JFrame或它的里面的组件就几乎不可能在f.show()返回前收到一个paint()调用。因为在f.show()调用之后不再有任何GUI代码，于是所有GUI工作都从主线程转到了事件派发线程，因此前面所讨论的代码实际上是线程安全的。<br /> 
+        <ul> 
+         <li><strong>一个applet的GUI可以在init()方法中构造和显示</strong>：现有的浏览器都不会在一个applet的init()和start()方法被调用前绘制它。因而，在一个applet的init()方法中构造GUI是安全的，只要你不对applet中的对象调用show()或setVisible(true)方法。<br /> 要顺便一提的是，如果applet中使用了Swing组件，就必须实现为JApplet的子类。并且，组件应该添加到的JApplet内容窗格（content pane）中，而不要直接添加到JApplet。对任何applet，你都不应该在init()或start()方法中执行费时的初始化操作；而应该启动一个线程来执行费时的任务。</li> 
+         <li><strong>下述JComponent方法是安全的，可以从任何线程调用</strong>：repaint()、revalidate()、和invalidate()。repaint()和revalidate()方法为事件派发线程对请求排队，并分别调用paint()和validate()方法。invalidate()方法只在需要确认时标记一个组件和它的所有直接祖先。</li> 
+         <li><strong>监听者列表可以由任何线程修改</strong>：调用addListenerTypeListener()和removeListenerTypeListener()方法总是安全的。对监听者列表的添加/删除操作不会对进行中的事件派发有任何影响。</li> 
+        </ul> <br /> <strong>注意</strong>：revalidate()和旧的validate()方法之间的重要区别是，revalidate()会缓存请求并组合成一次validate()调用。这和repaint()缓存并组合绘制请求类似。<br /> 大多数初始化后的GUI工作自然地发生在事件派发线程。一旦GUI成为可见，大多数程序都是由事件驱动的，如按钮动作或鼠标点击，这些总是在事件派发线程中处理的。<br /> 不过，总有些程序需要在GUI成为可见后执行一些非事件驱动的GUI工作。比如：<br /> 
+        <ul> 
+         <li><strong>在成为可用前需要进行长时间初始化操作的程序</strong>：这类程序通常应该在初始化期间就显示出GUI，然后更新或改变GUI。初始化过程不应该在事件派发线程中进行；否则，重绘组件和事件派发会停止。尽管如此，在初始化之后，GUI的更新/改变还是应该在事件派发线程中进行，理由是线程安全。</li> 
+         <li><strong>必须响应非AWT事件来更新GUI的程序</strong>：例如，想象一个服务器程序从可能运行在其他机器上的程序得到请求。这些请求可能在任何时刻到达，并且会引起在一些可能未知的线程中对服务器的方法调用。这个方法调用怎样更新GUI呢？在事件派发线程中执行GUI更新代码。</li> 
+        </ul> <br /> SwingUtilities类提供了两个方法来帮助你在事件派发线程中执行代码：<br /> 
+        <ul> 
+         <li>invokeLater()：要求在事件派发线程中执行某些代码。这个方法会立即返回，不会等待代码执行完毕。</li> 
+         <li>invokeAndWait()：行为与invokeLater()类似，除了这个方法会等待代码执行完毕。一般地，你可以用invokeLater()来代替这个方法。</li> 
+        </ul> <br /> 下面是一些使用这几个API的例子。请同时参阅《The Java Tutorial》中的“<a class="l2" target="_blank" href="http://java.sun.com/docs/books/tutorial/together/">BINGO example</a>”，尤其是以下几个类：<a class="l2" target="_blank" href="http://java.sun.com/docs/books/tutorial/together/example-swing/bingo/player/CardWindow.java">CardWindow</a>、<a class="l2" target="_blank" href="http://java.sun.com/docs/books/tutorial/together/example-swing/bingo/player/ControlPane.java">ControlPane</a>、<a class="l2" target="_blank" href="http://java.sun.com/docs/books/tutorial/together/example-swing/bingo/player/Player.java">Player</a>和<a class="l2" target="_blank" href="http://java.sun.com/docs/books/tutorial/together/example-swing/bingo/shared/OverallStatusPane.java">OverallStatusPane</a>。<br /> <h4>使用invokeLater()方法</h4> <br /> 你可以从任何线程调用invokeLater()方法以请求事件派发线程运行特定代码。你必须把要运行的代码放到一个Runnable对象的run()方法中，并将此Runnable对象设为invokeLater()的参数。invokeLater()方法会立即返回，不等待事件派发线程执行指定代码。这是一个使用invokeLater()方法的例子：<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li><strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Runnable.java.html"><font class="classLink"><u>Runnable</u></font></a></strong> doWorkRunnable = <strong><font color="#0000ff">new</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Runnable.java.html"><font class="classLink"><u>Runnable</u></font></a></strong>() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">void</font></strong> run() { doWork(); }</li> 
+          <li>};</li> 
+          <li><font color="#ff0000">SwingUtilities</font>.invokeLater(doWorkRunnable);</li> 
+         </ol> 
+        </div> <br /> <h4>使用invokeAndWait()方法</h4> <br /> invokeAndWait()方法和invokeLater()方法很相似，除了invokeAndWait()方法会等事件派发线程执行了指定代码才返回。在可能的情况下，你应该尽量用invokeLater()来代替invokeAndWait()。如果你真的要使用invokeAndWait()，请确保调用invokeAndWait()的线程不会在调用期间持有任何其他线程可能需要的锁。<br /> 这是一个使用invokeAndWait()的例子：<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li><strong><font color="#0000ff">void</font></strong> showHelloThereDialog()</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">throws</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Exception.java.html"><font class="classLink"><u>Exception</u></font></a></strong> {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Runnable.java.html"><font class="classLink"><u>Runnable</u></font></a></strong> showModalDialog = <strong><font color="#0000ff">new</font></strong></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Runnable.java.html"><font class="classLink"><u>Runnable</u></font></a></strong>() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">void</font></strong> run() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff0000">JOptionPane</font>.showMessageDialog(</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; myMainFrame, <font color="#ff33ff">&quot;Hello There&quot;</font>);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; };</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff0000">SwingUtilities</font>.invokeAndWait</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (showModalDialog);</li> 
+          <li>}</li> 
+         </ol> 
+        </div> <br /> 类似地，假设一个线程需要对GUI的状态进行存取，比如文本域的内容，它的代码可能类似这样：<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li><strong><font color="#0000ff">void</font></strong> printTextField() <strong><font color="#0000ff">throws</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Exception.java.html"><font class="classLink"><u>Exception</u></font></a></strong> {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">final</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/String.java.html"><font class="classLink"><u>String</u></font></a></strong>[] myStrings =</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">new</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/String.java.html"><font class="classLink"><u>String</u></font></a></strong>[2];</li> 
+          <li> </li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Runnable.java.html"><font class="classLink"><u>Runnable</u></font></a></strong> getTextFieldText =</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">new</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Runnable.java.html"><font class="classLink"><u>Runnable</u></font></a></strong>() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">void</font></strong> run() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; myStrings[0] =</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textField0.getText();</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; myStrings[1] =</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textField1.getText();</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; };</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff0000">SwingUtilities</font>.invokeAndWait</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (getTextFieldText);</li> 
+          <li> </li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/System.java.html"><font class="classLink"><u>System</u></font></a></strong>.out.println(myStrings[0]</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + <font color="#ff33ff">&quot; &quot;</font> + myStrings[1]);</li> 
+          <li>}</li> 
+         </ol> 
+        </div> <br /> 如果你能避免使用线程，最好这样做。线程可能难于使用，并使得程序的debug更困难。一般来说，对于严格意义下的GUI工作，线程是不必要的，比如对组件属性的更新。<br /> 不管怎么说，有时候线程是必要的。下列情况是使用线程的一些典型情况：<br /> 
+        <ul> 
+         <li>执行一项费时的任务而不必将事件派发线程锁定。例子包括执行大量计算的情况，会导致大量类被装载的情况（如初始化），和为网络或磁盘I/O而阻塞的情况。</li> 
+         <li>重复地执行一项操作，通常在两次操作间间隔一个预定的时间周期。</li> 
+         <li>要等待来自客户的消息。</li> 
+        </ul> <br /> 你可以使用两个类来帮助你实现线程：<br /> 
+        <ul> 
+         <li>SwingWorker：创建一个后台线程来执行费时的操作。</li> 
+         <li>Timer：创建一个线程来执行或多次执行某些代码，在两次执行间间隔用户定义的延迟。</li> 
+        </ul> <br /> <h4>使用SwingWorker类</h4> <br /> SwingWorker类在<a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/src/SwingWorker.java">SwingWorker.java</a>中实现，这个类并不包含在Java的任何发行版中，所以你必须单独下载它。<br /> SwingWorker类做了所有实现一个后台线程所需的肮脏工作。虽然许多程序都不需要后台线程，后台线程在执行费时的操作时仍然是很有用的，它能提高程序的性能观感。<br /> SwingWorker's get() method. Here's an example of using SwingWorker:<br /> 要使用SwingWorker类，你首先要实现它的一个子类。在子类中，你必须实现construct()方法还包含你的长时间操作。当你实例化SwingWorker的子类时，SwingWorker创建一个线程但并不启动它。你要调用你的SwingWorker对象的start()方法来启动线程，然后start()方法会调用你的construct()方法。当你需要construct()方法返回的对象时，可以调用SwingWorker类的get()方法。这是一个使用SwingWorker类的例子：<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li>...<em><font color="#339900">// 在main方法中：</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">final</font></strong> SwingWorker worker =</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">new</font></strong> SwingWorker() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><a target="_blank" href="http://www.javaresearch.org/source/jdk142/java/lang/Object.java.html"><font class="classLink"><u>Object</u></font></a></strong> construct() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">return</font></strong> <strong><font color="#0000ff">new</font></strong></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; expensiveDialogComponent();</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; };</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; worker.start();</li> 
+          <li> </li> 
+          <li>...<em><font color="#339900">// 在动作事件处理方法中:</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff0000">JOptionPane</font>.showMessageDialog</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (f, worker.get());</li> 
+         </ol> 
+        </div> <br /> 当程序的main()方法调用start()方法，SwingWorker启动一个新的线程来实例化ExpensiveDialogComponent。main()方法还构造了由一个窗口和一个按钮组成的GUI。<br /> 当用户点击按钮，程序将阻塞，如果必要，阻塞到ExpensiveDialogComponent创建完成。然后程序显示一个包含ExpensiveDialogComponent的模式对话框。你可以在<a class="l2" target="_blank" href="http://java.sun.com/products/jfc/tsc/articles/threads/src/MyApplication.java">MyApplication.java</a>找到整个程序。<br /> <h4>使用Timer类</h4> <br /> Timer类通过一个ActionListener来执行或多次执行一项操作。你创建定时器的时候可以指定操作执行的频率，并且你可以指定定时器的动作事件的监听者（action listener）。启动定时器后，动作监听者的actionPerformed()方法会被（多次）调用来执行操作。<br /> 定时器动作监听者（action listener）定义的actionPerformed()方法将在事件派发线程中调用。这意味着你不必在其中使用invokeLater()方法。<br /> 这是一个使用Timer类来实现动画循环的例子：<br /> 
+        <div class="codeStyle"> 
+         <ol> 
+          <li> </li> 
+          <li><strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">class</font></strong> AnimatorApplicationTimer</li> 
+          <li>&nbsp;&nbsp;<strong><font color="#0000ff">extends</font></strong> <font color="#ff0000">JFrame</font> <strong><font color="#0000ff">implements</font></strong></li> 
+          <li>&nbsp;&nbsp;<font color="#ff0000">ActionListener</font> {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; ...<em><font color="#339900">//在这里定义实例变量</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<font color="#ff0000">Timer</font> timer;</li> 
+          <li> </li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> AnimatorApplicationTimer(...) {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ...</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 创建一个定时器来&nbsp;&nbsp;</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 来调用此对象action handler。</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timer = <strong><font color="#0000ff">new</font></strong> <font color="#ff0000">Timer</font>(delay, <strong><font color="#0000ff">this</font></strong>);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timer.setInitialDelay(0);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timer.setCoalesce(<strong><font color="#0000ff">true</font></strong>);</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ...</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li> </li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">void</font></strong> startAnimation() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">if</font></strong> (frozen) {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 什么都不做。应用户要求 </font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 停止变换图像。</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } <strong><font color="#0000ff">else</font></strong> {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 启动（或重启动）动画！</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timer.start();</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li> </li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">void</font></strong> stopAnimation() {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 停止动画线程。</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timer.stop();</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li> </li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;<strong><font color="#0000ff">public</font></strong> <strong><font color="#0000ff">void</font></strong> actionPerformed</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (<font color="#ff0000">ActionEvent</font> e) {</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 进到下一帧动画。</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frameNumber++;</li> 
+          <li> </li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em><font color="#339900">// 显示。</font></em></li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; }</li> 
+          <li>&nbsp;&nbsp;&nbsp;&nbsp; ...</li> 
+          <li>}</li> 
+         </ol> 
+        </div> <br /> 在一个线程中执行所有的用户界面代码有这样一些优点：<br /> 
+        <ul> 
+         <li><strong>组件开发者不必对线程编程有深入的理解</strong>：像ViewPoint和Trestle这类工具包中的所有组件都必须完全支持多线程访问，使得扩展非常困难，尤其对不精通线程编程的开发者来说。最近的一些工具包如SubArctic和IFC，都采用和Swing类似的设计。</li> 
+         <li><strong>事件以可预知的次序派发</strong>：invokeLater()排队的runnable对象从鼠标和键盘事件、定时器事件、绘制请求的同一个队列派发。在一些组件完全支持多线程访问的工具包中，组件的改变被变化无常的线程调度程序穿插到事件处理过程中。这使得全面测试变得困难甚至不可能。</li> 
+         <li><strong>更低的代价</strong>：尝试小心锁住临界区的工具包要花费实足的时间和空间在锁的管理上。每当工具包中调用某个可能在客户代码中实现的方法时（如public类中的任何public和protected方法），工具包都要保存它的状态并释放所有锁，以便客户代码能在必要时获得锁。当控制权交回到工具包，工具包又必须重新抓住它的锁并恢复状态。所有应用程序都不得不负担这一代价，即使大多数应用程序并不需要对GUI的并发访问。</li> 
+        </ul> <br /> 这是的SubArctic Java Toolkit的作者对在工具包中支持多线程访问的问题的描述：<br /> 我们的基本信条是，当设计和建造多线程应用程序，尤其是那些包括GUI组件的应用程序时，必须保证极端小心。线程的使用可能会很有欺骗性。在许多情况下，它们表现得能够极好的简化编成，使得设计“专注于单一任务的简单自治实体”成为可能。在一些情况下它们的确简化了设计和编码。然而，在几乎所有的情况下，它们都使得调试、测试和维护的困难大大增加甚至成为不可能。无论大多数程序员所受的训练、他们的经验和实践，还是我们用来帮助自己的工具，都不是能够用来对付非决定论的。例如，全面测试（这总是困难的）在bug依赖于时间时是几乎不可能的。尤其对于Java来说，一个程序要运行在许多不同类型的机器的操作系统平台上，并且每个程序都必须在抢先和非抢先式调度下都能正常工作。<br /> 由于这些固有的困难，我们力劝你三思是否绝对有使用线程的必要。尽管如此，有些情况下使用线程是必要的（或者是被其他软件包强加的），所以subArctic提供了一个线程安全的访问机制。本章讨论了这一机制和怎样在一个独立线程中安全地操作交互树。<br /> 他们所说的线程安全机制非常类似于SwingUtilities类提供的invokeLater()和invokeAndWait()方法。</td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

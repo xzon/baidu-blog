@@ -1,0 +1,183 @@
+<html><head><title>Spring 3.0 MVC 构造Controller方法的参数</title></head><body><div id='tit'>Spring 3.0 MVC 构造Controller方法的参数</div><div id='cate'>源码品读</div><div id='date'>2010年06月30日 星期三 05:07 P.M.</div><div id='page'>12</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/1ae9ab4b195c2dfd83025c63.html'>http://hi.baidu.com/hxzon/blog/item/1ae9ab4b195c2dfd83025c63.html</a><div id='cnt'><div> 
+ <p>Spring 3.0 MVC 构造Controller方法的参数</p> 
+ <p> </p> 
+ <p>hxzon</p> 
+ <p>----------------------------------------------------</p> 
+ <h3>org.springframework.web.servlet.FrameworkServlet</h3> 
+ <pre>/**<br />  * Delegate GET requests to processRequest/doService.<br />  * &lt;p&gt;Will also be invoked by HttpServlet's default implementation of &lt;code&gt;doHead&lt;/code&gt;,<br />  * with a &lt;code&gt;NoBodyResponse&lt;/code&gt; that just captures the content length.<br />  * @see #doService<br />  * @see #doHead<br />  */<br /> @Override<br /> protected final void doGet(HttpServletRequest request, HttpServletResponse response)<br />   throws ServletException, IOException {<br /><br />  <span style="color: rgb(255,0,0)">processRequest(request, response);</span><br /> }<br /><br /> /**<br />  * Delegate POST requests to {@link #processRequest}.<br />  * @see #doService<br />  */<br /> @Override<br /> protected final void doPost(HttpServletRequest request, HttpServletResponse response)<br />   throws ServletException, IOException {<br /><br />  <span style="color: rgb(255,0,0)">processRequest(request, response);</span><br /> }</pre> 
+ <p>开始处理请求</p> 
+ <p>&nbsp;&nbsp;&nbsp; /**<br /> &nbsp;&nbsp;&nbsp; * Process this request, publishing an event regardless of the outcome.<br /> &nbsp;&nbsp;&nbsp; * &lt;p&gt;The actual event handling is performed by the abstract<br /> &nbsp;&nbsp;&nbsp; * {@link #doService} template method.<br /> &nbsp;&nbsp;&nbsp; */<br /> &nbsp;&nbsp;&nbsp; protected final void processRequest(HttpServletRequest request, HttpServletResponse response)<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; throws ServletException, IOException {<br /> <br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; long startTime = System.currentTimeMillis();<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; Throwable failureCause = null;<br /> <br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; // Expose current LocaleResolver and request as LocaleContext.<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; LocaleContext previousLocaleContext = LocaleContextHolder.getLocaleContext();<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; LocaleContextHolder.setLocaleContext(buildLocaleContext(request), this.threadContextInheritable);<br /> <br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; // Expose current RequestAttributes to current thread.<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; RequestAttributes previousRequestAttributes = RequestContextHolder.getRequestAttributes();<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; ServletRequestAttributes requestAttributes = null;<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; if (previousRequestAttributes == null || previousRequestAttributes.getClass().equals(ServletRequestAttributes.class)) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; requestAttributes = new ServletRequestAttributes(request);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; RequestContextHolder.setRequestAttributes(requestAttributes, this.threadContextInheritable);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> <br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; if (logger.isTraceEnabled()) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; logger.trace(&quot;Bound request context to thread: &quot; + request);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> <br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; try {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; <span style="color: rgb(255,0,0)">doService(request, response);</span><br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; catch (ServletException ex) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; failureCause = ex;<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; throw ex;<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; catch (IOException ex) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; failureCause = ex;<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; throw ex;<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; catch (Throwable ex) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; failureCause = ex;<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; throw new NestedServletException(&quot;Request processing failed&quot;, ex);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> <br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; finally {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; // Clear request attributes and reset thread-bound context.<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; LocaleContextHolder.setLocaleContext(previousLocaleContext, this.threadContextInheritable);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; if (requestAttributes != null) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; RequestContextHolder.setRequestAttributes(previousRequestAttributes, this.threadContextInheritable);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; requestAttributes.requestCompleted();<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; if (logger.isTraceEnabled()) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; logger.trace(&quot;Cleared thread-bound request context: &quot; + request);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> <br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; if (failureCause != null) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; this.logger.debug(&quot;Could not complete request&quot;, failureCause);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; else {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; this.logger.debug(&quot;Successfully completed request&quot;);<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; if (this.publishEvents) {<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; // Whether or not we succeeded, publish an event.<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; long processingTime = System.currentTimeMillis() - startTime;<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; this.webApplicationContext.publishEvent(<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; new ServletRequestHandledEvent(this,<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; request.getRequestURI(), request.getRemoteAddr(),<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; request.getMethod(), getServletConfig().getServletName(),<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; WebUtils.getSessionId(request), getUsernameForRequest(request),<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; processingTime, failureCause));<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <h3>转入子类org.springframework.web.servlet.DispatcherServlet的doService方法。</h3> 
+ <p>&nbsp;&nbsp;</p> 
+ <pre>/**<br />  * Exposes the DispatcherServlet-specific request attributes and delegates to {@link #doDispatch}<br />  * for the actual dispatching.<br />  */<br /> @Override<br /> protected void doService(HttpServletRequest request, HttpServletResponse response) throws Exception {<br />  if (logger.isDebugEnabled()) {<br />   String requestUri = urlPathHelper.getRequestUri(request);<br />   logger.debug(&quot;DispatcherServlet with name '&quot; + getServletName() + &quot;' processing &quot; + request.getMethod() +<br />     &quot; request for [&quot; + requestUri + &quot;]&quot;);<br />  }<br /><br />  // Keep a snapshot of the request attributes in case of an include,<br />  // to be able to restore the original attributes after the include.<br />  Map&lt;String, Object&gt; attributesSnapshot = null;<br />  if (WebUtils.isIncludeRequest(request)) {<br />   logger.debug(&quot;Taking snapshot of request attributes before include&quot;);<br />   attributesSnapshot = new HashMap&lt;String, Object&gt;();<br />   Enumeration attrNames = request.getAttributeNames();<br />   while (attrNames.hasMoreElements()) {<br />    String attrName = (String) attrNames.nextElement();<br />    if (this.cleanupAfterInclude || attrName.startsWith(&quot;org.springframework.web.servlet&quot;)) {<br />     attributesSnapshot.put(attrName, request.getAttribute(attrName));<br />    }<br />   }<br />  }<br /><br />  // Make framework objects available to handlers and view objects.<br />  request.setAttribute(WEB_APPLICATION_CONTEXT_ATTRIBUTE, getWebApplicationContext());<br />  request.setAttribute(LOCALE_RESOLVER_ATTRIBUTE, this.localeResolver);<br />  request.setAttribute(THEME_RESOLVER_ATTRIBUTE, this.themeResolver);<br />  request.setAttribute(THEME_SOURCE_ATTRIBUTE, getThemeSource());<br /><br />  try {<br />   <span style="color: rgb(255,0,0)">doDispatch(request, response);</span><br />  }<br />  finally {<br />   // Restore the original attribute snapshot, in case of an include.<br />   if (attributesSnapshot != null) {<br />    restoreAttributesAfterInclude(request, attributesSnapshot);<br />   }<br />  }<br /> }</pre> 
+ <h3>派发</h3> 
+ <pre>/**
+  * Process the actual dispatching to the handler.
+  * &lt;p&gt;The handler will be obtained by applying the servlet's HandlerMappings in order.
+  * The HandlerAdapter will be obtained by querying the servlet's installed HandlerAdapters
+  * to find the first that supports the handler class.
+  * &lt;p&gt;All HTTP methods are handled by this method. It's up to HandlerAdapters or handlers
+  * themselves to decide which methods are acceptable.
+  * @param request current HTTP request
+  * @param response current HTTP response
+  * @throws Exception in case of any kind of processing failure
+  */
+ protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
+  HttpServletRequest processedRequest = request;
+  HandlerExecutionChain mappedHandler = null;
+  int interceptorIndex = -1;
+
+  try {
+   ModelAndView mv;
+   boolean errorView = false;
+
+   try {
+    processedRequest = checkMultipart(request);
+
+    // Determine handler for the current request.
+    mappedHandler = getHandler(processedRequest, false);
+    if (mappedHandler == null || mappedHandler.getHandler() == null) {
+     noHandlerFound(processedRequest, response);
+     return;
+    }
+
+    // Apply preHandle methods of registered interceptors.
+    HandlerInterceptor[] interceptors = mappedHandler.getInterceptors();
+    if (interceptors != null) {
+     for (int i = 0; i &lt; interceptors.length; i++) {
+      HandlerInterceptor interceptor = interceptors[i];
+      if (!interceptor.preHandle(processedRequest, response, mappedHandler.getHandler())) {
+       triggerAfterCompletion(mappedHandler, interceptorIndex, processedRequest, response, null);
+       return;
+      }
+      interceptorIndex = i;
+     }
+    }
+
+    // Actually invoke the handler.
+    <span style="color: rgb(255,0,0)">HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
+    mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+</span>
+    // Do we need view name translation?
+    if (mv != null &amp;&amp; !mv.hasView()) {
+     mv.setViewName(getDefaultViewName(request));
+    }
+
+    // Apply postHandle methods of registered interceptors.
+    if (interceptors != null) {
+     for (int i = interceptors.length - 1; i &gt;= 0; i--) {
+      HandlerInterceptor interceptor = interceptors[i];
+      interceptor.postHandle(processedRequest, response, mappedHandler.getHandler(), mv);
+     }
+    }
+   }
+   catch (ModelAndViewDefiningException ex) {
+    logger.debug(&quot;ModelAndViewDefiningException encountered&quot;, ex);
+    mv = ex.getModelAndView();
+   }
+   catch (Exception ex) {
+    Object handler = (mappedHandler != null ? mappedHandler.getHandler() : null);
+    mv = processHandlerException(processedRequest, response, handler, ex);
+    errorView = (mv != null);
+   }
+
+   // Did the handler return a view to render?
+   if (mv != null &amp;&amp; !mv.wasCleared()) {
+    render(mv, processedRequest, response);
+    if (errorView) {
+     WebUtils.clearErrorRequestAttributes(request);
+    }
+   }
+   else {
+    if (logger.isDebugEnabled()) {
+     logger.debug(&quot;Null ModelAndView returned to DispatcherServlet with name '&quot; + getServletName() +
+       &quot;': assuming HandlerAdapter completed request handling&quot;);
+    }
+   }
+
+   // Trigger after-completion for successful outcome.
+   triggerAfterCompletion(mappedHandler, interceptorIndex, processedRequest, response, null);
+  }
+
+  catch (Exception ex) {
+   // Trigger after-completion for thrown exception.
+   triggerAfterCompletion(mappedHandler, interceptorIndex, processedRequest, response, ex);
+   throw ex;
+  }
+  catch (Error err) {
+   ServletException ex = new NestedServletException(&quot;Handler processing failed&quot;, err);
+   // Trigger after-completion for thrown exception.
+   triggerAfterCompletion(mappedHandler, interceptorIndex, processedRequest, response, ex);
+   throw ex;
+  }
+
+  finally {
+   // Clean up any resources used by a multipart request.
+   if (processedRequest != request) {
+    cleanupMultipart(processedRequest);
+   }
+  }
+ }</pre> 
+ <h3>org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter</h3> 
+ <pre>public ModelAndView handle(HttpServletRequest request, HttpServletResponse response, Object handler)<br />   throws Exception {<br /><br />  if (AnnotationUtils.findAnnotation(handler.getClass(), SessionAttributes.class) != null) {<br />   // Always prevent caching in case of session attribute management.<br />   checkAndPrepare(request, response, this.cacheSecondsForSessionAttributeHandlers, true);<br />   // Prepare cached set of session attributes names.<br />  }<br />  else {<br />   // Uses configured default cacheSeconds setting.<br />   checkAndPrepare(request, response, true);<br />  }<br /><br />  // Execute invokeHandlerMethod in synchronized block if required.<br />  if (this.synchronizeOnSession) {<br />   HttpSession session = request.getSession(false);<br />   if (session != null) {<br />    Object mutex = WebUtils.getSessionMutex(session);<br />    synchronized (mutex) {<br />     return invokeHandlerMethod(request, response, handler);<br />    }<br />   }<br />  }<br /><br />  return <span style="color: rgb(255,0,0)">invokeHandlerMethod(request, response, handler);</span><br /> }</pre> 
+ <p> 方法</p> 
+ <pre>protected ModelAndView invokeHandlerMethod(HttpServletRequest request, HttpServletResponse response, Object handler)<br />   throws Exception {<br /><br />  ServletHandlerMethodResolver methodResolver = getMethodResolver(handler);<br />  Method handlerMethod = methodResolver.resolveHandlerMethod(request);<br />  ServletHandlerMethodInvoker methodInvoker = new ServletHandlerMethodInvoker(methodResolver);<br />  ServletWebRequest webRequest = new ServletWebRequest(request, response);<br />  ExtendedModelMap implicitModel = new BindingAwareModelMap();<br /><br />  Object result = <span style="color: rgb(255,0,0)">methodInvoker.invokeHandlerMethod(handlerMethod, handler, webRequest, implicitModel);</span><br />  ModelAndView mav =<br />    methodInvoker.getModelAndView(handlerMethod, handler.getClass(), result, implicitModel, webRequest);<br />  methodInvoker.updateModelAttributes(handler, (mav != null ? mav.getModel() : null), implicitModel, webRequest);<br />  return mav;<br /> }</pre> 
+ <h3>org.springframework.web.bind.annotation.support.HandlerMethodInvoker</h3> 
+ <pre>public final Object invokeHandlerMethod(Method handlerMethod, Object handler,
+   NativeWebRequest webRequest, ExtendedModelMap implicitModel) throws Exception {
+
+  <span style="color: rgb(255,0,0)">Method handlerMethodToInvoke</span> = BridgeMethodResolver.findBridgedMethod(handlerMethod);
+  try {
+   boolean debug = logger.isDebugEnabled();
+   for (String attrName : this.methodResolver.getActualSessionAttributeNames()) {
+    Object attrValue = this.sessionAttributeStore.retrieveAttribute(webRequest, attrName);
+    if (attrValue != null) {
+     implicitModel.addAttribute(attrName, attrValue);
+    }
+   }
+   for (Method attributeMethod : this.methodResolver.getModelAttributeMethods()) {
+    Method attributeMethodToInvoke = BridgeMethodResolver.findBridgedMethod(attributeMethod);
+    <span style="color: rgb(255,0,0)">Object[] args = resolveHandlerArguments(attributeMethodToInvoke, handler, webRequest, implicitModel);</span>
+    if (debug) {
+     logger.debug(&quot;Invoking model attribute method: &quot; + attributeMethodToInvoke);
+    }
+    String attrName = AnnotationUtils.findAnnotation(attributeMethodToInvoke, ModelAttribute.class).value();
+    if (!&quot;&quot;.equals(attrName) &amp;&amp; implicitModel.containsAttribute(attrName)) {
+     continue;
+    }
+    ReflectionUtils.makeAccessible(attributeMethodToInvoke);
+    Object attrValue = <span style="color: rgb(255,0,0)">attributeMethodToInvoke.invoke(handler, args);
+</span>    if (&quot;&quot;.equals(attrName)) {
+     Class resolvedType = GenericTypeResolver.resolveReturnType(attributeMethodToInvoke, handler.getClass());
+     attrName = Conventions.getVariableNameForReturnType(attributeMethodToInvoke, resolvedType, attrValue);
+    }
+    if (!implicitModel.containsAttribute(attrName)) {
+     implicitModel.addAttribute(attrName, attrValue);
+    }
+   }
+   <span style="color: rgb(255,0,0)">Object[] args = resolveHandlerArguments(handlerMethodToInvoke, handler, webRequest, implicitModel);
+</span>   if (debug) {
+    logger.debug(&quot;Invoking request handler method: &quot; + handlerMethodToInvoke);
+   }
+   ReflectionUtils.makeAccessible(handlerMethodToInvoke);
+   return <span style="color: rgb(255,0,0)">handlerMethodToInvoke.invoke(handler, args);
+</span>  }
+  catch (IllegalStateException ex) {
+   // Internal assertion failed (e.g. invalid signature):
+   // throw exception with full handler method context...
+   throw new HandlerMethodInvocationException(handlerMethodToInvoke, ex);
+  }
+  catch (InvocationTargetException ex) {
+   // User-defined @ModelAttribute/@InitBinder/@RequestMapping method threw an exception...
+   ReflectionUtils.rethrowException(ex.getTargetException());
+   return null;
+  }
+ }</pre> 
+ <p>构造控制器方法的参数</p> 
+ <pre>private Object[] resolveHandlerArguments(Method handlerMethod, Object handler,<br />   NativeWebRequest webRequest, ExtendedModelMap implicitModel) throws Exception {<br /><br />  Class[] paramTypes = handlerMethod.getParameterTypes();<br />  Object[] <span style="color: rgb(255,0,0)">args = new Object[paramTypes.length];</span><br /><br />  for (int i = 0; i &lt; args.length; i++) {<br />   MethodParameter methodParam = new MethodParameter(handlerMethod, i);<br />   methodParam.initParameterNameDiscovery(this.parameterNameDiscoverer);<br />   GenericTypeResolver.resolveParameterType(methodParam, handler.getClass());<br />   String paramName = null;<br />   String headerName = null;<br />   boolean requestBodyFound = false;<br />   String cookieName = null;<br />   String pathVarName = null;<br />   String attrName = null;<br />   boolean required = false;<br />   String defaultValue = null;<br />   boolean validate = false;<br />   int annotationsFound = 0;<br />   Annotation[] paramAnns = methodParam.getParameterAnnotations();<br /><br />   for (Annotation paramAnn : paramAnns) {<br />    if (RequestParam.class.isInstance(paramAnn)) {<br />     RequestParam requestParam = (RequestParam) paramAnn;<br />     paramName = requestParam.value();<br />     required = requestParam.required();<br />     defaultValue = parseDefaultValueAttribute(requestParam.defaultValue());<br />     annotationsFound++;<br />    }<br />    else if (RequestHeader.class.isInstance(paramAnn)) {<br />     RequestHeader requestHeader = (RequestHeader) paramAnn;<br />     headerName = requestHeader.value();<br />     required = requestHeader.required();<br />     defaultValue = parseDefaultValueAttribute(requestHeader.defaultValue());<br />     annotationsFound++;<br />    }<br />    else if (RequestBody.class.isInstance(paramAnn)) {<br />     requestBodyFound = true;<br />     annotationsFound++;<br />    }<br />    else if (CookieValue.class.isInstance(paramAnn)) {<br />     CookieValue cookieValue = (CookieValue) paramAnn;<br />     cookieName = cookieValue.value();<br />     required = cookieValue.required();<br />     defaultValue = parseDefaultValueAttribute(cookieValue.defaultValue());<br />     annotationsFound++;<br />    }<br />    else if (PathVariable.class.isInstance(paramAnn)) {<br />     PathVariable pathVar = (PathVariable) paramAnn;<br />     pathVarName = pathVar.value();<br />     annotationsFound++;<br />    }<br />    else if (ModelAttribute.class.isInstance(paramAnn)) {<br />     ModelAttribute attr = (ModelAttribute) paramAnn;<br />     attrName = attr.value();<br />     annotationsFound++;<br />    }<br />    else if (Value.class.isInstance(paramAnn)) {<br />     defaultValue = ((Value) paramAnn).value();<br />    }<br />    else if (&quot;Valid&quot;.equals(paramAnn.annotationType().getSimpleName())) {<br />     validate = true;<br />    }<br />   }<br /><br />   if (annotationsFound &gt; 1) {<br />    throw new IllegalStateException(&quot;Handler parameter annotations are exclusive choices - &quot; +<br />      &quot;do not specify more than one such annotation on the same parameter: &quot; + handlerMethod);<br />   }<br /><br />   if (annotationsFound == 0) {<br />    <span style="color: rgb(255,0,0)">Object argValue = resolveCommonArgument(methodParam, webRequest);<br />    if (argValue != WebArgumentResolver.UNRESOLVED) {<br />     args[i] = argValue;<br />    }<br />    else if (defaultValue != null) {<br />     args[i] = resolveDefaultValue(defaultValue);<br />    }<br />    else {<br />     Class paramType = methodParam.getParameterType();<br />     if (Model.class.isAssignableFrom(paramType) || Map.class.isAssignableFrom(paramType)) {<br />      args[i] = implicitModel;<br />     }<br />     else if (SessionStatus.class.isAssignableFrom(paramType)) {<br />      args[i] = this.sessionStatus;<br />     }<br />     else if (HttpEntity.class.isAssignableFrom(paramType)) {<br />      args[i] = resolveHttpEntityRequest(methodParam, webRequest);<br />     }</span><br />     else if (Errors.class.isAssignableFrom(paramType)) {<br />      throw new IllegalStateException(&quot;Errors/BindingResult argument declared &quot; +<br />        &quot;without preceding model attribute. Check your handler method signature!&quot;);<br />     }<br />     else if (BeanUtils.isSimpleProperty(paramType)) {<br />      paramName = &quot;&quot;;<br />     }<br />     else {<br />      attrName = &quot;&quot;;<br />     }<br />    }<br />   }<br /><br />   <span style="color: rgb(255,0,0)">if (paramName != null) {<br />    args[i] = resolveRequestParam(paramName, required, defaultValue, methodParam, webRequest, handler);<br />   }<br />   else if (headerName != null) {<br />    args[i] = resolveRequestHeader(headerName, required, defaultValue, methodParam, webRequest, handler);<br />   }<br />   else if (requestBodyFound) {<br />    args[i] = resolveRequestBody(methodParam, webRequest, handler);<br />   }<br />   else if (cookieName != null) {<br />    args[i] = resolveCookieValue(cookieName, required, defaultValue, methodParam, webRequest, handler);<br />   }<br />   else if (pathVarName != null) {<br />    args[i] = resolvePathVariable(pathVarName, methodParam, webRequest, handler);<br />   }</span><br />   else if (attrName != null) {<br />    WebDataBinder binder =<br />      resolveModelAttribute(attrName, methodParam, implicitModel, webRequest, handler);<br />    boolean assignBindingResult = (args.length &gt; i + 1 &amp;&amp; Errors.class.isAssignableFrom(paramTypes[i + 1]));<br />    if (binder.getTarget() != null) {<br />     doBind(binder, webRequest, validate, !assignBindingResult);<br />    }<br />    <span style="color: rgb(255,0,0)">args[i] = binder.getTarget();<br />    if (assignBindingResult) {<br />     args[i + 1] = binder.getBindingResult();</span><br />     i++;<br />    }<br />    implicitModel.putAll(binder.getBindingResult().getModel());<br />   }<br />  }<br /><br />  return args;<br /> }</pre> 
+ <p> 从请求参数获取方法参数值</p> 
+ <pre>@SuppressWarnings(&quot;unchecked&quot;)<br /> private Object resolveRequestParam(String paramName, boolean required, String defaultValue,<br />   MethodParameter methodParam, NativeWebRequest webRequest, Object handlerForInitBinderCall)<br />   throws Exception {<br /><br />  Class&lt;?&gt; paramType = methodParam.getParameterType();<br />  if (Map.class.isAssignableFrom(paramType) &amp;&amp; paramName.length() == 0) {<br />   return resolveRequestParamMap((Class&lt;? extends Map&gt;) paramType, webRequest);<br />  }<br />  if (paramName.length() == 0) {<br />   paramName = getRequiredParameterName(methodParam);<br />  }<br />  <span style="color: rgb(255,0,0)">Object paramValue = null;</span><br />  MultipartRequest multipartRequest = webRequest.getNativeRequest(MultipartRequest.class);<br />  if (multipartRequest != null) {<br />   <span style="color: rgb(255,0,0)">paramValue = multipartRequest.getFile(paramName);</span><br />  }<br />  if (paramValue == null) {<br />   String[] paramValues = webRequest.getParameterValues(paramName);<br />   if (paramValues != null &amp;&amp; !paramType.isArray()) {<br />    <span style="color: rgb(255,0,0)">paramValue = (paramValues.length == 1 ? paramValues[0] : paramValues);</span><br />   }<br />   else {<br />    <span style="color: rgb(255,0,0)">paramValue = paramValues;</span><br />   }<br />  }<br />  if (paramValue == null) {<br />   if (defaultValue != null) {<br />    <span style="color: rgb(255,0,0)">paramValue = resolveDefaultValue(defaultValue);</span><br />   }<br />   else if (required) {<br />    raiseMissingParameterException(paramName, paramType);<br />   }<br />   <span style="color: rgb(255,0,0)">paramValue = checkValue(paramName, paramValue, paramType);</span><br />  }<br />  WebDataBinder binder = createBinder(webRequest, null, paramName);<br />  initBinder(handlerForInitBinderCall, paramName, binder, webRequest);<br />  return binder.convertIfNecessary(paramValue, paramType, methodParam);<br /> }</pre> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+</div></div></body></html>

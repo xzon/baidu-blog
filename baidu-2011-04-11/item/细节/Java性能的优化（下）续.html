@@ -1,0 +1,1144 @@
+<html><head><title>Java性能的优化（下）续</title></head><body><div id='tit'>Java性能的优化（下）续</div><div id='cate'>细节</div><div id='date'>2007年11月14日 星期三 01:26 A.M.</div><div id='page'>201</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/79bb951349dd6c836438db36.html'>http://hi.baidu.com/hxzon/blog/item/79bb951349dd6c836438db36.html</a><div id='cnt'><p> </p>
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>3. 线程(Threading)</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">一个高性能的应用程序中一般都会用到线程。因为线程能充分利用系统的资源。在其他线程因为等待硬盘或网络读写而 时，程序能继续处理和运行。但是对线程运用不当，也会影响程序的性能。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">例2：正确使用Vector类</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Vector主要用来保存各种类型的对象（包括相同类型和不同类型的对象）。但是在一些情况下使用会给程序带来性能上的影响。这主要是由Vector类的两个特点所决定的。第一，Vector提供了线程的安全保护功能。即使Vector类中的许多方法同步。但是如果你已经确认你的应用程序是单线程，这些方法的同步就完全不必要了。第二，在Vector查找存储的各种对象时，常常要花很多的时间进行类型的匹配。而当这些对象都是同一类型时，这些匹配就完全不必要了。因此，有必要设计一个单线程的，保存特定类型对象的类或集合来替代Vector类.用来替换的程序如下（StringVector.java）：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public class StringVector</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">private String [] data;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">private int count;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public StringVector() { this(10); // default size is 10 }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public StringVector(int initialSize)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">data = new String[initialSize];</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public void add(String str)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">// ignore null strings</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">if(str == null) { return; }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">ensureCapacity(count + 1);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">data[count++] = str;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">private void ensureCapacity(int minCapacity)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">int oldCapacity = data.length;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">if (minCapacity &gt; oldCapacity)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">String oldData[] = data;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">int newCapacity = oldCapacity * 2;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">data = new String[newCapacity];</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.arraycopy(oldData, 0, data, 0, count);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public void remove(String str)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">if(str == null) { return // ignore null str }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">for(int i = 0; i &lt; count; i++)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">// check for a match</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">if(data[i].equals(str))</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.arraycopy(data,i+1,data,i,count-1); // copy data</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">// allow previously valid array element be gc'd</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">data[--count] = null;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">return;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public final String getStringAt(int index) {</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">if(index &lt; 0) { return null; }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">else if(index &gt; count)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">return null; // index is &gt; # strings</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">else { return data[index]; // index is good }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">/* * * * * * * * * * * * * * * *StringVector.java * * * * * * * * * * * * * * * * */</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">因此，代码：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Vector Strings=new Vector();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Strings.add(“One”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Strings.add(“Two”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">String Second=(String)Strings.elementAt(1);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">可以用如下的代码替换：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">StringVector Strings=new StringVector();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Strings.add(“One”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Strings.add(“Two”);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">String Second=Strings.getStringAt(1);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">这样就可以通过优化线程来提高JAVA程序的性能。用于测试的程序如下（TestCollection.java）:</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">import java.util.Vector;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public class TestCollection</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public static void main(String args [])</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">TestCollection collect = new TestCollection();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">if(args.length == 0)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.out.println(</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">&quot;Usage: java TestCollection [ vector | stringvector ]&quot;);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.exit(1);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">if(args[0].equals(&quot;vector&quot;))</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Vector store = new Vector();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">long start = System.currentTimeMillis();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">for(int i = 0; i &lt; 1000000; i++)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">store.addElement(&quot;string&quot;);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">long finish = System.currentTimeMillis();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.out.println((finish-start));</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">start = System.currentTimeMillis();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">for(int i = 0; i &lt; 1000000; i++)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">String result = (String)store.elementAt(i);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">finish = System.currentTimeMillis();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.out.println((finish-start));</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">else if(args[0].equals(&quot;stringvector&quot;))</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">StringVector store = new StringVector();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">long start = System.currentTimeMillis();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">for(int i = 0; i &lt; 1000000; i++) { store.add(&quot;string&quot;); }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">long finish = System.currentTimeMillis();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.out.println((finish-start));</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">start = System.currentTimeMillis();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">for(int i = 0; i &lt; 1000000; i++) {</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">String result = store.getStringAt(i);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">finish = System.currentTimeMillis();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">System.out.println((finish-start));</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">/* * * * * * * * * * * * * * * *TestCollection.java * * * * * * * * * * * * * * * * */</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">测试的结果如下（假设标准的时间为１，越小性能越好）：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> <p align="center"><img border="0" src="image/Java性能的优化（下）续.html.01_7_9_4.gif" /><p class="origImg">http://www.ccw.com.cn/htm/app/aprog/01_7_9_4.gif</p></p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">关于线程的操作，要注意如下几个方面。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(1) 防止过多的同步</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">如上所示，不必要的同步常常会造成程序性能的下降。因此，如果程序是单线程，则一定不要使用同步。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(2) 同步方法而不要同步整个代码段</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> 对某个方法或函数进行同步比对整个代码段进行同步的性能要好。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(3) 对每个对象使用多”锁”的机制来增大并发。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">一般每个对象都只有一个”锁”，这就表明如果两个线程执行一个对象的两个不同的同步方法时，会发生”死锁”。即使这两个方法并不共享任何资源。为了避免这个问题，可以对一个对象实行”多锁”的机制。如下所示：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">class foo</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">private static int var1;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">private static Object lock1=new Object();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">private static int var2;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">private static Object lock2=new Object();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public static void increment1()</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">synchronized(lock1)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">var1++;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">public static void increment2()</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">synchronized(lock2)</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">{</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">var2++;</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">}</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>4．输入和输出(I/O)</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">输入和输出包括很多方面，但涉及最多的是对硬盘，网络或数据库的读写操作。对于读写操作，又分为有缓存和没有缓存的；对于数据库的操作，又可以有多种类型的JDBC驱动器可以选择。但无论怎样，都会给程序的性能带来影响。因此，需要注意如下几点：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(1) 使用输入输出缓冲</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> 尽可能的多使用缓存。但如果要经常对缓存进行刷新（flush）,则建议不要使用缓存。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(2) 输出流(Output Stream)和Unicode字符串</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> 当时用Output Stream和Unicode字符串时，Write类的开销比较大。因为它要实现Unicode到字节(byte)的转换.因此，如果可能的话,在使用Write类之前就实现转换或用OutputStream类代替Writer类来使用。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(3) 当需序列化时使用transient</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> 当序列化一个类或对象时，对于那些原子类型（atomic）或可以重建的原素要表识为transient类型。这样就不用每一次都进行序列化。如果这些序列化的对象要在网络上传输，这一小小的改变对性能会有很大的提高。 </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(4) 使用高速缓存（Cache）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> 对于那些经常要使用而又不大变化的对象或数据，可以把它存储在高速缓存中。这样就可以提高访问的速度。这一点对于从数据库中返回的结果集尤其重要。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(5) 使用速度快的JDBC驱动器（Driver）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> JAVA对访问数据库提供了四种方法。这其中有两种是JDBC驱动器。一种是用JAVA外包的本地驱动器；另一种是完全的JAVA驱动器。具体要使用哪一种得根据JAVA布署的环境和应用程序本身来定。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>5.一些其他的经验和技巧</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(1) 使用局部变量</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(2) 避免在同一个类中动过调用函数或方法(get或set)来设置或调用变量。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(3) 避免在循环中生成同一个变量或调用同一个函数（参数变量也一样）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(4) 尽可能的使用static,final,private等关键字</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">(5) 当复制大量数据时，使用System.arraycopy()命令。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td align="right">（网页编辑：<a href="mailto:liu_yang@ccw.com.cn"><font color="#000000">风之翼</font></a>）</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<a href="http://www.ccw.com.cn/htm/app/aprog/01_7_9_4.asp">http://www.ccw.com.cn/htm/app/aprog/01_7_9_4.asp</a></div></body></html>

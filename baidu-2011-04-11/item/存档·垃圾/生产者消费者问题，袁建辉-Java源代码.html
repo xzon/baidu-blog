@@ -1,0 +1,153 @@
+<html><head><title>生产者消费者问题，袁建辉-Java源代码</title></head><body><div id='tit'>生产者消费者问题，袁建辉-Java源代码</div><div id='cate'>存档&middot;垃圾</div><div id='date'>2008年02月20日 星期三 08:48 A.M.</div><div id='page'>170</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/abf3232d2fd4b830359bf7ca.html'>http://hi.baidu.com/hxzon/blog/item/abf3232d2fd4b830359bf7ca.html</a><div id='cnt'><pre>/*
+ * Created on 2005-5-31
+ *
+ * TODO To change the template for this generated file go to
+ * Window - Preferences - Java - Code Style - Code Templates
+ */
+
+/**
+ * @author 袁建辉
+ *
+ * TODO To change the template for this generated type comment go to
+ * Window - Preferences - Java - Code Style - Code Templates
+ */
+
+class HoldInteger
+{
+    private int sharedInt[] = {9, 9, 9, 9, 9};
+    private boolean moreData = true;
+    private boolean writeable = true;
+    private boolean readable = false;
+    private int readLoc = 0; 
+    private int writeLoc = 0;
+    public synchronized void push(int val){
+        while(!writeable){
+            try{
+                System.out.println(&quot;\tWAITING TO PRODUCE &quot; + val );
+                this.wait();
+            }//try
+            catch(InterruptedException e){
+                System.err.println(&quot;Exception: &quot; + e.toString() );
+            }//catch
+        }//while()
+        sharedInt[writeLoc] = val;
+        readable = true;
+        System.out.print(&quot;\nProduced &quot; + val +
+                    &quot; into cell &quot; + writeLoc );
+        writeLoc = ( writeLoc + 1 ) % 5;
+
+        System.out.print( &quot;\twrite &quot; + writeLoc +
+                       &quot;\tread &quot; + readLoc );
+        printBuffer(sharedInt);
+
+        if ( writeLoc == readLoc ) {
+           writeable = false;
+           System.out.print( &quot;\nBUFFER FULL&quot; );
+        }
+        this.notify();
+    }//push
+    public synchronized int pop(){
+        int val;
+        while(!readable){
+            try{
+                System.out.println(&quot;\tWAITING TO CONSUME&quot;);
+                this.wait();
+            }//try
+            catch(InterruptedException e){
+                System.err.println(&quot;Exception: &quot; + e.toString() );
+            }//catch
+        }//while()
+        writeable = true;
+        val = sharedInt[readLoc];
+        System.out.print(&quot;\nConsumed &quot; + val +
+                    &quot; from cell &quot; + readLoc );
+        readLoc = ( readLoc + 1 ) % 5;
+
+        System.out.print( &quot;\twrite &quot; + writeLoc +
+                       &quot;\tread &quot; + readLoc );
+        
+        printBuffer(sharedInt);
+
+        if ( readLoc == writeLoc ) {
+           readable = false;
+           System.out.print( &quot;\nBUFFER EMPTY&quot; );
+        }
+        this.notify();
+        return val;
+    }//pop
+    
+    public void printBuffer(int buf[]){
+        System.out.print(&quot;\t buffer:&quot;);
+        for (int i = 0; i &lt; buf.length; i++){
+            System.out.print(&quot; &quot; + buf[i]);
+        }//for
+    }//printBuffer()
+    
+    public void setMoreData(boolean b){ 
+        moreData = b;    
+    }
+
+    public boolean hasMoreData()
+    {
+       if ( moreData == false &amp;&amp; readLoc == writeLoc ){
+          return false;
+       }
+       else{
+          return true;
+       }
+    }
+}/*stack*/
+
+class Producer implements Runnable
+{
+    private HoldInteger pHold;
+    public Producer(HoldInteger s){
+        pHold = s;
+    }//Producer
+    public void run(){
+        for(int i = 0; i &lt; 10; i++){
+            try{
+                Thread.sleep((int)(Math.random() * 500));
+            }//try
+            catch(InterruptedException e){
+                System.err.println(&quot;Exception &quot; + e.toString());
+            }//catch
+            pHold.push(i);
+            //System.out.print( &quot;\nProduced to &quot; + i );
+        }//for
+        pHold.setMoreData(false);        
+    }//run()
+}/*Producer*/
+
+class Consumer implements Runnable
+{
+    private HoldInteger cHold;
+    public Consumer(HoldInteger s){
+        cHold = s;
+    } 
+    public void run(){
+        int val;
+        while(cHold.hasMoreData()){
+            try{
+                Thread.sleep((int)(Math.random() * 500));
+            }//try
+            catch(InterruptedException e){
+                System.err.println(&quot;Exception &quot; + e.toString());
+            }//catch
+            val = cHold.pop();
+        }//while
+    }//run()
+}/*Consumer*/
+
+public class ShareCell
+{
+    public static void main(String args[]){
+        HoldInteger s1 = new HoldInteger();
+        Runnable producer = new Producer(s1);
+        Runnable consumer = new Consumer(s1);
+        Thread p = new Thread(producer);
+        Thread c = new Thread(consumer);
+        p.start();
+        c.start();
+    }//main()
+}/*StcakTest*/</pre></div></body></html>

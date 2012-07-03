@@ -1,0 +1,84 @@
+<html><head><title>proxool连接池自动释放连接 专业分流项目 -hxzon动手 -gdo</title></head><body><div id='tit'>proxool连接池自动释放连接 专业分流项目 -hxzon动手 -gdo</div><div id='cate'>出错&middot;经验</div><div id='date'>2009年04月24日 星期五 10:39 A.M.</div><div id='page'>55</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/813af003cf0f2a7f3812bb52.html'>http://hi.baidu.com/hxzon/blog/item/813af003cf0f2a7f3812bb52.html</a><div id='cnt'><div>
+ proxool连接池自动释放连接 专业分流项目 -hxzon动手 -gdo
+</div> 
+<div> 
+</div> 
+<div>
+ 因为使用spring+hibernate+struts2，整个包高达27.8兆。
+ <br /> 其实项目很简单，所以移除了spring和hibernate。
+ <br /> 要解决的问题如下：
+ <br /> 1，dao和service的注入，使用单例模式和静态函数。
+ <br /> 2，数据库连接池，使用proxool自动关闭连接。
+ <br /> 连接超时自动关闭时出现如下信息：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 2009-4-24 10:24:31 org.logicalcobwebs.proxool.HouseKeeper sweep
+ <br /> 警告: #0002 was active for 634297 milliseconds and has been removed automaticaly. The Thread responsible was named 'http-8080-1', but the last SQL it performed is unknown because the trace property is not enabled.
+</div> 
+<div> 
+</div> 
+<div>
+ 3，因为自动关闭连接池，所以自己不关闭连接。
+ <br /> 打开时要调用 conn.isClosed() 判断是否关闭。代码如下：
+ <br /> private static Connection getConn() {
+ <br /> &nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp; if ( conn != null &amp;&amp; !conn.isClosed() )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; return conn;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Class.forName(&quot;com.mysql.jdbc.Driver&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; // conn = DriverManager.getConnection(
+ <br /> &nbsp;&nbsp;&nbsp; // &quot;jdbc:mysql://localhost:3306/hs&quot;, &quot;root&quot;, &quot;root&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; // ?useUnicode=true&amp;amp;characterEncoding=utf8
+ <br /> &nbsp;&nbsp;&nbsp; Context ctx = new InitialContext();
+ <br /> &nbsp;&nbsp;&nbsp; DataSource ds = (DataSource) ctx.lookup(&quot;java:comp/env/jdbc/hs&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; conn = ds.getConnection();
+ <br /> //&nbsp;&nbsp;&nbsp; num++;
+ <br /> //&nbsp;&nbsp;&nbsp; System.out.println(&quot;create:&quot; + num);
+ <br /> &nbsp;&nbsp; } catch (SQLException e) {
+ <br /> &nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp; } catch (NamingException e) {
+ <br /> &nbsp;&nbsp;&nbsp; // TODO Auto-generated catch block
+ <br /> &nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return conn;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 4，tomcat6 配置proxool数据源
+ <br /> 在书上看到使用DataSource比使用DriverManager要好，因为可以提供连接池和事务。
+ <br /> 4.1将proxool-0.9.1.jar， proxool-cglib.jar， commons-logging.jar三个包放入tomcat6的lib目录下。
+ <br /> 添加commons-logging.jar是因为proxool会调用它输出日志。
+ <br /> 别忘了还要添加数据库jdbc驱动包。
+ <br /> 4.2配置数据源。context.xml文件。
+ <br /> &lt;Resource name=&quot;jdbc/hs&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; auth=&quot;Container&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type=&quot;javax.sql.DataSource&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; factory=&quot;org.logicalcobwebs.proxool.ProxoolDataSource&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.alias=&quot;testDB&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user=&quot;root&quot;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; password=&quot;root&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; delegateProperties=&quot;foo=1,bar=true&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.jndi-name=&quot;mysqljndi&quot;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.driver-url=&quot;jdbc:mysql://127.0.0.1:3306/hs&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.driver-class=&quot;com.mysql.jdbc.Driver&quot;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.house-keeping-sleep-time=&quot;900000&quot;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.maximum-active-time=&quot;5&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.prototype-count=&quot;3&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.statistics=&quot;1m,15m,1d&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.simultaneous-build-throttle=&quot;10&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.minimum-connection-count=&quot;5&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.maximum-connection-count=&quot;20&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.house-keeping-test-sql=&quot;select CURRENT_DATE from dual&quot;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; proxool.test-before-use=&quot;true&quot;/&gt; 
+ <br /> 4.3程序代码中按如下代码调用。
+ <br /> &nbsp;&nbsp;&nbsp; Context ctx = new InitialContext();
+ <br /> &nbsp;&nbsp;&nbsp; DataSource ds = (DataSource) ctx.lookup(&quot;java:comp/env/jdbc/hs&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; conn = ds.getConnection();
+</div></div></body></html>

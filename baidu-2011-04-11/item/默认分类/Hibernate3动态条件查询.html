@@ -1,0 +1,137 @@
+<html><head><title>Hibernate3动态条件查询</title></head><body><div id='tit'>Hibernate3动态条件查询</div><div id='cate'>默认分类</div><div id='date'>2008年08月13日 星期三 11:52 P.M.</div><div id='page'>109</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/49a85caf7e4d1bfdfbed5097.html'>http://hi.baidu.com/hxzon/blog/item/49a85caf7e4d1bfdfbed5097.html</a><div id='cnt'><h2 class="diaryTitle">Hibernate3动态条件查询</h2> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<p> Hibernate3支持DetachedCriteria，这是一个非常有意义的特性！我们知道，在常规的Web编程中，有大量的动态条件查询，即用户在网页上面自由选择某些条件，程序根据用户的选择条件，动态生成SQL语句，进行查询。 <br /> <br /> 针对这种需求，对于分层应用程序来说，Web层需要传递一个查询的条件列表给业务层对象，业务层对象获得这个条件列表之后，然后依次取出条件，构造查询语句。这里的一个难点是条件列表用什么来构造？传统上使用Map，但是这种方式缺陷很大，Map可以传递的信息非常有限，只能传递name和value，无法传递究竟要做怎样的条件运算，究竟是大于，小于，like，还是其它的什么，业务层对象必须确切掌握每条entry的隐含条件。因此一旦隐含条件改变，业务层对象的查询构造算法必须相应修改，但是这种查询条件的改变是隐式约定的，而不是程序代码约束的，因此非常容易出错。 <br /> <br /> DetachedCriteria可以解决这个问题，即在web层，程序员使用DetachedCriteria来构造查询条件，然后将这个DetachedCriteria作为方法调用参数传递给业务层对象。而业务层对象获得DetachedCriteria之后，可以在session范围内直接构造Criteria，进行查询。就此，查询语句的构造完全被搬离到web层实现，而业务层则只负责完成持久化和查询的封装即可，与查询条件构造完全解耦，非常完美！这恐怕也是以前很多企图在web层代码中构造HQL语句的人想实现的梦想吧！ <br /> <br /> 示例代码片段如下： <br /> <br /> web层程序构造查询条件： <br /> <br /> java代码: <br /> <br /> </p>
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>DetachedCriteria detachedCriteria = DetachedCriteria.forClass(Department.class); <br /> detachedCriteria.add(Restrictions.eq(&quot;name&quot;, &quot;department&quot;)).createAlias(&quot;employees&quot;, &quot;e&quot;).add(Restrictions.gt((&quot;e.age&quot;), new Integer(20)));</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> Department和Employee是一对多关联，查询条件为： 
+<br /> 
+<br /> 名称是“department”开发部门； 
+<br /> 部门里面的雇员年龄大于20岁； 
+<br /> 
+<br /> 业务层对象使用该条件执行查询： 
+<br /> 
+<br /> java代码: 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>detachedCriteria.getExecutableCriteria(session).list();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 最大的意义在于，业务层代码是固定不变的，所有查询条件的构造都在web层完成，业务层只负责在session内执行之。这样代码就可放之四海而皆准，都无须修改了。
+<br /> 
+<br /> 然而Spring和Hibernate3的DetachedCriteria有不兼容的问题，因此在Spring环境下面使用Hibernate3需要注意： 
+<br /> 
+<br /> Spring的HibernateTemplate提供了Hibernate的完美封装，即通过匿名类实现回调，来保证Session的自动资源管理和事务的管理。其中核心方法是： 
+<br /> 
+<br /> java代码: 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>HibernateTemplate.execute(new HibernateCallback() { <br /> public Object doInHibernate(Session session) throws HibernateException { <br /> .... <br /> } <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 回调方法提供了session作为参数，有了session，就可以自由的使用Hibernate API编程了。使用了spring的之后，代码修改如下： 
+<br /> 
+<strong><br /> </strong> web层代码： 
+<br /> 
+<br /> java代码: 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>DetachedCriteria detachedCriteria = DetachedCriteria.forClass(Department.class); <br /> detachedCriteria.createAlias(&quot;employees&quot;, &quot;e&quot;).add(Restrictions.eq(&quot;name&quot;, &quot;department&quot;)).add(Restrictions.gt((&quot;e.age&quot;), new Integer(20))); <br /> departmentManager.findByCriteria(detachedCriteria);</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 构造detachedCriteria，作为参数传递给departmentManager 
+<br /> 
+<br /> 业务层代码使用spring，DepartmentManager的findByCriteria如下： 
+<br /> 
+<br /> java代码: 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>public List findByCriteria(final DetachedCriteria detachedCriteria) { <br /> return (List) getHibernateTemplate().execute(new HibernateCallback() { <br /> public Object doInHibernate(Session session) throws HibernateException { <br /> Criteria criteria = detachedCriteria.getExecutableCriteria(session); <br /> return criteria.list(); <br /> } <br /> }); <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 实际上也就是： 
+<br /> 
+<br /> java代码: 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>Criteria criteria = detachedCriteria.getExecutableCriteria(session); <br /> return criteria.list();</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 而已 
+<br /> 
+<br /> 但是该程序代码执行，会抛出强制类型转换异常！ 
+<br /> 
+<br /> 我跟踪了一下spring和Hibernate源代码，原因如下： 
+<br /> 
+<br /> spring的HibernateTemplate的execute方法提供的回调接口具有Session作为参数，但是实际上，默认情况下，HibernateTemplate传递给回调接口的session并不是org.hibernate.impl.SessionImpl类，而是SessionImpl类的一个Proxy类。之所以替换成为一个Proxy类，HibernateTemplate的注释说明，Proxy提供了一些额外的功能，包括自动设置Cachable，Transaction的超时时间，Session资源的更积极的关闭等等。 
+<br /> 
+<br /> java代码: 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>private boolean exposeNativeSession = false; <br /> ...</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> execute方法内部： 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>Session sessionToExpose = (exposeNativeSession ? session : createSessionProxy(session));</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 但是遗憾的是，Hibernate的DetachedCriteria的setExecutableCriteria方法却要求将session参数强制转为SessionImpl，但是spring传过来的却是一个Proxy类，因此就报错了。 
+<br /> 
+<br /> java代码: 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>public Criteria getExecutableCriteria(Session session) { <br /> impl.setSession( (SessionImpl) session ); // 要求SessionImpl，Spring传递的是Proxy <br /> return impl; <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 解决方法，禁止Spring的HibernateTemplate传递Proxy类，强制要求它传递真实的SessionImpl类，即给exexute方法增加一个参数，提供参数为true，如下： 
+<br /> 
+<br /> java代码: 
+<br /> 
+<br /> 
+<table class="txcode FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="center"> 
+ <tbody> 
+  <tr> 
+   <td>public List findByCriteria(final DetachedCriteria detachedCriteria) { <br /> return (List) getHibernateTemplate().execute(new HibernateCallback() { <br /> public Object doInHibernate(Session session) throws HibernateException { <br /> Criteria criteria = detachedCriteria.getExecutableCriteria(session); <br /> return criteria.list(); <br /> } <br /> }, true); <br /> }</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p> </p> 
+<p> </p> 
+<p class="diaryFoot">- 作者： <a href=":void(0);">jeeee</a> <a href="http://9love.bokee.com/2820912.html">http://9love.bokee.com/2820912.html</a></p></div></body></html>

@@ -1,0 +1,100 @@
+<html><head><title>宽字符标量L&quot;xx&quot;在VC6.0/7.0和GNU g++中的不同实现。</title></head><body><div id='tit'>宽字符标量L&quot;xx&quot;在VC6.0/7.0和GNU g++中的不同实现。</div><div id='cate'>细节</div><div id='date'>2009年08月26日 星期三 06:21 P.M.</div><div id='page'>34</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/2d677d89d9d9d8ba0e244458.html'>http://hi.baidu.com/hxzon/blog/item/2d677d89d9d9d8ba0e244458.html</a><div id='cnt'><p> </p> 
+<h1 class="block_title"><a href="http://blog.vckbase.com/smileonce/archive/2004/12/09/1972.html">宽字符标量L&quot;xx&quot;在VC6.0/7.0和GNU g++中的不同实现。</a></h1> 
+<div class="postcontent"> 
+ <p>锲子：本文源于在VCKBASE C++论坛和周星星大哥的一番讨论，这才使我追根索源，找到了理论依据和实践的证明。（本文一些资料和测试代码由周星星提供）</p> 
+ <p>《The C++ Programming Language 3rd》中有这么两段话：<br /> from 4.3:<br /> A type wchar_ t is provided to hold characters of a larger character set such as Unicode. It is a distinct type. <font color="#ff0000">The size of wchar_t is <strong>implementation-defined</strong> and large enough to hold the largest character set supported by the implementation’s locale (see &sect;21.7, &sect;C.3.3).</font> The strange name is a leftover from C. In C, wchar_t is a typedef (&sect;4.9.7) rather than a builtin type. The suffix _ t was added to distinguish standard typedefs.<br /> from 4.3.1:<br /> <font color="#ff0000">Wide character literals are of the form L&acute;ab&acute;, where the number of characters between the quotes and their meanings is <strong>implementation-defined</strong> to match the wchar_t type. </font>A wide character literal has type wchar_t.</p> 
+ <p>这两段话中有两个要点是我们关心的：<br /> 1〉wchar_t的长度是由实现决定的；<br /> 2〉L'ab'的含义是由实现决定的。</p> 
+ <p>那么GNU g++和VC6.0/7.0各是怎么实现的呢？看下面代码：</p> 
+ <pre><em><font color="#008000">//author: **.Zhou
+</font></em><font color="#0000ff"></font><font color="#a000a0">#include 
+   <stdio h=""></stdio>
+#include 
+   <stdlib h=""></stdlib>
+#include 
+   <windows h=""></windows>
+</font>
+<strong>void</strong> prt<strong><font color="#646464">(</font></strong><strong><font color="#0000ff"> const</font></strong><strong><font color="#0000ff"> void</font></strong><strong><font color="#646464">*</font></strong> padd<strong><font color="#646464">,</font></strong> size_t n<strong><font color="#646464"> )
+{</font></strong><strong><font color="#0000ff">
+    const</font></strong><strong><font color="#0000ff"> unsigned char</font></strong><strong><font color="#646464">*</font></strong> p<strong><font color="#646464"> =</font></strong><strong><font color="#0000ff"> static_cast</font></strong><strong><font color="#646464">&lt;</font></strong><strong><font color="#0000ff">const</font></strong><strong><font color="#0000ff"> unsigned char</font></strong><strong><font color="#646464">*&gt;(</font></strong> padd<strong><font color="#646464"> );</font></strong><strong><font color="#0000ff">
+    const</font></strong><strong><font color="#0000ff"> unsigned char</font></strong><strong><font color="#646464">*</font></strong> pe<strong><font color="#646464"> =</font></strong> p<strong><font color="#646464"> +</font></strong> n<strong><font color="#646464">;</font></strong><strong><font color="#0000ff">
+    for</font></strong><strong><font color="#646464">( ;</font></strong> p<strong><font color="#646464">&lt;</font></strong>pe<strong><font color="#646464">; ++</font></strong>p<strong><font color="#646464"> )</font></strong> printf<strong><font color="#646464">(</font></strong><font color="#ff00ff"> &quot; %02X&quot;</font><strong><font color="#646464">, *</font></strong>p<strong><font color="#646464"> );</font></strong> printf<strong><font color="#646464">(</font></strong><font color="#ff00ff"> &quot;\n&quot;</font><strong><font color="#646464"> );
+}</font></strong><strong><font color="#0000ff">
+
+int</font></strong><strong><font color="#0000ff"> main</font></strong><strong><font color="#646464">()
+{</font></strong><strong><font color="#0000ff">
+    char</font></strong> a<strong><font color="#646464">[] =</font></strong><font color="#ff00ff"> &quot;VC知识库&quot;</font><strong><font color="#646464">;</font></strong><strong><font color="#0000ff">
+    wchar_t</font></strong> b<strong><font color="#646464">[] =</font></strong><font color="#ff00ff"> L&quot;VC知识库&quot;</font><strong><font color="#646464">;</font></strong>
+    prt<strong><font color="#646464">(</font></strong> a<strong><font color="#646464">,</font></strong><strong><font color="#0000ff"> sizeof</font></strong><strong><font color="#646464">(</font></strong>a<strong><font color="#646464">) );</font></strong>
+    prt<strong><font color="#646464">(</font></strong> b<strong><font color="#646464">,</font></strong><strong><font color="#0000ff"> sizeof</font></strong><strong><font color="#646464">(</font></strong>b<strong><font color="#646464">) );</font></strong>
+    system<strong><font color="#646464">(</font></strong><font color="#ff00ff"> &quot;Pause&quot;</font><strong><font color="#646464"> );</font></strong><em><font color="#008000">
+    // 说明：
+    //  Dev-CPP4990 显示为：
+    //    56 43 D6 AA CA B6 BF E2 00
+    //    56 00 43 00 D6 00 AA 00 CA 00 B6 00 BF 00 E2 00 00 00
+    //  VC++6.0 和 VC.net2003 显示为：
+    //    56 43 D6 AA CA B6 BF E2 00
+    //    56 00 43 00 E5 77 C6 8B 93 5E 00 00
+    // 可见，Dev-CPP中的L&quot;&quot;不是unicode编码，只是简单的扩充，汉字需要4bytes存储
+</font></em>    
+    HWND h<strong><font color="#646464"> =</font></strong> FindWindow<strong><font color="#646464">(</font></strong> NULL<strong><font color="#646464">,</font></strong><font color="#ff00ff"> &quot;计算器&quot;</font><strong><font color="#646464"> );</font></strong>
+    SetWindowTextA<strong><font color="#646464">(</font></strong> h<strong><font color="#646464">,</font></strong> a<strong><font color="#646464"> );</font></strong>
+    system<strong><font color="#646464">(</font></strong><font color="#ff00ff"> &quot;Pause&quot;</font><strong><font color="#646464"> );</font></strong>
+    SetWindowTextW<strong><font color="#646464">(</font></strong> h<strong><font color="#646464">,</font></strong> b<strong><font color="#646464"> );</font></strong>
+    system<strong><font color="#646464">(</font></strong><font color="#ff00ff"> &quot;Pause&quot;</font><strong><font color="#646464"> );</font></strong><em><font color="#008000">
+    // 说明：
+    //   VC++6.0 和 VC.net2003 都能成功将标题改为&quot;VC知识库&quot;
+    //  而 Dev-CPP4990 只有 SetWindowTextA 显示正确，而 SetWindowTextW 显示的是乱码 
+</font></em><strong><font color="#646464">}</font></strong></pre> 
+ <p>这段代码说明了,g++（Dev-CPP用的是MingGW编译器）中L&quot;xx&quot;<font color="#000000">解释为把作为non-wide-char的&quot;xx&quot;扩展为作为wide-char的wchar_t，不足则在高位补0；而VC6.0的L&quot;xx&quot;</font><font color="#000000">解释为把作为MBCS的&quot;xx&quot;转换为作为unicode的WCHAR，目前的MBCS是以char为一个存储单元的，而WCHAR在winnt.h中定义为typedef wchar_t WCHAR。在win平台上，只要是超过0~127范围内的char型字符，都被视为MBCS，它由1到2个字节组成，MBCS字符集跟它的地区代码页号有关。在某个特定的win平台，默认的代码页号可以在控制面板-〉区域选项中设定。</font></p> 
+ <p>关于上述结论可以有下面这个程序来验证：</p> 
+ <pre><font color="#a000a0"><em><font color="#008000">//author: smileonce
+</font></em><br />#include 
+   <stdio h=""></stdio>
+#include 
+   <stdlib h=""></stdlib>
+#include 
+   <assert h=""></assert>
+#include 
+   <windows h=""></windows>
+</font><font color="#0000ff">
+<strong>void</strong></font> prt<strong><font color="#646464">(</font></strong><strong><font color="#0000ff"> const</font></strong><strong><font color="#0000ff"> void</font></strong><strong><font color="#646464">*</font></strong> padd<strong><font color="#646464">,</font></strong> size_t n<strong><font color="#646464"> )
+{</font></strong><strong><font color="#0000ff">
+    const</font></strong><strong><font color="#0000ff"> unsigned char</font></strong><strong><font color="#646464">*</font></strong> p<strong><font color="#646464"> =</font></strong><strong><font color="#0000ff"> static_cast</font></strong><strong><font color="#646464">&lt;</font></strong><strong><font color="#0000ff">const</font></strong><strong><font color="#0000ff"> unsigned char</font></strong><strong><font color="#646464">*&gt;(</font></strong> padd<strong><font color="#646464"> );</font></strong><strong><font color="#0000ff">
+    const</font></strong><strong><font color="#0000ff"> unsigned char</font></strong><strong><font color="#646464">*</font></strong> pe<strong><font color="#646464"> =</font></strong> p<strong><font color="#646464"> +</font></strong> n<strong><font color="#646464">;</font></strong><strong><font color="#0000ff">
+    for</font></strong><strong><font color="#646464">( ;</font></strong> p<strong><font color="#646464">&lt;</font></strong>pe<strong><font color="#646464">; ++</font></strong>p<strong><font color="#646464"> )</font></strong> printf<strong><font color="#646464">(</font></strong><font color="#ff00ff"> &quot; %02X&quot;</font><strong><font color="#646464">, *</font></strong>p<strong><font color="#646464"> );</font></strong> printf<strong><font color="#646464">(</font></strong><font color="#ff00ff"> &quot;\n&quot;</font><strong><font color="#646464"> );
+}</font></strong><strong><font color="#0000ff">
+
+int</font></strong><strong><font color="#0000ff"> main</font></strong><strong><font color="#646464">()
+{</font></strong><strong><font color="#0000ff">
+    char</font></strong> a<strong><font color="#646464">[] =</font></strong><font color="#ff00ff"> &quot;VC知识库&quot;</font><strong><font color="#646464">;</font></strong><strong><font color="#0000ff">
+    wchar_t</font></strong> b<strong><font color="#646464">[] =</font></strong><font color="#ff00ff"> L&quot;VC知识库&quot;</font><strong><font color="#646464">;</font></strong>
+    prt<strong><font color="#646464">(</font></strong> a<strong><font color="#646464">,</font></strong><strong><font color="#0000ff"> sizeof</font></strong><strong><font color="#646464">(</font></strong>a<strong><font color="#646464">) );</font></strong>
+    prt<strong><font color="#646464">(</font></strong> b<strong><font color="#646464">,</font></strong><strong><font color="#0000ff"> sizeof</font></strong><strong><font color="#646464">(</font></strong>b<strong><font color="#646464">) );</font></strong>
+
+    PSTR pMultiByteStr<strong><font color="#646464"> = (</font></strong>PSTR<strong><font color="#646464">)</font></strong>a<strong><font color="#646464">;</font></strong>
+    PWSTR pWideCharStr<strong><font color="#646464">;</font></strong><strong><font color="#0000ff">
+    int</font></strong> nLenOfWideCharStr<strong><font color="#646464">;</font></strong><em><font color="#008000">
+
+    // 利用API函数MultiByteToWideChar()来把a转化成unicode字符
+</font></em>    nLenOfWideCharStr<strong><font color="#646464"> =</font></strong> MultiByteToWideChar<strong><font color="#646464">(</font></strong> CP_ACP<strong><font color="#646464">,</font></strong><font color="#800080"> 0</font><strong><font color="#646464">,</font></strong> pMultiByteStr<strong><font color="#646464">, -</font></strong><font color="#800080">1</font><strong><font color="#646464">,</font></strong> NULL<strong><font color="#646464">,</font></strong><font color="#800080"> 0</font><strong><font color="#646464">);</font></strong>
+    pWideCharStr<strong><font color="#646464"> = (</font></strong>PWSTR<strong><font color="#646464">)</font></strong>HeapAlloc<strong><font color="#646464">(</font></strong> GetProcessHeap<strong><font color="#646464">(),</font></strong><font color="#800080"> 0</font><strong><font color="#646464">,</font></strong> nLenOfWideCharStr<strong><font color="#646464"> *</font></strong><strong><font color="#0000ff"> sizeof</font></strong><strong><font color="#646464">(</font></strong>WCHAR<strong><font color="#646464">) );</font></strong>
+    assert<strong><font color="#646464">(</font></strong> pWideCharStr<strong><font color="#646464"> );</font></strong>
+    MultiByteToWideChar<strong><font color="#646464">(</font></strong> CP_ACP<strong><font color="#646464">,</font></strong><font color="#800080"> 0</font><strong><font color="#646464">,</font></strong> pMultiByteStr<strong><font color="#646464">, -</font></strong><font color="#800080">1</font><strong><font color="#646464">,</font></strong> pWideCharStr<strong><font color="#646464">,</font></strong> nLenOfWideCharStr<strong><font color="#646464"> );</font></strong>
+
+    prt<strong><font color="#646464">(</font></strong> pWideCharStr<strong><font color="#646464">,</font></strong> nLenOfWideCharStr<strong><font color="#646464"> *</font></strong><strong><font color="#0000ff"> sizeof</font></strong><strong><font color="#646464">(</font></strong>WCHAR<strong><font color="#646464">) );</font></strong>
+
+    system<strong><font color="#646464">(</font></strong><font color="#ff00ff"> &quot;Pause&quot;</font><strong><font color="#646464"> );</font></strong><em><font color="#008000">
+//    // 说明：
+//        56 43 D6 AA CA B6 BF E2 00             //char a[] = &quot;VC知识库&quot;;
+//        56 00 43 00 E5 77 C6 8B 93 5E 00 00    //wchar_t b[] = L&quot;VC知识库&quot;;
+//        56 00 43 00 E5 77 C6 8B 93 5E 00 00    //用MultiByteToWideChar()把a转换为unicode
+//    // 可见，b[]的字符代码就是unicode代码
+</font></em><strong><font color="#0000ff">
+    return</font></strong><font color="#800080"> 0</font><strong><font color="#646464">;   
+}</font></strong></pre> 
+ <p>呵呵，问题已经明了，总结一下：</p> 
+ <p>1&gt; ISO C中wchar_t是一个typedef，ISO C++中wchar_t是语言内建的数据类型，L'xx'是ISO C/C++语言内建的表示wchar_t的文本量的语法；<br /> 2&gt; wchar_t的长度是由实现决定的；<br /> 3&gt; L'xx'的意义是由实现决定的；<br /> 4&gt; 默认的'xx'是non-wide-char，其每个元素数据的类型是char；与其想对应的L'xx'是wide-char,其每个元素数据的类型是wchar_t。</p> 
+ <p>为什么C/C++语言把L'xx'定义为由实现决定的呢？这显然是为了C/C++的普适性、可移植性。Bjarne的观点认为，C++的方式是允许程序员使用任何字符集作为串的字符类型。另外，unicode编码已经发展了若干版本了，是否能永久适合下去也不得而知。有关unicode的详细论述以及和其它字符集的比较，我推荐你看<a href="http://2tigers.net/xml_book/wfhxml_gb.zip">《无废话xml》</a> 。</p> 
+ <p>-------------<br /> <strong><font color="#a52a2a">乾坤一笑 写于2004年12月9日 转载请标明出处和原文链接</font></strong></p> 
+</div> 
+<p><a href="http://blog.vckbase.com/smileonce/archive/2004/12/09/1972.html">http://blog.vckbase.com/smileonce/archive/2004/12/09/1972.html</a></p></div></body></html>

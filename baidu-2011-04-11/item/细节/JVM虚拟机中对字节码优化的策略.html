@@ -1,0 +1,320 @@
+<html><head><title>JVM虚拟机中对字节码优化的策略</title></head><body><div id='tit'>JVM虚拟机中对字节码优化的策略</div><div id='cate'>细节</div><div id='date'>2009年10月09日 星期五 10:33 A.M.</div><div id='page'>28</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/2d677d89483147b90e244471.html'>http://hi.baidu.com/hxzon/blog/item/2d677d89483147b90e244471.html</a><div id='cnt'><div>
+ JVM虚拟机中对字节码优化的策略
+ <br /> server jvm和client jvm对字节码优化的策略不同： 
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Client主要优化对用户交互的响应速度 
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Server主要优化后台运行的代码。
+</div> 
+<div> 
+</div> 
+<div>
+ 使用server模式可以提高性能，启动比client模式慢，长期运行则比client模式快。当该参数不指定时，虚拟机启动检测主机是否为服务器，如果是，则以server模式启动，否则以client模式启动，J2SE5.0检测的根据是至少2个CPU和最低2GB内存。
+</div> 
+<div> 
+</div> 
+<div>
+ 20.7.3 堆大小设置
+ <br /> JVM中最大堆大小有三方面限制：相关操作系统的数据模型（32-bt还是64-bit）限制；系统的可用虚拟内存限制；系统的可用物理内存限制。在32位系统下，一般限制在1.5G~2G；64为操作系统对内存无限制。
+</div> 
+<div> 
+</div> 
+<div>
+ 常用的典型设置如下：
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; java -Xmx3550m -Xms3550m -Xmn2g -Xss128k
+</div> 
+<div> 
+</div> 
+<div>
+ -Xmx3550m：设置JVM最大可用内存为3550M。
+</div> 
+<div> 
+</div> 
+<div>
+ -Xms3550m：设置JVM初始化内存为3550m。此值可以设置与-Xmx相同，以避免每次垃圾回收完成后JVM重新分配内存。
+</div> 
+<div> 
+</div> 
+<div>
+ -Xmn2g：设置年轻代大小为2G。整个堆大小=年轻代大小 + 年老代大小 + 持久代大小。持久代一般固定大小为64m，所以增大年轻代后，将会减小年老代大小。此值对系统性能影响较大，Sun官方推荐配置为整个堆的3/8。基于对对象生命周期分析后得出的垃圾回收算法。把对象分为年青代、年老代、持久代，对不同生命周期的对象使用不同的算法（上述方式中的一个）进行回收。现在的垃圾回收器（从J2SE1.2开始）都是使用此算法的。
+</div> 
+<div> 
+</div> 
+<div>
+ -Xss128k：设置每个线程的堆栈大小。从JDK5.0开始，每个线程堆栈大小为1M，以前每个线程堆栈大小为256K。可根据具体应用调整线程所需内存大小。在相同物理内存下，减小这个值能生成更多的线程。但是操作系统对一个进程内的线程数还是有限制的，不能无限生成，通常的值在3000~5000左右。
+</div> 
+<div> 
+</div> 
+<div>
+ 20.7.3 回收器选择
+ <br /> 在JVM中给了三种回收器的选择：串行收集器、并行收集器、并发收集器，但是串行收集器只适用于小数据量的情况，所以这里的选择主要针对并行收集器和并发收集器。默认情况下，在JDK5.0以前都是使用串行收集器，如果想使用其他收集器需要在启动时加入相应参数。从JDK5.0以后，JVM会根据当前系统配置进行判断。
+</div> 
+<div> 
+</div> 
+<div>
+ 并行收集器主要以到达一定的吞吐量为目标，适用于科学技术和后台处理等。 典型配置如下：
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; java –Xmx2800m -Xms800m -Xmn2g -Xss128k -XX:+UseParallelGC -XX:ParallelGCThreads=20 -XX:+UseParallelOldGC
+</div> 
+<div> 
+</div> 
+<div>
+ -XX:+UseParallelGC：选择垃圾收集器为并行收集器。此配置仅对年轻代有效。即上述配置下，年轻代使用并发收集，而年老代仍旧使用串行收集。
+</div> 
+<div> 
+</div> 
+<div>
+ -XX:ParallelGCThreads=20：配置并行收集器的线程数，即同时多少个线程一起进行垃圾回收。此值最好配置与处理器数目相等。
+</div> 
+<div> 
+</div> 
+<div>
+ -XX:+UseParallelOldGC：配置年老代垃圾收集方式为并行收集。JDK6.0支持对年老代并行收集。
+</div> 
+<div> 
+</div> 
+<div>
+ 并发收集器主要是保证系统的响应时间，减少垃圾收集时的停顿时间。适用于应用服务器、电信领域等。典型配置如下：
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; java -Xmx3550m -Xms3550m -Xmn2g -Xss128k -XX:ParallelGCThreads=20 -XX:+UseConcMarkSweepGC -XX:+UseParNewGC
+</div> 
+<div> 
+</div> 
+<div>
+ -XX:+UseConcMarkSweepGC：设置年老代为并发收集。
+</div> 
+<div> 
+</div> 
+<div>
+ -XX:+UseParNewGC:设置年轻代为并行收集。可与CMS收集同时使用。从JDK5.0开始JVM会根据系统配置自行设置，所以无需再设置此值。
+</div> 
+<div> 
+</div> 
+<div>
+ 20.7.4 年轻代大小选择
+ <br /> 响应时间优先的应用：年轻代尽可能设大，直到接近系统的最低响应时间限制（根据实际情况选择）。在此种情况下，年轻代收集发生的频率也是最小的。同时，减少到达年老代的对象。
+</div> 
+<div> 
+</div> 
+<div>
+ 吞吐量优先的应用：年轻代尽可能的设置大，可能到达Gbit的程度。因为对响应时间没有要求，垃圾收集可以并行进行，一般适合8CPU以上的应用。
+</div> 
+<div> 
+</div> 
+<div>
+ 20.7.5 年老代大小选择
+ <br /> 响应时间优先的应用：年老代使用并发收集器，所以其大小需要小心设置，一般要考虑并发会话率和会话持续时间等一些参数。如果堆设置小了，可以会造成内存碎片、高回收频率以及应用暂停而使用传统的标记清除方式；如果堆大了，则需要较长的收集时间。最优化的方案，一般需要参考以下数据获得：
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 并发垃圾收集信息
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 持久代并发收集次数
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 传统GC信息
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 花在年轻代和年老代回收上的时间比例
+</div> 
+<div> 
+</div> 
+<div>
+ ?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 减少年轻代和年老代花费的时间，一般会提高应用的效率
+</div> 
+<div> 
+</div> 
+<div>
+ 吞吐量优先的应用：一般吞吐量优先的应用都有一个很大的年轻代和一个较小的年老代。原因是，这样可以尽可能回收掉大部分短期对象，减少中期的对象，而年老代尽存放长期存活对象。
+</div> 
+<div> 
+</div> 
+<div>
+ 20.7.6 较小堆引起的碎片分析
+ <br /> 因为年老代的并发收集器使用标记、清除算法，所以不会对堆进行压缩。当收集器回收时，它会把相邻的空间进行合并，这样可以分配给较大的对象。但是，当堆空间较小时，运行一段时间以后，就会出现“碎片”，如果并发收集器找不到足够的空间，那么并发收集器将会停止，然后使用传统的标记、清除方式进行回收。如果出现“碎片”，可能需要进行如下配置：
+</div> 
+<div> 
+</div> 
+<div>
+ -XX:+UseCMSCompactAtFullCollection：使用并发收集器时，开启对年老代的压缩。
+</div> 
+<div> 
+</div> 
+<div>
+ -XX:CMSFullGCsBeforeCompaction=0：上面配置开启的情况下，这里设置多少次Full GC后，对年老代进行压缩
+</div> 
+<div> 
+</div> 
+<div>
+ ===============
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 在实际编程中对内存的优化
+ <br /> 应用Java开发的系统给人的印象是占内存，其实从理论上来讲，Java开发的系统并不比其他语言开发出来的系统更占用内存，这就需要在编程时注意优化内存。
+</div> 
+<div> 
+</div> 
+<div>
+ （1）不要使用new Boolean()。
+</div> 
+<div> 
+</div> 
+<div>
+ 在许多应用场景中，Boolean类型是必须的，比如JDBC中boolean类型的set与get都是通过Boolean封装传递的，大部分ORM也是用Boolean来封装boolean类型，例如：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> ps.setBoolean(&quot;isClosed&quot;,new Boolean(true));
+ <br /> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 通常这些系统中构造的Boolean实例的个数是相当多的，所以系统中充满了大量Boolean实例小对象，这是相当消耗内存的。Boolean类实际上只要两个实例就够了，一个true的实例，一个false的实例。Boolean类提供两了个静态变量：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> public static final Boolean TRUE = new Boolean(true);
+</div> 
+<div> 
+</div> 
+<div>
+ public static final Boolean FALSE = new Boolean(false); 
+ <br /> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 在实际编程序中需要的时候只要取这两个变量就可以了，例如：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> ps.setBoolean(&quot;isClosed&quot;,Boolean.TRUE); 
+ <br /> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 如果要根据一个boolean变量来创建一个Boolean，可以使用Boolean提供的静态方法： Boolean.valueOf（） ，例如：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> ps.setBoolean(&quot;isClosed&quot;,Boolean.valueOf(isClosed));
+ <br /> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 因为valueOf的内部实现是：return (b ? TRUE : FALSE)，所以可以节省大量内存。
+</div> 
+<div> 
+</div> 
+<div>
+ （2）不要使用new Integer。
+</div> 
+<div> 
+</div> 
+<div>
+  和Boolean类似，java开发中使用Integer封装int的场合也非常多，并且通常用int表示的数值通常都非常小。Integer类缓存了-128到127这256个状态的Integer，如果使用Integer.valueOf(int i)，传入的int范围正好在此内，就返回静态实例。这样如果我们使用Integer.valueOf代替new Integer的话也将大大降低内存的占用。
+</div> 
+<div> 
+</div> 
+<div>
+ （3）用StringBuffer代替字符串相加。
+</div> 
+<div> 
+</div> 
+<div>
+ （4）过滥使用哈希表，有一定开发经验的开发人员经常会使用hash表（hash表在JDK中的一个实现就是HashMap）来缓存一些数据，从而提高系统的运行速度。比如使用HashMap缓存一些物料信息、人员信息等基础资料，这在提高系统速度的同时也加大了系统的内存占用，特别是当缓存的资料比较多的时候。其实我们可以使用操作系统中的缓存的概念来解决这个问题，也就是给被缓存的分配一个一定大小的缓存容器，按照一定的算法淘汰不需要继续缓存的对象，这样一方面会因为进行了对象缓存而提高了系统的运行效率，同时由于缓存容器不是无限制扩大，从而也减少了系统的内存占用。现在有很多开源的缓存实现项目，比如ehcache、oscache等，这些项目都实现了FIFO、MRU等常见的缓存算法。
+</div> 
+<div> 
+</div> 
+<div>
+ （5）避免过深的类层次结构和过深的方法调用。因为这两者都是非常占用内存的（特别是方法调用更是堆栈空间的消耗大户）。
+</div> 
+<div> 
+</div> 
+<div>
+ （6）变量只有在用到它的时候才定义和实例化。
+</div> 
+<div> 
+</div> 
+<div>
+ （7）尽量避免使用static变量，类内私有常量可以用final来代替。
+</div> 
+<div> 
+</div> 
+<div>
+ （8）尽早释放无用对象的引用。如：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> User user=new User();
+ <br /> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 应用user对象之后，应设置user = null，当使用对象user之后主动将其设置为空，这种作法在B/S系统的服务中很重要，由于服务器同时要服务成千上万个用户访问，这样有可能会创建多个user对象，如果user是方法的返回值，不要做这样的处理，否则你从该方法中得到的返回值永远为空，而且这种错误不易被发现、排除。在Java中，程序员需要通过关键字new为每个对象申请内存空间 (基本类型除外)，所有的对象都在堆 (Heap)中分配空间。另外，对象的释放是由GC决定和执行的。在Java中，内存的分配是由程序完成的，而内存的释放是有GC完成的，这种收支两条线的方法确实简化了程序员的工作。但同时，它也加重了JVM的工作。这也是Java程序运行速度较慢的原因之一。因为，GC为了能够正确释放对象，GC必须监控每一个对象的运行状态，包括对象的申请、引用、被引用、赋值等，GC都需要进行监控。监视对象状态是为了更加准确地、及时地释放对象，而释放对象的根本原则就是该对象不再被引用。所以可以把不在引用的对象设置为null，以建议GC回收这些对象。对于程序员来说，GC基本是透明的，不可见的。虽然，我们只有几个函数可以访问GC，例如运行GC的函数System.gc()，但是根据Java语言规范定义， 该函数不保证JVM的垃圾收集器一定会执行。因为，不同的JVM实现者可能使用不同的算法管理GC。通常，GC的线程的优先级别较低。JVM调用GC的策略也有很多种，有的是内存使用到达一定程度时，GC才开始工作，也有定时执行的，有的是平缓执行GC，有的是中断式执行GC。但通常来说，我们不需要关心这些。除非在一些特定的场合，GC的执行影响应用程序的性能，例如对于基于Web的实时系统，如网络游戏等，用户不希望GC突然中断应用程序执行而进行垃圾回收，那么我们需要调整GC的参数，让GC能够通过平缓的方式释放内存，例如将垃圾回收分解为一系列的小步骤执行，Sun提供的HotSpot JVM就支持这一特性。
+</div> 
+<div> 
+</div> 
+<div>
+ （9）尽量少用finalize函数。它会加大GC的工作量。
+</div> 
+<div> 
+</div> 
+<div>
+ （10）尽量避免在类的默认构造器中创建、初始化大量的对象，防止在调用其自类的构造器时造成不必要的内存资源浪费。
+</div> 
+<div> 
+</div> 
+<div>
+ （11）尽量避免强制系统做垃圾内存的回收，增长系统做垃圾回收的最终时间。
+</div> 
+<div> 
+</div> 
+<div>
+ （12）尽量避免显式申请数组空间。
+</div> 
+<div> 
+</div> 
+<div>
+ （13）尽量做远程方法调用类应用开发时使用瞬间值变量，除非远程调用端需要获取该瞬间值变量的值。
+</div> 
+<div> 
+</div> 
+<div>
+ （14）尽量在合适的场景下使用对象池技术以提高系统性能。
+</div></div></body></html>

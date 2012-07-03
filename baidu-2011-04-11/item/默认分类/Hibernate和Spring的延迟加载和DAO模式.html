@@ -1,0 +1,214 @@
+<html><head><title>Hibernate和Spring的延迟加载和DAO模式</title></head><body><div id='tit'>Hibernate和Spring的延迟加载和DAO模式</div><div id='cate'>默认分类</div><div id='date'>2008年08月15日 星期五 04:09 P.M.</div><div id='page'>108</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/e577a5cc2257d91600e9285b.html'>http://hi.baidu.com/hxzon/blog/item/e577a5cc2257d91600e9285b.html</a><div id='cnt'><div>
+ Hibernate和Spring的延迟加载和DAO模式
+ <br /> 原文：
+ <a href="http://www.jroller.com/page/kbaum/20040708"><font color="#095801">http://www.jroller.com/page/kbaum/20040708</font></a>
+ <br /> 作者：Karl Baum
+ <br /> 译者：zcgly
+</div> 
+<div>
+ 时间：2005－07－13
+</div> 
+<div>
+ Hibernate和延迟加载
+ <br /> Hibernate对象关系映射提供了两种对象初始化模式：延迟加载和非延迟加载。非延迟加载在加载时获取对象本身以及它关联的所有对象
+</div> 
+<div>
+ 。这可能导致在获取一个实例时，执行成百上千的select语句。当使用双向关联时，这个问题被放大，常常出现初始化请求时，整个数据
+</div> 
+<div>
+ 库都被载入。显然检查每个对象的关系，并手工删除他们会费点事，但最终我们可能会因此丢失使用ORM工具的优势。
+</div> 
+<div>
+ 一个明细的解决方式是使用hibernate提供的延迟载入机制。这种初始化策略在类成员被访问时只载入它的一个对象的一对多和多对多关
+</div> 
+<div>
+ 系。对开发人员来说，这种方式是透明的，并且只有最少数量的请求发生，这样就获得了最佳的性能。这种技术的一个缺点是延迟载入要
+</div> 
+<div>
+ 求当对象还在使用中时，Hibernate的Session必须保持打开状态。当尝试通过DAO模式抽象持久层时，这会引起一个重要问题。为了充分
+</div> 
+<div>
+ 地抽象持久层，所有的数据库逻辑，包括打开、关闭Session都不能在应用层出现。最常见的是，这些逻辑隐藏在DAO的实现类中。快速和
+</div> 
+<div>
+ 差一些的方案是：避免采用DAO模式，在应用层中包含数据连接的逻辑。这在小应用中是可行的，但在大系统中，这会是一个设计缺陷，
+</div> 
+<div>
+ 它损害了应用的扩展性。
+</div> 
+<div>
+ 在Web层使用延迟加载
+ <br /> 幸运的是，Spring框架已经提供了一个DAO模式结合Hibernate延迟加载的Web方案。对于任何不熟悉Spring框架结合Hibernate人来说，我
+</div> 
+<div>
+ 在这里不会深入细节，但是我希望你去阅读“结合Spring框架的Hibernate数据库访问”章节。这个案例是一个Web应用，Spring提供了
+</div> 
+<div>
+ OpenSessionInViewerFilter和OpenSessionInViewInterceptor。使用它们中的任一个都能获得同样的功能。这两者唯一不同的是
+</div> 
+<div>
+ interceptor在Spring容器中运行，并且在web应用的上下文中配置；fitler在Spring前运行，并且在web.xml中配置。不管使用哪一个，
+</div> 
+<div>
+ 他们都会在请求绑定到Session的当前线程期间打开Hibernate Session。一旦绑定到线程，打开的Hibernate Session能被DAO的实现类透
+</div> 
+<div>
+ 明地使用。Session会持续打开允许延迟加载访问数据库。一旦View逻辑完成，hibernate session会被关闭，无论是在Filter的doFilter
+</div> 
+<div>
+ 方法中还是在Interceptor的postHandle方法中。下面是一个配置实例：
+ <br /> Interceptor配置
+</div> 
+<div>
+ &lt;beans&gt; 
+ <br /> &lt;bean id=&quot;urlMapping&quot;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; class=&quot;org.springframework.web.servlet.handler.SimpleUrlHandlerMapping&quot;&gt;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;interceptors&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;list&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;openSessionInViewInterceptor&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/list&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;mappings&quot;&gt;
+ <br /> ...
+ <br /> &lt;/bean&gt;
+ <br /> ...
+ <br /> &lt;bean name=&quot;openSessionInViewInterceptor&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;org.springframework.orm.hibernate.support.OpenSessionInViewInterceptor&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;sessionFactory&quot;&gt;&lt;ref bean=&quot;sessionFactory&quot;/&gt;&lt;/property&gt;
+ <br /> &lt;/bean&gt;
+ <br /> &lt;/beans&gt;
+</div> 
+<div>
+ Filter配置
+</div> 
+<div>
+ &lt;web-app&gt;
+ <br /> ...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &lt;filter&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;filter-name&gt;hibernateFilter&lt;/filter-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;filter-class&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; org.springframework.orm.hibernate.support.OpenSessionInViewFilter
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/filter-class&gt;
+ <br /> &nbsp;&nbsp; &lt;/filter&gt;
+ <br /> ...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &lt;filter-mapping&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;filter-name&gt;hibernateFilter&lt;/filter-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;url-pattern&gt;*.spring&lt;/url-pattern&gt;
+ <br /> &lt;/filter-mapping&gt;
+ <br /> ...
+ <br /> &lt;/web-app&gt;
+ <br /> 使用打开的session的HibernateDAO实现类很简单。实际上，如果你已经使用Spring框架实现Hibernate的DAO对象，最有可能的是，你不
+</div> 
+<div>
+ 需要做任何改动。DAO必须通过方便的HibernateTemplate工具访问Hibernate，这对数据库访问来说就是小菜一碟。下面是一个DAO的实例
+</div> 
+<div>
+ 。
+ <br /> DAO实例
+</div> 
+<div>
+ public class HibernateProductDAO extends HibernateDaoSupport implements ProductDAO {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public Product getProduct(Integer productId) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return (Product)getHibernateTemplate().load(Product.class, productId);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public Integer saveProduct(Product product) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return (Integer) getHibernateTemplate().save(product);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void updateProduct(Product product) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; getHibernateTemplate().update(product);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div>
+ 在业务层使用延迟加载
+ <br /> 甚至在表现层外，Spring框架也通过AOP拦截器HibernateInterceptor提供了便利的延迟加载支持。hibernate拦截器透明地拦截了配置在
+</div> 
+<div>
+ Spring应用上下文中的业务对象的调用，在调用前打开hibernate session，在调用结束时关闭这个session。让我们通过一个简单的例子
+</div> 
+<div>
+ 来说明。假设我们有一个interface叫做BussinessObject：
+ <br /> public interface BusinessObject { 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; public void doSomethingThatInvolvesDaos(); 
+ <br /> }
+ <br /> 类BusinessObjectImpl实现了BusinessObject接口：
+ <br /> public class BusinessObjectImpl implements BusinessObject {
+ <br /> &nbsp;&nbsp;&nbsp; public void doSomethingThatInvolvesDaos() {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // lots of logic that calls
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // DAO classes Which access 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // data objects lazily
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 通过Spring上下文的一些配置，我们可以让HibernateInterceptor拦截对BusinessObjectImpl的调用，允许它的方法延迟访问数据对象。
+</div> 
+<div>
+ 看一下下面的片断：
+ <br /> &lt;beans&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;bean id=&quot;hibernateInterceptor&quot; class=&quot;org.springframework.orm.hibernate.HibernateInterceptor&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;sessionFactory&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;sessionFactory&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/bean&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;bean id=&quot;businessObjectTarget&quot; class=&quot;com.acompany.BusinessObjectImpl&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;someDAO&quot;&gt;&lt;ref bean=&quot;someDAO&quot;/&gt;&lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/bean&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;bean id=&quot;businessObject&quot; class=&quot;org.springframework.aop.framework.ProxyFactoryBean&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;target&quot;&gt;&lt;ref bean=&quot;businessObjectTarget&quot;/&gt;&lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;proxyInterfaces&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;com.acompany.BusinessObject&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;interceptorNames&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;list&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;hibernateInterceptor&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/list&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/bean&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &lt;/beans&gt;
+ <br /> 当businessObject的实例被引用，HibernateInterceptor打开一个hibernate session并允许对BussinessObjectImpl的调用。当
+</div> 
+<div>
+ BusinessOjbectImpl执行完成，HibernateInterceptor透明的关闭这个session。应用代码并不知道任何持久层逻辑，但它仍然能够使用
+</div> 
+<div>
+ 延迟加载访问数据对象。
+</div> 
+<div>
+ 在单元测试中使用延迟加载
+ <br /> 最后，我们要在JUnit中测试我们的延迟加载应用。覆盖TestCase类的setUp和tearDown方法非常容易。我更喜欢将这段代码放在一个简便
+</div> 
+<div>
+ 的抽象TestCase类中，作为我所有测试的基类。
+ <br /> public abstract class MyLazyTestCase extends TestCase {
+</div> 
+<div>
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void setUp() throws Exception {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; super.setUp();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; SessionFactory sessionFactory = (SessionFactory) getBean(&quot;sessionFactory&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; Session s = sessionFactory.openSession();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; TransactionSynchronizationManager.bindResource(sessionFactory, new SessionHolder(s));
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; protected Object getBean(String beanName) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //Code to get objects from Spring application context
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void tearDown() throws Exception {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; super.tearDown();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; SessionHolder holder = (SessionHolder) TransactionSynchronizationManager.getResource(sessionFactory);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; Session s = holder.getSession(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; s.flush();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; TransactionSynchronizationManager.unbindResource(sessionFactory);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; SessionFactoryUtils.closeSessionIfNecessary(s, sessionFactory);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div></div></body></html>

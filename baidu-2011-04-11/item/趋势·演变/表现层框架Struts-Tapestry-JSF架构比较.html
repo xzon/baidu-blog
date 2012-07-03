@@ -1,0 +1,43 @@
+<html><head><title>表现层框架Struts/Tapestry/JSF架构比较</title></head><body><div id='tit'>表现层框架Struts/Tapestry/JSF架构比较</div><div id='cate'>趋势&middot;演变</div><div id='date'>2008年09月07日 星期日 01:36 P.M.</div><div id='page'>102</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/710bcb110372c916b8127bce.html'>http://hi.baidu.com/hxzon/blog/item/710bcb110372c916b8127bce.html</a><div id='cnt'><p>表现层框架Struts/Tapestry/JSF架构比较</p> 
+<p>Struts/Tapestry/JSF是目前J2EE表现层新老组合的框架技术。从诞生时间上看，Struts应该比较早，使用得非常广泛，Tapestry 3.0逐渐引起广泛的重视，正当Tapestry即将大显身手时期，SUN推出JSF标准技术，虽然JSF一开始推出尚不成熟，留出了一段空白期，但是随着JSF1.1标准推出，JSF开始正面出击，粉面隆重登场了。</p> 
+<p> 其实，JSF和Tapestry也并不是那种头碰头的相同竞争性技术，两者还是各有侧重点的，不过比较细微，但是这种细微点在实现一个大工程时可能带来不同的感受和变化。</p> 
+<p> 首先，我们从一个高度来抽象一下表现层框架应有的技术架构，下图可以说所有表现层框架技术都必须实现的功能架构图：</p> 
+<p align="center"><img width="219" height="236" src="image/表现层框架Struts-Tapestry.066232310.jpg" /><p class="origImg">http://image.it168.com/cms/2006-6-23/image/066232310.jpg</p></p> 
+<p> 当然，我们不必废话罗嗦MVC模式，MVC模式是基准模式，现在框架技术已经不必再拼是否是MVC模式了。 在上图MVC模式基础上，一个表现层框架无外乎要实现图中的三个功能：</p> 
+<ol> 
+ <li>在当前页面能够显示一个组件对象的内容；而不是象纯JSP那样，需要在Jsp页面写入“调用对象方法”的Java代码。</li> 
+ <li>当用户按下页面的提交按扭或链接后，事件发生，这时应该触发服务器端并将当前页面的参数提交给服务器。这种机制表现在Form表单提交和有参数的链接&lt;a href=&quot;&quot;&gt;&lt;/a&gt;</li> 
+ <li>从一个页面视图直接跳转到另外一个页面视图，单纯的导航作用。</li> 
+</ol> 
+<p> 我们通过下表来比较这 三种框架在实现上图各个功能时技术细节，从而得出他们的异同点和偏重点。</p> 
+<p>表格</p> 
+<p> <strong>Struts组件编程模型</strong></p> 
+<p> Struts实现组件编程时有一些复杂：经常为一个页面中需要引入多个组件而头疼，因为Struts中无法直接引入多个组件，必须绕一些圈子：</p> 
+<p> 一般分两种情况：如果同一个Action就可以对付这些组件，那么在这种情况下有两个办法：</p> 
+<ol> 
+ <li>将这多个组件装入一个ActionForm中，如使用MapForm等机制；</li> 
+ <li>手工将多个组件装入request/session等scope中，然后根据其名称在jsp中获得。</li> 
+</ol> 
+<p> 这两个方法都有缺点： 第一种办法经常一个ActionForm弄得面目全非，变成一个大杂烩，违反了OO分派封装的原则；第2种办法其实又回到jsp编程；</p> 
+<p> 第二种情况，如果这些组件必须有预先由不同的Action来处理，每个组件必须经过Action --&gt;ActionForm流程，在这种情况下有两种办法：</p> 
+<ol> 
+ <li>使用Tiles, 不同流程输出到同一个页面的不同区域。是一种并行处理方式。</li> 
+ <li>对多个流程首尾相连，第一Action forward结果是第二个Action，最后输出一个Jsp，在这个jsp中就可以使用前面多个流程的多个ActionForm了，这属于串行方式。</li> 
+</ol> 
+<p> <strong>Struts组件模型缺点</strong></p> 
+<p> Struts组件编程必须限定在Action/ActionForm/JSP这三个框框中做文章，难度相对比较大，而Tapestry/JSF则没有太多这些技术框框限制，两者在组件编程方面更让编程者自由一些，方便一些，这也是组件型框架的优势吧。</p> 
+<p> <strong>Struts标签库</strong></p> 
+<p> 在Struts中，经常需要使用标签库来显示组件ActionForm中内容，这就涉及到一个结合的问题，标签库是别人写的，参考Struts的标签库用法，而组件是自己的，难度和麻烦就体现在这个结合点上。</p> 
+<p> JSF基本思路和Struts差不多，只不过换了不同标签库，也需要标签库+组件的结合思考，不过因为组件这里是通用组件，没有什么限制，所以这样比Struts要轻松一些。</p> 
+<p> Tapestry使用了组件库概念替代了标签库，没有标签库概念，这样就没有标签库和自己的组件需要结合的问题，都是组件的使用，组件中分Tapestry标准组件和自己定义的组件，这也是接触了Jsp体系的人学习Tapestry面临的一个思路转换。</p> 
+<p> 具体以页面跳转为例子，页面跳转是靠链接&lt;a href=&quot;目标&quot;&gt;&lt;/a&gt; 实现，链接是页面经常使用的元素。</p> 
+<p> Struts提供的html:link在频繁使用就特别不方便，尤其在传递多个参数时：其中html:link的page值，是跳转对方页面或Action的path，这个path一般需要到struts-config.xml查找Action的相应path,一旦配置文件path值修改，涉及到这个所有相关页面都要修改。</p> 
+<p> JSF将链接概念划分两个方面：导航性质和事件激活，在导航方面还是需要到配置faces-config查询Navigation的from-outcome的值。</p> 
+<p> 由于Tapestry没有标签库概念，只有组件或页面两个概念，因此，链接跳转目标要么是组件，要么是页面，简洁简单，它没有多余的path概念，就是组件名，也就是对象名称，组件名称和path名称合二为一。</p> 
+<p> <strong>总结</strong></p> 
+<p> JSF在很大程度上类似Struts，而不是类似Tapestry，可以说是一种Struts 2.0，都是采取标签库+组件的形式，只是JSF的组件概念没有象Struts那样必须继承ActionForm的限制；JSF在事件粒度上要细腻，不象Struts那样，一个表单一个事件，JSF可以细化到表单中的每个字段上。</p> 
+<p> JSF只有在组件和事件机制这个概念上类似Tapestry，但是不似Tapestry那样是一个完全组件的框架，所以，如果你做一个对页面要求灵活度相当高的系统，选用Tapestry是第一考虑。</p> 
+<p> Struts/JSF则适合在一般的数据页面录入的系统中，对于Struts和JSF的选用，我目前个人观点是：如果你是一个新的系统，可以直接从JSF开始；如果你已经使用Struts，不必转换，如果需要切换，可以将JSF和Tapestry一起考虑。</p> 
+<p> 另外，JSF/Tapestry不只是支持Html，也支持多种客户端语言如WML或XUI等。</p> 
+<p> 这三者之间关系：如果说Struts是左派；那Tapestry则是右派；而JSF则是中间派，中庸主义是SUN联盟的一贯策略。</p> 
+<p> 当然，你也可以发表你在实践中这三者任何一个的使用感受，以使得后来者有一个比较。</p></div></body></html>

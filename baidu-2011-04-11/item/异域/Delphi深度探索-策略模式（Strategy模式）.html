@@ -1,0 +1,57 @@
+<html><head><title>Delphi深度探索-策略模式（Strategy模式）</title></head><body><div id='tit'>Delphi深度探索-策略模式（Strategy模式）</div><div id='cate'>异域</div><div id='date'>2008年04月21日 星期一 11:04 A.M.</div><div id='page'>136</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/e577a5ccee2ead1500e928c3.html'>http://hi.baidu.com/hxzon/blog/item/e577a5ccee2ead1500e928c3.html</a><div id='cnt'><div style="layout-grid:  18pt none" class="Section1"> 
+ <h1 style="text-align: center; text-indent: 42pt; margin-left: 84pt" class="MsoNormal" align="center"><strong>Delphi</strong><strong>深度探索-</strong><strong>策略模式（Strategy</strong><strong>模式）</strong></h1> 
+ <h2 style="text-align: center; text-indent: 42pt; margin-left: 84pt" class="MsoNormal" align="center"><strong>作者 </strong><strong>陈省</strong></h2> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">任何程序都会有Bug，每修正一个错误花费的时间平均是编写代码时间的４倍，这还不算发现Bug所需要的时间，因此除错是程序开发过程中非常重要的一个环节，最常见的除错手段就是进行单步跟踪，但是这种除错手段对于Server程序来说就不太适合了，用Delphi对Server程序进行单步跟踪的配置步骤经常是很烦琐，同时Server端程序中某些代码的执行需要客户端的程序的触发，这就使得Server程序的调试很麻烦。</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">对于Server端程序的调试，一般可以采用记录运行日志的方法，但是针对不同的开发环境，写日志的策略又会有所不同，比如在开发阶段调试的时候，通常是将日志信息发送到控制台，这样可以实时的观察程序运行，而当程序发布给客户之后，因为客户一般不具备分析日志的能力，这时通常需要将日志写入文件中，出错后客户可以将日志文件发送给开发人员来进行分析。</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">一种比较简单的方法就是，一个要进行日志记录的类将日志功能都硬编码到内部的一个方法中，方法有一个开关，可以根据开关对应的日志记录方式，选择将日志发送到控制台或者文件中。伪代码示意如下：</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal"><strong>procedure</strong> TXXXObj.Log(Switch);</p> 
+ <p class="MsoNormal"><strong>begin</strong></p> 
+ <p class="MsoNormal"><strong>Case</strong> Switch <strong>of</strong></p> 
+ <p style="text-indent: 21.6pt" class="MsoNormal">Console: SendLogToConsole();</p> 
+ <p style="text-indent: 21.6pt" class="MsoNormal">File:WriteLogToFile();</p> 
+ <p class="MsoNormal"><strong>End;</strong></p> 
+ <p class="MsoNormal"><strong>end;</strong></p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">但是这种方法的伸缩性非常不好，如果有１００个类都需要进行日志记录的话，就需要写100*2个Case判断，如果为了调试一个http Server，而这台机器发送日志的方式是将日志信息发送到一个Socket流中来实现远程调试的话，这时伪代码就要改成：</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal"><strong>procedure</strong> TXXXObj.Log(Switch);</p> 
+ <p class="MsoNormal"><strong>begin</strong></p> 
+ <p class="MsoNormal"><strong>Case</strong> Switch <strong>of</strong></p> 
+ <p style="text-indent: 21.6pt" class="MsoNormal">Console: SendLogToConsole();</p> 
+ <p style="text-indent: 21.6pt" class="MsoNormal">File:WriteLogToFile();</p> 
+ <p style="text-indent: 21.6pt" class="MsoNormal">Socket:WriteLogToSocketStream();</p> 
+ <p class="MsoNormal"><strong>End;</strong></p> 
+ <p class="MsoNormal"><strong>end;</strong></p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">对于一个大型系统来说，如果有１００个类需要增加Socket的日志的方式的话，就要在增加100*1的Case判断，工作量就显得非常大了。</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">这时我们就可以考虑策略模式，将日志功能算法封装成一个类，具体功能类只对算法基类的接口进行操作，而不关心日志功能具体是如何实现的，日志载体是什么，采用策略模式对日志功能进行建模后的UML图示意如下：</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal"><img width="472" height="182" src="image/Delphi深度探索-策略模式（Stra.image001.gif" /><p class="origImg">http://delphi.sharpplus.com/Delphi/delphi_strategy_pattern.files/image001.gif</p></p> 
+ <p class="MsoNormal">使用Strategy模式之后，当需要添加新的日志记录功能时，只要添加新的TLogObj的基类就可以了，具体的TSomeObj只要使用该类的实例进行日志记录，而根本不需要关心该日志的载体是什么，以及如何实现了。伪代码示意如下:</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal"><strong>procedure</strong> TXXXObj.Log(LogObj:TLogObj);</p> 
+ <p class="MsoNormal"><strong>begin</strong></p> 
+ <p class="MsoNormal">LogObj.WriteLog(LogStr);</p> 
+ <p class="MsoNormal"><strong>end;</strong></p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">使用策略模式除了可以减少日志算法变化时的工作量，还可以实现日志的算法的灵活替换。还要说明的是从类体系上来看，TSomeObj和TLogObj之间的关系其实也是一种Bridge模式的特例，两者都是将接口和实现分离。只不过策略模式主要是强调算法的互换，而Bridge模式的应用范畴更大。</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal"><strong>VCL</strong><strong>中的策略模式</strong></p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">VCL中TAction被广泛的用于功能有效性验证策略的封装，比如在界面中经常需要一些编辑菜单，可以通过菜单来实现编辑框的内容的全选，粘贴，复制，剪切，Undo等操作，但是这些操作在某些情况下是无效的，比如当前输入框如果不处于获得焦点状态的时候，应该禁止所有的菜单，当编辑框处于焦点，但是文本没有被选中时，应该禁止Cut、Copy和Delete菜单。为了实现这种验证策略，就需要在编辑框的OnChange事件中进行有效性判断，根据不同情况禁止或者允许菜单状态，但是这样伸缩性不好，当界面有所变化时，又要重写OnChange事件的代码。</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">而TAction则可以封装有效性校验的策略，并被重用，比如针对上面的例子，新键一个程序，在界面上放置一个编辑框，再放上一个列表框，然后放上一个TMainMenu和TActionList，向TActionList中添加Edit相关的标准Action如TEditSelectAll, TEditCopy等等，然后将主菜单同这些Action绑定后，运行程序后，选中列表框，会发现所有编辑菜单自动被Disable掉了，而当编辑框被选中后，Select All菜单马上就有效了。见下图示意：</p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal"><img width="316" height="289" src="image/Delphi深度探索-策略模式（Stra.image002.jpg" /><p class="origImg">http://delphi.sharpplus.com/Delphi/delphi_strategy_pattern.files/image002.jpg</p></p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal"><img width="304" height="276" src="image/Delphi深度探索-策略模式（Stra.image003.jpg" /><p class="origImg">http://delphi.sharpplus.com/Delphi/delphi_strategy_pattern.files/image003.jpg</p></p> 
+ <p class="MsoNormal"> </p> 
+ <p class="MsoNormal">有了TAction类，我们针对不同的菜单，可以使用不同的TAction来实现不同的有效性校验策略，而无须修改Edit的任何事件代码。</p> 
+ <p class="MsoNormal"> </p> 
+ <p>本站原创及翻译内容保留版权，欢迎转贴，转贴时请注明<font color="#00ffff"><a href="http://delphi.sharpplus.com/">转自Delphi深度探索</a></font></p> 
+</div></div></body></html>

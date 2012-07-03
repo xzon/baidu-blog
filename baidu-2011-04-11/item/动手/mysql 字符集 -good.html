@@ -1,0 +1,214 @@
+<html><head><title>mysql 字符集 -good</title></head><body><div id='tit'>mysql 字符集 -good</div><div id='cate'>动手</div><div id='date'>2008年10月25日 星期六 01:17 A.M.</div><div id='page'>89</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b29b0c558ce41ec2b645aecb.html'>http://hi.baidu.com/hxzon/blog/item/b29b0c558ce41ec2b645aecb.html</a><div id='cnt'><p>mysql 字符集 -good</p> 
+<h4 class="TextColor1" style="margin-bottom: 0px">字符集转换（一）</h4> 
+<div> 
+ <div>
+  使用数据库时，经常会遇到字符集转化的问题，乱码成为令人头疼的顽疾！今天认真想认真地追查一下这个问题的来龙去脉，不知道能不能探出究竟，先翻出《MySQL Reference Manual》看看再说吧！
+ </div> 
+ <div> 
+ </div> 
+ <div>
+  首先作了个试验，并不一定能说明什么问题，但是先对这个问题产生一个感性的认识再说，实验之后再来学习这本参考书吧！（试验基于中文WinXp平台，MySQL自带客户端，MySQL4.1.13-nt，MySQL-Front图形客户端）
+ </div> 
+</div> 
+<div>
+ 1、创建了一个数据库test，编码为utf8
+ <br /> create databases if not exists test default charset utf8;
+ <br /> 2、创建数据库表dp,编码为utf8
+ <br /> create table dp(integer(4) primary key,name varchar(20) not null default ' ') type=myisam default charset utf8;
+</div> 
+<div>
+ <br /> 3、设置环境字符集为'latin1'
+ <br /> set names 'latin1';
+ <br /> 4、插入中文数据
+ <br /> insert into dp values(1,'读盘');
+ <br /> 5、读出数据
+ <br /> select * from dp;
+ <br /> 6、结果（环境字符集'latin1'）
+ <br /> 该记录显示正确。
+ <br /> 7、改变环境字符集（gb2312,utf8），读出数据
+ <br /> 该记录显示乱码，乱码的结果也不同。
+ <br /> 8、从mysql-front图形界面下读出数据
+ <br /> 该记录显示结果乱码，与前两种乱码形式都不同。
+</div> 
+<div>
+ 9、设置环境字符集为'gb2312'
+ <br /> set names 'gb2312';
+ <br /> 10、插入数据
+ <br /> insert into dp values(2,'读盘');
+ <br /> 11、读出数据
+ <br /> select * from dp;
+ <br /> 12、显示结果（环境字符集'gb2312'）
+ <br /> 该记录显示正确。
+ <br /> 13、改变环境字符集（latin1,utf8），读出数据
+ <br /> 该记录显示乱码。
+ <br /> 14、从mysql-front图形界面下读出数据
+ <br /> 该记录显示结果正确。
+</div> 
+<div>
+ 15、设置环境字符集为'utf8'
+ <br /> set names 'utf8';
+ <br /> 16、插入记录
+ <br /> insert into dp values(3,'读盘');
+ <br /> 17、读出数据
+ <br /> select * from dp;
+ <br /> 18、显示该记录（环境字符集'utf8'）
+ <br /> 显示结果为空格。
+ <br /> 19、改变字符集（'latin1','gb2312'）
+ <br /> 显示结果为空格。
+ <br /> 20、从mysql-front图形界面下读数据
+ <br /> 显示结果为空格。
+</div> 
+<div>
+ 21、客户端字符集试验结论。
+ <br /> (1)mysql-front图形界面下的字符集设置可能为'gb2312'；
+ <br /> (2)对于'中文数据'，数据库、表的编码都是'utf8'时，客户端的环境字符集始终使用'gb2312'可以正常的插入数据和读出数据。
+ <br /> (3)对于'中文数据'，数据库、表的编码都是'utf8'时，客户端的环境字符集始终使用'latin1'可以正常的插入数据和读出数据。
+ <br /> (4)对于'中文数据'，数据库、表的编码都是'utf8'时，客户端的环境字符集始终使用'utf8' 不能 正常的插入数据和读出数据。
+</div> 
+<div>
+ Note: set names '$charset'(其中'$charset'是任何一种具体的字符集),等同于如下设置：
+ <br /> SET character_set_client='$charset'
+ <br /> SET character_set_connection='$charset'
+ <br /> SET character_set_results='$charset'
+</div> 
+<div> 
+</div> 
+<div>
+ 以上实验没有在没有了解MySQL字符集支持的情况下完成，指导意义有限，下面看是阅读Reference。
+</div> 
+<div> 
+ <h4 class="TextColor1" style="margin-bottom: 0px">字符集转换（二）</h4> 
+ <div> 
+  <div>
+   读了Reference，有了一点了解，尝试着总结了一下：
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   MySQL的字符集可以使用在四个级别上：server、database、table和column，而且对于各个storage engine都支持字符集的使用，ISAM除外，该engine已经过时。
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   什么是character set和collation呢：
+  </div> 
+  <div>
+   character set是一组符号和他们对应的编码；collation是一组规则，规定了字符之间如何比较（大小）。每一个character set都对应着一组（至少一个）collation，而每一个collation对应唯一一个character set，通常他们两个需要成对出现，已完成数据库里的相关操作，比如排序，字符串连接等操作。
+  </div> 
+  <div>
+   在上述四个级别上，对character set和collation都有默认的设置，server层的默认为latin1和latin1_swedish_ci.(ci:case insensible)。在创建各个层次的实体时都有相应的子句或者候选项可以使用，以显式的声明各个实习将要使用的字符集和校对集。
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   几个需要考虑的问题：
+  </div> 
+  <div>
+   1、当statements离开client时，statements所处于的charset是什么？
+   <br /> 这个问题决定于system variables中的character_set_client变量的设置。
+   <br /> 2、当server收到statements后，将会把它转换到哪个charset呢？
+   <br /> 这个问题决定于system variables中的character_set_connection和collation_connection。server把从client端送来的statements从
+  </div> 
+  <div>
+   character_set_client转换到character_set_connection（除非字符串字段有自己的introducer比如_utf8等）。
+   <br /> 3、当result sets或者error message被server传送回客户端之前，需要做什么样的charset转换？
+   <br /> 这个问题决定于system variables中的character_set_results变量。
+  </div> 
+  <div>
+   相关语句：
+  </div> 
+  <div>
+   影响connection的charset的语句有两个：set names '$charset_name';和set character set $charset_name;
+   <br /> 其中set names '$charset_name';相当于如下几个语句的和：
+   <br /> set character_set_client = $charset_name;
+   <br /> set character_set_results = $charset_name;
+   <br /> set character_set_connection = $charset_name;
+   <br /> 而set character set $charset_name;相当于如下几个语句：
+   <br /> set character_set_client = $charset_name;
+   <br /> set character_set_results = $charset_name;
+   <br /> set collation_connection = @@collation_database;这句设置了collation_connection的同时，也设置了相应的character_set_connection.
+  </div> 
+  <div>
+   参数的使用机制：
+  </div> 
+  <div>
+   当client连接server时，它会向server发送它想要使用的charset的名称。server根据这个名字设置相应的system variables中的character_set_client、character_set_results和character_set_connection相应的值。效果上，就相当于server使用发送过来的字符集的名称执行了一个set names语句。
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   有损转换：
+  </div> 
+  <div>
+   这种字符集间的转换有可能是有损的，这种情况发生在当字符串中含有某些字符，而这些字符在两种字符集中都没有定义。
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   相关字符集转化语句：
+  </div> 
+  <div>
+   可以使用convert (exp using charset_name)来转换字符集，比如：insert into t_name(utf8_c_name) select CONVERT(latinfild_name
+  </div> 
+  <div>
+   USING utf8) from table_name;
+   <br /> cast也可以用于字符集转换，比如select CAST(_latin1 'test' AS CHAR CHARACTER SET utf8) COLLATE utf8_bin;
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   utf8与RFC3629：
+  </div> 
+  <div>
+   utf8的创意在于,不同的unicode字符使用不同长度的byte序列进行编码.根据RFC3629有如下规定。
+   <br /> 1、基本的拉丁字母，数字，标点符号使用1个byte。
+   <br /> 2、大多数欧洲和中东的文本字符使用2个byte的序列。
+   <br /> 3、韩国、中国、日本的象形文字使用3个byte的序列。
+   <br /> RFC3629描述的编码序列长度范围为1到4个byte。
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   MySQL缺陷：
+  </div> 
+  <div>
+   目前MySQL支持的utf8编码还不支持4个byte的编码序列。
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   MySQL tip:
+  </div> 
+  <div>
+   Mysql建议使用varchar类型的字段来存储utf8的字符串，从而可以节省空间，因为默认的utf8的char类型的字段都使用3个byte的最大空间，有可能造成浪费。
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   可用的转换机制：
+  </div> 
+  <div>
+   字符集的转换可以由服务器根据系统变量自动的转换，也可以由用户收到数据结果以后再客户端使用程序进行转换，而且这样做更高效一些。字符集的自动转换还没有完全实现，自动转换也不是Standard SQL所要求的。utf8_unicode_ci collations目前也只是实现了UCA算法中的一部
+  </div> 
+  <div>
+   分，还有一些字符不被支持。
+  </div> 
+  <div> 
+  </div> 
+  <div>
+   读后再次进行的试验结论：
+  </div> 
+  <div>
+   1、环境：winxp中文版，mysql4.1.13
+   <br /> 2、服务器默认charset为latin1；数据库、表的charset为utf8；
+   <br /> 3、当三个系统变量(character_set_client;character_set_results;character_connection)均为latin1或者均为gb2312时，中文数据操作正常。
+   <br /> 4、当客户端使用utf8时，便无法正常操作数据；
+  </div> 
+  <div>
+   5、当客户端非utf8时，只要character_set_results与character_set_client相同，无论
+  </div> 
+  <div>
+   character_set_connection如何设置，都能够正常操作数据。
+  </div> 
+ </div> 
+</div></div></body></html>

@@ -1,0 +1,500 @@
+<html><head><title>Microsoft C++完整词法分析（三）-编译原理</title></head><body><div id='tit'>Microsoft C++完整词法分析（三）-编译原理</div><div id='cate'>算法&middot;数学</div><div id='date'>2008年03月02日 星期日 09:08 P.M.</div><div id='page'>165</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/8a9e910a732e891b94ca6b6b.html'>http://hi.baidu.com/hxzon/blog/item/8a9e910a732e891b94ca6b6b.html</a><div id='cnt'><div>
+ Microsoft C++完整词法分析（三）-编译原理
+</div> 
+<div> 
+</div> 
+<div>
+ 5常量
+ <br /> 在C++语言中，常量主要有4种：整数、字符、浮点和字符串常量。下面分别加以介绍。
+</div> 
+<div> 
+</div> 
+<div>
+ 5.1整数常量
+ <br /> 整数常量显然有4种情况。十进制、八进制和十六进制这3种整数我们已经很熟悉了。除了这3种整数以外，在C++中也可以把一个普通的字符来当整数用。比如：int a=’a’;整数由整数体和整数后缀构成。比如：int a = 128ul。
+</div> 
+<div> 
+</div> 
+<div>
+ 整数常量的文法如下：
+</div> 
+<div> 
+</div> 
+<div>
+ integer-constant :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> decimal-constant integer-suffixopt
+ <br /> octal-constant integer-suffixopt
+ <br /> hexadecimal-constant integer-suffixopt
+ <br /> 'c-char-sequence'
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> decimal-constant :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> nonzero-digit
+ <br /> decimal-constant digit
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal-constant :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 0
+ <br /> octal-constant octal-digit
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hexadecimal-constant :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 0x hexadecimal-digit
+ <br /> 0X hexadecimal-digit
+ <br /> hexadecimal-constant hexadecimal-digit
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> nonzero-digit : one of
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 1 2 3 4 5 6 7 8 9
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal-digit : one of
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 0 1 2 3 4 5 6 7
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hexadecimal-digit : one of
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 0 1 2 3 4 5 6 7 8 9
+ <br /> a b c d e f
+ <br /> A B C D E F
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> integer-suffix :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> unsigned-suffix long-suffixopt
+ <br /> long-suffix unsigned-suffixopt
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> unsigned-suffix : one of
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> u U
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> long-suffix : one of
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> l L
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 64-bit integer-suffix :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> i64
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 64位的后缀一般不需要，编译器会自动识别出来的。其对应的正则表达式为：
+</div> 
+<div> 
+</div> 
+<div>
+ unsigned_suffix : u|U
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> long_suffix : l|L
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> integer_suffix : {unsigned_suffix}{long_suffix}?|{long_suffix}{unsigned_suffix}?
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> nonzero_digit : [1-9]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal_digit : [0-7]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hex_digit : [0-9a-fA-F]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> dec_constant : {nonzero_digit}{digit}*
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal_constant : 0{octal_digit}*
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hex_constant : 0(x|X){hex_digit}*
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> integer_constant : ({dec_constant}|{octal_constant}|{hex_constant}){integer_suffix}?|\’{c_char_sequence}\’
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 5.2字符常量
+ <br /> 普通字符常量只有一个字符，但是，Mircosoft C++支持宽字符。总体来说，它支持3种类型的字符常量：普通字符常量、多字符常量和宽字符常量。下面是几个例子：
+</div> 
+<div> 
+</div> 
+<div>
+ 1int a = ’b’; 2int a = ‘ab’; 3wchar_t c = L‘ab’; wchar_t类型定义在文件stdlib.h中。
+</div> 
+<div> 
+</div> 
+<div>
+ 字符常量的文法如下：
+</div> 
+<div> 
+</div> 
+<div>
+ character-constant :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 'c-char-sequence'
+ <br /> L'c-char-sequence'
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> c-char-sequence :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> c-char
+ <br /> c-char-sequence c-char
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> c-char :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> any member of the source character set except the single quotation mark ('), backslash (\), or newline character
+ <br /> escape-sequence
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> escape-sequence :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> simple-escape-sequence
+ <br /> octal-escape-sequence
+ <br /> hexadecimal-escape-sequence
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> simple-escape-sequence : one of
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> \' \&quot; \? \\
+ <br /> \a \b \f \n \r \t \v
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal-escape-sequence :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> \octal-digit
+ <br /> \octal-digit octal-digit
+ <br /> \octal-digit octal-digit octal-digit
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hexadecimal-escape-sequence :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> \xhexadecimal-digit
+ <br /> hexadecimal-escape-sequence hexadecimal-digit
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 其对应的正则表达式如下：
+</div> 
+<div> 
+</div> 
+<div>
+ simple_escape_sequence : [\’\”\?\\\a\b\f\n\r\t\v]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> hex_escape_sequence : 
+ <a href="file://x%7bhex_digit/">\\x{hex_digit</a>}+
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> octal_escape_sequence : 
+ <a href="file://%7boctal_digit%7d%7b1,3/">\\{octal_digit}{1,3</a>}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> escape_sequence : {simple_escape_sequence}|{octal_escape_sequence}|{hex_escape_sequence}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> c_char : [^\’\\\n]|{escape_sequence}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> c_char_sequence : {c_char}+
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> character_constant : [L]?\’{c_char_sequence}\’
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 5.3浮点常量
+ <br /> 浮点常量有2种形式，一种是普通形式，一种是指数形式。比如：float f = 18.25; float f0 = 18.25e3; 浮点常量必须包含一个小数部分，这点主要由小数点来体现。其文法为：
+</div> 
+<div> 
+</div> 
+<div>
+ floating-constant :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> fractional-constant exponent-partopt floating-suffixopt
+ <br /> digit-sequence exponent-part floating-suffixopt
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> fractional-constant :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> digit-sequenceopt . digit-sequence
+ <br /> digit-sequence .
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> exponent-part :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> e signopt digit-sequence
+ <br /> E signopt digit-sequence
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> sign : one of
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> + -
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> digit-sequence :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> digit
+ <br /> digit-sequence digit
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> floating-suffix :one of
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> f l F L
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 文法对应的正则表达式为：
+</div> 
+<div> 
+</div> 
+<div>
+ floating_suffix : [fFlL]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> digit_sequence : {digit}+
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> sign : [+-]
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> exponent_part : [eE]{sign}?{digit_sequence}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> fractional_constant : {digit_sequence}?\.{digit_sequence}|{digit_sequence}\.
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> floating_constant : {fractional_constant}{exponent_part}?{floating_suffix}?|{digit_sequence}{exponent_part}{floating_suffix}?
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 5.4字符串常量
+ <br /> 字符串常量就是多个字符的组合体了。其文法如下：
+</div> 
+<div> 
+</div> 
+<div>
+ string-literal :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &quot;s-char-sequenceopt&quot;
+ <br /> L&quot;s-char-sequenceopt&quot;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> s-char-sequence :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> s-char
+ <br /> s-char-sequence s-char
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> s-char :
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> any member of the source character set except the double quotation mark (&quot;), backslash (\), or newline character
+ <br /> escape-sequence
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 其对应的正则表达式为：
+</div> 
+<div> 
+</div> 
+<div>
+ s_char : [^\”\\\n]|{escape_sequence}
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> s_char_sequence : {s_char}+
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> string_literal : [L]?\”{s_char_sequence}?\”
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

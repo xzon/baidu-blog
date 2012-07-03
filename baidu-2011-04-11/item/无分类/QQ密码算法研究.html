@@ -1,0 +1,134 @@
+<html><head><title>QQ密码算法研究</title></head><body><div id='tit'>QQ密码算法研究</div><div id='cate'>无分类</div><div id='date'>2007年11月12日 星期一 06:28 P.M.</div><div id='page'>207</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/ae920ad791a834dea044df5d.html'>http://hi.baidu.com/hxzon/blog/item/ae920ad791a834dea044df5d.html</a><div id='cnt'><h2>QQ密码算法研究</h2> 
+<p> </p> 
+<p>在QQ对应号码目录下user.db文件从800h起20字节为与密码相关数据，其中后16个字节和Hash后摘要有关.这20个字节后4个字节是QQ号码。</p> 
+<p>下列是一些常用的Hash算法（从微软加密头文件中提取出来的）</p> 
+<p>#define CALG_MD2 1 MD2算法</p> 
+<p>#define CALG_MD4 2 MD4算法</p> 
+<p>#define CALG_MD5 3 MD5算法</p> 
+<p>#define CALG_SHA 4 SHA算法</p> 
+<p>#define CALG_SHA1 4 SHA1算法</p> 
+<p>#define CALG_MAC 5 MAC算法</p> 
+<p>#define ALG_SID_RIPEMD 6 RIPEMD算法</p> 
+<p>#define ALG_SID_RIPEMD160 7 RIPEMD160算法</p> 
+<p>#define ALG_SID_SSL3SHAMD5 8 SSL3SHAMD5算法</p> 
+<p>#define CALG_HMAC 9 HMAC算法</p> 
+<p> </p> 
+<p>而MD5算法中需要使用下面几个初始值</p> 
+<p>context-&gt;state[0] = 0x67452301;</p> 
+<p>context-&gt;state[1] = 0xefcdab89;</p> 
+<p>context-&gt;state[2] = 0x98badcfe;</p> 
+<p>context-&gt;state[3] = 0x10325476;</p> 
+<p>呵呵，在QQ中一搜索，果然几个特征值赫然在目。但是显然QQ使用了上述20个字节中的前四个字节对MD5密文又做了处理，我跟了两天还是没有头绪（头晕脑胀）。但是我发现把这四个字节改成00 00 00 00，然后登陆输入正确密码，仍然会提示密码不一致是否到服务器验证，选择是，然后验证成功后，这20个字节的后16个字节恰好就是密码的MD5密文。有兴趣的高手可以继续看看奥（其中密码比较函数地址为：004A7E0C）</p> 
+<p>例：</p> 
+<p>1B D5 01 00 5D D7 87 19 0D 92 6D E2 0A 56 E9 19 63 0F 5A E1 DF CA 20 05</p> 
+<p>DF CA 20 05即是我的QQ号。不过可不要暴力破解我的奥：）</p> 
+<p>1B D5 01 00 5D D7 87 19 0D 92 6D E2 0A 56 E9 19 63 0F 5A E1就是和口令相关的数据</p> 
+<p>如果把1B D5 01 00改为00 00 00 00,然后按上述步骤登陆后，5D D7 87 19 0D 92 6D E2 0A 56 E9 19 63 0F 5A E1即变为口令的MD5密文。</p> 
+<p> </p> 
+<p>算法源代码如下：</p> 
+<p>头文件：</p> 
+<p> </p> 
+<p>// Decrypt.h: interface for the CDecrypt class.</p> 
+<p>//</p> 
+<p>//////////////////////////////////////////////////////////////////////</p> 
+<p>#define AFX_DECRYPT_H__916D97B8_C120_4435_BE23_2CF35B8763A2__INCLUDED_</p> 
+<p> </p> 
+<p>#if _MSC_VER &gt; 1000</p> 
+<p>#pragma once</p> 
+<p>#endif // _MSC_VER &gt; 1000</p> 
+<p> </p> 
+<p>#define _WIN32_WINNT 0x0400</p> 
+<p>＃i nclude &lt;afxpriv.h&gt;</p> 
+<p>＃i nclude &lt;Wincrypt.h&gt;</p> 
+<p> </p> 
+<p>class CDecrypt</p> 
+<p>{</p> 
+<p>public:</p> 
+<p>BOOL EncryptMessage(const TCHAR *Message,TCHAR *pHashData,int *pHashLen,int Algorithm);</p> 
+<p>CDecrypt();</p> 
+<p>virtual ~CDecrypt();</p> 
+<p> </p> 
+<p>};</p> 
+<p> </p> 
+<p>#endif // !defined(AFX_DECRYPT_H__916D97B8_C120_4435_BE23_2CF35B8763A2__INCLUDED_)</p> 
+<p> </p> 
+<p>CPP文件：</p> 
+<p>// Decrypt.cpp: implementation of the CDecrypt class.</p> 
+<p>//</p> 
+<p>//////////////////////////////////////////////////////////////////////</p> 
+<p> </p> 
+<p>＃i nclude stdafx.h</p> 
+<p>＃i nclude Decrypt.h</p> 
+<p> </p> 
+<p>#ifdef _DEBUG</p> 
+<p>#undef THIS_FILE</p> 
+<p>static char THIS_FILE[]=__FILE__;</p> 
+<p>#define new DEBUG_NEW</p> 
+<p>#endif</p> 
+<p> </p> 
+<p>//////////////////////////////////////////////////////////////////////</p> 
+<p>// Construction/Destruction</p> 
+<p>//////////////////////////////////////////////////////////////////////</p> 
+<p> </p> 
+<p>CDecrypt::CDecrypt()</p> 
+<p>{</p> 
+<p> </p> 
+<p>}</p> 
+<p> </p> 
+<p>CDecrypt::~CDecrypt()</p> 
+<p>{</p> 
+<p> </p> 
+<p>}</p> 
+<p> </p> 
+<p>BOOL CDecrypt::EncryptMessage(const TCHAR *Message,TCHAR *pHashData,int *pHashLen,int Algorithm)</p> 
+<p>{</p> 
+<p>BOOL bResult = TRUE;</p> 
+<p> </p> 
+<p>HCRYPTPROV hProv = NULL;</p> 
+<p>HCRYPTKEY hKey = NULL;</p> 
+<p>HCRYPTKEY hXchgKey = NULL;</p> 
+<p>HCRYPTHASH hHash = NULL;</p> 
+<p>DWORD dwLength;</p> 
+<p>// Get handle to user default provider.</p> 
+<p>if (CryptAcquireContext(&amp;hProv, NULL, NULL, PROV_RSA_FULL, 0))</p> 
+<p>{</p> 
+<p>// Create hash object.</p> 
+<p>if (CryptCreateHash(hProv, Algorithm, 0, 0, &amp;hHash))</p> 
+<p>{</p> 
+<p>// Hash password string.</p> 
+<p>dwLength = sizeof(TCHAR)*_tcslen(Message);</p> 
+<p>if (CryptHashData(hHash, (BYTE *)Message, dwLength, 0))</p> 
+<p>{</p> 
+<p>CryptGetHashParam(hHash,2,(BYTE*)pHashData,(DWORD*)pHashLen,0);</p> 
+<p>}</p> 
+<p>else</p> 
+<p>{</p> 
+<p>// Error during CryptHashData!</p> 
+<p>bResult = FALSE;</p> 
+<p>}</p> 
+<p>CryptDestroyHash(hHash); // Destroy session key.</p> 
+<p>}</p> 
+<p>else</p> 
+<p>{</p> 
+<p>// Error during CryptCreateHash!</p> 
+<p>bResult = FALSE;</p> 
+<p>}</p> 
+<p>CryptReleaseContext(hProv, 0);</p> 
+<p>}</p> 
+<p> </p> 
+<p>return bResult;</p> 
+<p>}</p> 
+<p> </p> 
+<p> </p> 
+<p>使用：</p> 
+<p>TCHAR Hash[255];</p> 
+<p>int Len=-1;</p> 
+<p>CString Message=Your Message;</p> 
+<p>m_decrypt.EncryptMessage((LPCSTR)(Message),Hash,&amp;Len,CALG_MD5);</p> 
+<p>Hash中存放的就是MD5密文。你可以使用上述算法</p> 
+<p>#define CALG_MD2 1 MD2算法</p> 
+<p>#define CALG_MD4 2 MD4算法</p> 
+<p>#define CALG_MD5 3 MD5算法</p> 
+<p>#define CALG_SHA 4 SHA算法</p> 
+<p>来替换CALG_MD5参数.</p> 
+<p>中国黑客数据库）作 者： Iamapuma (美洲狮) 他的QQ是86035167</p></div></body></html>

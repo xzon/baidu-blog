@@ -1,0 +1,172 @@
+<html><head><title>Oracle sql学习笔记（不常注意的一些语法） -hxzon -good</title></head><body><div id='tit'>Oracle sql学习笔记（不常注意的一些语法） -hxzon -good</div><div id='cate'>编程基础</div><div id='date'>2009年05月08日 星期五 11:34 A.M.</div><div id='page'>52</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c48e44a7a77e6c9dd0435864.html'>http://hi.baidu.com/hxzon/blog/item/c48e44a7a77e6c9dd0435864.html</a><div id='cnt'><div>
+ Oracle sql学习笔记（不常注意的一些语法） -hxzon -good
+ <br /> ======================
+ <br /> 1， ||连接多个字段，变成一个字段
+ <br /> select ename||'is a'||job from emp;
+ <br /> 2， 加双引号，使得别名可以大小写敏感。
+ <br /> select ename &quot;Ename&quot; from dep;
+ <br /> 3， distinct 的作用范围是后面所有字段的组合。
+ <br /> 4， 查询结果缺省按记录当初插入的顺序。可按字段别名排序。默认升序。
+ <br /> 5， 查询中日期也要用单引号，并且格式敏感。缺省日期格式是'DD-MON-RR'。
+ <br /> select * from dep where hiredate &lt;='17-12月-80';
+ <br /> 还可指定日期格式。
+ <br /> select * from dep where hiredate 
+ <br /> to_date('1982-03-05 10:20:50','YYYY-mm-dd hh:mi:ss');
+ <br /> 获取当前缺省日期格式。
+ <br /> select sysdate from dual;
+ <br /> 6， 计算
+ <br /> select 3+2 from dual;
+ <br /> 7, 是否空值
+ <br /> is null;
+ <br /> 8, 模糊查询
+ <br /> 下划线 表示一个字符。
+ <br /> 对于特殊字符，可以使用escape标识符来查找。
+ <br /> like '%\_%' escape '\';表明斜杠表示转义字符，下划线被斜杠转义。
+ <br /> 9，单引号
+ <br /> 用两个单引号转义成一个单引号。
+ <br /> ===========================================
+ <br /> 10， 复制
+ <br /> insert into dep1(id,dname) select dno,dname from dep;
+ <br /> 11, merge插入或修改
+ <br /> merge into table alias --目标表 别名
+ <br /> using (table|view|sub_query) [alias] --源表
+ <br /> on (join_condition) --匹配条件，例如table1.eid=table2.eid
+ <br /> when matched them
+ <br /> update set col1=col1_val,col2=col2_val
+ <br /> when not matched
+ <br /> insert(col_list) values(col_values);
+ <br /> 12,事务的组成
+ <br /> 0-多条DML语句
+ <br /> 1条DDL语句，定义语句，创建表，修改表结构
+ <br /> 1条DCL语句，控制语句，授权等
+ <br /> 13，事务ACID属性：原子性，一致性，隔离性，持久性。
+ <br /> 14，事务结束
+ <br /> 遇到commit或rollback语句，
+ <br /> 遇到DDL或DCL语句，
+ <br /> 用户会话结束，
+ <br /> 系统崩溃。
+ <br /> 会话异常终止或系统崩溃时事务会被自动回滚。
+ <br /> 15，让sql plus自动提交（缺省时不自动提交，此时当前会话会看到更新结果，但其他会话不会看到更新）
+ <br /> show autocommit;
+ <br /> set autocommit on;
+ <br /> 16，保存点 (06DML与事务控制）
+ <br /> savepoint p1;
+ <br /> rollback to p1;//p1语句之后的操作被撤销，除非commit了。
+ <br /> ==============================
+ <br /> 17，交叉连接，
+ <br /> 自然连接，
+ <br /> 使用using子句连接，
+ <br /> 使用on连接，
+ <br /> 外连接（左外连接，右外连接，全外连接）。
+ <br /> 18，非等值连接，查询工资等级
+ <br /> select empno,ename,sal,grade,losal,hisal
+ <br /> from emp,salgrade
+ <br /> where sal&gt;=losal and sal&lt;=hisal;
+ <br /> 19,外连接，使用(+)
+ <br /> 不用外连接时，只显示连接成功的记录。
+ <br /> where a.depid=b.depid(+);左外连接，a没有连接成功的也显示
+ <br /> where a.depid(+) =b.depid;右外连接，b没有连接成功的也显示
+ <br /> 20，自连接
+ <br /> 21，与传统连接不存在效率上的差异。
+ <br /> from table1
+ <br /> cross join table2 --返回笛卡尔积。即无条件连接。
+ <br /> natural join table2 --所有同名列为参照列，值相同的进行连接。参照列不允许使用前缀，同名列如果数据类型不同，则出错。
+ <br /> join table2 using col --指定某些同名列为参照列。
+ <br /> join table2 on (table1.col=table2.col) --指定连接条件，同于where。
+ <br /> left |right|full outer join table2
+ <br /> on table1.col=table2.col;
+ <br /> 22，子查询，可理解为预查询。
+ <br /> 单行子查询，只能使用单行比较运算符。多行子查询，只能使用多行运算符。
+ <br /> 多行比较运算符，in等于表中任何一个，any和子查询任意一个值比较，all所有值比较。
+ <br /> 如&gt;any ,&lt;all。
+ <br /> 23，TOPN查询
+ <br /> from (select * from emp order by sal desc )
+ <br /> where rownum&lt;=5;--只查前5记录。
+ <br /> 如果使用from emp where rownum&lt;=5 order by sal desc;则不是查出最高的5条记录。
+ <br /> 也不可以使用rownum &gt;=5 and rownum&lt;=10;不会返回任何结果。因为取出记录后，从1开始，rownum判断小于5，不符合，记录踢出，再取，记录仍为1开始，不符合，踢出，结果没有结果。
+ <br /> Oracle实现分页。
+ <br /> select * from
+ <br /> (select rownum mynum,a.* from 
+ <br /> (select * from emp order by sal desc) a
+ <br /> )
+ <br /> where mynum&gt;=5 and mynum&lt;=10;--三层嵌套，将rownum伪列变为真实列。
+ <br /> ===========================
+ <br /> 24，Oracle主要数据类型
+</div> 
+<div> 
+</div> 
+<div>
+ select * from v$nls_parameters;--查看数据库配置。
+ <br /> char,固定长度。括号内的数字是字节数。会自动补充空格？？
+ <br /> nchar，基于NLS国家字符集的字符型。Unicode编码。括号内的数字是字符数。
+ <br /> varchar2，变长字符型，最大长度4000B。括号内的数字是最大字节数。Oracle为了保持兼容。
+ <br /> nvarchar2，基于NLS国家字符集的变长字符型。
+ <br /> varchar，目前同varchar2.
+ <br /> number(m,n)，m为总位数，n为小数位数。
+ <br /> date,日期型。sysdate,插入当前时间。
+ <br /> long，变长字符型，最大长度2G，不支持对字符串内容检索。不提倡使用。
+ <br /> raw，变长二进制数据类型，最大长度2000B。不提倡使用。
+ <br /> long raw.变长二进制数据类型，最大长度2GB。不提倡使用。
+ <br /> blob，二进制大对象类型，最大长度4GB。
+ <br /> clob，字符大对象类型，最大长度4GB。
+ <br /> nclob,基于NLS国家字符集。
+ <br /> bfile，在数据库外部保存的大型二进制文件大对象类型，最大长度4GB。
+</div> 
+<div> 
+</div> 
+<div>
+ 24，单行函数，多行函数。可以嵌套。
+ <br /> 字符函数，lower()转为小写，upper()转为大写。initcap()单词首字母大写。
+ <br /> concat('hello','world'),字符串连接。用||连接属性更方便。
+ <br /> substr('helloworld',4,3),子字符串,从1开始编号，从第4个字符开始截取，截取3个字符。返回'low'。
+ <br /> length().
+ <br /> instr(),定位子串首次出现的位置。找不到返回0.
+ <br /> lpad('simith',10,'*'),左侧填充*,变成10位。
+ <br /> rpad().
+ <br /> trim(),过滤首尾空格。
+ <br /> replace(),替换。
+ <br /> 25，数值函数。
+ <br /> abs(),round(),四舍五入。round(3.1415,3). round(3.1415,-2)..
+ <br /> trunc(3.14,5)，截断。
+ <br /> ceil().向上取整。天花板。
+ <br /> floor(),向下取整。
+ <br /> sign(),判断数值正负。
+ <br /> sin().三角函数。
+ <br /> power(),sqrt()，开平方根。mod(),exp(),基数为e的幂运算。
+ <br /> log().对数运算。log(10,1000).
+ <br /> ln(),自然对数。
+</div> 
+<div> 
+</div> 
+<div>
+ 26,日期函数
+ <br /> add_months(x,y),计算在日期x基础上增加y个月后的日期。
+ <br /> last_day(x),返回日期x当月的最后一天的日期。select last_day(sysdate) from dual;
+ <br /> months_between(x,y)，返回日期x和y之间相差的月数。
+ <br /> round(x,y)将日期x四舍五入到y所指定的日期单位（月或年）的第一天。
+ <br /> round(to_date('16-3月-08'),'year');
+ <br /> trunc(x,y)将日期x截断到y所指定的日期单位（月或年）的第一天。
+ <br /> next_day(x,y)计算指定日期x后的第一个星期几（由参数y指定）对应的日期。
+ <br /> next_day(sysdate,'星期二');
+ <br /> 27,转换函数
+ <br /> to_number(),to_char(),to_date();
+ <br /> to_date('2007-02-25','yyyy-MM-dd');
+</div> 
+<div> 
+</div> 
+<div>
+ to_char(date,'format_model')缺省转为'dd-mm-yy';
+ <br /> 'hh:mi:ss am'，'hh24:mi:ss am';
+ <br /> day代表星期几，am/pm上下午。hh/hh12/hh24小时。
+ <br /> 可直接出现减号，分号，冒号，斜杠字符，如果要用其它文本必须使用双引号。
+ <br /> 可在模式串开头使用fm标记去掉数字前的0.
+</div> 
+<div> 
+</div> 
+<div>
+ to_char(),数字模式符。
+ <br /> 9，代表一位数字。0代表一个数字，强制显示零补足位数。
+ <br /> 美元，放置一个美元符。L放置一个本地货币符。
+ <br /> 小数点，代表小数点。逗号，代表千位指示符。
+ <br /> 28,通用函数。
+</div></div></body></html>

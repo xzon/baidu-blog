@@ -1,0 +1,77 @@
+<html><head><title>全面迎接 PHP 5.2 的时代到来！</title></head><body><div id='tit'>全面迎接 PHP 5.2 的时代到来！</div><div id='cate'>趋势&middot;演变</div><div id='date'>2008年10月26日 星期日 11:23 A.M.</div><div id='page'>88</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3d8e6d6086c77f42eaf8f8c2.html'>http://hi.baidu.com/hxzon/blog/item/3d8e6d6086c77f42eaf8f8c2.html</a><div id='cnt'><p align="center"><strong>全面迎接</strong> <strong><font size="+0">PHP 5.2</font></strong> <strong>的时代到来！</strong><font size="+0"> <wbr /></font></p> 
+<p>经过 N 次的跳票和等待，PHP 5.2已于 11 月2 日正式发布。根据 PHP 小组不成文的开发习惯，PHP 5.0 系列更大程度上像一个技术展示版，性能低下（甚至还不如 PHP4，这主要归结与Zend中重写的更加强大也更加复杂的OO机制），稳定性也有所欠缺，目前 PHP 开发组已经放弃了对这个系列的开发。PHP 5.1 系列则侧重于对性能的改善，和 PHP 5.0 系列已经不可同日而语。但随着 PHP5.2系列的发布，PHP5.1也已经和 PHP4.4系列一样进入了维护状态，除非出现重大的BUG和安全隐患否则将不再更新。新发布的 PHP 5.2 除了修复了以往200多个BUG以外，它还将性能进一步提高，尤其是改善了在高负载情况下的表现，而且在安全性的处理上也做出了很大的改进。同时也增加了很多很实用的技术（比如 JSON、Zip等支持），另外还有一些原本定为 PHP6 的特性也已经被提前实现在这个版本当中。可以说，相对于最初的 PHP5 版本，这次的改变几乎是半革命性的（革命性这个形容词当然是留给 PHP6 的J）。下面我自己掌握的一些信息和理解，尝试向大家介绍一下 PHP 5.2的新特性，如有不当之处，还望方家斧正：</p> 
+<p><strong>1、最明显的当属 PHP 5.2 在移除了filepro 和 hwapi 两个扩展（这两个被移动到了 PECL）的同时另外增加了4个新的扩展：Date、JOSN、Filter和ZIP。</strong> <wbr /></p> 
+<p>其实从 PHP 5.1 开始，在 PHP 核心增加了一个 Date 扩展，重写了对日期/时间（主要是时区方面）的支持。所不同的是，PHP 5.2 更进一步，日期和时区则分别成为了类 DateTime 和 DateTimeZone 的一个对象。大家可以在 PHP CLI 中运行php –rc DateTime 或 php –rc DateTimeZone 来看一下这两个类的详细信息。需要注意的是如果你的程序中已经存在有名为DateTime 或 DateTimeZone 类的话，那想在 PHP 5.2 中运行就必须改名了。(著名的开源 CRM ：vtigercrm 已经有了前车之鉴) <wbr /></p> 
+<p>JSON 扩展实现了则实现对 JavaScript Object Notation (JSON) 这种轻量级数据交换格式的支持。在 PHP 5.2 中这个扩展是默认被启用的。</p> 
+<p>相信很多开发人员都为 PHP与 JavaScript 之间的通信发愁过，尤其是现在这个流行 Ajax 的时代。而现在，我们用JSON 就可以很轻易的解决这个问题。JSON数据能够直接为服务器端代码使用, 并且也能够让客户端的 JavaScript简单地通过 eval() 来进行读取，这就大大简化了服务器端和客户端的代码开发量。虽然以前在 PHP 里面也有一些 JSON 类来支持，但这哪有 PHP 的原生支持来得高效和快捷呢？ <wbr />Filter 扩展负责校验和过滤数据，这个扩展主要是为了处理像用户的输入那样的不可靠数据而设计的。这个扩展也是默认被启用的。默认情况下的RAW 模式将不会以任何方式影响输入的数据，也就是说这不会对现有代码产生任何影响。但我们在以后的开发中应该尽可能地利用这个扩展来进行敏感字符的过滤，因为这不但简化了一些表单的验证工作，而且提高了程序的安全性和运行效率。 <wbr />ZIP 扩展将允许我们对 Zip 压缩包及其包内的文件进行读写操作。也就是说，我们对 Zip文件不仅能看，而且还能摸：它提供了对 Zip 文件的完全支持。这项特性的应用是非常广泛的，具体带来的种种好处我就不再多说了。 <wbr /></p> 
+<p>当然，关于这些扩展的具体细节还得查阅我们无所不能的 PHP 手册。:D</p> 
+<p><wbr /></p> 
+<p><strong>2、改进了内存管理器，使之在高负载情况下具有更佳的表现。</strong></p> 
+<p>按照 “Zend 二老”之一也就是 “Zend”中那个“nd”的说法，这个新的内存管理器是分层（hierarchical）的。这个管理器共有三层：存储层（storage）、堆（heap）层和emalloc/efree层。存储层通过malloc()、mmap()等函数向系统真正的申请内存，并通过 free() 函数释放所申请的内存。存储层相当于Zend 自己的“内存仓库”，通常申请的内存块都比较大。堆层（注意这里的堆并不是指操作系统所管理的堆，而是 Zend 内存管理器的所管理的内存堆）就把它们从存储层要过来并分割成一些较小的块。而 emalloc/efree层就是指通过 PHP API的emalloc()/efree() 函数所申请和释放的内存。emalloc() 并不直接同存储层打交道，同它们接头的是堆层。负责把比原来的管理器在同等条件下会分配更小的内存，但速度更快。它首先会从系统（堆）中申请一些较大的内存块，然后自己来管理这个堆。php.ini 中的memory_limit 值虽然还会被检用，但已不再是每次emalloc() 调用时都检用，而仅仅是在向系统申请那些大的内存块时被检用。</p> 
+<p>熟悉一些服务器端编程的朋友可能会马上想到一个词：内存池！没错，这基本上就是一个内存池。至少我是这么认为的。:D <wbr /><wbr /></p> 
+<p>内存池技术其实这是服务端编程中很常见。使用内存池技术可以有效地避免频繁的内存申请/释放操作，在内存池技术中，内存释放时实际上并没有通知操作系统真实的释放和回收，而仅仅是对将要释放的内存做个了标记，表示该部分内存已经不再使用。等下一次申请内存时，就从这些“可用”的内存链表中取出一个内存块，从而避免了频繁的内存申请/释放操作，大大节省了系统资源。根据测试和统计，在 PHP 4.4版本中，一个典型的较为简单的请求就有超过 20,000次的对系统堆的申请和释放操作，这花费的时间相当于整个脚本所花费时间的 20% 左右。由此可见，若能降低这种资源消耗则效果是极为可观的。</p> 
+<p>与此同时，采用内存池技术也带来一个更为重要的“副作用”：避免了大量的“内存碎片”。一般情况下，内存碎片是对系统没有多大影响的，但服务端应用明显不同于一般应用，服务端会面临很高数量级的访问请求，这些请求也伴随着更高数量级的内存申请/释放操作。内存碎片过多将导致内存利用率降低，降低内存分配速度，严重时还会触发内存分配失败，尽管此时理论上仍有可分配的物理内存。</p> 
+<p>最后，内存池技术还有一个不太引人注意的好处：它能降低内存泄漏的概率。因为实际申请的内存块虽然尺寸较大，但数量较少，而且一般情况下都是统一申请，实际释放时也可以统一释放。显然，这比代码中即时申请，而没有即时释放所造成内存泄漏的概率要小很多。 <wbr /></p> 
+<p>不过采用内存池技术的管理器也明显要比常规管理器（指的是内存即时申请，即时释放的管理机制）的内存开销要大，因为除了真正申请的内存外，管理器还得负责维护每个内存块的状态，因此 PHP 5.2 中把 php.ini中 memory_limit 指令值从默认的 8M 提升为 16M 。这看似增加了内存消耗，并且也需要极少量的CPU资源来管理，但由于内存碎片的减少实际上并没有增加多少消耗，再结合其他方面的表现，可以说是所得远大于所失，尤其是在高负载情况下。 <wbr /></p> 
+<p><strong>3、PHP 5.2 也对 INI 指令的存取方面做了优化。</strong></p> 
+<p>PHPer 都知道，在 PHP 脚本中我们可以用 ini_set() 函数动态改变某个 PHP 指令的值。但问题是在请求结束后你还得把这些改变的值给恢复过来以保证下个脚本能正确使用。在 PHP 5.2 之前，PHP 的做法可谓是不辞劳苦，逐个遍历 INI 指令并恢复的。如果你是整个脚本都是 ini_set() 也就罢了（当然这个情况也是极其罕见的。：）），万一我的脚本中很少使用甚至根本就没有使用这个函数那我不就是亏大了？因此 PHP 5.2 为了解决这个问题又额外增加了一个表专门保存更改过的指令，这样就不用来回挨个恢复了。</p> 
+<p><strong>4、PHP 5.2 还对 require_once() <wbr />和 include_once() 两个函数进行了优化。</strong></p> 
+<p>PHP 5.2 以前 require_once() <wbr />和 include_once() 的做法是无论某个文件是否已经被缓存或编译过，统统是先 fopen() 再说，打开成功后在查询一下是否已经缓存过。这么处理的原因就是 在 PHP 5.1 以前没有很完美的解决 realpath() 相对路径和符号连接方面的问题。因为若不能唯一地正确地确定某个路径的真实路径表示那么你就无法利用这个路径的唯一性去解决某个问题。而 fopen 则没有这个顾虑。realpath() 的这个问题在 PHP 5.1 中被彻底搞定了，但还没来得及应用到 require_once() <wbr />和 include_once() ，结果就拖迟到现在。解决这个问题的好处是在于避免了 fopen 这个 I/O 操作，在很多高负载情形中，通常都是 数据库、网络或者磁盘 I/O 而不是 CPU 成为瓶颈。</p> 
+<p><strong>5、对HashTable 的复制也进行了优化。</strong></p> 
+<p>HashTable在ZendEngine是一个很基本的数据结构，数组本质上就是一个 HashTable。对HashTable 的优化也将意味着对数组的复制操作（无论是显式还是隐式）速度将会有一定的提升。 <wbr /></p> 
+<p><strong>6、其他的一些性能方面的改进。</strong></p> 
+<p>PHP 5.2 也对在FastCGI SAPI 模块中访问环境变量的性能做了少许优化。以前则是逐行搜索，现在则是通过 Hash 值来存取。除此之外，PHP 5.2还对str_replace() 和 implode() 函数以及“try {} catch {}”块等都做了一定的优化。 <wbr />下面是对一些语言特性和安全特性方面的改进：</p> 
+<p><strong>1、继PHP 5.0增加了一个 E_STRICT的错误报告级别（常量值为 2048）之后，PHP 5.2 也新增了一个错误报告级别：E_RECOVERABLE_ERROR ，其常量值为 4096 。</strong></p> 
+<p>这个级别的错误主要是从E_ERROR中但可以被用户自定义的错误处理程序（一般通过set_error_handler() 函数指定）所捕捉的情况转化而来。如果一个E_RECOVERABLE_ERROR 未被捕捉并处理，那么它的表现就和所有 PHP 版本中的E_ERROR一样会导致程序中止。在错误日志中，该类型的错误将被记录成“可捕捉的致命错误（Catchable fatal error）”。 <wbr /></p> 
+<p>导致 PHP 抛出 E_RECOVERABLE_ERROR 的情况通常是指那些很危险，但还不足以让 Zend Engine 崩溃的情况。比方说，有下面一段代码：</p> 
+<p><wbr />class foo {</p> 
+<p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />function bar(foo $a) { }</p> 
+<p><wbr />}</p> 
+<p><wbr /></p> 
+<p><wbr />$a = new foo ;</p> 
+<p><wbr />$a-&gt;bar(new stdClass) ;</p> 
+<p>很明显，类 foo 的bar 函数要求一个 foo 类型的参数，但实际代码中却给了一个 stdClass 类型的参数。在PHP 5.2 以前，这会导致一个 E_ERROR（Fatal error: Argument 1 passed to foo::bar() must be an instance of foo……）。但在 PHP 5.2（包括以后的 PHP6）则会导致一个E_RECOVERABLE_ERROR（Catchable fatal error: Argument 1 passed to foo::bar() must be an instance of foo……）。这种错误是可以被捕捉的，如果你通过set_error_handler() 指定了一个错误处理函数（即使是你在这个函数中没有处理E_RECOVERABLE_ERROR），那么程序就会继续运行。但如果你没有指定一个错误处理函数，那么这个 E_RECOVERABLE_ERROR 错误就会和 E_ERROR 一样，会立即导致程序中止。 <wbr /></p> 
+<p><strong>2、相应的，错误报告级别 E_ALL 也将会包含上述E_RECOVERABLE_ERROR。</strong></p> 
+<p>这也就意味着常量 E_ALL 的值将会从原来的2047 变为 6143。注意，在 PHP 5.0和 PHP 5.1中虽然增加了E_STRICT，但在这两个版本中 E_ALL 并不包含E_STRICT。而在以后的版本（如 PHP5.2、PHP6等）中E_ALL 则包含了包括E_STRICT和E_RECOVERABLE_ERROR在内的所有错误级别。 <wbr />在PHP 5.0/5.1 中我们想设置error_reporting为E_ALL就不得不采用error_reporting(E_ALL | E_STRICT) 的写法，感觉极为别扭，也很容易造成一些疏忽和误导。在 PHP5.2当中我们就没有这个苦恼了。另外如果你在 Apache 的配置文件（如 httpd.conf）或 .htaccess 文件中用error_reporting 设置了错误报告级别（比如：php_value error_reporting 4095），由于 Apache 不支持 PHP 常量，那你还得手工去适当调整这些错误报告级别的数值。 <wbr /></p> 
+<p><strong>3、添加了allow_url_include 这个 ini 指令来辅助 allow_url_fopen 操作；</strong>这个是 PHP 5.2 在安全方面的重大更新之一。使用这个指令可以让我们区分开对远程文件的标准文件操作和包含操作。我们通常需要进行前面的标准操作，而后面的包含操作则通常是危险的发源地。从 PHP 5.2 开始，你的本地脚本可以在禁止远程包含操作的同时进行标准远程文件操作。事实上，这个就是默认配置。 <wbr />PHP 5.2 把原来的allow_url_fopen 指令分成了allow_url_fopen 和allow_url_include 两个指令。如果allow_url_fopen 操作是禁止的，那么allow_url_include 也将被禁止。默认情况下将会允许进行 allow_url_fopen 操作，但是禁止allow_url_include 。这样就能非常有效的避免远程代码注入（remote code injection）。这个本来也是打算在 PHP6中添加的，现在我们提前用到了。:D</p> 
+<p><strong>4、PHP 5.2 增加了对接口中构造函数类型(签名) 强制性检查的支持。</strong></p> 
+<p>从 PHP 5.2 开始，如果你在一个接口中声明了一个构造函数，那么在所有实现该接口的类都必须包含一个构造函数，并且这个构造函数要与该接口的构造函数的签名完全一致。这里术语“签名”的意思是函数的参数和返回值的类型（包括其语言类型以及是引用传递还是值传递），这个概念有点类似于C 语言中 “原型”。</p> 
+<p>看以下代码：</p> 
+<p>interface constr {</p> 
+<p><wbr />function __construct() ;</p> 
+<p>}</p> 
+<p><wbr /></p> 
+<p>class implem implements constr {</p> 
+<p><wbr />function __construct ($a) {</p> 
+<p><wbr />}</p> 
+<p>}</p> 
+<p>这段代码在 PHP5.0和 PHP 5.1 里面运行是毫无问题的，但在 PHP 5.2中则会抛出一个错误：Fatal error: Declaration of implem::__construct() must be compatible with that of constr::__construct()，提示类implem 的构造函数与接口constr 的构造函数的声明不匹配。</p> 
+<p>值得一提的是这项新特性的添加过程是很有意思。，有兴趣的朋友可以到Zend 的每周总结（<a href="http://www.zend.com/zend/week/week279.php#Heading9"><font color="#a01c6f">http://www.zend.com/zend/week/week279.php#Heading9</font></a>）里面看看来龙去脉，此处不再赘述。</p> 
+<p><strong>5、__toString() 函数将会在任何合适的地方被调用。</strong></p> 
+<p>魔术方法 __toString() 现在会在一个字符串上下文环境中被调用。换句话说，一个对象在任何地方都可以作为一个字符串来使用，只要它实现了 __toString() 函数。当然你实现的 __toString() 函数不能抛出异常，否则脚本将会中止运行。以前为防万一，PHP 5.0/5.1会在必要时会把对象标识(Id)作为一个字符串返回，这个特性在 PHP 5.2中已经被抛弃。因此这带来的问题就可能是不能保证一个对象的标识总是唯一的。如果你在程序中利用了对象标识符的唯一性，那这将会是某种缺陷。如果没有实现类的 __toString()函数但却把其对象作为作为一个字符串来使用就会导致一个“可捕捉的致命错误”。 <wbr />还有个特例，就是对象也不能作为作为数组的索引或者键名，即使是它有一个 __toString() 方法。以后 PHP 可能会内建一个 Hash机制来提供对对象唯一性的支持，但就现在来说，你必须自己提供一个对象的 hash 算法，或者干脆就用新提供的 SPL 函数：spl_object_hash()； <wbr /></p> 
+<p><strong>6、为在写模式下访问 __get() 的返回值这种情况增加了E_NOTICE 级错误提示。</strong></p> 
+<p>显然 __get() 函数只能在读模式下返回一个值，并且也不可能把一个值写入 __get() 函数。但在以前的版本中并没有为这种不正确的用法给予提示。从 PHP 5.2 开始将会为这种情况抛出一个E_NOTICE。注意：如果你对 foreach() 和其他的一些更改数组内部指针的函数也采取了同样的操作（即给 foreach 所“抽”出来的值进行赋值），那也会触发一个E_NOTICE ，因为这些“抽”出来的值都是处于读模式。如果你的代码中存在这种情况，那你应该把 __get() 函数的返回值转换为一个数组，或者用 SPL 里面的ArrayObject 来代替这个数组。 <wbr /></p> 
+<p><strong>7、丢弃了抽象静态的类函数。</strong></p> 
+<p>由于“笔漏”，PHP 5.0和5.1 版本竟然允许类具有抽象静态函数，不过现在不行了。现在只允许接口有抽象静态函数。 <wbr /></p> 
+<p><strong>8、其他一些语言特性的改变：</strong></p> 
+<p>－ SPL 新增了正则迭代器(Regex Iterators)、文件对象（SplFileObject）的CSV 支持等。</p> 
+<p>－ 增加了对 RFC2397 （数据流）的支持。</p> 
+<p>－ 增加了对Apache 2.2的支持。</p> 
+<p>－ 现在可以在上传文件时实时取得文件的上传进度了。</p> 
+<p>－ 对PHP或其扩展所需 OpenSSL 库、PCRE 库、MySQL客户端库、PostgreSQL 客户端库、SQLite 库等均进行更新升级。</p> 
+<p><wbr /></p> 
+<p>最后再来介绍一下 PHP 运行模式方面的改动： <wbr /></p> 
+<p><strong>1、首先是 PHP 5.2 改变了 Win32 环境下 PHPRC 环境变量的优先级。</strong></p> 
+<p>在以前搜索 php.ini 的路径顺序为：</p> 
+<p>&middot; <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />SAPI 模块所指定的位置（Apache 2 中的 PHPIniDir 指令，CGI 和 CLI 中的 -c 命令行选项，NSAPI 中的 php_ini 参数，THTTPD 中的 PHP_INI_PATH 环境变量）</p> 
+<p>&middot; <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />HKEY_LOCAL_MACHINE\SOFTWARE\PHP\IniFilePath（Windows 注册表位置）</p> 
+<p>&middot; <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />PHPRC 环境变量</p> 
+<p>&middot; <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />当前工作目录（对于 CLI）</p> 
+<p>&middot; <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />web 服务器目录（对于 SAPI 模块）或 PHP 所在目录（Windows 下其它情况）</p> 
+<p>&middot; <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />Windows 目录（C:\windows 或 C:\winnt），或 –with-config-file-path 编译时选项指定的位置现在 PHPRC 环境变量由第三优先权变为第二优先权，高于Windows 注册表所指定的位置。 <wbr /></p> 
+<p><strong>2、PHP 的命令行模式（CLI SAPI）不再在CWD（当前工作目录）里查找 php.ini 或php-cli.ini 文件。</strong></p> 
+<p>在 PHP 5.1.x 中有一个未公开的特性就是 CLI会自动在当前目录中搜索 PHP 的配置文件。这种随便读入一个未经许可的配置文件的行为将可能会导致一个不可预知的错误。在 PHP 5.2 版本里已经将该特性移除，不再再在CWD（当前工作目录）里查找 php.ini 或php-cli.ini 文件了。 <wbr /></p> 
+<p><wbr /></p> 
+<p><strong>总结：</strong></p> 
+<p><font color="#ff0000">总体来说，从性能上 PHP 5.2 已经超越 PHP4.x成为目前速度最快的版本，从语言及安全特性上也是无出其右。即便是 PHP4.x 有一些代码缓存工具（如 eAccelerator）可以提高性能，但目前也已经有 APC、X-Cache等表示可以支持 5.2 版本（eAccelerator 可能还需要一段时间来完善）。虽然 APC 等在性能还略输于eAccelerator，但加上PHP5.2的种种优化措施，至少不会比 PHP4+eAccelerator 差到哪去更何况还有很要命的安全更新。既然如此，那我们还有什么理由不升级呢？同时我也推荐各大虚拟主机厂商将其服务器（至少是新增的服务器）更新为 PHP5.2版本。在不增加性能消耗的基础上还能为客户提供更多的语言特性，同时也增强了产品的竞争力，何乐而不为呢？</font></p> 
+<p><strong>让我们开始全面进入 PHP 5.2 的时代吧！</strong></p></div></body></html>

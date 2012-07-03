@@ -1,0 +1,470 @@
+<html><head><title>Java性能的优化（上）</title></head><body><div id='tit'>Java性能的优化（上）</div><div id='cate'>细节</div><div id='date'>2007年11月14日 星期三 01:02 A.M.</div><div id='page'>201</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/78b3edc427dae5aa8326ac2a.html'>http://hi.baidu.com/hxzon/blog/item/78b3edc427dae5aa8326ac2a.html</a><div id='cnt'><table class="FCK__ShowTableBorders" width="680" align="center"> 
+ <tbody> 
+  <tr> 
+   <td align="center"> <h2><font color="#0f3ccd">Java性能的优化（上）</font></h2> <br /> <strong>黄伟峰</strong></td> 
+  </tr> 
+  <tr> 
+   <td align="right">01-7-9 上午 10:29:55<br /> 
+    <hr width="660" color="#f46240" size="1" /> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">Java在九十年代中期出现以后，在赢得赞叹的同时，也引来了一些批评。赢得的赞叹主要是Java的跨平台的操作性，即所谓的”Write Once,Run Anywhere”.但由于Java的性能和运行效率同C相比，仍然有很大的差距，从而引来了很多的批评。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">对于服务器端的应用程序，由于不大涉及到界面设计和程序的频繁重启，Java的性能问题看似不大明显，从而一些Java的技术，如JSP,Servlet,EJB等在服务器端编程方面得到了很大的应用，但实际上，Java的性能问题在服务器端依然存在。下面我将分四个方面来讨论Java的性能和执行效率以及提高Java性能的一些方法。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong><font size="4">一．关于性能的基本知识</font></strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>1．性能的定义</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">在我们讨论怎样提高Java的性能之前，我们需要明白“性能“的真正含义。我们一般定义如下五个方面作为评判性能的标准。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">1） 运算的性能----哪一个算法的执行性能最好</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">2） 内存的分配----程序需要分配多少内存，运行时的效率和性能最高。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">3） 启动的时间----程序启动需要多少时间。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">4） 程序的可伸缩性-----程序在用户负载过重的情况下的表现。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">5） 性能的认识------用户怎样才能认识到程序的性能。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">对于不同的应用程序，对性能的要求也不同。例如，大部分的应用程序在启动时需要较长的时间，从而对启动时间的要求有所降低；服务器端的应用程序通常都分配有较大的内存空间，所以对内存的要求也有所降低。但是，这并不是所这两方面的性能可以被忽略。其次，算法的性能对于那些把商务逻辑运用到事务性操作的应用程序来讲非常重要。总的来讲，对应用程序的要求将决定对各个性能的优先级。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>2．怎样才能提高JAVA的性能</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">提高JAVA的性能，一般考虑如下的四个主要方面：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>（1） 程序设计的方法和模式</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">一个良好的设计能提高程序的性能，这一点不仅适用于JAVA，也适用也任何的编程语言。因为它充分利用了各种资源，如内存，CPU,高速缓存，对象缓冲池及多线程，从而设计出高性能和可伸缩性强的系统。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">当然，为了提高程序的性能而改变原来的设计是比较困难的，但是，程序性能的重要性常常要高于设计上带来的变化。因此，在编程开始之前就应该有一个好的设计模型和方法。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>（2） JAVA布署的环境。</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">JAVA布署的环境就是指用来解释和执行JAVA字节码的技术，一般有如下五种。即解释指令技术(Interpreter Technology)，及时编译的技术(Just In Time Compilier Technology), 适应性优化技术（Adaptive Optimization Technology）, 动态优化，提前编译为机器码的技术（Dynamic Optimization,Ahead Of Time Technology）和编译为机器码的技术（Translator Technology）.</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">这些技术一般都通过优化线程模型，调整堆和栈的大小来优化JAVA的性能。在考虑提高JAVA的性能时，首先要找到影响JAVA性能的瓶颈（BottleNecks），在确认了设计的合理性后，应该调整JAVA布署的环境，通过改变一些参数来提高JAVA应用程序的性能。具体内容见第二节。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>（3） JAVA应用程序的实现</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">当讨论应用程序的性能问题时，大多数的程序员都会考虑程序的代码，这当然是对的，当更重要的是要找到影响程序性能的瓶颈代码。为了找到这些瓶颈代码，我们一般会使用一些辅助的工具，如Jprobe,Optimizit,Vtune以及一些分析的工具如TowerJ Performance等。这些辅助的工具能跟踪应用程序中执行每个函数或方法所消耗掉的时间，从而改善程序的性能。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>(4) 硬件和操作系统</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">为了提高JAVA应用程序的性能，而采用跟快的CPU和更多的内存，并认为这是提高程序性能的唯一方法，但事实并非如此。实践经验和事实证明，只有遭到了应用程序性能的瓶颈，从而采取适当得方法，如设计模式，布署的环境，操作系统的调整，才是最有效的。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>3．程序中通常的性能瓶颈。</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">所有的应用程序都存在性能瓶颈，为了提高应用程序的性能，就要尽可能的减少程序的瓶颈。以下是在JAVA程序中经常存在的性能瓶颈。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> <p align="center"><img border="0" src="image/Java性能的优化（上）.html.01_7_9_3a.gif" /><p class="origImg">http://www.ccw.com.cn/htm/app/aprog/01_7_9_3a.gif</p></p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">了解了这些瓶颈后，就可以有针对性的减少这些瓶颈，从而提高JAVA应用程序的性能</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong>4. 提高JAVA程序性能的步骤</strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">为了提高JAVA程序的性能，需要遵循如下的六个步骤。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>a) 明确对性能的具体要求</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">在实施一个项目之前，必须要明确该项目对于程序性能的具体要求，如：这个应用程序要支持5000个并发的用户，并且响应时间要在5秒钟之内。但同时也要明白对于性能的要求不应该同对程序的其他要求冲突。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>b) 了解当前程序的性能</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">你应该了解你的应用程序的性能同项目所要求性能之间的差距。通常的指标是单位时间内的处理数和响应时间，有时还会比较CPU和内存的利用率。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>c) 找到程序的性能瓶颈</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">为了发现程序中的性能瓶颈，通常会使用一些分析工具，如：TowerJ Application Performance Analyzer或VTune来察看和分析程序堆栈中各个元素的消耗时间，从而正确的找到并改正引起性能降低的瓶颈代码，从而提高程序的性能。这些工具还能发现诸如过多的异常处理，垃圾回收等潜在的问题。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>d) 采取适当的措施来提高性能</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">找到了引起程序性能降低的瓶颈代码后，我们就可以用前面介绍过的提高性能的四个方面，即设计模式，JAVA代码的实现，布署JAVA的环境和操作系统来提高应用程序的性能。具体内容将在下面的内容中作详细说明。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>e) 只进行某一方面的修改来提高性能</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">一次只改变可能引起性能降低的某一方面，然后观察程序的性能是否有所提高，而不应该一次改变多个方面，因为这样你将不知道到底哪个方面的改变提高了程序的性能，哪个方面没有，即不能知道程序瓶颈在哪。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><em>f) 返回到步骤c,继续作类似的工作，一直达到要求的性能为止。</em></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"><strong><font size="4">二． JAVA布署的环境和编译技术</font></strong></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> 开发JAVA应用程序时，首先把JAVA的源程序编译为与平台无关的字节码。这些字节码就可以被各种基于JVM的技术所执行。这些技术主要分为两个大类。即基于解释的技术和基于提前编译为本地码的技术。其示意图如下：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> <p align="center"><img border="0" src="image/Java性能的优化（上）.html.01_7_9_3b.gif" /><p class="origImg">http://www.ccw.com.cn/htm/app/aprog/01_7_9_3b.gif</p></p> </td> 
+  </tr> 
+  <tr> 
+   <td class="a14">具体可分为如下的五类： </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">a) 解释指令技术</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">其结构图和执行过程如下：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> <p align="center"><img border="0" src="image/Java性能的优化（上）.html.01_7_9_3c.gif" /><p class="origImg">http://www.ccw.com.cn/htm/app/aprog/01_7_9_3c.gif</p></p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> JAVA的编译器首先把JAVA源文件编译为字节码。这些字节码对于JAVA虚拟机(JVM)来讲就是机器的指令码。然后，JAVA的解释器不断的循环取出字节码进行解释并执行。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> 这样做的优点是可以实现JAVA语言的跨平台，同时生成的字节码也比较紧凑。JAVA的一些优点，如安全性，动态性都得保持；但缺点是省生成的字节码没有经过什么优化，同全部编译好的本地码相比，速度比较慢。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">b) 及时编译技术（Just In Time）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> 及时编译技术是为了解决指令解释技术效率比较低，速度比较慢的情况下提出的，其结构图如下所示。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> <p align="center"><img border="0" src="image/Java性能的优化（上）.html.01_7_9_3d.gif" /><p class="origImg">http://www.ccw.com.cn/htm/app/aprog/01_7_9_3d.gif</p></p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">其主要变化是在JAVA程序执行之前，又JIT编译器把JAVA的字节码编译为机器码。从而在程序运行时直接执行机器码，而不用对字节码进行解释。同时对代码也进行了部分的优化。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">这样做的优点是大大提高了JAVA程序的性能。同时，由于编译的结果并不在程序运行间保存，因此也节约了存储空间了加载程序的时间；缺点是由于JIT编译器对所有的代码都想优化，因此也浪费了很多的时间。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">IBM和SUN公司都提供了相关的JIT产品。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">c) 适应性优化技术（Adaptive Optimization Technology）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">同JIT技术相比，适应性优化技术并不对所有的字节码进行优化。它会跟踪程序运行的成个过程，从而发现需要优化的代码，对代码进行动态的优化。对优化的代码，采取80/20的策略。从理论上讲，程序运行的时间越长，代码就越优化。其结构图如下：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> <p align="center"><img border="0" src="image/Java性能的优化（上）.html.01_7_9_3e.gif" /><p class="origImg">http://www.ccw.com.cn/htm/app/aprog/01_7_9_3e.gif</p></p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">其优点是适应性优化技术充分利用了程序执行时的信息，发行程序的性能瓶颈，从而提高程序的性能；其缺点是在进行优化时可能会选择不当，发而降低了程序的性能。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">其主要产品又IBM,SUN的HotSpot.</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">d) 动态优化，提前编译为机器码的技术（Dynamic Optimization,Ahead Of Time）</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">动态优化技术充分利用了JAVA源码编译，字节码编译，动态编译和静态编译的技术。其输入时JAVA的原码或字节码，而输出是经过高度优化的可执行代码和个来动态库的混合(Window中是DLL文件，UNIX中是共享库.a .so文件)。其结构如下：</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14"> <p align="center"><img border="0" src="image/Java性能的优化（上）.html.01_7_9_3f.gif" /><p class="origImg">http://www.ccw.com.cn/htm/app/aprog/01_7_9_3f.gif</p></p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">其优点是能大大提高程序的性能；缺点是破坏了JAVA的可移植性，也对JAVA的安全带来了一定的隐患。</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="FCK__ShowTableBorders" width="620" align="center"> 
+ <tbody> 
+  <tr> 
+   <td class="a14">其主要产品是TowerJ3.0.</td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

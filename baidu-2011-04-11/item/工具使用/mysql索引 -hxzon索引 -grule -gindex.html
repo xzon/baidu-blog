@@ -1,0 +1,362 @@
+<html><head><title>mysql索引 -hxzon索引 -grule -gindex</title></head><body><div id='tit'>mysql索引 -hxzon索引 -grule -gindex</div><div id='cate'>工具使用</div><div id='date'>2008年10月09日 星期四 11:31 A.M.</div><div id='page'>93</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/22fa332a0006c33e5243c168.html'>http://hi.baidu.com/hxzon/blog/item/22fa332a0006c33e5243c168.html</a><div id='cnt'><div> 
+ <p>mysql索引 -hxzon索引 -grule -gindex</p> 
+ <p><br /> =================================================================================<br /> mysql设置客户端编码<br /> <br /> SET NAMES xxx; #改客户端编码，连接编码，不改服务器编码，末尾必须分号<br /> SET CHARACTER_SET xxx; #这句错误<br /> 例如配置文件里设置<br /> # CLIENT SECTION<br /> # ----------------------------------------------------------------------<br /> #<br /> # The following options will be read by MySQL client applications.<br /> # Note that only client applications shipped by MySQL are guaranteed<br /> # to read this section. If you want your own MySQL client program to<br /> # honor these values, you need to specify it as an option during the<br /> # MySQL client library initialization.<br /> #<br /> [client]</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ port=3306
+</div> 
+<div> 
+</div> 
+<div>
+ [mysql]
+</div> 
+<div> 
+</div> 
+<div>
+ <font color="#ff0000">default-character-set=utf8</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> # SERVER SECTION
+ <br /> # ----------------------------------------------------------------------
+ <br /> #
+ <br /> # The following options will be read by the MySQL Server. Make sure that
+ <br /> # you have installed the server correctly (see above) so it reads this 
+ <br /> # file.
+ <br /> #
+ <br /> [mysqld]
+</div> 
+<div> 
+</div> 
+<div>
+ # The TCP/IP Port the MySQL Server will listen on
+ <br /> port=3306
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> #Path to installation directory. All paths are usually resolved relative to this.
+ <br /> basedir=&quot;D:/big/MySQL5.0/&quot;
+</div> 
+<div> 
+</div> 
+<div>
+ #Path to the database root
+ <br /> datadir=&quot;D:/big/MySQL5.0/Data/&quot;
+</div> 
+<div> 
+</div> 
+<div>
+ <font color="#ff0000"># The default character set that will be used when a new schema or table is<br /> # created and no character set is defined<br /> default-character-set=utf8</font>
+</div> 
+<div> 
+</div> 
+<div>
+ # The default storage engine that will be used when create new tables when
+ <br /> default-storage-engine=INNODB
+ <br /> 命令行输入
+ <br /> 
+ <font color="#ff0000">mysql&gt; set names gbk;<br /> mysql&gt; status<br /> </font>--------------
+ <br /> mysql Ver 14.12 Distrib 5.0.41, for Win32 (ia32)
+</div> 
+<div> 
+</div> 
+<div>
+ Connection id:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1
+ <br /> Current database:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hxzon
+ <br /> Current user:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; root@localhost
+ <br /> SSL:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Not in use
+ <br /> Using delimiter:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ;
+ <br /> Server version:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5.0.41-community-nt MySQL Community Edition (GPL)
+ <br /> Protocol version:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 10
+ <br /> Connection:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; localhost via TCP/IP
+ <br /> Server characterset:&nbsp;&nbsp;&nbsp; utf8
+ <br /> Db&nbsp;&nbsp;&nbsp;&nbsp; characterset:&nbsp;&nbsp;&nbsp; gbk
+ <br /> Client characterset:&nbsp;&nbsp;&nbsp; utf8
+ <br /> Conn. characterset:&nbsp;&nbsp;&nbsp; utf8
+ <br /> TCP port:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 3306
+ <br /> Uptime:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 18 min 26 sec
+</div> 
+<div> 
+</div> 
+<div>
+ Threads: 1 Questions: 36 Slow queries: 0 Opens: 17 Flush tables: 1 Open tab
+ <br /> les: 8 Queries per second avg: 0.033
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ ===相关资料======================================================================
+ <br /> 当一个Mysql连接请求从客户端传来的时候，服务器认为它的编码是character_set_client，
+ <br /> 然后会根据character_set_connection把请求进行转码，从character_set_client转成character_set_connection，
+ <br /> 然后更新到数据库的时候，再转化成字段所对应的编码
+</div> 
+<div> 
+</div> 
+<div>
+ 如果使用了set names指令，那么可以修改character_set_connection的值，
+ <br /> 也同时会修改character_set_client和character_set_results的值
+</div> 
+<div> 
+</div> 
+<div>
+ 当从数据库查询数据返回结果的时候，将字段从默认的编码转成character_set_results
+</div> 
+<div> 
+</div> 
+<div>
+ 实例分析：
+ <br /> DB采用utf8存储数据，默认连接也使用utf8，客户端请求采用gb2312，调用了set names “gb2312”
+ <br /> 当客户端gb2312的请求过来的时候，由于先前调用了set names，所以character_set_client、
+ <br /> character_set_connection、character_set_results都被改成了gb2312，
+ <br /> 所以一路过来直到更新到db字段之前都是gb2312编码，然后因为db字段是utf8的，
+ <br /> 所以会再进行一次转码，从gb2312转成utf8，最终以utf8格式存储在数据库中
+ <br /> 当客户端要查询显示一个gb2312的内容时，也先set names “gb2312”，
+ <br /> 这样会把character_set_results改成gb2312，当服务器查询出结果返回的时候就会从utf8转成gb2312，
+ <br /> 适合页面显示的需求了
+</div> 
+<div> 
+</div> 
+<div>
+ 如果没有使用set names，那么从客户端过来的gb2312将一直被当成是character_set_client编码（比如说是utf8），
+ <br /> 然后一路因为character_set_connection和character_set_client，所以不会进行转码，然后直到更新db字段都不会去转码，
+ <br /> 所以就把请求中的内容直接更新为db字段的值了，就出现了乱码
+</div> 
+<div> 
+</div> 
+<div>
+ 所以要解决乱码问题的关键是要正确识别客户端过来的请求的编码，即character_set_client，同时因为要考虑到页面的显示，所以也要考虑到返回的结果的编码（character_set_results）必须和页面显示的编码一致，而character_set_connection貌似没有很大用处？
+</div> 
+<div> 
+</div> 
+<div>
+ 一点补充：
+ <br /> 如果配置文件中[mysql]default-character-set=gb2312，那么效果和每次set names “gb2312”是一样的，
+ <br /> 每个连接都会将character_set_client、character_set_connection、character_set_results都被设置为gb2312
+ <br /> --------------------------------------------------------
+ <br /> 我们传统意义上说的编码其实是指字符集，它包括两个方面，一个是存储的字符，另外一个是映射关系，也就是真正的编码。各种字符集的存储的字符都是差不多的，就那么几个字符，而编码却是各不相同，是真正发挥威力的地方。
+ <br /> 原来的系统数据存储采用gbk字符集，因为版本原因，升级后系统必须采用latin1字符集来存储，所以新的数据库中存储的是gbk的字符，而使用的是latin1的编码。所以这种数据只能在需要显示gbk的页面上正确显示，在显示其他字符集的地方就会是乱码。
+ <br /> 页面显示gbk的流程是：程序（或者mysql配置文件中）中设置了结果集采用latin1，mysql发现latin1就是当前字段的实际字符集，所以不进行任何转化，直接返回，但是这个时候实际上返回的是gbk的字符序列，当页面得到这个字符序列进行显示的时候，因为要显示gbk的数据，所以会采用gbk编码对得到的字符序列进行编码，得到实际的字符，而用gbk编码对gbk字符序列进行编码自然不会出错。
+ <br /> 而如果要显示utf8编码，则页面显示的时候会采用utf8编码对gbk字符序列进行编码，自然得到的是乱码了。
+ <br /> 由于有两个数据库之前采用的是gbk的字符集，要在utf8编码下显示就存在问题，所以必须对存储的数据进行转换。而mysql查询的过程中不是自己会根据设定的编码进行转换么？但是不幸的是，它自带的这个功能在我们这样的情况下没有任何用处。
+ <br /> Mysql编码转换中涉及到的三个变量我们上面提到过，是character_set_client、character_set_connection、character_set_results，character_set_client是插入数据的时候采用的字符集，character_set_connection是查询字符串采用的字符集，character_set_results是查询结果需要返回的字符集。这三个变量的使用应该需要有字符串和编码统一的前提，否则可能会出乱子，莫名其妙的乱码问题就会呈现在你面前。而我们的数据存储采用的字符和编码是不统一的，所以不能直接使用这三个变量来编码，所以只能在程序中将数据进行编码转换。因为我们最终要显示的是utf8数据，所以我们存储的必须是utf8的字符序列（原因和上面介绍的显示gbk数据的时候一样），而我们从老的数据库中查询得到的是gbk的字符串，编码是latin1的，要插入到新的数据库中需要经历这么几个转换，第一步，要根据character_set_connection进行转换，因为我们默认character_set_connection是latin1编码，和我们存储的编码一致，所以不需要进行任何转换，然后第二步是插入到数据库中，因为character_set_client也是latin1，所以也不需要进行任何转换，所以我们需要插入的字符串序列应该是和根据character_set_connection进行转换之前的字符串序列一致的，而我们最终需要的是utf8的字符串序列，所以在根据character_set_connection进行转换之前也必须是utf8的字符串序列，也就是说我们要在得到老的数据后，将gbk字符串序列转换成utf8字符串序列。Php自带的mb_convert_encoding函数应该能够完成这个艰巨的任务。
+ <br /> ---------------------------------------------------------------
+ <br /> php默认不调用php_mbstring.dll，所以无法使用mb_convert_encoding
+ <br /> 修改php.ini开启php_mbstring.dll，重启iis
+ <br /> 结果还是无法调用，后来尝试使用开启php_iconv.dll来使用iconv进行编码转换
+ <br /> 还是报同样的错误call undefined function
+ <br /> 极度郁闷
+ <br /> 后来怀疑是dl没有加载成功，便尝试php.ini的extensions_dir
+ <br /> 由于对php不是很熟悉，经过两次修改后终于可以使用mb_convert_encoding
+ <br /> 但是转换后还是乱码，正在心灰意冷准备放弃的时候，发现是代码写错了
+ <br /> 由于使用了递归，一个字符串被进行了两次从gbk到utf8的转换，不乱码才怪了
+ <br /> 修改代码，重新导入数据，成功
+ <br /> ======其它资料收集===========================================================
+ <br /> ----------------------------------------
+ <br /> 很好用的命令
+ <br /> 显示数据表的结构：
+ <br /> 
+ <font color="#ff0000">describe 表名;<br /> </font>设置自动增长，主键，非空
+ <br /> id int(3) 
+ <font color="#ff0000">auto_increment</font> not null primary key,
+</div> 
+<div> 
+</div> 
+<div>
+ 显示版本，时间
+ <br /> 
+ <font color="#ff0000">mysql&gt; SELECT VERSION(), CURRENT_DATE;<br /> mysql&gt; SELECT SIN(PI()/4), (4+1)*5;<br /> mysql&gt; SELECT<br /> &nbsp;&nbsp;&nbsp; -&gt; USER()<br /> &nbsp;&nbsp;&nbsp; -&gt; ,<br /> &nbsp;&nbsp;&nbsp; -&gt; CURRENT_DATE;<br /> 打入\c取消命令<br /> mysql&gt; SELECT<br /> &nbsp;&nbsp;&nbsp; -&gt; USER()<br /> &nbsp;&nbsp;&nbsp; -&gt; \c<br /> mysql&gt;<br /> </font>退出 exit
+ <br /> 
+ <font color="#ff0000">查看表的实际创建语句<br /> show create table 表名;<br /> show create database 数据库名;<br /> mysql&gt; show create database hxzon;<br /> </font>+----------+---------------------------------------------------------------+
+ <br /> | Database | Create Database&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
+ <br /> +----------+---------------------------------------------------------------+
+ <br /> | hxzon&nbsp;&nbsp;&nbsp; | CREATE DATABASE `hxzon` /*!40100 DEFAULT CHARACTER SET gbk */ |
+ <br /> +----------+---------------------------------------------------------------+
+ <br /> 1 row in set (0.00 sec)
+ <br /> 重建数据库，先判断是否存在，设置数据库编码
+ <br /> 
+ <font color="#ff0000">drop database if exists hxzon ;</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font color="#ff0000">create database hxzon;<br /> ALTER DATABASE `hxzon` DEFAULT CHARACTER SET gbk COLLATE gbk_chinese_ci;<br /> </font>-------------------------------------------------
+ <br /> 关于编码的一些信息
+ <br /> gb2312&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | gb2312_chinese_ci
+ <br /> gbk&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | gbk_chinese_ci
+ <br /> utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8_general_ci
+ <br /> --------------------
+ <br /> gb2312_chinese_ci&nbsp;&nbsp;&nbsp; | gb2312&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 24 | Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp;&nbsp; 1 |
+ <br /> gb2312_bin&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | gb2312&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 86 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp;&nbsp; 1 |
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> gbk_chinese_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | gbk&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 28 | Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp;&nbsp; 1 |
+ <br /> gbk_bin&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | gbk&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 87 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp;&nbsp; 1 |
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> utf8_general_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 33 | Yes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 1 |
+ <br /> utf8_bin&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 83 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 1 |
+ <br /> utf8_unicode_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 192 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_icelandic_ci&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 193 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_latvian_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 194 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_romanian_ci&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 195 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_slovenian_ci&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 196 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_polish_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 197 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_estonian_ci&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 198 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_spanish_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 199 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_swedish_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 200 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_turkish_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 201 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_czech_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 202 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_danish_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 203 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_lithuanian_ci&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 204 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_slovak_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 205 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_spanish2_ci&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 206 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_roman_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 207 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_persian_ci&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 208 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_esperanto_ci&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 209 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> utf8_hungarian_ci&nbsp;&nbsp;&nbsp; | utf8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | 210 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Yes
+ <br /> &nbsp;&nbsp; 8 |
+ <br /> &nbsp;&nbsp; 
+ <br /> ----------------------------------------
+ <br /> 错误代码 1045
+ <br /> Access denied for user 'root'@'localhost' (using password:YES)
+ <br /> 移除服务，mysqld-nt -remove，成功。网上另有命令，不成功。重新配置，出现1045错误，进入MySQL命令，
+ <font color="#ff0000">SET PASSWORD FOR </font>
+ <font color="#ff0000">'root'@'localhost'</font>
+ <font color="#ff0000"> = PASSWORD('root');</font>
+</div> 
+<div> 
+</div> 
+<div>
+ -----------------------------------------
+ <br /> 一、远程登陆
+ <br /> mysql -h110.110.110.110 -uroot -p密码
+ <br /> 二、修改密码。
+ <br /> 格式：mysqladmin -u用户名 -p旧密码 password 新密码
+</div> 
+<div> 
+</div> 
+<div>
+ 1、例1：给root加个密码ab12。首先在DOS下进入目录mysqlbin，然后键入以下命令
+ <br /> mysqladmin -uroot -password ab12
+ <br /> 注：因为开始时root没有密码，所以-p旧密码一项就可以省略了。
+</div> 
+<div> 
+</div> 
+<div>
+ --------------------------------------
+ <br /> 三、增加用户
+ <br /> 
+ <font color="#ff0000">grant select on 数据库.* to 用户名@登录主机 identified by &quot;密码&quot;<br /> 有些地方写 grant select on 数据库.* to 用户名@登录主机 identified by \&quot;密码\&quot; 但错误。<br /> 任意远程用户 用户名@&quot;%&quot;<br /> 本地用户 用户名@localhost<br /> 任意数据库数据表 *.* <br /> 权限 grant select,insert,update,delete <br /> 没有密码 grant select,insert,update,delete on *.* to hxzon@&quot;%&quot; identified by &quot;&quot;;<br /> 任意权限 不能 grant *<br /> </font>-------------------------------------
+ <br /> 四、将文本数据转到数据库中
+ <br /> 1、文本数据应符合的格式：字段数据之间用tab键隔开，null值用\\n来代替.
+ <br /> 例：
+ <br /> 3 rose 深圳二中 1976-10-10
+</div> 
+<div> 
+</div> 
+<div>
+ 4 mike 深圳一中 1975-12-23
+</div> 
+<div> 
+</div> 
+<div>
+ 2、数据传入命令 load data local infile \&quot;文件名\&quot; into table 表名;
+</div> 
+<div> 
+</div> 
+<div>
+ 注意：你最好将文件复制到\\mysql\\bin目录下，并且要先用use命令打表所在的库。
+</div> 
+<div> 
+</div> 
+<div>
+ 五、备份数据库：（命令在DOS的\\mysql\\bin目录下执行）
+</div> 
+<div> 
+</div> 
+<div>
+ mysqldump --opt school&gt;school.bbb
+ <br /> 
+ <a href="http://hi.baidu.com/hxzon/blog/item/c28ead1899dcdf0134fa41c3.html">http://hi.baidu.com/hxzon/blog/item/c28ead1899dcdf0134fa41c3.html</a> MySql的常用命令 基础
+ <br /> ====mysql索引================================================
+ <br /> 常用MySQL命令 关于索引，缓存 
+ <a href="http://hi.baidu.com/hxzon/blog/item/eeb593caabd0df83c91768ac.html">http://hi.baidu.com/hxzon/blog/item/eeb593caabd0df83c91768ac.html</a>
+ <br /> MySql的常用命令 基础 
+ <a href="http://hi.baidu.com/hxzon/blog/item/c28ead1899dcdf0134fa41c3.html">http://hi.baidu.com/hxzon/blog/item/c28ead1899dcdf0134fa41c3.html</a>
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> linux 下 mysql 的安装 
+ <a href="http://hi.baidu.com/hxzon/blog/item/78b1b6518e60481e377abe4f.html">http://hi.baidu.com/hxzon/blog/item/78b1b6518e60481e377abe4f.html</a>
+ <br /> Linux操作系统上安装MySQL数据库的方法(rpm) 
+ <a href="http://hi.baidu.com/hxzon/blog/item/6fa54dfba5956562024f564d.html">http://hi.baidu.com/hxzon/blog/item/6fa54dfba5956562024f564d.html</a>
+ <br /> mysql+apache+php在Linux安装指南 
+ <a href="http://hi.baidu.com/hxzon/blog/item/528fba315a12faae5fdf0e47.html">http://hi.baidu.com/hxzon/blog/item/528fba315a12faae5fdf0e47.html</a>
+ <br /> 看MySQL的发展轨迹 
+ <a href="http://hi.baidu.com/hxzon/blog/item/9f4d30d11bdd3e3e9a5027c0.html">http://hi.baidu.com/hxzon/blog/item/9f4d30d11bdd3e3e9a5027c0.html</a>
+ <br /> InnoDB -百度百科 ;InnoDB中文参考手册 
+ <a href="http://hi.baidu.com/hxzon/blog/item/37a9944538facd3986947347.html">http://hi.baidu.com/hxzon/blog/item/37a9944538facd3986947347.html</a>
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> tomcat6下,JNDI添加MySQL -hxzon动手 
+ <a href="http://hi.baidu.com/hxzon/blog/item/f6c753fbbb7825106c22eb50.html">http://hi.baidu.com/hxzon/blog/item/f6c753fbbb7825106c22eb50.html</a>
+ <br /> tomcat +mysql JNDI配置 
+ <a href="http://hi.baidu.com/hxzon/blog/item/669e5f82f14eb5a40df4d2ce.html">http://hi.baidu.com/hxzon/blog/item/669e5f82f14eb5a40df4d2ce.html</a>
+ <br /> MySQL出问题,服务找不到路径 -hxzon 
+ <a href="http://hi.baidu.com/hxzon/blog/item/00b94f54af8fe952574e0039.html">http://hi.baidu.com/hxzon/blog/item/00b94f54af8fe952574e0039.html</a>
+ <br /> 通过PHP连接MYSQL的两种方法 
+ <a href="http://hi.baidu.com/hxzon/blog/item/c289db548d0e935ed1090695.html">http://hi.baidu.com/hxzon/blog/item/c289db548d0e935ed1090695.html</a>
+</div> 
+<div> 
+</div> 
+<div>
+ -----------------------------------------------------------------
+ <br /> mysql中文参考手册 译者：晏子 (
+ <a href="mailto:clyan@sohu.com">clyan@sohu.com</a>）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 主页：
+ <a href="http://linuxdb.yeah.net/">http://linuxdb.yeah.net</a>
+ <br /> 
+ <a href="http://www.linuxforum.net/books/mysqlmanual/manual_Introduction.html">http://www.linuxforum.net/books/mysqlmanual/manual_Introduction.html</a>
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

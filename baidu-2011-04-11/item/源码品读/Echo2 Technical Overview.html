@@ -1,0 +1,112 @@
+<html><head><title>Echo2 Technical Overview</title></head><body><div id='tit'>Echo2 Technical Overview</div><div id='cate'>源码品读</div><div id='date'>2010年10月08日 星期五 03:49 P.M.</div><div id='page'>7</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/4a613fdb9c24b868d1164ef6.html'>http://hi.baidu.com/hxzon/blog/item/4a613fdb9c24b868d1164ef6.html</a><div id='cnt'><h2>Echo2 Technical Overview</h2> 
+<p><a href="http://echo.nextapp.com/site/echo2/doc/tov">http://echo.nextapp.com/site/echo2/doc/tov</a></p> 
+<p>This section contains the technical overview for the Echo Web Framework version 2.0/2.1.</p> 
+<h2>Fundamentals</h2> 
+<p><span class="submitted">Sat, 12/08/2007 - 03:13 — tliebeck</span></p> 
+<p><img style="padding-left: 20px; float: right" alt="Module Divisions" src="image/Echo2 Technical Over.b02398511641096c43a75b80.jpg" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/b02398511641096c43a75b80.jpg</p></p> 
+<h2>Module Divisions</h2> 
+<p>The Echo2 framework is divided into three distinct modules: the <em>Application Framework</em>, the <em>Web Rendering Engine</em>, and the <em>Web Application Container</em>. Coupling between the modules are kept to a minimum. The only dependency relationship amongst the modules is that the Web Application Container is dependent upon both the Application Framework and Web Rendering Engine modules. This dependency is NOT reciprocated.</p> 
+<h2>Application Framework</h2> 
+<p>The &quot;Application Framework&quot; module provides an API used to represent and manage the state of an application and its user interface. Nearly all of an Echo application developer's interaction with the framework will be through the Application Framework API--the ApplicationInstance, <code><font face="NSimsun">Component</font></code>s, property objects, and event/listener APIs used in developing an application are found within this module.</p> 
+<p>One of the most defining characteristics about the Application Framework is actually in what it DOES NOT provide: it specifically does not provide any capability for rendering a user interface to HTML or any capabilities for communicating with Web browsers. Further, it has no dependency on any such code. The Application Framework is designed such that it could theoretically be used in a scenario where a user interface were instead being rendered to Swing, SWT, Flash or any other local or remote environment.</p> 
+<h3>Update Manager</h3> 
+<p>While the Application Framework does not provide any rendering capabilities of its own, it does provide infrastructure for a rendering agent to interface with it. The <em>Update Manager</em> is used to track updates to the displayed hierarchy of <code><font face="NSimsun">Component</font></code> objects that make up the user interface of an Echo application, and to process input received from the rendering agent and communicate it to an application and its <code><font face="NSimsun">Component</font></code>s.</p> 
+<h2>Web Rendering Engine</h2> 
+<p>The &quot;Web Rendering Engine&quot; module is a set of tools which form the foundation of the client/server interaction facilities of the framework. The engine consists of a server-side portion (written in Java and utilizing the Java servlet API) and a client-side portion (written in JavaScript and making extensive use of the XMLHttpRequest object).</p> 
+<p>The Web Rendering Engine is written as a base/utilitarian layer that is entirely independent of / decoupled from any other module. The Web Rendering Engine is built as a somewhat generic API for synchronizing a web browser with a server-side application, and as such it has no direct connection to the Application Framework module.</p> 
+<h3>Server Engine</h3> 
+<p>The server-side portion of the Web Rendering Engine provides an <code><font face="NSimsun">HttpServlet</font></code> at its core that is used to process requests from the client. When the servlet receives an HTTP request, it will delegate it to an appropriate <code><font face="NSimsun">Service</font></code> object based on a <em>service identifier</em> provided in the request. Echo provides numerous <code><font face="NSimsun">Service</font></code> implementations that perform tasks such as rendering the initial state of a user interface as an HTML document, providing JavaScript modules, providing binary images, and rendering XML messages containing directives to perform frational DOM updates on the client.</p> 
+<h3>Client Engine</h3> 
+<p>The client-side portion of the Web Rendering Engine is a JavaScript application which runs in the client web browser and interacts with the server engine to provide a remote user interface to the server-side application. The Client Engine is responsible for initiating connections (via <em>XMLHttpRequeset</em>) to the Server Engine to synchronize client/server state when user operations warrant. It additionally provides a set of utilitarian APIs for interacting with web browsers in a platform-agnostic manner.</p> 
+<h2>Web Application Container</h2> 
+<p>The <em>Web Application Container</em> is an extension of the <em>Web Rendering Engine</em> that serves to render and synchronize the state of a user interface built with the <em>Application Framework</em> with remote web clients. As an extension of the Web Rendering Engine, it provides extensions to both the Server Engine and Client Engine, i.e., it contains server-side Java and client-side JavaScript code.</p> 
+<h2>Client/Server Synchronization</h2> 
+<span class="submitted">Sat, 12/08/2007 - 03:17 — tliebeck</span> 
+<p>As previously discussed, the state of an Echo2 application is fully described on the application server. Client web browsers are used as remote terminals to interact with the server-side application, with the browser's content being continuously updated from the server-side state. All significant user input is sent back to the server for processing.</p> 
+<h3>How It Works</h3> 
+<ul> 
+ <li>All updates to the state of an Echo2 client are performed using incremental modifications to the client's Document Object Model (DOM). The displayed &quot;page&quot; is <strong>never</strong> replaced.</li> 
+ <li>The server is notified of a user's actions on the client by way of XML messages (called <code><font face="NSimsun">ClientMesssage</font></code>s) sent from the client using the browser's <code><font face="NSimsun">XMLHttpRequest</font></code> capability.</li> 
+ <li>The server processes the input received in a <code><font face="NSimsun">ClientMessage</font></code>, updating the server-side state of the application to reflect the user's actions. Events are fired to interested listeners, likely resulting in further changes to the server-side state of the application.</li> 
+ <li>The server responds to the client's <code><font face="NSimsun">XMLHttpRequest</font></code> by rendering an XML message (a <code><font face="NSimsun">ServerMessage</font></code>) containing directives to update the client state to reflect these changes.</li> 
+ <li>When the client receives the response, it will process the directives in the <code><font face="NSimsun">ServerMessage</font></code> making incremental updates to the displayed DOM as a result.</li> 
+</ul> 
+<h2>Example Interaction</h2> 
+<p>The following example will walk through a single client/server synchronization operation. The example shows a server interaction with the &quot;NumberGuess&quot; tutorial application, where the user attempts to guess a randomly generated number between 1 and 100. In this particular case, the user has made two guesses and is entering a third guess, &quot;75&quot;. The screenshot below shows the state of the screen immediately before the user presses the &quot;Submit Guess&quot; button which will initiate the client/server interaction:</p> 
+<p><img src="image/Echo2 Technical Over.62468c133dd56498f6039e81.jpg" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/62468c133dd56498f6039e81.jpg</p></p> 
+<p>The screen below shows the state of the application after the user clicks the &quot;Submit Guess&quot; button. The guess is processed by the server and determined to be too low. The text of three Label components is updated, which is then reflected on the client's screen:</p> 
+<p><img src="image/Echo2 Technical Over.c41909245955df7bc9955980.jpg" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/c41909245955df7bc9955980.jpg</p></p> 
+<h3>Behind the Scenes</h3> 
+<p>We will now examine the <code><font face="NSimsun">ClientMessage</font></code> and <code><font face="NSimsun">ServerMessage</font></code>s sent through an <code><font face="NSimsun">XMLHttpRequest</font></code> during a single client/server interaction.</p> 
+<p>Initially the <code><font face="NSimsun">ClientMessage</font></code> is empty; the user has taken no actions since the last server interaction:</p> 
+<pre class="code">&lt;client-message&gt;
+&lt;/client-message&gt;</pre> 
+<p>The user then types in a guess, &quot;75.&quot; The fact that the user has updated the <code><font face="NSimsun">TextField</font></code> <strong>does not</strong> result in triggering a client/server interaction. Echo2's client engine will generally only synchronize with the server for <code><font face="NSimsun">ActionEvent</font></code>-producing operations.</p> 
+<pre class="code">&lt;client-message&gt;
+ &lt;message-part processor=&quot;EchoPropertyUpdate&quot;&gt;
+  &lt;property component-id=&quot;c_7&quot; name=&quot;text&quot;&gt;
+   75
+  &lt;/property&gt;
+ &lt;/message-part&gt;
+&lt;/client-message&gt;</pre> 
+<p>The user then clicks the &quot;Submit Guess&quot; button. In this case the operation will require a server interaction. The current state of the <code><font face="NSimsun">ClientMessage</font></code> is now as follows:</p> 
+<pre class="code">&lt;client-message&gt;
+ &lt;message-part processor=&quot;EchoPropertyUpdate&quot;&gt;
+  &lt;property component-id=&quot;c_7&quot; name=&quot;text&quot;&gt;
+   75
+  &lt;/property&gt;
+ &lt;/message-part&gt;
+ &lt;message-part processor=&quot;EchoAction&quot;&gt;
+  &lt;action component-id=&quot;c_8&quot; name=&quot;click&quot;/&gt;
+ &lt;/message-part&gt;
+&lt;/client-message&gt;</pre> 
+<p>The above <code><font face="NSimsun">ClientMessage</font></code> is now sent to the server, where it will be processed. The state of the server-side component hierarchy will be updated to reflect the user's changes.</p> 
+<p>As a result of these updates, various <code><font face="NSimsun">Component</font></code>s will fire events. The <code><font face="NSimsun">TextField</font></code>'s document will fire a <code><font face="NSimsun">DocumentEvent</font></code> notifying listeners of its change of state. The <code><font face="NSimsun">Button</font></code> will fire an <code><font face="NSimsun">ActionEvent</font></code> notifying listeners that it was pressed.</p> 
+<p>In the NumberGuess application, an <code><font face="NSimsun">ActionListener</font></code> is hooked to the &quot;Submit Guess&quot; <code><font face="NSimsun">Button</font></code> which will evaluate the user's guess. In this case the user has guessed incorrectly, and as a result the application will update the three labels that show the previous guess, the total number of guesses made, and the current valid range of guesses.</p> 
+<p>Once all updates have been made, the synchronization service will render its HTTP response. The response is in the form of an XML <code><font face="NSimsun">ServerMessage</font></code>, containing directives to update the state of the client browser:</p> 
+<pre class="code">&lt;server-message
+  xmlns=&quot;http://www.nextapp.com/products/echo2/svrmsg/servermessage&quot; 
+  async-interval=&quot;disable&quot;&gt;
+ &lt;libraries/&gt;
+ &lt;message-part-group id=&quot;init&quot;/&gt;
+ &lt;message-part-group id=&quot;preremove&quot;/&gt;
+ &lt;message-part-group id=&quot;remove&quot;&gt;
+  &lt;message-part processor=&quot;EchoDomUpdate.MessageProcessor&quot;&gt;
+   <span style="font-style: italic; color: rgb(127,0,0)">&lt;dom-remove target-id=&quot;c_4&quot;/&gt;
+   &lt;dom-remove target-id=&quot;c_5&quot;/&gt;
+   &lt;dom-remove target-id=&quot;c_6&quot;/&gt;</span>
+  &lt;/message-part&gt;
+ &lt;/message-part-group&gt;
+ &lt;message-part-group id=&quot;update&quot;&gt;
+  &lt;message-part processor=&quot;EchoDomUpdate.MessageProcessor&quot;&gt;
+   &lt;dom-add parent-id=&quot;c_2_cell_c_4&quot;&gt;
+    &lt;content&gt;
+     <span style="color: rgb(0,127,0); font-weight: bold">&lt;span xmlns=&quot;http://www.w3.org/1999/xhtml&quot; id=&quot;c_4&quot;&gt;
+      Your guess, 75 was too high. Try again:
+     &lt;/span&gt;</span>
+    &lt;/content&gt;
+   &lt;/dom-add&gt;
+   &lt;dom-add parent-id=&quot;c_2_cell_c_5&quot;&gt;
+    &lt;content&gt;
+     <span style="color: rgb(0,127,0); font-weight: bold">&lt;span xmlns=&quot;http://www.w3.org/1999/xhtml&quot; id=&quot;c_5&quot;&gt;
+      You have made 3 guesses.
+     &lt;/span&gt;</span>
+    &lt;/content&gt;
+   &lt;/dom-add&gt;
+   &lt;dom-add parent-id=&quot;c_2_cell_c_6&quot;&gt;
+    &lt;content&gt;
+     <span style="color: rgb(0,127,0); font-weight: bold">&lt;span xmlns=&quot;http://www.w3.org/1999/xhtml&quot; id=&quot;c_6&quot;&gt;
+      Guess a number between 1 and 49:
+     &lt;/span&gt;</span>
+    &lt;/content&gt;
+   &lt;/dom-add&gt;
+  &lt;/message-part&gt;
+ &lt;/message-part-group&gt;
+ &lt;message-part-group id=&quot;postupdate&quot;/&gt;
+
+&lt;/server-message&gt;</pre> 
+<p>In this case, the server requests that the client re-render three <code><font face="NSimsun">Label</font></code> components. The three <code><font face="NSimsun">&lt;dom-remove&gt;</font></code> directives instruct the client engine to remove the pre-existing labels, and the three <code><font face="NSimsun">&lt;dom-add&gt;</font></code> directives instruct the client to render their replacements in the appropriate locations.</p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

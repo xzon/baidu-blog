@@ -1,0 +1,85 @@
+<html><head><title>关于Java 7模块系统</title></head><body><div id='tit'>关于Java 7模块系统</div><div id='cate'>趋势&middot;演变</div><div id='date'>2009年05月15日 星期五 10:32 P.M.</div><div id='page'>51</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/a97af103217e17e409fa93c1.html'>http://hi.baidu.com/hxzon/blog/item/a97af103217e17e409fa93c1.html</a><div id='cnt'><h1>关于Java 7模块系统</h1> 
+<p class="info">作者 <strong><a href="http://www.infoq.com/cn/bycategory.action?authorName=Lukas-Krecan" class="editorlink">Lukas Krecan</a> </strong>译者<strong><a href="http://www.infoq.com/cn/bycategory.action?authorName=%E5%BC%A0%E5%87%AF%E5%B3%B0" class="editorlink"> 张凯峰</a> </strong>发布于 2009年5月11日 下午11时12分</p> 
+<dl class="tags2">
+ <dt class="community">
+  社区 
+ </dt>
+ <dd>
+  <a name="java" href="http://www.infoq.com/cn/java">Java</a> 
+ </dd>
+ <dt class="topics">
+  主题 
+ </dt>
+ <dd>
+  <a name="Language" href="http://www.infoq.com/cn/">语言</a> 
+ </dd>
+ <dt class="topics">
+  标签 
+ </dt>
+ <dd>
+  <a name="osgi" href="http://www.infoq.com/cn/osgi">OSGi</a>, 
+ </dd>
+ <dd>
+  <a name="jsr277" href="http://www.infoq.com/cn/jsr277">JSR 277</a>, 
+ </dd>
+ <dd>
+  <a name="jsr294" href="http://www.infoq.com/cn/jsr294">JSR 294</a>
+ </dd>
+</dl> 
+<p>最近，新的Java模块系统已经受到了大量的关注。在观看过Devoxx关于Jigsaw的一段演示后，我很兴奋，觉得它应该会是针对复杂类路径版本问题和JAR陷阱等问题的解决方案。开发者最终能够使用他们所期望的任何Xalan版本，而无需被迫使用授权机制。不幸的是，通往更加有效的模块系统的征途并不是很清晰。</p> 
+<p>在研究确实问题之前，我们先来看一些基本概念：</p> 
+<h2>模块化</h2> 
+<p>模块化是解决复杂性问题很重要的工具。把应用分成不同的部分（模块、库、包、子项目和组件），再分别进行计算，是行之有效的方式。模块化的最终目的是能定义出一套API用于模块间的沟通。</p> 
+<p>如果模块间所有的通讯都只通过这种API来实现，那么模块是松耦合的，于是：</p> 
+<ul> 
+ <li>改变某个模块的实现会很容易</li> 
+ <li>开发和测试各个模块能很容易独立开来</li> 
+</ul> 
+<p>面向对象模式也是类似的道理。在OOP中，理想的状况是拥有大量小的、可重用的、简单并分离良好的对象。在模块系统中，就可以完美地实现小的、可重用的、简单并分离良好的模块。它们的想法和最初的动机是完全一样的，只是规模有所不同。</p> 
+<h3>逻辑分离</h3> 
+<p>传统上，Java中有两种办法来实现模块化。逻辑分离是最自然的方式。它包括将应用程序分割成逻辑模块（子项目），最后再部署成一个完整的应用。通过定义正确的包来实现逻辑分离也是可能的，但更通用的办法是把应用分割成一些存档文件（也就是JAR包）。逻辑分离里能促进模块的重用，有助实现模块间的松耦合。你甚至有可能定义一个API，然后宣布所有模块间的通讯都要通过这个给定的API来实现。这样的想法有个大问题，那就是你很难强破大家都采用这种限制性用法，而且没有任何一种机制能够确保这个API的用法。你也没法把那些应用通过给定模块来使用的类和作为公共API一部分的类区分开来。如果一个类是“ 公共的”，那它就可以被任何其他类使用，无论调用它的那个类属于哪个模块。另一方面，受保护的或者包级可见性的类在其模块内部的调用也有限制。通常来说，涵盖了一些包以及包中类的模块需要能够互相调用。因此即使某个应用是由一些逻辑模块组成，但如果这些模块是耦合的，那么分离也根本没有用处。</p> 
+<h3>物理分离</h3> 
+<p>另外一个传统的办法就是物理上的分离。你可以通过将应用分割成不同的组件，然后把每个组件部署到不同的JVM上而实现分离。这些组件间通过远程访问机制进行通讯，比如RMI、CORBA或者WebServices。物理分离实现了分离，也实现了松耦合，但负面影响是开支很大。为实现分离而专门采用远程访问机制，有点杀鸡用牛刀的味道。这会增加开发和部署不必要的复杂性，性能上所受到的影响也不能忽视的。</p> 
+<h3>模块系统</h3> 
+<p>模块系统的作用位于逻辑分离和物理分离之间。它强调模块分离，但各个模块仍然部署到同一个JVM中，而且模块间的通讯由简单传统的方法调用组成，因此不会有运行时的开支负担。在Java生态系统中最流行的模块框架是<a href="http://www.osgi.org/">OSGi</a>。它是一个成熟的规范，具有几个不同的实现。在OSGi中，模块被称作bundle，每个bundle等同于一个JAR。每个bundle也包含一个 META-INF/MANIFEST.MF文件，这个文件会宣布导出哪些包（package）以及导入哪些包。只有那些导出包中的类才能被其他 bundle所使用，而其他包都只面向包的内部成员，包里的类也只能在自身bundle中使用。</p> 
+<p>比如下面这个声明：</p> 
+<pre>Manifest-Version: 1.0<br />Import-Package: net.krecan.spring.osgi.common<br />Export-Package: net.krecan.spring.osgi.dao<br />Bundle-Version: 1.0.0<br />Bundle-Name: demo-spring-osgi-dao<br />Bundle-SymbolicName: net.krecan.spring-osgi.demo-spring-osgi-dao</pre> 
+<p>这个规范指定了名叫demo-spring-osgi-dao的bundle，它要导入包名为 net.krecan.spring.osgi.common中的类，并导出包名为net.krecan.spring.osgi.dao中的类。换句话说，这段声明表明其他模块只能使用net.krecan.spring.osgi.dao包。相反地，这个模块要使用的则只是 net.krecan.spring.osgi.common包，而且也可能会由OSGi来提供专门的模块负责导出这个包。当然你完全可以在导入和导出声明中定义多个包名。</p> 
+<p>需要特别注意的是，OSGi的模块化是构建在Java之上的。它不是语言的一部分！这里的模块分离虽然可以由GUI来执行，但不可以由编译器来执行。运行基于OSGi的应用时，你会需要一个OSGi的容器。这个容器可能是运行时环境的一部分，比如在<a href="http://www.springsource.com/products/suite/dmserver">Spring DM</a>服务器中，也可能是嵌入在应用程序中的。这个容器不仅负责提供分离，也提供了其他诸如安全、模块管理和生命周期管理之类的服务。OSGi还提供大量其他有趣的特性，但这些并不是本文所要关注的。</p> 
+<p><a href="http://www.infoq.com/news/2007/08/osgi-jsr277-debate">关于JSR-277曾经有很多争议</a>，这个JSR一度跟OSGi有部分重复。连续好几个月，双方的专家都极力辩论谁更优秀，直到JSR-277被宣布放弃，而新的模块系统将会是Java 7的一部分。</p> 
+<h3>JSR-294</h3> 
+<p>这个新的模块系统的第一部分就是<a href="http://jcp.org/en/jsr/detail?id=294">JSR-294</a>，即所谓的超级包。也正是这个规范阐释了Java语言的模块部分的概念。</p> 
+<p>JSR-294引入了新的可见性关键字“module”。如果一个成员拥有这样的可见性，那就意味着它只对同一模块中的成员可见。它会创建一个内部的 API，只有模块本身能调用。就此看来，“public”关键字应当只在声明一个公共的API时才用。而在其他情况下，应当使用“module”或者有更多限制的可见性关键字。当然，一旦语言中有了“module”关键字，那么模块之间的可见性限制将会由编译器来负责检查。</p> 
+<p>JSR-294也允许定义依赖性。你可以在某个给定版本中，定义某个模块依赖于另一模块。比如：</p> 
+<pre>//org/netbeans/core/module-info.java<br />@Version(&quot;7.0&quot;)<br />@ImportModule(name=&quot;java.se.core&quot;, version=&quot;1.7+&quot;)<br />module org.netbeans.core;</pre> 
+<p>最后一句表明“org.netbeans.core”模块依赖“java.se.core”的1.7版本或者更高。这类似于Maven的依赖性或者 OSGi的导入。你也可以暂时不要管这些语法，因为将来语法可能会另有变化。重要的是，这儿的依赖是在module-info.java中定义的，会被编译成class文件。而OSGi中，依赖则是在普通的文本文件中定义的。</p> 
+<h3>Jigsaw项目</h3> 
+<p><a href="http://blogs.sun.com/mr/entry/jigsaw">Jigsaw</a>项目是这个新模块系统的第二部分。我预计它会是JSR-294特定于Sun的实现，也会是Sun JDK的模块化实现。既然<a href="http://www.infoq.com/news/2008/11/modular_jdk">创建完整的JDK模块化是有必要的</a>，Sun就希望把标准库分装成模块。这直接简化了JRE中的内容整合。整个JRE除了Swing之外的所有内容因此都能够在移动设备上运行。它还有可能为语言引入新的标准API，而无需再等待整个平台的新版本发布。目前看起来，这个项目绝对有希望实现。</p> 
+<p>但我对此还有个担忧，那就是，a href=&quot;http://blogs.sun.com/mr/entry/jigsaw&quot;&gt;专有的Jigsaw和JSR标准之间的关系并不清晰，正如Mark Reinhold所说的：</p> 
+<blockquote>
+ 对Jigsaw的投入无疑会创建出一个简单的、低层次的模块系统，它的设计会严格地朝着JDK模块化的目标而发展。开发人员可以把这个模块系统运用到他们的代码中去，Sun对这个模块系统也会是绝对的支持，但它不会是Java SE 7平台规范的官方部分，也可能不会被其他SE 7实现所支持。 
+</blockquote> 
+<p>这段话说的不是很清楚，当中有很多疑问。他的意思是说创建的模块只能在Sun JRE中运行吗？还是想说，如果开发者写了“<code><font face="新宋体">@ImportModule(name=&quot;java.se.core&quot;, version=&quot;1.7+&quot;)</font></code>”，那么这个模块只能在Sun JRE中运行，而不能在IBM JRE环境中运行吗？或者他的意思是不是说Sun会以某种方式把它的JRE分割成许多模块，而Oracle会选择另外的方式去分割吗？(译者注：至少现在看来，不太会有这样的可能了，因为Oracle刚刚收购了Sun)。我们希望都不是，因为还有“编写一次，到处运行”的原则。</p> 
+<p>细究起来问题更多。我们并不清楚Jigsaw项目的主要目标是什么。据项目本身所宣布的主要目标来看，它要实现的是Sun JRE的模块化，但如果纯粹是要实现模块化的话，就不需要对语言做任何改变。Sun可以对JRE进行模块化，而不修改Java语言本身。</p> 
+<p>这些语言上的变化会不会成为Sun JRE模块化带来的副产品？如果是，那就彻底错了！语言变化必须是一等公民，而不是专属的副产品。</p> 
+<h2>依赖</h2> 
+<p>我的另外一个担心在于依赖性。如果依赖性由模块系统来管理，那就不再需要classpath了。一方面这很不错，因为classpath经常会导致所谓的<a href="http://en.wikipedia.org/wiki/JAR_hell#hell">JAR地狱</a>问题。但另一方面，classpath也是极度灵活的，我恐怕这种灵活性是不可能由一个静态的模块依赖能够拥有的。让我们来看看为什么：</p> 
+<h3>部署时依赖</h3> 
+<p>Java中有两种类路径（classpath）。一个是构建路径（buildpath），它用在构建时。另外一个是类路径，用在运行时。两者几乎相同，但又不完全是。经典的例子就是JDBC驱动。在构建时，你不需要指定JDBC驱动，JDBC接口是Java核心库的一部分。但在运行时，你就有必要确保类路径中有JDBC的驱动。如果某个编程人员需要修改数据库连接，他只需要在配置文件中修改驱动类的名称，并把驱动jar文件添加到类路径就可以了。如果所有的依赖需要在编译时指定，开发者很明显无法做到这点。当然，在Java EE中，他可以使用JNDI数据源，但在Java SE中没有类似的东西，一旦修改JDBC驱动，就不得不重新编译整个应用，这明显很不靠谱。</p> 
+<p>通常来说，重新编译不太可能。在一些组织中，最终的应用是由所谓的应用装配器的模块组装而成的。开发者没有源代码，他只是把一些JAR放在一起，修改一下配置文件，然后创建最终的包。<a href="http://java.sun.com/javaee/5/docs/tutorial/doc/bnaca.html">应用装配器的角色</a>甚至在Java EE的规范中都有提到。</p> 
+<h3>可选依赖</h3> 
+<p>类似的问题就是可选依赖。我们假设我们要做一个像log4j这样的日志框架。这个库可以对JMS记录日志，因此JMS包必须涵盖在构建路径中。但 99%的用户并不使用JMS日志，因此他们不需要把依赖放在类路径中。对于这样的问题，必须要有某种机制来解决。我们需要一个库来构建这个模块，这种依赖对最终用户来说则是可选的。当然，完美的情况是，JMS功能会是个独立模块，可我们并不是生活在一个完美的世界，而且某些时候用这种方式来分割项目也不太现实。</p> 
+<h3>依赖冲突</h3> 
+<p>另外一个大问题就是依赖冲突。如果你用过Maven，就不难理解我在说什么了。大多数企业应用都会用到大约十几个第三方库，它们之间的互相依赖有时就会发生冲突。比如，一个开发者想要使用Hibernate，它依赖commons-collections 2.1.1，他还想用commons-dbcp，却需要依赖commons-collections 2.1。开发者自己或者应用装配器需要决定怎样解决此类问题。他要么决定在应用中只用某个特定版本的库，要么决定在应用的不同部分采用不同版本的类库。重要的是，这些问题无法自行解决。它总需要由某个了解各个模块在应用中如何运作的人来作决定，而这个人又要能识别不同版本间可能存在的不兼容性。</p> 
+<p>关于Java依赖性，还有许多东西本文不展开讨论，但需要铭记的一点是，它们不是静态的。一个应用的构件可能采用了某套类库，而它的运行却需要另外一套完全不同的库。所有模块系统必须以某种方式把这些问题解决掉。Maven具有大量关于如何配置依赖，以及如何处理依赖冲突等等的选项，但它只是个构建系统。最糟糕的情况是需要手动配置类路径。OSGi则是另外一种情形。它只处理运行时（部署时）依赖，不管构建时。新的Java模块系统会同时支持构建时和运行时依赖（我猜测），甚至会把既有的复杂问题变得愈加复杂。</p> 
+<h2>总结</h2> 
+<p>当然，我相信Sun的工程师并不想要破坏Java本身。我想他们也是为了让Java变得更好、更易于使用，但我担心政治和市场因素会远大于技术影响。再次声明，这不会仅仅是个API的变化或者是特定于Sun的变化。这会是语言级别的变化！一旦语言被改变了，一旦添加了“module”关键字，就不会再有回头路。到那时，Java中会有个模块系统，无论喜不喜欢，我们都非得要用到这个模块系统。真得很难想象带模块化的JVM，也很难想像Java语言中会有个 “module”关键字，而我们还要在这之上使用OSGi。</p> 
+<h2>参考</h2> 
+<ul> 
+ <li><a href="http://blogs.sun.com/mr/entry/jigsaw">http://blogs.sun.com/mr/entry/jigsaw</a></li> 
+ <li><a href="http://www.jquantlib.org/images/1/15/Modularity_in_the_Java_Platform.pdf">http://www.jquantlib.org/images/1/15/Modularity_in_the_Java_Platform.pdf</a></li> 
+ <li><u><a href="http://blogs.sun.com/andreas/entry/superpackages_in_jsr_294">http://blogs.sun.com/andreas/entry/superpackages_in_jsr_294</a></u></li> 
+ <li><a href="http://neilbartlett.name/blog/2008/12/08/hope-fear-and-project-jigsaw/">http://neilbartlett.name/blog/2008/12/08/hope-fear-and-project-jigsaw/</a></li> 
+</ul> 
+<p><strong>Luka Krecan是个Java EE开发者兼自由作者。他在现实世界中为实体公司工作，但闲时他在理想而完美世界中围绕编程而<a href="http://blog.krecan.net/category/articles-in-english/">写作</a></strong>。</p> 
+<p><a href="http://www.infoq.com/cn/articles/java7-module-system">http://www.infoq.com/cn/articles/java7-module-system</a></p></div></body></html>

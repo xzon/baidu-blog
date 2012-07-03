@@ -1,0 +1,58 @@
+<html><head><title>关于数据库里cascade的用法，在MySQL和Hibernate是不同的</title></head><body><div id='tit'>关于数据库里cascade的用法，在MySQL和Hibernate是不同的</div><div id='cate'>细节</div><div id='date'>2010年01月10日 星期日 04:22 P.M.</div><div id='page'>20</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/669e5f82e48f82a90cf4d28a.html'>http://hi.baidu.com/hxzon/blog/item/669e5f82e48f82a90cf4d28a.html</a><div id='cnt'><h2>关于数据库里cascade的用法，在MySQL和Hibernate是不同的</h2> 
+<div class="t_msgfont">
+ 在数据库里，进行增加、修改、删除记录的时候，经常会涉及到父子关系的表。
+ <br /> 
+ <br /> 例如：有省份表和城市表，其中城市表有一个外键province_id引用到省份表的主键。这样，可以把省份表看成是父表，把城市表看成是子表，城市表记录的存在依赖于省份表的记录。（文中提到的例子，所有的代码在附件里都有，所以这里的描述从简）
+ <br /> 
+ <br /> 
+ <strong>一、在MySQL里的cascade</strong>
+ <br /> 
+ <br /> 以下直接在MySQL的控制台操作省份表和城市表
+ <br /> 
+ <br /> 在省份表增加一条“广东”的记录，在城市表增加一条“广州”的记录，并且把“广州”的外键引用到“广东”的主键。“广州”的存在依赖于“广东”，如果删除省份表的“广东”，将会影响到城市表的“广州”。根据城市表的外键约束的on delete设置，有如下三种情况：
+ <br /> 
+ <br /> 1、外键没有on delete的设置：当删除“广东”的时候，MySQL会报错，删除失败。
+ <br /> 
+ <br /> 2、外键设置为on delete cascade：当删除“广东”的时候，同时把“广州”也删除。
+ <br /> 
+ <br /> 3、外键设置为on delete set null：当删除“广东”的时候，“广州”的外键province_id会被自动设置为null，即“广州”脱离了对“广东”的依赖关系。
+ <br /> 
+ <br /> 
+ <strong>二、在Hibernate里的cascade</strong>
+ <br /> 
+ <br /> 以下用Hibernate来操作省份表和城市表
+ <br /> 
+ <br /> 首先，在hibernate.cfg.xml文件配置好连接MySQL数据库的相关属性（请在那里修改登陆数据库的密码）。然后，为省份表和城市表添加相关的POJO类和XML映射文件。用SQL语句建表（在附件的test_cascade.sql里），城市表有一个外键province_id引用到省份表的主键，并把这个外键设置为on delete cascade。这个外键约束，在Hibernate变成了双向的映射关系：City类有一个类型为Province的province属性，关联到省份表，在映射文件中是many-to-one的关系；Province类有一个Set&lt;City&gt;的cities属性，关联到城市表，在映射文件中是one-to-many的关系。
+ <br /> 
+ <br /> 在Hibernate的映射文件里，同样可以设置cascade属性来控制父子关系。通常在父表设置cascade属性，有以下几种情况：
+ <br /> 
+ <br /> 1、没有设置cascade属性
+ <br /> 
+ <br /> 用方法addInNoCascade()增加记录“广东”和“广州”（方法在类CityManager里，以下同），再用方法delete()删除“广东”，将会出现异常，系统会说因为“广东”被城市表外键关联了而不能删除。用SQL建表时，已经把外键设为on delete cascade，怎么不能把“广东”删除的同时，级联删除“广州”呢？用MyEclipse查看城市表，发现有两个外键，如图所示：
+ <br /> 
+ <br /> 
+ <img onxxxxx="zoom(this, this.src)" src="image/关于数据库里cascade的用法，在My.attachment.php-aid=212&amp;k=9dc43f7942ee10507d03d07bbcd4c5fd&amp;t=1218284461" onxxxx="attachimg(this, 'load')" border="0" />
+ <p class="origImg">http://www.crazyit.org/attachment.php?aid=212&amp;k=9dc43f7942ee10507d03d07bbcd4c5fd&amp;t=1218284461</p>
+ <br /> 
+ <br /> 第2个外键是用SQL建表时生成的，设置了on delete cascade；而第1个外键应该是用Hibernate操作数据库时，Hibernate自动建立的。第1个外键的On delete被设置为No action，因此删除“广东”的时候，受到这个外键的限制，导致删除失败。
+ <br /> 
+ <br /> 2、设置cascade属性为delete-orphan
+ <br /> 
+ <br /> 在映射文件Province.hbm.xml中，在one-to-many关系对应的Set里，设置cascade=&quot;delete-orphan&quot;，此功能与MySQL里设置外键设置为on delete cascade相同。再用方法delete()删除“广东”，删除成功。即是，设置cascade为delete-orphan以后，对删除父表记录的时候，会同时删除子表的相关记录。
+ <br /> 
+ <br /> 3、设置cascade属性为all
+ <br /> 
+ <br /> cascade的属性，除了可以是delete-orphan，还可以是create、update、delete、all等等。all代表除 delete-orphan以外的所有属性值，当设置cascade为all以后，对父表记录的增加、修改操作，会影响到子表的相关记录。
+ <br /> 
+ <br /> 在映射文件Province.hbm.xml中，在one-to-many关系对应的Set里，设置cascade=&quot;all&quot;。用方法 addInCascadeOfAll()增加记录“广东”，方法里只有save“广东”，并没有save“深圳”，只是用属性关联了“广东”和“深圳”的关系。结果显示，深圳也被添加到数据库里，这就是cascade=&quot;all&quot;的作用，使对父表的操作影响到子表。
+ <br /> 
+ <br /> 
+ <strong>注意</strong>：A、delete-orphan是一个特别的属性值，只能应用在one-to-many关系的cascade属性。B、cascade属性通常在one-to-one和one-to-many关系里应用，不推荐在many-to-one或者many-to- many关系里应用。
+ <br /> 
+ <br /> 
+ <strong>三、总结</strong>
+ <br /> 
+ <br /> 1、MySQL里设置cascade和在Hibernate设置cascade是不同的。在MySQL里设置了cascade，并不能对Hibernate的操作起到作用，原因是Hibernate自动为子表添加了外键。
+ <br /> 
+ <br /> 2、使用级联(cascade)功能，方便了数据库的操作，使得操作一个表的记录会影响到其他表的记录。但是，级联功能会带来安全隐患。特别是在 Hibernate里，修改一个POJO对象的映射引用属性，会导致该引用属性所对应的POJO对象受到影响。例如，把“广东”的 Set&lt;City&gt;类型的cities属性清空（即对集合Set调用clear()方法），则会导致把引用“广东”的“深圳”删除了。因此，使用级联功能时要小心谨慎。
+</div></div></body></html>

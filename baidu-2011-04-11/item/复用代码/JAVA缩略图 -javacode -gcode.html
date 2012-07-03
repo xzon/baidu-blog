@@ -1,0 +1,216 @@
+<html><head><title>JAVA缩略图 -javacode -gcode</title></head><body><div id='tit'>JAVA缩略图 -javacode -gcode</div><div id='cate'>复用代码</div><div id='date'>2009年05月22日 星期五 11:15 A.M.</div><div id='page'>50</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/ff0258df9d000c1b48540300.html'>http://hi.baidu.com/hxzon/blog/item/ff0258df9d000c1b48540300.html</a><div id='cnt'><h1 class="title_txt"><font size="3">JAVA缩略图 -javacode -gcode</font></h1> 
+<p>方法1：[第一种方法比后一种生成的缩略图要清晰] //hxzon 优于上一种，仍保持透明。</p> 
+<p>package com.xxx.test;</p> 
+<p>import java.awt.Graphics2D;<br /> import java.awt.RenderingHints;<br /> import java.awt.geom.AffineTransform;<br /> import java.awt.image.BufferedImage;<br /> import java.awt.image.ColorModel;<br /> import java.awt.image.WritableRaster;<br /> import java.io.File;</p> 
+<p>import javax.imageio.ImageIO;</p> 
+<p>public class Thumbnail01 {<br /> public static BufferedImage resize(BufferedImage source, int targetW, int targetH) {<br /> // targetW，targetH分别表示目标长和宽<br /> int type = source.getType();<br /> BufferedImage target = null;<br /> double sx = (double) targetW / source.getWidth();<br /> double sy = (double) targetH / source.getHeight();<br /> //这里想实现在targetW，targetH范围内实现等比缩放。如果不需要等比缩放<br /> //则将下面的if else语句注释即可<br /> if(sx&gt;sy)<br /> {<br /> sx = sy;<br /> targetW = (int)(sx * source.getWidth());<br /> }else{<br /> sy = sx;<br /> targetH = (int)(sy * source.getHeight());<br /> }<br /> if (type == BufferedImage.TYPE_CUSTOM) { //handmade<br /> ColorModel cm = source.getColorModel();<br /> WritableRaster raster = cm.createCompatibleWritableRaster(targetW, targetH);<br /> boolean alphaPremultiplied = cm.isAlphaPremultiplied();<br /> target = new BufferedImage(cm, raster, alphaPremultiplied, null);<br /> } else<br /> target = new BufferedImage(targetW, targetH, type);<br /> Graphics2D g = target.createGraphics();<br /> //smoother than exlax:<br /> g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY );<br /> g.drawRenderedImage(source, AffineTransform.getScaleInstance(sx, sy));<br /> g.dispose();<br /> return target;<br /> }<br /> public static void saveImageAsJpg (String fromFileStr,String saveToFileStr,int width,int hight)<br /> throws Exception {<br /> BufferedImage srcImage;<br /> // String ex = fromFileStr.substring(fromFileStr.indexOf(&quot;.&quot;),fromFileStr.length());<br /> String imgType = &quot;JPEG&quot;;<br /> if (fromFileStr.toLowerCase().endsWith(&quot;.png&quot;)) {<br /> imgType = &quot;PNG&quot;;<br /> }<br /> // System.out.println(ex);<br /> File saveFile=new File(saveToFileStr);<br /> File fromFile=new File(fromFileStr);<br /> srcImage = ImageIO.read(fromFile);<br /> if(width &gt; 0 || hight &gt; 0)<br /> {<br /> srcImage = resize(srcImage, width, hight);<br /> }<br /> ImageIO.write(srcImage, imgType, saveFile);</p> 
+<p>}<br /> <br /> public static void main (String argv[]) {<br /> try{<br /> //参数1(from),参数2(to),参数3(宽),参数4(高)<br /> Thumbnail01.saveImageAsJpg(&quot;images/image1.png&quot;,&quot;image1-s.jpg&quot;,50,50);<br /> } catch(Exception e)<br /> {<br /> e.printStackTrace();<br /> }</p> 
+<p>}<br /> }<br /> <br /> 方法2：</p> 
+<div>
+ import java.io.*;
+ <br /> import java.util.*;
+ <br /> import com.sun.image.codec.jpeg.*;
+ <br /> import java.awt.image.*;
+ <br /> import java.awt.*;
+ <br /> import java.net.*;
+ <br /> import java.applet.*;
+ <br /> import java.sql.*;
+ <br /> 
+ <br /> //缩略图类，
+ <br /> //本java类能将jpg图片文件，进行等比或非等比的大小转换。
+ <br /> //具体使用方法
+ <br /> //s_pic(大图片路径,生成小图片路径,大图片文件名,生成小图片文名,生成小图片宽度,生成小图片高度,是否等比缩放(默认为true))
+ <br /> public class Tes {
+ <br /> String InputDir; //输入图路径
+ <br /> String OutputDir; //输出图路径
+ <br /> String InputFileName; //输入图文件名
+ <br /> String OutputFileName; //输出图文件名
+ <br /> int OutputWidth = 80; //默认输出图片宽
+ <br /> int OutputHeight = 80; //默认输出图片高
+ <br /> int rate = 0;
+ <br /> boolean proportion = true; //是否等比缩放标记(默认为等比缩放)
+ <br /> 
+ <br /> public Tes() {
+ <br /> //初始化变量
+ <br /> InputDir = &quot;&quot;;
+ <br /> OutputDir = &quot;&quot;;
+ <br /> InputFileName = &quot;&quot;;
+ <br /> OutputFileName = &quot;&quot;;
+ <br /> OutputWidth = 80;
+ <br /> OutputHeight = 80;
+ <br /> rate = 0;
+ <br /> }
+ <br /> 
+ <br /> public void setInputDir(String InputDir) {
+ <br /> this.InputDir = InputDir;
+ <br /> }
+ <br /> 
+ <br /> public void setOutputDir(String OutputDir) {
+ <br /> this.OutputDir = OutputDir;
+ <br /> }
+ <br /> 
+ <br /> public void setInputFileName(String InputFileName) {
+ <br /> this.InputFileName = InputFileName;
+ <br /> }
+ <br /> 
+ <br /> public void setOutputFileName(String OutputFileName) {
+ <br /> this.OutputFileName = OutputFileName;
+ <br /> }
+ <br /> 
+ <br /> public void setOutputWidth(int OutputWidth) {
+ <br /> this.OutputWidth = OutputWidth;
+ <br /> }
+ <br /> 
+ <br /> public void setOutputHeight(int OutputHeight) {
+ <br /> this.OutputHeight = OutputHeight;
+ <br /> }
+ <br /> 
+ <br /> public void setW_H(int width, int height) {
+ <br /> this.OutputWidth = width;
+ <br /> this.OutputHeight = height;
+ <br /> }
+ <br /> 
+ <br /> public String s_pic() {
+ <br /> BufferedImage image;
+ <br /> String NewFileName;
+ <br /> //建立输出文件对象
+ <br /> File file = new File(OutputDir + OutputFileName);
+ <br /> FileOutputStream tempout = null;
+ <br /> try {
+ <br /> tempout = new FileOutputStream(file);
+ <br /> } catch (Exception ex) {
+ <br /> System.out.println(ex.toString());
+ <br /> }
+ <br /> Image img = null;
+ <br /> Toolkit tk = Toolkit.getDefaultToolkit();
+ <br /> Applet app = new Applet();
+ <br /> MediaTracker mt = new MediaTracker(app);
+ <br /> try {
+ <br /> img = tk.getImage(InputDir + InputFileName);
+ <br /> mt.addImage(img, 0);
+ <br /> mt.waitForID(0);
+ <br /> } catch (Exception e) {
+ <br /> e.printStackTrace();
+ <br /> }
+ <br /> 
+ <br /> if (img.getWidth(null) == -1) {
+ <br /> System.out.println(&quot; can't read,retry!&quot; + &quot;&lt;BR&gt;&quot;);
+ <br /> return &quot;no&quot;;
+ <br /> } else {
+ <br /> int new_w;
+ <br /> int new_h;
+ <br /> if (this.proportion == true) { //判断是否是等比缩放.
+ <br /> //为等比缩放计算输出的图片宽度及高度
+ <br /> double rate1 = ((double) img.getWidth(null)) /
+ <br /> (double) OutputWidth + 0.1;
+ <br /> double rate2 = ((double) img.getHeight(null)) /
+ <br /> (double) OutputHeight + 0.1;
+ <br /> double rate = rate1 &gt; rate2 ? rate1 : rate2;
+ <br /> new_w = (int) (((double) img.getWidth(null)) / rate);
+ <br /> new_h = (int) (((double) img.getHeight(null)) / rate);
+ <br /> } else {
+ <br /> new_w = OutputWidth; //输出的图片宽度
+ <br /> new_h = OutputHeight; //输出的图片高度
+ <br /> }
+ <br /> BufferedImage buffImg = new BufferedImage(new_w, new_h,
+ <br /> BufferedImage.TYPE_INT_RGB);
+ <br /> 
+ <br /> Graphics g = buffImg.createGraphics();
+ <br /> 
+ <br /> g.setColor(Color.white);
+ <br /> g.fillRect(0, 0, new_w, new_h);
+ <br /> 
+ <br /> g.drawImage(img, 0, 0, new_w, new_h, null);
+ <br /> g.dispose();
+ <br /> 
+ <br /> JPEGImageEncoder encoder = JPEGCodec.createJPEGEncoder(tempout);
+ <br /> try {
+ <br /> encoder.encode(buffImg);
+ <br /> tempout.close();
+ <br /> } catch (IOException ex) {
+ <br /> System.out.println(ex.toString());
+ <br /> }
+ <br /> }
+ <br /> return &quot;ok&quot;;
+ <br /> }
+ <br /> 
+ <br /> public String s_pic(String InputDir, String OutputDir, String InputFileName,
+ <br /> String OutputFileName) {
+ <br /> //输入图路径
+ <br /> this.InputDir = InputDir;
+ <br /> //输出图路径
+ <br /> this.OutputDir = OutputDir;
+ <br /> //输入图文件名
+ <br /> this.InputFileName = InputFileName;
+ <br /> //输出图文件名
+ <br /> this.OutputFileName = OutputFileName;
+ <br /> return s_pic();
+ <br /> }
+ <br /> 
+ <br /> public String s_pic(String InputDir, String OutputDir, String InputFileName,
+ <br /> String OutputFileName, int width, int height,
+ <br /> boolean gp) {
+ <br /> //输入图路径
+ <br /> this.InputDir = InputDir;
+ <br /> //输出图路径
+ <br /> this.OutputDir = OutputDir;
+ <br /> //输入图文件名
+ <br /> this.InputFileName = InputFileName;
+ <br /> //输出图文件名
+ <br /> this.OutputFileName = OutputFileName;
+ <br /> //设置图片长宽
+ <br /> setW_H(width, height);
+ <br /> //是否是等比缩放 标记
+ <br /> this.proportion = gp;
+ <br /> return s_pic();
+ <br /> }
+ <br /> 
+ <br /> public static void main(String[] a) {
+ <br /> //s_pic(大图片路径,生成小图片路径,大图片文件名,生成小图片文名,生成小图片宽度,生成小图片高度)
+ <br /> Tes mypic = new Tes();
+ <br /> System.out.println(
+ <br /> mypic.s_pic(&quot;E:\\Document\\My Pictures\\&quot;,
+ <br /> &quot;E:\\Document\\My Pictures\\&quot;,
+ <br /> &quot;topbg-3.gif&quot;, &quot;3.gif&quot;, 400, 400, true)
+ <br /> );
+ <br /> 
+ <br /> }
+ <br /> }
+</div> 
+<p><br /> 3.jsp方式</p> 
+<div>
+ java.io.*,java.awt.Image,java.awt.image.*,com.sun.image.codec.jpeg.*,
+ <br /> 
+ <br /> &nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> java.io.File file = new java.io.File(&quot;E:\\Document\\My Pictures\\3.gif&quot;); 
+ <br /> String newurl=&quot;E:\\Document\\My Pictures\\32.gif&quot;; //新的缩略图保存地址
+ <br /> Image src = javax.imageio.ImageIO.read(file); //构造Image对象
+ <br /> float tagsize=200;
+ <br /> int old_w=src.getWidth(null); //得到源图宽
+ <br /> int old_h=src.getHeight(null); 
+ <br /> int new_w=0;
+ <br /> int new_h=0; //得到源图长
+ <br /> int tempsize;
+ <br /> float tempdouble; 
+ <br /> if(old_w&gt;old_h){
+ <br /> tempdouble=old_w/tagsize;
+ <br /> }else{
+ <br /> tempdouble=old_h/tagsize;
+ <br /> }
+ <br /> new_w=Math.round(old_w/tempdouble);
+ <br /> new_h=Math.round(old_h/tempdouble);//计算新图长宽
+ <br /> BufferedImage tag = new BufferedImage(new_w,new_h,BufferedImage.TYPE_INT_RGB);
+ <br /> tag.getGraphics().drawImage(src,0,0,new_w,new_h,null); //绘制缩小后的图
+ <br /> FileOutputStream newimage=new FileOutputStream(newurl); //输出到文件流
+ <br /> JPEGImageEncoder encoder = JPEGCodec.createJPEGEncoder(newimage); 
+ <br /> encoder.encode(tag); //近JPEG编码
+ <br /> newimage.close(); 
+ <br /> 
+ <br /> }catch (Exception e){
+ <br /> 
+ <br /> e.toString();
+ <br /> 
+ <br /> }
+</div> 
+<p><a href="http://blog.csdn.net/xymyeah/archive/2007/08/04/1725572.aspx">http://blog.csdn.net/xymyeah/archive/2007/08/04/1725572.aspx</a></p></div></body></html>

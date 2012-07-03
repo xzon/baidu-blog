@@ -1,0 +1,52 @@
+<html><head><title>java类的加载以及初始化问题总结。</title></head><body><div id='tit'>java类的加载以及初始化问题总结。</div><div id='cate'>细节</div><div id='date'>2008年05月11日 星期日 11:31 P.M.</div><div id='page'>133</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/528fba31dc8160ad5fdf0ef5.html'>http://hi.baidu.com/hxzon/blog/item/528fba31dc8160ad5fdf0ef5.html</a><div id='cnt'><div class="blog_title"> 
+ <h3><a href="http://yuquan-nana.javaeye.com/blog/83864"><font color="#aad0d0">java类的加载以及初始化问题总结。</font></a></h3> 
+</div> 
+<div class="blog_content"> 
+ <p>有时候我们编写完代码后，发现运行结构怎么和自己想象的不一样呢？那很有可能就是没有搞清楚类的加载和初始化的过程。下面让我们先看个例子(Thinking in java)：</p> 
+ <pre><font color="#009900">//: c06:Beetle.java</font>
+<font color="#009900">// The full process of initialization.</font>
+<font color="#0000ff">class</font> Insect {
+  <font color="#0000ff">private</font> <font color="#0000ff">int</font> i = 9;
+  <font color="#0000ff">protected</font> <font color="#0000ff">int</font> j;
+  Insect() {
+    System.out.println(<font color="#004488">&quot;i = &quot;</font> + i + <font color="#004488">&quot;, j = &quot;</font> + j);
+    j = 39;
+  }
+  <font color="#0000ff">private</font> <font color="#0000ff">static</font> <font color="#0000ff">int</font> x1 =
+    print(<font color="#004488">&quot;static Insect.x1 initialized&quot;</font>);
+  <font color="#0000ff">static</font> <font color="#0000ff">int</font> print(String s) {
+    System.out.println(s);
+    <font color="#0000ff">return</font> 47;
+  }
+}
+
+<font color="#0000ff">public</font> <font color="#0000ff">class</font> Beetle <font color="#0000ff">extends</font> Insect {
+  <font color="#0000ff">private</font> <font color="#0000ff">int</font> k = print(<font color="#004488">&quot;Beetle.k initialized&quot;</font>);
+  <font color="#0000ff">public</font> Beetle() {
+    System.out.println(<font color="#004488">&quot;k = &quot;</font> + k);
+    System.out.println(<font color="#004488">&quot;j = &quot;</font> + j);
+  }
+  <font color="#0000ff">private</font> <font color="#0000ff">static</font> <font color="#0000ff">int</font> x2 =
+    print(<font color="#004488">&quot;static Beetle.x2 initialized&quot;</font>);
+  <font color="#0000ff">public</font> <font color="#0000ff">static</font> <font color="#0000ff">void</font> main(String[] args) {
+    System.out.println(<font color="#004488">&quot;Beetle constructor&quot;</font>);
+    Beetle b = <font color="#0000ff">new</font> Beetle();
+    
+  }
+} <font color="#009900">///:~</font></pre> 
+ <pre><font color="#009900">本程序的运行结果如下：</font></pre> 
+ <pre><font color="#004488"> static Insect.x1 initialized</font><br /> <font color="#004488">static Beetle.x2 initialized</font><br /> <font color="#004488">Beetle constructor</font><br /> <font color="#004488">i = 9, j = 0</font><br /> <font color="#004488">Beetle.k initialized</font><br /> <font color="#004488">k = 47</font><br /> <font color="#004488">j = 39</font></pre> 
+ <pre><font color="#004488">首先当我们运行此程序的时候，主线程启动，编译器开始查找Beetle.class这个类，找到这个类后，开始加载这个类，在加</font></pre> 
+ <pre><font color="#004488">载的过程发现有extends关键字，所以编译器开始去加载insect.class这个类，（如果在加载这个类的时候如果发现这个类</font></pre> 
+ <pre><font color="#004488">还有基</font><font color="#004488">类，那么insect的直接基类就会被加载，如果还有基类，以此类推）此时因为insect没有基类了，所以不需要再加载，</font></pre> 
+ <pre><font color="#004488">此时（加载insect类时）insect类的静态代码将执行（静态成员的初始化和静态方法的执行），所以此时打印出了  static </font></pre> 
+ <pre><font color="#004488">Insect.x1 initialized， 当insect的静态代码执行完后， Beetle的静态代码开始执行 （初始化x2）， 所以打印出：</font></pre> 
+ <pre><font color="#004488"></font><font color="#004488">static Beetle.x2 initialized；到现在为止，所有基类以及静态的初始化动作都已经执行完了，可以创建对象了^_^，</font></pre> 
+ <pre><font color="#004488">这时候执行System.out.println(</font><font color="#004488">&quot;Beetle constructor&quot;</font>);所以打印出：<font color="#004488">Beetle constructor，    下面开始执行</font><br /> <br />Beetle b = <font color="#0000ff">new</font> Beetle();此时首先为Beetle分配内存空间，并且都初始化为0，注意<strong>boolean类型变量初始化为false;</strong></pre> 
+ <pre>在Beetle内的代码执行前，首先会调用基类的构造器，在基类（insect）的构造器内的代码执行前，首先要执行基类的非静态</pre> 
+ <pre>成员的初始化，当执行初始化后，基类的构造器里的代码System.out.println(<font color="#004488">&quot;i = &quot;</font> + i + <font color="#004488">&quot;, j = &quot;</font> + j)开始执行，</pre> 
+ <pre>所以打印出：<font color="#004488">i = 9, j = 0；当基类的构造器的代码执行完后，首先要对Beetle类的成员进行显示的初始化，此时K被初始化为</font></pre> 
+ <pre><font color="#004488">47，并且打印出：</font><font color="#004488">Beetle.k initialized；</font>等初始化完成后，Beetle构造器里的代码开始执行，所以打印出：K=47；J=39，</pre> 
+ <pre><font color="#004488">o(∩_∩)o...哈哈程序的结构分析完了。</font></pre> 
+ <p>值得注意的是：静态成员初始化是从最顶层的类开始的，因为子类成员的初始化可能回用到基类的成员。</p> 
+</div></div></body></html>

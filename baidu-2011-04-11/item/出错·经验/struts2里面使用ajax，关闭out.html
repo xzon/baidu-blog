@@ -1,0 +1,104 @@
+<html><head><title>struts2里面使用ajax，关闭out</title></head><body><div id='tit'>struts2里面使用ajax，关闭out</div><div id='cate'>出错&middot;经验</div><div id='date'>2008年09月25日 星期四 09:51 A.M.</div><div id='page'>96</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5ca0364e19a721ccd0c86a0d.html'>http://hi.baidu.com/hxzon/blog/item/5ca0364e19a721ccd0c86a0d.html</a><div id='cnt'><div>
+ struts2里面使用ajax，关闭out
+</div> 
+<div> 
+</div> 
+<div>
+ 遇到一个问题,搞了一下午才搞定.
+</div> 
+<div> 
+</div> 
+<div>
+ js经典的方式如下
+</div> 
+<div> 
+</div> 
+<div>
+ var XMLHttpReq;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //创建XMLHttpRequest对象&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> function createXMLHttpRequest()
+ <br /> {
+ <br /> if(window.XMLHttpRequest)
+ <br /> { //Mozilla 浏览器
+ <br /> XMLHttpReq = new XMLHttpRequest();
+ <br /> }
+ <br /> else if (window.ActiveXObject)
+ <br /> {
+ <br /> // IE浏览器
+ <br /> try
+ <br /> {
+ <br /> XMLHttpReq = new ActiveXObject(&quot;Msxml2.XMLHTTP&quot;);
+ <br /> }
+ <br /> catch (e)
+ <br /> {
+ <br /> try
+ <br /> {
+ <br /> XMLHttpReq = new ActiveXObject(&quot;Microsoft.XMLHTTP&quot;);
+ <br /> }
+ <br /> catch (e)
+ <br /> {
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> //发送请求函数
+ <br /> 
+ <br /> function changeText()
+ <br /> {
+ <br /> 
+ <br /> if (XMLHttpReq.readyState == 4)
+ <br /> {
+ <br /> // 判断对象状态
+ <br /> if (XMLHttpReq.status == 200)
+ <br /> {
+ <br /> // 信息已经成功返回，开始处理信息
+ <br /> document.getElementById(changeid).childNodes[6].innerHTML = XMLHttpReq.responseText;
+ <br /> }
+ <br /> else
+ <br /> {
+ <br /> //页面不正常
+ <br /> window.alert(&quot;您所请求的页面有异常。&quot;);
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> 
+ <br /> function sendRequest(value,id)
+ <br /> {
+ <br /> createXMLHttpRequest();
+ <br /> var url = &quot;updateOne.ue&quot;;
+ <br /> XMLHttpReq.open(&quot;POST&quot;, url, true);
+ <br /> XMLHttpReq.setRequestHeader(&quot;Content-Type&quot;,&quot;application/x-www-form-urlencoded&quot;);
+ <br /> XMLHttpReq.onreadystatechange = changeText;//指定响应函数
+ <br /> XMLHttpReq.send(&quot;value=&quot; + value + &quot;&amp;id=&quot; + id); // 发送请求
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 在action类里
+</div> 
+<div> 
+</div> 
+<div>
+ ServletActionContext.getResponse().setContentType(&quot;text/html;charset=UTF-8&quot;);
+ <br /> PrintWriter out = ServletActionContext.getResponse().getWriter();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> out.println(append);//传回给js,让js更新页面而不刷新.遇到的问题是XMLHttpReq.responseText传来了整个html
+</div> 
+<div> 
+</div> 
+<div>
+ 导致想要的append要用js来另外提取.这个不方便
+</div> 
+<div> 
+</div> 
+<div>
+ 最后终于找到原因了.就是把action里的out关闭掉,以下由struts2发的html代码就不会发过来了,得到你想要的append实现优美的ajax效果了.
+</div></div></body></html>

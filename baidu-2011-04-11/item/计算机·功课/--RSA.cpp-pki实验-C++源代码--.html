@@ -1,0 +1,181 @@
+<html><head><title>/*RSA.cpp-pki实验-C++源代码*/</title></head><body><div id='tit'>/*RSA.cpp-pki实验-C++源代码*/</div><div id='cate'>计算机&middot;功课</div><div id='date'>2007年12月15日 星期六 11:26 P.M.</div><div id='page'>186</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3376d700bd363b12738b6521.html'>http://hi.baidu.com/hxzon/blog/item/3376d700bd363b12738b6521.html</a><div id='cnt'><div> 
+ <p>/*RSA.cpp-pki实验-C++源代码*/</p> 
+ <p>#include &lt;iostream&gt;<br /> #include &lt;string&gt;<br /> #include &lt;math.h&gt;<br /> using namespace std;</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ class RSA
+ <br /> {
+ <br /> public:
+ <br /> RSA();
+ <br /> ~RSA();
+ <br /> int primeNumber(int m);
+ <br /> void produce_key();
+ <br /> &nbsp;&nbsp;&nbsp; void encrypted_process();
+ <br /> &nbsp;&nbsp;&nbsp; void open_process(); 
+ <br /> &nbsp;&nbsp;&nbsp; int calculatemod(int num1,int num2);
+ <br /> void print();
+ <br /> private:
+ <br /> int p;
+ <br /> int q;
+ <br /> int xn;
+ <br /> &nbsp;&nbsp;&nbsp; int n;
+ <br /> int private_key;
+ <br /> &nbsp;&nbsp;&nbsp; int public_key;
+ <br /> &nbsp;&nbsp;&nbsp; int M_NUM;
+ <br /> int C_NUM;
+ <br /> int M_open;
+ <br /> };
+</div> 
+<div> 
+</div> 
+<div>
+ RSA::RSA()
+ <br /> {
+ <br /> do
+ <br /> {
+ <br /> cout&lt;&lt;&quot;请输入一个为素数的p值：&quot;&lt;&lt;endl;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cin&gt;&gt;p;
+ <br /> }while(primeNumber(p)==0);
+</div> 
+<div> 
+</div> 
+<div>
+ do
+ <br /> {
+ <br /> cout&lt;&lt;&quot;请输入一个与P值不相等的素数q值：&quot;&lt;&lt;endl;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cin&gt;&gt;q;
+ <br /> }while(primeNumber(q)==0||q==p);
+ <br /> &nbsp;&nbsp;&nbsp; n=p*q;
+ <br /> xn=(p-1)*(q-1);
+ <br /> &nbsp;&nbsp;&nbsp; private_key=0;
+ <br /> public_key=0;
+ <br /> M_NUM=0;
+ <br /> C_NUM=0;
+ <br /> M_open=0;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ RSA::~RSA()
+ <br /> {
+ <br /> if(M_NUM==M_open)
+ <br /> cout&lt;&lt;&quot;此加密算法和解密算法是正确的.&quot;&lt;&lt;endl;
+ <br /> else
+ <br /> cout&lt;&lt;&quot;对不起，发生错误.&quot;&lt;&lt;endl;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ void RSA::produce_key()
+ <br /> {
+ <br /> do
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cout&lt;&lt;&quot;产生的n和xn值分别为:&quot;&lt;&lt;n&lt;&lt;&quot;&nbsp;&nbsp; &quot;&lt;&lt;xn&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;请输入一个公钥public_key，使其与xn互素且小于xn:&quot;&lt;&lt;endl;
+ <br /> cin&gt;&gt;public_key;
+ <br /> }while(xn%public_key==0||primeNumber(public_key)==0||public_key&gt;=xn);
+ <br /> cout&lt;&lt;&quot;产生的公钥为:&quot;&lt;&lt;public_key&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;私有密钥可以是下列的数字：&quot;&lt;&lt;endl;
+ <br /> &nbsp;&nbsp;&nbsp; for(int i=1; ;i++)
+ <br /> {
+ <br /> if((i*xn+1)%public_key==0 &amp;&amp; (i*xn+1)/public_key&lt;xn)
+ <br /> {
+ <br /> &nbsp;&nbsp; private_key=(i*xn+1)/public_key;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> }
+ <br /> }
+ <br /> cout&lt;&lt;&quot;产生的私钥为:&quot;&lt;&lt;private_key&lt;&lt;endl;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> void RSA::encrypted_process() 
+ <br /> {
+ <br /> do
+ <br /> {
+ <br /> cout&lt;&lt;&quot;请输入明文一个小于n的数M_NUM:&quot;&lt;&lt;endl;
+ <br /> cin&gt;&gt;M_NUM;
+ <br /> }while(M_NUM&gt;=n);
+ <br /> &nbsp;&nbsp;&nbsp; C_NUM=calculatemod(M_NUM,public_key);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ void RSA::open_process()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; M_open=calculatemod(C_NUM,private_key);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ int RSA::calculatemod(int num1,int num2) 
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; //解决fmod(pow(num1,num2),n)溢出问题,主要功能求余数
+ <br /> int t1,t2;
+ <br /> int mul=1;
+ <br /> t1=num2/5; //防止溢出
+ <br /> t2=num2%5;
+ <br /> for(int i=0;i&lt;t1;i++) //防止溢出
+ <br /> {
+ <br /> mul*=fmod(pow(num1,5),n);
+ <br /> mul=fmod(mul,n); //防止在次溢出
+ <br /> }
+ <br /> mul*=fmod(pow(num1,t2),n);
+ <br /> mul=fmod(mul,n);
+ <br /> return mul;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ int RSA::primeNumber(int m) //功能：验证是否为素数
+ <br /> { 
+ <br /> int flag=1;
+ <br /> int temp=sqrt(m);
+ <br /> &nbsp;&nbsp;&nbsp; for(int i=2;i&lt;=temp;i++)
+ <br /> {
+ <br /> if(m%i==0) 
+ <br /> {
+ <br /> &nbsp;&nbsp; flag=0;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> }
+ <br /> }
+ <br /> if(flag==0) return 0;
+ <br /> else return 1;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ void RSA::print()
+ <br /> {
+ <br /> cout&lt;&lt;&quot;最终输出:&quot;&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;你所输入的两个素数为:&quot;&lt;&lt;p&lt;&lt;&quot;&nbsp;&nbsp; &quot;&lt;&lt;q&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;产生的n和xn值分别为:&quot;&lt;&lt;n&lt;&lt;&quot;&nbsp;&nbsp; &quot;&lt;&lt;xn&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;产生的公有密钥为:&quot;&lt;&lt;public_key&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;产生的私有密钥为:&quot;&lt;&lt;private_key&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;未经加密的明文为:&quot;&lt;&lt;M_NUM&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;经加密后的密文为:&quot;&lt;&lt;C_NUM&lt;&lt;endl;
+ <br /> cout&lt;&lt;&quot;经解密后的明文为:&quot;&lt;&lt;M_open&lt;&lt;endl;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ int main()
+ <br /> {
+ <br /> RSA rsa;
+ <br /> rsa.produce_key();
+ <br /> rsa.encrypted_process();
+ <br /> &nbsp;&nbsp;&nbsp; rsa.open_process();
+ <br /> rsa.print();
+ <br /> &nbsp;&nbsp;&nbsp; return 0;
+ <br /> }
+</div></div></body></html>

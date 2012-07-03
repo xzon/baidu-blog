@@ -1,0 +1,574 @@
+<html><head><title>Struts+Spring+Hibernate 整合 - 陈文光</title></head><body><div id='tit'>Struts+Spring+Hibernate 整合 - 陈文光</div><div id='cate'>默认分类</div><div id='date'>2008年08月26日 星期二 09:41 P.M.</div><div id='page'>106</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c55e1dd53162aec251da4bd9.html'>http://hi.baidu.com/hxzon/blog/item/c55e1dd53162aec251da4bd9.html</a><div id='cnt'><div>
+ Struts+Spring+Hibernate 整合 - 陈文光
+</div> 
+<div> 
+</div> 
+<div>
+ =========== 第1 页 
+ <br /> 
+ <br /> 
+ <br /> Struts+Spring+Hibernate 整合 
+ <br /> 教程 v1.0 
+ <br /> 作者: 陈文光&lt;
+ <a href="mailto:chenjacken@gmail.com">chenjacken@gmail.com</a>&gt; 
+ <br /> 作者Blog: 
+ <a href="http://www.jacken.com.cn/">http://www.jacken.com.cn</a> 
+ <br /> 声明 
+ <br /> 本文内容根据个人所知的以及网络文章整理而成, 如有侵权, 请与本人联系. 
+ <br /> 菜鸟写的文章,难免有错误,望体谅以及给我修正 
+ <br /> 本文内容仅供参考, 不得用于商业目的. 
+ <br /> 转载请著名作者和出处. 
+ <br /> 
+ <br /> 开源传万世，只因你我皆参与! 
+ <br /> While (isAlive()) { 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; goodGoodstudy(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dayDayUp(); 
+ <br /> &nbsp;&nbsp;&nbsp; } 
+ <br /> 
+ <br /> 
+ <br /> 日期: 2008-01-06 
+ <br /> 
+ <br /> 
+ <br /> ============== 第2 页 
+ <br /> 
+ <br /> 1 SSH整合理念 .................................................................................... 3 
+ <br /> 1.1 框架 .......................................................................................... 3 
+ <br /> 1.2 应用层 ...................................................................................... 4 
+ <br /> 1.2.1 表现层 ................................................................................... 4 
+ <br /> 1.2.2 持久层 ................................................................................... 4 
+ <br /> 1.2.3 业务层 ................................................................................... 5 
+ <br /> 1.2.4 领域模型层 ............................................................................ 6 
+ <br /> 1.3 整合一个简单的例子 ............................................................... 6 
+ <br /> 2 Spring整合 Struts ............................................................................. 6 
+ <br /> 3.1 三个小窍门 .............................................................................. 6 
+ <br /> 3.2 窍门 1. 使用 Spring 的 ActionSupport ................................. 7 
+ <br /> 3.3 窍门 2. 覆盖 RequestProcessor ............................................. 8 
+ <br /> 3.4 窍门 3. 将动作管理委托给 Spring ........................................ 9 
+ <br /> 3.5 拦截 Struts ............................................................................. 10 
+ <br /> 2.5.1. 前提：............................................................................ 10 
+ <br /> 2.5.2. 使用拦截器的步骤： .................................................... 10 
+ <br /> 2.5.3. 一个例子： .................................................................... 10 
+ <br /> 3 Spring整合Hibernate ..................................................................... 11 
+ <br /> 3.1 为什么要整合? ....................................................................... 11 
+ <br /> 3.2 配置数据源 ............................................................................ 11 
+ <br /> 3.3 配置sessionfactory ................................................................. 13 
+ <br /> 3.4 配置事务 ................................................................................ 15
+</div> 
+<div> 
+</div> 
+<div>
+ ================== 第3 页 
+ <br /> 
+ <br /> 1 SSH整合理念 
+ <br /> 1.1 框架 
+ <br /> 用 java来建立一个很有价值的 web 应用不是一个简单的任务。在架构这个应用时要考虑很多的因素
+ <br /> 和问题。从更高的层次来看，开发人员面临着关于如何构建用户接口，何处驻留业务逻辑，以及如何
+ <br /> 实现数据持久性这些问题。这 3 层都有各自的问题需要回答。而每一层又需要实现那些技术？应用如
+ <br /> 何设计来进行松散耦合并能进行灵活变更？应用架构是否允许某一层变更而不影响到其它的层次？
+ <br /> 应用应该如何处理容器一级的服务比如事务？ 
+ <br /> 在为你的应用创建一个架构之前有许多问题需要澄清。幸运的是，有很多开发者都意识到这个问题，
+ <br /> 并建立了很多框架来解决这些问题。一个良好的框架可以让开发人员减轻重新建立解决复杂问题方案
+ <br /> 的负担和精力；它可以被扩展以进行内部的定制化；并且有强大的用户社区来支持它。框架通常能很
+ <br /> 好的解决一个问题。然而，你的应用是分层的，可能每一个层都需要各自的框架。仅仅解决 UI问题
+ <br /> 并不意味着你能够很好的将业务逻辑和持久性逻辑和 UI 组件很好的耦合。例如，你不应该使具有
+ <br /> JDBC代码的业务逻辑放入控制器之中，这不是控制器应该提供的功能。一个 UI 控制器应该是轻量
+ <br /> 化的组件，由它代表对 UI范围之外的其它应用层的服务调用。良好的框架自然地形成代码分离的原
+ <br /> 则。更为重要的是，框架减轻了开发人员从头构建持久层代码的精力，从而集中精力来应用逻辑上，
+ <br /> 这对客户端来说更为重要。 
+ <br /> 本文讨论了如何结合几个著名的框架来达到松散耦合，如何设计你的架构，以及如何达到各个层次的
+ <br /> 一致性设计。面临的挑战是，将框架整合起来，以使每一层都向另外的层次以一种松散的方式来暴露
+ <br /> 接口，而不管底层功能使用的是什么技术。本文还讨论整合 3 种著名开源框架的一种策略。对表现层，
+ <br /> 我们使用 Struts；业务层使用 Spring；对于持久层我们使用的是 Hibernate。你尽可以取代这里的某个
+ <br /> 框架而使用你喜欢的框架已达到同样的效果。图 1 显示了框架被整合起来时，从最高层次看到的视图。
+</div> 
+<div> 
+</div> 
+<div>
+ ================== 第4 页 
+ <br /> 
+ <br /> 1.2 应用层 
+ <br /> 许多设计良好的 web 应用，可以被按职责分为四层。这些层次是表现层、持久层、业务层、和领域
+ <br /> 模型层。每一个层次都有其独特的职责，不能把各自的功能与其它层次相混合。每一个应用层都应该
+ <br /> 和其它层隔离开来，但允许使用接口在层间进行通信。我们开始来看看每个层，并讨论一下它们各自
+ <br /> 都应该提供什么和不应该提供什么。 
+ <br /> 1.2.1 表现层 
+ <br /> 一个典型的 web 应用的末端是表现层。许多 Java 开发者都知道 Struts 提供了什么东西。然而，太
+ <br /> 多时候，耦合代码比如业务逻辑被放进 org.apache.struts.Action 中。所以，我们先总结一下 Struts 之
+ <br /> 类的框架应该提供什么。下面就是 Struts 的职责所在： 
+ <br />  管理用户的请求和响应&nbsp;&nbsp; 
+ <br />  提供一个控制起来将调用委托到业务逻辑和其他上游处理&nbsp;&nbsp; 
+ <br />  将来自于抛出例外的其他层的例外处理到 Struts Action 中&nbsp;&nbsp; 
+ <br />  组装可以在视图中表现的模型对象&nbsp;&nbsp; 
+ <br />  执行 UI 校验 
+ <br /> 下面是一些经常可以使用 Struts 进行编码但是不应该和表现层关联的事情： 
+ <br />  直接和数据库交互，比如 JDBC 调用&nbsp;&nbsp; 
+ <br />  与应用相关的业务逻辑和校验&nbsp;&nbsp; 
+ <br />  事务管理 
+ <br /> 在表现层中引入这些类型的代码将导致类型耦合和维护负担。 
+ <br /> 1.2.2 持久层 
+ <br /> 一个典型 Web 应用的另一端是持久层。这也是应用中最容易很快失控的地方。开发者通常低估了自
+ <br /> 己构建自己的持久层框架的挑战。一个定制的，内部开发的持久层不仅需要大量的开发时间，并且通
+ <br /> 常缺乏功能和难以管理。目前有许多解决这些问题的开源对象关系映射 (ORM) 框架。特别地， 
+ <br /> Hibernate 框架就允许 Java 中的对象-关系的持久性和查询服务。Hibernate 对已经熟悉了 SQL 和
+ <br /> JDBC API 的 Java开发者来或具有中度的学习曲线。Hibernate 的持久对象基于 POJO 和 Java 群集
+ <br /> （collections）。此外，使用 Hibernate 不和你的 IDE 接口。下面列出了你需要在持久性框架中编写
+ <br /> 的代码类型：
+</div> 
+<div> 
+</div> 
+<div>
+ =============== 第5 页 
+ <br /> 
+ <br />  查询关系信息到对象中。Hibernate 是通过称为 HQL的 OO 查询语言，或者使用更有表现能
+ <br /> 力的规则 API，来完成这个工作的。除了使用对象而不是表，使用字段而不是列的方式，HQL
+ <br /> 非常类似于 SQL。也有一些新的特定的 HQL 语言特征需要学习；但是，它们是很容易理解
+ <br /> 和良好编写的。HQL 是一种用于查询对象的自然语言，而对象，只需要很少的学习曲线吧。.&nbsp;&nbsp; 
+ <br />  存储、更新和删除存储在数据库中的信息&nbsp;&nbsp; 
+ <br />  高级的对象关系映射框架比如 Hibernate 支持大部分主流 SQL数据库，它们支持父/子关系，
+ <br /> 事务，继承和多态。 
+ <br /> 下面是应该在持久层避免的一些事情： 
+ <br />  业务逻辑应该置于应用的更高层中。这里只允许数据访问方法。&nbsp;&nbsp; 
+ <br />  不应该使持久逻辑和表现逻辑耦合。避免表现组件如 JSP 或者基于 servlet 的类中的逻辑直
+ <br /> 接和数据访问进行通信。通过将持久性逻辑隔离在其自己的层中，应用将具有更加灵活的修
+ <br /> 改性而不影响到其他层的代码。例如， Hibernate 可以使用其他持久框架和 API代替，而不
+ <br /> 需要修改其它层中的代码。 
+ <br /> 1.2.3 业务层 
+ <br /> 典型的 Web 应用的中间组件一般是业务层和服务层。从编程的角度来说，service layer 经常被忽略。
+ <br /> 这种类型的代码散布于 UI表现层和持久层并不是不多见。这些都不是正确的地方因为它导致了紧密
+ <br /> 耦合的应用和难以维护的代码。幸运的是，大多数框架都解决了这个问题。这个空间内最流行的两个
+ <br /> 框架是 Spring 和 PicoContainer。它们都被视为是具有非常小的足迹（footprint）并且决定如何将你
+ <br /> 的对象整合在一起的微容器（microcontainer）。这些框架都建立在一种叫做依赖性注入（dependency 
+ <br /> injection） (也称控制反转（inversion of control：IOC）)的简单概念之上。我们将关注 Spring 中通
+ <br /> 过针对命名配置参数的 bean 属性的 setter 注入的使用。Spring 也允许一种更加高级的构造器注入
+ <br /> （constructor injection）形式作为setter injection 的可选替代。对象通过简单的XML 文件进行连接，
+ <br /> 该配置文件包含对各种对象的引用，比如事务管理处理器（transaction management handler）,对象
+ <br /> 工厂，包含业务逻辑的服务对象，以及数据访问对象(DAO)。 
+ <br /> 我们随后会用一些例子来澄清 Spring 中使用这些改变的方式。 
+ <br /> 业务层应该负责下面的问题： 
+ <br />  处理应用的业务逻辑和业务校验&nbsp;&nbsp; 
+ <br />  管理事务&nbsp;&nbsp; 
+ <br />  允许与其他层进行交互的接口
+</div> 
+<div> 
+</div> 
+<div>
+ ============== 第6 页 
+ <br /> 
+ <br />  管理业务级对象之间的依赖性&nbsp;&nbsp; 
+ <br />  加入了表现和持久层之间的灵活性，以便它们不需要彼此进行直接通信&nbsp;&nbsp; 
+ <br />  从表现层暴露上下文给业务层以获得业务服务&nbsp;&nbsp; 
+ <br />  管理从业务层到表现层的实现 
+ <br /> 1.2.4 领域模型层 
+ <br /> 最后，因为我们要解决实际的问题的 web 应用，我们需要一套在不同的层间移动的对象。领域模型
+ <br /> 层包含的是表达实际业务对象的对象，比如 Order, OrderLineItem, Product 等等。这一层允许能让
+ <br /> 开发者不再构建和维护不必要的数据传输对象 DTO 来匹配其领域对象。例如， Hibernate 允许你读
+ <br /> 取数据库信息到一个领域对象的对象图中，以便你可以在离线的情况下将其表现在 UI层中。这些对
+ <br /> 象可以被更新并跨过表现层发送回去，然后进行数据库更新。另外，你不再需要将对象转变成 DTO，
+ <br /> 因为它们在不同的层间移动时可能会丢失事务。这种模型允许 Java 开发者能够以 OO 风格的方式很
+ <br /> 自然的处理对象，而不用编写额外的代码。 
+ <br /> 1.3 整合一个简单的例子 
+ <br /> 到此，应该对各种层次和组件有一个高层的理解了罢。可以开始一些实践了。再次说明。我们的例子
+ <br /> 整合了 Struts, Spring, 和 Hibernate 框架。每个框架都包含大量的内容细节，我们不会多述。我们的
+ <br /> 目的使用一个例子向你说明如何将它们整合在一起构建一个优雅的 Web 应用架构。实例将演示一个
+ <br /> 请求是如何得到各层的服务的。此应用的用户可以将一个订单保存在数据库中并且察看数据中的已有
+ <br /> 订单。进一步的增强允许将用户更新和删除现有订单。 
+ <br /> 首先，我们将常见我们的领域对象，因为它们是要和各层沟通的。这些对象将允许我们能够定义那些
+ <br /> 对象需要持久化，那些业务逻辑需要提供，以及应该设计那些表现接口。接下来，我们将使用 Hibernate 
+ <br /> 来为领域对象配置持久层和定义对象关系映射。然后，我们将定义和配置我们的业务层。在完成这些
+ <br /> 组件后，我们将讨论如何使用 Spring 将这些层关联起来。最后，我们将提供一个表现层，它知道如
+ <br /> 何与业务服务层通信以及如何处理来自于其他层的例外。 
+ <br /> 2 Spring 整合 Struts 
+ <br /> 3.1 三个小窍门 
+ <br />  接下来的每种整合技术（或者窍门）都有自己的优点和特点。我偏爱其中的一种，但
+ <br /> 是我知道这三种都能够加深您对 Struts 和 Spring 的理解。在处理各种不同情况的时
+ <br /> 候，这将给您提供一个广阔的选择范围。方法如下：
+</div> 
+<div> 
+</div> 
+<div>
+ ==================== 第7 页 
+ <br /> 
+ <br /> 1. 使用 Spring 的 ActionSupport 类整合 Structs 
+ <br /> 2. 使用 Spring 的 DelegatingRequestProcessor 覆盖 Struts 的 RequestProcessor 
+ <br /> 3. 将 Struts Action 管理委托给 Spring 框架 
+ <br />  装载应用程序环境 
+ <br /> 无论您使用哪种技术，都需要使用 Spring 的 ContextLoaderPlugin 为 Struts 的 
+ <br /> ActionServlet 装载 Spring 应用程序环境。就像添加任何其他插件一样，简单地向您的 
+ <br /> struts-config.xml 文件添加该插件，如下所示： 
+ <br /> &lt;plug-in 
+ <br /> className=&quot;org.springframework.web.struts.ContextLoaderPlugIn&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;set-property property=&quot;contextConfigLocation&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value=&quot;/WEB-INF/beans.xml&quot; /&gt; 
+ <br /> &lt;/plug-in&gt; 
+ <br /> 
+ <br /> 3.2 窍门 1. 使用 Spring 的 ActionSupport 
+ <br />  步骤： 
+ <br /> 1. Action直接继承 ActionSupport 
+ <br /> 2. 使用ApplicationContext ctx = getWebApplicationContext();取得 Spring上下文 
+ <br /> 3. 取得相应Bean 
+ <br /> //1继承ActionSupport 
+ <br /> public class SearchSubmit extends ActionSupport { 
+ <br /> public ActionForward execute(ActionMapping mapping, ActionForm form, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; throws IOException, ServletException { 
+ <br /> &nbsp;&nbsp; // 2.使用ApplicationContext ctx = getWebApplicationContext();取得
+ <br /> Spring上下文 
+ <br /> &nbsp;&nbsp; ApplicationContext ctx = getWebApplicationContext(); 
+ <br /> &nbsp;&nbsp; // 3.取得相应Bean 
+ <br /> &nbsp;&nbsp; BookService bookService =(BookService) ctx.getBean(&quot;bookService&quot;); 
+ <br /> } 
+ <br /> } 
+ <br />  优点： 
+ <br /> 1) 简单 
+ <br />  缺点：
+</div> 
+<div> 
+</div> 
+<div>
+ ====================== 第8 页 
+ <br /> 
+ <br /> 1) 耦合高 
+ <br /> 2) 违反IOC 
+ <br /> 3) 无法使用多方法的 Action 
+ <br /> 3.3 窍门 2. 覆盖 RequestProcessor 
+ <br />  步骤： 
+ <br /> 1. Action中，使用 IOC 获得服务，配置struts-config.xml： 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;!-- 一个普通的Action--&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;action path=&quot;/searchSubmit&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type=&quot;ca.nexcel.books.actions.SearchSubmit&quot; 
+ <br /> input=&quot;/searchEntry.do&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; validate=&quot;true&quot; name=&quot;searchForm&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;forward name=&quot;success&quot; path=&quot;/WEB-INF/pages/detail.jsp&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;forward name=&quot;failure&quot; path=&quot;/WEB-INF/pages/search.jsp&quot; /&gt; 
+ <br /> &nbsp;&nbsp; &lt;/action&gt;&nbsp;&nbsp; 
+ <br /> &lt;!-- 利用了 &lt;controller&gt; 标记来用 DelegatingRequestProcessor覆盖默认的 
+ <br /> Struts RequestProcessor --&gt; 
+ <br /> &lt;controller 
+ <br /> &nbsp;&nbsp; processorClass=&quot;org.springframework.web.struts. 
+ <br /> &nbsp;&nbsp; DelegatingRequestProcessor&quot; /&gt; 
+ <br /> 2. Spring 配置文件中注册该动作： 
+ <br /> 
+ <br /> &lt;bean id=&quot;bookService&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;ca.nexcel.books.business.BookServiceImpl&quot; /&gt; 
+ <br /> &lt;bean name=&quot;/searchSubmit&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;ca.nexcel.books.actions.SearchSubmit&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;bookService&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;bookService&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br /> 3. 写具有 JavaBean 属性的 Struts 动作：
+</div> 
+<div> 
+</div> 
+<div>
+ ======================== 第9 页 
+ <br /> 
+ <br /> public class SearchSubmit extends Action { 
+ <br /> // 一个Service属性 
+ <br /> private BookService bookService; 
+ <br /> // getter... 
+ <br /> public BookService getBookService() { 
+ <br /> &nbsp;&nbsp;&nbsp; return bookService; 
+ <br /> } 
+ <br /> // setter... 
+ <br /> public void setBookService(BookService bookService) { 
+ <br /> &nbsp;&nbsp;&nbsp; this.bookService = bookService; 
+ <br /> } 
+ <br /> public ActionForward execute(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throws IOException, ServletException { 
+ <br /> &nbsp;&nbsp;&nbsp; // 调用bookService,不需要new 
+ <br /> &nbsp;&nbsp;&nbsp; Book book = getBookService().read(isbn.trim()); 
+ <br /> } 
+ <br /> } 
+ <br /> 
+ <br /> 3.4 窍门 3. 将动作管理委托给 Spring 
+ <br />  步骤: 
+ <br /> 1. Action中，使用 IOC 获得服务，配置struts-config.xml： 
+ <br /> &lt;!-- 一个Action 注意其type Spring 代理类 --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;action path=&quot;/searchSubmit&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type=&quot;org.springframework.web.struts.DelegatingActionProxy&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; input=&quot;/searchEntry.do&quot; validate=&quot;true&quot; name=&quot;searchForm&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;forward name=&quot;success&quot; path=&quot;/WEB-INF/pages/detail.jsp&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;forward name=&quot;failure&quot; path=&quot;/WEB-INF/pages/search.jsp&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/action&gt; 
+ <br /> 
+ <br /> 2. Spring 配置文件中注册该动作： 
+ <br /> &lt;bean id=&quot;bookService&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;ca.nexcel.books.business.BookServiceImpl&quot; /&gt; 
+ <br /> &lt;bean name=&quot;/searchSubmit&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;ca.nexcel.books.actions.SearchSubmit&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;bookService&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;bookService&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ ======================= 第 10 页 
+ <br /> 
+ <br />  优点 
+ <br /> 1. 动作委托解决方法是这三种方法中最好的。 
+ <br /> 2. 不使用Spring api编写 Action 
+ <br /> 3. 利用了IOC装配 
+ <br /> 3.5 拦截 Struts 
+ <br /> 2.5.1. 前提： 
+ <br /> 将 Struts 动作委托给 Spring 框架可以将 Spring 的 AOP 拦截器应用于 Struts 动作。 
+ <br /> 2.5.2. 使用拦截器的步骤： 
+ <br /> 1. 创建拦截器。 
+ <br /> 2. 注册拦截器。 
+ <br /> 3. 声明在何处拦截代码。 
+ <br /> 2.5.3. 一个例子： 
+ <br />  一个简单的日志记录拦截器 
+ <br /> //创建拦截器 
+ <br /> public class LoggingInterceptor implements MethodBeforeAdvice { 
+ <br /> public void before(Method method, Object[] objects, Object o) 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throws Throwable { 
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;logging before!&quot;); 
+ <br /> } 
+ <br /> } 
+ <br />  注册拦截器
+</div> 
+<div> 
+</div> 
+<div>
+ =============== 第 11 页 
+ <br /> 
+ <br /> &lt;!-- Interceptors --&gt; 
+ <br /> &lt;!-- 注册了这个刚才建的拦截器 --&gt; 
+ <br /> &lt;bean name=&quot;logger&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;ca.nexcel.books.interceptors.LoggingInterceptor&quot; /&gt; 
+ <br /> &lt;!-- AutoProxies --&gt; 
+ <br /> &lt;!-- 创建了一个 bean 名称自动代理，它描述如何应用拦截器。还有其他的方法定义拦截
+ <br /> 点，但是这种方法常见而简便。 --&gt; 
+ <br /> &lt;bean name=&quot;loggingAutoProxy&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;org.springframework.aop.framework.autoproxy. 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BeanNameAutoProxyCreator&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;beanNames&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;!-- 将 Struts 动作注册为将被拦截的 bean --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;/searchSubmit&lt;/value&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;interceptorNames&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;list&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 当拦截发生时，我执行了在 (1) 处创建的拦截器 bean 的名称 --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;logger&lt;/value&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/list&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br /> 3 Spring 整合 Hibernate 
+ <br /> 3.1 为什么要整合? 
+ <br /> 时至今日，可能极少有 J2EE 应用会直接以JDBC 方式进行持久层访问。毕竟，用面向对象的
+ <br /> 程序设计语言来访问关系型数据库，是一件让人沮丧的事情。大部分时候，J2EE 应用都会以
+ <br /> ORM 框架来进行持久层访问，在所有的 ORM 框架中，Hibernate 以其灵巧、轻便的封装赢
+ <br /> 得了众多开发者的青睐。 
+ <br /> 在 Spring 框架中，像 JDBC DataSource 或 Hibernate SessionFactory 这样的资源，在应用程
+ <br /> 序上下文中可以用 bean 实现。需要访问资源的应用程序对象只需通过 bean 引用得到这
+ <br /> 类预先定义好的实例的引用即可。步骤如下： 
+ <br /> 1. 配置数据源，有三种方式的数据源 
+ <br /> 2. 配置sessionfactory 
+ <br /> 3. 配置事务 
+ <br /> 3.2 配置数据源 
+ <br />  方式一：Spring 内置实现 DriverManagerDataSource
+</div> 
+<div> 
+</div> 
+<div>
+ ================== 第 12 页 
+ <br /> 
+ <br /> &lt;!—(1)配置数据源-方式一--&gt; 
+ <br /> &lt;bean id=&quot;myDataSource&quot; 
+ <br /> class=&quot;org.springframework.jdbc.datasource.DriverManagerDataSource&quot;
+ <br /> &gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;driverClassName&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value=&quot;com.mysql.jdbc.Driver&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;url&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value=&quot;jdbc:mysql://127.0.0.1:3306/prefo&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;username&quot; value=&quot;root&quot;&gt;&lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;password&quot; value=&quot;&quot;&gt;&lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br />  方式二：DBCP 提供的BasicDataSource 
+ <br /> &lt;!—(1)配置数据源-方式二--&gt; 
+ <br /> &lt;bean id=&quot;myDataSource&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;org.apache.commons.dbcp.BasicDataSource&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;driverClassName&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value=&quot;com.mysql.jdbc.Driver&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;url&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value=&quot;jdbc:mysql://127.0.0.1:3306/prefo&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;username&quot; value=&quot;root&quot;&gt;&lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;password&quot; value=&quot;&quot;&gt;&lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br />  方式三：JNDI 数据源(mysql5,tomcat6 为例) 
+ <br /> 1. 在 Tomcat根目录下的 conf\server.xml 配置 Resource： 
+ <br /> &lt;GlobalNamingResources&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;!-- Editable user database that can also be used by 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; UserDatabaseRealm to authenticate users 
+ <br /> &nbsp;&nbsp;&nbsp; --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;Resource name=&quot;jdbc/mydatasource&quot; auth=&quot;Container&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; description=&quot;DB Connection&quot; type=&quot;javax.sql.DataSource&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; username=&quot;root&quot; password=&quot;&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; driverClassName=&quot;com.mysql.jdbc.Driver&quot; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; url=&quot;jdbc:mysql://localhost:3306/prefo&quot; maxActive=&quot;5&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; name:资源的JNDI查找的名字 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type:资源 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; driverClassName:JDBC驱动程序 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ... 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --&gt; 
+ <br /> &lt;/GlobalNamingResources&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ ==================== 第 13 页 
+ <br /> 
+ <br /> 2. 在 Tomcat根目录下的 conf\context.xml 配置: 
+ <br /> &lt;ResourceLink name=&quot;jdbc/mydatasource&quot; global=&quot;jdbc/mydatasource&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; type=&quot;javax.sql.DataSourcer&quot; /&gt; 
+ <br /> 3. 在 Spring的配置文件中配置: 
+ <br /> &lt;!—(1)配置数据源-方式三,使用JNDI--&gt; 
+ <br /> &lt;bean id=&quot;myDataSource&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;org.springframework.jndi.JndiObjectFactoryBean&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;jndiName&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;java:comp/env/jdbc/mydatasource&lt;/value&gt; 
+ <br /> &lt;!--java:comp/env/Tomcat的前缀,后为JNDI的名称 --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br />  另外,第1,2 步可以整合在 conf\context.xml 中配置: 
+ <br /> &lt;Resource name=&quot;jdbc/mydatasource&quot; type=&quot;javax.sql.DataSource&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; driverClassName=&quot;com.mysql.jdbc.Driver&quot; username=&quot;root&quot; 
+ <br /> password=&quot;&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; url=&quot;jdbc:mysql://localhost:3306/prefo&quot; maxIdle=&quot;2&quot; 
+ <br /> maxWait=&quot;5000&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; maxActive=&quot;4&quot; /&gt; 
+ <br /> 3.3 配置 sessionfactory 
+ <br />  配置好数据源(以上三种方式的一种) 
+ <br />  配置sessionFactory:
+</div> 
+<div> 
+</div> 
+<div>
+ ================ 第 14 页 
+ <br /> 
+ <br /> &lt;!-- (2)装配SessionFactory --&gt; 
+ <br /> &lt;bean id=&quot;mySessionFactory&quot; 
+ <br /> class=&quot;org.springframework.orm.hibernate3.LocalSessionFactoryBean&quot;&gt; 
+ <br /> &nbsp;&nbsp; &lt;!-- 传入dataSource --&gt; 
+ <br /> &nbsp;&nbsp; &lt;property name=&quot;dataSource&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;myDataSource&quot; /&gt; 
+ <br /> &nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp; &lt;!-- 添加映射文件 --&gt; 
+ <br /> &nbsp;&nbsp; &lt;property name=&quot;mappingResources&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;list&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cn/com/jacken/prefo/books/vo/CatelogList.hbm.xml 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/value&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cn/com/jacken/prefo/books/vo/BooksList.hbm.xml 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/value&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cn/com/jacken/prefo/users/vo/UserList.hbm.xml 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/value&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/list&gt; 
+ <br /> &nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp; &lt;!--hibernate属性 --&gt; 
+ <br /> &nbsp;&nbsp; &lt;property name=&quot;hibernateProperties&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;props&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;prop key=&quot;hibernate.dialect&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; org.hibernate.dialect.MySQLDialect 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/prop&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;prop key=&quot;hibernate.show_sql&quot;&gt;true&lt;/prop&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/props&gt; 
+ <br /> &nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br />  如果不需要事务,直接就可以配置Dao且调用了(dao 要继承 HibernateDaoSupport) 
+ <br /> &lt;!-- 装配catelogDao --&gt; 
+ <br /> &lt;bean id=&quot;catelogDao&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; class=&quot;cn.com.jacken.prefo.books.dao.CatelogDaoHibernateImpl&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;!-- 传入sessionFactory --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;sessionFactory&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;mySessionFactory&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ ============ 第 15 页 
+ <br /> 
+ <br /> 3.4 配置事务 
+ <br /> 在上面的配置文件中，部署了控制器组件、业务逻辑组件、DAO 组件，几乎可以形成一个
+ <br /> 完整的J2EE应用。但有一个小小的问题：事务控制。 
+ <br /> Spring提供了非常简洁的声明式事务控制，只需要在配置文件中增加事务控制片段，业务逻
+ <br /> 辑代码无须任何改变。Spring的声明式事务逻辑，甚至支持在不同事务策略之间切换。有以
+ <br /> 下几个步骤: 
+ <br />  配置好数据源(以上三种方式的一种) 
+ <br />  配置sessionFactory(同3.3) 
+ <br />  配置声明式事务: 
+ <br /> 
+ <br /> 1. 配置Dao (dao 要继承 HibernateDaoSupport) 
+ <br /> &lt;!-- 装配catelogDao --&gt; 
+ <br /> &lt;bean id=&quot;catelogDao&quot; 
+ <br /> &nbsp;&nbsp; class=&quot;cn.com.jacken.prefo.books.dao.CatelogDaoHibernateImpl&quot;&gt; 
+ <br /> &nbsp;&nbsp; &lt;!-- 传入sessionFactory --&gt; 
+ <br /> &nbsp;&nbsp; &lt;property name=&quot;sessionFactory&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;mySessionFactory&quot; /&gt; 
+ <br /> &nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br /> 2. 装配事务管理器 
+ <br /> &lt;!-- (3)装配事务管理器 --&gt; 
+ <br /> &lt;bean id=&quot;myTransactionManager&quot; 
+ <br /> class=&quot;org.springframework.orm.hibernate3.HibernateTransactionManager&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;!-- 传入session --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;sessionFactory&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;mySessionFactory&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br /> 3. 配置抽象事务代理
+ <br /> ============= 第 16 页 
+ <br /> 
+ <br /> &lt;!-- (4)抽象事务代理 --&gt; 
+ <br /> &lt;bean id=&quot;abstractTxProxy&quot; 
+ <br /> class=&quot;org.springframework.transaction.interceptor.TransactionProxyFactoryBean&quot; 
+ <br /> &nbsp;&nbsp;&nbsp; abstract=&quot;true&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;!-- 传入事务管理器 --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;transactionManager&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;myTransactionManager&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;transactionAttributes&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;props&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- key 指定方法 --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;prop key=&quot;*&quot;&gt;PROPAGATION_REQUIRED&lt;/prop&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/props&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br /> 4. 装配Service 层 
+ <br /> &lt;!-- 装配CatelogService --&gt; 
+ <br /> &lt;bean id=&quot;catelogServiceTarget&quot; 
+ <br /> class=&quot;cn.com.jacken.prefo.books.services.CatelogServiceSpringImpl&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;!-- 传入dao --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;catelogDao&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;catelogDao&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;booksDao&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;booksDao&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br /> 5. 装配具体事务代理 
+ <br /> &lt;!-- 具体代理事务代理--CatelogService事务 --&gt; 
+ <br /> &lt;bean id=&quot;catelogService&quot; parent=&quot;abstractTxProxy&quot;&gt; 
+ <br /> &lt;!-- 传入CatelogService --&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;target&quot;&gt; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;catelogServiceTarget&quot; /&gt; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/property&gt; 
+ <br /> &lt;/bean&gt; 
+ <br /> 
+ <br /> 
+ <br /> 
+ <br /> 参考资料: 
+ <br /> 培训机构教程,互联网…
+</div></div></body></html>

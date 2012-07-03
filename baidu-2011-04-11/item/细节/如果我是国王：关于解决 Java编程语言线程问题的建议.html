@@ -1,0 +1,212 @@
+<html><head><title>如果我是国王：关于解决 Java编程语言线程问题的建议</title></head><body><div id='tit'>如果我是国王：关于解决 Java编程语言线程问题的建议</div><div id='cate'>细节</div><div id='date'>2008年04月09日 星期三 02:13 A.M.</div><div id='page'>140</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/fbe4231f7a10d3cda68669ee.html'>http://hi.baidu.com/hxzon/blog/item/fbe4231f7a10d3cda68669ee.html</a><div id='cnt'><p> </p> 
+<h1>如果我是国王：关于解决 Java编程语言线程问题的建议</h1> 
+<p>级别： 初级</p> 
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-king/#author"><font color="#5c81a7">Allen Holub</font></a>自由撰稿人</p> 
+<p>2000 年 10 月 01 日</p> 
+<blockquote>
+ Allen Holub 指出，Java 编程语言的线程模型可能是此语言中最薄弱的部分。它完全不适合实际复杂程序的要求，而且也完全不是面向对象的。本文建议对 Java 语言进行重大修改和补充，以解决这些问题。
+</blockquote> 
+<p>Java 语言的线程模型是此语言的一个最难另人满意的部分。尽管 Java 语言本身就支持线程编程是件好事，但是它对线程的语法和类包的支持太少，只能适用于极小型的应用环境。</p> 
+<p>关于 Java 线程编程的大多数书籍都长篇累牍地指出了 Java 线程模型的缺陷，并提供了解决这些问题的急救包(Band-Aid/邦迪创可贴)类库。我称这些类为急救包，是因为它们所能解决的问题本应是由 Java 语言本身语法所包含的。从长远来看，以语法而不是类库方法，将能产生更高效的代码。这是因为编译器和 Java 虚拟器 (JVM) 能一同优化程序代码，而这些优化对于类库中的代码是很难或无法实现的。</p> 
+<p>在我的《 <em>Taming Java Threads</em>》（请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-king/#resources"><font color="#5c81a7">参考资料</font></a> ）书中以及本文中，我进一步建议对 Java 编程语言本身进行一些修改，以使得它能够真正解决这些线程编程的问题。本文和我这本书的主要区别是，我在撰写本文时进行了更多的思考, 所以对书中的提议加以了提高。这些建议只是尝试性的 -- 只是我个人对这些问题的想法，而且实现这些想法需要进行大量的工作以及同行们的评价。但这是毕竟是一个开端，我有意为解决这些问题成立一个专门的工作组，如果您感兴趣，请发 e-mail 到 <a cmimpressionsent="1" href="mailto:threading@holub.com"><font color="#5c81a7">threading@holub.com</font></a>。一旦我真正着手进行，我就会给您发通知。</p> 
+<p>这里提出的建议是非常大胆的。有些人建议对 Java 语言规范 (JLS)（请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-king/#resources"><font color="#5c81a7">参考资料</font></a> ）进行细微和少量的修改以解决当前模糊的 JVM 行为，但是我却想对其进行更为彻底的改进。</p> 
+<p>在实际草稿中，我的许多建议包括为此语言引入新的关键字。虽然通常要求不要突破一个语言的现有代码是正确的，但是如果该语言的并不是要保持不变以至于过时的话，它就必须能引入新的关键字。为了使引入的关键字与现有的标识符不产生冲突，经过细心考虑，我将使用一个 ($) 字符，而这个字符在现有的标识符中是非法的。(例如，使用 $task，而不是 task)。此时需要编译器的命令行开关提供支持，能使用这些关键字的变体，而不是忽略这个美元符号。</p> 
+<p><a name="N10066"><span class="atitle">task（任务）的概念 </span></a></p> 
+<p>Java 线程模型的根本问题是它完全不是面向对象的。面向对象 (OO) 设计人员根本不按线程角度考虑问题；他们考虑的是 <em>同步</em>信息 <em>异步</em> 信息（同步信息被立即处理 -- 直到信息处理完成才返回消息句柄；异步信息收到后将在后台处理一段时间 -- 而早在信息处理结束前就返回消息句柄）。Java 编程语言中的 <code><font face="NSimsun">Toolkit.getImage()</font></code> 方法就是异步信息的一个好例子。 <code><font face="NSimsun">getImage()</font></code> 的消息句柄将被立即返回，而不必等到整个图像被后台线程取回。</p> 
+<p>这是面向对象 (OO) 的处理方法。但是，如前所述，Java 的线程模型是非面向对象的。一个 Java 编程语言线程实际上只是一个 <code><font face="NSimsun">run()</font></code> 过程，它调用了其它的过程。在这里就根本没有对象、异步或同步信息以及其它概念。</p> 
+<p>对于此问题，在我的书中深入讨论过的一个解决方法是，使用一个 <code><font face="NSimsun">Active_object。</font></code> <code><font face="NSimsun">active 对象是可以接收异步请求的对象，它在接收到请求后的一段时间内以后台方式得以处理。在 Java 编程语言中，一个请求可被封装在一个对象中。例如，你可以把一个通过 <code>Runnable</code> 接口实现的实例传送给此 active 对象，该接口的 <code>run()</code> 方法封装了需要完成的工作。该 runnable 对象被此 active 对象排入到队列中，当轮到它执行时，active 对象使用一个后台线程来执行它。 </font></code></p> 
+<p>在一个 active 对象上运行的异步信息实际上是同步的，因为它们被一个单一的服务线程按顺序从队列中取出并执行。因此，使用一个 active 对象以一种更为过程化的模型可以消除大多数的同步问题。</p> 
+<p>在某种意义上，Java 编程语言的整个 Swing/AWT 子系统是一个 active 对象。向一个 Swing 队列传送一条讯息的唯一安全的途径是，调用一个类似 <code>SwingUtilities.invokeLater()</code> 的方法，这样就在 Swing 事件队列上发送了一个 runnable 对象，当轮到它执行时， Swing 事件处理线程将会处理它。</p> 
+<p>那么我的第一个建议是，向 Java 编程语言中加入一个 <em>task</em> （任务）的概念，从而将active 对象集成到语言中。( task的概念是从 Intel 的 RMX 操作系统和 Ada 编程语言借鉴过来的。大多数实时操作系统都支持类似的概念。）</p> 
+<p>一个任务有一个内置的 active 对象分发程序，并自动管理那些处理异步信息的全部机制。</p> 
+<p>定义一个任务和定义一个类基本相同，不同的只是需要在任务的方法前加一个 <code>asynchronous</code> 修饰符来指示 active 对象的分配程序在后台处理这些方法。请参考我的书中第九章的基于类方法，再看以下的 file_io 类，它使用了在《 <em>Taming Java Threads</em> 》中所讨论的 <code>Active_object</code> 类来实现异步写操作：</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; interface Exception_handler<br /> &nbsp;&nbsp;&nbsp;&nbsp;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; void handle_exception( Throwable e ); }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; class File_io_task {&nbsp;&nbsp; Active_object dispatcher = new Active_object();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final OutputStream&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; file;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final Exception_handler handler;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; File_io_task( String file_name, Exception_handler handler )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throws IOException<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; file = new FileOutputStream( file_name );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.handler = handler;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void write( final byte[] bytes ) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // The following call asks the active-object dispatcher<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // to enqueue the Runnable object on its request<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // queue. A thread associated with the active object<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // dequeues the runnable objects and executes them<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // one at a time.<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dispatcher.dispatch<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (&nbsp;&nbsp; new Runnable()<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; public void run() {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; byte[] copy new byte[ bytes.length ];<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.arrayCopy(&nbsp;&nbsp; bytes, 0,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; copy,&nbsp;&nbsp; 0,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bytes.length );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; file.write( copy );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; catch( Throwable problem )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; handler.handle_exception( problem );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+<p>所有的写请求都用一个 <code>dispatch()</code> 过程调用被放在 active-object 的输入队列中排队。在后台处理这些异步信息时出现的任何异常 (exception) 都由 <code>Exception_handler</code> 对象处理，此 <code>Exception_handler</code> 对象被传送到 <code>File_io_task</code> 的构造函数中。您要写内容到文件时，代码如下：</p> 
+<p>&nbsp;&nbsp; File_io_task io =&nbsp;&nbsp; new File_io_task<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ( &quot;foo.txt&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new Exception_handler<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; public void handle( Throwable e ) {&nbsp;&nbsp; e.printStackTrace();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; );<br /> &nbsp;&nbsp;&nbsp; //...<br /> &nbsp;&nbsp;&nbsp; io.write( some_bytes );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+<p>这种基于类的处理方法，其主要问题是太复杂了 -- 对于一个这样简单的操作，代码太杂了。向 Java 语言引入 <code>$task</code> 和 <code>$asynchronous</code> 关键字后，就可以按下面这样重写以前的代码：</p> 
+<p>&nbsp;&nbsp; $task File_io $error{ $.printStackTrace(); }<br /> &nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OutputStream file;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; File_io( String file_name ) throws IOException<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; file = new FileOutputStream( file_name );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; asynchronous public write( byte[] bytes )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; file.write( bytes );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; }</p> 
+<p> </p> 
+<p>注意，异步方法并没有指定返回值，因为其句柄将被立即返回，而不用等到请求的操作处理完成后。所以，此时没有合理的返回值。对于派生出的模型， <code>$task</code> 关键字和 <code>class</code> 一样同效： <code>$task</code> 可以实现接口、继承类和继承的其它任务。标有 <code>asynchronous</code> 关键字的方法由 <code>$task</code> 在后台处理。其它的方法将同步运行，就像在类中一样。</p> 
+<p><code>$task</code> 关键字可以用一个可选的 <code>$error</code> 从句修饰 (如上所示)，它表明对任何无法被异步方法本身捕捉的异常将有一个缺省的处理程序。我使用 <code>$</code> 来代表被抛出的异常对象。如果没有指定 <code>$error</code> 从句，就将打印出一个合理的出错信息（很可能是堆栈跟踪信息）。</p> 
+<p>注意，为确保线程安全，异步方法的参数必须是不变 (immutable) 的。运行时系统应通过相关语义来保证这种不变性（简单的复制通常是不够的）。</p> 
+<p>所有的 task 对象必须支持一些伪信息 (pseudo-message)，例如：</p> 
+<p> </p>
+<table cellspacing="0" cellpadding="3" border="1"> 
+ <tbody> 
+  <tr valign="top"> 
+   <td align="left" width="25%"><code>some_task.close()</code></td> 
+   <td align="left">在此调用后发送的任何异步信息都产生一个 <code>TaskClosedException</code> 。但是，在 active 对象队列上等候的消息仍能被提供。</td> 
+  </tr> 
+  <tr valign="top"> 
+   <td align="left" width="25%"><code>some_task.join()</code></td> 
+   <td align="left">调用程序被阻断，直到此任务关闭、而且所有未完成的请求都被处理完毕。</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>除了常用的修饰符（ <code>public</code> 等)， <code>task</code> 关键字还应接受一个 <code>$pooled(n)</code> 修饰符，它导致 <code>task</code> 使用一个线程池，而不是使用单个线程来运行异步请求。 <code>n</code> 指定了所需线程池的大小；必要时，此线程池可以增加，但是当不再需要线程时，它应该缩到原来的大小。伪域 (pseudo-field) $pool_size 返回在 <code>$pooled(n)</code> 中指定的原始 <code>n</code> 参数值。</p> 
+<p>在《 <em>Taming Java Threads</em> 》的第八章中，我给出了一个服务器端的 socket 处理程序，作为线程池的例子。它是关于使用线程池的任务的一个好例子。其基本思路是产生一个独立对象，它的任务是监控一个服务器端的 socket。每当一个客户机连接到服务器时，服务器端的对象会从池中抓取一个预先创建的睡眠线程，并把此线程设置为服务于客户端连接。socket 服务器会产出一个额外的客户服务线程，但是当连接关闭时，这些额外的线程将被删除。实现 socket 服务器的推荐语法如下：</p> 
+<p>&nbsp;&nbsp;&nbsp;&nbsp;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public $pooled(10) $task Client_handler {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PrintWriter log = new PrintWriter( System.out );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public asynchronous void handle( Socket connection_to_the_client ) {&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; log.println(&quot;writing&quot;);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // client-handling code goes here. Every call to<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // handle() is executed on its own thread, but 10<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // threads are pre-created for this purpose. Additional<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // threads are created on an as-needed basis, but are<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // discarded when handle() returns.<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp; $task Socket_server<br /> &nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ServerSocket server;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Client_handler client_handlers = new Client_handler();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public Socket_server( int port_number ) {&nbsp;&nbsp; server = new ServerSocket(port_number);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public $asynchronous listen(Client_handler client) {&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // This method is executed on its own thread.<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while( true )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; client_handlers.handle( server.accept() );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; //...<br /> &nbsp;&nbsp;&nbsp; Socket_server = new Socket_server( the_port_number );<br /> &nbsp;&nbsp;&nbsp; server.listen()<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+<p><code>Socket_server</code> 对象使用一个独立的后台线程处理异步的 <code>listen()</code> 请求，它封装 socket 的“接受”循环。当每个客户端连接时， <code>listen()</code> 请求一个 <code>Client_handler</code> 通过调用 <code>handle()</code> 来处理请求。每个 <code>handle()</code> 请求在它们自己的线程中执行（因为这是一个 <code>$pooled</code> 任务)。</p> 
+<p>注意，每个传送到 <code>$pooled $task</code> 的异步消息实际上都使用它们自己的线程来处理。典型情况下，由于一个 <code>$pooled $task</code> 用于实现一个自主操作；所以对于解决与访问状态变量有关的潜在的同步问题，最好的解决方法是在 <code>$asynchronous</code> <code>方法中使用 <code>this</code> 是指向的对象的一个独有副本。这就是说，当向一个 <code>$pooled $task</code> 发送一个异步请求时，将执行一个 <code>clone()</code> 操作，并且此方法的 <code>this</code> 指针会指向此克隆对象。线程之间的通信可通过对 <code>static</code> 区的同步访问实现。 </code> </p>
+<p> </p>  
+<p><a name="N101D6"><span class="atitle">改进 synchronized </span></a></p> 
+<p>虽然在多数情况下， <code>$task</code> 消除了同步操作的要求，但是不是所有的多线程系统都用任务来实现。所以，还需要改进现有的线程模块。 <code>synchronized</code> 关键字有下列缺点：</p> 
+<ul> 
+ <li>无法指定一个超时值。</li> 
+ <li>无法中断一个正在等待请求锁的线程。</li> 
+ <li>无法安全地请求多个锁 。(多个锁只能以依次序获得。)</li> 
+</ul> 
+<p>解决这些问题的办法是：扩展 <code>synchronized</code> 的语法，使它支持多个参数和能接受一个超时说明（在下面的括弧中指定）。下面是我希望的语法：</p> 
+<div> 
+ <table cellspacing="0" cellpadding="3" width="619" border="1"> 
+  <tbody> 
+   <tr valign="top"> 
+    <td align="left" width="205"><code>synchronized(x &amp;&amp; y &amp;&amp; z)</code></td> 
+    <td align="left" width="392">获得 <code>x</code> 、 <code>y</code> 和 <code>z</code> 对象的锁。</td> 
+   </tr> 
+   <tr valign="top"> 
+    <td align="left" width="205"><code>synchronized(x || y || z)</code></td> 
+    <td align="left" width="392"><a name="2">获得 <code>x</code> 、 <code>y</code> 或 <code>z</code> 对象的锁。 </a></td> 
+   </tr> 
+   <tr valign="top"> 
+    <td align="left" width="205"><code>synchronized( (x &amp;&amp; y ) || z)</code></td> 
+    <td align="left" width="392">对于前面代码的一些扩展。</td> 
+   </tr> 
+   <tr valign="top"> 
+    <td align="left" width="205"><code>synchronized(...)[1000]</code></td> 
+    <td align="left" width="392">设置 1 秒超时以获得一个锁。</td> 
+   </tr> 
+   <tr valign="top"> 
+    <td align="left" width="205"><code>synchronized[1000] f(){...}</code></td> 
+    <td align="left" width="392">在进入 <a name="2"><code>f()</code> </a>函数时获得 <code>this</code> 的锁，但可有 1 秒超时。</td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<p><code>TimeoutException</code> 是 <code>RuntimeException</code> 派生类，它在等待超时后即被抛出。</p> 
+<p>超时是需要的，但还不足以使代码强壮。您还需要具备从外部中止请求锁等待的能力。所以，当向一个等待锁的线程传送一个 <code>interrupt()</code> 方法后，此方法应抛出一个 <code>SynchronizationException</code> 对象，并中断等待的线程。这个异常应是 <code>RuntimeException</code> 的一个派生类，这样不必特别处理它。</p> 
+<p>对 <code>synchronized</code> 语法这些推荐的更改方法的主要问题是，它们需要在二进制代码级上修改。而目前这些代码使用进入监控(enter-monitor)和退出监控(exit-monitor)指令来实现 <code>synchronized</code> 。而这些指令没有参数，所以需要扩展二进制代码的定义以支持多个锁定请求。但是这种修改不会比在 Java 2 中修改 Java 虚拟机的更轻松，但它是向下兼容现存的 Java 代码。</p> 
+<p>另一个可解决的问题是最常见的死锁情况，在这种情况下，两个线程都在等待对方完成某个操作。设想下面的一个例子（假设的）：</p> 
+<div>
+ class Broken
+ <br /> {&nbsp;&nbsp; Object lock1 = new Object();
+ <br /> &nbsp;&nbsp;&nbsp; Object lock2 = new Object();
+ <br /> &nbsp;&nbsp;&nbsp; void a()
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized( lock1 )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized( lock2 )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; // do something
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; void b()
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized( lock2 )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized( lock1 )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; // do something
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<p>设想一个线程调用 <code>a()</code> ，但在获得 <code>lock1</code> 之后在获得 <code>lock2</code> 之前被剥夺运行权。 第二个线程进入运行，调用 <code>b()</code> ，获得了 <code>lock2</code> ，但是由于第一个线程占用 <code>lock1</code> ，所以它无法获得 <code>lock1</code> ，所以它随后处于等待状态。此时第一个线程被唤醒，它试图获得 <code>lock2</code> ，但是由于被第二个线程占据，所以无法获得。此时出现死锁。下面的 synchronize-on-multiple-objects 的语法可解决这个问题：</p> 
+<div>
+ &nbsp;&nbsp;&nbsp; //...
+ <br /> &nbsp;&nbsp;&nbsp; void a()
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized( lock1 &amp;&amp; lock2 )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; void b()
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized( lock2 &amp;&amp; lock3 )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<p>编译器(或虚拟机)会重新排列请求锁的顺序，使 <code>lock1</code> 总是被首先获得，这就消除了死锁。</p> 
+<p>但是，这种方法对多线程不一定总成功，所以得提供一些方法来自动打破死锁。一个简单的办法就是在等待第二个锁时常释放已获得的锁。这就是说，应采取如下的等待方式，而不是永远等待：</p> 
+<div>
+ &nbsp;&nbsp;&nbsp; while( true )
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized( some_lock )[10]
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; // do the work here.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; catch( TimeoutException e )
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; continue;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<p>如果等待锁的每个程序使用不同的超时值，就可打破死锁而其中一个线程就可运行。我建议用以下的语法来取代前面的代码：</p> 
+<div>
+ &nbsp;&nbsp;&nbsp; synchronized( some_lock )[]
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; // do the work here.
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<p><code>synchronized</code> 语句将永远等待，但是它时常会放弃已获得的锁以打破潜在的死锁可能。在理想情况下，每个重复等待的超时值比前一个相差一随机值。</p> 
+<p><a name="N102F6"><span class="atitle">改进 wait() 和 notify() </span></a></p> 
+<p><code>wait()</code> / <code>notify()</code> 系统也有一些问题：</p> 
+<ul> 
+ <li>无法检测 <code>wait()</code> 是正常返回还是因超时返回。</li> 
+ <li>无法使用传统条件变量来实现处于一个“信号”(signaled)状态。</li> 
+ <li>太容易发生嵌套的监控(monitor)锁定。</li> 
+</ul> 
+<p>超时检测问题可以通过重新定义 <code>wait()</code> 使它返回一个 <code>boolean</code> 变量 (而不是 <code>void</code> ) 来解决。一个 <code>true</code> 返回值指示一个正常返回，而 <code>false</code> 指示因超时返回。</p> 
+<p>基于状态的条件变量的概念是很重要的。如果此变量被设置成 <code>false</code> 状态，那么等待的线程将要被阻断，直到此变量进入 <code>true</code> 状态；任何等待 <code>true</code> 的条件变量的等待线程会被自动释放。 (在这种情况下， <code>wait()</code> 调用不会发生阻断。)。通过如下扩展 <code>notify()</code> 的语法，可以支持这个功能：</p> 
+<p> </p>
+<table cellspacing="0" cellpadding="3" border="1"> 
+ <tbody> 
+  <tr valign="top"> 
+   <td align="left" width="20%">notify();</td> 
+   <td align="left">释放所有等待的线程，而不改变其下面的条件变量的状态。</td> 
+  </tr> 
+  <tr valign="top"> 
+   <td align="left" width="20%">notify(true);</td> 
+   <td align="left">把条件变量的状态设置为 true 并释放任何等待的进程。其后对于 <code>wait()</code> 的调用不会发生阻断。</td> 
+  </tr> 
+  <tr valign="top"> 
+   <td align="left" width="20%">notify(false);</td> 
+   <td align="left">把条件变量的状态设置为 false (其后对于 <code>wait()</code> 的调用会发生阻断)。</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>嵌套监控锁定问题非常麻烦，我并没有简单的解决办法。嵌套监控锁定是一种死锁形式，当某个锁的占有线程在挂起其自身之前不释放锁时，会发生这种嵌套监控封锁。下面是此问题的一个例子（还是假设的），但是实际的例子是非常多的：</p> 
+<p>class Stack<br /> {&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp; LinkedList list = new LinkedList();<br /> &nbsp;&nbsp;&nbsp; public synchronized void push(Object x)<br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized(list)<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; list.addLast( x );<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; notify();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; public synchronized Object pop()<br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; synchronized(list)<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; if( list.size() &lt;= 0 )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; wait();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return list.removeLast();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; }<br /> }</p> 
+<p> </p> 
+<p>此例中，在 <code>get()</code> 和 <code>put()</code> 操作中涉及两个锁：一个在 <code>Stack</code> 对象上，另一个在 <code>LinkedList</code> 对象上。下面我们考虑当一个线程试图调用一个空栈的 pop() 操作时的情况。此线程获得这两个锁，然后调用 <code>wait()</code> 释放 <code>Stack</code> 对象上 的锁，但是没有释放在 list 上的锁。如果此时第二个线程试图向堆栈中压入一个对象，它会在 <code>synchronized(list)</code> 语句上永远挂起，而且永远不会被允许压入一个对象。由于第一个线程等待的是一个非空栈，这样就会发生死锁。这就是说，第一个线程永远无法从 <code>wait()</code> 返回，因为由于它占据着锁，而导致第二个线程永远无法运行到 <code>notify()</code> 语句。</p> 
+<p>在这个例子中，有很多明显的办法来解决问题：例如，对任何的方法都使用同步。但是在真实世界中，解决方法通常不是这么简单。</p> 
+<p>一个可行的方法是，在 <code>wait()</code> 中按照反顺序释放当前线程获取的 <em>所有</em> 锁，然后当等待条件满足后，重新按原始获取顺序取得它们。但是，我能想象出利用这种方式的代码对于人们来说简直无法理解，所以我认为它不是一个真正可行的方法。如果您有好的方法，请给我发 e-mail。</p> 
+<p>我也希望能等到下述复杂条件被实现的一天。例如：</p> 
+<pre class="displaycode">(a &amp;&amp; (b || c)).wait();</pre> 
+<p>其中 <code>a</code> 、 <code>b</code> 和 <code>c</code> 是任意对象。</p> 
+<p><a name="N103D3"><span class="atitle">修改 Thread 类 </span></a></p> 
+<p>同时支持抢占式和协作式线程的能力在某些服务器应用程序中是基本要求，尤其是在想使系统达到最高性能的情况下。我认为 Java 编程语言在简化线程模型上走得太远了，并且 Java 编程语言应支持 Posix/Solaris 的“绿色(green)线程”和“轻便(lightweight)进程”概念（在“（ <em>Taming Java Threads</em> ”第一章中讨论）。 这就是说，有些 Java 虚拟机的实现（例如在 NT 上的 Java 虚拟机）应在其内部仿真协作式进程，其它 Java 虚拟机应仿真抢占式线程。而且向 Java 虚拟机加入这些扩展是很容易的。</p> 
+<p>一个 Java 的 <code>Thread</code> 应始终是抢占式的。这就是说，一个 Java 编程语言的线程应像 Solaris 的轻便进程一样工作。 <code>Runnable</code> 接口可以用于定义一个 Solaris 式的“绿色线程”，此线程必需能把控制权转给运行在相同轻便进程中的其它绿色线程。</p> 
+<p>例如，目前的语法：</p> 
+<p>&nbsp;&nbsp; class My_thread implements Runnable<br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; public void run(){ /*...*/ }<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; new Thread( new My_thread );</p> 
+<p><br /> 能有效地为 <code>Runnable</code> 对象产生一个绿色线程，并把它绑定到由 <code>Thread</code> 对象代表的轻便进程中。这种实现对于现有代码是透明的，因为它的有效性和现有的完全一样。</p> 
+<p>把 <code>Runnable</code> 对象想成为绿色线程，使用这种方法，只需向 <code>Thread</code> 的构造函数传递几个 <code>Runnable</code> 对象，就可以扩展 Java 编程语言的现有语法，以支持在一个单一轻便线程有多个绿色线程。（绿色线程之间可以相互协作，但是它们可被运行在其它轻便进程 ( <code>Thread</code> 对象) 上的绿色进程( <code>Runnable</code> 对象) 抢占。）。例如，下面的代码会为每个 runnable 对象创建一个绿色线程，这些绿色线程会共享由 <code>Thread</code> 对象代表的轻便进程。</p> 
+<p>new Thread( new My_runnable_object(), new My_other_runnable_object() );</p> 
+<p><br /> 现有的覆盖(override) <code>Thread</code> 对象并实现 <code>run()</code> 的习惯继续有效，但是它应映射到一个被绑定到一轻便进程的绿色线程。(在 <code>Thread()</code> 类中的缺省 <code>run()</code> 方法会在内部有效地创建第二个 <code>Runnable</code> 对象。)</p></div></body></html>

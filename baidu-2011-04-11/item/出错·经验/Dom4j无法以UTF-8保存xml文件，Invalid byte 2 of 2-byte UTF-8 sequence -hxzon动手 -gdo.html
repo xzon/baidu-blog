@@ -1,0 +1,110 @@
+<html><head><title>Dom4j无法以UTF-8保存xml文件，Invalid byte 2 of 2-byte UTF-8 sequence -hxzon动手 -gdo</title></head><body><div id='tit'>Dom4j无法以UTF-8保存xml文件，Invalid byte 2 of 2-byte UTF-8 sequence -hxzon动手 -gdo</div><div id='cate'>出错&middot;经验</div><div id='date'>2008年04月04日 星期五 00:00 A.M.</div><div id='page'>144</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/eb0e402376fb66569822edd8.html'>http://hi.baidu.com/hxzon/blog/item/eb0e402376fb66569822edd8.html</a><div id='cnt'><div>
+ Dom4j无法以UTF-8保存xml文件，Invalid byte 2 of 2-byte UTF-8 sequence -hxzon动手 -gdo
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 这几天开始学习dom4j，在网上找了篇文章就开干了，上手非常的快，但是发现了个问题就是无法以UTF-8保存xml文件，保存后再次读出的时候会报“Invalid byte 2 of 2-byte UTF-8 sequence.”这样一个错误，检查发现由dom4j生成的这个文件，在使用可正确处理XML编码的任何的编辑器中中文成乱码，从记事本查看并不会出现乱码会正确显示中文。让我很是头痛。试着使用GBK、gb2312编码来生成的xml文件却可以正常的被解析。因此怀疑的dom4j没有对utf-8编码进行处理。便开始查看dom4j的原代码。终于发现的问题所在，是自己程序的问题。
+ <br /> 在dom4j的范例和网上流行的《DOM4J 使用简介》这篇教程中新建一个xml文档的代码都类似如下
+ <br /> public void createXML(String fileName) {
+ <br /> &nbsp;&nbsp;&nbsp; document．nbspdoc = org.dom4j.document．elper.createdocument．);
+ <br /> &nbsp;&nbsp;&nbsp; Element root = doc.addElement(&quot;book&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; root.addAttribute(&quot;name&quot;, &quot;我的图书&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Element childTmp;
+ <br /> &nbsp;&nbsp;&nbsp; childTmp = root.addElement(&quot;price&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; childTmp.setText(&quot;21.22&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Element writer = root.addElement(&quot;author&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; writer.setText(&quot;李四&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; writer.addAttribute(&quot;ID&quot;, &quot;001&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; org.dom4j.io.XMLWriter xmlWriter = new org.dom4j.io.XMLWriter(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new FileWriter(fileName));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlWriter.write(doc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlWriter.close();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(e);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 在上面的代码中输出使用的是FileWriter对象进行文件的输出。这就是不能正确进行文件编码的原因所在，java中由Writer类继承下来的子类没有提供编码格式处理，所以dom4j也就无法对输出的文件进行正确的格式处理。这时候所保存的文件会以系统的默认编码对文件进行保存，在中文版的window下java的默认的编码为GBK，也就是所虽然我们标识了要将xml保存为utf-8格式但实际上文件是以GBK格式来保存的，所以这也就是为什么能够我们使用GBK、GB2312编码来生成xml文件能正确的被解析，而以UTF-8格式生成的文件不能被xml解析器所解析的原因。
+ <br /> 好了现在我们找到了原因所在了，我们来找解决办法吧。首先我们看看dom4j是如何实现编码处理的
+ <br /> public XMLWriter(OutputStream out) throws UnsupportedEncodingException {
+ <br /> &nbsp;&nbsp;&nbsp; //System.out.println(&quot;In OutputStream&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; this.format = DEFAULT_FORMAT;
+ <br /> &nbsp;&nbsp;&nbsp; this.writer = createWriter(out, format.getEncoding());
+ <br /> &nbsp;&nbsp;&nbsp; this.autoFlush = true;
+ <br /> &nbsp;&nbsp;&nbsp; namespaceStack.push(Namespace.NO_NAMESPACE);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public XMLWriter(OutputStream out, OutputFormat format) throws UnsupportedEncodingException {
+ <br /> &nbsp;&nbsp;&nbsp; //System.out.println(&quot;In OutputStream,OutputFormat&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; this.format = format;
+ <br /> &nbsp;&nbsp;&nbsp; this.writer = createWriter(out, format.getEncoding());
+ <br /> &nbsp;&nbsp;&nbsp; this.autoFlush = true;
+ <br /> &nbsp;&nbsp;&nbsp; namespaceStack.push(Namespace.NO_NAMESPACE);
+ <br /> }
+ <br /> /**
+ <br /> * Get an OutputStreamWriter, use preferred encoding.
+ <br /> */
+ <br /> protected Writer createWriter(OutputStream outStream, String encoding) throws UnsupportedEncodingException {
+ <br /> &nbsp;&nbsp;&nbsp; return new BufferedWriter(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new OutputStreamWriter( outStream, encoding )
+ <br /> &nbsp;&nbsp;&nbsp; );
+ <br /> }
+ <br /> 由上面的代码我们可以看出dom4j对编码并没有进行什么很复杂的处理，完全通过java本身的功能来完成。所以我们在使用dom4j的来生成我们的XML文件时不应该直接为在构建XMLWriter时，不应该直接为其赋一个Writer对象，而应该通过一个OutputStream的子类对象来构建。也就是说在我们上面的代码中，不应该用FileWriter对象来构建xml文档，而应该使用FileOutputStream对象来构建所以将代码修改入下：
+ <br /> public void createXML(String fileName) {
+ <br /> &nbsp;&nbsp;&nbsp; document．nbspdoc = org.dom4j.document．elper.createdocument．);
+ <br /> &nbsp;&nbsp;&nbsp; Element root = doc.addElement(&quot;book&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; root.addAttribute(&quot;name&quot;, &quot;我的图书&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Element childTmp;
+ <br /> &nbsp;&nbsp;&nbsp; childTmp = root.addElement(&quot;price&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; childTmp.setText(&quot;21.22&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Element writer = root.addElement(&quot;author&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; writer.setText(&quot;李四&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; writer.addAttribute(&quot;ID&quot;, &quot;001&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //注意这里的修改
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; org.dom4j.io.XMLWriter xmlWriter = new org.dom4j.io.XMLWriter(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new FileOutputStream(fileName));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlWriter.write(doc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlWriter.close();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(e);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 至此DOM4J的问题编码问题算是告一段落，希望对此文章对其他朋友有用。
+</div></div></body></html>

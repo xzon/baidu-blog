@@ -1,0 +1,194 @@
+<html><head><title>JDK 7 中的 Fork/Join 模式</title></head><body><div id='tit'>JDK 7 中的 Fork/Join 模式</div><div id='cate'>设计方案</div><div id='date'>2008年03月05日 星期三 01:05 P.M.</div><div id='page'>161</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/36b54734aa8d814a241f1452.html'>http://hi.baidu.com/hxzon/blog/item/36b54734aa8d814a241f1452.html</a><div id='cnt'><p>JDK 7 中的 Fork/Join 模式<br /> 作者:xunchangguo 日期:2007-08-31 21:45:55</p> 
+<blockquote>
+ 随着多核时代的来临，软件开发人员不得不开始关注并行编程领域。而 JDK 7 中将会加入的 Fork/Join 模式是处理并行编程的一个经典的方法。虽然不能解决所有的问题，但是在它的适用范围之内，能够轻松的利用多个 CPU 提供的计算资源来协作完成一个复杂的计算任务。通过利用 Fork/Join 模式，我们能够更加顺畅的过渡到多核的时代。本文将介绍使用 JDK 7 中 Fork/Join 模式的方法和其他相关改进。阅读本文之后，读者将能够独立地在软件开发中使用 Fork/Join 模式来改进程序的性能。
+</blockquote> 
+<p>&lt;!--START RESERVED FOR FUTURE USE INCLUDE FILES--&gt;&lt;!-- include java script once we verify teams wants to use this and it will work on dbcs and cyrillic characters --&gt;&lt;!--END RESERVED FOR FUTURE USE INCLUDE FILES--&gt;</p> 
+<p><a name="N1005D"><span class="atitle">介绍</span></a></p> 
+<p> </p> 
+<p>随着多核芯片逐渐成为主流，大多数软件开发人员不可避免地需要了解并行编程的知识。而同时，主流程序语言正在将越来越多的并行特性合并到标准库或者语言本身之中。我们可以看到，JDK 在这方面同样走在潮流的前方。在 JDK 标准版 5 中，由 Doug Lea 提供的并行框架成为了标准库的一部分（JSR-166）。随后，在 JDK 6 中，一些新的并行特性，例如并行 collection 框架，合并到了标准库中（JSR-166x）。直到今天，尽管 Java SE 7 还没有正式发布，一些并行相关的新特性已经出现在 JSR-166y 中：</p> 
+<p> </p> 
+<ol>
+ <br /> 
+ <li>Fork/Join 模式；</li> 
+ <li>TransferQueue，它继承自 BlockingQueue 并能在队列满时阻塞&amp;ldquo;生产者&amp;rdquo;；</li> 
+ <li>ArrayTasks/ListTasks，用于并行执行某些数组/列表相关任务的类；</li> 
+ <li>IntTasks/LongTasks/DoubleTasks，用于并行处理数字类型数组的工具类，提供了排序、查找、求和、求最小值、求最大值等功能；</li> 
+</ol> 
+<p> </p> 
+<p>其中，对 Fork/Join 模式的支持可能是对开发并行软件来说最通用的新特性。在 JSR-166y 中，Doug Lea 实现 ArrayTasks/ListTasks/IntTasks/LongTasks/DoubleTasks 时就大量的用到了 Fork/Join 模式。读者还需要注意一点，因为 JDK 7 还没有正式发布，因此本文涉及到的功能和发布版本有可能不一样。</p> 
+<p> </p> 
+<p>Fork/Join 模式有自己的适用范围。如果一个应用能被分解成多个子任务，并且组合多个子任务的结果就能够获得最终的答案，那么这个应用就适合用 Fork/Join 模式来解决。<a href="http://www.ibm.com/developerworks/cn/java/j-lo-forkjoin/index.html?ca=drs-cn#figure001"><font color="#996699">图 1</font></a> 给出了一个 Fork/Join 模式的示意图，位于图上部的 Task 依赖于位于其下的 Task 的执行，只有当所有的子任务都完成之后，调用者才能获得 Task 0 的返回结果。</p> 
+<p><br /> <br /> <a name="figure001"><strong>图 1. Fork/Join 模式示意图</strong></a><br /> <img alt="图 1.  Fork/Join 模式示意图" src="image/JDK 7 中的 Fork-Join 模.figure001.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-forkjoin/figure001.jpg</p></p> 
+<p>可以说，Fork/Join 模式能够解决很多种类的并行问题。通过使用 Doug Lea 提供的 Fork/Join 框架，软件开发人员只需要关注任务的划分和中间结果的组合就能充分利用并行平台的优良性能。其他和并行相关的诸多难于处理的问题，例如负载平衡、同步等，都可以由框架采用统一的方式解决。这样，我们就能够轻松地获得并行的好处而避免了并行编程的困难且容易出错的缺点。</p> 
+<p> </p> 
+<p><a name="N1008E"><span class="atitle">使用 Fork/Join 模式</span></a></p> 
+<p> </p> 
+<p>在开始尝试 Fork/Join 模式之前，我们需要从 Doug Lea 主持的 Concurrency JSR-166 Interest Site 上下载 JSR-166y 的源代码，并且我们还需要安装最新版本的 JDK 6（下载网址请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-forkjoin/index.html?ca=drs-cn#resources"><font color="#996699">参考资源</font></a>）。Fork/Join 模式的使用方式非常直观。首先，我们需要编写一个 ForkJoinTask 来完成子任务的分割、中间结果的合并等工作。随后，我们将这个 ForkJoinTask 交给 ForkJoinPool 来完成应用的执行。</p> 
+<p> </p> 
+<p>通常我们并不直接继承 ForkJoinTask，它包含了太多的抽象方法。针对特定的问题，我们可以选择 ForkJoinTask 的不同子类来完成任务。RecursiveAction 是 ForkJoinTask 的一个子类，它代表了一类最简单的 ForkJoinTask：不需要返回值，当子任务都执行完毕之后，不需要进行中间结果的组合。如果我们从 RecursiveAction 开始继承，那么我们只需要重载 <code><font face="NSimsun">protected void compute()</font></code> 方法。下面，我们来看看怎么为快速排序算法建立一个 ForkJoinTask 的子类：</p> 
+<p><br /> <br /> <a name="list1"><strong>清单 1. ForkJoinTask 的子类</strong></a><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">class SortTask extends RecursiveAction { <br />             final long[] array; <br />             final int lo; <br />             final int hi; <br />             private int THRESHOLD = 30; <br />             public SortTask(long[] array) { <br />             this.array = array; <br />             this.lo = 0; <br />             this.hi = array.length - 1; <br />             } <br />             public SortTask(long[] array, int lo, int hi) { <br />             this.array = array; <br />             this.lo = lo; <br />             this.hi = hi; <br />             } <br />             protected void compute() { <br />             if (hi - lo &amp;lt; THRESHOLD) <br />             sequentiallySort(array, lo, hi); <br />             else { <br />             int pivot = partition(array, lo, hi); <br />             coInvoke(new SortTask(array, lo, pivot - 1), new SortTask(array, <br />             pivot + 1, hi)); <br />             } <br />             } <br />             private int partition(long[] array, int lo, int hi) { <br />             long x = array[hi]; <br />             int i = lo - 1; <br />             for (int j = lo; j &amp;lt; hi; j++) { <br />             if (array[j] &amp;lt;= x) { <br />             i++; <br />             swap(array, i, j); <br />             } <br />             } <br />             swap(array, i + 1, hi); <br />             return i + 1; <br />             } <br />             private void swap(long[] array, int i, int j) { <br />             if (i != j) { <br />             long temp = array[i]; <br />             array[i] = array[j]; <br />             array[j] = temp; <br />             } <br />             } <br />             private void sequentiallySort(long[] array, int lo, int hi) { <br />             Arrays.sort(array, lo, hi + 1); <br />             } <br />             }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-forkjoin/index.html?ca=drs-cn#list1"><font color="#996699">清单 1</font></a> 中，SortTask 首先通过 <code><font face="NSimsun">partition()</font></code> 方法将数组分成两个部分。随后，两个子任务将被生成并分别排序数组的两个部分。当子任务足够小时，再将其分割为更小的任务反而引起性能的降低。因此，这里我们使用一个 <code><font face="NSimsun">THRESHOLD</font></code>，限定在子任务规模较小时，使用直接排序，而不是再将其分割成为更小的任务。其中，我们用到了 RecursiveAction 提供的方法 <code><font face="NSimsun">coInvoke()</font></code>。它表示：启动所有的任务，并在所有任务都正常结束后返回。如果其中一个任务出现异常，则其它所有的任务都取消。<code><font face="NSimsun">coInvoke()</font></code> 的参数还可以是任务的数组。</p> 
+<p> </p> 
+<p>现在剩下的工作就是将 SortTask 提交到 ForkJoinPool 了。<code><font face="NSimsun">ForkJoinPool()</font></code> 默认建立具有与 CPU 可使用线程数相等线程个数的线程池。我们在一个 JUnit 的 <code><font face="NSimsun">test</font></code> 方法中将 SortTask 提交给一个新建的 ForkJoinPool：</p> 
+<p><br /> <br /> <a name="list2"><strong>清单 2. 新建的 ForkJoinPool</strong></a><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">@Test <br />             public void testSort() throws Exception { <br />             ForkJoinTask sort = new SortTask(array); <br />             ForkJoinPool fjpool = new ForkJoinPool(); <br />             fjpool.submit(sort); <br />             fjpool.shutdown(); <br />             fjpool.awaitTermination(30, TimeUnit.SECONDS); <br />             assertTrue(checkSorted(array)); <br />             }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在上面的代码中，我们用到了 ForkJoinPool 提供的如下函数：</p> 
+<p> </p> 
+<ol>
+ <br /> 
+ <li><code><font face="NSimsun">submit()</font></code>：将 ForkJoinTask 类的对象提交给 ForkJoinPool，ForkJoinPool 将立刻开始执行 ForkJoinTask。</li> 
+ <li><code><font face="NSimsun">shutdown()</font></code>：执行此方法之后，ForkJoinPool 不再接受新的任务，但是已经提交的任务可以继续执行。如果希望立刻停止所有的任务，可以尝试 <code><font face="NSimsun">shutdownNow()</font></code> 方法。</li> 
+ <li><code><font face="NSimsun">awaitTermination()</font></code>：阻塞当前线程直到 ForkJoinPool 中所有的任务都执行结束。</li> 
+</ol> 
+<p> </p> 
+<p>并行快速排序的完整代码如下所示：</p> 
+<p><br /> <br /> <a name="list3"><strong>清单 3. 并行快速排序的完整代码</strong></a><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">package tests; <br />             import static org.junit.Assert.*; <br />             import java.util.Arrays; <br />             import java.util.Random; <br />             import java.util.concurrent.TimeUnit; <br />             import jsr166y.forkjoin.ForkJoinPool; <br />             import jsr166y.forkjoin.ForkJoinTask; <br />             import jsr166y.forkjoin.RecursiveAction; <br />             import org.junit.Before; <br />             import org.junit.Test; <br />             class SortTask extends RecursiveAction { <br />             final long[] array; <br />             final int lo; <br />             final int hi; <br />             private int THRESHOLD = 0; //For demo only <br />             public SortTask(long[] array) { <br />             this.array = array; <br />             this.lo = 0; <br />             this.hi = array.length - 1; <br />             } <br />             public SortTask(long[] array, int lo, int hi) { <br />             this.array = array; <br />             this.lo = lo; <br />             this.hi = hi; <br />             } <br />             protected void compute() { <br />             if (hi - lo &amp;lt; THRESHOLD) <br />             sequentiallySort(array, lo, hi); <br />             else { <br />             int pivot = partition(array, lo, hi); <br />             System.out.println(&amp;quot;\npivot = &amp;quot; + pivot + &amp;quot;, low = &amp;quot; + lo + &amp;quot;, high = &amp;quot; + hi); <br />             System.out.println(&amp;quot;array&amp;quot; + Arrays.toString(array)); <br />             coInvoke(new SortTask(array, lo, pivot - 1), new SortTask(array, <br />             pivot + 1, hi)); <br />             } <br />             } <br />             private int partition(long[] array, int lo, int hi) { <br />             long x = array[hi]; <br />             int i = lo - 1; <br />             for (int j = lo; j &amp;lt; hi; j++) { <br />             if (array[j] &amp;lt;= x) { <br />             i++; <br />             swap(array, i, j); <br />             } <br />             } <br />             swap(array, i + 1, hi); <br />             return i + 1; <br />             } <br />             private void swap(long[] array, int i, int j) { <br />             if (i != j) { <br />             long temp = array[i]; <br />             array[i] = array[j]; <br />             array[j] = temp; <br />             } <br />             } <br />             private void sequentiallySort(long[] array, int lo, int hi) { <br />             Arrays.sort(array, lo, hi + 1); <br />             } <br />             } <br />             public class TestForkJoinSimple { <br />             private static final int NARRAY = 16; //For demo only <br />             long[] array = new long[NARRAY]; <br />             Random rand = new Random(); <br />             @Before <br />             public void setUp() { <br />             for (int i = 0; i &amp;lt; array.length; i++) { <br />             array[i] = rand.nextLong()%100; //For demo only <br />             } <br />             System.out.println(&amp;quot;Initial Array: &amp;quot; + Arrays.toString(array)); <br />             } <br />             @Test <br />             public void testSort() throws Exception { <br />             ForkJoinTask sort = new SortTask(array); <br />             ForkJoinPool fjpool = new ForkJoinPool(); <br />             fjpool.submit(sort); <br />             fjpool.shutdown(); <br />             fjpool.awaitTermination(30, TimeUnit.SECONDS); <br />             assertTrue(checkSorted(array)); <br />             } <br />             boolean checkSorted(long[] a) { <br />             for (int i = 0; i &amp;lt; a.length - 1; i++) { <br />             if (a[i] &amp;gt; (a[i + 1])) { <br />             return false; <br />             } <br />             } <br />             return true; <br />             } <br />             }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>运行以上代码，我们可以得到以下结果：</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">Initial Array: [46, -12, 74, -67, 76, -13, -91, -96] <br />             pivot = 0, low = 0, high = 7 <br />             array[-96, -12, 74, -67, 76, -13, -91, 46] <br />             pivot = 5, low = 1, high = 7 <br />             array[-96, -12, -67, -13, -91, 46, 76, 74] <br />             pivot = 1, low = 1, high = 4 <br />             array[-96, -91, -67, -13, -12, 46, 74, 76] <br />             pivot = 4, low = 2, high = 4 <br />             array[-96, -91, -67, -13, -12, 46, 74, 76] <br />             pivot = 3, low = 2, high = 3 <br />             array[-96, -91, -67, -13, -12, 46, 74, 76] <br />             pivot = 2, low = 2, high = 2 <br />             array[-96, -91, -67, -13, -12, 46, 74, 76] <br />             pivot = 6, low = 6, high = 7 <br />             array[-96, -91, -67, -13, -12, 46, 74, 76] <br />             pivot = 7, low = 7, high = 7 <br />             array[-96, -91, -67, -13, -12, 46, 74, 76]</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td><img height="6" width="8" border="0" src="image/JDK 7 中的 Fork-Join 模.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<table class="no-print FCK__ShowTableBorders" cellspacing="0" cellpadding="0" align="right"> 
+ <tbody> 
+  <tr align="right"> 
+   <td><img height="4" width="100%" src="image/JDK 7 中的 Fork-Join 模.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p><br /> <br /> 
+    <table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0"> 
+     <tbody> 
+      <tr> 
+       <td valign="middle"> </td> 
+       <td valign="top" align="right"> </td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N10108"><span class="atitle">Fork/Join 模式高级特性</span></a></p> 
+<p> </p> 
+<p><a name="N1010E"><span class="smalltitle"><strong><font size="3">使用 RecursiveTask</font></strong></span></a></p> 
+<p> </p> 
+<p>除了 RecursiveAction，Fork/Join 框架还提供了其他 ForkJoinTask 子类：带有返回值的 RecursiveTask，使用 <code><font face="NSimsun">finish()</font></code> 方法显式中止的 AsyncAction 和 LinkedAsyncAction，以及可使用 TaskBarrier 为每个任务设置不同中止条件的 CyclicAction。</p> 
+<p> </p> 
+<p>从 RecursiveTask 继承的子类同样需要重载 <code><font face="NSimsun">protected void compute()</font></code> 方法。与 RecursiveAction 稍有不同的是，它可使用泛型指定一个返回值的类型。下面，我们来看看如何使用 RecursiveTask 的子类。</p> 
+<p><br /> <br /> <a name="list4"><strong>清单 4. RecursiveTask 的子类</strong></a><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">class Fibonacci extends RecursiveTask&amp;lt;Integer&amp;gt; { <br />             final int n; <br />             Fibonacci(int n) { <br />             this.n = n; <br />             } <br />             private int compute(int small) { <br />             final int[] results = { 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89 }; <br />             return results[small]; <br />             } <br />             public Integer compute() { <br />             if (n &amp;lt;= 10) { <br />             return compute(n); <br />             } <br />             Fibonacci f1 = new Fibonacci(n - 1); <br />             Fibonacci f2 = new Fibonacci(n - 2); <br />             f1.fork(); <br />             f2.fork(); <br />             return f1.join() + f2.join(); <br />             } <br />             }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-forkjoin/index.html?ca=drs-cn#list4"><font color="#996699">清单 4</font></a> 中， Fibonacci 的返回值为 Integer 类型。其 <code><font face="NSimsun">compute()</font></code> 函数首先建立两个子任务，启动子任务执行，阻塞以等待子任务的结果返回，相加后得到最终结果。同样，当子任务足够小时，通过查表得到其结果，以减小因过多地分割任务引起的性能降低。其中，我们用到了 RecursiveTask 提供的方法 <code><font face="NSimsun">fork()</font></code> 和 <code><font face="NSimsun">join()</font></code>。它们分别表示：子任务的异步执行和阻塞等待结果完成。</p> 
+<p> </p> 
+<p>现在剩下的工作就是将 Fibonacci 提交到 ForkJoinPool 了，我们在一个 JUnit 的 <code><font face="NSimsun">test</font></code> 方法中作了如下处理：</p> 
+<p><br /> <br /> <a name="list5"><strong>清单 5. 将 Fibonacci 提交到 ForkJoinPool</strong></a><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">@Test <br />             public void testFibonacci() throws InterruptedException, ExecutionException { <br />             ForkJoinTask&amp;lt;Integer&amp;gt; fjt = new Fibonacci(45); <br />             ForkJoinPool fjpool = new ForkJoinPool(); <br />             Future&amp;lt;Integer&amp;gt; result = fjpool.submit(fjt); <br />             // do something <br />             System.out.println(result.get()); <br />             }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N1014D"><span class="smalltitle"><strong><font size="3">使用 CyclicAction 来处理循环任务</font></strong></span></a></p> 
+<p> </p> 
+<p>CyclicAction 的用法稍微复杂一些。如果一个复杂任务需要几个线程协作完成，并且线程之间需要在某个点等待所有其他线程到达，那么我们就能方便的用 CyclicAction 和 TaskBarrier 来完成。图 2 描述了使用 CyclicAction 和 TaskBarrier 的一个典型场景。</p> 
+<p><br /> <br /> <a name="N10157"><strong>图 2. 使用 CyclicAction 和 TaskBarrier 执行多线程任务</strong></a><br /> <img alt="图 2. 使用 CyclicAction 和 TaskBarrier 执行多线程任务" src="image/JDK 7 中的 Fork-Join 模.figure002.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-forkjoin/figure002.jpg</p></p> 
+<p>继承自 CyclicAction 的子类需要 TaskBarrier 为每个任务设置不同的中止条件。从 CyclicAction 继承的子类需要重载 <code><font face="NSimsun">protected void compute()</font></code> 方法，定义在 <code><font face="NSimsun">barrier</font></code> 的每个步骤需要执行的动作。<code><font face="NSimsun">compute()</font></code> 方法将被反复执行直到 <code><font face="NSimsun">barrier</font></code> 的 <code><font face="NSimsun">isTerminated()</font></code> 方法返回 <code><font face="NSimsun">True</font></code>。TaskBarrier 的行为类似于 CyclicBarrier。下面，我们来看看如何使用 CyclicAction 的子类。</p> 
+<p><br /> <br /> <a name="list6"><strong>清单 6. 使用 CyclicAction 的子类</strong></a><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">class ConcurrentPrint extends RecursiveAction { <br />             protected void compute() { <br />             TaskBarrier b = new TaskBarrier() { <br />             protected boolean terminate(int cycle, int registeredParties) { <br />             System.out.println(&amp;quot;Cycle is &amp;quot; + cycle + &amp;quot;;&amp;quot; <br />             + registeredParties + &amp;quot; parties&amp;quot;); <br />             return cycle &amp;gt;= 10; <br />             } <br />             }; <br />             int n = 3; <br />             CyclicAction[] actions = new CyclicAction[n]; <br />             for (int i = 0; i &amp;lt; n; ++i) { <br />             final int index = i; <br />             actions[i] = new CyclicAction(b) { <br />             protected void compute() { <br />             System.out.println(&amp;quot;I'm working &amp;quot; + getCycle() + &amp;quot; &amp;quot; <br />             + index); <br />             try { <br />             Thread.sleep(500); <br />             } catch (InterruptedException e) { <br />             e.printStackTrace(); <br />             } <br />             } <br />             }; <br />             } <br />             for (int i = 0; i &amp;lt; n; ++i) <br />             actions[i].fork(); <br />             for (int i = 0; i &amp;lt; n; ++i) <br />             actions[i].join(); <br />             } <br />             }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-forkjoin/index.html?ca=drs-cn#list6"><font color="#996699">清单 6</font></a> 中，<code><font face="NSimsun">CyclicAction[]</font></code> 数组建立了三个任务，打印各自的工作次数和序号。而在 <code><font face="NSimsun">b.terminate()</font></code> 方法中，我们设置的中止条件表示重复 10 次计算后中止。现在剩下的工作就是将 ConcurrentPrint 提交到 ForkJoinPool 了。我们可以在 ForkJoinPool 的构造函数中指定需要的线程数目，例如 <code><font face="NSimsun">ForkJoinPool(4)</font></code> 就表明线程池包含 4 个线程。我们在一个 JUnit 的 <code><font face="NSimsun">test</font></code> 方法中运行 ConcurrentPrint 的这个循环任务：</p> 
+<p><br /> <br /> <a name="list7"><strong>清单 7. 运行 ConcurrentPrint 循环任务</strong></a><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">@Test <br />             public void testBarrier () throws InterruptedException, ExecutionException { <br />             ForkJoinTask fjt = new ConcurrentPrint(); <br />             ForkJoinPool fjpool = new ForkJoinPool(4); <br />             fjpool.submit(fjt); <br />             fjpool.shutdown(); <br />             }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>RecursiveTask 和 CyclicAction 两个例子的完整代码如下所示：</p> 
+<p><br /> <br /> <a name="list8"><strong>清单 8. RecursiveTask 和 CyclicAction 两个例子的完整代码</strong></a><br /> <br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">package tests; <br />             import java.util.concurrent.ExecutionException; <br />             import java.util.concurrent.Future; <br />             import jsr166y.forkjoin.CyclicAction; <br />             import jsr166y.forkjoin.ForkJoinPool; <br />             import jsr166y.forkjoin.ForkJoinTask; <br />             import jsr166y.forkjoin.RecursiveAction; <br />             import jsr166y.forkjoin.RecursiveTask; <br />             import jsr166y.forkjoin.TaskBarrier; <br />             import org.junit.Test; <br />             class Fibonacci extends RecursiveTask&amp;lt;Integer&amp;gt; { <br />             final int n; <br />             Fibonacci(int n) { <br />             this.n = n; <br />             } <br />             private int compute(int small) { <br />             final int[] results = { 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89 }; <br />             return results[small]; <br />             } <br />             public Integer compute() { <br />             if (n &amp;lt;= 10) { <br />             return compute(n); <br />             } <br />             Fibonacci f1 = new Fibonacci(n - 1); <br />             Fibonacci f2 = new Fibonacci(n - 2); <br />             System.out.println(&amp;quot;fork new thread for &amp;quot; + (n - 1)); <br />             f1.fork(); <br />             System.out.println(&amp;quot;fork new thread for &amp;quot; + (n - 2)); <br />             f2.fork(); <br />             return f1.join() + f2.join(); <br />             } <br />             } <br />             class ConcurrentPrint extends RecursiveAction { <br />             protected void compute() { <br />             TaskBarrier b = new TaskBarrier() { <br />             protected boolean terminate(int cycle, int registeredParties) { <br />             System.out.println(&amp;quot;Cycle is &amp;quot; + cycle + &amp;quot;;&amp;quot; <br />             + registeredParties + &amp;quot; parties&amp;quot;); <br />             return cycle &amp;gt;= 10; <br />             } <br />             }; <br />             int n = 3; <br />             CyclicAction[] actions = new CyclicAction[n]; <br />             for (int i = 0; i &amp;lt; n; ++i) { <br />             final int index = i; <br />             actions[i] = new CyclicAction(b) { <br />             protected void compute() { <br />             System.out.println(&amp;quot;I'm working &amp;quot; + getCycle() + &amp;quot; &amp;quot; <br />             + index); <br />             try { <br />             Thread.sleep(500); <br />             } catch (InterruptedException e) { <br />             e.printStackTrace(); <br />             } <br />             } <br />             }; <br />             } <br />             for (int i = 0; i &amp;lt; n; ++i) <br />             actions[i].fork(); <br />             for (int i = 0; i &amp;lt; n; ++i) <br />             actions[i].join(); <br />             } <br />             } <br />             public class TestForkJoin { <br />             @Test <br />             public void testBarrier () throws InterruptedException, ExecutionException { <br />             System.out.println(&amp;quot;\ntesting Task Barrier ...&amp;quot;); <br />             ForkJoinTask fjt = new ConcurrentPrint(); <br />             ForkJoinPool fjpool = new ForkJoinPool(4); <br />             fjpool.submit(fjt); <br />             fjpool.shutdown(); <br />             } <br />             @Test <br />             public void testFibonacci () throws InterruptedException, ExecutionException { <br />             System.out.println(&amp;quot;\ntesting Fibonacci ...&amp;quot;); <br />             final int num = 14; //For demo only <br />             ForkJoinTask&amp;lt;Integer&amp;gt; fjt = new Fibonacci(num); <br />             ForkJoinPool fjpool = new ForkJoinPool(); <br />             Future&amp;lt;Integer&amp;gt; result = fjpool.submit(fjt); <br />             // do something <br />             System.out.println(&amp;quot;Fibonacci(&amp;quot; + num + &amp;quot;) = &amp;quot; + result.get()); <br />             } <br />             }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>运行以上代码，我们可以得到以下结果：</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><br /> <pre class="displaycode">testing Task Barrier ... <br />             I'm working 0 2 <br />             I'm working 0 0 <br />             I'm working 0 1 <br />             Cycle is 0; 3 parties <br />             I'm working 1 2 <br />             I'm working 1 0 <br />             I'm working 1 1 <br />             Cycle is 1; 3 parties <br />             I'm working 2 0 <br />             I'm working 2 1 <br />             I'm working 2 2 <br />             Cycle is 2; 3 parties <br />             I'm working 3 0 <br />             I'm working 3 2 <br />             I'm working 3 1 <br />             Cycle is 3; 3 parties <br />             I'm working 4 2 <br />             I'm working 4 0 <br />             I'm working 4 1 <br />             Cycle is 4; 3 parties <br />             I'm working 5 1 <br />             I'm working 5 0 <br />             I'm working 5 2 <br />             Cycle is 5; 3 parties <br />             I'm working 6 0 <br />             I'm working 6 2 <br />             I'm working 6 1 <br />             Cycle is 6; 3 parties <br />             I'm working 7 2 <br />             I'm working 7 0 <br />             I'm working 7 1 <br />             Cycle is 7; 3 parties <br />             I'm working 8 1 <br />             I'm working 8 0 <br />             I'm working 8 2 <br />             Cycle is 8; 3 parties <br />             I'm working 9 0 <br />             I'm working 9 2 <br />             testing Fibonacci ... <br />             fork new thread for 13 <br />             fork new thread for 12 <br />             fork new thread for 11 <br />             fork new thread for 10 <br />             fork new thread for 12 <br />             fork new thread for 11 <br />             fork new thread for 10 <br />             fork new thread for 9 <br />             fork new thread for 10 <br />             fork new thread for 9 <br />             fork new thread for 11 <br />             fork new thread for 10 <br />             fork new thread for 10 <br />             fork new thread for 9 <br />             Fibonacci(14) = 610</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td><br /> <img height="6" width="8" border="0" src="image/JDK 7 中的 Fork-Join 模.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N101B8"><span class="atitle">结论</span></a></p> 
+<p> </p> 
+<p>从以上的例子中可以看到，通过使用 Fork/Join 模式，软件开发人员能够方便地利用多核平台的计算能力。尽管还没有做到对软件开发人员完全透明，Fork/Join 模式已经极大地简化了编写并发程序的琐碎工作。对于符合 Fork/Join 模式的应用，软件开发人员不再需要处理各种并行相关事务，例如同步、通信等，以难以调试而闻名的死锁和 data race 等错误也就不会出现，提升了思考问题的层次。你可以把 Fork/Join 模式看作并行版本的 Divide and Conquer 策略，仅仅关注如何划分任务和组合中间结果，将剩下的事情丢给 Fork/Join 框架。</p> 
+<p> </p> 
+<p>在实际工作中利用 Fork/Join 模式，可以充分享受多核平台为应用带来的免费午餐。</p> 
+<p> </p> 
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+<p><br /> <strong>学习</strong></p> 
+<ul>
+ <br /> 
+ <li>阅读文章&amp;ldquo;<a href="http://www.ddj.com/web-development/184405990?pgno=1"><font color="#5c81a7">The Free Lunch Is Over: A Fundamental Turn Toward Concurrency in Software</font></a>&amp;rdquo;：了解为什么从现在开始每个严肃的软件工作者都应该了解并行编程方法。</li> 
+ <li>阅读 Doug Lea 的文章&amp;ldquo;<a href="http://gee.cs.oswego.edu/dl/papers/fj.pdf"><font color="#5c81a7">A Java Fork/Join Framework</font></a>&amp;rdquo;：了解 Fork/Join 模式的实现机制和执行性能。</li> 
+ <li>阅读 developerWorks 文章&amp;ldquo;<a href="http://www.ibm.com/developerworks/cn/java/j-tiger06164/"><font color="#5c81a7">驯服 Tiger：并发集合</font></a>&amp;rdquo;：了解如何使用并行 Collection 库。</li> 
+ <li>阅读 developerWorks 文章&amp;ldquo;<a href="http://www.ibm.com/developerworks/cn/java/j-jtp04186/"><font color="#5c81a7">Java 理论与实践：非阻塞算法简介</font></a>&amp;rdquo;：介绍了 JDK 5 在并行方面的重要增强以及在 JDK5 平台上如何实现非阻塞算法的一般介绍。</li> 
+ <li>书籍&amp;ldquo;<a href="http://www.javaconcurrencyinpractice.com/"><font color="#5c81a7">Java Concurrency in Practice</font></a>&amp;rdquo;：介绍了大量的并行编程技巧、反模式、可行的解决方案等，它对于 JDK 5 中的新特性也有详尽的介绍。</li> 
+</ul> 
+<p> </p></div></body></html>

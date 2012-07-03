@@ -1,0 +1,460 @@
+<html><head><title><div class="tit">
+  OGNL —— 数据运转的催化剂
+</div></title></head><body><div id='tit'>OGNL —— 数据运转的催化剂</div><div id='cate'>默认分类</div><div id='date'>2009年03月23日 星期一 00:25 A.M.</div><div id='page'>60</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c55e1dd5752aeacc51da4b93.html'>http://hi.baidu.com/hxzon/blog/item/c55e1dd5752aeacc51da4b93.html</a><div id='cnt'><h1 style="margin: 25px 0pt 10px 10px">OGNL —— 数据运转的催化剂</h1> 
+<div class="content">
+ 首先让我们花费1分钟的时间来简单思考一个问题，MVC这3者之间，到底是通过什么真正融合起来的？ 
+ <br /> 
+ <br /> 有人说是Controller，因为它是核心控制器，没有Controller，MVC就无从谈起，失去了职责划分的原本初衷。也有人说是View，因为所有的需求都是页面驱动的，没有页面，就没有请求，没有请求，也谈不上控制器和数据模型。 
+ <br /> 
+ <br /> 
+ <strong><span style="color: red">个人观点</span>：贯穿MVC模型之间起到粘合剂作用的是数据。数据在View层成为了展示的内容，而在Controller层，成为了操作的载体，所以数据和整个MVC的核心。</strong>
+</div> 
+<div> 
+ <h4>目 录</h4> 
+ <ol> 
+  <li><a href="http://www.javaeye.com/wiki/struts2/1353-ognl-catalyst-for-data-operation-in-struts2#1602">流转的数据</a></li> 
+  <li><a href="http://www.javaeye.com/wiki/struts2/1353-ognl-catalyst-for-data-operation-in-struts2#1603">OGNL —— 完美的催化剂</a></li> 
+  <li><a href="http://www.javaeye.com/wiki/struts2/1353-ognl-catalyst-for-data-operation-in-struts2#1608">深入浅出OGNL</a></li> 
+ </ol> 
+</div> 
+<h2>流转的数据 <a href="http://www.javaeye.com/wiki/struts2/1353-ognl-catalyst-for-data-operation-in-struts2#top" name="1602"></a></h2> 
+<div class="content">
+ 无论MVC三者之间的粘合剂到底是什么，数据在各个层次之间进行流转是一个不争的事实。而这种流转，也就会面临一些困境，这些困境，是由于数据在不同世界中的表现形式不同而造成的： 
+ <br /> 
+ <br /> 
+ <strong>1. 数据在页面上是一个扁平的，不带数据类型的字符串，无论你的数据结构有多复杂，数据类型有多丰富，到了展示的时候，全都一视同仁的成为字符串在页面上展现出来。</strong> 
+ <br /> 
+ <br /> 
+ <strong>2. 数据在Java世界中可以表现为丰富的数据结构和数据类型，你可以自行定义你喜欢的类，在类与类之间进行继承、嵌套。我们通常会把这种模型称之为复杂的对象树。</strong> 
+ <br /> 
+ <br /> 此时，如果数据在页面和Java世界中互相流转传递，就会显得不匹配。所以也就引出了几个需要解决的问题： 
+ <br /> 
+ <br /> 
+ <strong>1. 当数据从View层传递到Controller层时，我们应该保证一个扁平而分散在各处的数据集合能以一定的规则设置到Java世界中的对象树中去。同时，能够聪明的进行由字符串类型到Java中各个类型的转化。</strong> 
+ <br /> 
+ <br /> 
+ <strong>2. 当数据从Controller层传递到View层时，我们应该保证在View层能够以某些简易的规则对对象树进行访问。同时，在一定程度上控制对象树中的数据的显示格式。</strong> 
+ <br /> 
+ <br /> 如果我们稍微深入一些来思考这个问题，我们就会发现，解决数据由于表现形式的不同而发生流转不匹配的问题对我们来说其实并不陌生。同样的问题会发生在Java世界与数据库世界中，面对这种对象与关系模型的不匹配，我们采用的解决方法是使用ORM框架，例如Hibernate，iBatis等等。那么现在，在Web层同样也发生了不匹配，所以我们也需要使用一些工具来帮助我们解决问题。 
+ <br /> 
+ <br /> 在这里，我们主要讨论的，是数据从View层传递到Controller层时的解决方案，而数据从Controller层传递到View层的解决方案，我们将在Struts2的Result章节重点讨论。
+</div> 
+<h2>OGNL —— 完美的催化剂 <a href="http://www.javaeye.com/wiki/struts2/1353-ognl-catalyst-for-data-operation-in-struts2#top" name="1603"></a></h2> 
+<div class="content">
+ 为了解决数据从View层传递到Controller层时的不匹配性，Struts2采纳了XWork的OGNL方案。并且在OGNL的基础上，构建了OGNLValueStack的机制，从而比较完美的解决了数据流转中的不匹配性。 
+ <br /> 
+ <br /> OGNL（Object Graph Navigation Language），是一种表达式语言。使用这种表达式语言，你可以通过某种表达式语法，存取Java对象树中的任意属性、调用Java对象树的方法、同时能够自动实现必要的类型转化。如果我们把表达式看做是一个带有语义的字符串，那么OGNL无疑成为了这个语义字符串与Java对象之间沟通的桥梁。 
+ <br /> 
+ <br /> 
+ <strong><span style="color: blue">如何使用OGNL</span></strong> 
+ <br /> 
+ <br /> 让我们先研究一下OGNL的API，他来自于Ognl的静态方法： 
+ <br /> 
+ <br /> 
+ <div class="dp-highlighter"> 
+  <div class="bar"> 
+   <pre class="java" style="display: none" name="code">public static Object getValue( Object tree, Map context, Object root ) throws OgnlException;
+
+public static void setValue( Object tree, Map context, Object root, Object value ) throws OgnlException</pre> 我们可以看到，OGNL的API其实相当简单，你可以通过传递三个参数来实现OGNL的一切操作。而这三个参数，被我称为OGNL的三要素。 
+   <br /> 
+   <br /> 那么运用这个API，我们能干点什么呢？跑个测试看看结果：
+  </div> 
+ </div> 
+ <div class="dp-highlighter"> 
+  <div class="bar"> 
+   <div class="tools">
+    Java代码 &lt;embed pluginspage=&quot;http://www.macromedia.com/go/getflashplayer&quot; src=&quot;http://www.javaeye.com/javascripts/syntaxhighlighter/clipboard_new.swf&quot; width=&quot;14&quot; height=&quot;15&quot; type=&quot;application/x-shockwave-flash&quot; flashvars=&quot;clipboard=%0A%2F**%0A%20*%20%40author%20Downpour%0A%20*%2F%0Apublic%20class%20User%20%7B%0A%09%0A%09private%20Integer%20id%3B%0A%09%0A%09private%20String%20name%3B%0A%09%0A%09private%20Department%20department%20%3D%20new%20Department()%3B%0A%09%0A%09public%20User()%20%7B%0A%09%09%0A%09%7D%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%2F%2F%20setter%20and%20getters%0A%7D%0A%0A%2F%2F%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%0A%0A%2F**%0A%20*%20%40author%20Downpour%0A%20*%2F%0Apublic%20class%20Department%20%7B%0A%09%0A%09private%20Integer%20id%3B%0A%09%0A%09private%20String%20name%3B%0A%09%0A%09public%20Department()%20%7B%0A%09%09%0A%09%7D%0A%20%20%20%20%20%20%20%20%0A%20%20%20%20%20%20%20%20%2F%2F%20setter%20and%20getters%0A%7D%0A%0A%2F%2F%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%3D%0A%0A%2F**%0A%20*%20%40author%20Downpour%0A%20*%2F%0Apublic%20class%20OGNLTestCase%20extends%20TestCase%20%7B%0A%09%0A%09%2F**%0A%09%20*%20%0A%09%20*%20%40throws%20Exception%0A%09%20*%2F%0A%09%40SuppressWarnings(%22unchecked%22)%0A%09%40Test%0A%09public%20void%20testGetValue()%20throws%20Exception%20%7B%0A%09%09%0A%09%09%2F%2F%20Create%20root%20object%0A%09%09User%20user%20%3D%20new%20User()%3B%0A%09%09user.setId(1)%3B%0A%09%09user.setName(%22downpour%22)%3B%0A%0A%09%09%2F%2F%20Create%20context%0A%09%09Map%20context%20%3D%20new%20HashMap()%3B%0A%09%09context.put(%22introduction%22%2C%22My%20name%20is%20%22)%3B%0A%09%09%0A%09%09%2F%2F%20Test%20to%20directly%20get%20value%20from%20root%20object%2C%20with%20no%20context%0A%09%09Object%20name%20%3D%20Ognl.getValue(Ognl.parseExpression(%22name%22)%2C%20user)%3B%0A%09%09assertEquals(%22downpour%22%2Cname)%3B%0A%09%09%0A%09%09%2F%2F%20Test%20to%20get%20value(parameter)%20from%20context%0A%09%09Object%20contextValue%20%3D%20Ognl.getValue(Ognl.parseExpression(%22%23introduction%22)%2C%20context%2C%20user)%3B%0A%09%09assertEquals(%22My%20name%20is%20%22%2C%20contextValue)%3B%0A%09%09%0A%09%09%2F%2F%20Test%20to%20get%20value%20and%20parameter%20from%20root%20object%20and%20context%0A%09%09Object%20hello%20%3D%20Ognl.getValue(Ognl.parseExpression(%22%23introduction%20%2B%20name%22)%2C%20context%2C%20user)%3B%0A%09%09assertEquals(%22My%20name%20is%20downpour%22%2Chello)%3B%0A%09%09%09%09%09%0A%09%7D%0A%0A%09%2F**%0A%09%20*%20%0A%09%20*%20%40throws%20Exception%0A%09%20*%2F%0A%09%40SuppressWarnings(%22unchecked%22)%0A%09%40Test%0A%09public%20void%20testSetValue()%20throws%20Exception%20%7B%0A%09%09%0A%09%09%2F%2F%20Create%20root%20object%0A%09%09User%20user%20%3D%20new%20User()%3B%0A%09%09user.setId(1)%3B%0A%09%09user.setName(%22downpour%22)%3B%0A%09%09%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20Set%20value%20according%20to%20the%20expression%0A%09%09Ognl.setValue(%22department.name%22%2C%20user%2C%20%22dev%22)%3B%0A%09%09assertEquals(%22dev%22%2C%20user.getDepartment().getName())%3B%0A%09%09%0A%09%7D%0A%09%0A%0A%7D%0A%0A&quot; quality=&quot;high&quot; allowscriptaccess=&quot;always&quot;&gt;
+   </div> 
+  </div> 
+  <ol class="dp-j"> 
+   <li><span><span class="comment">/**</span> </span></li> 
+   <li><span><span class="comment">* @author Downpour</span> </span></li> 
+   <li><span><span class="comment">*/</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span><span class="keyword">public</span><span> </span><span class="keyword">class</span><span> User {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private</span><span> Integer id;&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private</span><span> String name;&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private</span><span> Department department = </span><span class="keyword">new</span><span> Department();&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span> User() {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// setter and getters</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>}&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span><span class="comment">//=========================================================================</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span><span class="comment">/**</span> </span></li> 
+   <li><span><span class="comment">* @author Downpour</span> </span></li> 
+   <li><span><span class="comment">*/</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span><span class="keyword">public</span><span> </span><span class="keyword">class</span><span> Department {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private</span><span> Integer id;&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">private</span><span> String name;&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span> Department() {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// setter and getters</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>}&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span><span class="comment">//=========================================================================</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span><span class="comment">/**</span> </span></li> 
+   <li><span><span class="comment">* @author Downpour</span> </span></li> 
+   <li><span><span class="comment">*/</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span><span class="keyword">public</span><span> </span><span class="keyword">class</span><span> OGNLTestCase </span><span class="keyword">extends</span><span> TestCase {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">/**</span> </span></li> 
+   <li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * </span></span></li> 
+   <li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * @throws Exception</span> </span></li> 
+   <li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="annotation">@SuppressWarnings</span><span>(</span><span class="string">&quot;unchecked&quot;</span><span>)&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="annotation">@Test</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span> </span><span class="keyword">void</span><span> testGetValue() </span><span class="keyword">throws</span><span> Exception {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Create root object</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; User user = <span class="keyword">new</span><span> User();&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setId(<span class="number">1</span><span>);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setName(<span class="string">&quot;downpour&quot;</span><span>);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Create context</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Map context = <span class="keyword">new</span><span> HashMap();&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; context.put(<span class="string">&quot;introduction&quot;</span><span>,</span><span class="string">&quot;My name is &quot;</span><span>);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Test to directly get value from root object, with no context</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object name = Ognl.getValue(Ognl.parseExpression(<span class="string">&quot;name&quot;</span><span>), user);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assertEquals(<span class="string">&quot;downpour&quot;</span><span>,name);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Test to get value(parameter) from context</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object contextValue = Ognl.getValue(Ognl.parseExpression(<span class="string">&quot;#introduction&quot;</span><span>), context, user);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assertEquals(<span class="string">&quot;My name is &quot;</span><span>, contextValue);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Test to get value and parameter from root object and context</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object hello = Ognl.getValue(Ognl.parseExpression(<span class="string">&quot;#introduction + name&quot;</span><span>), context, user);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assertEquals(<span class="string">&quot;My name is downpour&quot;</span><span>,hello);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">/**</span> </span></li> 
+   <li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * </span></span></li> 
+   <li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * @throws Exception</span> </span></li> 
+   <li><span><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="annotation">@SuppressWarnings</span><span>(</span><span class="string">&quot;unchecked&quot;</span><span>)&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="annotation">@Test</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span> </span><span class="keyword">void</span><span> testSetValue() </span><span class="keyword">throws</span><span> Exception {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Create root object</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; User user = <span class="keyword">new</span><span> User();&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setId(<span class="number">1</span><span>);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setName(<span class="string">&quot;downpour&quot;</span><span>);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Set value according to the expression</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ognl.setValue(<span class="string">&quot;department.name&quot;</span><span>, user, </span><span class="string">&quot;dev&quot;</span><span>);&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assertEquals(<span class="string">&quot;dev&quot;</span><span>, user.getDepartment().getName());&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>}&nbsp;&nbsp;</span></li> 
+  </ol> 
+ </div> 
+ <pre class="java" style="display: none" name="code">/**
+ * @author Downpour
+ */
+public class User {
+ 
+ private Integer id;
+ 
+ private String name;
+ 
+ private Department department = new Department();
+ 
+ public User() {
+  
+ }
+        
+        // setter and getters
+}
+
+//=========================================================================
+
+/**
+ * @author Downpour
+ */
+public class Department {
+ 
+ private Integer id;
+ 
+ private String name;
+ 
+ public Department() {
+  
+ }
+        
+        // setter and getters
+}
+
+//=========================================================================
+
+/**
+ * @author Downpour
+ */
+public class OGNLTestCase extends TestCase {
+ 
+ /**
+  * 
+  * @throws Exception
+  */
+ @SuppressWarnings(&quot;unchecked&quot;)
+ @Test
+ public void testGetValue() throws Exception {
+  
+  // Create root object
+  User user = new User();
+  user.setId(1);
+  user.setName(&quot;downpour&quot;);
+
+  // Create context
+  Map context = new HashMap();
+  context.put(&quot;introduction&quot;,&quot;My name is &quot;);
+  
+  // Test to directly get value from root object, with no context
+  Object name = Ognl.getValue(Ognl.parseExpression(&quot;name&quot;), user);
+  assertEquals(&quot;downpour&quot;,name);
+  
+  // Test to get value(parameter) from context
+  Object contextValue = Ognl.getValue(Ognl.parseExpression(&quot;#introduction&quot;), context, user);
+  assertEquals(&quot;My name is &quot;, contextValue);
+  
+  // Test to get value and parameter from root object and context
+  Object hello = Ognl.getValue(Ognl.parseExpression(&quot;#introduction + name&quot;), context, user);
+  assertEquals(&quot;My name is downpour&quot;,hello);
+     
+ }
+
+ /**
+  * 
+  * @throws Exception
+  */
+ @SuppressWarnings(&quot;unchecked&quot;)
+ @Test
+ public void testSetValue() throws Exception {
+  
+  // Create root object
+  User user = new User();
+  user.setId(1);
+  user.setName(&quot;downpour&quot;);
+  
+                // Set value according to the expression
+  Ognl.setValue(&quot;department.name&quot;, user, &quot;dev&quot;);
+  assertEquals(&quot;dev&quot;, user.getDepartment().getName());
+  
+ }
+ 
+
+}</pre> 
+ <br /> 
+ <br /> 我们可以看到，简单的API，就已经能够完成对各种对象树的读取和设值工作了。这也体现出OGNL的学习成本非常低。 
+ <br /> 
+ <br /> 在上面的测试用例中，需要特别强调进行区分的，是在针对不同内容进行取值或者设值时，OGNL表达式的不同。 
+ <br /> 
+ <br /> 
+ <div class="quote_title">
+  Struts2 Reference 写道
+ </div> 
+ <div class="quote_div">
+  The framework uses a standard naming context to evaluate OGNL expressions. The top level object dealing with OGNL is a Map (usually referred as a context map or context). OGNL has a notion of there being a root (or default) object within the context. In expression, the properties of the root object can be referenced without any special &quot;marker&quot; notion. References to other objects are marked with a pound sign (#).
+ </div> 
+ <br /> 
+ <br /> 上面这段内容摘自Struts2的Reference，我把这段话总结为以下2条规则： 
+ <br /> 
+ <br /> 
+ <strong>A） 针对根对象（Root Object）的操作，表达式是自根对象到被访问对象的某个链式操作的字符串表示。</strong> 
+ <br /> 
+ <strong>B） 针对上下文环境（Context）的操作，表达式是自上下文环境（Context）到被访问对象的某个链式操作的字符串表示，但是必须在这个字符串的前面加上#符号，以表示与访问根对象的区别。</strong> 
+ <br /> 
+ <br /> 上面的这点区别咋看起来非常容易理解，不过一旦放到特定的环境中，就会显示出其重要性，它可以解释很多Struts2在页面展示上取值的各种复杂的表达式的现象。这一点在下一篇文章中会进行具体的分析。 
+ <br /> 
+ <br /> 
+ <strong><span style="color: blue">OGNL三要素</span></strong> 
+ <br /> 
+ <br /> 我把传入OGNL的API的三个参数，称之为OGNL的三要素。OGNL的操作实际上就是围绕着这三个参数而进行的。 
+ <br /> 
+ <br /> 
+ <strong>1. 表达式（Expression）</strong> 
+ <br /> 
+ <br /> 表达式是整个OGNL的核心，所有的OGNL操作都是针对表达式的解析后进行的。表达式会规定此次OGNL操作到底要
+ <strong><span style="color: red">干什么</span></strong>。 
+ <br /> 
+ <br /> 我们可以看到，在上面的测试中，name、department.name等都是表达式，表示取name或者department中的name的值。OGNL支持很多类型的表达式，之后我们会看到更多。 
+ <br /> 
+ <br /> 
+ <strong>2. 根对象（Root Object）</strong> 
+ <br /> 
+ <br /> 根对象可以理解为OGNL的
+ <strong><span style="color: red">操作对象</span></strong>。在表达式规定了“干什么”以后，你还需要指定到底
+ <strong><span style="color: red">“对谁干”</span></strong>。 
+ <br /> 
+ <br /> 在上面的测试代码中，user就是根对象。这就意味着，我们需要对user这个对象去取name这个属性的值（对user这个对象去设置其中的department中的name属性值）。 
+ <br /> 
+ <br /> 
+ <strong>3. 上下文环境（Context） </strong>
+ <br /> 
+ <br /> 有了表达式和根对象，我们实际上已经可以使用OGNL的基本功能。例如，根据表达式对根对象进行取值或者设值工作。 
+ <br /> 
+ <br /> 不过实际上，在OGNL的内部，所有的操作都会在一个特定的环境中运行，这个环境就是OGNL的上下文环境（Context）。说得再明白一些，就是这个上下文环境（Context），将规定OGNL的操作
+ <strong><span style="color: red">“在哪里干”</span></strong>。 
+ <br /> 
+ <br /> OGNL的上下文环境是一个Map结构，称之为OgnlContext。上面我们提到的根对象（Root Object），事实上也会被加入到上下文环境中去，并且这将作为一个特殊的变量进行处理，具体就表现为针对根对象（Root Object）的存取操作的表达式是不需要增加#符号进行区分的。 
+ <br /> 
+ <br /> OgnlContext不仅提供了OGNL的运行环境。在这其中，我们还能设置一些自定义的parameter到Context中，以便我们在进行OGNL操作的时候能够方便的使用这些parameter。不过正如我们上面反复强调的，我们在访问这些parameter时，需要使用#作为前缀才能进行。 
+ <br /> 
+ <br /> 
+ <strong><span style="color: blue">OGNL与模板</span></strong> 
+ <br /> 
+ <br /> 我们在尝试了OGNL的基本操作并了解了OGNL的三要素之后，或许很容易把OGNL的操作与模板联系起来进行比较。在很多方面，他们也的确有着相似之处。 
+ <br /> 
+ <br /> 对于模板，会有一些普通的输出元素，也有一些模板语言特殊的符号构成的元素，这些元素一旦与具体的Java对象融合起来，就会得到我们需要的输出结果。 
+ <br /> 
+ <br /> 而OGNL看起来也是非常的类似，OGNL中的表达式就雷同于模板语言的特殊符号，目的是针对某些Java对象进行存取。而OGNL与模板都将数据与展现分开，将数据放到某个特定的地方，具体来说，就是Java对象。只是OGNL与模板的语法结构不完全相同而已。
+</div> 
+<h2>深入浅出OGNL <a href="http://www.javaeye.com/wiki/struts2/1353-ognl-catalyst-for-data-operation-in-struts2#top" name="1608"></a></h2> 
+<div class="content">
+ 在了解了OGNL的API和基本操作以后，我们来深入到OGNL的内部来看看，挖掘一些更加深入的知识。 
+ <br /> 
+ <br /> 
+ <strong><span style="color: blue">OGNL表达式</span></strong> 
+ <br /> 
+ <br /> OGNL支持各种纷繁复杂的表达式。但是最最基本的表达式的原型，是将对象的引用值用点串联起来，从左到右，每一次表达式计算返回的结果成为当前对象，后面部分接着在当前对象上进行计算，一直到全部表达式计算完成，返回最后得到的对象。OGNL则针对这条基本原则进行不断的扩充，从而使之支持对象树、数组、容器的访问，甚至是类似SQL中的投影选择等操作。 
+ <br /> 
+ <br /> 接下来我们就来看看一些常用的OGNL表达式： 
+ <br /> 
+ <br /> 
+ <strong>1. 基本对象树的访问</strong> 
+ <br /> 
+ <br /> 对象树的访问就是通过使用点号将对象的引用串联起来进行。 
+ <br /> 
+ <br /> 例如：name，department.name，user.department.factory.manager.name 
+ <br /> 
+ <br /> 
+ <strong>2. 对容器变量的访问</strong> 
+ <br /> 
+ <br /> 对容器变量的访问，通过#符号加上表达式进行。 
+ <br /> 
+ <br /> 例如：#name，#department.name，#user.department.factory.manager.name 
+ <br /> 
+ <br /> 
+ <strong>3. 使用操作符号</strong> 
+ <br /> 
+ <br /> OGNL表达式中能使用的操作符基本跟Java里的操作符一样，除了能使用 +, -, *, /, ++, --, ==, !=, = 等操作符之外，还能使用 mod, in, not in等。 
+ <br /> 
+ <br /> 
+ <strong>4. 容器、数组、对象</strong> 
+ <br /> 
+ <br /> OGNL支持对数组和ArrayList等容器的顺序访问： 
+ <br /> 
+ <br /> 例如：group.users[0] 
+ <br /> 
+ <br /> 同时，OGNL支持对Map的按键值查找： 
+ <br /> 
+ <br /> 例如：#session['mySessionPropKey'] 
+ <br /> 
+ <br /> 不仅如此，OGNL还支持容器的构造的表达式： 
+ <br /> 
+ <br /> 例如：{&quot;green&quot;, &quot;red&quot;, &quot;blue&quot;}构造一个List，#{&quot;key1&quot; : &quot;value1&quot;, &quot;key2&quot; : &quot;value2&quot;, &quot;key3&quot; : &quot;value3&quot;}构造一个Map 
+ <br /> 
+ <br /> 你也可以通过任意类对象的构造函数进行对象新建： 
+ <br /> 
+ <br /> 例如：new java.net.URL(&quot;http://localhost/&quot;) 
+ <br /> 
+ <br /> 
+ <strong>5. 对静态方法或变量的访问</strong> 
+ <br /> 
+ <br /> 要引用类的静态方法和字段，他们的表达方式是一样的@class@member或者@class@method(args)： 
+ <br /> 
+ <br /> 例如：@com.javaeye.core.Resource@ENABLE，@com.javaeye.core.Resource@getAllResources 
+ <br /> 
+ <br /> 
+ <strong>6. 方法调用</strong> 
+ <br /> 
+ <br /> 直接通过类似Java的方法调用方式进行，你甚至可以传递参数： 
+ <br /> 
+ <br /> 例如：user.getName()，group.users.size()，group.containsUser(#requestUser) 
+ <br /> 
+ <br /> 
+ <strong>7. 投影和选择</strong> 
+ <br /> 
+ <br /> 
+ <br /> OGNL支持类似数据库中的投影（projection） 和选择（selection）。 
+ <br /> 
+ <br /> 投影就是选出集合中每个元素的相同属性组成新的集合，类似于关系数据库的字段操作。投影操作语法为 collection.{XXX}，其中XXX 是这个集合中每个元素的公共属性。 
+ <br /> 
+ <br /> 例如：group.userList.{username}将获得某个group中的所有user的name的列表。 
+ <br /> 
+ <br /> 选择就是过滤满足selection 条件的集合元素，类似于关系数据库的纪录操作。选择操作的语法为：collection.{X YYY}，其中X 是一个选择操作符，后面则是选择用的逻辑表达式。而选择操作符有三种： 
+ <br /> ? 选择满足条件的所有元素 
+ <br /> ^ 选择满足条件的第一个元素 
+ <br /> $ 选择满足条件的最后一个元素 
+ <br /> 
+ <br /> 例如：group.userList.{? #this.name != null}将获得某个group中user的name不为空的user的列表。 
+ <br /> 
+ <br /> 上述的所有的表达式，只是对OGNL所有表达式的大概的一个概括，除此之外，OGNL还有更多的表达式，例如lamba表达式等等。最具体的表达式的文档，大家可以参考OGNL自带的文档： 
+ <br /> 
+ <br /> 
+ <a target="_blank" href="http://www.ognl.org/2.6.9/Documentation/html/">http://www.ognl.org/2.6.9/Documentation/html/LanguageGuide/apa.html</a> 
+ <br /> 
+ <br /> 在撰写时，我也参考了potain同学的XWork教程以及一些网络上的一些文章，特此列出： 
+ <br /> 
+ <br /> 
+ <a target="_blank" href="http://www.lifevv.com/java/doc/20071018173750030.html">http://www.lifevv.com/java/doc/20071018173750030.html</a> 
+ <br /> 
+ <br /> 
+ <a target="_blank" href="http://blog.csdn.net/ice_fire2008/archive/2008/05/12/2438817.aspx">http://blog.csdn.net/ice_fire2008/archive/2008/05/12/2438817.aspx</a> 
+ <br /> 
+ <br /> 
+ <strong><span style="color: blue">OGNLContext</span></strong> 
+ <br /> 
+ <br /> OGNLContext就是OGNL的运行上下文环境。OGNLContext其实是一个Map结构，如果查看一下它的源码，就会发现，它其实实现了java.utils.Map的接口。当你在调用OGNL的取值或者设值的方法时，你可能会自己定义一个Context，并且将它传递给方法。事实上，你所传递进去的这个Context，会在OGNL内部被转化成OGNLContext，而你传递进去的所有的键值对，也会被OGNLContext接管维护，这里有点类似一个装饰器，向你屏蔽了一些其内部的实现机理。 
+ <br /> 
+ <br /> 在OGNLContext的内部维护的东西很多，其中，我挑选2个比较重要的提一下。一个是你在调用方法时传入的Context，它会被维护在 OGNL内部，并且作为存取变量的基础依据。另外一个，是在Context内部维护了一个key为root的值，它将规定在OGNLContext进行计算时，哪个元素被指定为根对象。其在进行存取时，将会被特殊对待。 
+ <br /> 
+ <br /> 
+ <strong><span style="color: blue">this指针</span></strong> 
+ <br /> 
+ <br /> 我们知道，OGNL表达式是以点进行串联的一个字符串链式表达式。而这个表达式在进行计算的时候，从左到右，每一次表达式计算返回的结果成为当前对象，并继续进行计算，直到得到计算结果。每次计算的中间对象都会放在一个叫做this的变量里面这个this变量就称之为this指针。 
+ <br /> 
+ <br /> 例如：group.userList.size().(#this+1).toString() 
+ <br /> 
+ <br /> 在这个例子中，#this其实就是group.userList.size()的计算结构。 
+ <br /> 
+ <br /> 使用this指针，我们就可以在OGNL表达式中进行一些简单的计算，从而完成我们的计算逻辑，而this指针在lamba表达式的引用中尤为广泛，有兴趣的读者可以深入研究OGNL自带的文档中lamba表达式的章节。 
+ <br /> 
+ <br /> 
+ <strong><span style="color: blue">默认行为和类型转化</span></strong> 
+ <br /> 
+ <br /> 在我们所讲述的所有的OGNL的操作中，实际上，全部都忽略了OGNL内部帮助你完成的很多默认行为和类型转化方面的工作。 
+ <br /> 
+ <br /> 我们来看一下OGNL在进行操作初始化时候的一个函数签名： 
+ <br /> 
+ <br /> 
+ <div class="dp-highlighter"> 
+  <div class="bar"> 
+   <pre class="java" style="display: none" name="code">public static Map addDefaultContext( Object root, ClassResolver classResolver, TypeConverter converter, MemberAccess memberAccess, Map context );</pre> 
+   <br /> 
+   <br /> 可以看到，在初始化时，OGNL还需要额外初始化一个类型转化的接口和一些其他的信息。只不过这些默认行为，由OGNL的内部屏蔽了。 
+   <br /> 
+   <br /> 一旦需要自己定义针对某个特定类型的类型转化方式，你就需要实现TypeConverter接口，并且在OGNL中进行注册。 
+   <br /> 
+   <br /> 同时，如果需要对OGNL的许多默认行为做出改变，则需要通过设置OGNL的全局环境变量进行。 
+   <br /> 
+   <br /> 上述的这些内容，有些会在后面的章节涉及，有兴趣的读者，也可以参阅OGNL的源码和OGNL的文档寻求帮助。
+   <a href="http://www.javaeye.com/wiki/struts2/1353-ognl-catalyst-for-data-operation-in-struts2">http://www.javaeye.com/wiki/struts2/1353-ognl-catalyst-for-data-operation-in-struts2</a>
+  </div> 
+ </div> 
+</div></div></body></html>

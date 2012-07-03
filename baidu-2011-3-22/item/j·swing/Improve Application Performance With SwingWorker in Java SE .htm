@@ -1,0 +1,309 @@
+<html><head><title><div class="tit">
+  Improve Application Performance With SwingWorker in Java SE 6
+</div></title></head><body><div id='tit'>Improve Application Performance With SwingWorker in Java SE 6</div><div id='cate'>j&middot;swing</div><div id='date'>2009年10月24日 星期六 10:47 A.M.</div><div id='page'>26</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/4128bf0187548609728da51e.html'>http://hi.baidu.com/hxzon/blog/item/4128bf0187548609728da51e.html</a><div id='cnt'><p>Improve Application Performance With SwingWorker in Java SE 6</p> 
+<p><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/">http://java.sun.com/developer/technicalArticles/javase/swingworker/</a></p> 
+<div>
+ <strong>Contents</strong>
+</div> 
+<ul> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#Application">Introducing the Demo Application</a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#Swing">Reviewing Swing Thread Basics</a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#Right">Starting off on the Right Thread</a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#EDT">Limiting the EDT to GUI Work</a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#SwingWorker">Forging Ahead With SwingWorker Fundamentals</a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#ImageRetriever">Implementing a Simple <code><span style=";;font-family:新宋体;">ImageRetriever</span></code></a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#Using">Using a Simple <code><span style=";;font-family:新宋体;">ImageRetriever</span></code></a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#ImageSearcher">Implementing a More Complete <code><span style=";;font-family:新宋体;">ImageSearcher</span></code></a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#Class">Using the <code><span style=";;font-family:新宋体;">ImageSearcher</span></code> Class</a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#Summary">Summary</a></li> 
+ <li><a href="http://java.sun.com/developer/technicalArticles/javase/swingworker/#Information">For More Information</a></li> 
+</ul> 
+<div>
+ ---------------------------
+ <br /> 
+ <div>
+  <strong>Reviewing Swing Thread Basics</strong>
+ </div> 
+ <table class="grey4" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img height="2" src="image/Improve Application .a.gif" width="1" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p>Swing applications have three types of threads: <span class="sp10"> </span></p> 
+ <ul> 
+  <li>An initial thread</li> 
+  <li>A UI event dispatch thread (EDT)</li> 
+  <li>Worker threads</li> 
+ </ul> 
+ <p> </p> 
+ <p>Every application must have a <code><span style=";;font-family:新宋体;">main</span></code> method that represents its starting point. This method runs on an initial or startup thread. The initial thread might read program arguments and initiate a few other objects, but in many Swing applications, this thread's primary purpose is to start the application's graphical user interface (GUI). Once the GUI starts for most event-driven desktop applications, the initial thread's work is done.</p> 
+ <p>Swing applications have a single EDT for the UI. This thread draws GUI components, updates them, and responds to user interactions by calling the application's event handlers. All event handlers run on the EDT, and you should programmatically interact with your UI components and their basic data models only on the EDT. Any tasks running on the EDT should finish quickly so that your UI is responsive to user input. Accessing your UI components or their event handlers from other threads will cause update and drawing errors in the UI. Performing long-running tasks on the EDT will cause your application to become unresponsive because GUI events will accumulate in the event dispatch queue.</p> 
+ <p>Finally, worker threads should perform long-running calculations or input/output (I/O) bound tasks. You should use worker threads for tasks such as communicating with databases, accessing web resources, and reading or writing large files. Anything that might interfere with or delay UI event handling should exist in a worker thread. Also, interacting with Swing components or their default data models from initial or worker threads is not a safe operation.</p> 
+ <p>The <code><span style=";;font-family:新宋体;">SwingWorker</span></code> class helps you manage the interaction between your worker threads and the Swing EDT. Although <code><span style=";;font-family:新宋体;">SwingWorker</span></code> doesn't solve all the problems that you might experience while working with concurrent threads, it does help you to separate Swing and worker threads and to use both for their intended purposes. For the EDT, that purpose is to draw and update the UI while responding to user interactions. For worker threads, that purpose is to perform I/O bound or other long tasks that are not directly related to the UI.</p> 
+ <a name="Right"> 
+  <div>
+   <strong>Starting off on the Right Thread</strong>
+  </div> </a> 
+ <table class="grey4" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img height="2" src="image/Improve Application .a.gif" width="1" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p>An initial thread runs your application's <code><span style=";;font-family:新宋体;">main</span></code> method. This method can perform numerous tasks, but in a typical Swing application, its last and major task is to create and run the application's UI. The point of UI creation, the point at which your application basically hands control over to your UI, is often the source of your application's first problem interacting with the EDT.</p> 
+ <p>The Image Search demo starts within its <code><span style=";;font-family:新宋体;">MainFrame</span></code> class. Many applications start their UI as follows, but this is not the right way to start the UI:</p> 
+ <div style="overflow: auto; width: 600px"> 
+  <table class="grey4" cellspacing="0" cellpadding="10" width="100%" border="0"> 
+   <tbody> 
+    <tr> 
+     <td> <pre>public class MainFrame extends javax.swing.JFrame {
+  ...
+
+  public static void main(String[] args) {
+    new MainFrame().setVisible(true);
+  }
+}</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p>Although this mistake appears benign, it still violates the rule that you should not interact with Swing components from any thread except the EDT. This particular mistake is easy to make, and thread synchronization problems may not be immediately obvious. However, you should still avoid it.</p> 
+ <p>Here is the correct way to instantiate your application's UI:</p> 
+ <div style="overflow: auto; width: 600px"> 
+  <table class="grey4" cellspacing="0" cellpadding="10" width="100%" border="0"> 
+   <tbody> 
+    <tr> 
+     <td> <pre>public class MainFrame extends javax.swing.JFrame {
+  ...
+
+  public static void main(String[] args) {
+    SwingUtilities.invokeLater(new Runnable() {
+      public void run() {
+        new MainFrame().setVisible(true);
+      }
+    });
+  }
+}</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p>Not directly related to <code><span style=";;font-family:新宋体;">SwingWorker</span></code> but useful nevertheless, the <a href="http://java.sun.com/javase/6/docs/api/javax/swing/SwingUtilities.html"><code><span style=";;font-family:新宋体;">javax.swing.SwingUtilities</span></code></a> class contains a collection of static methods that help you interact with UI components. It includes the <code><span style=";;font-family:新宋体;">invokeLater</span></code> method that puts a <code><span style=";;font-family:新宋体;">Runnable</span></code> task on the EDT. The <code><span style=";;font-family:新宋体;">Runnable</span></code> interface defines a task that can be executed as a thread</p> 
+ <p>Use the <code><span style=";;font-family:新宋体;">invokeLater</span></code> method to correctly instantiate your application UI from the initial thread. The method is asynchronous, which means that the call will return immediately to the calling thread. After creating the UI, however, many initial threads have little or nothing further to do.</p> 
+ <p>Here are two common ways to call this method:</p> 
+ <ul> 
+  <li><code><span style=";;font-family:新宋体;">SwingUtilities.invokeLater</span></code></li> 
+  <li><code><span style=";;font-family:新宋体;">EventQueue.invokeLater</span></code></li> 
+ </ul> 
+ <p> </p> 
+ <p>Either of these method calls is correct, so choose whichever you prefer. In fact, the <code><span style=";;font-family:新宋体;">SwingUtilities</span></code> version is just a thin wrapper method that calls the <code><span style=";;font-family:新宋体;">EventQueue.invokeLater</span></code> method. Because the Swing framework itself uses <code><span style=";;font-family:新宋体;">SwingUtilities</span></code> frequently, your use of <code><span style=";;font-family:新宋体;">SwingUtilities</span></code> does not pull any extra class code into your application.</p> 
+ <p>Another way to put tasks on the EDT is to use the <code><span style=";;font-family:新宋体;">SwingUtilities.invokeAndWait</span></code> method. Unlike the <code><span style=";;font-family:新宋体;">invokeLater</span></code> method, the <code><span style=";;font-family:新宋体;">invokeAndWait</span></code> method is synchronous. It will execute the <code><span style=";;font-family:新宋体;">Runnable</span></code> task on the EDT, but it will not return to the caller until the task has finished.</p> 
+ <p>Both <code><span style=";;font-family:新宋体;">invokeLater</span></code> and <code><span style=";;font-family:新宋体;">invokeAndWait</span></code> will execute their <code><span style=";;font-family:新宋体;">Runnable</span></code> task after all other tasks on the event dispatch queue have been processed. In other words, these methods put the <code><span style=";;font-family:新宋体;">Runnable</span></code> task at the end of the existing queue. Although you can use <code><span style=";;font-family:新宋体;">invokeLater</span></code> from either your application or EDT, you should never use the <code><span style=";;font-family:新宋体;">invokeAndWait</span></code> method from that thread. Using <code><span style=";;font-family:新宋体;">invokeAndWait</span></code> from the EDT would create the same response delays that you should avoid.</p> 
+ <a name="EDT"> 
+  <div>
+   <strong>Limiting the EDT to GUI Work</strong>
+  </div> </a> 
+ <table class="grey4" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img height="2" src="image/Improve Application .a.gif" width="1" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p>The Swing framework manages component drawing, updates, and event handlers on the EDT. As you might imagine, the event queue for this thread is busy because every GUI interaction and event passes through it. Tasks on the event queue must complete quickly, or they will prevent other tasks from running. The effect is an unresponsive GUI that gets choked with a backlog of waiting events, causing the GUI to become sluggish and unappealing to the user. Ideally, any task that requires more than 30 to 100 milliseconds should not run on the EDT. Otherwise, users will sense a pause between their input and the UI response.</p> 
+ <p>Fortunately, Swing performance doesn't have to degrade just because you have complex tasks, computations, or I/O bound operations that must execute as a result of a GUI event. After all, many desktop applications perform long-running tasks such as solving spreadsheet formulas, issuing database queries across the network, or sending messages to other applications across the Internet. Despite these tasks, your UI can remain snappy and responsive to the user. Maintaining a responsive application involves creating and managing separate threads that can run independently from the EDT.</p> 
+ <p>Two event handlers in the Image Search application will slow UI responsiveness if they complete on the EDT: the image search handler and the selected image download handler.</p> 
+ <p>Both of these handlers access a web service, which can take many seconds to respond. During that time, if the application performs the web service interactions on the EDT, the user will not be able to cancel the search or interact with the GUI. These methods and others like them should not run on the EDT.</p> 
+ <p>Figure 5 shows an EDT that cannot process UI events between points A and B, which represent the span of time for executing I/O bound queries to the Flickr web service.</p> 
+ <table cellspacing="0" cellpadding="2" width="346" border="0"> 
+  <tbody> 
+   <tr> 
+    <td class="grey3" align="center"><img alt="figure 5" src="image/Improve Application .singlethread.jpg" /><p class="origImg">http://java.sun.com/developer/technicalArticles/javase/swingworker/images/singlethread.jpg</p> 
+     <div> 
+     </div> 
+     <div class="pad3">
+      <span class="dkcaption1"><strong>Figure 5.</strong> <em>The EDT cannot respond to UI events while executing the web service query.</em> </span>
+     </div> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <span class="sp10"> </span>
+ <br /> The 
+ <code><span style=";;font-family:新宋体;">javax.swing.SwingWorker</span></code> class is new in the Java SE 6 platform. Using 
+ <code><span style=";;font-family:新宋体;">SwingWorker</span></code>, your application can launch a worker thread to perform the queries asynchronously and quickly return to business on the EDT. Figure 6 shows the shorter time between points A and B, meaning that the EDT is able to continue processing UI events without a long delay. 
+ <a name="Figure6"></a>
+ <span class="sp10"> </span>
+ <br /> 
+ <br /> 
+ <table cellspacing="0" cellpadding="2" width="346" border="0"> 
+  <tbody> 
+   <tr> 
+    <td class="grey3" align="center"><img alt="figure 6" src="image/Improve Application .twothreads.jpg" /><p class="origImg">http://java.sun.com/developer/technicalArticles/javase/swingworker/images/twothreads.jpg</p> 
+     <div> 
+     </div> 
+     <div class="pad3">
+      <span class="dkcaption1"><strong>Figure 6.</strong> <em>Using a worker thread, your application can remove I/O bound tasks from the EDT.</em> </span>
+     </div> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <span class="sp10"> </span>
+ <br /> 
+ <a name="SwingWorker"> 
+  <div>
+   <strong>Forging Ahead With SwingWorker Fundamentals</strong>
+  </div> </a> 
+ <table class="grey4" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img height="2" src="image/Improve Application .a.gif" width="1" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p>This section provides a quick tour of <code><span style=";;font-family:新宋体;">SwingWorker</span></code> functionality. The <a href="http://java.sun.com/javase/6/docs/api/javax/swing/SwingWorker.html"><code><span style=";;font-family:新宋体;">SwingWorker</span></code> documentation</a> describes the class this way:</p> 
+ <div style="overflow: auto; width: 600px"> 
+  <table class="grey4" cellspacing="0" cellpadding="10" width="100%" border="0"> 
+   <tbody> 
+    <tr> 
+     <td> <pre>public abstract class SwingWorker&lt;T,V&gt; extends Object 
+implements RunnableFuture</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p>The <code><span style=";;font-family:新宋体;">SwingWorker</span></code> class is abstract, so you must subclass it to perform the specific task you need. Notice that the class has type parameters <code><span style=";;font-family:新宋体;">T</span></code> and <code><span style=";;font-family:新宋体;">V</span></code>. The <code><span style=";;font-family:新宋体;">T</span></code> type indicates that an implementation's <code><span style=";;font-family:新宋体;">doInBackground</span></code> and <code><span style=";;font-family:新宋体;">get</span></code> methods will return values of <code><span style=";;font-family:新宋体;">T</span></code> type. The <code><span style=";;font-family:新宋体;">V</span></code> type indicates that an implementation's <code><span style=";;font-family:新宋体;">publish</span></code> and <code><span style=";;font-family:新宋体;">process</span></code> methods will operate on values of type <code><span style=";;font-family:新宋体;">V</span></code>. You will find detailed descriptions of these methods later in this article.</p> 
+ <p>The class also implements the <code><span style=";;font-family:新宋体;">java.util.concurrent.RunnableFuture</span></code> interface. The <code><span style=";;font-family:新宋体;">RunnableFuture</span></code> interface is really nothing more than a wrapper for two separate interfaces: <code><span style=";;font-family:新宋体;">Runnable</span></code> and <code><span style=";;font-family:新宋体;">Future</span></code>.</p> 
+ <p>Because it is <code><span style=";;font-family:新宋体;">Runnable</span></code>, a <code><span style=";;font-family:新宋体;">SwingWorker</span></code> implementation has a <code><span style=";;font-family:新宋体;">run</span></code> method. Runnable objects execute as part of a thread. A <code><span style=";;font-family:新宋体;">Thread</span></code> object will invoke the <code><span style=";;font-family:新宋体;">run</span></code> method when it starts.</p> 
+ <p>Because it is a <code><span style=";;font-family:新宋体;">Future</span></code> type, a <code><span style=";;font-family:新宋体;">SwingWorker</span></code> will provide its execution results in a value of type <code><span style=";;font-family:新宋体;">T</span></code> and will provide a way to interact with the thread. The <code><span style=";;font-family:新宋体;">SwingWorker</span></code> class implements the following interface methods:</p> 
+ <p> </p> 
+ <ul> 
+  <li><code><span style=";;font-family:新宋体;">boolean cancel(boolean mayInterruptIfRunning)</span></code></li> 
+  <li><code><span style=";;font-family:新宋体;">T get()</span></code></li> 
+  <li><code><span style=";;font-family:新宋体;">T get(long timeout, TimeUnit unit)</span></code></li> 
+  <li><code><span style=";;font-family:新宋体;">boolean isCancelled()</span></code></li> 
+  <li><code><span style=";;font-family:新宋体;">boolean isDone()</span></code></li> 
+ </ul> 
+ <p> </p> 
+ <p>The <code><span style=";;font-family:新宋体;">SwingWorker</span></code> class implements all of these interface methods for you. In fact, the only method you really must override is the following abstract <code><span style=";;font-family:新宋体;">SwingWorker</span></code> method:</p> 
+ <div style="overflow: auto; width: 600px"> 
+  <table class="grey4" cellspacing="0" cellpadding="10" width="100%" border="0"> 
+   <tbody> 
+    <tr> 
+     <td> <pre>protected T doInBackground() throws Exception</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p>The <code><span style=";;font-family:新宋体;">doInBackground</span></code> method runs as part of the worker thread. It performs the primary task of the thread, and it must provide the thread's results in its return value. Override this method and make sure it contains or delegates the thread's primary task. You should not call this method directly. Instead, use the worker object's <code><span style=";;font-family:新宋体;">execute</span></code> method to schedule execution.</p> 
+ <p>Use the worker's <code><span style=";;font-family:新宋体;">get</span></code> method to retrieve the results of the <code><span style=";;font-family:新宋体;">doInBackground</span></code> method. Although you can call the <code><span style=";;font-family:新宋体;">get</span></code> method from the EDT, this method will block until the worker thread is done. You should call this method only when you know the results are available so that the user will not have to wait for results. To avoid blocking, you can also use the <code><span style=";;font-family:新宋体;">isDone</span></code> method to check whether the <code><span style=";;font-family:新宋体;">doInBackground</span></code> method has finished. Also, an overloaded <code><span style=";;font-family:新宋体;">get(long timeout, TimeUnit unit)</span></code> method will wait up to the alloted time for the thread to complete before returning the results.</p> 
+ <p>Perhaps a better location for retrieving the worker object's results is from within the <code><span style=";;font-family:新宋体;">done</span></code> method:</p> 
+ <div style="overflow: auto; width: 600px"> 
+  <table class="grey4" cellspacing="0" cellpadding="10" width="100%" border="0"> 
+   <tbody> 
+    <tr> 
+     <td> <pre>protected void done()</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <span class="sp10"> </span>
+ <br /> 
+ <p><code><span style=";;font-family:新宋体;">SwingWorker</span></code> calls this method after the <code><span style=";;font-family:新宋体;">doInBackground</span></code> method finishes. Override the <code><span style=";;font-family:新宋体;">done</span></code> method if the worker object needs to update a GUI component with the results of the thread or to clean up. This is a good place to call the <code><span style=";;font-family:新宋体;">get</span></code> method because you know that the thread's work is finished when this method executes. <code><span style=";;font-family:新宋体;">SwingWorker</span></code> invokes the <code><span style=";;font-family:新宋体;">done</span></code> method on the EDT, so you can safely interact with any GUI components from within this method.</p> 
+ <p>You don't have to wait until the thread completes before getting intermediate results. <em>Intermediate results</em> are data chunks that a worker thread can produce before providing a final result. As the worker thread executes, it can publish results of <code><span style=";;font-family:新宋体;">V</span></code> type. Override the <code><span style=";;font-family:新宋体;">process</span></code> method to work with intermediate results. You will find more detail about these methods later in this article.</p> 
+ <p>A <code><span style=";;font-family:新宋体;">SwingWorker</span></code> instance can notify listeners when its properties change. A <code><span style=";;font-family:新宋体;">SwingWorker</span></code> instance has two important properties: state and progress.</p> 
+ <p>A worker thread has several states, represented by the following <code><span style=";;font-family:新宋体;">SwingWorker.StateValue</span></code> enumeration values:</p> 
+ <p> </p> 
+ <ul> 
+  <li><code><span style=";;font-family:新宋体;">PENDING</span></code></li> 
+  <li><code><span style=";;font-family:新宋体;">STARTED</span></code></li> 
+  <li><code><span style=";;font-family:新宋体;">DONE</span></code></li> 
+ </ul> 
+ <p> </p> 
+ <p>A worker thread is in the <code><span style=";;font-family:新宋体;">PENDING</span></code> state immediately after its creation. When the <code><span style=";;font-family:新宋体;">doInBackground</span></code> method begins, the worker thread enters the <code><span style=";;font-family:新宋体;">STARTED</span></code> state. A worker thread is in the <code><span style=";;font-family:新宋体;">DONE</span></code> state after its <code><span style=";;font-family:新宋体;">doInBackground</span></code> method finishes. The <code><span style=";;font-family:新宋体;">SwingWorker</span></code> superclass sets these state values automatically as it moves through its life cycle. You can add listeners that receive notification when this property changes.</p> 
+ <p>Finally, a worker object has a <code><span style=";;font-family:新宋体;">progress</span></code> property. As the worker progresses, it can update this property with integer values from 0 through 100. The worker can notify listeners when this property changes.</p> 
+ <p>-------------------------</p> 
+ <p>If you want to allow application users to cancel a worker thread, your code should check for cancellation requests periodically in its <code><span style=";;font-family:新宋体;">SwingWorker</span></code> subclass. Check for cancellation requests using the <code><span style=";;font-family:新宋体;">isCancelled</span></code> method. The <code><span style=";;font-family:新宋体;">ImageSearcher</span></code> subclass has several <code><span style=";;font-family:新宋体;">isCancelled</span></code> calls sprinkled throughout the code. Make this call from within loops, iterators, and other checkpoints to make sure that your thread learns about cancellation requests as soon as possible. Your thread can periodically check for the request and stop its work. The <code><span style=";;font-family:新宋体;">ImageSearcher</span></code> class, for example, checks for cancellation requests at several points:</p> 
+ <p> </p> 
+ <ul> 
+  <li>Before retrieving each thumbnail image, within a subtask of the <code><span style=";;font-family:新宋体;">doInBackground</span></code> method</li> 
+  <li>Before updating the GUI list model with intermediate results, within the <code><span style=";;font-family:新宋体;">process</span></code> method</li> 
+  <li>Before updating the GUI list model with final results, within the <code><span style=";;font-family:新宋体;">done</span></code> method</li> 
+ </ul> 
+ <p> </p> 
+ <p>The <code><span style=";;font-family:新宋体;">doInBackground</span></code> method calls the <code><span style=";;font-family:新宋体;">retrieveAndProcessThumbnails</span></code> method. This method loops through a list of image data and retrieves those thumbnail images. However, the user can initiate a different search from the EDT when the worker thread is in this loop. So it makes sense to check for a cancellation here:</p> 
+ <div style="overflow: auto; width: 600px"> 
+  <table class="grey4" cellspacing="0" cellpadding="10" width="100%" border="0"> 
+   <tbody> 
+    <tr> 
+     <td> <pre>private void retrieveAndProcessThumbnails(List&lt;ImageInfo&gt; infoList) {
+  for (int x=0; x&lt;infoList.size(); ++x) {
+    // Check whether this thread has been cancelled.
+    // Stop all thumbnail retrieval.
+    if (isCancelled()) {
+      break;
+    }
+    ...
+}</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <p><span class="sp10"> </span></p> 
+ <p>As this class processes the thumbnails, it publishes them. The result is that the <code><span style=";;font-family:新宋体;">process</span></code> method runs on the EDT. If the user makes a cancellation request or initiates a new search after the check in <code><span style=";;font-family:新宋体;">retrieveAndProcessThumbnails</span></code> but before the model update, the thumbnail will still appear in the visual list. Prevent that by checking from within the <code><span style=";;font-family:新宋体;">process</span></code> method too:</p> 
+ <div style="overflow: auto; width: 600px"> 
+  <table class="grey4" cellspacing="0" cellpadding="10" width="100%" border="0"> 
+   <tbody> 
+    <tr> 
+     <td> <pre>protected void process(List&lt;ImageInfo&gt; infoList) {
+  for (ImageInfo info: infoList) {
+    if (isCancelled()) {
+      break;
+    }
+    model.addElement(info);
+  }
+}</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <p><span class="sp10"> </span></p> 
+ <p>Finally, once the worker thread finishes, it has another chance to update the model or the GUI in some way. Again, you should probably check for a cancellation. The <code><span style=";;font-family:新宋体;">done</span></code> method provides the best opportunity for the check, and you can avoid updating the GUI if the user has canceled or started a new search.</p> 
+ <div style="overflow: auto; width: 600px"> 
+  <table class="grey4" cellspacing="0" cellpadding="10" width="100%" border="0"> 
+   <tbody> 
+    <tr> 
+     <td> <pre>@Override
+protected void done() {
+  ...
+  if (isCancelled()) {
+    return;
+  }
+  ...
+  // Update the model.
+}</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+ <p><span class="sp10"> </span></p> 
+ <p>The <code><span style=";;font-family:新宋体;">ImageSearcher</span></code> class is a more complete example of SwingWorker's abilities because it does a little more than the simpler <code><span style=";;font-family:新宋体;">ImageRetriever</span></code> class. The <code><span style=";;font-family:新宋体;">ImageSearcher</span></code> class publishes intermediate data to the GUI, and it handles cancellation requests. Both classes perform tasks in the background and track progress by notifying event listeners.</p> 
+</div></div></body></html>

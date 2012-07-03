@@ -1,0 +1,153 @@
+<html><head><title><div class="tit">
+  WEB应用下实现定时任务的简便方法
+</div></title></head><body><div id='tit'>WEB应用下实现定时任务的简便方法</div><div id='cate'>j&middot;入门</div><div id='date'>2009年04月24日 星期五 10:19 A.M.</div><div id='page'>54</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/20521c4c52785af1d62afc4e.html'>http://hi.baidu.com/hxzon/blog/item/20521c4c52785af1d62afc4e.html</a><div id='cnt'><div> 
+ <p>WEB应用下实现定时任务的简便方法</p> 
+ <pre></pre>
+ <p> 在
+  <nobr>
+   web
+  </nobr>方式下，如果我们要实现定期执行某些任务的话，除了用quartz
+  <nobr>
+   等第
+  </nobr>三方开源工具外，我们可以使用Timer和TimeTask来完成指定的定时任务：</p> 
+ <p> 第一步：创建一个
+  <nobr>
+   任务
+  </nobr>管理类，实现ServletContextListener 接口</p> 
+ <p></p>
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="6">
+  <tbody>
+   <tr>
+    <td bgcolor="#f3f3f3"><p>以下是引用片段：<br />public class TaskManager implements ServletContextListener {<br />/**<br />* 每天的毫秒数<br />*/<br />public static final long PERIOD_DAY = DateUtils.MILLIS_IN_DAY;<br />/**<br />* 一周内的毫秒数<br />*/<br />public static final long PERIOD_WEEK = PERIOD_DAY * 7;<br />/**<br />* 无延迟<br />*/<br />public static final long NO_DELAY = 0;<br />/**<br />* 定时器<br />*/<br />private Timer timer;<br />/**<br />* 在Web应用启动时初始化任务<br />*/<br />public void contextInitialized(ServletContextEvent event) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //定义定时器<br />&nbsp;&nbsp; timer = new Timer(&quot;数据库表备份&quot;,true); <br />&nbsp;&nbsp; //启动备份任务,每月(4个星期)执行一次<br />&nbsp;&nbsp; timer.schedule(new BackUpTableTask(),NO_DELAY, PERIOD_WEEK * 4);<br />//&nbsp;&nbsp; timer.schedule(new BackUpTableTask(),NO_DELAY, 30000);<br />}<br />/**<br />* 在Web应用结束时停止任务<br />*/<br />public void contextDestroyed(ServletContextEvent event) {<br />&nbsp;&nbsp; timer.cancel(); // 定时器销毁<br />}<br />}</p><p>第二步：创建一个时间任务类</p><p> </p><p></p>
+     <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="6">
+      <tbody>
+       <tr>
+        <td bgcolor="#f3f3f3">以下是引用片段：<br />public class BackUpTableTask extends TimerTask { <br />private static Log log = LogFactory.getLog(BackUpTableTask.class); <br />private static boolean isRunning = false; <br />public void run() { <br />&nbsp;&nbsp; if (!isRunning) { <br />&nbsp;&nbsp;&nbsp; isRunning = true; <br />&nbsp;&nbsp;&nbsp; log.debug(&quot;开始执行任务...&quot;); //开始任务 <br />&nbsp;&nbsp;&nbsp; //working&nbsp;&nbsp; add what you want to do <br />&nbsp;&nbsp;&nbsp; log.debug(&quot;执行任务完成...&quot;); //任务完成 <br />&nbsp;&nbsp;&nbsp; isRunning = false; <br />&nbsp;&nbsp; } else { <br />&nbsp;&nbsp;&nbsp; log.debug(&quot;上一次任务执行还未结束...&quot;); //上一次任务执行还未结束 <br />&nbsp;&nbsp; } <br />} <br />}</td>
+       </tr>
+      </tbody>
+     </table><p> 第三步：在web中添加一个
+      <nobr>
+       监听器
+      </nobr></p><p></p>
+     <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="6">
+      <tbody>
+       <tr>
+        <td bgcolor="#f3f3f3">以下是引用片段：<br />&lt;listener&gt;<br />&nbsp;&nbsp; &lt;listener-class&gt;***.TaskManager&lt;/listener-class&gt;<br />&nbsp;&nbsp; &lt;description&gt;要定期执行的任务&lt;/description&gt;<br />&lt;/listener&gt;</td>
+       </tr>
+      </tbody>
+     </table><p> 那么在
+      <nobr>
+       web
+      </nobr>服务器启动的时候,
+      <nobr>
+       任务
+      </nobr>也被启动,并且会
+      <nobr>
+       周期性
+      </nobr>的执行</p></td>
+   </tr>
+  </tbody>
+ </table> 
+ <p> </p> 
+ <p>=========================</p> 
+ <div>
+  Web定时器 - Timer
+ </div> 
+ <p><br /> <br /> &nbsp;&nbsp; Java定时器（java.util.Timer）有定时触发计划任务的功能，通过配置定时器的间隔时间，在某一间隔时间段之后会自动有规律的调用预先所安排的计划任务（java.util.TimerTask）。另外，由于我们希望当Web工程启动时，定时器能自动开始计时，在整个Web工程的生命期里，定时器能在每晚深夜触发一次报表计算引擎。因此定时器的存放位置也值得考查，不能简单的存在于单个Servlet或JavaBean中，必须能让定时器宿主的存活期为整个Web工程生命期，在工程启动时能自动加载运行。结合这两点，跟Servlet上下文有关的侦听器就最合适不过了，通过在工程的配置文件中加以合理配置，会在工程启动时自动运行，并在整个工程生命期中处于监听状态。 <br /> <br /> &nbsp;&nbsp; 下面就Servlet侦听器结合Java 定时器来讲述整个实现过程。要运用Servlet侦听器需要实现javax.servlet.ServletContextListener接口，同时实现它的contextInitialized(ServletContextEvent&nbsp;&nbsp;&nbsp; event)和contextDestroyed(ServletContextEvent&nbsp;&nbsp;&nbsp; event)两个接口函数。考虑定时器有个建立和销毁的过程，看了前面两个接口函数，就不容置疑的把建立的过程置入 contextInitialized，把销毁的过程置入contextDestroyed了。 <br /> &nbsp;&nbsp;&nbsp; java 代码 1</p> 
+ <div> 
+  <div> 
+   <div> 
+   </div> 
+  </div> 
+ </div> 
+ <pre name="code">package com.derek.servlet;       
+import javax.servlet.*;    
+import javax.servlet.http.*;    
+import com.derek.pub.TimerManager;    
+/**    
+  * 启动定时器的监听器    
+  * @author derek    * @version 1.0    
+ **/  
+
+public class TimerListener extends HttpServlet implements           ServletContextListener {
+    private TimerManager tm = null;
+        //Notification that the web module is ready to process requests
+    public void contextInitialized(ServletContextEvent sce) {
+        int day,hour,min,sec;
+        day = 26; hour = 16; min = 42; sec = 0;          
+        tm = new TimerManager(day,hour,min,sec);
+     }           
+   //Notification that the servlet context is about to be shut down
+    public void contextDestroyed(ServletContextEvent sce){ tm.destoryTimer();       
+   }    
+}</pre> 
+ <p><br /> java 代码 2</p> 
+ <div> 
+  <div> 
+   <div> 
+   </div> 
+  </div> 
+ </div> 
+ <pre name="code">package com.derek.pub;       
+import java.util.Timer;    
+import java.util.Date;    
+import java.util.Calendar;       
+/**    
+  * 定时器    
+  * @author derek    
+  * @version 1.0    
+  */   
+public class TimerManager { 
+    Timer t = null;         
+    public TimerManager(int day,int hour,int min,int sec) {           
+         time(day,hour,min,sec);       
+    }  
+           
+    public void time(int day,int hour,int min,int sec){               
+ 
+     Calendar c = Calendar.getInstance();
+     c.set(Calendar.DAY_OF_MONTH,day);
+     c.set(Calendar.HOUR_OF_DAY,hour);        
+     c.set(Calendar.MINUTE,min);
+     c.set(Calendar.SECOND,sec);        
+     Date date = c.getTime();        
+     System.out.println(c.getTime());        
+     t= new Timer();        
+     MyTask mt = new MyTask();        
+     t.schedule(mt,date);        
+    }        
+
+    public void destoryTimer(){
+        t.cancel();        
+    }    
+}</pre> 
+ <p><br /> java 代码 3</p> 
+ <div> 
+  <div> 
+   <div> 
+   </div> 
+  </div> 
+  <ol> 
+   <li>package com.derek.pub;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>import java.util.TimerTask;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>/**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp; * 计划任务代码&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp; * @author derek&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp; * @version 1.0&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp; */&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>public class MyTask extends TimerTask{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp;&nbsp; public MyTask() {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp;</li> 
+   <li>/**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp; * 任务块&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp; */&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp;</li> 
+   <li>public void run() {&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;定时器RUN&quot;);&nbsp;&nbsp;&nbsp;</li> 
+   <li>&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li> 
+   <li>}&nbsp;&nbsp;&nbsp;</li> 
+  </ol> 
+ </div> 
+ <p><a href="http://www.opensymphony.com/quartz/">http://www.opensymphony.com/quartz/</a>&nbsp;&nbsp; 定时任务框架</p> 
+</div></div></body></html>

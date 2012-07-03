@@ -1,0 +1,247 @@
+<html><head><title><div class="tit">
+  Log4j over SLF4J
+</div></title></head><body><div id='tit'>Log4j over SLF4J</div><div id='cate'>j&middot;通用</div><div id='date'>2009年10月20日 星期二 10:36 P.M.</div><div id='page'>26</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/f850848b25eecfd9fc1f10c1.html'>http://hi.baidu.com/hxzon/blog/item/f850848b25eecfd9fc1f10c1.html</a><div id='cnt'><h3>Log4j over SLF4J</h3> 
+<p>SLF4J ship with a module called <em>log4j-over-slf4j</em>. It allows log4j users to migrate existing applications to SLF4J without changing <em>a single line of code</em> but simply by replacing the <em>log4j.jar</em> file with <em>log4j-over-slf4j.jar</em>, as described below.</p> 
+<h4>How does it work?</h4> 
+<p>The log4j-over-slf4j module contains replacements of most widely used log4j classes, namely <code><font face="新宋体">org.apache.log4j.Category</font></code>, <code><font face="新宋体">org.apache.log4j.Logger</font></code>, <code><font face="新宋体">org.apache.log4j.Priority</font></code>, <code><font face="新宋体">org.apache.log4j.Level</font></code>, <code><font face="新宋体">org.apache.log4j.MDC</font></code>, and <code><font face="新宋体">org.apache.log4j.BasicConfigurator</font></code>. These replacement classes redirect all work to their corresponding SLF4J classes.</p> 
+<p>To use log4j-over-slf4j in your own application, the first step is to locate and then to replace <em>log4j.jar</em> with <em>log4j-over-slf4j.jar</em>. Note that you still need an SLF4J binding and its dependencies for log4j-over-slf4j to work properly.</p> 
+<p>In most situations, replacing a jar file is all it takes in order to migrate from log4j to SLF4J.</p> 
+<p>Note that as a result of this migration, log4j configuration files will no longer be picked up. If you need to migrate your log4j.properties file to logback, the <a href="http://logback.qos.ch/translator/">log4j translator</a> might be of help. For configuring logback, please refer to <a href="http://logback.qos.ch/manual/index.html">its manual</a>.</p> 
+<h4>When does it not work?</h4> 
+<p>The <em>log4j-over-slf4j</em> module will not work when the application calls log4j components that are not present in the bridge. For example, direct references to log4j appenders, filters or PropertyConfigurator are not supported by log4j-over-slf4j. While the number of cases where log4j-over-slf4j is insufficient is not completely negligible, in the vast majority of cases where log4j is configured through a configuration file, be it <em>log4j.properties</em> or <em>log4j.xml</em>, log4j-over-slf4j is enough in order to migrate your application to SLF4J.</p> 
+<h4>What about the overhead?</h4> 
+<p>There overhead of using log4j-over-slf4j instead of log4j directly is relatively small. Given that log4j-over-slf4j immediately delegates all work to SLF4J, the CPU overhead should be negligible, in the order of a few <em>nanoseconds</em>. There is a memory overhead corresponding to an entry in a hashmap per logger, which should be usually acceptable even for very large applications consisting of several thousand loggers. Moreover, if you choose logback as your underlying logging system, and given that logback is both much faster and more memory-efficient than log4j, the gains made by using logback should compensate for the overhead of using log4j-over-slf4j instead of log4j directly.</p> 
+<h4>log4j-over-slf4j.jar and slf4j-logj12.jar cannot be present simultaneously</h4> 
+<p>The presence of <em>slf4j-logj12.jar</em>, that is the log4j binding for SLF4J, will force all SLF4J calls to be delegated to log4j. The presence of <em>log4j-over-slf4j.jar</em> will in turn delegate all log4j API calls to their SLF4J equivalents. If both are present simultaneously, slf4j calls will be delegated to log4j, and log4j calls redirected to SLF4j, resulting in an endless recursion. <br /> <br /> <a href="http://www.slf4j.org/legacy.html">http://www.slf4j.org/legacy.html</a><br /> ===================<br /> 使用Slf4j取代Apache Common-Logging编写日志</p> 
+<p>Apache Common-Logging是广泛使用的Java日志门面库。我以前一直都使用它和log4j编写日志。 Apache Common-Logging通过动态查找的机制，在程序运行时自动找出真正使用的日志库。 Apache Common-Logging一直都运作得很好。直到最近，我写OSGI插件时，它不能工作了。原因是Apache Common-Logging使用了ClassLoader寻找和载入底层的日志库。而OSGI中，不同的插件使用自己的ClassLoader。一个线程的ClassLoader在执行不同的插件时，其执行能力是不同的。 OSGI的这种机制保证了插件互相独立，然而确使Apache Common-Logging无法工作！ 解决之道是使用新的日志门面库Slf4j。 Slf4j库类似于Apache Common-Logging。但是，他在编译时静态绑定真正的Log库。使用Slf4j时，如果你需要使用某一种日志实现，那么你必须选择正确的Slf4j的jar包的集合。这确实麻烦了一点，但总算可以在OSGI中开发日志了。 其实，这一点点工作也不算麻烦。 使用CommonLog接口而实际由Slf4j和Log4j实现的过程 1，项目中照常使用 import org.apache.commons.logging.Log; import org.apache.commons.logging.LogFactory; 编写日志。 2，仍然在src下使用log4j.properties文件进行配置。 3，使用的所有jar文件： 1）log4j-1.2.15.jar 这是log4j的库。 Slf4j并不改变这个底层实现库。 2）slf4j-api-1.5.2.jar 这是Slf4j库。 3）slf4j-log4j12-1.5.2.jar 这包含Log4j的适配器和静态绑定log4j底层实现。 4）jcl-over-slf4j-1.5.2.jar 这提供了Commons-Logging接口，以及使用common-loggin的接口，底层还是由SLF4J来决定哪种实现机制 。 这里，我们需要使用Log4j的原生库，但是不需要Commons-Logging的原生库。 OK，把上面这4个jar包复制到lib下，导入项目中，就可以像以往一样继续使用Apache Common-Logging编写日志了。 如果你喜欢使用slf4j的门面类，或者非log4j的日志实现库。只需要像上面把需要的jar包扔进自己的项目即可！<br /> ===========================<br /> 若需要将使用了其它logging APIs的第三方类库或已有代码的日志调用迁移到SLF4J，需要替换下面的jar：<br /> jcl-over-slf4j.jar<br /> 替换apache commons logging。<br /> log4j-over-slf4j.jar<br /> 替换log4j。原有的log4j.properites将失效，需要转换为logback.xml。<br /> jul-to-slf4j.jar<br /> 替换jdk logging。需要在程序开始时调用SLF4JBridgeHandler.install()来注册listener。<br /> hxzon:程序使用slf4j+logback,移除apache commons logging，log4j，使用jcl-over-slf4j.jar，log4j-over-slf4j.jar，jul-to-slf4j.jar。并不需要SLF4JBridgeHandler.install()注册。</p> 
+<p>===========================<br /> MLog clients using java 1.4+ standard logging.</p> 
+<p>hxzon:使用jul-to-slf4j.jar即可。<br /> ===========================</p> 
+<div class="cnt"> 
+ <h1 class="firstHeading">SLF4J</h1> 
+ <p><a href="http://www.slf4j.org/">http://www.slf4j.org/</a><br /> Simple Logging Facade for Java (SLF4J) 是一套包装 <a class="new" title="Logging 框架(尚未撰写)" href="http://zh.wikipedia.org/w/index.php?title=Logging_%E6%A1%86%E6%9E%B6&amp;action=edit&amp;redlink=1">Logging 框架</a>的接口程式，以 <a class="new" title="Facade 模式(尚未撰写)" href="http://zh.wikipedia.org/w/index.php?title=Facade_%E6%A8%A1%E5%BC%8F&amp;action=edit&amp;redlink=1">Facade 模式</a>实作。可以在软件部署的时候决定要使用的 Logging 框架，目前主要支援的有 <a class="new" title="Java Logging API(尚未撰写)" href="http://zh.wikipedia.org/w/index.php?title=Java_Logging_API&amp;action=edit&amp;redlink=1">Java Logging API</a>、<a class="new" title="Log4j(尚未撰写)" href="http://zh.wikipedia.org/w/index.php?title=Log4j&amp;action=edit&amp;redlink=1">log4j</a> 及 <a class="new" title="Logback(尚未撰写)" href="http://zh.wikipedia.org/w/index.php?title=Logback&amp;action=edit&amp;redlink=1">logback</a> 等框架。以 <a class="new" title="MIT 授权(尚未撰写)" href="http://zh.wikipedia.org/w/index.php?title=MIT_%E6%8E%88%E6%AC%8A&amp;action=edit&amp;redlink=1">MIT 授权</a>方式发布。</p> 
+ <p>SLF4J 的作者就是 log4j 的作者 Ceki G&uuml;lc&uuml;，他宣称 SLF4J 比 log4j 更有效率，而且比 <a class="new" title="Apache Commons Logging(尚未撰写)" href="http://zh.wikipedia.org/w/index.php?title=Apache_Commons_Logging&amp;action=edit&amp;redlink=1">Apache Commons Logging</a> (JCL) 简单、稳定。</p> 
+ <h2><span class="mw-headline">与 log4j 的比较</span></h2> 
+ <ul> 
+  <li>log4j 提供 TRACE, DEBUG, INFO, WARN, ERROR 及 FATAL 六种纪录等级，但是 SLF4J 认为 ERROR 与 FATAL 并没有实质上的差别，所以拿掉了 FATAL 等级，只剩下其他五种。</li> 
+ </ul> 
+ <ul> 
+  <li>提供字串内容替换的功能，会比较有效率，说明如下：</li> 
+ </ul> 
+ <pre>// 傳統的字串產生方式，如果沒有要紀錄 Debug 等級的訊息，就會浪費時間在產生不必要的訊息上<br />logger.debug(&quot;There are now &quot; + count + &quot; user accounts: &quot; + userAccountList);<br /><br />// 為了避免上述問題，我們可以先檢查是不是有開啟 Debug 訊息記綠功能，只是程式碼會比較複雜<br />if (logger.isDebugEnabled()) {<br />    logger.debug(&quot;There are now &quot; + count + &quot; user accounts: &quot; + userAccountList);<br />}<br /><br />// 如果 Debug 等級沒有開啟，則不會產生不必要的字串，同時也能維持程式碼的簡潔<br />logger.debug(&quot;There are now {} user accounts: {}&quot;, count, userAccountList);</pre> 
+ <ul> 
+  <li>SLF4J 只支援 MDC，不支援 NDC。</li> 
+ </ul> 
+ <div>
+  ---------------
+  <br /> 优点： 
+  <br /> 
+  <br /> 超超超低依赖性 
+  <br /> 透明切换不同是日志实现方式 
+  <br /> 编译器绑定底层实现的方式，不会有classloader问题 
+  <br /> 性能更佳 
+  <br /> 已经Hibernate、Jetty、Spring-OSGi、Tapestry等项目中使用 
+  <br /> 完善又免费的文档 
+  <br /> 各个jar包功能： 
+  <br /> 
+  <br /> 
+  <span class="hilite1">slf4j</span>-api-1.4.3.jar - 一定是要的，直接支持logback实现 
+  <br /> jcl104-over-
+  <span class="hilite1">slf4j</span>-1.4.3.jar - 使用common-loggin的接口，底层还是由
+  <span class="hilite1">SLF4J</span>来决定哪种实现机制 
+  <br /> 
+  <span class="hilite1">slf4j</span>-jcl-1.4.3.jar - 使用
+  <span class="hilite1">SLF4J</span>的接口，底层由common-loggin实现(不能和jcl104-over-
+  <span class="hilite1">slf4j</span>-1.4.3.jar同时使用) 
+  <br /> 
+  <span class="hilite1">slf4j</span>-log4j12-1.4.3.jar - 使用
+  <span class="hilite1">SLF4J</span>的接口，底层由log4j实现 
+  <br /> 
+  <span class="hilite1">slf4j</span>-jdk14-1.4.3.jar - 使用
+  <span class="hilite1">SLF4J</span>的接口，底层由java自身的日志系统实现 
+  <br /> 语法： 
+  <br /> 
+  <br /> import org.
+  <span class="hilite1">slf4j</span>.Logger; 
+  <br /> import org.
+  <span class="hilite1">slf4j</span>.LoggerFactory; 
+  <br /> 
+  <br /> public class Test { 
+  <br /> final Logger logger = LoggerFactory.getLogger(Test.class); 
+  <br /> 
+  <br /> public void hi() { 
+  <br /> // 不再需要log.isDebugalbe()，代码更简洁 
+  <br /> logger.debug(”hello {}”, “amsz”); 
+  <br /> } 
+  <br /> } 
+  <br /> -------------------------
+  <br /> SLF4J不是具体的日志解决方案，它只服务于各种各样的日志系统。按照官方的说法，SLF4J是一个用于日志系统的简单Facade，允许最终用户在部署其应用时使用其所希望的日志系统。
+  <br /> 
+  <div class="spctrl"> 
+  </div> 实际上，SLF4J所提供的核心API是一些接口以及一个LoggerFactory的工厂类。从某种程度上，SLF4J有点类似JDBC，不过比 JDBC更简单，在JDBC中，你需要指定驱动程序，而在使用SLF4J的时候，不需要在代码中或配置文件中指定你打算使用那个具体的日志系统。如同使用 JDBC基本不用考虑具体数据库一样，SLF4J提供了统一的记录日志的接口，只要按照其提供的方法记录即可，最终日志的格式、记录级别、输出方式等通过 具体日志系统的配置来实现，因此可以在应用中灵活切换日志系统。
+  <br /> 
+  <div class="spctrl"> 
+  </div> 1、什么情况可以使用
+  <br /> 
+  <div class="spctrl"> 
+  </div> 如果你开发的是类库或者嵌入式组件，那么就应该考虑采用SLF4J，因为不可能影响最终用户选择哪种日志系统。在另一方面，如果是一个简单或者独立的 应用，确定只有一种日志系统，那么就没有使用SLF4J的必要。假设你打算将你使用log4j的产品卖给要求使用JDK 1.4 Logging的用户时，面对成千上万的log4j调用的修改，相信这绝对不是一件轻松的事情。但是如果开始便使用SLF4J，那么这种转换将是非常轻松 的事情。
+  <br /> 
+  <div class="spctrl"> 
+  </div> 2、举例
+  <br /> 
+  <div class="spctrl"> 
+  </div> （1）代码
+  <br /> 
+  <div class="spctrl"> 
+  </div> import org.slf4j.Logger;
+  <br /> 
+  <div class="spctrl"> 
+  </div> import org.slf4j.LoggerFactory;
+  <br /> 
+  <div class="spctrl"> 
+  </div> public class Wombat {
+  <br /> 
+  <div class="spctrl"> 
+  </div> final Logger logger = LoggerFactory.getLogger(Wombat.class);
+  <br /> 
+  <div class="spctrl"> 
+  </div> Integer t;
+  <br /> 
+  <div class="spctrl"> 
+  </div> Integer oldT;
+  <br /> 
+  <div class="spctrl"> 
+  </div> public void setTemperature(Integer temperature) {
+  <br /> 
+  <div class="spctrl"> 
+  </div> oldT = t;
+  <br /> 
+  <div class="spctrl"> 
+  </div> t = temperature;
+  <br /> 
+  <div class="spctrl"> 
+  </div> Object[] objs = {new java.util.Date(), oldT, t};
+  <br /> 
+  <div class="spctrl"> 
+  </div> logger.info(&quot;Today is {}, Temperature set to {}. Old temperature was {}.&quot;, objs);
+  <br /> 
+  <div class="spctrl"> 
+  </div> if (temperature.intValue() &gt; 50) {
+  <br /> 
+  <div class="spctrl"> 
+  </div> logger.warn(&quot;Temperature({}) has risen above 50 degrees.&quot;, t);
+  <br /> 
+  <div class="spctrl"> 
+  </div> }
+  <br /> 
+  <div class="spctrl"> 
+  </div> }
+  <br /> 
+  <div class="spctrl"> 
+  </div> public static void main(String[] args) {
+  <br /> 
+  <div class="spctrl"> 
+  </div> Wombat wombat = new Wombat();
+  <br /> 
+  <div class="spctrl"> 
+  </div> wombat.setTemperature(10);
+  <br /> 
+  <div class="spctrl"> 
+  </div> wombat.setTemperature(60);
+  <br /> 
+  <div class="spctrl"> 
+  </div> }
+  <br /> 
+  <div class="spctrl"> 
+  </div> }
+  <br /> 
+  <div class="spctrl"> 
+  </div> （2）使用SLF4J提供的simple log
+  <br /> 
+  <div class="spctrl"> 
+  </div> 将以下jar包加入到项目中，然后执行
+  <br /> 
+  <div class="spctrl"> 
+  </div> slf4j-api-1.5.2.jar
+  <br /> 
+  <div class="spctrl"> 
+  </div> slf4j-simple-1.5.2.jar
+  <br /> 
+  <div class="spctrl"> 
+  </div> 最终输出：
+  <br /> 
+  <div class="spctrl"> 
+  </div> 32 [main] INFO Wombat - Today is Wed Sep 10 14:50:57 CST 2008, Temperature set to null. Old temperature was 10.
+  <br /> 
+  <div class="spctrl"> 
+  </div> 32 [main] INFO Wombat - Today is Wed Sep 10 14:50:57 CST 2008, Temperature set to 10. Old temperature was 60.
+  <br /> 
+  <div class="spctrl"> 
+  </div> 32 [main] WARN Wombat - Temperature(60) has risen above 50 degrees.
+  <br /> 
+  <div class="spctrl"> 
+  </div> （3）使用SLF4J提供的simple log
+  <br /> 
+  <div class="spctrl"> 
+  </div> 将以下jar包加入到项目中，然后执行
+  <br /> 
+  <div class="spctrl"> 
+  </div> slf4j-api-1.5.2.jar
+  <br /> 
+  <div class="spctrl"> 
+  </div> slf4j-jdk14-1.5.2.jar
+  <br /> 
+  <div class="spctrl"> 
+  </div> 最终输出：
+  <br /> 
+  <div class="spctrl"> 
+  </div> 2008-9-10 15:01:20 Wombat setTemperature
+  <br /> 
+  <div class="spctrl"> 
+  </div> 信息: Today is Wed Sep 10 15:01:20 CST 2008, Temperature set to null. Old temperature was 10.
+  <br /> 
+  <div class="spctrl"> 
+  </div> 2008-9-10 15:01:20 Wombat setTemperature
+  <br /> 
+  <div class="spctrl"> 
+  </div> 信息: Today is Wed Sep 10 15:01:20 CST 2008, Temperature set to 10. Old temperature was 60.
+  <br /> 
+  <div class="spctrl"> 
+  </div> 2008-9-10 15:01:20 Wombat setTemperature
+  <br /> 
+  <div class="spctrl"> 
+  </div> 警告: Temperature(60) has risen above 50 degrees.
+  <br /> 
+  <div class="spctrl"> 
+  </div> （4）配置很简单吧
+  <br /> 
+  <div class="spctrl"> 
+  </div> 从以上事例可以看出，配置SLF4J使用那种日志系统是非常简单的一件事，只要将与你打算使用的日志系统对应的jar包加入到项目中，SLF4J就会 自动选择使用你加入的那种日志系统。这种方法被称之为静态绑定。当然，该日志系统的相关类库是不能少，例如，如果你打算使用log4j，那么还需要 log4j的类库，可能还有配置配置log4j.properties。
+  <br /> 
+  <div class="spctrl"> 
+  </div> 3、格式化日志
+  <br /> 
+  <div class="spctrl"> 
+  </div> SLF4J还提供了格式化日志的功能，如事例中的语句：
+  <br /> 
+  <div class="spctrl"> 
+  </div> logger.info(&quot;Today is {}, Temperature set to {}. Old temperature was {}.&quot;, objs);
+  <br /> 
+  <div class="spctrl"> 
+  </div> 4、日志系统绑定原理
+  <br /> 
+  <div class="spctrl"> 
+  </div> 在应用中，通过LoggerFactory类的静态getLogger()获取logger。通过查看该类的代码可以看出，最终是通过 StaticLoggerBinder.SINGLETON.getLoggerFactory()方法获取 LoggerFactory然后，在通过该具体的LoggerFactory来获取logger的。类 org.slf4j.impl.StaticLoggerBinder并不在slf4j-api-1.5.2.jar包中，仔细查看每个与具体日志系统对 应的jar包，就会发现，相应的jar包都有一个org.slf4j.impl.StaticLoggerBinder的实现，不同的实现返回与该日志系 统对应的LoggerFactory，因此就实现了所谓的静态绑定，达到只要选取不同jar包就能简单灵活配置的目的。
+  <br /> ----------------
+  <br /> 
+  <p>slf4j与其他log系统间具体的调用关系如下：</p> 
+  <p><img width="400" height="388" src="image/Log4j over SLF4J.htm.bindings.png" /><p class="origImg">http://www.slf4j.org/images/bindings.png</p></p> 
+  <p> </p> 
+  <br /> 
+  <p>三、logback</p> 
+  <p>1）<span style="line-height: normal; color: rgb(51,51,51); font-size: 24px">Logback's architecture</span></p> 
+  <p>logback是Ceki G&uuml;lc&uuml;对log4j的升级。logback架构较为通用，可应用于多种环境中。</p> 
+  <p>它包括三个模块：logback-core, logback-classic 和 logback-access.其中logback-core是底层的实现，而logback-classic可认为是log4j的重要升 级，logback-access用于提供HTTP-access log functionality。</p> 
+  <p>logback包括了三个主要的类：Logger, Appenders and Layouts</p> 
+ </div> 
+</div> 
+<p> </p></div></body></html>

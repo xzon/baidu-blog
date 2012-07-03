@@ -1,0 +1,21 @@
+<html><head><title><div class="tit">
+  在Java中做到真正安全的释放数据库资源，close
+</div></title></head><body><div id='tit'>在Java中做到真正安全的释放数据库资源，close</div><div id='cate'>j&middot;入门</div><div id='date'>2007年11月21日 星期三 02:34 A.M.</div><div id='page'>206</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3047ad6474e5cff3f636543c.html'>http://hi.baidu.com/hxzon/blog/item/3047ad6474e5cff3f636543c.html</a><div id='cnt'><table style="border-collapse: collapse; table-layout: fixed" class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="article_title" height="30" align="center"><strong>在Java中做到真正安全的释放数据库资源</strong></td> 
+  </tr> 
+  <tr> 
+   <td bgcolor="#888888" height="1" width="100%" align="center"> </td> 
+  </tr> 
+  <tr> 
+   <td height="2" width="100%"> </td> 
+  </tr> 
+  <tr> 
+   <td height="38" width="100%"> <p align="center"><strong>作者</strong>：未知 <strong>来源</strong>：月光软件站 <strong>加入时间</strong>：2005-2-28 月光软件站</p> </td> 
+  </tr> 
+  <tr> 
+   <td valign="top" width="100%"> <p><strong>在Connection上调用close方法会关闭Statement和ResultSet吗？</strong></p> <p>级联的关闭这听起来好像很有道理，而且在很多地方这样做也是正确的，通常这样写<br /> Connection con = getConnection();//getConnection is your method<br /> PreparedStatement ps = con.prepareStatement(sql);<br /> ResultSet rs = ps.executeQuery();<br /> ……<br /> ///rs.close();<br /> ///ps.close();<br /> con.close(); // NO!<br /> 这样做的问题在于Connection是个接口，它的close实现可能是多种多样的。在普通情况下，你用DriverManager.getConnection()得到一个Connection实例，调用它的close方法会关闭Statement和ResultSet。但是在很多时候，你需要使用数据库连接池，<strong>在连接池中的得到的Connection上调用close方法的时候，Connection可能并没有被释放，而是回到了连接池中。</strong>它以后可能被其它代码取出来用。如果没有释放Statement和ResultSet，那么在Connection上没有关闭的Statement和ResultSet可能会越来越多，那么……<br /> 相反，我看到过这样的说法，有人把Connection关闭了，却继续使用ResultSet，认为这样是可以的，引发了激烈的讨论，到底是怎么回事就不用我多说了吧。</p> <p>所以我们必须很小心的释放数据库资源，下面的代码片断展示了这个过程</p> <p>Connection con = null;<br /> PreparedStatement ps = null;<br /> ResultSet rs = null;</p> <p>try {<br /> &nbsp;&nbsp;&nbsp; con = getConnection();//getConnection is your method<br /> &nbsp;&nbsp;&nbsp; ps = con.prepareStatement(sql);<br /> &nbsp;&nbsp;&nbsp; rs = ps.executeQuery();<br /> &nbsp;&nbsp;&nbsp; ///...........<br /> }<br /> catch (SQLException ex) {<br /> &nbsp;&nbsp;&nbsp; ///错误处理<br /> }<br /> finally{<br /> &nbsp;&nbsp;&nbsp; try {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(ps!=null)<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps.close();<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; catch (SQLException ex) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ///错误处理<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; try{<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(con!=null)<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; con.close();<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; catch (SQLException ex) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ///错误处理<br /> &nbsp;&nbsp;&nbsp; }<br /> }</p> <p>很麻烦是不是？但为了写出健壮的程序，这些处理是必须的。</p> </td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

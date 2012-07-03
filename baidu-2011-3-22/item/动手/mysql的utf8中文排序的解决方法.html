@@ -1,0 +1,43 @@
+<html><head><title><div class="tit">
+  mysql的utf8中文排序的解决方法
+</div></title></head><body><div id='tit'>mysql的utf8中文排序的解决方法</div><div id='cate'>动手</div><div id='date'>2008年10月25日 星期六 00:39 A.M.</div><div id='page'>89</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c55e1dd5b79d28c250da4bc0.html'>http://hi.baidu.com/hxzon/blog/item/c55e1dd5b79d28c250da4bc0.html</a><div id='cnt'><h1>mysql的utf8中文排序的解决方法</h1> 
+<p>在mysql中使用默认字符集为utf8，结果想要把中文按拼音排序出现了问题，排出来的顺序乱七八糟，不是我们想要的结果。</p> 
+<p> 解决办法如下：</p> 
+<p> 1、不想改变表定义及默认编码的情况，将字段先转换成gbk编码再排序：</p> 
+<p> SELECT * FROM table ORDER BY CONVERT( chinese_field USING gbk ) ;</p> 
+<p> 前提是在安装mysql时安装了gbk字符集，不然会报错：</p> 
+<p> #1115 - Unknown character set: 'gbk'</p> 
+<p> 在编译源码时加上gbk编码即可，如果已经安装好了，重新编译再安装，重新编译安装一般不会影响mysql的已有设置，包括数据都不会受到影响。</p> 
+<p> 2、直接将字段的字符集改成gbk，然后直接使用order by 排序即可。</p> 
+<p> mysql 5.x支持某列单独定义字符集。</p> 
+<p> 3、网上也有人说将字段定义加上binary属性也能达到效果，未作测试，不敢评论。</p> 
+<p> mysql的文档中也提到字符集校对规则：</p> 
+<p> SELECT * FROM t1 ORDER BY a COLLATE utf8_bin;</p> 
+<p> 但此仅仅只影响校对规则，并不影响字符的字符集本身。</p> 
+<p>=========================================</p> 
+<div class="title"> 
+ <h2><a title="都是utf8惹得祸,成功解决主题变形问题" href="http://applife.net/2008/05/utf8-make-theme-error-fixed/" rel="bookmark">都是utf8惹得祸，成功解决主题变形问题</a></h2> 
+</div> 
+<div class="entry"> 
+ <p><a href="http://www.underone.com/" target="_blank">underone</a>的g7系列（<a href="http://www.underone.com/2007/11/16/theme-g7v1-final/" target="_blank">v1</a>、<a href="http://www.underone.com/2008/01/30/theme-g7v2-final/" target="_blank">v2</a>、<a href="http://www.underone.com/2008/01/02/theme-g7v3-final/" target="_blank">v3</a>和<a href="http://www.underone.com/2008/04/02/theme-g7v5-final/" target="_blank">v5</a>）一直是我最喜欢的wordpress主题，我现在用的主题就是基于g7v3并做了小的修改。</p> 
+ <p>但是一直以来有个问题困扰我，那就是有时主题会莫名其妙的变形，例如我在<a href="http://applife.net/2008/04/fix-wp-some-error-and-sidebar/" target="_blank">这里</a>说过better feed插件就会引起这个问题：</p> 
+ <p><img src="image/mysql的utf8中文排序的解决方法..medium.jpg" /><p class="origImg">http://pic.yupoo.com/black-xstar/0662856da5c9/medium.jpg</p></p> 
+ <p>虽然我通过<a href="http://applife.net/2008/05/fix-wp-all-error-and-plugin-copyfeed/" target="_blank">使用copyfeed插件</a>解决了，但这并不是根本上解决。比如我修改主题时，当在header.php里加入了中文也一样会重现这个问题。</p> 
+ <p>我<a href="http://applife.net/2008/05/fix-wp-all-error-and-plugin-copyfeed/" target="_blank">昨天</a>说过：“我尝试过很多方法解决，并基本上判定是某个地方的编码不对导致的，到最后还是搞不定”。后来晚上和<a href="http://aboutrss.cn/" target="_blank">抽筋儿</a>讨论copyfeed插件时无意之中进到了他的<a href="http://www.xuchi.name/blog/" target="_blank">个人blog</a>。并在他的<a href="http://www.xuchi.name/blog/2008/04/29/cannot-modify-header-information/" target="_blank">这篇</a>文章启发下，我终于完美解决了这个问题！</p> 
+ <p>感谢<a href="http://aboutrss.cn/" target="_blank">抽筋儿</a>和他的<a href="http://www.xuchi.name/blog/" target="_blank">blog</a>！就让我从头说起吧……</p> 
+ <p> </p> 
+ <p>我在修改wordpress主题或者插件的时候，都是使用windows自带的记事本，只有在文件出现unix换行符时，才会启动的庞大的ultraedit来转换。</p> 
+ <p>最早的时候我发现，有些文件加入中文之后，使用时就会出现乱码而无法正常显示。联想到以前遇到类似的问题，多数是编码不对造成的，所以另存时选择UTF-8而不是ANSI。而使用ultraedit时，另存时会有“UTF-8”和“UTF-8 - 无BOM”两种选择。因为我不知道有什么区别，所以我一般选择UTF-8，和记事本一样的。</p> 
+ <p>一般来说，绝大多数的乱码问题都会因此而解决。而极少数（例如better feed插件）问题虽然解决了，但是会留下主题变形的后遗症。</p> 
+ <p>当我看到<a href="http://www.xuchi.name/blog/2008/04/29/cannot-modify-header-information/" target="_blank">抽筋儿的文章</a>时，虽然不是同样的问题，但是里面提到了php文件应该保存为UTF-8无BOM类型，而windows记事本的UTF-8是有BOM的，这就会造成错误。联想到我遇到的问题，觉得很可能和这有关系。</p> 
+ <p>google之后发现，遇到同样或类似问题的人很多。一般来说，php是不支持有BOM的。</p> 
+ <blockquote> 
+  <p>UTF-8 编码的文件可以分为无 BOM 和 BOM 两种格式。</p> 
+  <p>何谓BOM？</p> 
+  <p>&quot;EF BB BF&quot; 这三个字节就叫BOM，全称是&quot;Byte Order Mard&quot;。在utf8文件中常用BOM来表明这个文件是UTF-8文件，而BOM的本意是在utf16中用。</p> 
+ </blockquote> 
+ <p>按照前面的解决办法，检测了所有主题文件，结果发现很多问题都是有BOM的。全部去掉之后上传测试，一切正常。再尝试加入中文，还是正常。问题终于得到解决！</p> 
+ <p>随后，我又用同样的方法修改betterfeed插件，果然没有出现问题了。看来真是utf8惹得祸啊。后来我又检查我用过的g7v5主题，因为是同样问题，所以在同样的方法修改之后，问题全部解决了……</p> 
+ <p>附上我修改过g7系列主题全集，除了将全部文件改成了UTF-8无BOM类型外没做任何修改，有需要的就<a href="http://s.evxz.com/file/224/g7-applife-net-rar.html" target="_blank">下载</a>吧。</p> 
+ <p class="akpc_pop">Popularity: 6%&nbsp;&nbsp; <a href="http://applife.net/2008/05/utf8-make-theme-error-fixed/">http://applife.net/2008/05/utf8-make-theme-error-fixed/</a></p> 
+</div></div></body></html>

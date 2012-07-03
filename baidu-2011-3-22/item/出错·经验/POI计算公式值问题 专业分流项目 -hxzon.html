@@ -1,0 +1,39 @@
+<html><head><title><div class="tit">
+  POI计算公式值问题 专业分流项目 -hxzon
+</div></title></head><body><div id='tit'>POI计算公式值问题 专业分流项目 -hxzon</div><div id='cate'>出错&middot;经验</div><div id='date'>2009年04月03日 星期五 04:28 P.M.</div><div id='page'>58</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/e484bf38f0611dcad5622580.html'>http://hi.baidu.com/hxzon/blog/item/e484bf38f0611dcad5622580.html</a><div id='cnt'><div>
+ POI计算公式值问题 专业分流项目 -hxzon
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 直接在excel文件写入公式，如
+ <br /> A1 = 10
+ <br /> A2 = 20
+ <br /> A3 = a1+a2;
+ <br /> 使用POI的getNumericCellValue()取得A3的值为30,没有问题.
+</div> 
+<div> 
+</div> 
+<div>
+ 但是通过POI写入公式，即
+ <br /> cell.setCellType(HSSFCell.CELL_TYPE_FORMULA);
+ <br /> cell.setCellFormula(&quot;$D5*0.9+$E5*0.1&quot;);
+ <br /> 保存后，重新读入，发现取得的值为0.
+</div> 
+<div> 
+</div> 
+<div>
+ 必须手动打开Excel文件,并保存,才能取得正确的计算结果,50.
+ <br /> 如果仅手动打开，但是不保存，也不能取得值。
+</div> 
+<div> 
+</div> 
+<div> 
+ <p>待解决的问题:<br /> 1. 有没有不用手动打开并保存Excel,直接取得修改后计算结果的方法.<br /> 2. 或者请提供能够用Java关闭Excel并保存的方法.<br /> 3. 或者有其他的解决方法,实现下面的流程<br /> 向A1,A2写入数值,从A3取得计算结果,中途不要打开Excel.</p> 
+ <p>----------------------<br /> hxzon：使用HSSFFormulaEvaluator类。</p> 
+ <p>e = new HSSFFormulaEvaluator(wb);</p> 
+ <p>private void calculateCell(HSSFRow row) {<br /> &nbsp;&nbsp; HSSFCell cell = row.createCell(2);<br /> &nbsp;&nbsp; cell.setCellType(HSSFCell.CELL_TYPE_FORMULA);<br /> &nbsp;&nbsp; cell.setCellFormula(&quot;$D5*0.9+$E5*0.1&quot;);<br /> &nbsp;&nbsp; cell = e.evaluateInCell(cell);<br /> &nbsp;&nbsp; System.out.println(cell.getNumericCellValue());</p> 
+ <p>}</p> 
+ <p>-------------<br /> PS 20090517 发现一个奇怪的问题，在Excel使用公式，不需要使用e.evaluateInCell(cell);<br /> 了。<br /> ---------<br /> &nbsp;&nbsp; Ptg[] ptgs=FormulaParser.parse(&quot;$D5*0.9+$E5*0.1&quot;,HSSFEvaluationWorkbook.create(wb) );<br /> &nbsp;&nbsp; for(Ptg ptg:ptgs){<br /> &nbsp;&nbsp;&nbsp; if(!(ptg instanceof OperationPtg))<br /> &nbsp;&nbsp;&nbsp;&nbsp; System.out.println(ptg.toFormulaString());<br /> //&nbsp;&nbsp;&nbsp; else System.out.println(ptg.getRVAType());<br /> &nbsp;&nbsp;&nbsp; System.out.println(ptg.getClass());<br /> &nbsp;&nbsp; }</p> 
+ <p> </p> 
+</div></div></body></html>

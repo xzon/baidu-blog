@@ -1,0 +1,85 @@
+<html><head><title><div class="tit">
+  Circumflex ORM -scala
+</div></title></head><body><div id='tit'>Circumflex ORM -scala</div><div id='cate'>j&middot;后端</div><div id='date'>2010年09月19日 星期日 02:42 P.M.</div><div id='page'>7</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b0610c46d3b9e2076a63e53b.html'>http://hi.baidu.com/hxzon/blog/item/b0610c46d3b9e2076a63e53b.html</a><div id='cnt'><div> 
+ <h1>Circumflex ORM -scala</h1> 
+ <p>http://circumflex.ru/index.html<br /> http://circumflex.ru/orm.html</p> 
+ <h1>Introducing Circumflex</h1> 
+ <p>Circumflex is a set of software components for quick and robust application development using the <a href="http://scala-lang.org/">Scala</a> programming language.</p> 
+ <p>Circumflex consists of several separate projects:</p> 
+ <ul> 
+  <li><a href="http://circumflex.ru/index.html#web">Circumflex Web Framework</a></li> 
+  <li><a href="http://circumflex.ru/index.html#orm">Circumflex ORM</a></li> 
+  <li><a href="http://circumflex.ru/index.html#ftl">Circumflex FreeMarker Views</a></li> 
+  <li><a href="http://circumflex.ru/index.html#md">Circumflex Markdown</a></li> 
+  <li><a href="http://circumflex.ru/index.html#docco">Circumflex Docco</a></li> 
+  <li><a href="http://circumflex.ru/plugin.html">Circumflex Maven Plugin</a></li> 
+ </ul> 
+ <h2>At a glance</h2> 
+ <p>All Circumflex components share the same philosophy: the development process should be natural and intuitive. They rely on Scala's support for domain-specific languages that make development extremely efficient. And simple.</p> 
+ <h3>Web Framework</h3> 
+ <p><a href="http://circumflex.ru/web.html">Circumflex Web Framework</a> is a DSL for quick web application development.</p> 
+ <p>It is designed around the <em>route concept</em>. A route is an HTTP method with matching mechanism and attached block. The application itself is essentially a sequential set of routes: they are matched in the order they are defined, the first route that matches the request is invoked.</p> 
+ <p>Here's a simple web application:</p> 
+ <pre><code class="scala"><span class="class"><span class="keyword">class</span> <font color="#000000"><span class="title">Main</span> <span class="keyword">extends</span> <span class="title">RequestRouter</span> {</font></span>
+  get(<span class="string">&quot;/&quot;</span>) = <span class="string">&quot;Hello world!&quot;</span>
+  get(<span class="string">&quot;/posts/:id&quot;</span>) = <span class="string">&quot;Post #&quot;</span> + uri(<span class="string">&quot;id&quot;</span>)
+  post(<span class="string">&quot;/form&quot;</span>) = {
+    <span class="comment">// Do some work</span>
+    <span class="comment">// . . .</span>
+    <span class="comment">// Render FreeMarker template:</span>
+    ftl(<span class="string">&quot;/done.ftl&quot;</span>)
+  }
+}</code></pre> 
+ <p>Of course, the capabilities of Web framework are not limited to responding to HTTP methods and matching URLs. Check out the <a href="http://circumflex.ru/web.html">Circumflex Web Framework page</a> for detailed overview.</p> 
+ <h3>ORM</h3> 
+ <p>What can possibly be better than designing the domain model using the domain specific language that closely resembles the data definition language of SQL databases?</p> 
+ <pre><code class="scala"><span class="class"><span class="keyword">class</span> <font color="#000000"><span class="title">City</span> <span class="keyword">extends</span> <span class="title">Record</span>[<span class="title">City</span>] {</font></span>
+  <span class="keyword">val</span> name = <span class="string">&quot;name&quot;</span> TEXT
+  <span class="keyword">val</span> country = <span class="string">&quot;country_id&quot;</span> REFERENCES(Country) ON_DELETE CASCADE ON_UPDATE CASCADE
+  <span class="keyword">override</span> <span class="keyword">def</span> toString = name.getOrElse(<span class="string">&quot;Unknown&quot;</span>)
+}
+
+<span class="class"><span class="keyword">object</span> <font color="#000000"><span class="title">City</span> <span class="keyword">extends</span> <span class="title">Table</span>[<span class="title">City</span>]</font></span>
+
+<span class="class"><span class="keyword">class</span> <font color="#000000"><span class="title">Country</span> <span class="keyword">extends</span> <span class="title">Record</span>[<span class="title">Country</span>] {</font></span>
+  <span class="keyword">val</span> code = <span class="string">&quot;code&quot;</span> VARCHAR(<span class="number">2</span>) DEFAULT(<span class="string">&quot;'ch'&quot;</span>)
+  <span class="keyword">val</span> name = <span class="string">&quot;name&quot;</span> TEXT
+  <span class="keyword">def</span> cities = inverse(City.country)
+  <span class="keyword">override</span> <span class="keyword">def</span> toString = name.getOrElse(<span class="string">&quot;Unknown&quot;</span>)
+}
+
+<span class="class"><span class="keyword">object</span> <font color="#000000"><span class="title">Country</span> <span class="keyword">extends</span> <span class="title">Table</span>[<span class="title">Country</span>] {</font></span>
+  INDEX(<span class="string">&quot;country_code_idx&quot;</span>, <span class="string">&quot;LOWER(code)&quot;</span>) USING <span class="string">&quot;btree&quot;</span> UNIQUE
+}</code></pre> 
+ <p>But still it is nothing comparing to object-oriented querying:</p> 
+ <pre><code class="scala"><span class="comment">// Prepare the relations that will participate in queries:</span>
+<span class="keyword">val</span> ci = City as <span class="string">&quot;ci&quot;</span>
+<span class="keyword">val</span> co = Country as <span class="string">&quot;co&quot;</span>
+<span class="comment">// Select all russian cities, return Seq[City]:</span>
+SELECT (ci.*) FROM (ci JOIN co) WHERE (co.code LIKE <span class="string">&quot;ru&quot;</span>) ORDER_BY (ci.name ASC) list
+<span class="comment">// Select countries with corresponding cities, return Seq[(Country, City)]:</span>
+SELECT (co.*, ci.*) FROM (co JOIN ci) list
+<span class="comment">// Select countries and count their cities, return Seq[(Country, Int)]:</span>
+SELECT (co.*, COUNT(ci.id)) FROM (co JOIN ci) GROUP_BY (co.*) list</code></pre> 
+ <p>Circumflex ORM also features lazy and eager fetching strategies for associations, complex queries, including subqueries of all kinds, data manipulation statements (<code><font face="NSimsun">INSERT .. SELECT</font></code>, <code><font face="NSimsun">UPDATE</font></code> and <code><font face="NSimsun">DELETE</font></code>), set operations between queries (<code><font face="NSimsun">UNION</font></code>, <code><font face="NSimsun">INTERSECT</font></code>, <code><font face="NSimsun">EXCEPT</font></code>), transaction-scoped caching, xml data import, schema generation with Maven plugin and arbitrary projections.</p> 
+ <p>For more information, please check out the <a href="http://circumflex.ru/orm.html">Circumflex ORM page</a>.</p> 
+ <h3>Markdown</h3> 
+ <p>The infamous text-to-html conversion tool for writers, <a href="http://daringfireball.net/projects/markdown/">Markdown</a>, is now available for Scala users with some extensions and improved performance. The usage is pretty simple:</p> 
+ <pre><code class="scala"><span class="keyword">val</span> html = Markdown(text)</code></pre> 
+ <p>You are welcome to try it <a href="http://circumflex.ru/.mdwn">online</a>!</p> 
+ <h3>Freemarker</h3> 
+ <p>Circumflex Freemarker module brings the power of the most advanced Java templating language, <a href="http://freemarker.org/">Freemarker</a> to Scala. Due to the fact that Freemarker templates can effectively render any possible content, the Freemarker is considered the main view technology for <a href="http://circumflex.ru/index.html#web">Circumflex Web Framework</a>.</p> 
+ <h3>Docco</h3> 
+ <p>Circumflex Docco is a port of <a href="http://jashkenas.github.com/docco">Docco Project</a> for Scala. The ideas of documenting open-source Scala programs in Docco style are under evaluation for now, but you still might want to try it and let us know, what you think about it.</p> 
+ <h2>Why Circumflex?</h2> 
+ <ul> 
+  <li>Circumflex components require minimum initial configuration, while still allowing developers to easily override defaults if necessary.</li> 
+  <li>Circumflex is based on Scala. It has all the benefits of Scala. It runs on the JVM. It is fast. It is concise.</li> 
+  <li>Circumflex does not try to solve all the problems a developer might ever face. It maintains a minimal features set, allowing developers to choose the tools and libraries that best suit their particular needs.</li> 
+  <li>Circumflex is designed to use the powers of the Apache Maven 2 software management platform. Adding Circumflex components to your project is a matter of few more lines in your <code><font face="NSimsun">pom.xml</font></code>.</li> 
+  <li>All Circumflex components are designed to maximize the ease-of-use and clarity of your code. The development process with Circumflex is intuitive and extremely productive.</li> 
+  <li>Circumflex is completely free, with a BSD-style <a href="http://circumflex.ru/license.html">license</a>.</li> 
+ </ul> 
+ <p> </p> 
+ <p> </p> 
+</div></div></body></html>

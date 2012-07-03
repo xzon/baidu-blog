@@ -1,0 +1,242 @@
+<html><head><title><div class="tit">
+  事件监听器分发通知设计
+</div></title></head><body><div id='tit'>事件监听器分发通知设计</div><div id='cate'>j&middot;入门</div><div id='date'>2008年03月05日 星期三 01:01 P.M.</div><div id='page'>166</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3650a951ea5b058b8d543050.html'>http://hi.baidu.com/hxzon/blog/item/3650a951ea5b058b8d543050.html</a><div id='cnt'><div> 
+ <p>事件监听器分发通知设计<br /> 作者:anotherbug 日期:2007-03-21 16:58:02</p> 
+ <p>在CJW BLOG系统(http://blog.chinajavaworld.com/)中，全文搜索管理器定时对最新日志进行文件索引。 <br /> 问题：当用户删除一篇日志时，在全文搜索时，该文章仍然计算到搜索的总数中。 <br /> <br /> <strong>解决方案： <br /> 通过加入事件监听分发机制，当用户删除日志时，通知到全文搜索管理器。</strong> <br /> <br /> <strong>1.建立日志事件类</strong> <br /> <br /> </p>
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="1" cellpadding="3" bgcolor="#999999"> 
+  <tbody> 
+   <tr> 
+    <td bgcolor="#dddddd" valign="top" width="1" align="left"><font color="#555555"> <pre>1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9<br />10<br />11<br />12<br />13<br />14<br />15<br />16<br />17<br />18<br />19<br />20<br />21<br />22<br />23<br />24<br />25<br />26<br />27<br />28<br />29<br />30<br />31<br />32<br />33<br />34<br />35<br />36<br />37<br />38<br />39<br />40<br />41<br />42</pre> </font></td> 
+    <td bgcolor="#ffffff" valign="top" align="left"> <pre><font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>class</strong></font> EntryEvent
+    <font color="#000080"><strong>implements</strong></font> CJWEvent
+<font color="#000080">{</font>
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>static</strong></font> <font color="#000080"><strong>final</strong></font> <font color="#000080"><strong>int</strong></font> ENTRY_ADDED = 100;
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>static</strong></font> <font color="#000080"><strong>final</strong></font> <font color="#000080"><strong>int</strong></font> ENTRY_DELETED = 101;
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>static</strong></font> <font color="#000080"><strong>final</strong></font> <font color="#000080"><strong>int</strong></font> ENTRY_MODIFIED = 102;
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>static</strong></font> <font color="#000080"><strong>final</strong></font> <font color="#000080"><strong>int</strong></font> ENTRY_MODERATION_MODIFIED = 103;
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>static</strong></font> <font color="#000080"><strong>final</strong></font> <font color="#000080"><strong>int</strong></font> ENTRY_RATED = 104;
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>static</strong></font> <font color="#000080"><strong>final</strong></font> <font color="#000080"><strong>int</strong></font> ENTRY_MOVED = 105;
+    <font color="#000080"><strong>private</strong></font> <font color="#000080"><strong>int</strong></font> eventType;
+    <font color="#000080"><strong>private</strong></font> Entry entry;
+    <font color="#000080"><strong>private</strong></font> Date date;
+    <font color="#000080"><strong>private</strong></font> Map params;
+ 
+    <font color="#000080"><strong>public</strong></font> EntryEvent(<font color="#000080"><strong>int</strong></font> eventType, Entry entry, Map params)
+    <font color="#000080">{</font>
+        this.eventType = eventType;
+        this.entry = entry;
+        this.params = params != <font color="#000080"><strong>null</strong></font> ? Collections.unmodifiableMap(params) : <font color="#000080"><strong>null</strong></font>;
+        date = <font color="#000080"><strong>new</strong></font> Date();
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>int</strong></font> getEventType()
+    <font color="#000080">{</font>
+        <font color="#000080"><strong>return</strong></font> eventType;
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>public</strong></font> Entry getEntry()
+    <font color="#000080">{</font>
+        <font color="#000080"><strong>return</strong></font> entry;
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>public</strong></font> Map getParams()
+    <font color="#000080">{</font>
+        <font color="#000080"><strong>return</strong></font> params;
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>public</strong></font> Date getDate()
+    <font color="#000080">{</font>
+        <font color="#000080"><strong>return</strong></font> date;
+    <font color="#000080">}</font></pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <br /> 
+ <strong>2.建立日志监听接口</strong> 
+ <br /> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="1" cellpadding="3" bgcolor="#999999"> 
+  <tbody> 
+   <tr> 
+    <td bgcolor="#dddddd" valign="top" width="1" align="left"><font color="#555555"> <pre>1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9<br />10<br />11<br />12<br />13<br />14<br />15</pre> </font></td> 
+    <td bgcolor="#ffffff" valign="top" align="left"> <pre><font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>interface</strong></font> EntryListener
+<font color="#000080">{</font>
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>abstract</strong></font> <font color="#000080"><strong>void</strong></font> entryAdded(EntryEvent entryevent);
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>abstract</strong></font> <font color="#000080"><strong>void</strong></font> entryDeleted(EntryEvent entryevent);
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>abstract</strong></font> <font color="#000080"><strong>void</strong></font> entryMoved(EntryEvent entryevent);
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>abstract</strong></font> <font color="#000080"><strong>void</strong></font> entryModified(EntryEvent entryevent);
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>abstract</strong></font> <font color="#000080"><strong>void</strong></font> entryModerationModified(EntryEvent entryevent);
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>abstract</strong></font> <font color="#000080"><strong>void</strong></font> entryRated(EntryEvent entryevent);
+<font color="#000080">}</font></pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <br /> 
+ <strong>3.建立事件分发处理器</strong> 
+ <br /> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="1" cellpadding="3" bgcolor="#999999"> 
+  <tbody> 
+   <tr> 
+    <td bgcolor="#dddddd" valign="top" width="1" align="left"><font color="#555555"> <pre>1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9<br />10<br />11<br />12<br />13<br />14<br />15<br />16<br />17<br />18<br />19<br />20<br />21<br />22<br />23<br />24<br />25<br />26<br />27<br />28<br />29<br />30<br />31<br />32<br />33<br />34<br />35<br />36<br />37<br />38<br />39<br />40<br />41<br />42<br />43<br />44<br />45<br />46<br />47<br />48<br />49<br />50<br />51<br />52<br />53<br />54<br />55<br />56<br />57<br />58<br />59<br />60<br />61<br />62<br />63<br />64<br />65<br />66<br />67<br />68<br />69<br />70<br />71<br />72<br />73<br />74<br />75<br />76<br />77<br />78<br />79<br />80<br />81<br />82<br />83<br />84<br />85<br />86<br />87<br />88<br />89<br />90<br />91<br />92<br />93<br />94</pre> </font></td> 
+    <td bgcolor="#ffffff" valign="top" align="left"> <pre><font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>class</strong></font> EntryEventDispatcher
+<font color="#000080">{</font>
+    <font color="#000080"><strong>static</strong></font> Logger logger = Logger.getLogger(EntryEventDispatcher.class.getName());
+    <font color="#000080"><strong>private</strong></font> <font color="#000080"><strong>static</strong></font> EntryEventDispatcher instance = <font color="#000080"><strong>new</strong></font> EntryEventDispatcher();
+    <font color="#000080"><strong>private</strong></font> ArrayList listeners;
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>static</strong></font> EntryEventDispatcher getInstance()
+    <font color="#000080">{</font>
+        <font color="#000080"><strong>return</strong></font> instance;
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>private</strong></font> EntryEventDispatcher()
+    <font color="#000080">{</font>
+        listeners = <font color="#000080"><strong>new</strong></font> ArrayList();
+        List listenerList = CJWGlobals.getCJWProperties(<font color="#ff0000">&quot;eventListeners.MessageListener&quot;</font>);
+        <font color="#000080"><strong>for</strong></font>(<font color="#000080"><strong>int</strong></font> i = 0; i &lt; listenerList.size(); i++)
+        <font color="#000080">{</font>
+            String listenerStr = (String)listenerList.get(i);
+            <font color="#000080"><strong>try</strong></font>
+            <font color="#000080">{</font>
+                EntryListener listener = (EntryListener)ClassUtils.forName(listenerStr).newInstance();
+                listeners.add(listener);
+            <font color="#000080">}</font>
+            <font color="#000080"><strong>catch</strong></font>(Exception e)
+            <font color="#000080">{</font>
+                logger.error(<font color="#ff0000">&quot;Error loading MessageListener&quot;</font>, e);
+            <font color="#000080">}</font>
+        <font color="#000080">}</font>
+ 
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>synchronized</strong></font> <font color="#000080"><strong>void</strong></font> addListener(EntryListener listener)
+    <font color="#000080">{</font>
+        <font color="#000080"><strong>if</strong></font>(listener == <font color="#000080"><strong>null</strong></font>)
+        <font color="#000080">{</font>
+            <font color="#000080"><strong>throw</strong></font> <font color="#000080"><strong>new</strong></font> NullPointerException();
+        <font color="#000080">}</font> <font color="#000080"><strong>else</strong></font>
+        <font color="#000080">{</font>
+            listeners.add(listener);
+            <font color="#000080"><strong>return</strong></font>;
+        <font color="#000080">}</font>
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>synchronized</strong></font> <font color="#000080"><strong>void</strong></font> removeListener(EntryListener listener)
+    <font color="#000080">{</font>
+        listeners.remove(listener);
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>void</strong></font> dispatchEvent(EntryEvent event)
+    <font color="#000080">{</font>
+        Profiler.begin(<font color="#ff0000">&quot;msgDispatchEvent&quot;</font>);
+        <font color="#000080"><strong>int</strong></font> eventType = event.getEventType();
+        <font color="#000080"><strong>for</strong></font>(<font color="#000080"><strong>int</strong></font> i = 0; i &lt; listeners.size(); i++)
+            <font color="#000080"><strong>try</strong></font>
+            <font color="#000080">{</font>
+                EntryListener listener = (EntryListener)listeners.get(i);
+                String name = listener.getClass().getName();
+                name = name.substring(name.lastIndexOf(<font color="#000080">'.'</font>) + 1);
+                Profiler.begin(name);
+                <font color="#000080"><strong>switch</strong></font>(eventType)
+                <font color="#000080">{</font>
+                <font color="#000080"><strong>case</strong></font> EntryEvent.ENTRY_ADDED: 
+                    listener.entryAdded(event);
+                    <font color="#000080"><strong>break</strong></font>;
+ 
+                <font color="#000080"><strong>case</strong></font> EntryEvent.ENTRY_DELETED: 
+                    listener.entryDeleted(event);
+                    <font color="#000080"><strong>break</strong></font>;
+ 
+                <font color="#000080"><strong>case</strong></font> EntryEvent.ENTRY_MODIFIED: 
+                    listener.entryModified(event);
+                    <font color="#000080"><strong>break</strong></font>;
+ 
+                <font color="#000080"><strong>case</strong></font> EntryEvent.ENTRY_MODERATION_MODIFIED: 
+                    listener.entryModerationModified(event);
+                    <font color="#000080"><strong>break</strong></font>;
+ 
+                <font color="#000080"><strong>case</strong></font> EntryEvent.ENTRY_RATED: 
+                    listener.entryRated(event);
+                    <font color="#000080"><strong>break</strong></font>;
+ 
+                <font color="#000080"><strong>case</strong></font> EntryEvent.ENTRY_MOVED: 
+                    listener.entryMoved(event);
+                    <font color="#000080"><strong>break</strong></font>;
+                <font color="#000080">}</font>
+                Profiler.end(name);
+            <font color="#000080">}</font>
+            <font color="#000080"><strong>catch</strong></font>(Exception e)
+            <font color="#000080">{</font>
+                logger.error(e);
+            <font color="#000080">}</font>
+ 
+        Profiler.end(<font color="#ff0000">&quot;msgDispatchEvent&quot;</font>);
+    <font color="#000080">}</font></pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <br /> 
+ <strong>4.全文搜索管理器实现日志监听接口EntryListener，同时在初始化时将该监听器加入日志事件分发处理器中</strong> 
+ <br /> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="1" cellpadding="3" bgcolor="#999999"> 
+  <tbody> 
+   <tr> 
+    <td bgcolor="#dddddd" valign="top" width="1" align="left"><font color="#555555"> <pre>1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9<br />10<br />11<br />12<br />13<br />14<br />15<br />16<br />17</pre> </font></td> 
+    <td bgcolor="#ffffff" valign="top" align="left"> <pre><font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>class</strong></font> DbSearchManager
+    <font color="#000080"><strong>implements</strong></font> SearchManager, CJWManager, EntryListener, TagListener<font color="#000080">{</font>
+...
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>void</strong></font> entryDeleted(EntryEvent event)
+    <font color="#000080">{</font>
+        Entry message = event.getEntry();
+        removeFromIndex(message);
+    <font color="#000080">}</font>
+ 
+    <font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>synchronized</strong></font> <font color="#000080"><strong>void</strong></font> initialize()<font color="#000080">{</font>
+...
+        EntryEventDispatcher.getInstance().addListener(<font color="#000080"><strong>this</strong></font>);
+...
+<font color="#000080">}</font>
+...
+ 
+<font color="#000080">}</font></pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <br /> 
+ <strong>5.在删除日志时，分发事件，这样所有监听日志的管理器都能收到通知进行处理</strong> 
+ <br /> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="1" cellpadding="3" bgcolor="#999999"> 
+  <tbody> 
+   <tr> 
+    <td bgcolor="#dddddd" valign="top" width="1" align="left"><font color="#555555"> <pre>1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9</pre> </font></td> 
+    <td bgcolor="#ffffff" valign="top" align="left"> <pre>...
+<font color="#000080"><strong>public</strong></font> <font color="#000080"><strong>void</strong></font> deleteEntry(Entry entry)<font color="#000080">{</font>
+...
+        <font color="#006400">//事件分发,通知全文索引管理器进行删除</font>
+     EntryEvent event = <font color="#000080"><strong>new</strong></font> EntryEvent(EntryEvent.ENTRY_DELETED,entry,<font color="#000080"><strong>null</strong></font>);
+       EntryEventDispatcher.getInstance().dispatchEvent(event);
+...
+<font color="#000080">}</font>
+...</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <br /> 
+ <a href="http://anotherbug.blog.chinajavaworld.com/entry/1426/0/">http://anotherbug.blog.chinajavaworld.com/entry/1426/0/</a> 
+ <p><a href="http://blog.chinajavaworld.com/">http://blog.chinajavaworld.com/</a></p> 
+</div></div></body></html>

@@ -1,0 +1,523 @@
+<html><head><title><div class="tit">
+  log4j使用进阶 学习笔记 -good
+</div></title></head><body><div id='tit'>log4j使用进阶 学习笔记 -good</div><div id='cate'>j&middot;入门</div><div id='date'>2008年09月04日 星期四 00:33 A.M.</div><div id='page'>105</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/72b8cefcbf5844fbfd037f23.html'>http://hi.baidu.com/hxzon/blog/item/72b8cefcbf5844fbfd037f23.html</a><div id='cnt'><div>
+ log4j使用进阶 学习笔记 -good
+</div> 
+<div> 
+</div> 
+<div>
+ 二 动态配置log4j
+ <br /> 1 配置外部配置文件来配置的基本步骤
+ <br /> 1.1 一个运用配置文件的实例
+ <br /> Log4j之所以能成功的原因之一是它的灵活性。但如果只是简单的调用BasicConfigurator.configure()来进行配置工作，那么所有的配置都是在函数中写死的，以后修改配置就要修改原代码，这就不能体现出log4j的灵活性了，所以基本上不会通过BasicConfigurator.configure()来进行配置工作的。
+ <br /> 为了增加软件的灵活性，最常用的做法就是使用配置文件，如web.xml之于J2EE，struts-config.xml之于struts一样，log4j也提供了让我们把配置信息从程序转移到配置文件中的方法。Log4j提供了两种方式的配置文件：XML文件和Java的property配置文件。通过把配置信息转移到外部文件中，当我们要修改配置信息时，就可以直接修改配置文件而不用去修改代码了，下面，我们就来完成一个通过配置文件来实现log4j的实例。
+ <br /> 例2-a：
+ <br /> package TestLog4j;
+ <br /> import org.apache.log4j.Logger;
+ <br /> import org.apache.log4j.BasicConfigurator;
+ <br /> import org.apache.log4j.PropertyConfigurator;
+ <br /> import org.apache.log4j.Priority; public class TestLog4j 
+ <br /> {
+ <br /> static Logger logger = Logger.getLogger(TestLog4j.class.getName());
+ <br /> public TestLog4j(){}
+</div> 
+<div> 
+</div> 
+<div>
+ public static void main(String[] args)
+ <br /> {
+ <br /> //通过BasicConfigurator类来初始化
+ <br /> //BasicConfigurator.configure();
+ <br /> //（1）通过配置文件来初始化
+ <br /> PropertyConfigurator.configure(&quot;F:\\nepalon\\log4j.properties&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ logger.debug(&quot;Start of the main() in TestLog4j&quot;); //代码（2）
+ <br /> logger.info(&quot;Just testing a log message with priority set to INFO&quot;);
+ <br /> logger.warn(&quot;Just testing a log message with priority set to WARN&quot;);
+ <br /> logger.error(&quot;Just testing a log message with priority set to ERROR&quot;);
+ <br /> logger.fatal(&quot;Just testing a log message with priority set to FATAL&quot;);
+ <br /> logger.log(Priority.WARN, &quot;Testing a log message use a alternate form&quot;);
+ <br /> logger.debug(TestLog4j.class.getName()); //代码（2）
+ <br /> }
+ <br /> }
+ <br /> 在这个例子中，我们用PropertyConfigurator.configure(&quot;F:\\nepalon\\log4j.properties&quot;)代替BasicConfigurator.configure()进行配置。PropertyConfigurator.configure()函数的参数可以是一个properties文件所在路径的String对象，可以是一个properties文件所在路径的URL对象，也可以是一个properties对象。通过PropertyConfigurator.configure()可以通过指定的properties文件来配置信息。如果要用XML文件进行信息配置，可以在代码中调用DOMConfigurator()函数来进行配置工作。在这里，我们只以properties文件来完成例子。接着，我们来看一下log4j.properties文件中都有些什么东西：
+ <br /> 例2-b：
+ <br /> log4j.rootLogger = DEBUG, A1
+ <br /> log4j.appender.A1 = org.apache.log4j.ConsoleAppender
+ <br /> log4j.appender.A1.layout = org.apache.log4j.PatternLayout
+ <br /> log4j.appender.A1.layout.ConversionPattern = %-4r [%t] %-5p %c %x - %m%n
+ <br /> 运行这个实例，运行结果为
+ <br /> 0 [main] DEBUG TestLog4j.TestLog4j - Start of the main() in TestLog4j
+ <br /> 20 [main] INFO TestLog4j.TestLog4j - Just testing a log message with priority set to INFO
+ <br /> 20 [main] WARN TestLog4j.TestLog4j - Just testing a log message with priority set to WARN
+ <br /> 20 [main] ERROR TestLog4j.TestLog4j - Just testing a log message with priority set to ERROR
+ <br /> 20 [main] FATAL TestLog4j.TestLog4j - Just testing a log message with priority set to FATAL
+ <br /> 180 [main] WARN TestLog4j.TestLog4j - Testing a log message use a alternate form
+ <br /> 180 [main] DEBUG TestLog4j.TestLog4j - TestLog4j.TestLog4j
+ <br /> 下面，我们分析一下这个配置文件。
+ <br /> 1) 由于每一个Logger对旬都有一个级别，文件的第一行就是定义了一个Logger及其级别。在这里定义了一个根记录器（root logger），这涉及到记录器的层次问题，在些暂时不深入讨论，在后面的章节再进行讨论。
+ <br /> 2) 第二行定义了一个名为A1的输出流，这个流就是控制台，所以通过Logger对象打印的信息会在控制台输出。
+ <br /> 3) 第三行定义了打印信息的布局。在这里我们用PatternLayout作为此记录器的布局，PatternLayout允许你以灵活的格式来打印信息。
+ <br /> 4) 第四行指定的打印信息的具体格式，从结果可知，这个实例的打印格式为：当前打印语句所使用的时间 [日志所在的线程] 打印的级别 当前日志所在的类的全名 日志信息。
+ <br /> 现在我们来修改一下这个记录器的级别，把第一行的DEBUG改为INFO，再运行程序，结果将变为：
+ <br /> 0 [main] INFO TestLog4j.TestLog4j - Just testing a log message with priority set to INFO
+ <br /> 10 [main] WARN TestLog4j.TestLog4j - Just testing a log message with priority set to WARN
+ <br /> 10 [main] ERROR TestLog4j.TestLog4j - Just testing a log message with priority set to ERROR
+ <br /> 10 [main] FATAL TestLog4j.TestLog4j - Just testing a log message with priority set to FATAL
+ <br /> 10 [main] WARN TestLog4j.TestLog4j - Testing a log message use a alternate form
+ <br /> 由于这个Logger的级别变为INFO，而代码（2）是调用debug()函数来输出日志信息时只能当记录器级别为DEBUG时才输出信息，所以代码（2）将不输出信息。
+ <br /> 1.2 实例原理
+ <br /> 1.2.1 初始化配置信息
+ <br /> 如果要通过JAVA的properties文件来配置信息，那么在代码中就要通过PropertyConfigurator.configure()函数从properties文件中加载配置信息，这个函数有三种参数形式：一个properties文件所在路径的String对象，可以是一个properties文件所在路径的URL对象，也可以是一个properties对象。如果要用XML文件来配置信息，则可用类型的
+ <br /> DOMConfigurator()函数来从一个XML文件中加载配置信息。
+ <br /> 1.2.2 输出端Appender
+ <br /> 在上面的例子中，我们都是简单的把日志信息输出到控制台中。其实在log4j中还可以把日志信息输出到其它的输出端，对于同一个日志信息，我们还可以让它同时输出到多个输出端中，如同时在控制台和文件中进行打印。一个输出端就是一个appender。要在配置文件中定义一个appender有三步：
+ <br /> 1) 在定义一个记录器的同时定义出该记录器的输出端appender。在例2的配置文件的第一句log4j.rootLogger = DEBUG, A1中，我们定义了一个根记录器，它的级别为DEBUG，它有一个appender名为A1。定义根记录器的格式为log4j.rootLogger = [ level ], appendName1, appendName2, …appendNameN。同一个记录器可有多个输出端。
+ <br /> 2) 定义appender的输出目的地。定义一个appender的输出目的地的格式为log4j.appender.appenderName = fully.qualified.name.of.appender.class。log4j提供了以下几种常用的输出目的地：
+ <br /> ? org.apache.log4j.ConsoleAppender，将日志信息输出到控制台
+ <br /> ? org.apache.log4j.FileAppender，将日志信息输出到一个文件
+ <br /> ? org.apache.log4j.DailyRollingFileAppender，将日志信息输出到一个，并且每天输出到一个新的日志文件
+ <br /> ? org.apache.log4j.RollingFileAppender，将日志信息输出到一个文件，通过指定文件的的尺寸，当文件大小到达指定尺寸的时候会自动把文件改名，如名为example.log的文件会改名为example.log.1，同时产生一个新的example.log文件。如果新的文件再次达到指定尺寸，又会自动把文件改名为example.log.2，同时产生一个example.log文件。依此类推，直到example.log. MaxBackupIndex，MaxBackupIndex的值可在配置文件中定义。
+ <br /> ? org.apache.log4j.WriterAppender，将日志信息以流格式发送到任意指定的地方。
+ <br /> ? org.apache.log4j.jdbc.JDBCAppender，通过JDBC把日志信息输出到数据库中。
+ <br /> 在例2中，log4j.appender.A1 = org.apache.log4j.ConsoleAppender定义了名为A1的appender的输出目的地为控制台，所以日志信息将输出到控制台。
+ <br /> 3) 定义与所选的输出目的地相关的参数，定义格式为：
+ <br /> log4j.appender.appenderName.optionName1 = value1
+ <br /> ……
+ <br /> log4j.appender.appenderName.optionNameN = valueN
+ <br /> 其中一个最常用的参数layout将在下面介绍。
+ <br /> 1.2.3 输出格式（布局）layout
+ <br /> 通过appender可以控制输出的目的地，而如果要控制输出的格式，就可通过log4j的layout组件来实现。通过配置文件定义一个appender的输出格式，也通常需要两个步骤：
+ <br /> 1) 定义appender的布局模式。定义一个appender的布局模式的格式为log4j.appender.appenderName.layout = fully.qualified.name.of.layout.class。Log4j提供的布局模式有以下几种：
+ <br /> ? org.apache.log4j.HTMLLayout，以HTML表格形式布局
+ <br /> ? org.apache.log4j.PatternLayout，可以灵活地指定布局模式
+ <br /> ? org.apache.log4j.SimpleLayout，包含日志信息的级别和信息字符串
+ <br /> 在例2 中log4j.appender.A1.layout = org.apache.log4j.PatternLayout定义了名为A1的appender的布局模式为PatternLayout。
+ <br /> 2) 定义与所选的布局模式相关的设置信息，定义格式为：
+ <br /> log4j.appender.appenderName.layout.optionName1 = value1
+ <br /> ……
+ <br /> log4j.appender.appenderName.layout.optionNameN = valueN
+ <br /> 选择了不同的布局模式可能会有不同的设置信息。实例2所选的布局模式PatternLayout的一个PatternLayout为ConversionPattern ，通过定义这个PatternLayout的值，我们可以指定输出信息的输出格式。在例2的配置文件中的定义如下log4j.appender.A1.layout.ConversionPattern = %-4r [%t] %-5p %c %x - %m%n。在下面，我们将介绍布局模式PatternLayout的参数ConversionPattern的各个值代表的含义。
+ <br /> 1.2.4 ConversionPattern参数的格式含义
+ <br /> 格式名 含义
+ <br /> %c 输出日志信息所属的类的全名
+ <br /> %d 输出日志时间点的日期或时间，默认格式为ISO8601，也可以在其后指定格式，比如：%d{yyy-MM-dd HH:mm:ss }，输出类似：2002-10-18- 22：10：28
+ <br /> %f 输出日志信息所属的类的类名
+ <br /> %l 输出日志事件的发生位置，即输出日志信息的语句处于它所在的类的第几行
+ <br /> %m 输出代码中指定的信息，如log(message)中的message
+ <br /> %n 输出一个回车换行符，Windows平台为“\r\n”，Unix平台为“\n”
+ <br /> %p 输出优先级，即DEBUG，INFO，WARN，ERROR，FATAL。如果是调用debug()输出的，则为DEBUG，依此类推
+ <br /> %r 输出自应用启动到输出该日志信息所耗费的毫秒数
+ <br /> %t 输出产生该日志事件的线程名
+ <br /> 1.3 定义多个输出目的地的实例
+ <br /> 从上面的实例原理中我们已经知道，同一个日志信息可以同时输出到多个输出目的地，在这个例子中，我们将实现一个把日志信息同时输出到控制器、一个文件中的实例和数据库中。这个实例的Java代码我们沿用例2中的代码，我们只需修改配置文件即可。这也体现了log4j的灵活性。
+ <br /> 例3-a：
+ <br /> create table log4j(
+ <br /> logID int primary key identity,
+ <br /> message varchar(1024),
+ <br /> priority varchar(10),
+ <br /> milliseconds int,
+ <br /> category varchar(256),
+ <br /> thread varchar(100),
+ <br /> NDC varchar(256),
+ <br /> createDate datetime,
+ <br /> location varchar(256),
+ <br /> caller varchar(100),
+ <br /> method varchar(100),
+ <br /> filename varchar(100),
+ <br /> line int
+ <br /> )
+ <br /> 例3-b：
+ <br /> #1 定义了两个输出端
+ <br /> log4j.rootLogger = INFO, A1, A2,A3
+</div> 
+<div> 
+</div> 
+<div>
+ #2 定义A1输出到控制器
+ <br /> log4j.appender.A1 = org.apache.log4j.ConsoleAppender
+ <br /> #3 定义A1的布局模式为PatternLayout
+ <br /> log4j.appender.A1.layout = org.apache.log4j.PatternLayout
+ <br /> #4 定义A1的输出格式
+ <br /> log4j.appender.A1.layout.ConversionPattern = %-4r [%t] %-5p %c - %m%n
+</div> 
+<div> 
+</div> 
+<div>
+ #5 定义A2输出到文件
+ <br /> log4j.appender.A2 = org.apache.log4j.RollingFileAppender
+ <br /> #6 定义A2要输出到哪一个文件
+ <br /> log4j.appender.A2.File = F:\\nepalon\\classes\\example3.log
+ <br /> #7 定义A2的输出文件的最大长度
+ <br /> log4j.appender.A2.MaxFileSize = 1KB
+ <br /> #8 定义A2的备份文件数
+ <br /> log4j.appender.A2.MaxBackupIndex = 3
+ <br /> #9 定义A2的布局模式为PatternLayout
+ <br /> log4j.appender.A2.layout = org.apache.log4j.PatternLayout
+ <br /> #10 定义A2的输出格式
+ <br /> log4j.appender.A2.layout.ConversionPattern = %d{yyyy-MM-dd hh:mm:ss}:%p %t %c - %m%n
+</div> 
+<div> 
+</div> 
+<div>
+ #11区 定义A3输出到数据库
+ <br /> log4j.appender.A3 = org.apache.log4j.jdbc.JDBCAppender
+ <br /> log4j.appender.A3.BufferSize = 40
+ <br /> log4j.appender.A3.Driver = com.microsoft.jdbc.sqlserver.SQLServerDriver
+ <br /> log4j.appender.A3.URL = jdbc:microsoft:sqlserver://127.0.0.1:1433;DatabaseName=nepalon
+ <br /> log4j.appender.A3.User = sa
+ <br /> log4j.appender.A3.Password = 
+ <br /> log4j.appender.A3.layout = org.apache.log4j.PatternLayout
+ <br /> log4j.appender.A3.layout.ConversionPattern = INSERT INTO log4j (createDate, thread, priority, category, message) values(getdate(), '%t', '%-5p', '%c', '%m')
+ <br /> 配置文件中的6、7、8行显示了输出端为RollingFileAppender的特有参数及其运用的方法。11区显示了输出端为JDBCAppender的特有参数及其运用方法。在这着重讲解一下6、7、8行的作用。6行指定日志信息输出到哪个文件，7行指定日志文件的最大长度，最后要详细介绍8行。第8行的参数是设置备份文件的个数的参数，在这里我们设置为3，表示最多有3个备份文件，具体作用为：
+ <br /> 1) 当example3.log文件的大小超过K时，就把文件改名为example3.log.1，同时生成一个新的example3.log文件
+ <br /> 2) 当example3.log文件的大小再次超过1K，又把文件改名为example3.log.1。但由于此时example3.log.1已存在，则先把example3.log.1更名为example3.log.2，再把example3.log文件改名为example3.log.1
+ <br /> 3) 同理，当example3.log文件的大小再次超过1K，先把example3.log.2文件更名为example3.log.3，把example3.log.1文件更名为example3.log.2，再把example3.log文件改名为example3.log.1
+ <br /> 4) 当example3.log文件的大小再次超过1K，先把example3.log.2文件更名为example3.log.3，旧的example3.log.3文件将被覆盖；把example3.log.1文件更名为example3.log.2，旧的example3.log.2文件被覆盖；最后把example3.log文件改名为example3.log.1并覆盖掉旧的example3.log.1文件。
+ <br /> 运行结果将分为两部分
+ <br /> 在控制器中：
+ <br /> 0 [main] INFO TestLog4j.TestLog4j - Just testing a log message with priority set to INFO
+ <br /> 11 [main] WARN TestLog4j.TestLog4j - Just testing a log message with priority set to WARN
+ <br /> 21 [main] ERROR TestLog4j.TestLog4j - Just testing a log message with priority set to ERROR 21 [main] FATAL TestLog4j.TestLog4j - Just testing a log message with priority set to FATAL
+ <br /> 21 [main] WARN TestLog4j.TestLog4j - Testing a log message use a alternate form
+ <br /> 在文件example3.log中：
+ <br /> 2003-12-18 04:23:02:INFO main TestLog4j.TestLog4j - Just testing a log message with priority set to INFO
+ <br /> 2003-12-18 04:23:02:WARN main TestLog4j.TestLog4j - Just testing a log message with priority set to WARN
+ <br /> 2003-12-18 04:23:02:ERROR main TestLog4j.TestLog4j - Just testing a log message with priority set to ERROR
+ <br /> 2003-12-18 04:23:02:FATAL main TestLog4j.TestLog4j - Just testing a log message with priority set to FATAL
+ <br /> 2003-12-18 04:23:02:WARN main TestLog4j.TestLog4j - Testing a log message use a alternate form
+ <br /> 1.4 配置log4j的总结
+ <br /> 这个教程到这里，关于配置log4j的配置文件的基本原理已经讲完了，而且通过例3我们已经可以完成基本的日志工作了。现在，我们就做一个总结。配置一个配置文件的基本步骤如下：
+ <br /> 1) 定义一个Logger。在定义Logger时指定该Logger的级别级其输出目的地。定义Logger的格式为
+ <br /> log4j.rootLogger = [ level ], appendName1, appendName2, …appendNameN。
+ <br /> 2) 定义appender的输出目的地。定义一个appender的输出目的地的格式为
+ <br /> log4j.appender.appenderName = fully.qualified.name.of.appender.class。
+ <br /> log4j提供的输出端有ConsoleAppender、FileAppender 、DailyRollingFileAppender、RollingFileAppender和WriterAppender。
+ <br /> 3) 定义appender的除布局模式外的其它相关参数，如例3中第6、7、8定义了A2的相关参数。定义格式为
+ <br /> log4j.appender.appenderName.optionName1 = value1
+ <br /> ……
+ <br /> log4j.appender.appenderName.optionNameN = valueN
+ <br /> 如果除了布局模式外不需要定义别的参数，可跳过这一步（如例3中的A1）。
+ <br /> 4) 定义appender的布局模式。定义一个appender的布局模式的格式为
+ <br /> log4j.appender.appenderName.layout = fully.qualified.name.of.layout.class。
+ <br /> 布局模式其实也是步骤3）中的一个部分，只是布局模式参数是每一个appender必须定义的参数。Log4j提供的布局模式有HTMLLayout、PatternLayout和SimpleLayout。
+ <br /> 5) 定义与所选的布局模式相关的设置信息，定义格式为
+ <br /> og4j.appender.appenderName.layout.optionName1 = value1
+ <br /> ……
+ <br /> log4j.appender.appenderName.layout.optionNameN = valueN
+ <br /> 2 记录器的层次Logger hierarchy
+ <br /> 2.1 何为记录器的层次hierarchy
+ <br /> 首先，我们先看一下何为层次，以我们最熟悉的继承为例，下面是一张类图
+</div> 
+<div> 
+</div> 
+<div>
+ 在这个继承体系中，类B是类C的父类，类A是类C的祖先类，类D是类C的子类。这些类之间就构成一种层次关系。在这些具有层次关系的类中，子类都可继承它的父类的特征，如类B的对象能调用类A中的非private实例变量和函数；而类C由于继承自类B，所以类B的对象可以同时调用类A和类B中的非private实例变量和函数。
+ <br /> 在log4j中，处于不同层次中的Logger也具有象类这样的继承关系。
+ <br /> 2.2 记录器的层次
+ <br /> 如果一个应用中包含了上千个类，那么也几乎需要上千个Logger实例。如何对这上千个Logger实例进行方便地配置，就是一个很重要的问题。Log4J采用了一种树状的继承层次巧妙地解决了这个问题。在Log4J中Logger是具有层次关系的。它有一个共同的根，位于最上层，其它Logger遵循类似包的层次。下面我们将进行介绍。
+ <br /> 2.2.1 根记录器root logger
+ <br /> 就象一个Java中的Object类一样，log4j中的logger层次中有一个称之为根记录器的记录器，其它所有的记录器都继承自这个根记录器。根记录器有两个特征：
+ <br /> 1) 根记录器总是存在。就像Java中的Object类一样，因为用log4j输出日志信息是通过记录器来实现的，所以只要你应用了log4j，根记录器就肯定存在的。
+ <br /> 2) 根记录器没有名称，所以不能通过名称来取得根记录器。但在Logger类中提供了getRootLogger()的方法来取得根记录器。
+ <br /> 2.2.2 记录器的层次
+ <br /> Logger遵循类似包的层次。如
+ <br /> static Logger rootLog = Logger.getRootLogger();
+ <br /> static Logger log1 = Logger.getLogger(&quot;test4j&quot;);
+ <br /> static Logger log2 = Logger.getLogger(&quot;test4j.test4j2&quot;);
+ <br /> static Logger log3 = Logger.getLogger(&quot;test4j.test4j2.test4j2&quot;);
+ <br /> 那么rootLog是log2的祖先子记录器，log1是log2的父子记录器，log3是log2的子记录器。记录器象Java中的类继承一样，子记录器可以继承父记录器的设置信息，也可以可以覆写相应的信息。
+ <br /> 首先先看一下记录器层次中的继承有什么用处。假设程序中的每个包都具有一些基本的日志信息，而包中的不同包可能会有些额外的日志信息要输出，这种情况就可以象处理Java中的类一样，运用Logger中的层次关系来达到目的。假设有个名为A的包，我包下的所有类都要把日志信息输出到控制台中；A.B包除了输出到控制台外还要输出到文件中；A.C包除了输出到控制台中还要输出到HTML文档中。这样我们就可以通过定义一个父记录器A，它负责把日志信息输出到控制台中；定义一个A的子记录器A.B，它负责把日志信息输出到文件中；定义一个A的子记录器A.C，它负责把日志信息输出到HTML文档中。
+ <br /> 记录器遵循的是类似包的层次，这样做为我们带来了大大的方便。Logger类中的getLogger()方法可以取得Logger对象，这个方法有三种参数形式String、Class和URL，其实不论是用哪一种，最终都是通过记录器的名字来取得记录器对象的。如果要取得一个名为A.B的记录器对象，我们可以Logger.getLogger(“A.B”)。但从上面的例子中，我们都是通过Logger.getLogger(TestLog4j.class.getName())这种方法来取得记录器对象。这是为什么呢？现在我们假设A.B的包下有一个类BClass，那么我们调用BClass.class.getName()得到的是这个类的全名A.B.BClass。所以当调用Logger.getLogger(BClass.class.getName())时，最理想的情况是返回名为A.B.BClass的记录器对象。但是如果不存在名为A.B.BClass的记录器时它会怎样呢？其实通过Logger类的getLogger方法取得记录器时存在下面两种情况：
+ <br /> 1) 如果存在与所要找的名字完全相同的记录器，则返回相应的记录器对象。
+ <br /> 当调用Logger.getLogger(BClass.class.getName())时，如果定义了名为A.B.BClass的记录器，它就返回该记录器的对象。
+ <br /> 2) 但如果找不到，它会尝试返回在记录器层次中与所要找的记录器最接近的记录器对象。
+ <br /> 当调用Logger.getLogger(BClass.class.getName())时，如果没有定义了名为A.B.BClass的记录器，那会尝试返回名为A.B的记录器的对象；如果又没有定义名为A.B的记录器，它会尝试返回名为A的记录器的对象；如果也没定义名为A的记录器，它就会返回根记录器的对象，而根记录器是必须存在的，所以你总能得到一个记录器对象。
+ <br /> 好了，现在我们回到前面的问题，我们为什么总要通过Logger.getLogger(BClass.class.getName())这种以类全名作为参数来取得记录器对象呢？其实这是为了管理方便。因为我们在定义设计Logger时也遵循类似包的规则，使设计器的名称与程序中的类包对应。如上面的假设中我们的程序中有A包，A包下有B包和C包，B包下又有类BClass，那么我们就可使设计器的名为A、A.B、A.C、A.B.BClass，以此类推。那么当我们通过类命名来取得设计器对象时，总能取到与所要的设计器最接近的设计器对象。
+ <br /> 2.3 如何应用记录器的层次
+ <br /> 2.3.1 如果定义及获取不同层次的记录器
+ <br /> 任何一个记录器的使用都有两个步骤：
+ <br /> 1) 在配置文件中定义相应的记录器。
+ <br /> 在配置文件中定义记录器的格式有两种
+ <br /> ? 定义根记录器的格式为
+ <br /> log4j.rootLogger = [ level ], appendName1, appendName2, …appendNameN
+ <br /> ? 定义一个非根记录器的格式为
+ <br /> log4j.logger.loggerName1 = [ level ], appendName1,…appendNameN
+ <br /> ……
+ <br /> log4j.logger.loggerNameM = [ level ], appendName1, …appendNameN
+ <br /> 我们可以定义任意个非根记录器。
+ <br /> 2) 在代码中调用Logger类的取得记录器方法取得相应的记录器对象。
+ <br /> 要取得根记录器对象可通过Logger.getRootLogger()函数，要取得非根记录器可通过Logger.getLogger()函数。
+ <br /> 理论知道就讲到这里，纸上得来终觉浅，下面，我们来小小演练一下。
+ <br /> 例4-a：
+ <br /> package TestLog4j;
+ <br /> import org.apache.log4j.Logger;
+ <br /> import org.apache.log4j.PropertyConfigurator;
+ <br /> import org.apache.log4j.Priority;
+ <br /> import TestLog4j.TestLog4j2.TestLog4j2;
+</div> 
+<div> 
+</div> 
+<div>
+ public class TestLog4j 
+ <br /> {
+ <br /> static Logger logger = Logger.getLogger(TestLog4j.class.getName()); //（2）
+ <br /> public TestLog4j(){}
+</div> 
+<div> 
+</div> 
+<div>
+ public static void main(String[] args)
+ <br /> {
+ <br /> //同时输出到控制台和一个文件的实例并实现了Logger的继承
+ <br /> PropertyConfigurator.configure(&quot;F:\\nepalon\\log4j2.properties&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ logger.debug(&quot;Start of the main() in TestLog4j&quot;);
+ <br /> logger.info(&quot;Just testing a log message with priority set to INFO&quot;);
+ <br /> logger.warn(&quot;Just testing a log message with priority set to WARN&quot;);
+ <br /> logger.error(&quot;Just testing a log message with priority set to ERROR&quot;);
+ <br /> logger.fatal(&quot;Just testing a log message with priority set to FATAL&quot;);
+ <br /> logger.log(Priority.WARN, &quot;Testing a log message use a alternate form&quot;);
+ <br /> logger.debug(TestLog4j.class.getName());
+ <br /> TestLog4j2 testLog4j2 = new TestLog4j2(); //（1）
+ <br /> testLog4j2.testLog();
+ <br /> }
+ <br /> }
+ <br /> 在类TestLog4j中我们调用了另一个类TestLog4j2，下面看一下类TestLog4j2的代码。
+ <br /> 例4-b：
+ <br /> package TestLog4j.TestLog4j2;
+ <br /> import org.apache.log4j.Logger;
+ <br /> import org.apache.log4j.PropertyConfigurator;
+ <br /> import org.apache.log4j.Priority;
+</div> 
+<div> 
+</div> 
+<div>
+ public class TestLog4j2 
+ <br /> {
+ <br /> static Logger logger = Logger.getLogger(TestLog4j2.class.getName()); //（1）
+ <br /> public TestLog4j2(){}
+</div> 
+<div> 
+</div> 
+<div>
+ public void testLog()
+ <br /> {
+ <br /> //同时输出到控制台和一个文件的实例
+ <br /> PropertyConfigurator.configure(&quot;F:\\nepalon\\log4j2.properties&quot;);
+ <br /> logger.debug(&quot;2Start of the main()&quot;);
+ <br /> logger.info(&quot;2Just testing a log message with priority set to INFO&quot;);
+ <br /> logger.warn(&quot;2Just testing a log message with priority set to WARN&quot;);
+ <br /> logger.error(&quot;2Just testing a log message with priority set to ERROR&quot;);
+ <br /> logger.fatal(&quot;2Just testing a log message with priority set to FATAL&quot;);
+ <br /> logger.log(Priority.DEBUG, &quot;Testing a log message use a alternate form&quot;);
+ <br /> logger.debug(&quot;2End of the main()&quot;);
+ <br /> }
+ <br /> }
+ <br /> 最后我们来看一下配置文件。
+ <br /> 例4-c：
+ <br /> log4j2.properties文件内容
+ <br /> ＃1区
+ <br /> #### Use two appenders, one to log to console, another to log to a file
+ <br /> log4j.rootLogger = debug, stdout
+</div> 
+<div> 
+</div> 
+<div>
+ #2区
+ <br /> #Print only messages of priority WARN or higher for your category
+ <br /> log4j.logger.TestLog4j= , R
+ <br /> log4j.logger.TestLog4j.TestLog4j2=WARN
+</div> 
+<div> 
+</div> 
+<div>
+ #3区
+ <br /> #### First appender writes to console
+ <br /> log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+ <br /> log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+</div> 
+<div> 
+</div> 
+<div>
+ # Pattern to output the caller's file name and line number.
+ <br /> log4j.appender.stdout.layout.ConversionPattern=%5p [%t] (%F:%L) - %m%n
+</div> 
+<div> 
+</div> 
+<div>
+ #4区
+ <br /> #### Second appender writes to a file
+ <br /> log4j.appender.R=org.apache.log4j.RollingFileAppender
+ <br /> log4j.appender.R.File=F:\\nepalon\\classes\\TestLog4j\\example.log
+</div> 
+<div> 
+</div> 
+<div>
+ # Control the maximum log file size
+ <br /> log4j.appender.R.MaxFileSize=100KB
+ <br /> # Archive log files (one backup file here)
+ <br /> log4j.appender.R.MaxBackupIndex=1
+</div> 
+<div> 
+</div> 
+<div>
+ log4j.appender.R.layout=org.apache.log4j.PatternLayout
+ <br /> log4j.appender.R.layout.ConversionPattern=%d{yyyy-MM-dd hh:mm:ss}:%p %t %c - %m%n
+ <br /> 先看一下运行结果。
+ <br /> 在控制台中的结果为：
+ <br /> DEBUG [main] (?:?) - Start of the main() in TestLog4j
+ <br /> INFO [main] (?:?) - Just testing a log message with priority set to INFO
+ <br /> WARN [main] (?:?) - Just testing a log message with priority set to WARN
+ <br /> ERROR [main] (?:?) - Just testing a log message with priority set to ERROR
+ <br /> FATAL [main] (?:?) - Just testing a log message with priority set to FATAL
+ <br /> WARN [main] (?:?) - Testing a log message use a alternate form
+ <br /> DEBUG [main] (?:?) - TestLog4j.TestLog4j
+ <br /> WARN [main] (?:?) - 2Just testing a log message with priority set to WARN
+ <br /> ERROR [main] (?:?) - 2Just testing a log message with priority set to ERROR
+ <br /> FATAL [main] (?:?) - 2Just testing a log message with priority set to FATAL
+ <br /> 输出文件的结果为：
+ <br /> 2003-12-19 04:19:44:DEBUG main TestLog4j.TestLog4j - Start of the main() in TestLog4j
+ <br /> 2003-12-19 04:19:44:INFO main TestLog4j.TestLog4j - Just testing a log message with priority set to INFO
+ <br /> 2003-12-19 04:19:44:WARN main TestLog4j.TestLog4j - Just testing a log message with priority set to WARN
+ <br /> 2003-12-19 04:19:44:ERROR main TestLog4j.TestLog4j - Just testing a log message with priority set to ERROR
+ <br /> 2003-12-19 04:19:44:FATAL main TestLog4j.TestLog4j - Just testing a log message with priority set to FATAL
+ <br /> 2003-12-19 04:19:44:WARN main TestLog4j.TestLog4j - Testing a log message use a alternate form
+ <br /> 2003-12-19 04:19:44:DEBUG main TestLog4j.TestLog4j - TestLog4j.TestLog4j
+ <br /> 2003-12-19 04:19:44:WARN main TestLog4j.TestLog4j2.TestLog4j2 - 2Just testing a log message with priority set to WARN
+ <br /> 2003-12-19 04:19:44:ERROR main TestLog4j.TestLog4j2.TestLog4j2 - 2Just testing a log message with priority set to ERROR
+ <br /> 2003-12-19 04:19:44:FATAL main TestLog4j.TestLog4j2.TestLog4j2 - 2Just testing a log message with priority set to FATAL
+</div> 
+<div> 
+</div> 
+<div>
+ 首先，先来看一下配置文件都有些什么东西。
+ <br /> 1) 在1区中定义了一个根记录器。这个根记录器具有DEBUG级别并有一个名称为stdout的输出端appender。
+ <br /> 2) 2区中的内容是这一节的重点，也是应用到记录器层次的地方，但其实也只有两句，充分体现了log4j的简单性。在这里，我们定义了两个名称分别为TestLog4j和TestLog4j.TestLog4j2设计器。
+ <br /> ? 在定义TestLog4j记录器时没有指定级别，所以它的级别继承自它的父记录器，即要记录器，所以它的级别也为DEBUG。在定义TestLog4j记录器时又定义了一个名称为R的输出端，所以它的输出端有两个，一个从根记录器继承而来的名为stdout的输出端，另一个为在此定义的名为R的输出端。在此需要注意的是，在定义记录器时必须先定义记录器的级别，然后才是记录器的输出端。如果只想定义输出端而不定义级别，则虽然级别可以为空，但逗号分隔符不能省略。如定义TestLog4j记录器的做法。
+ <br /> ? 在定义TestLog4j.TestLog4j2记录器时又指定了它的级别，由于一个记录器的级别只能有一个，所以新指定的级别将覆写掉它的父记录器的级别（这就象Java中的多态）。我们没有定义TestLog4j.TestLog4j2记录器的输出端，所以它的输出端将从它的父记录器中继承而来。它的父记录器为estLog4j记录器，所以它和estLog4j记录器一样具有两个名称分别为stdout和R的输出端。
+ <br /> 3) 剩下的3区和4区分别设置了两个输出端的参数值。
+ <br /> 接下来，回到我们的代码，看一下是如何取得记录器，在取记录器时又发生了什么。
+ <br /> 1) 例4-a中的代码（2）中，语句Logger.getLogger()中的参数TestLog4j.class.getName()的值为TestLog4j. TestLog4j，所以此语句的结果是取得一个名为TestLog4j. TestLog4j的记录器的对象。但在配置文件中并没有定义这样的记录器，所以最终将返回与所需的名称TestLog4j. TestLog4j最接近的记录器对象，即名为TestLog4j的记录器的对象。
+ <br /> 2) 例4-b中的代码（1）的原理与例4-a中的代码（2）相似，期望取得的是名为TestLog4j.TestLog4j2. TestLog4j2的记录器对象，但最终返回的是TestLog4j.TestLog4j2记录器的对象。
+ <br /> 三 log4j与J2EE的结合
+ <br /> 到目前为止，这篇文章讲的都是如何在application中应用log4j，而Java现在的应用主流是J2EE和J2ME。现在，我们来看一下要如何在J2EE开发中应用log4j。其实在Web application中应用log4j也很简单，与在application中应用log4j不同之处就是要在所有应用log4j的代码之前对log4j进行初始化。所以，我们在web application中就要把log4j的初始化工作独立出来，把它放在Servlet中。下面，我们看一个例子。
+ <br /> 例5-a：
+ <br /> 进行初始化的Servlet：
+ <br /> import org.apache.log4j.PropertyConfigurator;
+ <br /> import javax.servlet.http.HttpServlet;
+ <br /> import javax.servlet.http.HttpServletRequest;
+ <br /> import javax.servlet.http.HttpServletResponse;
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * log4j.jar的初始化类，参考web.xml
+ <br /> */
+ <br /> public class Log4jInit extends HttpServlet 
+ <br /> {
+ <br /> public void init() 
+ <br /> {
+ <br /> //通过web.xml来动态取得配置文件
+ <br /> String prefix = getServletContext().getRealPath(&quot;/&quot;);
+ <br /> String file = getInitParameter(&quot;log4j-init-file&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ // 如果没有给出相应的配置文件，则不进行初始化
+ <br /> if(file != null) 
+ <br /> {
+ <br /> PropertyConfigurator.configure(prefix+file); //（1）
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void doGet(HttpServletRequest req, HttpServletResponse res) 
+ <br /> {} 
+ <br /> }
+ <br /> 下面来看一下这个Servlet在web.xml中的定义。
+ <br /> 例5-b：
+ <br /> &lt;servlet&gt;
+ <br /> &lt;servlet-name&gt;log4j-init&lt;/servlet-name&gt;
+ <br /> &lt;servlet-class&gt;TestLog4j.Log4jInit&lt;/servlet-class&gt;
+ <br /> &lt;init-param&gt;
+ <br /> &lt;param-name&gt;log4j-init-file&lt;/param-name&gt;
+ <br /> &lt;param-value&gt;sort.properties&lt;/param-value&gt;
+ <br /> &lt;/init-param&gt;
+ <br /> &lt;load-on-startup&gt;1&lt;/load-on-startup&gt;
+ <br /> &lt;/servlet&gt;
+ <br /> 因为log4j的初始化要在所有的log4j调用之前完成，所以在web.xml文件中，我们一定要把对应的Servlet定义的load-on-startup应设为1，以便在Web容器启动时即装入该Servlet。
+ <br /> 完成了这两个步骤这后，我们就可以象在application开发中一样在web application任何地方应用log4j了。下面是在javabean中的应用的一个例子。
+ <br /> 例5-c：
+ <br /> import org.apache.log4j.Logger;
+</div> 
+<div> 
+</div> 
+<div>
+ public class InfoForm 
+ <br /> {
+ <br /> static Logger logger = Logger.getLogger(InfoForm.class);
+</div> 
+<div> 
+</div> 
+<div>
+ protected String title;
+ <br /> protected String content;
+</div> 
+<div> 
+</div> 
+<div>
+ public InfoForm() {}
+</div> 
+<div> 
+</div> 
+<div>
+ public void setTitle(Object value) 
+ <br /> {
+ <br /> logger.debug(&quot;nepalon:title = &quot; + title);
+ <br /> title = value;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public String getTitle() 
+ <br /> {
+ <br /> logger.debug(&quot;nepalon:title = &quot; + title);
+ <br /> return title;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setContent(String value) 
+ <br /> {
+ <br /> content = value;
+ <br /> logger.debug(&quot;nepalon: content() = &quot; + content);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public String getContent() 
+ <br /> {
+ <br /> logger.debug(&quot;nepalon: content = \n&quot; + content);
+ <br /> return content;
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <a href="http://www.javaresearch.org/article/11393.htm">http://www.javaresearch.org/article/11393.htm</a>
+</div></div></body></html>

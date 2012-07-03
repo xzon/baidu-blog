@@ -1,0 +1,243 @@
+<html><head><title><div class="tit">
+  Parameters Interceptor ; Type Conversion
+</div></title></head><body><div id='tit'>Parameters Interceptor ; Type Conversion</div><div id='cate'>j&middot;web</div><div id='date'>2009年03月19日 星期四 01:05 P.M.</div><div id='page'>60</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/88038426c4fd301f8a82a1d0.html'>http://hi.baidu.com/hxzon/blog/item/88038426c4fd301f8a82a1d0.html</a><div id='cnt'><div>
+ Parameters Interceptor&nbsp;&nbsp;&nbsp; ; Type Conversion
+</div> 
+<div> 
+</div> 
+<div>
+ <a title="Apache Struts 2 Documentation" href="http://struts.apache.org/2.0.14/docs/home.html">Apache Struts 2 Documentation</a> &gt; 
+ <a title="Home" href="http://struts.apache.org/2.0.14/docs/home.html">Home</a> &gt; 
+ <a title="Guides" href="http://struts.apache.org/2.0.14/docs/guides.html">Guides</a> &gt; 
+ <a title="Core Developers Guide" href="http://struts.apache.org/2.0.14/docs/core-developers-guide.html">Core Developers Guide</a> &gt; 
+ <a title="Interceptors" href="http://struts.apache.org/2.0.14/docs/interceptors.html">Interceptors</a> &gt; 
+ <a title="Parameters Interceptor" href="http://struts.apache.org/2.0.14/docs/parameters-interceptor.html">Parameters Interceptor</a>
+</div> 
+<div> 
+</div> 
+<div> 
+ <div style="margin: 0px 10px" class="smalltext">
+  Apache Struts 2 Documentation
+ </div> 
+ <div style="margin: 0px 10px 8px" class="pagetitle">
+  Parameters Interceptor&nbsp;&nbsp;&nbsp; 
+  <a href="http://struts.apache.org/2.0.14/docs/parameters-interceptor.html">http://struts.apache.org/2.0.14/docs/parameters-interceptor.html</a>
+ </div> 
+ <div style="padding-bottom: 2px; margin: 0px; padding-left: 10px; padding-right: 10px; padding-top: 2px" class="greynavbar" align="right"> 
+ </div> 
+</div> 
+<div style="margin: 0px 10px" class="pagesubheading">
+ Added by 
+ <a href="http://cwiki.apache.org/confluence/users/viewuserprofile.action?username=digi9ten">digi9ten</a>, last edited by 
+ <a href="http://cwiki.apache.org/confluence/users/viewuserprofile.action?username=musachy">Musachy Barroso</a> on Jun 21, 2008 (
+ <a href="http://cwiki.apache.org/confluence/pages/diffpages.action?pageId=14064&amp;originalId=88849">view change</a>)
+</div> 
+<div class="pagecontent"> 
+ <div class="wiki-content"> 
+  <p>This interceptor sets all parameters on the value stack.</p> 
+  <p>This interceptor gets all parameters from ActionContext#getParameters() and sets them on the value stack by calling {@link ValueStack#setValue(String, Object)}, typically resulting in the values submitted in a form request being applied to an action in the value stack. Note that the parameter map must contain a String key and often containers a String[] for the value.</p> 
+  <p> </p> 
+  <p>The interceptor takes one parameter named 'ordered'. When set to true action properties are guaranteed to be set top-down which means that top action's properties are set first. Then it's subcomponents properties are set. The reason for this order is to enable a 'factory' pattern. For example, let's assume that one has an action that contains a property named 'modelClass' that allows to choose what is the underlying implementation of model. By assuring that modelClass property is set before any model properties are set, it's possible to choose model implementation during action.setModelClass() call. Similiarily it's possible to use action.setPrimaryKey() property set call to actually load the model class from persistent storage. Without any assumption on parameter order you have to use patterns like 'Preparable'.</p> 
+  <p> </p> 
+  <p>Because parameter names are effectively OGNL statements, it is important that security be taken in to account. This interceptor will not apply any values in the parameters map if the expression contains an assignment (=), multiple expressions (,), or references any objects in the context (#). This is all done in the {@link #acceptableName(String)} method. In addition to this method, if the action being invoked implements the {@link ParameterNameAware} interface, the action will be consulted to determine if the parameter should be set.</p> 
+  <p> </p> 
+  <p>In addition to these restrictions, a flag (ReflectionContextState#DENY_METHOD_EXECUTION) is set such that no methods are allowed to be invoked. That means that any expression such as <em>person.doSomething()</em> or <em>person.getName()</em> will be explicitely forbidden. This is needed to make sure that your application is not exposed to attacks by malicious users.</p> 
+  <p> </p> 
+  <p>While this interceptor is being invoked, a flag (ReflectionContextState#CREATE_NULL_OBJECTS) is turned on to ensure that any null reference is automatically created - if possible. See the type conversion documentation and the InstantiatingNullHandler javadocs for more information.</p> 
+  <p> </p> 
+  <p>Finally, a third flag (XWorkConverter#REPORT_CONVERSION_ERRORS) is set that indicates any errors when converting the the values to their final data type (String[] -&gt; int) an unrecoverable error occured. With this flag set, the type conversion errors will be reported in the action context. See the type conversion documentation and the XWorkConverter javadocs for more information.</p> 
+  <p> </p> 
+  <p>If you are looking for detailed logging information about your parameters, turn on DEBUG level logging for this interceptor. A detailed log of all the parameter keys and values will be reported.</p> 
+  <p> </p> 
+  <p><strong>Note:</strong> Since XWork 2.0.2, this interceptor extends MethodFilterInterceptor, therefore being able to deal with excludeMethods / includeMethods parameters. See [Workflow Interceptor] (class DefaultWorkflowInterceptor) for documentation and examples on how to use this feature.</p> 
+  <p> </p> 
+  <p>For more information on ways to restrict the parameter names allowed, see the ParameterNameAware javadocs:</p> 
+  <p>This interface is implemented by actions that want to declare acceptable parameters. Works in conjunction with {@link ParametersInterceptor}. For example, actions may want to create a whitelist of parameters they will accept or a blacklist of paramters they will reject to prevent clients from setting other unexpected (and possibly dangerous) parameters.</p> 
+  <h2><a name="ParametersInterceptor-Parameters"></a>Parameters</h2> 
+  <p> </p> 
+  <p> </p> 
+  <ul> 
+   <p> </p> 
+   <li>ordered - set to true if you want the top-down property setter behaviour <p> </p> </li> 
+  </ul> 
+  <p> </p> 
+  <h2><a name="ParametersInterceptor-Excludingparameters"></a>Excluding parameters</h2> 
+  <p>This interceptor can be forced to ignored parameters, by setting its <em>excludeParams</em> attribute. This attribute accepts a comma separated list of regular expressions. When any of these expressions match the name of a parameter, such parameter will be ignored by the interceptor. Interceptor stacks defined by Struts already exclude some parameters:</p> 
+  <ul> 
+   <li>dojo\..* (anything parameter whose name contains &quot;dojo.&quot;)</li> 
+   <li>^struts\..* (any parameter whose name starts with &quot;struts.&quot;)</li> 
+  </ul> 
+  <h2><a name="ParametersInterceptor-ExtendingtheInterceptor"></a>Extending the Interceptor</h2> 
+  <p> </p> 
+  <p> </p> 
+  <p>The best way to add behavior to this interceptor is to utilize the ParameterNameAware interface in your actions. However, if you wish to apply a global rule that isn't implemented in your action, then you could extend this interceptor and override the #acceptableName(String) method.</p> 
+  <p> </p> 
+  <h2><a name="ParametersInterceptor-Examples"></a>Examples</h2> 
+  <div class="code"> 
+   <div class="codeContent"> 
+    <pre class="code-xml"><span class="code-tag">&lt;action name=<span class="code-quote">&quot;someAction&quot;</span> class=<span class="code-quote">&quot;com.examples.SomeAction&quot;</span>&gt;</span>
+    <span class="code-tag">&lt;interceptor-ref name=<span class="code-quote">&quot;params&quot;</span>/&gt;</span>
+    <span class="code-tag">&lt;result name=<span class="code-quote">&quot;success&quot;</span>&gt;</span>good_result.ftl<span class="code-tag">&lt;/result&gt;</span>
+<span class="code-tag">&lt;/action&gt;</span></pre> 
+   </div> 
+  </div> 
+  <p>------------------------------------------------------</p> 
+  <h2><font size="-1">com.opensymphony.xwork2.util</font> <br /> Class InstantiatingNullHandler</h2> 
+  <pre><a title="class or interface in java.lang" href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/Object.html">java.lang.Object</a>
+  <img alt="extended by " src="image/Parameters Intercept.inherit.gif" /><p class="origImg">http://struts.apache.org/2.0.14/struts2-core/apidocs/resources/inherit.gif</p><strong>com.opensymphony.xwork2.util.InstantiatingNullHandler</strong></pre> 
+  <dl>
+   <dt>
+    <strong>All Implemented Interfaces:</strong> 
+   </dt>
+   <dd>
+    ognl.NullHandler
+   </dd>
+  </dl>
+  <dl></dl>
+ </div> 
+</div> 
+<dl>
+ <dt> 
+  <pre>public class <strong>InstantiatingNullHandler</strong></pre>
+ </dt>
+ <dt>
+  extends 
+  <a title="class or interface in java.lang" href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/Object.html">Object</a>
+ </dt>
+ <dt>
+  implements ognl.NullHandler
+ </dt> 
+</dl> 
+<p>Provided that the key <a href="http://struts.apache.org/2.0.14/struts2-core/apidocs/com/opensymphony/xwork2/util/InstantiatingNullHandler.html#CREATE_NULL_OBJECTS"><code><font face="新宋体">CREATE_NULL_OBJECTS</font></code></a> is in the action context with a value of true (this key is set only during the execution of the <a title="class in com.opensymphony.xwork2.interceptor" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/com/opensymphony/xwork2/interceptor/ParametersInterceptor.html"><code><font face="新宋体">ParametersInterceptor</font></code></a>), OGNL expressions that have caused a NullPointerException will be temporarily stopped for evaluation while the system automatically tries to solve the null references by automatically creating the object.</p> 
+<p>The following rules are used when handling null references:</p> 
+<ul> 
+ <li>If the property is declared <em>exactly</em> as a <a title="class or interface in java.util" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/Collection.html"><code><font face="新宋体">Collection</font></code></a> or <a title="class or interface in java.util" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/List.html"><code><font face="新宋体">List</font></code></a>, then an ArrayList shall be returned and assigned to the null references.</li> 
+ <li>If the property is declared as a <a title="class or interface in java.util" href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/Map.html"><code><font face="新宋体">Map</font></code></a>, then a HashMap will be returned and assigned to the null references.</li> 
+ <li>If the null property is a simple bean with a no-arg constructor, it will simply be created using the <a href="http://struts.apache.org/2.0.14/struts2-core/apidocs/com/opensymphony/xwork2/ObjectFactory.html#buildBean%28java.lang.Class,%20java.util.Map%29"><code><font face="新宋体">ObjectFactory.buildBean(java.lang.Class, java.util.Map)</font></code></a> method.</li> 
+</ul> 
+<p>For example, if a form element has a text field named <strong>person.name</strong> and the expression <em>person</em> evaluates to null, then this class will be invoked. Because the <em>person</em> expression evaluates to a <em>Person</em> class, a new Person is created and assigned to the null reference. Finally, the name is set on that object and the overall effect is that the system automatically created a Person object for you, set it by calling setUsers() and then finally called getUsers().setName() as you would typically expect.</p> 
+<p>---------------------------------------------------</p> 
+<div style="margin: 0px 10px" class="smalltext">
+ Apache Struts 2 Documentation
+</div> 
+<div style="margin: 0px 10px 8px" class="pagetitle">
+ Type Conversion
+</div> 
+<p><a href="http://struts.apache.org/2.0.14/docs/type-conversion.html">http://struts.apache.org/2.0.14/docs/type-conversion.html</a></p> 
+<h2>Built in Type Conversion Support</h2> 
+<p>Type Conversion is implemented by XWork.</p> 
+<p> </p> 
+<p>XWork will automatically handle the most common type conversion for you. This includes support for converting to and from Strings for each of the following:</p> 
+<p> </p> 
+<ul> 
+ <li>String</li> 
+ <li>boolean / Boolean</li> 
+ <li>char / Character</li> 
+ <li>int / Integer, float / Float, long / Long, double / Double</li> 
+ <li>dates - uses the SHORT format for the Locale associated with the current request</li> 
+ <li>arrays - assuming the individual strings can be coverted to the individual items</li> 
+ <li>collections - if not object type can be determined, it is assumed to be a String and a new ArrayList is created</li> 
+</ul> 
+<p>Note that with arrays the type conversion will defer to the type of the array elements and try to convert each item individually. As with any other type conversion, if the conversion can't be performed the standard type conversion error reporting is used to indicate a problem occured while processing the type conversion.</p> 
+<p> </p> 
+<ul> 
+ <li>Enumerations</li> 
+ <li>BigDecimal and BigInteger</li> 
+</ul> 
+<h2><a name="TypeConversion-RelationshiptoParameterNames"></a>Relationship to Parameter Names</h2> 
+<p>There is no need to capture form values using intermediate Strings and primitives. Instead, the framework can read from and write to properties of objects addressed via OGNL expressions and perform the appropriate type conversion for you.</p> 
+<p>Here are some tips for leveraging the framework's type conversion capabilities:</p> 
+<ul> 
+ <li>Use OGNL expressions - the framework will automatically take care of creating the actual objects for you.</li> 
+ <li>Use JavaBeans! The framework can only create objects that obey the JavaBean specification, provide no-arg constructions and include getters and setters where appropriate.</li> 
+ <li>Remember that <em>person.name</em> will call <strong>getPerson().setName()</strong>. If the framework creates the Person object for you, it remember that a <tt><font face="新宋体">setPerson</font></tt> method must also exist.</li> 
+ <li>The framework will not instantiate an object if an instance already exists. The PrepareInterceptor or action's constructor can be used to create target objects before type conversion.</li> 
+ <li>For lists and maps, use index notation, such as <em>people[0].name</em> or <em>friends['patrick'].name</em>. Often these HTML form elements are being rendered inside a loop. For <a title="JSP Tags" href="http://struts.apache.org/2.0.14/docs/jsp-tags.html">JSP Tags</a>, use the iterator tag's status attribute. For <a title="FreeMarker Tags" href="http://struts.apache.org/2.0.14/docs/freemarker-tags.html">FreeMarker Tags</a>, use the special property ${foo_index}[].</li> 
+ <li>For multiple select boxes, it isn't possible to use index notation to name each individual item. Instead, name your element <em>people.name</em> and the framework will understand that it should create a new Person object for each selected item and set its name accordingly.</li> 
+</ul> 
+<a name="field_summary"></a> 
+<p> </p> 
+<h2>Common Problems</h2> 
+<h3><a name="TypeConversion-NullandBlankValues"></a>Null and Blank Values</h3> 
+<p>Some properties cannot be set to null. Primitives like boolean and int cannot be null. If your action needs to or will accept null or blank values, use the object equivalents Boolean and Integer. Similarly, a blank string &quot;&quot; cannot be set on a primitive. At the time of writing, a blank string also cannot be set on a BigDecimal or BigInteger. Use server-side validation to prevent invalid values from being set on your properties (or handle the conversion errors appropriately).</p> 
+<h3><a name="TypeConversion-Interfaces"></a>Interfaces</h3> 
+<p>The framework cannot instantiate an object if it can't determine an appropriate implementation. It recognizes well-known collection interfaces (List, Set, Map, etc) but cannot instantiate MyCustomInterface when all it sees is the interface. In this case, instantiate the target implementation first (eg. in a prepare method) or substitute in an implementation.</p> 
+<h3><a name="TypeConversion-GenericsandErasure"></a>Generics and Erasure</h3> 
+<p>The framework will inspect generics to determine the appropriate type for collections and array elements. However, in some cases Erasure can result in base types that cannot be converted (typically Object or Enum).</p> 
+<p>The following is an example of this problem:</p> 
+<div class="code"> 
+ <div class="codeContent"> 
+  <pre class="code-java"><span class="code-keyword">public</span> <span class="code-keyword">abstract</span> class Measurement&lt;T <span class="code-keyword">extends</span> Enum&gt;
+   <span class="code-keyword">public</span> void setUnits(T enumValue) {...}
+}
+
+<span class="code-keyword">public</span> class Area <span class="code-keyword">extends</span> Measurement&lt;UnitsOfArea&gt; {
+  @Override
+  <span class="code-keyword">public</span> void setUnits(UnitsOfArea enumValue){...}
+}</pre> 
+ </div> 
+</div> 
+<p>Although to the developer the area.setUnits(enumValue) method only accepts a UnitsOfArea enumeration, due to erasure the signature of this method is actually setUnits(java.lang.Enum). The framework does not know that the parameter is a UnitsOfArea and when it attempts to instantiate the Enum an exception is thrown (java.lang.IllegalArgumentException: java.lang.Enum is not an enum type).</p> 
+<p> </p> 
+<p> </p> 
+<p>--------------------</p> 
+<p><a href="http://struts.apache.org/2.0.14/struts2-core/apidocs/org/apache/struts2/dispatcher/FilterDispatcher.html">http://struts.apache.org/2.0.14/struts2-core/apidocs/org/apache/struts2/dispatcher/FilterDispatcher.html</a></p> 
+<dl>
+ <dt> 
+  <pre>public class <strong>FilterDispatcher</strong></pre>
+ </dt>
+ <dt>
+  extends 
+  <a title="class or interface in java.lang" href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/Object.html">Object</a>
+ </dt>
+ <dt>
+  implements 
+  <a title="interface in org.apache.struts2" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/org/apache/struts2/StrutsStatics.html">StrutsStatics</a>, 
+  <a title="class or interface in javax.servlet" href="http://java.sun.com/javaee/5/docs/api/javax/servlet/Filter.html">Filter</a>
+ </dt> 
+</dl> 
+<p>Master filter for Struts that handles four distinct responsibilities:</p> 
+<ul> 
+ <li>Executing actions</li> 
+ <li>Cleaning up the <a title="class in com.opensymphony.xwork2" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/com/opensymphony/xwork2/ActionContext.html"><code><font face="新宋体">ActionContext</font></code></a> (see note)</li> 
+ <li>Serving static content</li> 
+ <li>Kicking off XWork's interceptor chain for the request lifecycle</li> 
+</ul> 
+<p><strong>IMPORTANT</strong>: this filter must be mapped to all requests. Unless you know exactly what you are doing, always map to this URL pattern: /*</p> 
+<p><strong>Executing actions</strong></p> 
+<p>This filter executes actions by consulting the <a title="interface in org.apache.struts2.dispatcher.mapper" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/org/apache/struts2/dispatcher/mapper/ActionMapper.html"><code><font face="新宋体">ActionMapper</font></code></a> and determining if the requested URL should invoke an action. If the mapper indicates it should, <strong>the rest of the filter chain is stopped</strong> and the action is invoked. This is important, as it means that filters like the SiteMesh filter must be placed <strong>before</strong> this filter or they will not be able to decorate the output of actions.</p> 
+<p><strong>Cleaning up the <a title="class in com.opensymphony.xwork2" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/com/opensymphony/xwork2/ActionContext.html"><code><font face="新宋体">ActionContext</font></code></a></strong></p> 
+<p>This filter will also automatically clean up the <a title="class in com.opensymphony.xwork2" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/com/opensymphony/xwork2/ActionContext.html"><code><font face="新宋体">ActionContext</font></code></a> for you, ensuring that no memory leaks take place. However, this can sometimes cause problems integrating with other products like SiteMesh. See <a title="class in org.apache.struts2.dispatcher" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/org/apache/struts2/dispatcher/ActionContextCleanUp.html"><code><font face="新宋体">ActionContextCleanUp</font></code></a> for more information on how to deal with this.</p> 
+<p><strong>Serving static content</strong></p> 
+<p>This filter also serves common static content needed when using various parts of Struts, such as JavaScript files, CSS files, etc. It works by looking for requests to /struts/*, and then mapping the value after &quot;/struts/&quot; to common packages in Struts and, optionally, in your class path. By default, the following packages are automatically searched:</p> 
+<ul> 
+ <li>org.apache.struts2.static</li> 
+ <li>template</li> 
+</ul> 
+<p>This means that you can simply request /struts/xhtml/styles.css and the XHTML UI theme's default stylesheet will be returned. Likewise, many of the AJAX UI components require various JavaScript files, which are found in the org.apache.struts2.static package. If you wish to add additional packages to be searched, you can add a comma separated (space, tab and new line will do as well) list in the filter init parameter named &quot;packages&quot;. <strong>Be careful</strong>, however, to expose any packages that may have sensitive information, such as properties file with database access credentials.</p> 
+<p> </p> 
+<p>This filter supports the following init-params:</p> 
+<ul> 
+ <li><strong>config</strong> - a comma-delimited list of XML configuration files to load.</li> 
+ <li><strong>actionPackages</strong> - a comma-delimited list of Java packages to scan for Actions.</li> 
+ <li><strong>configProviders</strong> - a comma-delimited list of Java classes that implement the <a title="interface in com.opensymphony.xwork2.config" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/com/opensymphony/xwork2/config/ConfigurationProvider.html"><code><font face="新宋体">ConfigurationProvider</font></code></a> interface that should be used for building the <a title="interface in com.opensymphony.xwork2.config" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/com/opensymphony/xwork2/config/Configuration.html"><code><font face="新宋体">Configuration</font></code></a>.</li> 
+ <li><strong>*</strong> - any other parameters are treated as framework constants.</li> 
+</ul> 
+<p>To use a custom <a title="class in org.apache.struts2.dispatcher" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/org/apache/struts2/dispatcher/Dispatcher.html"><code><font face="新宋体">Dispatcher</font></code></a>, the <code><font face="新宋体">createDispatcher()</font></code> method could be overriden by the subclass.</p> 
+<p> </p> 
+<p> </p> 
+<dl>
+ <dt>
+  <strong>Version:</strong> 
+ </dt>
+ <dd>
+  $Date: 2008-10-27 22:46:04 +0100 (Mo, 27. Okt 2008) $ $Id: FilterDispatcher.java 708334 2008-10-27 21:46:04Z rgielen $ 
+ </dd>
+ <dt>
+  <strong>See Also:</strong> 
+ </dt>
+ <dd>
+  <a title="interface in org.apache.struts2.dispatcher.mapper" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/org/apache/struts2/dispatcher/mapper/ActionMapper.html"><code><font face="新宋体">ActionMapper</font></code></a>, 
+  <a title="class in org.apache.struts2.dispatcher" href="http://struts.apache.org/2.0.14/struts2-core/apidocs/org/apache/struts2/dispatcher/ActionContextCleanUp.html"><code><font face="新宋体">ActionContextCleanUp</font></code></a>
+ </dd>
+</dl></div></body></html>

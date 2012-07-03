@@ -1,0 +1,76 @@
+<html><head><title><div class="tit">
+  Swing界面设计工具的第一步
+</div></title></head><body><div id='tit'>Swing界面设计工具的第一步</div><div id='cate'>细节</div><div id='date'>2009年05月26日 星期二 07:30 P.M.</div><div id='page'>49</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/68667ad96d54d2e139012f9c.html'>http://hi.baidu.com/hxzon/blog/item/68667ad96d54d2e139012f9c.html</a><div id='cnt'><div> 
+ <div class="cnt"> 
+  <p>Swing界面设计工具的第一步</p> 
+  <p>2007-07-31 20:59:53</p> 
+  <div> 
+   <div>
+    <wbr />
+    <wbr />
+    <wbr />解决复杂问题常用的一个方法是分析综合法，或曰分而治之，即将复杂的问题分解成简单的子问题。解决了每个子问题后，再将它们集成起来。若每个子问题还是太复杂，则可重复此过程直至简单到容易解决为止。如果问题本身比较复杂，但又不容易继续分下去，则可试着将问题模型进行简化，在此基础上开发出原型后，再陆续添加其其他功能，逐步丰富直至接近问题的原始规模。
+   </div> 
+   <div>
+    <wbr />
+    <wbr />
+    <wbr />Swing界面设计工具是比较复杂的软件系统。在开发之前，我们应该先将它进行分析简化。根据以前的经验，这类工具的功能模块大体上分为三个部分：
+   </div> 
+   <div>
+    <wbr />
+    <wbr />
+    <wbr />1.界面设计组件，以所见即所得的可视化方式显示当前正在设计的界面，功能包括组件的选取和编辑两大部分，其中选取根据类型可分为单选、多选、区域选择、组件拖放、大小调整等等，组件的编辑包括组件的添加、删除、复制、剪切、粘帖、对齐、布局管理等等。除这些功能外，界面设计组件还应向属性编辑页、组件选择面板、组件选择工具栏等系统其他部分提供事件和动作接口。
+   </div> 
+   <div>
+    <wbr />
+    <wbr />
+    <wbr />2.界面设计辅助工具，如属性、事件、布局的查看和编辑工具属性页，设计组件树的浏览、导航和选择，组件选择工具栏，以及界面设计工具的编辑操作所对应的工具栏。
+   </div> 
+   <div>
+    <wbr />
+    <wbr />
+    <wbr />3.元数据及代码解析和生成工具。此部分虽不可见，但却是界面设计工具的难点和核心。它往往是评价一个界面设计工具优劣的重要标准。
+   </div> 
+   <div>
+    <wbr />
+    <wbr />
+    <wbr />
+    <wbr />本人打算采取迭代模式开发这个系统，先依序开发各个子模块，然后最后将他们组合起来。每个阶段都会涉及设计-&gt;编码-&gt;重构三个元素，程序在不断演化中前进。
+   </div> 
+   <div>
+    <wbr />
+    <wbr />
+    <wbr />首先考虑界面设计组件的开发。如前文所述，其功能可分为组件选择和编辑两方面。组件选择模块的特点是在运行时可以共享一套状态数据，比如当前选择的组件，当前拖拽的组件，当前鼠标的位置，当前选择矩形的边界等等。
+   </div> 
+   <div>
+    <wbr />
+    <wbr />
+    <wbr />实现的思想和技术其实前文都已提到。首先要实现其可视化设计界面的组件。首先可假设当前正在设计的界面组件树已经在内存构建出来了，其根就是一个Component，在渲染时只要将界面设计的paint方法中，调用根组件的渲染方法paint就能渲染出来。其方法大致如下（在其UI类中）：
+   </div> 
+   <div> 
+    <table class="FCK__ShowTableBorders"> 
+     <tbody> 
+      <tr> 
+       <td> <p><wbr /><wbr /><wbr />public void paint(Graphics g, JComponent c) {<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />if (component != null) {</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//如果当前被设计的组件不为空，则画出该组件来<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />paintDesignedComponent(g);<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />}</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />if ((selected_components != null) &amp;&amp;!selected_components.isEmpty()) {</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//如果当前选中的组件不为空，则画出他们的resizing边框来<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />paintResizing(g);<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />}</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />if (selection_bounds != null) {</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//如果当前正在选择组件，画出选择框来<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />g.setColor(SELECTION_COLOR);<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />g.drawRect(selection_bounds.x + LEFT_PAD, selection_bounds.y + TOP_PAD, selection_bounds.width,<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />selection_bounds.height);<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />}<br /> <wbr /><wbr /><wbr />}</p> <p><wbr /><wbr /><wbr />private void paintResizing(Graphics g, JComponent c) {</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//当前这些选中的组件是否是可以resize的</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//带有布局管理器的容器组件内的组件不应该能resizeable</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//另外如果所选择的组件跨了几个容器，它们也不应该能resizeable<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />boolean resizable = isSelectedResizable();</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />for (Component comp : selected_components) {</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />Rectangle bounds = getRelativeBounds(comp);</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />g.setColor(SELECTION_COLOR);</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int x = bounds.x + LEFT_PAD;<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int y = bounds.y + TOP_PAD;<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int w = bounds.width;<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int h = bounds.height;</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//画出被选择组件的高亮边框</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />g.drawRect(x, y, w, h);</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />if (resizable) {</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//如果是resizable，要画出其拖拽点矩形</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />drawResizingThumbs(g, x, y, w, h);<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />}<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />}<br /> <wbr /><wbr /><wbr />}</p> <p><wbr /><wbr /><wbr />private void paintDesignedComponent(Graphics g, JComponent c) {</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//这儿和以前讲过的一样，再使用Renderer技术时，要保证渲染组件是非缓冲的<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />ArrayList dbcomponents = new ArrayList();</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />disableBuffer(component, dbcomponents);</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int <wbr /><wbr /><wbr /><wbr /><wbr />width <wbr />= component.getWidth();<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int <wbr /><wbr /><wbr /><wbr /><wbr />height = component.getHeight();</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//创建相对根组件的剪切窗口图形对象<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />Graphics clipg <wbr />= g.create(LEFT_PAD, TOP_PAD, width, height);</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//使用跟组件渲染</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />component.paint(clipg);<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />clipg.dispose();</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int x = LEFT_PAD - BORDER_THICK;<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int y = TOP_PAD - BORDER_THICK;<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int w = width + 2 * BORDER_THICK;<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />int h = height + 2 * BORDER_THICK;</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />//画出外边框来</p> <p><wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />areaBorder.paintBorder(component, g, x, y, w, h);<br /> <wbr /><wbr /><wbr /><wbr /><wbr /><wbr /><wbr />resetBuffer(dbcomponents);<br /> <wbr /><wbr /><wbr />}</p> </td> 
+      </tr> 
+     </tbody> 
+    </table> 
+   </div> 
+   <p><wbr /><wbr /><wbr /><wbr />时间不多了，今天先写到这儿吧。明天再详细讲述如何给界面设计工具加上选择、键盘、编辑等功能。这儿有初步的<a href="http://blogs.sun.com/Swing/resource/swing_designer.zip">代码下载</a>。已经能进行组件选择、拖放、添加、删除、复制、粘贴等简单的编辑动作了。下面是个截图：</p> 
+   <p><a target="_blank" href="http://photo.blog.sina.com.cn/showpic.html#blogid=4b6047bc01000bex&amp;url=http://static5.photo.sina.com.cn/orignal/4b6047bcc3eaae9e18344"><img border="0" src="image/Swing界面设计工具的第一步.html.4b6047bcc3eaae9e18344" /><p class="origImg">http://static5.photo.sina.com.cn/bmiddle/4b6047bcc3eaae9e18344</p></a></p> 
+   <p>更新：</p> 
+   <p><wbr /><wbr /><wbr />这两天做了进一步重构，添加了一些新的功能和注释。现在的设计界面工具可以进行布局管理，添加了添加提示、添加、删除、复制、剪切、粘帖、对齐等功能，把组件选择工具条做了修改，可以添加容器类等等。下面是几个截图：</p> 
+   <p> </p> 
+   <p> </p> 
+   <p> </p> 
+   <p> </p> 
+   <p> </p> 
+   <p> </p> 
+   <p> </p> 
+   <p><a target="_blank" href="http://photo.blog.sina.com.cn/showpic.html#blogid=4b6047bc01000bex&amp;url=http://static7.photo.sina.com.cn/orignal/4b6047bca49289e2725c6"><img border="0" src="image/Swing界面设计工具的第一步.html.4b6047bca49289e2725c6" /><p class="origImg">http://static7.photo.sina.com.cn/bmiddle/4b6047bca49289e2725c6</p></a><a target="_blank" href="http://photo.blog.sina.com.cn/showpic.html#blogid=4b6047bc01000bex&amp;url=http://static11.photo.sina.com.cn/orignal/4b6047bc0959ce1acc83a"><img border="0" src="image/Swing界面设计工具的第一步.html.4b6047bc0959ce1acc83a" /><p class="origImg">http://static11.photo.sina.com.cn/bmiddle/4b6047bc0959ce1acc83a</p></a></p> 
+   <p><a target="_blank" href="http://photo.blog.sina.com.cn/showpic.html#blogid=4b6047bc01000bex&amp;url=http://static12.photo.sina.com.cn/orignal/4b6047bcfd894cdaa4a0b"><img border="0" src="image/Swing界面设计工具的第一步.html.4b6047bcfd894cdaa4a0b" /><p class="origImg">http://static12.photo.sina.com.cn/bmiddle/4b6047bcfd894cdaa4a0b</p></a></p> 
+   <p><a target="_blank" href="http://photo.blog.sina.com.cn/showpic.html#blogid=4b6047bc01000bex&amp;url=http://static5.photo.sina.com.cn/orignal/4b6047bc04b3859ec8cd4"><img border="0" src="image/Swing界面设计工具的第一步.html.4b6047bc04b3859ec8cd4" /><p class="origImg">http://static5.photo.sina.com.cn/bmiddle/4b6047bc04b3859ec8cd4</p></a></p> 
+   <p><a target="_blank" href="http://photo.blog.sina.com.cn/showpic.html#blogid=4b6047bc01000bex&amp;url=http://static4.photo.sina.com.cn/orignal/4b6047bc895fbe9b24473"><img border="0" src="image/Swing界面设计工具的第一步.html.4b6047bc895fbe9b24473" /><p class="origImg">http://static4.photo.sina.com.cn/bmiddle/4b6047bc895fbe9b24473</p></a></p> 
+   <p><a href="http://blog.sina.com.cn/s/blog_4b6047bc01000bex.html">http://blog.sina.com.cn/s/blog_4b6047bc01000bex.html</a><wbr /></p> 
+  </div> 
+ </div> 
+</div></div></body></html>

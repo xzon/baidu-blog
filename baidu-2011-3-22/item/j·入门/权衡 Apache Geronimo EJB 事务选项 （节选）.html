@@ -1,0 +1,337 @@
+<html><head><title><div class="tit">
+  权衡 Apache Geronimo EJB 事务选项 （节选）
+</div></title></head><body><div id='tit'>权衡 Apache Geronimo EJB 事务选项 （节选）</div><div id='cate'>j&middot;入门</div><div id='date'>2008年11月06日 星期四 00:41 A.M.</div><div id='page'>86</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/16fe504e5f47c10eb3de05b5.html'>http://hi.baidu.com/hxzon/blog/item/16fe504e5f47c10eb3de05b5.html</a><div id='cnt'><h1><span style="color: rgb(153,153,153)">权衡 Apache Geronimo EJB 事务选项，第 1 部分: </span>容器管理事务</h1> 
+<p><em>了解 Geronimo 和 OpenEJB 能为您做什么</em></p> 
+<p>级别： 初级</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans1/index.html#author">Jonathan Sagorin</a> (<a href="mailto:jonathan@javaoncall.com?subject=%E5%AE%B9%E5%99%A8%E7%AE%A1%E7%90%86%E4%BA%8B%E5%8A%A1&amp;cc=ruterbo@us.ibm.com">jonathan@javaoncall.com</a>), 自由软件开发人员</p> 
+<p>2006 年 10 月 23 日</p> 
+<blockquote>
+ 本 系列分为三部分，将探索 Apache Geronimo 中的 Enterprise Java™Beans (EJB) 容器管理事务和 bean 管理事务。在第 1 部分中，将找出两种事务之间的差异，其中包括了解容器管理事务如何帮助您避免事务逻辑和管理的复杂性，从而使您可以专注于企业 bean 的业务逻辑。您还将学会如何在 Geronimo 应用服务器中实现容器管理事务，以及如何使用 Geronimo、OpenEJB 和 XDoclet 将自己从繁重的 EJB 编码工作中解放出来。
+</blockquote> 
+<p><a name="N1004B"><span class="atitle">简介</span></a></p> 
+<p>OpenEJB 是为 Apache Geronimo 选定的 EJB 容器实例。虽然 EJB 3.0 目前已经面市，但直到发布 Geronimo 2.0 版，在 Geronimo 接受 Java 1.5 认证时，Geronimo 才支持 EJB。</p> 
+<p>本系列分为三部分，将使您了解 Geronimo 和 OpenEJB 可以为您提供什么帮助，以及在 EJB 2.1 中现在可以实现的 EJB 事务概念（让您顺利进入 EJB 3.0）。</p> 
+<p>EJB 框架提供的好处是：可以使用事务，但没有事务 API 编程的痛苦。在实现 EJB 事务时，您有两种选择：</p> 
+<ul> 
+ <li>告诉 EJB 容器处理所有的硬性事务工作（容器管理的事务）。</li> 
+ <li>让企业 bean 处理一部分事务工作（bean 管理的事务）。</li> 
+</ul> 
+<p>在本系列的第 1 部分中，将从事务的概述开始，然后讨论 EJB 2.1 中描述的 EJB 容器管理的事务。最后用一些代码片断结束介绍，这些代码将显示如何在 Geronimo 应用服务器上实现容器管理的事务。</p> 
+<p>在第 2 部分中，将获得 EJB 2.1 中 bean 管理的事务的概述，并查看一些示例代码实现。</p> 
+<p>在第 3 部分中，将综合这两种事务，并了解与容器管理的事务和 bean 管理的事务有关的难题和附加特性。</p> 
+<p><a name="N100B7"><span class="smalltitle">事务模型</span></a></p> 
+<p>有两种流行的事务模型：<em>flat</em> 事务和 <em>nested</em> 事务。EJB 支持 flat 事务模型。</p> 
+<p>flat 事务是作为单个工作单元处理的一系列操作。工作单元只有两种结果：要么成功，要么失败。如果事务中的所有步骤都成功完成，则事务获得提交，并且该操作执行 的所有持久存储数据更改都将永久化。如果事务中某一步骤失败，则事务将回滚 (roll back)，并反转事务中步骤受影响的所有数据。</p> 
+<p>nested 事务允许事务嵌套在其他事务中。嵌套在其他事务中的事务允许在不影响其父事务的情况下进行回滚。失败的 nested 事务可以继续重试。如果再次失败，则可回滚父事务。</p> 
+<p><a name="N100CC"><span class="atitle">EJB 事务</span></a></p> 
+<p>EJB 是用于组件开发的一个框架。您开发的 EJB 将运行在 EJB 容器中。此外，EJB 容器为事务带来了一些好处。OpenEJB 是 Geronimo 用来提供事务管理的 EJB 容器。</p> 
+<p>EJB 架构支持分布式事务。一些需要分布式事务的场景模式范例包括：</p> 
+<ul> 
+ <li>更新多个数据库的单个事务中的应用。</li> 
+ <li>从 Java Message Service (JMS) 目标发送或接收消息并更新一个或多个数据库的单个事务中的应用。</li> 
+ <li>通过多个 EJB 服务器来更新多个数据库的单个事务中的应用。</li> 
+ <li>在更新多个 EJB 服务器上的多个数据库之前，Java 客户端明确区分事务边界。</li> 
+</ul> 
+<p><a name="N100E7"><span class="smalltitle">事务边界</span></a></p> 
+<p>在实现 EJB 事务时，您将划分事务边界：谁启动事务、谁提交或中止事务，以及什么时候使用事务。这取决于 EJB 容器和服务器提供商提供的事务管理和底层事务通信协议。</p> 
+<p>有两种划分方案：</p> 
+<ul> 
+ <li><em>declarative</em> 方案，使用该方案可以将事务实现委托给 EJB 容器。（该方案是本文其余部分的焦点。）</li> 
+ <li><em>programmatic</em> 方案，在该方案中，企业 bean 使用自己的代码自己提供提交或中止信息。（本系列的第 2 部分中将介绍此方案。）</li> 
+</ul> 
+<p>在使用 declarative 事务划分时，EJB 容器根据 EJB 部署描述符中由应用程序开发人员声明的指令，在企业 bean 的方法上应用事务边界。这称为<em>容器管理的事务</em>。</p> 
+<p>在实现 programmatic 划分事务时，应用程序开发人员负责将事务逻辑和界线编入企业 bean 代码中。这称为 <em>bean 管理的事务</em>。</p> 
+<p><a name="N1010C"><span class="smalltitle">我应该使用哪种事务？</span></a></p> 
+<p>容器管理的事务更加简单并且在代码中不需要实现事务逻辑，无论您的企业 bean 方法是否必须运行在事务中。此外，调用 bean 的 Java 客户端不能滥用您的企业 bean，因为事务始终是有始有终的。</p> 
+<p>如果想完全控制事务边界，请使用 bean 管理的事务。该方法允许在代码中直接控制提交或控制回滚逻辑发生的地方。</p> 
+<p>会话 bean 和消息驱动 bean (MDB) 可以使用 bean 管理的事务或容器管理的事务，但是实体 bean 必须始终使用容器管理的事务。实体 bean 使用 bean 管理的持久性是不合法的。</p> 
+<p><a name="N10124"><span class="atitle">会话 bean 和实体 bean 的事务属性</span></a></p> 
+<p>会话 bean 和实体 bean 可能的属性值包括：</p> 
+<ul> 
+ <li><code>Required</code> —— bean 必须始终运行在事务中。如果客户端已经启动一个事务，则 bean 将加入到事务中。如果客户端还没有启动事务，那么 EJB 容器将启动一个新事务。当需要 bean 始终运行在事务中时，请使用该属性。</li> 
+ <li><code>RequiresNew</code> —— bean 始终启动一个新的事务。如果客户端已经启动一个事务，则挂起现有事务，直到新事务已提交或中止。在新事务完成之后，现有事务将继续。当需要 bean 作为一个单独的工作单元运行并展示所有的 ACID 属性时，请使用该属性。</li> 
+ <li><code>Supports</code> —— 如果客户端启动一个事务，则 bean 将加入到事务中。但是，如果事务不存在，EJB 容器不会启动一个新事务。要在企业 bean 上执行非任务关键型操作时，请使用该属性。</li> 
+ <li><code>Mandatory</code> —— 在调用 bean 时客户端必须启动一个事务。这不会创建一个新的事务。在调用 bean 时，如果没有事务已经启动，则将抛出一个异常。当 bean 是某一较大系统的一部分时，请使用该属性。通常可能由第三方负责启动事务。对用户而言，这是一个安全选项，因为它可以确保 bean 将成为事务的一部分。</li> 
+ <li><code>NotSupported</code> —— 在事务中不能调用 bean。如果客户端已经启动一个事务，则挂起现有事务，直到 bean 的方法完成。在完成上述方法之后，现有事务将继续。如果客户端没有启动事务，则不会创建一个新事务。在不需要 bean 展示任何 ACID 属性（比如类似报表的非系统关键型操作）时，请使用该属性。</li> 
+ <li><code>Never</code> —— 如果客户端启动一个事务，则 bean 将抛出一个异常。在您可能永远都不想让您的 bean 参与到事务中的情况下，请使用该属性。</li> 
+</ul> 
+<p><a name="N10154"><span class="atitle">消息驱动 bean 的事务属性</span></a></p> 
+<p>只有两种消息驱动 bean 消息监听器方法使用的事务属性：</p> 
+<ul> 
+ <li><code>NotSupported</code> —— bean 不能参与到事务中。如果客户端启动一个事务，那么现有事务将挂起，直到 bean 的方法完成为止。在完成上述方法之后，现有事务将继续。如果客户端没有启动事务，则不会创建一个新的事务。</li> 
+ <li><code>Required</code> —— bean 必须始终运行在事务中。如果客户端已经启动事务，则 bean 将加入到事务中。如果客户端没有启动事务，则 EJB 容器将启动一个新事务。</li> 
+</ul> 
+<p>在为企业 bean 方法确定正确事务属性之后，就可以配置 EJB 部署描述符了。</p> 
+<p><a name="N10270"><span class="smalltitle">事务同步</span></a></p> 
+<p>容器管理的事务允许 EJB 容器指定事务边界，这可以简化您的工作。然而，当事务中止时，可能需要执行一些 bean 状态的恢复工作。对于无状态会话 bean，可能抛出一个简单的异常。有状态会话 bean 表示了对话状态（或商业流程），这可能会跨越几个 bean 方法调用。</p> 
+<p>如果要求有状态会话 bean 获得事务边界状态事件通知，则需要编写企业 bean 代码来实现可选的 <code>javax.ejb.SessionSynchronization</code> 接口。您必须实现定义在接口上的下列方法：</p> 
+<ul> 
+ <li><code>afterBegin()</code> —— 在新事务启动之后但在调用业务方法之前通知会话 bean。在事务提交之前，bean 实例可以做任何它所需要的数据库读取操作。在缓冲事务所需要的数据时，这很有用。</li> 
+ <li><code>beforeCompletion()</code> —— 在业务方法完成之后但是在事务提交之前通知会话 bean。如果有任何缓冲数据，可以将其更新到数据库中。bean 还可以在会话上下文中通过调用 <code>setRollBackOnly()</code> 执行事务的手动回滚。</li> 
+ <li><code>afterCompletion（boolean committed）</code> —— 在事务提交之后通知会话 bean。提交的布尔值指出是提交事务还是中止事务。如果该值为 true，则事务成功获得提交。如果该值为 false，则事务中止。因此，bean 的对话状态/实例变量可以被恢复或重新设置。</li> 
+</ul> 
+<p><a name="N10299"><span class="smalltitle">避免使用的方法</span></a></p> 
+<p>既然 EJB 容器是负责控制事务边界，那么您不应该调用任何可能干涉容器边界划分的方法。如果您正在实现容器管理的事务，请确保企业 bean 方法不会调用下列方法：</p> 
+<ul> 
+ <li><code>java.sql.Connection</code> 的 <code>commit</code>、<code>setAutoCommit</code> 和 <code>rollback</code> 方法</li> 
+ <li><code>javax.ejb.EJBContext</code> 的 <code>getUserTransaction</code> 方法</li> 
+ <li><code>javax.transaction.UserTransaction</code> 的任何方法</li> 
+</ul> 
+<p><a name="N102C7"><span class="smalltitle">回滚</span></a></p> 
+<p>在某些情况下您可能需要明确中止事务。有两种回滚容器管理的事务的方式：</p> 
+<ul> 
+ <li>让容器自动回滚事务。如果有任何企业 bean 抛出的运行时异常，就会发生这种回滚。</li> 
+ <li>调用 <code>EJBContext</code> 接口的 <code>setRollBackOnly()</code> 方法。在发生回滚时，允许您进行控制。或许由于一些有效性验证失败或存在数据完整性问题，您可能需要回滚整个事务并抛出一个应用程序异常。应用程序异常不会自动导致容器回滚一个异常。</li> 
+</ul> 
+<p>http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans1/index.html</p> 
+<h1><span style="color: rgb(153,153,153)">权衡 Apache Geronimo EJB 事务选项，第 2 部分: </span>Bean 管理事务</h1> 
+<p><em>使用 OpenEJB 在 Apache Geronimo 中轻松实现 bean 管理事务</em></p> 
+<p><a name="N1006D"><span class="atitle">bean 管理的事务</span></a></p> 
+<p>与 bean 管理的事务相比较，容器管理的事务更简单且代码更少。但是在使用容器管理的事务时存在以下情况：您的企业 bean 方法既可以参与到事务中，也可以不参与。如果您需要更粗略的逻辑，并在基于特定有效性逻辑的情况下使用粗略逻辑提交事务或回滚事务，那么您应该使用 bean 管理的事务。bean 管理的事务可使您对事务边界进行全面控制。</p> 
+<p>会话 bean 或消息驱动 bean (MDB) 可以使用 bean 管理的事务。实体 bean 不能使用 bean 管理的事务。这是因为 EJB 容器控制了加载或存储实体 bean 的数据的时间。</p> 
+<p>在 bean 管理的事务中，容器必须允许 bean 实例在一个方法中连续执行几个事务，但是要记住，不能执行嵌套事务。如果您试图启动一个新事务而 bean 实例还没有提交前一个事务，那么容器将抛出一个异常。</p> 
+<p>您可以使用两种类型的 bean 管理的事务：</p> 
+<ul> 
+ <li>JTA 事务</li> 
+ <li>JDBC 事务</li> 
+</ul> 
+<p>我们将在下一节中查看这两种事务。</p> 
+<p><a name="N1008B"><span class="atitle">JTA 事务</span></a></p> 
+<p>JTA 是事务管理器和分布式事务处理系统所涉及的其他组件之间的一个接口规范。通过使用接口，不必使用事务管理器的特有 API 就可以单独地划分事务。</p> 
+<p>所有 EJB 容器都必须支持 JTA API。对于一名开发人员，这允许您将事务指令传达给 EJB 容器，并以通用、简单的方式提供事务指令。此方法使您不必担心事务服务的底层工作。</p> 
+<p><a name="N10097"><span class="smalltitle"><code>javax.transaction.UserTransaction</code></span></a></p> 
+<p>使用 bean 管理的 JTA 事务时，可使用 <code>javax.transaction.UserTransaction</code> 接口来划分事务。在该接口上，有三个有趣的方法：</p> 
+<ul> 
+ <li><code>begin()</code> —— 创建一个新的事务，并将该事务与当前线程关联起来。</li> 
+ <li><code>commit()</code> —— 提交与当前线程有关联的事务。</li> 
+ <li><code>rollback()</code> —— 强行回滚与当前线程有关联的事务。</li> 
+</ul> 
+<p>在 <code>begin()</code> 和 <code>commit()</code> 之间发生的所有更新都是在一个事务中完成的。</p> 
+<p><code>UserTransaction</code> 接口上的其他方法包括：</p> 
+<ul> 
+ <li><code>getStatus()</code> —— 检索与当前线程有关的事务的状态。返回值是 <code>javax.transaction.Status</code> 接口上定义的常数。</li> 
+ <li><code>setRollbackOnly()</code> —— 强行使事务终止。</li> 
+ <li><code>setTransactionTimeout(int) </code>—— 设置事务中止前能运行的最大次数。这在避免死锁时很有用。</li> 
+</ul> 
+<p>请参阅本文的 <a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans2/index.html#resources">参考资料</a> 部分，获得 Sun 公司的 JavaDocs 中有关 <code>UserTransaction</code> 和 <code>UserStatus</code> 接口的链接。</p> 
+<p>如何使用 bean 方法获得 <code>UserTransaction</code> 的最初引用呢？基于企业 bean 的类型，您可从 bean 上下文中获得接口：</p> 
+<ul> 
+ <li>对于会话 bean，可从 <code>javax.ejb.EJBContext</code> 调用 <code>getUserTransaction()</code>。</li> 
+ <li>对于 MDB，可从 <code>MessageDrivenContext.getUserTransaction()</code> 调用 <code>getUserTransaction()</code>。</li> 
+</ul> 
+<p>您也可以通过 JNDI 检索接口。<a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans2/index.html#list1">清单 1</a> 显示了一个例子。</p> 
+<br /> 
+<a name="list1"><strong>清单 1. 如何通过 JNDI 获取 <code>UserTransaction</code> 接口</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public MySessionBean implements SessionBean {<br /><br />public someMethodOnMyBean()<br />{<br />      Context initCtx = new InitialContext();<br />      UserTransaction utx = (UserTransaction)initCtx.lookup(<br />      &quot;java:comp/UserTransaction&quot;);<br />      utx.begin();<br />      ...<br />      utx.commit();<br />      }<br />     ...<br />}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>通常，在同一个方法中启动事务并提交该事务是一个好主意。这有助于您跟踪事务开始和结束的地方。同样，要使事务开放的时间尽可能的短。事务需要系统资源，因此如果保持事务长时间的开放，可能会影响多用户性能。</p> 
+<p>使用 JTA 事务的最大好处是它允许您跨越多个不同数据库的多个更新。但要记住，JTA 实现不支持嵌套事务。</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans2/index.html#list2">清单 2</a> 显示了会话 bean 更新两个不同数据库的例子。数据源是通过 JNDI 进行检索的。您可以像往常一样检索数据库连接并准备语句。</p> 
+<p>（注意，我在演示 JTA 事务的基本实现（用粗体显示）。为了实现这一点，我将用顶级方法来显示所有代码。不要尝试使用任何重用形式的普通抽象。）</p> 
+<br /> 
+<a name="list2"><strong>清单 2. 会话 bean Java 代码示例</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public class MySessionEJB implements SessionBean {<br /><br />EJBContext ejbContext;<br /><br />public void updateTwoDatabases(...) {<br /><br />      DataSource dbOneDataSource = null;<br />      DataSource dbTwoDataSource = null;<br /><br />      Connection dbOneConnection = null;<br />      Connection dbTwoConnection= null;<br /><br />      Statement dbOneStatement = null;<br />      Statement dbTwoStatement = null;<br /><br />      String sqlUpdateDbOne = null;<br />      String sqlUpdateDbTwo = null;<br /><br />      javax.transaction.UserTransaction ut = null;<br /><br />      try {<br />       InitialContext initCtx = new InitialContext();<br /><br />       // retrieve our first Connection and <br />       // prepare a statement<br />       dbOneDataSource = (javax.sql.DataSource)<br />       initCtx.lookup(&quot;java:comp/env/jdbc/dbOneDS&quot;);<br />       dbOneConnection = dbOneDataSource.getConnection();<br />       // setup SQL here, <br />       // perhaps we're using parameterized queries<br />       sqlUpdateDbOne = ...<br />       dbOneStatement =<br />       dbOneConnection.prepareStatement(sqlUpdateDbOne);<br /><br />       // retrieve our second Connection and <br />       // prepare a statement<br />       dbTwoDataSource = (javax.sql.DataSource)<br />       initCtx.lookup(&quot;java:comp/env/jdbc/dbTwoDS&quot;);<br />       dbTwoConnection = dbTwoDataSource.getConnection();<br />       // setup SQL here, <br />       // perhaps we're using parameterized queries<br />       sqlUpdateDbTwo = ...<br />       dbTwoStatement =    <br />      dbTwoConnection.prepareStatement(sqlUpdateDbTwo);<br /> <br />       // Now setup a JTA transaction to encompass both<br />       // database updates //<br />       <span class="boldcode">ut = ejbContext.getUserTransaction();</span><br />       // Start our transaction here<br />       <span class="boldcode">ut.begin();</span><br />        dbOneStatement.executeUpdate();<br />        dbTwoStatement.executeUpdate();<br /><br />       // commit the transaction<br />       <span class="boldcode">ut.commit();</span><br /><br />       // cleanup<br />       dbOneStatement.close();<br />       dbTwoStatement.close();<br />       dbOneConnection.close();<br />       dbTwoConnection.close();<br /><br />      }<br />      catch (Exception e) {<br />            //something went wrong<br />            try {<br />             //rollback the exception<br />             <span class="boldcode">ut.rollback();</span><br />             } catch (SystemException se) {<br />                 //Rollback has failed!<br />                 throw new EJBException<br />             (&quot;Attempted to rollback, but it failed: &quot; <br />       +      se.getMessage());<br />       }<br />       //Lastly throw an exception to report what went wrong<br />      throw new EJBException <br />             (&quot;Transaction failed: &quot; + ex.getMessage());<br />      }<br />    }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>如您所见，JTA bean 管理的事务的基本实现非常简单。在事务启动、提交和回滚时，所有您要做的就是明确控制事务。</p> 
+<p><a name="N10151"><span class="atitle">JDBC 事务（略）</span></a></p> 
+<p><a name="N101A0"><span class="atitle">提交事务或回滚事务</span></a></p> 
+<p>因为由您来控制事务边界，所以当提交或回滚 bean 管理的事务时，有些特定的规则您必须知道：</p> 
+<ul> 
+ <li>在从业务方法中返回或发生 <code>ejbTimeout</code> 之前，无状态会话 bean 必须提交或回滚事务。容器可能会检测事务启动时的情况，但是不会提交事务。在这种情况下，容器将回滚事务并抛出一个异常。</li> 
+ <li>在从业务方法中返回之前，有状态会话 bean 不必提交或回滚事务。这是因为事务可以跨越几个客户端调用。有状态会话 bean 表示了会话状态。EJB 容器将等待会话 bean 实例提交或回滚事务。</li> 
+ <li>在消息监听器方法或 <code>ejbTimeout</code> 方法返回之前，MDB 必须提交事务。在这种情况下，容器将回滚事务并抛出一个异常。</li> 
+</ul> 
+<p>注意，对于 JTA 事务，如果数据库在多个调用之间打开或关闭数据库连接，则仍将保留事务。但是，对于 JDBC 事务，将不保留事务。</p> 
+<p><a name="N101C0"><span class="atitle">避免使用的方法</span></a></p> 
+<p>在处于事务中时，不要调用 <code>java.sql.Connection</code> 或 <code>javax.jms.Session</code> 接口的 <code>commit()</code> 或 <code>rollback()</code>。</p> 
+<p>同样，不要调用 <code>EJBContext</code> 接口的 <code>getRollBackOnly()</code> 和 <code>setRollBackOnly()</code>。容器将抛出一个异常，原因是：</p> 
+<ul> 
+ <li>您可以通过调用 <code>javax.transaction.UserTransaction</code> 的 <code>getStatus()</code> 方法来获得事务的状态。这等同于调用 <code>getRollBackOnly</code>。</li> 
+ <li>可以使用 <code>javax.transaction.UserTransaction</code> 接口的 <code>rollback()</code> 方法来回滚事务。这等同于调用 <code>setRollbackonly()</code>。</li> 
+</ul> 
+<h1><span style="color: rgb(153,153,153)">权衡 Apache Geronimo EJB 事务选项，第 3 部分: </span>综合所有事务</h1> 
+<p><a name="N10061"><span class="atitle">EJB 事务：我的选择是什么？</span></a></p> 
+<p>在实现 EJB 事务时，有两种选择：容器管理或 bean 管理的事务。</p> 
+<p>使用容器管理的事务时，将在部署描述符中指定事务行为。EJB 容器负责控制事务边界。您为整个 enterprise bean、bean 上的个别方法或两者指定事务属性。事务属性的选择有：</p> 
+<ul> 
+ <li><code>Required</code></li> 
+ <li><code>RequiresNew</code></li> 
+ <li><code>Supports</code></li> 
+ <li><code>Mandatory</code></li> 
+ <li><code>NotSupported</code></li> 
+ <li><code>Never</code></li> 
+</ul> 
+<p>使用 bean 管理的事务时，您编程控制事务边界并决定事务开始、提交和回滚的时机。在 bean 管理的事务中，可以在 Java Transaction API（JTA）或 Java Database Connectivity（JDBC）事务实现之间进行选择。JTA 使用 <code>javax.transaction.UserTransaction</code> 接口控制事务，而 JDBC 事务则直接经 <code>java.sql.Connection</code> 接口执行操作来控制事务行为。</p> 
+<p>如果使用会话或消息驱动 bean（MDB），那么可以实现 bean 管理或容器管理事务。然而，实体 bean 只可以使用容器管理事务。</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans3/index.html#tab1">表 1</a> 按每个 enterprise bean 实现的事务类型总结了这些选择。</p> 
+<br /> 
+<a name="tab1"><strong>表 1. enteprise bean 的事务类型选择</strong></a>
+<br /> 
+<table class="data-table-1" border="1" cellspacing="0" summary="Comparison of servlets, mailets, and matchers" cellpadding="1" width="100%"> 
+ <tbody> 
+  <tr> 
+   <th>事务类型</th> 
+   <th>会话 bean</th> 
+   <th>实体 bean</th> 
+   <th>消息驱动 bean</th> 
+  </tr> 
+  <tr> 
+   <td>bean 管理</td> 
+   <td>x</td> 
+   <td> </td> 
+   <td>x</td> 
+  </tr> 
+  <tr> 
+   <td>事务管理</td> 
+   <td>x</td> 
+   <td>x</td> 
+   <td>x</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p>如果不确定您的 bean 使用哪种事务类型，Sun Microsystems 建议对 enterprise bean 使用具有 <code>required</code> 属性的容器管理的事务。</p> 
+<p>对于开发人员，使用容器管理的事务会比较简单并且需更比较少的工作量。在 bean 方法中不要求事务逻辑。在 enterprise bean 的方法级别上划分事务边界。bean 方法必须运行在事务上下文中或不在其中运行。</p> 
+<p>如果要求对事务边界进行更严格的控制，那么使用 bean 管理的事务。如果期望在 enterprise bean 中拥有长期过程，那么使用 bean 管理的事务。对于本文的目的，希望事务运行尽可能短的时间。如果使用容器管理事务，划分边界的粒度不够细，它们处于 bean 方法级别。</p> 
+<p>通过使用 bean 管理的事务，可以限制事务的持续时间为短暂的。可以在事务中隔离数据库操作并允许长期过程在事务作用域之外运行。这将确保不会阻塞访问同一数据的其他任何事务。</p> 
+<p><a name="N100ED"><span class="atitle">并发控制策略</span></a></p> 
+<p>使用 EJB 实现并发控制有两种策略：可以遵循消极（pessimistic）或积极（optimistic）锁定策略。</p> 
+<p>使用<em>消极锁定</em> 时，在修改数据所需的事务持续时间内获取锁，从而阻塞其他任何人修改同一数据。如果系统中有其他人可能试图修改正在处理的数据，那么这是使用该策略的好机会。该策略提供对数据的可靠访问，但是不适用于较小规模的系统，因为当要求系统规模和更多锁时，性能将会降低。</p> 
+<p><em>积极锁定</em> 不会在事务期间持有锁。您采取积极的态度并假设在您使用数据时数据不会被其他事务修改。当发生数据冲突时，您可以处理异常情况，但假设这是很少发生的。当 要求更新数据时，实现策略来检查数据在最近被读取之后和在被修改之前这段时间里没有发生改变。如果数据没有改变，就执行更新。该策略适用于大规模系统。缺 点是您必须实现检测和处理数据冲突的代码。</p> 
+<p>下一节将讨论改变事务的隔离级别。这是消极锁定的一个例子，其中通过改变事务的隔离级别来控制消极锁定的程度和效力。</p> 
+<p><a name="N101B9"><span class="smalltitle">选择隔离级别</span></a></p> 
+<p>隔离的四个级别列在下面，按最低（最弱）隔离级别到最高（最强）级别的顺序排列。记住当提高隔离级别时，应用程序的性能将降低。</p> 
+<ul> 
+ <li><strong>Read uncommitted</strong> － 该选项仅适用于具有非共享数据的非任务关键型系统（这在应用程序中是很少见的情况）。性能处于最佳状态，但是将牺牲并发控制。如果确定没有其他并发事务，请使用该选项。使用该选项，以上所列的数据问题都无法解决。</li> 
+ <li><strong>Read committed</strong> － 这是大多数数据库的默认隔离级别，也是 Apache Geronimo 默认的。只能读取提交的数据，因此该选项解决了脏数据读问题。由于要求对数据库使用附加锁，因此性能将会慢一些。</li> 
+ <li><strong>Repeatable read</strong> － 通过使用该隔离级别，解决脏数据读和未提交读问题。可以保证读取的任何行可以在以后被重读而其值将不会改变。</li> 
+ <li><strong>Serializable</strong> － 这是最严格的隔离级别，解决了所有三个数据问题。在希望事务以真正隔离的方式运行并完全与其他事务独立时，请使用该级别。这将保证数据一致性。对任务关键型系统使用它来保证真正地隔离事务行为。但是注意，该隔离级别是以性能为代价。</li> 
+</ul> 
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans3/index.html#tab2">表 2</a> 概述隔离级别选择并显示每个级别如何解决 <a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans3/index.html#dataconsistency">早先</a> 列出的三个数据问题。</p> 
+<br /> 
+<a name="tab2"><strong>表 2. 使用隔离级别解决数据问题</strong></a>
+<br /> 
+<table class="data-table-1 FCK__ShowTableBorders" border="0" cellspacing="0" summary="Solutions to data problems using isolation levels" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <th>数据解决方案</th> 
+   <th>Read uncommitted</th> 
+   <th>Read committed</th> 
+   <th>Repeatable read</th> 
+   <th>Serializable</th> 
+  </tr> 
+  <tr> 
+   <td>解决脏数据读</td> 
+   <td> </td> 
+   <td>x</td> 
+   <td>x</td> 
+   <td>x</td> 
+  </tr> 
+  <tr> 
+   <td>解决不可重复读</td> 
+   <td> </td> 
+   <td> </td> 
+   <td>x</td> 
+   <td>x</td> 
+  </tr> 
+  <tr> 
+   <td>解决影像读</td> 
+   <td> </td> 
+   <td> </td> 
+   <td> </td> 
+   <td>x</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p><a name="N10239"><span class="smalltitle">在 bean 管理的事务中的隔离级别</span></a></p> 
+<p>通过底层的数据库资源管理器指定隔离级别。使用 bean 管理的事务时，可以编程访问底层连接。由于可以访问 <code>java.sql.Connection</code> 接口，可以使用方法 <code>setTransactionIsolation(int level)</code> 改变连接的隔离级别。</p> 
+<p>使用下面这些常量来设置恰当的隔离级别：</p> 
+<ul> 
+ <li><code>Connection.TRANSACTION_READ_UNCOMMITTED</code></li> 
+ <li><code>Connection.TRANSACTION_READ_COMMITTED</code></li> 
+ <li><code>Connection.TRANSACTION_REPEATABLE_READ</code></li> 
+ <li><code>Connection.TRANSACTION_SERIALIZABLE</code></li> 
+</ul> 
+<p>其他让人感兴趣的方法是：</p> 
+<ul> 
+ <li><code>Connection.getTransactionIsolation()</code></li> 
+ <li><code>DatabaseMetaData.supportsTransactionIsolationLevel(int)</code></li> 
+</ul> 
+<p>（参考 <a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbtrans3/index.html#resources">参考资料</a> 部分中的 Sun JavaDoc API 来获得有关这些方法的更多信息。）</p> 
+<p><strong>注意：</strong>通过修改隔离级别，要求数据库资源管理器改变该资源的隔离性。这不是数据库供应商必须提供的必要特性。实际上，很多数据库供应商不会允许这么做。在改变隔离级别时一定要小心。查看您的数据库资源管理器文档来查明支持的隔离级别。</p> 
+<p>另外，应该在开始事务之前设置事务隔离级别。决不能在事务的过程中切换隔离级别。大多数资源管理器还要求对事务中的所有参与者使用同一隔离级别。</p> 
+<p><a name="N10283"><span class="smalltitle">在容器管理的事务中的隔离级别</span></a></p> 
+<p>在使用容器事务时，没有办法在部署描述符中指定隔离级别。默认情况下，Geronimo 对 EJB 容器使用 Read Committed 隔离级别。如果需要对隔离级别更细的控制，那么考虑在 bean 管理的事务中使用 JDBC 事务。</p> 
+<p><a name="N1028C"><span class="atitle">事务超时</span></a></p> 
+<p>在 bean 管理的事务中使用 JTA 事务时，可以使用 <code>javax.transaction.UserTransaction</code> 接口的 <code>setTransactionTimeout</code> 方法。这将设置在事务中止之前将运行的最大时间（秒）。</p> 
+<p><a name="N1029D"><span class="atitle">分布式事务</span></a></p> 
+<p>在单个事务中的多个参与者物理分布于网络中时，事务称为<em>分布式事务</em>。分布式事务允许不同类型的资源参与到事务中。分布式事务的例子是：</p> 
+<ul> 
+ <li>单个会话 bean 开始事务并更新数据库 A。调用运行在同一个应用服务器上的另一个会话 bean 来更新数据库 B。第一个会话 bean 提交事务。两个数据库更新发生在同一个事务中。</li> 
+ <li>单个会话 bean 开始事务并更新数据库 A。调用运行在<em>不同的</em> 应用服务器上的另一个会话 bean 来更新数据库 B。每个应用服务器的事务管理器将确保两个数据库在同一事务中更新。</li> 
+ <li>单个会话 bean 开始事务并更新数据库 A，接着是 Java Message Service（JMS）操作。两个工作单元都是同一事务的一部分。如果 JMS 操作失败，事务将不会更新数据库。</li> 
+</ul> 
+<p>几个事务管理器必须共同工作来执行分布式事务。通常指定一个单独的事务管理器（称为<em>事务协调器</em>或<em>分布式事务管理器</em>）来协调其他事务管理器。</p> 
+<p>事务管理器进而与资源管理器进行协调来对资源（可能是数据库或消息服务器）执行必需的提交或回滚。大多数数据库的事务管理器和资源管理器紧密地耦合在一起。</p> 
+<p><a name="N102C4"><span class="smalltitle">两段式提交</span></a></p> 
+<p>通过使用某种协议进行通信来完成分布式事务，被称为<em>两段式提交</em>。从名字上看，您可能已经知道有两个阶段：</p> 
+<ul> 
+ <li>第一个阶段，即<em>预提交</em>：<br /> 
+  <ul> 
+   <li>事务协调器给每个事务管理器发送准备操作的信号。</li> 
+   <li>事务管理器将操作（通常是数据更新）步骤（或细节）写入事务日志。如果失败，事务管理器使用这些步骤重复操作。</li> 
+   <li>事务管理器本地创建事务并通知资源管理器对资源（例如，数据库或消息服务器）执行操作。</li> 
+   <li>资源管理器执行操作并向事务管理器报告成功（准备提交信号）或失败（准备回滚）。</li> 
+   <li>资源管理器等待事务管理器进一步的指令。</li> 
+   <li>事务管理器向事务协调器报告成功或失败。</li> 
+  </ul> </li> 
+ <li>第二阶段，即<em>提交阶段</em>：在第二阶段中，第一阶段的结果将传送给所有事务管理器。如果任何事务管理器报告失败，所有的事务参与者都必须回滚。<br /> 
+  <ul> 
+   <li>事务协调器让所有事务管理器提交（或回滚）。</li> 
+   <li>所有事务管理器将提交或回滚信息传递给其资源管理器。</li> 
+   <li>资源管理器将成功或失败提示返回给事务管理器。</li> 
+   <li>事务管理器向事务协调器报告成功或失败。</li> 
+  </ul> </li> 
+</ul> 
+<p><a name="N10305"><span class="smalltitle">我们可以交谈吗？</span></a></p> 
+<p>分布式事务的最大挑战是对事务管理器之间的共用通信协议取得一致。用于两段式提交的标准化协议称为 <em>XA 协议</em>，但是并非所有的供应商都支持该标准。XA 协议定义了事务管理器和资源管理器之间的接口。</p> 
+<p>Geronimo 的事务管理器是 Java Open Transaction Manager（JOTM），一个开放源码的事务管理器。它实现 XA 协议并编译成 JTA。记住，JTA 是本系列文章中用来与事务管理器进行通信的接口。可以在 bean 管理的事务中使用其来指定何时启动、提交或回滚事务。</p> 
+<p>只要所有的事务参与者都对通信协议取得一致，它们就可以参与同一分布式事务。</p> 
+<p><a name="N10317"><span class="smalltitle">它不是完美的</span></a></p> 
+<p>注意，使用分布式事务比使用本地事务要慢。所有事务参与者都需要更多的系统资源。事务协调器和所有事务参与者之间的网络交流都将影响系统响应时间。分布式事务由于涉及的事务管理器和资源管理器的数量，还将花费更多时间。</p> 
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+<strong>学习</strong>
+<br /> 
+<ul> 
+ <li>阅读 “<a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-ejbweb/">利用 Geronimo 深入 EJB Web 应用程序</a>”（developerWorks，2005 年 7 月），了解如何在 Geronimo 中使用 EJB。</li> 
+ <li>通过 “<a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-webappejb/">在 Apache Geronimo 上部署 J2EE 应用程序</a>”（developerWorks，2006 年 1 月）了解如何在 Apache Geronimo 上部署 JavaServer Pages（JSP）、servlet 和不同的 EJB。</li> 
+ <li>获得有关 <a href="http://java.sun.com/j2ee/tutorial/1_3-fcs/doc/EJBConcepts.html#74973">deployment descriptors in Geronimo</a> 的更多信息。</li> 
+ <li>阅读更多有关 Sun 公司的 <a href="http://java.sun.com/products/ejb/docs.html">EJB 规范</a> 的信息。</li> 
+ <li>学习有关 <a href="http://xdoclet.sourceforge.net/xdoclet/index.html">XDoclet</a> 的更多信息。</li> 
+ <li>阅读 Nicholas Chase 与 David Blevins（OpenEJB 的共同创始人）的访谈 “<a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade7/index.html">Geronimo 叛逆者：OpenEJB 和 Apache Geronimo 的 EJB 实现</a>”（developerWorks，2006 年 5 月），了解 OpenEJB 是如何被选为 Geronimo 的 EJB 实现的。</li> 
+ <li>加入 Apache Geronimo 网站的 <a href="http://geronimo.apache.org/mailing.html">邮件列表</a>。</li> 
+ <li>阅读 “<a href="http://www.ibm.com/developerworks/cn/opensource/os-boynes/">构建更佳的 J2EE 服务器，开源之路</a>”（developerWorks，2005 年 5 月），获得有关 Geronimo 背后的开发过程的重要信息，包括其 JSR-88 支持。</li> 
+ <li>查看 developerWorks <a href="http://www.ibm.com/developerworks/cn/opensource/top-projects/geronimo.html">Apache Geronimo 项目专区</a>，获得有助于使用 Geronimo 开始开发的文章、教程和其他参考资料。</li> 
+ <li>在 developerWorks 的 <a href="http://www.ibm.com/developerworks/cn/opensource/top-projects/geronimo-starthere.html">现在开始学习 Apache Geronimo</a> 部分查找对于初学者和有经验用户有用的参考资料。</li> 
+ <li>查看 <a href="http://www.ibm.com/software/webservers/appserv/geronimo/?S_TACT=105AGX44&amp;S_CMP=GRNMO">IBM Support for Apache Geronimo</a> 提供的信息，它会使您在开发 Geionimo 应用程序时得到世界级的 IBM 支持。</li> 
+ <li>访问 <a href="http://www.ibm.com/developerworks/cn/opensource">developerWorks 开放源码专区</a>，从那里可以获得大量的 how-to 信息、工具和项目更新，这些有助于您使用开放源码技术进行开发，并将这些技术与 IBM 产品结合使用。</li> 
+ <li>在 “developerWorks 开放源码专区” 上浏览所有可获得的 <a href="http://www.ibm.com/developerworks/cn/views/opensource/articles.jsp?view_by=search&amp;search_by=Apache">Apache 文章</a> 和 <a href="http://www.ibm.com/developerworks/cn/views/opensource/tutorials.jsp?view_by=search&amp;search_by=Apache">免费 Apache 教程</a>。</li> 
+ <li>浏览 <a href="http://safari.bvdep.com/?x=1&amp;portal=bvdep&amp;uicode=&amp;Key=&amp;GUID=D1F1DB57-50AF-4998-99-DA-6D-BB-A5-E0-E4-0B">Safari bookstore</a> 上有关这个主题和其他技术主题的书籍。</li> 
+</ul> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

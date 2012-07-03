@@ -1,0 +1,125 @@
+<html><head><title><div class="tit">
+  快速教您Apache + Tomcat + SSL的配置
+</div></title></head><body><div id='tit'>快速教您Apache + Tomcat + SSL的配置</div><div id='cate'>工具使用</div><div id='date'>2008年06月07日 星期六 05:29 P.M.</div><div id='page'>131</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/d5bd8c821bb7d095f703a603.html'>http://hi.baidu.com/hxzon/blog/item/d5bd8c821bb7d095f703a603.html</a><div id='cnt'><p>快速教您Apache + Tomcat + SSL的配置</p> 
+<p> </p> 
+<p>运行环境:Windows2003 Server SP4 + J2SDK1.5.0 + Apache2.0.54 + Tomcat5.5.9</p> 
+<p> </p> 
+<p>准备软件:</p> 
+<p> </p> 
+<p>1.安装 Apache 2.0.54</p> 
+<p> </p> 
+<p>2.Tomcat 5.5.14</p> 
+<p> </p> 
+<p>3.Jk2连接器（mod_jk2.so）</p> 
+<p> </p> 
+<p><strong>一、配置Apache和tomcat</strong></p> 
+<p> </p> 
+<p>Apache安装在d:Apache2 下，监听端口 80；</p> 
+<p> </p> 
+<p>Tomcat在D:Tomcat51 下，监听端口 8080；</p> 
+<p> </p> 
+<p>两者都以windows 2000服务进行安装。</p> 
+<p> </p> 
+<p>将mod_jk2.so复制到d:Apache2modules目录下：</p> 
+<p> </p> 
+<p>1.编辑d:Apache2confhttpd.conf文件,在LoadModule那一段代码中添加：</p> 
+<p> </p> 
+<p>LoadModule jk2_module modules/mod_jk2.so</p> 
+<p> </p> 
+<p>2.将AddDefaultCharset ISO-8859-1 改为 AddDefaultCharset GB2312 使Apache自动支持中文显示；</p> 
+<p> </p> 
+<p>3.在“虚拟主机配置代码段”中添加：（此段配置可以根据你的实际情况进行修改）</p> 
+<p> </p> 
+<center>
+ <ccid_nobr></ccid_nobr> 
+ <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+  <tbody> 
+   <tr> 
+    <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+      <ccid_code></ccid_code>&lt;VirtualHost *:80&gt; 
+ServerAdmin linvsfen◎163.com DocumentRoot &quot;d:/ Tomcat51/webapps/jsp-examples
+ServerName localhost ErrorLog logs/error_log CustomLog logs/access_log common 
+&lt;/VirtualHost&gt;</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</center> 
+<p>编写workers2.properties文件并加入d:Apache2conf目录，内容如下:</p> 
+<p> </p> 
+<center>
+ <ccid_nobr></ccid_nobr> 
+ <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+  <tbody> 
+   <tr> 
+    <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+      <ccid_code></ccid_code># Usually commented out onproduction environments[logger.apache2]file=”
+D:/Apache2/logs/error.log”level=ERROR# Provide the basic config needed[config]
+file=D:/Apache2/conf/workers2.propertiesdebug=1# Provide the location of shm file 
+on the Apache web server[shm]file=D:/Apache2/conf/jk2.shmsize=1000000
+[channel.socket:localhost:8009]port=8009host=localhost#define the worker
+[ajp13:localhost:8009]channel=channel.socket:localhost:8009# Map the Tomcat 
+examples webapp to the Web server uri space [uri:/jsp－examples/*][uri:/*.jsp]</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</center> 
+<p>编写一个jsp文件（sessiontest.jsp），放在d:Tomcat51webappsjsp-examples 下；重新启动以后，启动apache和tomcat，访问http：//localhost/jsp-examples/sessiontest.jsp可以访问。</p> 
+<p><strong>二、Tomcat配置上ssl步骤：</strong></p> 
+<p>1. 生成服务器证书server02.jks和客户端证书dwp.p12</p> 
+<p> </p> 
+<p>2. 把server02.jks放到conf目录下，打开d: tomcat51confserver.xml 文件，</p> 
+<p> </p> 
+<p>然后修改server.xml文件，将注释掉的内容的注释去掉和增加证书存放的位置：如下：</p> 
+<p> </p> 
+<center>
+ <ccid_nobr></ccid_nobr> 
+ <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+  <tbody> 
+   <tr> 
+    <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+      <ccid_code></ccid_code>&lt;Connector port=&quot;8443&quot; maxHttpHeaderSize=&quot;8192&quot;maxThreads=&quot;150&quot; minSpareThreads=&quot;25&quot;
+maxSpareThreads=&quot;75&quot;enableLookups=&quot;false&quot; disableUploadTimeout=&quot;true&quot;acceptCount=&quot;100&quot; 
+scheme=&quot;https&quot;secure=&quot;true&quot;clientAuth=&quot;true&quot; sslProtocol=&quot;TLS&quot; 
+keystoreFile=&quot;confserver02.jks&quot; 
+keystorePass=&quot;123456&quot; truststoreFile=&quot;confserver02.jks&quot; 
+truststorePass=&quot;123456&quot;/&gt;</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</center> 
+<p> </p> 
+<p>注：server02.jks是证书存贮文件</p> 
+<p> </p> 
+<p>安装客户端证书dwp.p12</p> 
+<p> </p> 
+<p>3. 修改Tomcat配置，使其自动启用SSL</p> 
+<p> </p> 
+<p>打开d:testtomcat51webappsjsp-examplesWEB_INFweb.xml 文件，在security-constraint 标签下，增加如下内容：</p> 
+<p> </p> 
+<center>
+ <ccid_nobr></ccid_nobr> 
+ <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+  <tbody> 
+   <tr> 
+    <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+      <ccid_code></ccid_code>&lt;user-data-constraint&gt; 
+&lt;description&gt;
+Constrain the user data transport for the whole application 
+&lt;/description&gt; 
+&lt;transport-guarantee&gt; CONFIDENTIAL &lt;/transport-guarantee&gt;
+&lt;/user-data-constraint&gt; 
+&lt;!--注释掉&lt;auth-constraint&gt;标签下的内容--&gt;
+&lt;auth-constraint&gt; 
+&lt;!-- Anyone with one of the listed roles may access this area --&gt; 
+&lt;role-name&gt;tomcat&lt;/role-name&gt; 
+&lt;role-name&gt;role1&lt;/role-name&gt; 
+&lt;/auth-constraint&gt;
+&lt;!--在web-resource-collection 标签下，增加如下内容：--&gt;
+&lt;url-pattern&gt;/*&lt;/url-pattern&gt;</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</center> 
+<p> </p> 
+<p>重新启动Apache和tomcat，访问 http://localhost/jsp-examples/sessiontest.jsp是可是访问的，这是系统提示用户出示证书，启用SSL加密通道，SSL建立后，返回结果。URL变为https://localhost：8443/jsp-examples/sessiontest.jsp</p> 
+<h3 class="headaur"><a target="_blank" href="http://www.builder.com.cn/"><font color="#000000">开发者在线 Builder.com.cn</font></a> 更新时间:<cite><font color="#a0a0a0" size="1">2007-11-20</font></cite>作者：<span><font color="#666666">joliny</font></span> 来源:赛迪网技术社区</h3></div></body></html>

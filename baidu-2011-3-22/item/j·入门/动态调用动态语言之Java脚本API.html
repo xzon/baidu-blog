@@ -1,0 +1,490 @@
+<html><head><title><div class="tit">
+  动态调用动态语言之Java脚本API
+</div></title></head><body><div id='tit'>动态调用动态语言之Java脚本API</div><div id='cate'>j&middot;入门</div><div id='date'>2008年04月05日 星期六 10:09 P.M.</div><div id='page'>147</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c77d97233e945a40ad34de9d.html'>http://hi.baidu.com/hxzon/blog/item/c77d97233e945a40ad34de9d.html</a><div id='cnt'><div>
+ 动态调用动态语言之Java脚本API
+</div> 
+<div> 
+</div> 
+<div>
+  我们不需要将动态语言编译为 Java字节码就可以在 Java 应用程序中使用它们。使用 Java Platform, Standard Edition 6 (Java SE)中添加的脚本包（并且向后兼容 Java SE 5），Java 代码可以在运行时以一种简单的、统一的方式调用多种动态语言。本系列文章共分两个部分，第 1 部分将介绍 Java 脚本 API 的各种特性。文章将使用一个简单的 Hello World 应用程序展示 Java 代码如何执行脚本代码以及脚本如何反过来执行 Java 代码。第 2 部分将深入研究 Java 脚本 API 的强大功能。
+</div> 
+<div> 
+</div> 
+<div>
+  Java 开发人员清楚 Java 并不是在任何情况下都是最佳的语言。今年，1.0 版本的 JRuby 和 Groovy 的发行引领了一场热潮，促使人们纷纷在自己的 Java 应用程序中添加动态语言。Groovy、JRuby、Rhino、Jython 和一些其他的开源项目使在所谓的脚本语言中编写代码并在 JVM 中运行成为了可能（请参阅 参考资料）。通常，在 Java 代码中集成这些语言需要对各种解释器所特有的 API 和特性有所了解。
+</div> 
+<div> 
+</div> 
+<div>
+  Java SE 6 中添加的 javax.script 包使集成动态语言更加容易。通过使用一小组接口和具体类，这个包使我们能够简单地调用多种脚本语言。但是，Java 脚本 API 的功能不只是在应用程序中编写脚本；这个脚本包使我们能够在运行时读取和调用外部脚本，这意味着我们可以动态地修改这些脚本从而更改运行应用程序的行为。
+</div> 
+<div> 
+</div> 
+<div>
+  Java 脚本 API
+</div> 
+<div> 
+</div> 
+<div>
+  脚本与动态的对比
+</div> 
+<div> 
+</div> 
+<div>
+  术语脚本 通常表示在解释器 shell 中运行的语言，它们往往没有单独的编译步骤。术语动态 通常表示等到运行时判断变量类型或对象行为的语言，往往具有闭包和连续特性。一些通用的编程语言同时具有这两种特性。此处首选脚本语言 是因为本文的着重点是 Java 脚本 API，而不是因为提及的语言缺少动态特性。
+</div> 
+<div> 
+</div> 
+<div>
+  2006 年 10 月，Java 语言添加了脚本包，从而提供了一种统一的方式将脚本语言集成到 Java 应用程序中去。对于语言开发人员，他们可以使用这个包编写粘连代码（glue code），从而使人们能够在 Java 应用程序中调用他们的语言。对于 Java 开发人员，脚本包提供了一组类和接口，允许使用一个公共 API 调用多种语言编写的脚本。因此，脚本包类似于不同语言（比如说不同的数据库）中的 Java Database Connectivity (JDBC) 包，可以使用一致的接口集成到 Java 平台中去。
+</div> 
+<div> 
+</div> 
+<div>
+  以前，在 Java 代码中，动态调用脚本语言涉及到使用各种语言发行版所提供的独特类或使用 Apache 的 Jakarta Bean Scripting Framework (BSF)。BSF 在一个 API 内部统一了一组脚本语言（请参阅 参考资料）。使用 Java SE 6 脚本 API，二十余种脚本语言（AppleScript、Groovy、JavaScript、Jelly、PHP、Python、Ruby 和 Velocity）都可以集成到 Java 代码中，这在很大程序上依赖的是 BSF。
+</div> 
+<div> 
+</div> 
+<div>
+  脚本 API 在 Java 应用程序和外部脚本之间提供了双向可见性。Java 代码不仅可以调用外部脚本，而且还允许那些脚本访问选定的 Java 对象。比如说，外部 Ruby 脚本可以对 Java 对象调用方法，并访问对象的属性，从而使脚本能够将行为添加到运行中的应用程序中（如果在开发时无法预计应用程序的行为）。
+</div> 
+<div> 
+</div> 
+<div>
+  调用外部脚本可用于运行时应用程序增强、配置、监控或一些其他的运行时操作，比如说在不停止应用程序的情况下修改业务规则。脚本包可能的作用包括：
+</div> 
+<div> 
+</div> 
+<div>
+  &middot;在比 Java 语言更简单的语言中编写业务规则，而不用借助成熟的规则引擎。 
+ <br /> &middot;创建插件架构，使用户能够动态地定制应用程序。 
+ <br /> &middot;将已有脚本集成到 Java 应用程序中，比如说处理或转换文件文章的脚本。 
+ <br /> &middot;使用成熟的编程语言（而不是属性文件）从外部配置应用程序的运行时行为。 
+ <br /> &middot;在 Java 应用程序中添加一门特定于域的语言（domain-specific language）。 
+ <br /> &middot;在开发 Java 应用程序原型的过程中使用脚本语言。 
+ <br /> &middot;在脚本语言中编写应用程序测试代码。
+</div> 
+<div> 
+</div> 
+<div>
+  你好，脚本世界
+</div> 
+<div> 
+</div> 
+<div>
+  HelloScriptingWorld 类（本文中的相关代码均可从 下载部分 获得）演示了 Java 脚本包的一些关键特性。它使用硬编码的 JavaScript 作为示例脚本语言。此类的 main() 方法（如清单 1 所示）将创建一个 JavaScript 脚本引擎，然后分别调用五个方法（在下文的清单中有显示）用于突出显示脚本包的特性。
+</div> 
+<div> 
+</div> 
+<div>
+  清单 1. HelloScriptingWorld main 方法
+</div> 
+<div> 
+</div> 
+<div>
+ public static void main(String[] args) throws ScriptException, NoSuchMethodException {
+</div> 
+<div> 
+</div> 
+<div>
+ ScriptEngineManager scriptEngineMgr = new ScriptEngineManager();
+ <br /> ScriptEngine jsEngine = scriptEngineMgr.getEngineByName(&quot;JavaScript&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ if (jsEngine == null) {
+ <br /> System.err.println(&quot;No script engine found for JavaScript&quot;);
+ <br /> System.exit(1);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ System.out.println(&quot;Calling invokeHelloScript...&quot;);
+ <br /> invokeHelloScript(jsEngine);
+</div> 
+<div> 
+</div> 
+<div>
+ System.out.println(&quot;\nCalling defineScriptFunction...&quot;);
+ <br /> defineScriptFunction(jsEngine);
+</div> 
+<div> 
+</div> 
+<div>
+ System.out.println(&quot;\nCalling invokeScriptFunctionFromEngine...&quot;);
+ <br /> invokeScriptFunctionFromEngine(jsEngine);
+</div> 
+<div> 
+</div> 
+<div>
+ System.out.println(&quot;\nCalling invokeScriptFunctionFromJava...&quot;);
+ <br /> invokeScriptFunctionFromJava(jsEngine);
+</div> 
+<div> 
+</div> 
+<div>
+ System.out.println(&quot;\nCalling invokeJavaFromScriptFunction...&quot;);
+ <br /> invokeJavaFromScriptFunction(jsEngine);
+ <br /> }
+ <br /> main() 方法的主要功能是获取一个 javax.script.ScriptEngine 实例（清单 1 中的前两行代码）。脚本引擎可以在特定的语言中加载并执行脚本。它是 Java 脚本包中使用最为频繁、作用最为重要的类。我们从 javax.script.ScriptEngineManager 获取一个脚本引擎（第一行代码）。通常，程序只需要获取一个脚本引擎实例，除非使用了很多种脚本语言。
+</div> 
+<div> 
+</div> 
+<div>
+  ScriptEngineManager 类
+</div> 
+<div> 
+</div> 
+<div>
+  ScriptEngineManager 可能是脚本包中惟一一个经常使用的具体类；其他大多数都是接口。它或许是脚本包中惟一的一个要直接或间接地（通过 Spring Framework 之类的依赖性注入机制）实例化的类。ScriptEngineManager 可以使用以下三种方式返回脚本引擎：
+</div> 
+<div> 
+</div> 
+<div>
+  &middot;通过引擎或语言的名称，比如说 清单 1 请求 JavaScript 引擎。 
+ <br /> &middot;通过该语言脚本共同使用的文件扩展名，比如说 Ruby 脚本的 .rb。 
+ <br /> &middot;通过脚本引擎声明的、知道如何处理的 MIME 类型。 
+ <br /> 
+ <br /> 本文示例为什么要使用 JavaScript？
+</div> 
+<div> 
+</div> 
+<div>
+  本文中的 Hello World 示例使用了部分 JavaScript 脚本，这是因为 JavaScript 代码易于理解，不过主要还是因为 Sun Microsystems 和 BEA Systems 所提供的 Java 6 运行时环境附带有基于 Mozilla Rhino 开源 JavaScript 实现的 JavaScript 解释器。使用 JavaScript，我们无需在类路径中添加脚本语言 JAR 文件。
+</div> 
+<div> 
+</div> 
+<div>
+  ScriptEngineManager 间接查找和创建脚本引擎。也就是说，当实例化脚本引擎管理程序时，ScriptEngineManager 会使用 Java 6 中新增的服务发现机制在类路径中查找所有注册的 javax.script.ScriptEngineFactory 实现。这些工厂类封装在 Java 脚本 API 实现中；也许您永远都不需要直接处理这些工厂类。
+</div> 
+<div> 
+</div> 
+<div>
+  ScriptEngineManager 找到所有的脚本引擎工厂类之后，它会查询各个类并判断是否能够创建所请求类型的脚本引擎 —— 清单 1 中为 JavaScript 引擎。如果工厂说可以创建所需语言的脚本引擎，那么管理程序将要求工厂创建一个引擎并将其返回给调用者。如果没有找到所请求语言的工厂，那么管理程序将返回 null，清单 1 中的代码将检查 null 返回值并做出预防。
+</div> 
+<div> 
+</div> 
+<div>
+  ScriptEngine 接口
+</div> 
+<div> 
+</div> 
+<div>
+  如前所述，代码将使用 ScriptEngine 实例执行脚本。脚本引擎充当脚本代码和最后执行代码的底层语言解释器或编译器之间的中间程序。这样，我们就不需要了解各个解释器使用哪些类来执行脚本。比如说，JRuby 脚本引擎可以将代码传递给 JRuby 的 org.jruby.Ruby 类的一个实例，首先将脚本编译成中间形式，然后再调用它计算脚本并处理返回值。脚本引擎实现隐藏了一些细节，包括解释器如何与 Java 代码共享类定义、应用程序对象和输入/输出流。
+</div> 
+<div> 
+</div> 
+<div>
+  图 1 显示了应用程序、Java 脚本 API 和 ScriptEngine 实现、脚本语言解释器之间的总体关系。我们可以看到，应用程序只依赖于脚本 API，它提供了 ScriptEngineManager 类和 ScriptEngine 接口。ScriptEngine 实现组件处理使用特定脚本语言解释器的细节。
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 图 1：脚本 API 组件关系
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 您可能会问：如何才能获取脚本引擎实现和语言解释器所需的 JAR 文件呢？最好的方法是在 java.net 上托管的开源 Scripting 项目中查找脚本引擎实现（请参阅 参考资料）。您可以在 java.net 上找到许多语言的脚本引擎实现和其他网站的链接。Scripting 项目还提供了各种链接，通过这些链接可以下载受支持的脚本语言的解释器。
+</div> 
+<div> 
+</div> 
+<div>
+  在 清单 1 中，main() 方法将 ScriptEngine 传递给各个方法用于计算该方法的 JavaScript 代码。第一个方法如清单 2 所示。invokeHelloScript() 方法调用脚本引擎的 eval 方法计算和执行 JavaScript 代码中的特定字符串。ScriptEngine 接口定义了 6 个重载的 eval() 方法，用于将接收的脚本当作字符串或 java.io.Reader 对象计算，java.io.Reader 对象一般用于从外部源（例如文件）读取脚本。
+</div> 
+<div> 
+</div> 
+<div>
+  清单 2. invokeHelloScript 方法
+</div> 
+<div> 
+</div> 
+<div>
+ private static void invokeHelloScript(ScriptEngine jsEngine) throws ScriptException {
+ <br /> jsEngine.eval(&quot;println('Hello from JavaScript')&quot;);
+ <br /> }
+ <br /> 脚本执行上下文
+</div> 
+<div> 
+</div> 
+<div>
+  HelloScriptingWorld 应用程序中的示例脚本 使用 JavaScript println() 函数向控制台输出结果，但是我们拥有输入和输出流的完全控制权。脚本引擎提供了一个选项用于修改脚本执行的上下文，这意味着我们可以修改标准输入流、标准输出流和标准错误流，同时还可以定义哪些全局变量和 Java 对象对正在执行的脚本可用。
+</div> 
+<div> 
+</div> 
+<div>
+  invokeHelloScript() 方法中的 JavaScript 将 Hello from JavaScript 输出到标准输出流，在本例中为控制台窗口。（清单 6 含有运行 HelloScriptingWorldApplication 时的完整输出。）
+</div> 
+<div> 
+</div> 
+<div>
+  注意，类中的这一方法和其他方法都声明抛出了 javax.script.ScriptException。这个选中的异常（脚本包中定义的惟一一个异常）表示引擎无法解析或执行给定的代码。所有脚本引擎 eval() 方法都声明抛出一个 ScriptException，因此我们的代码需要适当处理这些异常。
+</div> 
+<div> 
+</div> 
+<div>
+  清单 3 显示了两个有关的方法：defineScriptFunction() 和 invokeScriptFunctionFromEngine()。defineScriptFunction() 方法还使用一段硬编码的 JavaScript 代码调用脚本引擎的 eval() 方法。但是有一点需要注意，该方法的所有工作只是定义了一个 JavaScript 函数 sayHello()。并没有执行任何代码。sayHello() 函数只有一个参数，它会使用 println() 语句将这个参数输出到控制台。脚本引擎的 JavaScript 解释器将这个函数添加到全局环境，以供后续的 eval 调用使用（该调用发生在 invokeScriptFunctionFromEngine() 方法中，这并不奇怪）。
+</div> 
+<div> 
+</div> 
+<div>
+  清单 3. defineScriptFunction 和 invokeScriptFunctionFromEngine 方法
+</div> 
+<div> 
+</div> 
+<div>
+ private static void defineScriptFunction(ScriptEngine engine) throws ScriptException {
+ <br /> // Define a function in the script engine
+ <br /> engine.eval(
+ <br /> &quot;function sayHello(name) {&quot; 
+ <br /> &quot; println('Hello, ' name)&quot; 
+ <br /> &quot;}&quot;
+ <br /> );
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ private static void invokeScriptFunctionFromEngine(ScriptEngine engine)
+ <br /> throws ScriptException
+ <br /> {
+ <br /> engine.eval(&quot;sayHello('World!')&quot;);
+ <br /> }
+ <br /> 这两个方法演示了脚本引擎可以维持应用程序组件的状态，并且能够在后续的 eval() 方法调用过程中使用其状态。invokeScriptFunctionFromEngine() 方法可以利用所维持的状态，方法是调用定义在 eval() 调用中的 sayHello() JavaScript 函数。
+</div> 
+<div> 
+</div> 
+<div>
+  许多脚本引擎在 eval() 调用之间维持全局变量和函数的状态。但是有一点值得格外注意，Java 脚本 API 并不要求脚本引擎提供这一特性。本文中所使用的 JavaScript、Groovy 和 JRuby 脚本引擎确实在 eval() 调用之间维持了这些状态。
+</div> 
+<div> 
+</div> 
+<div>
+  清单 4 中的代码在前一个示例的基础上做了几分修改。原来的 invokeScriptFunctionFromJava() 方法在调用 sayHello() JavaScript 函数时没有使用 ScriptEngine 的 eval() 方法或 JavaScript 代码。与此不同，清单 4 中的方法使用 Java 脚本 API 的 javax.script.Invocable 接口调用由脚本引擎所维持的函数。invokeScriptFunctionFromJava() 方法将脚本引擎对象传递给 Invocable 接口，然后对该接口调用 invokeFunction() 方法，最终使用给定的参数调用 sayHello() JavaScript 函数。如果调用的函数需要返回值，则 invokeFunction() 方法会将值封装为 Java 对象类型并返回。
+</div> 
+<div> 
+</div> 
+<div>
+  清单 4. invokeScriptFunctionFromJava 方法
+</div> 
+<div> 
+</div> 
+<div>
+ private static void invokeScriptFunctionFromJava(ScriptEngine engine)
+ <br /> throws ScriptException, NoSuchMethodException
+ <br /> {
+ <br /> Invocable invocableEngine = (Invocable) engine;
+ <br /> invocableEngine.invokeFunction(&quot;sayHello&quot;, &quot;from Java&quot;);
+ <br /> }
+ <br /> 使用代理实现高级脚本调用
+</div> 
+<div> 
+</div> 
+<div>
+  当脚本函数或方法实现了一个 Java 接口时，就可以使用高级 Invocable。Invocable 接口定义了一个 getInterface() 方法，该方法使用接口做为参数并且将返回一个实现该接口的 Java 代码对象。从脚本引擎获得代理对象之后，可以将它作为正常的 Java 对象对待。对该代理调用的方法将委托给脚本引擎通过脚本语言执行。
+</div> 
+<div> 
+</div> 
+<div>
+  注意，清单 4 中没有 JavaScript 代码。Invocable 接口允许 Java 代码调用脚本函数，而无需知道其实现语言。如果脚本引擎无法找到给定名称或参数类型的函数，那么 invokeFunction() 方法将抛出一个 java.lang.NoSuchMethodException。
+</div> 
+<div> 
+</div> 
+<div>
+  Java 脚本 API 并不要求脚本引擎实现 Invocable 接口。实际上，清单 4 中的代码应该使用 instanceof 运算符确保脚本引擎在转换（cast）之前实现了 Invocable 接口。 
+ <br /> 通过脚本代码调用 Java 方法
+</div> 
+<div> 
+</div> 
+<div>
+  清单 3 和 清单 4 中的示例展示了 Java 代码如何调用脚本语言中定义的函数或方法。您可能会问：脚本语言中编写的代码是否可以反过来对 Java 对象调用方法呢？答案是可以。清单 5 中的 invokeJavaFromScriptFunction() 方法显示了如何使脚本引擎能够访问 Java 对象，以及脚本代码如何才能对这些 Java 对象调用方法。明确的说，invokeJavaFromScriptFunction() 方法使用脚本引擎的 put() 方法将 HelloScriptingWorld 类的实例本身提供给引擎。当引擎拥有 Java 对象的访问权之后（使用 put() 调用所提供的名称），eval() 方法脚本中的脚本代码将使用该对象。
+</div> 
+<div> 
+</div> 
+<div>
+  清单 5. invokeJavaFromScriptFunction 和 getHelloReply 方法
+</div> 
+<div> 
+</div> 
+<div>
+ private static void invokeJavaFromScriptFunction(ScriptEngine engine)
+ <br /> throws ScriptException
+ <br /> {
+ <br /> engine.put(&quot;helloScriptingWorld&quot;, new HelloScriptingWorld());
+ <br /> engine.eval(
+ <br /> &quot;println('Invoking getHelloReply method from JavaScript...');&quot; 
+ <br /> &quot;var msg = helloScriptingWorld.getHelloReply(vJavaScript');&quot; 
+ <br /> &quot;println('Java returned: ' msg)&quot;
+ <br /> );
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /** Method invoked from the above script to return a string. */
+ <br /> public String getHelloReply(String name) {
+ <br /> return &quot;Java method getHelloReply says, 'Hello, &quot; name &quot;'&quot;;
+ <br /> }
+ <br /> 清单 5 中的 eval() 方法调用中所包含的 JavaScript 代码使用脚本引擎的 put() 方法调用所提供的变量名称 helloScriptingWorld 访问并使用 HelloScriptingWorld Java 对象。清单 5 中的第二行 JavaScript 代码将调用 getHelloReply() 公有 Java 方法。getHelloReply() 方法将返回 Java method getHelloReply says, 'Hello, &lt;parameter&gt;' 字符串。eval() 方法中的 JavaScript 代码将 Java 返回值赋给 msg 变量，然后再将其打印输出给控制台。
+</div> 
+<div> 
+</div> 
+<div>
+  Java 对象转换
+</div> 
+<div> 
+</div> 
+<div>
+  当脚本引擎使运行于引擎环境中的脚本能够使用 Java 对象时，引擎需要将其封装到适用于该脚本语言的对象类型中。封装可能会涉及到一些适当的对象－值转换，比如说允许 Java Integer 对象直接在脚本语言的数学表达式中使用。关于如何将 Java 对象转换为脚本对象的研究是与各个脚本语言的引擎特别相关的，并且不在本文的讨论范围之内。但是，您应该意识到转换的发生，因为可以通过测试来确保所使用的脚本语言执行转换的方式符合您的期望。
+</div> 
+<div> 
+</div> 
+<div>
+  ScriptEngine.put 及其相关 get() 方法是在运行于脚本引擎中的 Java 代码和脚本之间共享对象和数据的主要途径。（有关这一方面的详细论述，请参阅本文后面的 Script-execution scope 一节。）当我们调用引擎的 put() 方法时，脚本引擎会将第二个参数（任何 Java 对象）关联到特定的字符串关键字。大多数脚本引擎都是让脚本使用特定的变量名称来访问 Java 对象。脚本引擎可以随意对待传递给 put() 方法的名称。比如说，JRuby 脚本引擎让 Ruby 代码使用全局 $helloScriptingWorld 对象访问 helloScriptingWorld，以符合 Ruby 全局变量的语法。
+</div> 
+<div> 
+</div> 
+<div>
+  脚本引擎的 get() 方法检索脚本环境中可用的值。一般而言，Java 代码通过 get() 方法可以访问脚本环境中的所有全局变量和函数。但是只有明确使用 put() 与脚本共享的 Java 对象才可以被脚本访问。
+</div> 
+<div> 
+</div> 
+<div>
+  外部脚本在运行着的应用程序中访问和操作 Java 对象的这种功能是扩展 Java 程序功能的一项强有力的技巧。（第 2 部分将通过示例研究这一技巧）。
+</div> 
+<div> 
+</div> 
+<div>
+  运行 HelloScriptingWorld 应用程序
+</div> 
+<div> 
+</div> 
+<div>
+  您可以通过下载和构建源代码来运行 HelloScriptingWorld 应用程序。此 .zip 中文件含有一个 Ant 脚本和一个 Maven 构建脚本，可以帮助大家编译和运行示例应用程序。请执行以下步骤：
+</div> 
+<div> 
+</div> 
+<div>
+  &middot;下载 此 .zip 文件。 
+ <br /> &middot;创建一个新目录，比如说 java-scripting，并将步骤 1 中所下载的文件解压到该目录中。 
+ <br /> &middot;打开命令行 shell 并转到该目录。 
+ <br /> &middot;运行 ant run-hello 命令。
+</div> 
+<div> 
+</div> 
+<div>
+  您应该可以看到类似于清单 6 的 Ant 控制台输出。注意，defineScriptFunction() 函数没有产生任何输出，因为它虽然定义了输出但是却没有调用 JavaScript 函数。
+</div> 
+<div> 
+</div> 
+<div>
+  清单 6. 运行 HelloScriptingWorld 时的输出
+</div> 
+<div> 
+</div> 
+<div>
+ Calling invokeHelloScript...
+ <br /> Hello from JavaScript
+</div> 
+<div> 
+</div> 
+<div>
+ Calling defineScriptFunction...
+</div> 
+<div> 
+</div> 
+<div>
+ Calling invokeScriptFunctionFromEngine...
+ <br /> Hello, World!
+</div> 
+<div> 
+</div> 
+<div>
+ Calling invokeScriptFunctionFromJava...
+ <br /> Hello, from Java
+</div> 
+<div> 
+</div> 
+<div>
+ Calling invokeJavaFromScriptFunction...
+ <br /> Invoking getHelloReply method from JavaScript...
+ <br /> Java returned: Java method getHelloReply says, 'Hello, JavaScript'
+</div> 
+<div> 
+</div> 
+<div>
+  Java 5 兼容性
+</div> 
+<div> 
+</div> 
+<div>
+  Java SE 6 引入了 Java 脚本 API，但是您也可以使用 Java SE 5 运行此 API。只需要提供缺少的 javax.script 包类的一个实现即可。所幸的是，Java Specification Request 223 参考实现中含有这个实现（请参阅 参考资料 获得下载链接。）JSR 223 对 Java 脚本 API 做出了定义。
+</div> 
+<div> 
+</div> 
+<div>
+  如果您已经下载了 JSR 223 参考实现，解压下载文件并将 script-api.jar、script-js.jar 和 js.jar 文件复制到您的类路径下。这些文件将提供脚本 API、JavaScript 脚本引擎接口和 Java SE 6 中所附带的 JavaScript 脚本引擎。
+</div> 
+<div> 
+</div> 
+<div>
+  脚本执行作用域
+</div> 
+<div> 
+</div> 
+<div>
+  与简单地调用引擎的 get() 和 put() 方法相比，如何将 Java 对象公开给运行于脚本引擎中的脚本具有更好的可配置性。当我们在脚本引擎上调用 get() 或 put() 方法时，引擎将会在 javax.script.Bindings 接口的默认实例中检索或保存所请求的关键字。（Bindings 接口只是一个 Map 接口，用于强制关键字为字符串。）
+</div> 
+<div> 
+</div> 
+<div>
+  当代码调用脚本引擎的 eval() 方法时，将使用引擎默认绑定的关键字和值。但是，您可以为 eval() 调用提供自己的 Bindings 对象，以限制哪些变量和对象对于该特定脚本可见。该调用外表上类似于 eval(String, Bindings) 或 eval(Reader, Bindings)。要帮助您创建自定义的 Bindings，脚本引擎将提供一个 createBindings() 方法，该方法和返回值是一个内容为空的 Bindings 对象。使用 Bindings 对象临时调用 eval 将隐藏先前保存在引擎默认绑定中的 Java 对象。
+</div> 
+<div> 
+</div> 
+<div>
+  要添加功能，脚本引擎含有两个默认绑定：其一为 get() 和 put() 调用所使用的 “引擎作用域” 绑定 ；其二为 “全局作用域” 绑定，当无法在 “引擎作用域” 中找到对象时，引擎将使用第二种绑定进行查找。脚本引擎并不需要使脚本能够访问全局绑定。大多数脚本都可以访问它。
+</div> 
+<div> 
+</div> 
+<div>
+  “全局作用域” 绑定的设计目的是在不同的脚本引擎之间共享对象。ScriptEngineManager 实例返回的所有脚本引擎都是 “全局作用域” 绑定对象。您可以使用 getBindings(ScriptContext.GLOBAL_SCOPE) 方法检索某个引擎的全局绑定，并且可以使用 setBindings(Bindings, ScriptContext.GLOBAL_SCOPE) 方法为引擎设置全局绑定。
+</div> 
+<div> 
+</div> 
+<div>
+  ScriptContext 是一个定义和控制脚本引擎运行时上下文的接口。脚本引擎的 ScriptContext 含有 “引擎” 和 “全局” 作用域绑定，以及用于标准输入和输出操作的输入和输出流。您可以使用引擎的 getContext() 方法获取并操作脚本引擎的上下文。
+</div> 
+<div> 
+</div> 
+<div>
+  一些脚本 API 概念，比如说作用域、绑定 和上下文，开始看来会令人迷惑，因为它们的含义有交叉的地方。本文的源代码下载文件含有一个名为 ScriptApiRhinoTest 的 JUnit 测试文件，位于 src/test/java directory 目录，该文件可以通过 Java 代码帮助解释这些概念。
+</div> 
+<div> 
+</div> 
+<div>
+  未来的计划
+</div> 
+<div> 
+</div> 
+<div>
+  现在，大家已经对 Java 脚本 API 有了最基本的认识，本系列文章的第 2 部分将在此基础上进行扩展，为大家演示一个更为实际的示例应用程序。该应用程序将使用 Groovy、Ruby 和 JavaScript 一起编写的外部脚本文件来定义可在运行时修改的业务逻辑。如您如见，在脚本语言中定义业务规则可以使规则的编写更加轻松，并且更易于程序员之外的人员阅读，比如说业务分析师或规则编写人员。
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 文章整理：西部数码--专业提供域名注册、虚拟主机服务
+ <br /> 
+ <a href="http://www.west263.com/">http://www.west263.com</a>
+ <br /> 以上信息与文章正文是不可分割的一部分,如果您要转载本文章,请保留以上信息，谢谢!
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

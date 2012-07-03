@@ -1,0 +1,742 @@
+<html><head><title><div class="tit">
+  struts2框架安全缺陷（续）
+</div></title></head><body><div id='tit'>struts2框架安全缺陷（续）</div><div id='cate'>细节</div><div id='date'>2010年01月20日 星期三 11:47 P.M.</div><div id='page'>18</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/fbe4231f17a9bec3a686697d.html'>http://hi.baidu.com/hxzon/blog/item/fbe4231f17a9bec3a686697d.html</a><div id='cnt'><div> 
+ <p> </p> 
+ <p>struts2框架安全缺陷（续）</p> 
+ <p> </p> 
+ <div>
+  struts2的taglib设计缺陷
+ </div> 
+ <div>
+  经过几个例子下来，不知道大家注意到没有，从用户输入走到这里，已经走到了输出这一步了。struts2的那些result的type，其实就是几种输出方式，有jsp、ajax、redirect，经过 jsonplugin等插件配置，还可以支持其他输出方式。甚至支持一些标签库，比如freemarker等标签库。不过我们只谈struts2自带的标签库，在一个jsp页面的最上方，写上一段代码，就可以使用struts2提供的数据输出和页面数据操作的标签了。比以往我们在jsp输出 “&lt;%=name%&gt;”要方便的多，下面给个例子：
+ </div> 
+ <div>
+  test.jsp代码
+ </div> 
+ <p>&lt;%@ taglib prefix=&quot;s&quot; uri=&quot;/struts-tags&quot; %&gt;</p> 
+ <p>&lt;s:property value=&quot;username&quot;/&gt;</p> 
+ <p>第一行是告诉struts这里要使用struts的标签库，第二行就是一个标签的使用，含义是输出username的 值，username会从session、request、page等地方取，这里不关注取数据的次序。</p> 
+ <div>
+  struts2的taglib设计缺陷（struts2.0不支持escapeJavaScript）
+ </div> 
+ <div>
+  说到输出，大家都能想到XSS漏洞，那么作为一个流行框架，struts2在这里做了什么控制呢？
+ </div> 
+ <div>
+  struts2.0对部分标签做了默认的htmlescape：
+ </div> 
+ <div>
+  刚才那个标签实际上效果等于
+ </div> 
+ <p>&lt;s:property value=&quot;username&quot; escape=&quot;true&quot;/&gt;</p> 
+ <div>
+  别以为做了htmlescape就够了，输出在javascript中的时候，还会出现xss漏洞。所以struts在2.1.6这个版本也支持了javascriptescape：
+ </div> 
+ <div>
+  struts2.1.6：
+ </div> 
+ <p>&lt;s:property value=&quot;pass&quot; escape=&quot;true&quot; escapeJavaScript=&quot;false&quot;/&gt;</p> 
+ <div>
+  默认开启如上所示，当你要输出到js中的时候，可以使用escapeJavaScript进行转义。
+ </div> 
+ <div>
+  也就是说，一旦你确定这个struts是2.0的，只要开发人员把变量输出到js中，十有八九会出xss问题。
+ </div> 
+ <div>
+  struts2的taglib设计缺陷（没有富文本安全输出标签）
+ </div> 
+ <div>
+  而包括最高版本2.1.8在内，仍然没有支持富文本安全输出，这是一件悲剧的事情，如果用struts开发一个大众blog的应用，又支持富文本的文章，开发人员只能把htmlescape和jsescape都去掉，才能保证业务正常运行，所以导致了XSS漏洞。
+ </div> 
+ <div>
+  struts2的taglib设计缺陷（并不是所有输出标签都做了默认的htmlescape）
+ </div> 
+ <div>
+  有几个标签是不做htmlescape的，比如
+ </div> 
+ <div>
+  &lt;s:a&gt;
+ </div> 
+ <div>
+  &lt;s:text&gt;
+ </div> 
+ <div>
+  &lt;s:url&gt;
+ </div> 
+ <div>
+  这其实是一个严重陷阱，因为只要提到struts2，前辈们都会告诉你，放心使用，它默认做了htmlescape。那是什么原因导致一些标签没有做默认的escape呢？作者翻了下源码，也没有找出具体原因，不知道那些人是怎么想的。
+ </div> 
+ <div>
+  并且，经过简单的fuzz，发现在特定环境下，那些做了输出转义的标签也会出现问题。
+ </div> 
+ <div>
+  我们知道默认的htmlescape是不转义单引号的，所以，当struts标签库的源码中，出现一些标签属性的输出时，如果标签属性的周围使用的是单引号，而攻击者又能控制标签属性内容的时候，就会出现xss漏洞。如下：
+ </div> 
+ <p>&lt;input name=&quot;username&quot; onclick='xss'&gt;</p> 
+ <div>
+  当这个xss的内容可以由攻击者控制，即使对xss的内容作了htmlescape，依然可以被攻击者bypass。
+ </div> 
+ <div>
+  基于这个原理，作者搜索了struts标签库源码，那些“XXX.ftl”文件中搜索“}'”符号，找到N多，测试其中一个如下：
+ </div> 
+ <div>
+  -------------
+ </div> 
+ <div>
+  &lt;s:textfield &gt;标签，在正常使用的时候，他会放到一个&lt;s:form&gt;标签内，最终输出html后，会变成一个输入框。
+ </div> 
+ <div>
+  它有个属性叫“tooltip”，如果这个标签为用户可控制，比如从数据库中读取用户输入，而这个标签所在的&lt;s:form&gt;开启了：
+ </div> 
+ <p>&lt;s:form tooltipConfig=&quot;#{'jsTooltipEnabled':'true'}&quot;&gt;</p> 
+ <div>
+  的时候，用户输入的tooltip的值，会出现以下情况：
+ </div> 
+ <div>
+  struts2.0&nbsp;&nbsp; --&gt;
+ </div> 
+ <p>&lt;span dojoType=&quot;tooltip&quot; ... caption=&quot;kxlzx&lt;script&gt;&lt;/script&gt;&quot;&gt;</p> 
+ <div>
+  caption内容就是tooltip的值，从数据库查出
+ </div> 
+ <div>
+  struts2.1.6&amp;struts2.1.8 &nbsp;&nbsp;&nbsp; --&gt;
+ </div> 
+ <p>&lt;img onmouseover=&quot;domTT_activate(this, …'StrutsTTClassic');alert('xss');a('','styleClass’…&quot; /&gt;</p> 
+ <div>
+  onmouseover生成一个domTT_activate函数调用，参数中其中一个值，是tooltip的内容。这里被bypass了。
+ </div> 
+ <div>
+  ------------
+ </div> 
+ <div>
+  这些搜出的几个个地方实际上根本没有做任何 escape，就直接输出了数据。下面那个即使做了默认的htmlescape，还是会出问题，除非它默认做了javascriptEscape。 struts2默认有地方做javascriptEscape么？答案是“没有”。所以，它们全都能被XSS！
+ </div> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=47"><img alt="image013.jpg大小: 55.97 K尺寸: 423 x 479浏览: 0 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.1bfe82d06cd24d66dbc9b39669956a0d.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/1bfe82d06cd24d66dbc9b39669956a0d.jpg</p></a>
+ </div> 
+ <div>
+  struts2的这些escape，其实是一个很太监的安全方案，安全工程师最恨的就是这种方案，做了安全方案，还不做完全，留下一堆问题。
+ </div> 
+ <div>
+  struts2的HTTP Parameter Pollution处理缺陷
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; webwork和struts2都有这个问题，当用户给web应用提交:
+ </div> 
+ <div>
+  <a href="http://www.inbreak.net/app/test%21redirect.action?redir=kxlzx&amp;redir=aaad61">http://www.inbreak.net/app/test!redirect.action?redir=kxlzx&amp;redir=aaad61</a>
+ </div> 
+ <div>
+  时，如果我们在action中定义了
+ </div> 
+ <div>
+  private String redir;
+ </div> 
+ <div>
+  public String getRedir() {
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp; return redir;</p> 
+ <div>
+  }
+ </div> 
+ <div>
+  public void setRedir(String redir) {
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp; this.redir = redir;</p> 
+ <div>
+  }
+ </div> 
+ <p>Action就会取到redir的值为“kxlzx, aaad61”注意中间是有空格的。</p> 
+ <div>
+  这种数据是由webwork（struts2）把两个参数合并而成的，但是如果我们request.getParameter(&quot;redir&quot;);拿到的值，却只是第一个（值为kxlzx）。
+ </div> 
+ <div>
+  我们知道struts2提倡使用拦截器做一些事情，他可以在action的execute方法执行之前和之后做一些操作。那就有一些开发，想当然的在这里防御一下url跳转、SQL注入、XSS等攻击。我们看看他们会怎么做：
+ </div> 
+ <div>
+  @Override
+ </div> 
+ <p>public String intercept(ActionInvocation arg0) throws Exception {</p> 
+ <div>
+  ……
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp; String name = request.getParameter(&quot;name&quot;);</p> 
+ <div>
+  &nbsp;&nbsp;&nbsp; if(name!=null&amp;&amp;name.indexOf(&quot;'&quot;)&gt;-1){
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;find sql injection&quot;);</p> 
+ <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.getSession().setAttribute(&quot;msg&quot;, &quot;find sql injection&quot;);</p> 
+ <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return &quot;falseuser&quot;;</p> 
+ <div>
+  &nbsp;&nbsp;&nbsp; }
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp; String redir = request.getParameter(&quot;redir&quot;);</p> 
+ <div>
+  &nbsp;&nbsp;&nbsp; if(redir!=null&amp;&amp;!redir.equals(&quot;http://www.b.com&quot;)){
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;find url redirect&quot;);</p> 
+ <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.getSession().setAttribute(&quot;msg&quot;, &quot;find url redirect&quot;);</p> 
+ <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return &quot;falseuser&quot;;</p> 
+ <div>
+  &nbsp;&nbsp;&nbsp; }
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; return arg0.invoke();
+ </div> 
+ <div>
+  }
+ </div> 
+ <div>
+  在这段代码中，作者仅仅示例了在拦截器中防御sql注入和url跳转漏洞，sql注入的防御规则是检查“’”单引号，而url跳转漏洞规则是检查必须跳转到”http://www.b.com”去。作者知道没有完全防御，所以大家先不要在这里追究防御方案，仅仅是一个示例。
+ </div> 
+ <div>
+  而开发人员在业务代码如下：
+ </div> 
+ <p>String sql = &quot;select book_name,book_content from books&quot;;</p> 
+ <div>
+  if (name != null) {
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp; sql += &quot; where book_name like '%&quot; + name + &quot;%'&quot;;</p> 
+ <div>
+  }
+ </div> 
+ <div>
+  很明显能注入。
+ </div> 
+ <div>
+  public String redirect() {
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp; return &quot;redir&quot;;</p> 
+ <div>
+  }
+ </div> 
+ <div>
+  也明显存在url跳转漏洞。
+ </div> 
+ <div>
+  但是由于拦截器在action之前执行，所以如果我们输入了
+ </div> 
+ <div>
+  http://www.inbreak.net/app/test!findUserByName.action?name=a'
+ </div> 
+ <p>拦截器当然就会返回错误“find sql injection”；</p> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=48"><img alt="image016.jpg大小: 16.95 K尺寸: 495 x 151浏览: 0 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.6e0c83a2213ae36894c244cb475ad7ad.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/6e0c83a2213ae36894c244cb475ad7ad.jpg</p></a>
+ </div> 
+ <div>
+  因为执行到了
+ </div> 
+ <div>
+  String name = request.getParameter(&quot;name&quot;);
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; if(name!=null&amp;&amp;name.indexOf(&quot;'&quot;)&gt;-1){
+ </div> 
+ <div>
+  发现name的值确实有单引号。
+ </div> 
+ <div>
+  但是如果我们输入了
+ </div> 
+ <div>
+  http://www.inbreak.net/app/test!findUserByName.action
+ </div> 
+ <p>?name=aaaaa&amp;name=a' union select name,pass from user where ''&lt;&gt;'</p> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=49"><img alt="image018.jpg大小: 16.73 K尺寸: 476 x 243浏览: 0 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.69d9ec1fbceb922570f81f34c485f7ae.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/69d9ec1fbceb922570f81f34c485f7ae.jpg</p></a>
+ </div> 
+ <div>
+  就直接绕过了拦截器的判断。因为拦截器获取的request.getParameter(&quot;name&quot;)，是第一个参数的值aaaaa，抛弃了第二个参数的值，但是action中的name的值，却是
+ </div> 
+ <div>
+  “aaaaa, a' union select name,pass from user where ''&lt;&gt;' ”所以被注入了
+ </div> 
+ <div>
+  大多数拦截器都是这样做的防御，包括一些filter等。
+ </div> 
+ <div>
+  这件事情发生在url跳转漏洞时，却不明显，因为攻击者顶多构造一个：
+ </div> 
+ <div>
+  http://www.inbreak.net/app/test!redirect.action?redir=http://www.b.com&amp;redir=www.inbreak.net
+ </div> 
+ <div>
+  抓包看看
+ </div> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=50"><img alt="image020.jpg大小: 15.81 K尺寸: 486 x 186浏览: 1 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.986de438e3d0132d7f8a9b97cc15bb1d.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/986de438e3d0132d7f8a9b97cc15bb1d.jpg</p></a>
+ </div> 
+ <div>
+  它跳到了http://www.b.com, www.inbreak.net去了。所以IE直接报错，说打不开这个地址。但是我们还有别的浏览器，总是喜欢给大家友好信息的浏览器，看看chrome给用户什么提示：
+ </div> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=51"><img alt="image022.jpg大小: 12.33 K尺寸: 418 x 265浏览: 1 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.23c3f0dce90d0837e1bc59f92b614ca1.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/23c3f0dce90d0837e1bc59f92b614ca1.jpg</p></a>
+ </div> 
+ <div>
+  Chrome也认为这是一个错误的链接，所以给出了“正确”的链接地址。这不是刚好被钓鱼网站利用么？
+ </div> 
+ <div>
+  struts2的官方漏洞公告和修补后引发的安全缺陷
+ </div> 
+ <div>
+  从有struts2，到现在为止，官方一共发布了4个漏洞，在
+ </div> 
+ <div>
+  http://struts.apache.org/2.x/docs/security-bulletins.html
+ </div> 
+ <p>&nbsp;&nbsp;&nbsp; * S2-001 — Remote code exploit on form validation error</p> 
+ <p>&nbsp;&nbsp;&nbsp; * S2-002 — Cross site scripting (XSS) vulnerability on &lt;s:url&gt; and &lt;s:a&gt; tags</p> 
+ <p>&nbsp;&nbsp;&nbsp; * S2-003 — XWork ParameterInterceptors bypass allows OGNL statement execution</p> 
+ <p>&nbsp;&nbsp;&nbsp; * S2-004 — Directory traversal vulnerability while serving static content</p> 
+ <div>
+  从名字上，可以看出漏洞的内容，作者仅仅对其中两个做了源码级别的漏洞修补评估，发现了很多悲剧的事情。同学们有兴趣可以去研究剩下两个漏洞，算是练习作业吧。
+ </div> 
+ <div>
+  struts2的官方漏洞公告和修补后引发的安全缺陷（S2-002）
+ </div> 
+ <div>
+  先看看“S2-002 — Cross site scripting (XSS) vulnerability on &lt;s:url&gt; and tags”这个漏洞。
+ </div> 
+ <div>
+  顾名思义是对&lt;s:url&gt;和&lt;s:url&gt;的xss漏洞修补，但是前文提到，这里有XSS漏洞，难道是在忽悠大家？我们看看这帮工程师是怎么修补的，来到这个svn地址：
+ </div> 
+ <div>
+  http://svn.apache.org/viewvc/struts/struts2/trunk/core/src/main/java/org/apache/struts2/views/util/UrlHelper.java?r1=614814&amp;r2=615103&amp;diff_format=h
+ </div> 
+ <div>
+  注意这两行：
+ </div> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=52"><img alt="image024.jpg大小: 7 K尺寸: 500 x 66浏览: 1 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.thumb_23dc5a7633d4bc171ac0622e1874d8c1.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/thumb_23dc5a7633d4bc171ac0622e1874d8c1.jpg</p></a>
+ </div> 
+ <div>
+  看到这两行代码的时候，作者笑了，因为作者仿佛看到了至少两件悲剧的事情，现在把它们写成故事：
+ </div> 
+ <div>
+  第1件悲剧的事情，某年某月某日，一个脚本小子给官方报告漏洞，说在使用&lt;s:url&gt;标签的时候，代码为：
+ </div> 
+ <p>&lt;s:url action=&quot;%{#parameters.url}&quot;&gt;&lt;/s:url&gt;</p> 
+ <div>
+  之后他输入了
+ </div> 
+ <p>http://www.inbreak.net/app/test!testpro.action?url=&lt;script&gt;alert('hacked by kxlzx')&lt;/script&gt;</p> 
+ <div>
+  并告诉官方这里是一个XSS漏洞，希望官方修补掉。
+ </div> 
+ <div>
+  官方很重视，一个开发就去修补，添加如下判断：
+ </div> 
+ <div>
+  if (result.indexOf(&quot;&lt;script&gt;&quot;) &gt;= 0){
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; result = result.replaceAll(&quot;&lt;script&gt;&quot;, &quot;script&quot;);
+ </div> 
+ <div>
+  并进行了冒烟测试、功能测试、黑盒测试、白盒测试。认为没有问题了，因为提交攻击者给的恶意url后，输出了
+ </div> 
+ <p>scriptalert('hacked by kxlzx')&lt;/script&gt;</p> 
+ <div>
+  结果并没有在页面执行xss脚本。后来那脚本小子也测试了一下，发现没问题，这事情就过去了，瞒着人民大众，悄悄的修补了。
+ </div> 
+ <div>
+  第2件悲剧的事情，又过了某人某月某日，某另一个脚本小子又发了漏洞，还是那段代码，但是url改成了：
+ </div> 
+ <p>http://www.inbreak.net/app/test!testpro.action?url=&lt;&lt;script&gt;&gt;alert('hacked by kxlzx')&lt;/script&gt;</p> 
+ <div>
+  注意，这里是&lt;&lt;script&gt;&gt;，经过了replaceAll函数后，刚好变成了&lt;script&gt;，重新组成了XSS漏洞。
+ </div> 
+ <div>
+  官方这次不得不重新重视起来，决定把if判断，变成了while，不管你有多少&lt;&lt;&lt;&lt;&lt;&lt;&lt;script&gt;&gt;&gt;&gt;&gt;&gt;&gt;，都给你变成
+ </div> 
+ <p>scriptalert('hacked by kxlzx')&lt;/script&gt;</p> 
+ <div>
+  并进行了冒烟测试、功能测试、黑盒测试、白盒测试。这次还发了公告出来，说这里没问题了，我们很重视安全漏洞，已经修补了。
+ </div> 
+ <div>
+  作者看到这里，测试新的bypass官方修补代码的url为：
+ </div> 
+ <p>http://www.inbreak.net/app/test!testpro.action?url=&lt;script kxlzx=kxlzx&gt;alert('hacked by kxlzx')&lt;/script&gt;</p> 
+ <div>
+  于是XSS脚本又被执行了，因为这里是&lt;script kxlzx=kxlzx&gt;，不是&lt;script&gt;，所以不符合判断条件，没有被replaceAll，再次bypas了漏洞修补。。。
+ </div> 
+ <div>
+  struts2的官方漏洞公告和修补后引发的安全缺陷（S2-004）
+ </div> 
+ <div>
+  这个漏洞的修补，比上一个更加令人无奈，这是一个/../获取资源文件的漏洞
+ </div> 
+ <p>S2-004 — Directory traversal vulnerability while serving static content</p> 
+ <div>
+  要了解这个漏洞的成因，大家需要先了解一个知识点。
+ </div> 
+ <div>
+  当struts的FilterDispatcher收到url请求如下两个路径下的文件时：
+ </div> 
+ <div>
+  http://www.inbreak.net/app/struts/
+ </div> 
+ <div>
+  或
+ </div> 
+ <div>
+  http://www.inbreak.net/app/static/
+ </div> 
+ <div>
+  会去取struts核心包的core.src.main.resources.org.apache.struts2下面的静态资源文件，这些资源文件其实是一些js脚本和一些css文件。前文提到
+ </div> 
+ <p>&lt;img onmouseover=&quot;domTT_activate(this, …'StrutsTTClassic');alert('xss');a('','styleClass’…&quot; /&gt;</p> 
+ <div>
+  代码中的domTT_activate，其实就是
+ </div> 
+ <div>
+  http://www.inbreak.net/app/struts/domTT.js
+ </div> 
+ <div>
+  文件中的一个函数。
+ </div> 
+ <div>
+  在struts2.0的时候，只要你敢上某几个版本的struts2，攻击者就可以通过
+ </div> 
+ <div>
+  http://www.inbreak.net/app/struts/..%252f
+ </div> 
+ <div>
+  http://www.inbreak.net/app/struts/..%252f..%252f..%252fWEB-INF/classess/example/Login.class/
+ </div> 
+ <div>
+  浏览你的web目录，下载web目录下的文件。
+ </div> 
+ <div>
+  先不说漏洞修补，请读者赶紧想想，你公司的开发人员，是否使用了struts2，并且把“Struts 2.0.0 - Struts 2.0.11.2 ”之间的几个版本包装了或者根本没有包装，直接上了web应用。如果有这种情况，就可以直接用以上方式攻击，这几天作者找了几个大型门户网站的漏洞，发现他们都存在这个漏洞，顺便下载了他们的数据库配置文件，同时报告了漏洞。
+ </div> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=53"><img alt="image026.jpg大小: 25.47 K尺寸: 431 x 354浏览: 1 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.27de7789198927c17f8e022f0b7ef4fb.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/27de7789198927c17f8e022f0b7ef4fb.jpg</p></a>
+ </div> 
+ <div>
+  Struts官方可能也受到了攻击，于是修补了代码。
+ </div> 
+ <div>
+  作者同样查看了svn修补记录：
+ </div> 
+ <div>
+  <a href="http://svn.apache.org/viewvc/struts/struts2/trunk/core/src/main/java/org/apache/struts2/dispatcher/DefaultStaticContentLoader.java?r1=674498&amp;r2=687425&amp;pathrev=687425&amp;diff_format=h">http://svn.apache.org/viewvc/struts/struts2/trunk/core/src/main/java/org/apache/struts2/dispatcher/DefaultStaticContentLoader.java?r1=674498&amp;r2=687425&amp;pathrev=687425&amp;diff_format=h</a>
+ </div> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=54"><img alt="image028.jpg大小: 27.95 K尺寸: 451 x 242浏览: 1 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.303dae9eb75cf946a0544fb3bceb28fe.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/303dae9eb75cf946a0544fb3bceb28fe.jpg</p></a>
+ </div> 
+ <p>可以看到“ if (!name.endsWith(&quot;.class&quot;)) {”这行代码在修补漏洞时，被删除了。</p> 
+ <div>
+  修补前的代码中，为什么以前要过滤.class文件呢？是因为struts提供了一个功能：
+ </div> 
+ <div>
+  如果开发人员想自己使用这个静态文件映射的功能，可以配置web.xml
+ </div> 
+ <div>
+  &lt;filter&gt;
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; &lt;filter-name&gt;struts&lt;/filter-name&gt;
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; &lt;filter-class&gt;
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; org.apache.struts2.dispatcher.FilterDispatcher
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; &lt;/filter-class&gt;
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; &lt;init-param&gt;
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-name&gt;packages&lt;/param-name&gt;
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &lt;param-value&gt;net.inbreak.action&lt;/param-value&gt;
+ </div> 
+ <div>
+  &nbsp;&nbsp;&nbsp; &lt;/init-param&gt;
+ </div> 
+ <div>
+  &lt;/filter&gt;
+ </div> 
+ <div>
+  如上配置后，当用户输入
+ </div> 
+ <div>
+  http://www.inbreak.net/app/struts/domTT.js
+ </div> 
+ <div>
+  的时候，实际上struts会去找net.inbreak.action这个文件夹下的domTT.js文件发给用户，而不再寻找核心包的那个文件夹了。这个功能开放后，官方为了防止对应包下的class文件被下载后反编译成源码，所以写了行代码，过滤.class文件。
+ </div> 
+ <div>
+  就因为这行代码的存在，一时间，刚巧又正是 struts2流行的时代。互联网大批的文章介绍struts2核心源码，在介绍到FilterDispatcher的时候，必然会提到，这里会过滤.class文件，如果开发人员使用这个功能，可以放心，自己的class文件不会被人下载。
+ </div> 
+ <div>
+  后来出了漏洞，攻击者可以用
+ </div> 
+ <div>
+  http://www.inbreak.net/app/struts/..%252f..%252f..%252fWEB-INF/classess/example/Login.class/
+ </div> 
+ <div>
+  绕过官方限制，下载class文件。最终的确修补了这个/../的漏洞。然而悲剧的是，因为class文件实际上还是可以被下载，所以官方修补的同时，去掉了“if (!name.endsWith(&quot;.class&quot;)) { ”这一行代码，可能是觉得这一行代码太丢人。
+ </div> 
+ <div>
+  曾经的教程，还在互联网上，告诉大家class文件不会被下载，官方也发表声明修补了/../漏洞。但是看到教程的开发们，却早已把目录映射了静态文件：
+ </div> 
+ <div>
+  &lt;param-name&gt;packages&lt;/param-name&gt;
+ </div> 
+ <div>
+  &lt;param-value&gt;net.inbreak.action&lt;/param-value&gt;
+ </div> 
+ <div>
+  如果这个开发的net.inbreak.action包下有个UserLogin.class文件，在struts2有漏洞的版本，会面临服务器上所有文件被下载的命运。即使开发升级了struts，因为核心代码中的class文件的判断去掉了，导致这个文件还是可以被
+ </div> 
+ <div>
+  http://www.inbreak.net/app/struts/UserLogin.class
+ </div> 
+ <div>
+  官方在没有任何通知的前提下，在教程满天飞告诉大家class文件不会被下载的前提下，为了面子悄悄的取掉了这个判断。这回好了，无论升级否，都不让人消停，万一开发人员头脑发热，配置如下：
+ </div> 
+ <div>
+  &lt;param-name&gt;packages&lt;/param-name&gt;
+ </div> 
+ <div>
+  &lt;param-value&gt;/&lt;/param-value&gt;
+ </div> 
+ <div>
+  就出大事了，可以直接下载资源目录下所有文件。
+ </div> 
+ <div>
+  http://www.inbreak.net/app/struts/hibernate.cfg.xml
+ </div> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=55"><img alt="image030.jpg大小: 32.9 K尺寸: 453 x 336浏览: 1 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.1ed499b513f873094d39ef6391e9d897.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/1ed499b513f873094d39ef6391e9d897.jpg</p></a>
+ </div> 
+ <div>
+  总结：
+ </div> 
+ <div>
+  作者挖了struts2的一些漏洞，也挖了一些web其他框架的漏洞（不在本文范围），总结下挖取这些框架漏洞的方式。
+ </div> 
+ <div>
+  首先，是上不上框架的问题。一旦开发用了这些框架，web应用会直接面临一些漏洞：
+ </div> 
+ <div>
+  1，开放了某功能，导致采用框架的应用默认漏洞
+ </div> 
+ <div>
+  因为这个框架在未经允许的情况下，悄悄的打开了某些功能，可能是为了方便开发等作用，结果导致了漏洞的产生。
+ </div> 
+ <div>
+  举个例：
+ </div> 
+ <div>
+  比如DWR这个AJAX框架一旦使用，在某些版本里，输入
+ </div> 
+ <div>
+  http://www.inbreak.net/app/dwr/
+ </div> 
+ <div>
+  就能看到一个页面，里面是所有ajax方法的映射，甚至一些service方法没有配置，自动映射了出来。你可以在这个页面给那些映射出来的方法提交参数，调用方法。比如有个getUserpasswdByid的方法，看名称就知道，传递用户id，返回密码。
+ </div> 
+ <p> </p> 
+ <div>
+  <a target="_blank" href="http://www.inbreak.net/attachment.php?id=56"><img alt="image032.jpg大小: 27.88 K尺寸: 315 x 321浏览: 1 次点击打开新窗口浏览全图" border="0" src="image/struts2框架安全缺陷（续）.htm.e8a18fcb7664b49dc5afac87a97ec905.jpg" /><p class="origImg">http://www.inbreak.net/attachments/date_200912/e8a18fcb7664b49dc5afac87a97ec905.jpg</p></a>
+ </div> 
+ <div>
+  再举例就是本文中的struts2的../../漏洞。
+ </div> 
+ <div>
+  如果要挖这种漏洞，绝对是0day级别的漏洞，所以大家有必要怀疑每一个实现步骤，这种漏洞其实大部分就出现在开发环境和正式环境的差异，以及一些奇奇怪怪的功能点上。
+ </div> 
+ <div>
+  2，扩展了某功能，导致安全问题
+ </div> 
+ <div>
+  我们的web应用，本来是可以自己写代码实现一些功能的，但是这个框架为了方便开发和管理，把开发人员要写的代码包装了下，只要简单的几行就能实现原本大批代码才能做到的功能。而这些便利，却带来了很多安全问题。挖漏洞的同时，应该特别注意哪些地方比原来方便了很多，扩展了很多，这些扩展和方便，是否考虑到了安全因素。
+ </div> 
+ <div>
+  比如本文介绍的struts的result（urlredirect）相关漏洞。
+ </div> 
+ <div>
+  3，DEMO或教程或用户指南误导
+ </div> 
+ <div>
+  自从框架出现后，为了让人们最快的了解和使用框架，官方出了很对用户手册，demo等功能。而很多大牛们，也相应的出了教程或者书籍，但是这些教程，DEMO，书籍上的例子，恰恰产生了很多漏洞。甚至开发本来不按照教程走，不会有漏洞，却被教程误导了。如果黑客看到这些书籍，请立刻把他列到你的扫描器中，绝对有不少开发会按照教程上去做。
+ </div> 
+ <div>
+  例如本文提到的那个书籍介绍我们使用ajax的事情。
+ </div> 
+ <div>
+  4，原本有安全方案，但是被某功能代码覆盖
+ </div> 
+ <div>
+  这其实是一件悲剧的事情，告诉我们要注意在日常开发中和漏洞修补中，是否有不明真相的开发人员，为了实现某个功能，悄悄的把原本的安全方案断章取义的覆盖掉了。挖漏洞的时候，要特别注意安全方案附件的代码变动，很可能发现非常弱智的逻辑问题。
+ </div> 
+ <div>
+  例如本文提交的class文件的判断。
+ </div> 
+ <div>
+  5，不完善的安全
+ </div> 
+ <div>
+  一个安全方案的实施，应该是彻头彻尾的，要注意方案的完整性，不能有些地方方案OK，有些地方不能实施。在挖漏洞的时候，也不要被安全方案吓住，并不是有了方案，听起来牛X，就绝对不会有漏洞的，最起码应该经过全面fuzz。
+ </div> 
+ <div>
+  例如本文提到的XSS遗漏点，以及富文本的遗漏。
+ </div> 
+ <div>
+  6，版本升级后，没有醒目安全公告
+ </div> 
+ <div>
+  我们知道所有的架构师都不愿意有事没事升级框架，特别是不稳定的框架版本，因为这个升级可能带来很多不可预料的问题，所以可能即使看到了安全公告，也没有去升级。如果不懂安全，更不愿意升级框架了。所以官方必须做到一个漏洞的修补，一个公告的发布，必须带有相关的代码log。告诉大家具体哪里做了改动。而挖漏洞的同学更应该盯紧这些地方，百般推敲和测试修改的部分，不要被一次公用的测试结果吓到，模糊的认为漏洞已经修补了。
+ </div> 
+ <div>
+  7，悲剧的方案
+ </div> 
+ <div>
+  很多时候，我们会看到官方修补漏洞，或者一些安全方案的实施结果。那是不是真的都能达到修补漏洞的效果呢？
+ </div> 
+ <div>
+  例如本文的&lt;s:url&gt;标签的xss漏洞，官方都这个漏洞的修补，真是绞尽脑汁，最终还是悲剧了。
+ </div> 
+ <div>
+  8，优秀的方案，悲剧的执行
+ </div> 
+ <div>
+  RT，不再说明。
+ </div> 
+ <div>
+  9，挑战web服务器配置
+ </div> 
+ <div>
+  这个问题有必要说一说，struts有事没事做个静态映射做什么？其实是目的就是为了框架和应用分离，很明显那些js文件应该放在项目中的web目录下，但是为什么要做呢？还不是因为struts包发布的时候，还没有项目，只有框架。
+ </div> 
+ <div>
+  它为了达到即使上了任何项目，也能有办法访问到它提供的那些js的目的，只好被逼无奈做了这个功能，静态目录映射。无论任何项目，部署后，只要url后面根目录加上/struts，或者/static就可以访问js。后来做了这个功能感觉良好还不算，居然把功能提供出来，给推荐给开发人员使用。归根结底是因为struts挑战了web服务器的配置，非要自己做静态映射。要知道人家web服务器做的映射，是经过多少年黑客入侵打磨出来的，struts有吗？
+ </div> 
+ <div>
+  这种情况突出在单独映射某目录，单独对某目录做权限，做DIR列表等功能，如果你看到一个框架也做了这种功能，恭喜你！赶快去挖，十有八九存在漏洞！
+ </div> 
+ <div>
+  10，没有安全方案，也没有提醒
+ </div> 
+ <div>
+  本文其实没有提到一些web漏洞，比如csrf，比如session fix，比如传输加密等，很明显struts是存在漏洞的，只是作者觉得这些东西没必要这里说，大家都是明眼人，看到form里没有token，百分百csrf嘛！
+ </div> 
+ <div>
+  想想官方，官方也明明知道上了自己的框架后，会存在这些漏洞，为什么连个提醒都没有呢？本来开发就不知道，你又藏着掖着。如果框架负责任，发个公告，说如果你用了我的框架，实际上要小心什么什么攻击。。。呃。。。我明白官方为什么不敢说了。-_-!
+ </div> 
+ <div>
+  这些框架除了那些“只要你用，必然有漏洞”的安全缺陷外，还有不少问题，会出现在开发人员使用框架的过程中：
+ </div> 
+ <div>
+  1，两个框架都方便，结合起来有漏洞
+ </div> 
+ <div>
+  有个框架叫做Spring security，是基于url的访问权限控制，做的很好。如果你不是管理员，绝对不能访问admin目录。但是有很多web框架，访问一个action 或者访问一个controller，不止一个url可以访问，在这里做了兼容性处理，多个url指向同一个应用，导致Spring security这种基于url的访问控制，名存实亡。
+ </div> 
+ <div>
+  2，开发人员“正常”使用框架后，可能产生漏洞
+ </div> 
+ <div>
+  这是最最惨的事情，框架绝对不会认领这种类型的漏洞的，他会认为这是开发的问题。然而本文的“action方法暴力破解、url redirect扩大化”这两个安全缺陷，实际上也是框架存在的意义（方便开发）带来的后果。官方会修补么？我想它顶多会说，大家不要这样那样而已，绝对不会做什么安全方案的。
+ </div> 
+ <div>
+  要知道这些漏洞是具有struts或者webwork特色的，只有使用了这些框架才会有的。
+ </div> 
+ <div>
+  3，危险功能点
+ </div> 
+ <div>
+  框架带来了一些功能点，比如Tag lib的一些XSS，只要使用，必定有漏洞。
+ </div> 
+ <div>
+  4，框架给开发挖坑
+ </div> 
+ <div>
+  这根本就是陷阱，还是要说/static、/struts，如果开发不配置，顶多下载个js，影响不大，万一开发使用了这个功能，映射了某个目录，那就掉进坑里去了。
+ </div> 
+ <div>
+  5，一个框架带来的漏洞被另一个框架最大化
+ </div> 
+ <div>
+  本文提到了变量默认值被覆盖后，又因为hibernate不需要写sql语句，而最终被存储进了数据库中。回想一个问题，如果让我们自己写sql语句实现，难道在添加普通用户的时候，会真的专门写个变量，接收用户传进来注册管理员的字段么？
+ </div> 
+ <div>
+  但是这是hibernate得问题么？当然不是，只是因为有了它，导致漏洞更加严重而已。
+ </div> 
+ <div>
+  补充：
+ </div> 
+ <div>
+  本文对struts2的种种安全缺陷，就提到这里。个人觉得这是一个挖漏洞的方向，对framework漏洞的挖掘。可能大家都专注于代码安全，没有太多的去看框架本身是否安全，以及使用了框架后，是否真的安全。所以很多人忽略这个问题，我相信这不是一个新的开始，也不是一个结束，只是让大家开始更加重视框架安全。作者也仅仅在本文提到了 struts，webwork这两个框架，事实上框架很多，他们真的安全么？有待考证！
+ </div> 
+ <div>
+  最后写给那些真正打算把技术应用于实践的同学们，框架漏洞扫描器，是可以做出来的，对于难以解决的猜解问题，可以对网站蜘蛛一下，然后保存那些开发人员喜欢使用的字段名称，关注各个input的名字，action的名字，目录名字等，生成猜解一个列表。而判断是否用了struts更加简单：
+ </div> 
+ <div>
+  特征1：XXX.action&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 可能是struts或webwork
+ </div> 
+ <div>
+  特征2：XXX.do&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 可能是struts或webwork
+ </div> 
+ <div>
+  特征3：XXX!bbb.action&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 可能是struts或webwork
+ </div> 
+ <div>
+  特征4：XXX/struts/..%252f&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 必然是struts2
+ </div> 
+ <div>
+  其他细节处，不再一一给出，有待大家发掘。
+ </div> 
+ <div>
+  相关的漏洞修补方式，作者不在此处献丑，请大家根据漏洞原理自行处理。
+ </div> 
+ <div>
+  感谢：
+ </div> 
+ <div>
+  ----------------------------------------
+ </div> 
+ <div>
+  感谢axis （
+  <a href="http://hi.baidu.com/aullik5">http://hi.baidu.com/aullik5</a>）对本文提出的建议。
+ </div> 
+ <div>
+  感谢幻影webzine&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+  <a href="http://webzine.ph4nt0m.org/">http://webzine.ph4nt0m.org/</a>
+ </div> 
+ <div>
+  感谢struts所有开发人员种种有趣的代码。
+ </div> 
+ <div>
+  作者DEMO中有敏感数据，恕不能提供，请大家自行搜索strutsdemo搭建环境测试。
+ </div> 
+ <div>
+  Struts2：
+  <a href="http://struts.apache.org/2.x/">http://struts.apache.org/2.x/</a>
+ </div> 
+ <div>
+  Struts2 svn：
+  <a href="http://svn.apache.org/viewvc/struts/struts2/trunk/">http://svn.apache.org/viewvc/struts/struts2/trunk/</a>
+ </div> 
+ <div>
+  本文 
+  <a href="http://www.inbreak.net/?action=show&amp;id=161">http://www.inbreak.net/?action=show&amp;id=161</a>
+ </div> 
+</div></div></body></html>

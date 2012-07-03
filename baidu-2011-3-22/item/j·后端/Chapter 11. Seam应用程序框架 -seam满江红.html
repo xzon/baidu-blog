@@ -1,0 +1,353 @@
+<html><head><title><div class="tit">
+  Chapter 11. Seam应用程序框架 -seam满江红
+</div></title></head><body><div id='tit'>Chapter 11. Seam应用程序框架 -seam满江红</div><div id='cate'>j&middot;后端</div><div id='date'>2009年03月04日 星期三 09:45 P.M.</div><div id='page'>65</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3650a9514ddeb8878c5430d7.html'>http://hi.baidu.com/hxzon/blog/item/3650a9514ddeb8878c5430d7.html</a><div id='cnt'><div class="chapter"> 
+ <div class="titlepage"> 
+  <div> 
+   <div> 
+    <h2 class="title"><a name="framework"></a>Chapter 11. Seam应用程序框架 -seam满江红</h2> 
+   </div> 
+  </div> 
+  <div> 
+  </div> 
+ </div> 
+ <p>Seam通过编写带有注解的简单Java类来让创建应用程序的工作变得非常简单，不需扩展任何特定接口和父类。但常见的编程任务还能进一步简化，这是通过一组预先创建的组件进行的，它们能够由 <tt class="literal"><font face="新宋体">component.xml</font></tt> 文件配置（最简单的情况）或者类扩展而实现复用。</p> 
+ <p>在一个Web应用程序中使用Hibernate或者JPA进行基本的数据库操作时，<span class="emphasis"><em>Seam Application Framework（Seam应用程序框架）</em></span> 能够减少你需要书写的代码量。</p> 
+ <p>We should emphasize that the framework is extremely simple, just a handful of simple classes that are easy to understand and extend. The &quot;magic&quot; is in Seam itself—the same magic you use when creating any Seam application even without using this framework. 我们需要强调的是，这个框架非常的简单，只是少量的易于理解和扩展的简单类。 “魔力”来自于Seam自身 — 即使没有用这个框架来创建任何Seam应用程序的时候，你也同样用到这一“魔力”。</p> 
+ <div class="section"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h2 style="clear: both" class="title"><a name="d0e6355"></a>11.1. 简介</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>有两种不同的方法使用Seam Application Framework所提供的组件。第一种方法是像处理其他种类的Seam内置组件一样，在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中安装和配置组件的实例。 举例来说，下列 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中的片段安装了一个能够为 <tt class="literal"><font face="新宋体">Person</font></tt> 实体执行基本的CRUD（创建(Create)、读取(Retrieve) 、更新(Update)和删除(Delete)）操作的组件：</p> 
+  <pre class="programlisting">&lt;framework:entity-home name=&quot;personHome&quot;
+                       entity-class=&quot;eg.Person&quot;
+                       entity-manager=&quot;#{personDatabase}&quot;&gt;
+    &lt;framework:id&gt;#{param.personId}&lt;/framework:id&gt;
+&lt;/framework:entity-home&gt;</pre> 
+  <p>如果上面的代码按你的口味来说太像“用XML编程”，你可以改为使用扩展：</p> 
+  <pre class="programlisting">@Stateful
+@Name(&quot;personHome&quot;)
+public class PersonHome extends EntityHome&lt;Person&gt; implements LocalPersonHome {
+    @RequestParameter String personId;
+    @In EntityManager personDatabase;
+
+    public Object getId() { return personId; }
+    public EntityManager getEntityManager() { return personDatabase; }
+
+}</pre> 
+  <p>第二种方法有一个很大的优点：你能够方便地添加额外的功能，覆盖内置的功能（框架的类都精心设计以便于扩展和定制）。</p> 
+  <p>第二个优点是：如果你喜欢的话，你的类可以是有状态会话Bean（这不是必须的，也可以是普通的JavaBean组件，如果你喜欢的话）。如果你正在使用JBoss AS，你需要使用4.2.2.GA或更高的版本。</p> 
+  <p>目前，Seam Application Framework提供了四个内置的组件：用于CRUD操作的 <tt class="literal"><font face="新宋体">EntityHome</font></tt> 和 <tt class="literal"><font face="新宋体">HibernateEntityHome</font></tt> 以及用于查询的 <tt class="literal"><font face="新宋体">EntityQuery</font></tt> 和 <tt class="literal"><font face="新宋体">HibernateEntityQuery</font></tt>。</p> 
+  <p>你得编写Home和Query组件，它们能在session、event或conversation scope中运行，至于选择哪个scope取决于你所希望在你的应用程序中使用的状态模型。</p> 
+  <p>Seam Application Framework仅在Seam管理的持久化上下文中工作。默认情况下，这些组件会寻找一个叫做 <tt class="literal"><font face="新宋体">entityManager</font></tt> 的持久化上下文。</p> 
+ </div> 
+ <div class="section"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h2 style="clear: both" class="title"><a name="d0e6400"></a>11.2. Home对象</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>Home对象对特定的实体类提供持久化操作，假设我们有个可靠的 <tt class="literal"><font face="新宋体">Person</font></tt> 类：</p> 
+  <pre class="programlisting">@Entity
+public class Person {
+    @Id private Long id;
+    private String firstName;
+    private String lastName;
+    private Country nationality;
+
+    //getters and setters...
+}</pre> 
+  <p>我们可以通过配置定义一个 <tt class="literal"><font face="新宋体">personHome</font></tt> 组件：</p> 
+  <pre class="programlisting">&lt;framework:entity-home name=&quot;personHome&quot; entity-class=&quot;eg.Person&quot; /&gt;</pre> 
+  <p>也可以通过类的扩展</p> 
+  <pre class="programlisting">@Name(&quot;personHome&quot;)
+public class PersonHome extends EntityHome&lt;Person&gt; {}</pre> 
+  <p>Home对象提供了如下的操作：<tt class="literal"><font face="新宋体">persist()</font></tt>、<tt class="literal"><font face="新宋体">remove()</font></tt>、<tt class="literal"><font face="新宋体">update()</font></tt> 和 <tt class="literal"><font face="新宋体">getInstance()</font></tt>。 在你能够调用 <tt class="literal"><font face="新宋体">remove()</font></tt> 或 <tt class="literal"><font face="新宋体">update()</font></tt> 操作之前，你必须首先使用 <tt class="literal"><font face="新宋体">setId()</font></tt> 方法定义你感兴趣的对象的标识符。</p> 
+  <p>我们可以直接从一个JSF页面使用一个Home，如下例：</p> 
+  <pre class="programlisting">&lt;h1&gt;Create Person&lt;/h1&gt;
+&lt;h:form&gt;
+    &lt;div&gt;First name: &lt;h:inputText value=&quot;#{personHome.instance.firstName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;Last name: &lt;h:inputText value=&quot;#{personHome.instance.lastName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;
+        &lt;h:commandButton value=&quot;Create Person&quot; action=&quot;#{personHome.persist}&quot;/&gt;
+    &lt;/div&gt;
+&lt;/h:form&gt;</pre> 
+  <p>通常，只用<tt class="literal"><font face="新宋体">person</font></tt> 指明person漂亮得多，所以在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中添加一行语句来实现。</p> 
+  <pre class="programlisting">&lt;factory name=&quot;person&quot;
+         value=&quot;#{personHome.instance}&quot;/&gt;
+
+&lt;framework:entity-home name=&quot;personHome&quot;
+                       entity-class=&quot;eg.Person&quot; /&gt;</pre> 
+  <p>（如果我们使用配置的方法。） 或者，我们可以通过向 <tt class="literal"><font face="新宋体">PersonHome</font></tt> 中添加一个 <tt class="literal"><font face="新宋体">@Factory</font></tt> 方法来实现：</p> 
+  <pre class="programlisting">@Name(&quot;personHome&quot;)
+public class PersonHome extends EntityHome&lt;Person&gt; {
+
+    @Factory(&quot;person&quot;)
+    public Person initPerson() { return getInstance(); }
+
+}</pre> 
+  <p>（如果我们使用类扩展的方法） 这个修改使我们的JSF页面简化如下：</p> 
+  <pre class="programlisting">&lt;h1&gt;Create Person&lt;/h1&gt;
+&lt;h:form&gt;
+    &lt;div&gt;First name: &lt;h:inputText value=&quot;#{person.firstName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;Last name: &lt;h:inputText value=&quot;#{person.lastName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;
+        &lt;h:commandButton value=&quot;Create Person&quot; action=&quot;#{personHome.persist}&quot;/&gt;
+    &lt;/div&gt;
+&lt;/h:form&gt;</pre> 
+  <p>好，这就可以用来创建新的 <tt class="literal"><font face="新宋体">Person</font></tt> 实体了。是的，这就是所需的全部代码！现在，如果我们想显示，更新，删除数据库中已经存在的 <tt class="literal"><font face="新宋体">Person</font></tt> 实体，我们需要将实体标识符传递给 <tt class="literal"><font face="新宋体">PersonHome</font></tt>。页面参数是一种非常好的实现方式：</p> 
+  <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/editPerson.jsp&quot;&gt;
+        &lt;param name=&quot;personId&quot; value=&quot;#{personHome.id}&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+  <p>现在，我们可以向JSF页面中增加其他的操作：</p> 
+  <pre class="programlisting">&lt;h1&gt;
+    &lt;h:outputText rendered=&quot;#{!personHome.managed}&quot; value=&quot;Create Person&quot;/&gt;
+    &lt;h:outputText rendered=&quot;#{personHome.managed}&quot; value=&quot;Edit Person&quot;/&gt;
+&lt;/h1&gt;
+&lt;h:form&gt;
+    &lt;div&gt;First name: &lt;h:inputText value=&quot;#{person.firstName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;Last name: &lt;h:inputText value=&quot;#{person.lastName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;
+        &lt;h:commandButton value=&quot;Create Person&quot; action=&quot;#{personHome.persist}&quot; rendered=&quot;#{!personHome.managed}&quot;/&gt;
+        &lt;h:commandButton value=&quot;Update Person&quot; action=&quot;#{personHome.update}&quot; rendered=&quot;#{personHome.managed}&quot;/&gt;
+        &lt;h:commandButton value=&quot;Delete Person&quot; action=&quot;#{personHome.remove}&quot; rendered=&quot;#{personHome.managed}&quot;/&gt;
+    &lt;/div&gt;
+&lt;/h:form&gt;</pre> 
+  <p>当我们没有带任何请求参数链接到该页面时，会显示&quot;Create Person&quot;页面，当我们为 <tt class="literal"><font face="新宋体">personId</font></tt> 这个请求参数设定一个值时，会显示“Edit Person”页面。</p> 
+  <p>假设我们需要创建一些 <tt class="literal"><font face="新宋体">Person</font></tt> 实体，并且初始化这些人的国籍。我们可以通过配置很轻松地完成：</p> 
+  <pre class="programlisting">&lt;factory name=&quot;person&quot;
+         value=&quot;#{personHome.instance}&quot;/&gt;
+
+&lt;framework:entity-home name=&quot;personHome&quot;
+                       entity-class=&quot;eg.Person&quot;
+                       new-instance=&quot;#{newPerson}&quot;/&gt;
+
+&lt;component name=&quot;newPerson&quot;
+           class=&quot;eg.Person&quot;&gt;
+    &lt;property name=&quot;nationality&quot;&gt;#{country}&lt;/property&gt;
+&lt;/component&gt;</pre> 
+  <p>也可以通过扩展类</p> 
+  <pre class="programlisting">@Name(&quot;personHome&quot;)
+public class PersonHome extends EntityHome&lt;Person&gt; {
+
+    @In Country country;
+
+    @Factory(&quot;person&quot;)
+    public Person initPerson() { return getInstance(); }
+
+    protected Person createInstance() {
+        return new Person(country);
+    }
+
+}</pre> 
+  <p>当然，<tt class="literal"><font face="新宋体">Country</font></tt> 是一个被其它的Home对象管理的对象，比如说，<tt class="literal"><font face="新宋体">CountryHome</font></tt>。</p> 
+  <p>为了增加更多复杂的操作（联合管理等等），我们可以向 <tt class="literal"><font face="新宋体">PersonHome</font></tt> 中添加方法。</p> 
+  <pre class="programlisting">@Name(&quot;personHome&quot;)
+public class PersonHome extends EntityHome&lt;Person&gt; {
+
+    @In Country country;
+
+    @Factory(&quot;person&quot;)
+    public Person initPerson() { return getInstance(); }
+
+    protected Person createInstance() {
+        return new Person(country);
+    }
+
+    public void migrate()
+    {
+        getInstance().setCountry(country);
+        update();
+    }
+
+}</pre> 
+  <p>当事务成功之后（调用 <tt class="literal"><font face="新宋体">persist()</font></tt>、<tt class="literal"><font face="新宋体">update()</font></tt> 或 <tt class="literal"><font face="新宋体">remove()</font></tt> 成功后），Home对象会发出一个 <tt class="literal"><font face="新宋体">org.jboss.seam.afterTransactionSuccess</font></tt> 事件。 通过监听这一事件，我们可以在底层实体改变后，刷新查询。 如果我们只需要在特定的实体保存、修改或删除后刷新特定查询，我们可以监视 <tt class="literal"><font face="新宋体">org.jboss.seam.afterTransactionSuccess.&lt;name&gt;</font></tt> 事件（<tt class="literal"><font face="新宋体">&lt;name&gt;</font></tt> 是实体的名字）。</p> 
+  <p>当一个操作成功时，Home对象可以自动地显示Faces信息，我们可以再一次通过配置来定制信息。</p> 
+  <pre class="programlisting">&lt;factory name=&quot;person&quot;
+         value=&quot;#{personHome.instance}&quot;/&gt;
+
+&lt;framework:entity-home name=&quot;personHome&quot;
+                       entity-class=&quot;eg.Person&quot;
+                       new-instance=&quot;#{newPerson}&quot;&gt;
+    &lt;framework:created-message&gt;New person #{person.firstName} #{person.lastName} created&lt;/framework:created-message&gt;
+    &lt;framework:deleted-message&gt;Person #{person.firstName} #{person.lastName} deleted&lt;/framework:deleted-message&gt;
+    &lt;framework:updated-message&gt;Person #{person.firstName} #{person.lastName} updated&lt;/framework:updated-message&gt;
+&lt;/framework:entity-home&gt;
+
+&lt;component name=&quot;newPerson&quot;
+           class=&quot;eg.Person&quot;&gt;
+    &lt;property name=&quot;nationality&quot;&gt;#{country}&lt;/property&gt;
+&lt;/component&gt;</pre> 
+  <p>或者扩展：</p> 
+  <pre class="programlisting">@Name(&quot;personHome&quot;)
+public class PersonHome extends EntityHome&lt;Person&gt; {
+
+    @In Country country;
+
+    @Factory(&quot;person&quot;)
+    public Person initPerson() { return getInstance(); }
+
+    protected Person createInstance() {
+        return new Person(country);
+    }
+
+    protected String getCreatedMessage() { return &quot;New person #{person.firstName} #{person.lastName} created&quot;; }
+    protected String getUpdatedMessage() { return &quot;Person #{person.firstName} #{person.lastName} updated&quot;; }
+    protected String getDeletedMessage() { return &quot;Person #{person.firstName} #{person.lastName} deleted&quot;; }
+
+}</pre> 
+  <p>但是指定信息最好的方法是把信息置于Seam所知的resource bundle中（在默认情况下，这个bundle叫做 <tt class="literal"><font face="新宋体">messages</font></tt> ）。</p> 
+  <pre class="programlisting">Person_created=New person #{person.firstName} #{person.lastName} created
+Person_deleted=Person #{person.firstName} #{person.lastName} deleted
+Person_updated=Person #{person.firstName} #{person.lastName} updated</pre> 
+  <p>这样方便进行国际化，从表现层的角度考虑也保持了代码和配置的整洁。</p> 
+  <p>最后一步是使用 <tt class="literal"><font face="新宋体">&lt;s:validateAll&gt;</font></tt> 和 <tt class="literal"><font face="新宋体">&lt;s:decorate&gt;</font></tt> 向页面中添加验证功能，我会把这个留给你们自己去实现。</p> 
+ </div> 
+ <div class="section"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h2 style="clear: both" class="title"><a name="d0e6565"></a>11.3. Query对象</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>如果我们需要数据库中所有 <tt class="literal"><font face="新宋体">Person</font></tt> 实例的列表，我们可以使用Query对象，例如：</p> 
+  <pre class="programlisting">&lt;framework:entity-query name=&quot;people&quot;
+                        ejbql=&quot;select p from Person p&quot;/&gt;</pre> 
+  <p>我们可以从一个JSF页面中使用它：</p> 
+  <pre class="programlisting">&lt;h1&gt;List of people&lt;/h1&gt;
+&lt;h:dataTable value=&quot;#{people.resultList}&quot; var=&quot;person&quot;&gt;
+    &lt;h:column&gt;
+        &lt;s:link view=&quot;/editPerson.jsp&quot; value=&quot;#{person.firstName} #{person.lastName}&quot;&gt;
+            &lt;f:param name=&quot;personId&quot; value=&quot;#{person.id}&quot;/&gt;
+        &lt;/s:link&gt;
+    &lt;/h:column&gt;
+&lt;/h:dataTable&gt;</pre> 
+  <p>我们可能需要支持分页：</p> 
+  <pre class="programlisting">&lt;framework:entity-query name=&quot;people&quot;
+                        ejbql=&quot;select p from Person p&quot;
+                        order=&quot;lastName&quot;
+                        max-results=&quot;20&quot;/&gt;</pre> 
+  <p>我们可以使用page参数来决定被显示的页面</p> 
+  <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/searchPerson.jsp&quot;&gt;
+        &lt;param name=&quot;firstResult&quot; value=&quot;#{people.firstResult}&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+  <p>用于分页的JSF代码可能有点冗长，但仍然是便于管理的：</p> 
+  <pre class="programlisting">&lt;h1&gt;Search for people&lt;/h1&gt;
+&lt;h:dataTable value=&quot;#{people.resultList}&quot; var=&quot;person&quot;&gt;
+    &lt;h:column&gt;
+        &lt;s:link view=&quot;/editPerson.jsp&quot; value=&quot;#{person.firstName} #{person.lastName}&quot;&gt;
+            &lt;f:param name=&quot;personId&quot; value=&quot;#{person.id}&quot;/&gt;
+        &lt;/s:link&gt;
+    &lt;/h:column&gt;
+&lt;/h:dataTable&gt;
+
+&lt;s:link view=&quot;/search.xhtml&quot; rendered=&quot;#{people.previousExists}&quot; value=&quot;First Page&quot;&gt;
+    &lt;f:param name=&quot;firstResult&quot; value=&quot;0&quot;/&gt;
+&lt;/s:link&gt;
+
+&lt;s:link view=&quot;/search.xhtml&quot; rendered=&quot;#{people.previousExists}&quot; value=&quot;Previous Page&quot;&gt;
+    &lt;f:param name=&quot;firstResult&quot; value=&quot;#{people.previousFirstResult}&quot;/&gt;
+&lt;/s:link&gt;
+
+&lt;s:link view=&quot;/search.xhtml&quot; rendered=&quot;#{people.nextExists}&quot; value=&quot;Next Page&quot;&gt;
+    &lt;f:param name=&quot;firstResult&quot; value=&quot;#{people.nextFirstResult}&quot;/&gt;
+&lt;/s:link&gt;
+
+&lt;s:link view=&quot;/search.xhtml&quot; rendered=&quot;#{people.nextExists}&quot; value=&quot;Last Page&quot;&gt;
+    &lt;f:param name=&quot;firstResult&quot; value=&quot;#{people.lastFirstResult}&quot;/&gt;
+&lt;/s:link&gt;</pre> 
+  <p>真实的搜索界面能够通过让用户输入一系列的可选的搜索标准来缩小返回的结果列表。Query对象通过让你指定可选的“约束”来支持这个重要的用例。</p> 
+  <pre class="programlisting">&lt;component name=&quot;examplePerson&quot; class=&quot;Person&quot;/&gt;
+
+&lt;framework:entity-query name=&quot;people&quot;
+                        ejbql=&quot;select p from Person p&quot;
+                        order=&quot;lastName&quot;
+                        max-results=&quot;20&quot;&gt;
+    &lt;framework:restrictions&gt;
+        &lt;value&gt;lower(firstName) like lower( concat(#{examplePerson.firstName},'%') )&lt;/value&gt;
+        &lt;value&gt;lower(lastName) like lower( concat(#{examplePerson.lastName},'%') )&lt;/value&gt;
+    &lt;/framework:restrictions&gt;
+&lt;/framework:entity-query&gt;</pre> 
+  <p>注意“example”对象的使用。</p> 
+  <pre class="programlisting">&lt;h1&gt;Search for people&lt;/h1&gt;
+&lt;h:form&gt;
+    &lt;div&gt;First name: &lt;h:inputText value=&quot;#{examplePerson.firstName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;Last name: &lt;h:inputText value=&quot;#{examplePerson.lastName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;h:commandButton value=&quot;Search&quot; action=&quot;/search.jsp&quot;/&gt;&lt;/div&gt;
+&lt;/h:form&gt;
+
+&lt;h:dataTable value=&quot;#{people.resultList}&quot; var=&quot;person&quot;&gt;
+    &lt;h:column&gt;
+        &lt;s:link view=&quot;/editPerson.jsp&quot; value=&quot;#{person.firstName} #{person.lastName}&quot;&gt;
+            &lt;f:param name=&quot;personId&quot; value=&quot;#{person.id}&quot;/&gt;
+        &lt;/s:link&gt;
+    &lt;/h:column&gt;
+&lt;/h:dataTable&gt;</pre> 
+  <p>在底层实体发生改变后，可以通过监听 <tt class="literal"><font face="新宋体">org.jboss.seam.afterTransactionSuccess</font></tt> 事件来刷新查询：</p> 
+  <pre class="programlisting">&lt;event type=&quot;org.jboss.seam.afterTransactionSuccess&quot;&gt;
+    &lt;action execute=&quot;#{people.refresh}&quot; /&gt;
+&lt;/event&gt;</pre> 
+  <p>或者，在发生持久化、更新或者删除时，通过 <tt class="literal"><font face="新宋体">PersonHome</font></tt> 来刷新查询：</p> 
+  <pre class="programlisting">&lt;event type=&quot;org.jboss.seam.afterTransactionSuccess.Person&quot;&gt;
+    &lt;action execute=&quot;#{people.refresh}&quot; /&gt;
+&lt;/event&gt;</pre> 
+  <p>这个部分所有的例子都是通过配置来体现重用的，但是，对Query对象通过扩展来进行重用也是可行的。</p> 
+ </div> 
+ <div class="section"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h2 style="clear: both" class="title"><a name="d0e6615"></a>11.4. Controller对象</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p><tt class="literal"><font face="新宋体">Controller</font></tt> 类以及它的子类 <tt class="literal"><font face="新宋体">EntityController</font></tt>，<tt class="literal"><font face="新宋体">HibernateEntityController</font></tt> 和 <tt class="literal"><font face="新宋体">BusinessProcessController</font></tt> 是Seam Application Framework的可选部分。 这些类只是提供了一些访问常用内置组件及这些组件方法的便利手段，它们能够减少一些键盘输入量，也为探索Seam内置丰富功能的初学者提供了一个非常好的跳板。</p> 
+  <p>例如，这就是Seam注册实例中的 <tt class="literal"><font face="新宋体">RegisterAction</font></tt>：</p> 
+  <pre class="programlisting">@Stateless
+@Name(&quot;register&quot;)
+public class RegisterAction extends EntityController implements Register
+{
+
+   @In private User user;
+
+   public String register()
+   {
+      List existing = createQuery(&quot;select u.username from User u where u.username=:username&quot;)
+         .setParameter(&quot;username&quot;, user.getUsername())
+         .getResultList();
+
+      if ( existing.size()==0 )
+      {
+         persist(user);
+         info(&quot;Registered new user #{user.username}&quot;);
+         return &quot;/registered.jspx&quot;;
+      }
+      else
+      {
+         addFacesMessage(&quot;User #{user.username} already exists&quot;);
+         return null;
+      }
+   }
+
+}</pre> 
+  <p>正如你所看到的一样，这不是什么惊世骇俗的提高...</p> 
+ </div> 
+</div></div></body></html>

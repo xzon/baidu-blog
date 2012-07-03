@@ -1,0 +1,152 @@
+<html><head><title><div class="tit">
+  11.3. Query对象（参数，分页，自动刷新） -seam满江红 -good
+</div></title></head><body><div id='tit'>11.3. Query对象（参数，分页，自动刷新） -seam满江红 -good</div><div id='cate'>j&middot;后端</div><div id='date'>2009年03月10日 星期二 00:08 A.M.</div><div id='page'>62</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/97ca32a8e08e95b9ca130c60.html'>http://hi.baidu.com/hxzon/blog/item/97ca32a8e08e95b9ca130c60.html</a><div id='cnt'><div class="titlepage"> 
+ <div> 
+  <div> 
+   <h2 style="clear: both" class="title">11.3. Query对象 （参数，分页，自动刷新） -seam满江红 -good</h2> 
+  </div> 
+ </div> 
+ <div> 
+ </div> 
+</div> 
+<p>如果我们需要数据库中所有 <tt class="literal"><font face="新宋体">Person</font></tt> 实例的列表，我们可以使用Query对象，例如：</p> 
+<pre class="programlisting">&lt;framework:entity-query name=&quot;people&quot;
+                        ejbql=&quot;select p from Person p&quot;/&gt;</pre> 
+<p>我们可以从一个JSF页面中使用它：</p> 
+<pre class="programlisting">&lt;h1&gt;List of people&lt;/h1&gt;
+&lt;h:dataTable value=&quot;#{people.resultList}&quot; var=&quot;person&quot;&gt;
+    &lt;h:column&gt;
+        &lt;s:link view=&quot;/editPerson.jsp&quot; value=&quot;#{person.firstName} #{person.lastName}&quot;&gt;
+            &lt;f:param name=&quot;personId&quot; value=&quot;#{person.id}&quot;/&gt;
+        &lt;/s:link&gt;
+    &lt;/h:column&gt;
+&lt;/h:dataTable&gt;</pre> 
+<p>我们可能需要支持分页：</p> 
+<pre class="programlisting">&lt;framework:entity-query name=&quot;people&quot;
+                        ejbql=&quot;select p from Person p&quot;
+                        order=&quot;lastName&quot;
+                        max-results=&quot;20&quot;/&gt;</pre> 
+<p>我们可以使用page参数来决定被显示的页面</p> 
+<pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/searchPerson.jsp&quot;&gt;
+        &lt;param name=&quot;firstResult&quot; value=&quot;#{people.firstResult}&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+<p>用于分页的JSF代码可能有点冗长，但仍然是便于管理的：</p> 
+<pre class="programlisting">&lt;h1&gt;Search for people&lt;/h1&gt;
+&lt;h:dataTable value=&quot;#{people.resultList}&quot; var=&quot;person&quot;&gt;
+    &lt;h:column&gt;
+        &lt;s:link view=&quot;/editPerson.jsp&quot; value=&quot;#{person.firstName} #{person.lastName}&quot;&gt;
+            &lt;f:param name=&quot;personId&quot; value=&quot;#{person.id}&quot;/&gt;
+        &lt;/s:link&gt;
+    &lt;/h:column&gt;
+&lt;/h:dataTable&gt;
+
+&lt;s:link view=&quot;/search.xhtml&quot; rendered=&quot;#{people.previousExists}&quot; value=&quot;First Page&quot;&gt;
+    &lt;f:param name=&quot;firstResult&quot; value=&quot;0&quot;/&gt;
+&lt;/s:link&gt;
+
+&lt;s:link view=&quot;/search.xhtml&quot; rendered=&quot;#{people.previousExists}&quot; value=&quot;Previous Page&quot;&gt;
+    &lt;f:param name=&quot;firstResult&quot; value=&quot;#{people.previousFirstResult}&quot;/&gt;
+&lt;/s:link&gt;
+
+&lt;s:link view=&quot;/search.xhtml&quot; rendered=&quot;#{people.nextExists}&quot; value=&quot;Next Page&quot;&gt;
+    &lt;f:param name=&quot;firstResult&quot; value=&quot;#{people.nextFirstResult}&quot;/&gt;
+&lt;/s:link&gt;
+
+&lt;s:link view=&quot;/search.xhtml&quot; rendered=&quot;#{people.nextExists}&quot; value=&quot;Last Page&quot;&gt;
+    &lt;f:param name=&quot;firstResult&quot; value=&quot;#{people.lastFirstResult}&quot;/&gt;
+&lt;/s:link&gt;</pre> 
+<p>真实的搜索界面能够通过让用户输入一系列的可选的搜索标准来缩小返回的结果列表。Query对象通过让你指定可选的“约束”来支持这个重要的用例。</p> 
+<pre class="programlisting">&lt;component name=&quot;examplePerson&quot; class=&quot;Person&quot;/&gt;
+
+&lt;framework:entity-query name=&quot;people&quot;
+                        ejbql=&quot;select p from Person p&quot;
+                        order=&quot;lastName&quot;
+                        max-results=&quot;20&quot;&gt;
+    &lt;framework:restrictions&gt;
+        &lt;value&gt;lower(firstName) like lower( concat(#{examplePerson.firstName},'%') )&lt;/value&gt;
+        &lt;value&gt;lower(lastName) like lower( concat(#{examplePerson.lastName},'%') )&lt;/value&gt;
+    &lt;/framework:restrictions&gt;
+&lt;/framework:entity-query&gt;</pre> 
+<p>注意“example”对象的使用。</p> 
+<pre class="programlisting">&lt;h1&gt;Search for people&lt;/h1&gt;
+&lt;h:form&gt;
+    &lt;div&gt;First name: &lt;h:inputText value=&quot;#{examplePerson.firstName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;Last name: &lt;h:inputText value=&quot;#{examplePerson.lastName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;h:commandButton value=&quot;Search&quot; action=&quot;/search.jsp&quot;/&gt;&lt;/div&gt;
+&lt;/h:form&gt;
+
+&lt;h:dataTable value=&quot;#{people.resultList}&quot; var=&quot;person&quot;&gt;
+    &lt;h:column&gt;
+        &lt;s:link view=&quot;/editPerson.jsp&quot; value=&quot;#{person.firstName} #{person.lastName}&quot;&gt;
+            &lt;f:param name=&quot;personId&quot; value=&quot;#{person.id}&quot;/&gt;
+        &lt;/s:link&gt;
+    &lt;/h:column&gt;
+&lt;/h:dataTable&gt;</pre> 
+<p>在底层实体发生改变后，可以通过监听 <tt class="literal"><font face="新宋体">org.jboss.seam.afterTransactionSuccess</font></tt> 事件来刷新查询：</p> 
+<pre class="programlisting">&lt;event type=&quot;org.jboss.seam.afterTransactionSuccess&quot;&gt;
+    &lt;action execute=&quot;#{people.refresh}&quot; /&gt;
+&lt;/event&gt;</pre> 
+<p>或者，在发生持久化、更新或者删除时，通过 <tt class="literal"><font face="新宋体">PersonHome</font></tt> 来刷新查询：</p> 
+<pre class="programlisting">&lt;event type=&quot;org.jboss.seam.afterTransactionSuccess.Person&quot;&gt;
+    &lt;action execute=&quot;#{people.refresh}&quot; /&gt;
+&lt;/event&gt;</pre> 
+<p>这个部分所有的例子都是通过配置来体现重用的，但是，对Query对象通过扩展来进行重用也是可行的。</p> 
+<p>=======================</p> 
+<h2 style="clear: both" class="title">11.2. Home对象（hxzon节选，页面参数</h2> 
+<p> </p> 
+<p>我们可以直接从一个JSF页面使用一个Home，如下例：</p> 
+<pre class="programlisting">&lt;h1&gt;Create Person&lt;/h1&gt;
+&lt;h:form&gt;
+    &lt;div&gt;First name: &lt;h:inputText value=&quot;#{personHome.instance.firstName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;Last name: &lt;h:inputText value=&quot;#{personHome.instance.lastName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;
+        &lt;h:commandButton value=&quot;Create Person&quot; action=&quot;#{personHome.persist}&quot;/&gt;
+    &lt;/div&gt;
+&lt;/h:form&gt;</pre> 
+<p>通常，只用<tt class="literal"><font face="新宋体">person</font></tt> 指明person漂亮得多，所以在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中添加一行语句来实现。</p> 
+<pre class="programlisting">&lt;factory name=&quot;person&quot;
+         value=&quot;#{personHome.instance}&quot;/&gt;
+
+&lt;framework:entity-home name=&quot;personHome&quot;
+                       entity-class=&quot;eg.Person&quot; /&gt;</pre> 
+<p>（如果我们使用配置的方法。） 或者，我们可以通过向 <tt class="literal"><font face="新宋体">PersonHome</font></tt> 中添加一个 <tt class="literal"><font face="新宋体">@Factory</font></tt> 方法来实现：</p> 
+<pre class="programlisting">@Name(&quot;personHome&quot;)
+public class PersonHome extends EntityHome&lt;Person&gt; {
+
+    @Factory(&quot;person&quot;)
+    public Person initPerson() { return getInstance(); }
+
+}</pre> 
+<p>（如果我们使用类扩展的方法） 这个修改使我们的JSF页面简化如下：</p> 
+<pre class="programlisting">&lt;h1&gt;Create Person&lt;/h1&gt;
+&lt;h:form&gt;
+    &lt;div&gt;First name: &lt;h:inputText value=&quot;#{person.firstName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;Last name: &lt;h:inputText value=&quot;#{person.lastName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;
+        &lt;h:commandButton value=&quot;Create Person&quot; action=&quot;#{personHome.persist}&quot;/&gt;
+    &lt;/div&gt;
+&lt;/h:form&gt;</pre> 
+<p>好，这就可以用来创建新的 <tt class="literal"><font face="新宋体">Person</font></tt> 实体了。是的，这就是所需的全部代码！现在，如果我们想显示，更新，删除数据库中已经存在的 <tt class="literal"><font face="新宋体">Person</font></tt> 实体，我们需要将实体标识符传递给 <tt class="literal"><font face="新宋体">PersonHome</font></tt>。页面参数是一种非常好的实现方式：</p> 
+<pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/editPerson.jsp&quot;&gt;
+        &lt;param name=&quot;personId&quot; value=&quot;#{personHome.id}&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+<p>现在，我们可以向JSF页面中增加其他的操作：</p> 
+<pre class="programlisting">&lt;h1&gt;
+    &lt;h:outputText rendered=&quot;#{!personHome.managed}&quot; value=&quot;Create Person&quot;/&gt;
+    &lt;h:outputText rendered=&quot;#{personHome.managed}&quot; value=&quot;Edit Person&quot;/&gt;
+&lt;/h1&gt;
+&lt;h:form&gt;
+    &lt;div&gt;First name: &lt;h:inputText value=&quot;#{person.firstName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;Last name: &lt;h:inputText value=&quot;#{person.lastName}&quot;/&gt;&lt;/div&gt;
+    &lt;div&gt;
+        &lt;h:commandButton value=&quot;Create Person&quot; action=&quot;#{personHome.persist}&quot; rendered=&quot;#{!personHome.managed}&quot;/&gt;
+        &lt;h:commandButton value=&quot;Update Person&quot; action=&quot;#{personHome.update}&quot; rendered=&quot;#{personHome.managed}&quot;/&gt;
+        &lt;h:commandButton value=&quot;Delete Person&quot; action=&quot;#{personHome.remove}&quot; rendered=&quot;#{personHome.managed}&quot;/&gt;
+    &lt;/div&gt;
+&lt;/h:form&gt;</pre> 
+<p>当我们没有带任何请求参数链接到该页面时，会显示&quot;Create Person&quot;页面，当我们为 <tt class="literal"><font face="新宋体">personId</font></tt> 这个请求参数设定一个值时，会显示“Edit Person”页面。</p> 
+<p><a href="http://www.redsaga.com/opendoc/Seam2.0/html/framework.html">http://www.redsaga.com/opendoc/Seam2.0/html/framework.html</a> Chapter 11. Seam应用程序框架</p></div></body></html>

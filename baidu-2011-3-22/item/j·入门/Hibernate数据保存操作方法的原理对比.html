@@ -1,0 +1,629 @@
+<html><head><title><div class="tit">
+  Hibernate数据保存操作方法的原理对比
+</div></title></head><body><div id='tit'>Hibernate数据保存操作方法的原理对比</div><div id='cate'>j&middot;入门</div><div id='date'>2008年08月15日 星期五 04:54 P.M.</div><div id='page'>110</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c8e57ef02b99fbc57831aa05.html'>http://hi.baidu.com/hxzon/blog/item/c8e57ef02b99fbc57831aa05.html</a><div id='cnt'><div>
+ Hibernate数据保存操作方法的原理对比
+</div> 
+<div> 
+</div> 
+<div>
+ <a href="http://fantasyyong.javaeye.com/blog/146685">http://fantasyyong.javaeye.com/blog/146685</a>
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 首先看看中文翻译的Hibernate的Session的javadoc
+</div> 
+<div> 
+</div> 
+<div>
+ Interface Session 
+ <br /> All Superinterfaces: 
+ <br /> Serializable 
+ <br /> All Known Subinterfaces: 
+ <br /> EventSource, Session 
+ <br /> All Known Implementing Classes: 
+ <br /> SessionImpl
+</div> 
+<div> 
+</div> 
+<div>
+ public interface Session extends Serializable
+</div> 
+<div> 
+</div> 
+<div>
+ Java应用程序与Hibernate之间的主要运行时接口。它是抽象了持久化服务概念的核心抽象API类。
+</div> 
+<div> 
+</div> 
+<div>
+ Session的生命周期绑定在一个物理的事务（tansaction）上面。（长的事务可能跨越多个数据库事物。）
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 引用
+</div> 
+<div> 
+</div> 
+<div>
+ Session的主要功能是提供对映射的实体类实例的创建，读取和删除操作。 
+ <br /> 实例可能以下面三种状态存在: 
+ <br /> 瞬态或者自由态（transient）: 不曾进行持久化，未与任何Session相关联 
+ <br /> 持久化状态（persistent）: 仅与一个Session相关联 
+ <br /> 脱管状态或者游离态（detached）: 已经进行过持久化，但当前未与任何Session相关联
+</div> 
+<div> 
+</div> 
+<div>
+ 游离状态的实例可以通过调用save()、persist()或者saveOrUpdate()方法进行持久化。 
+ <br /> 持久化实例可以通过调用 delete()变成游离状态。 
+ <br /> 通过get()或load()方法得到的实例都是持久化状态的。 
+ <br /> 游离状态的实例可以通过调用 update()、0saveOrUpdate()、lock()或者replicate()进行持久化。 
+ <br /> 游离或者自由状态下的实例可以通过调用merge()方法成为一个新的持久化实例。
+</div> 
+<div> 
+</div> 
+<div>
+ save()和persist()将会引发SQL的INSERT，delete()会引发SQLDELETE，而update()或merge()会引发SQLUPDATE。 
+ <br /> 对持久化（persistent）实例的修改在刷新提交的时候会被检测到，它也会引起SQLUPDATE。 
+ <br /> saveOrUpdate()或者replicate()会引发SQLINSERT或者UPDATE。
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 其具体实现并不一定是线程安全的。每个线程/事务应该从一个SessionFactory获取自己的session实例。
+</div> 
+<div> 
+</div> 
+<div>
+ 如果其持久化对象类是可序列化的，则Session实例也是可序列化的。
+</div> 
+<div> 
+</div> 
+<div>
+ 一个典型的事务应该使用下面的形式：
+</div> 
+<div> 
+</div> 
+<div>
+ Java代码 
+ <br /> Session sess = factory.openSession();&nbsp;&nbsp; 
+ <br /> Transaction tx;&nbsp;&nbsp; 
+ <br /> try {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; tx = sess.beginTransaction();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //do some work&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; ...&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; tx.commit();&nbsp;&nbsp; 
+ <br /> }&nbsp;&nbsp; 
+ <br /> catch (Exception e) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; if (tx!=null) tx.rollback();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; throw e;&nbsp;&nbsp; 
+ <br /> }&nbsp;&nbsp; 
+ <br /> finally {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; sess.close();&nbsp;&nbsp; 
+ <br /> } 
+ <br /> Session sess = factory.openSession();
+ <br /> Transaction tx;
+ <br /> try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; tx = sess.beginTransaction();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //do some work
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ...
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; tx.commit();
+ <br /> }
+ <br /> catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if (tx!=null) tx.rollback();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; throw e;
+ <br /> }
+ <br /> finally {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; sess.close();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 如果Session抛出了异常, 事务必须回滚而session会被废弃。在异常发生后Session的内部状态可能会与数据库失去同步。
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 引用
+</div> 
+<div> 
+</div> 
+<div>
+ save方法 
+ <br /> public Serializable save(Object object) 
+ <br /> throws HibernateException
+</div> 
+<div> 
+</div> 
+<div>
+ Persist the given transient instance, first assigning a generated identifier. 
+ <br /> (Or using the current value of the identifier property if the assigned generator is used.) 
+ <br /> This operation cascades to associated instances if the association is mapped with cascade=&quot;save-update&quot;. 
+ <br /> 持久化指定的游离态对象，首先要分配一个自动生成的主键标示符。 
+ <br /> (或者如果主键生成器正在使用，使用当前主键标示符属性值) 
+ <br /> 如果关联关系映射配置了cascade=&quot;save-update&quot;属性，save操作对关联对象级联操作。 
+ <br /> Parameters: 
+ <br /> object - a transient instance of a persistent class 
+ <br /> 一个要持久化类的自由状态的实例对象 
+ <br /> Returns: 
+ <br /> the generated identifier 
+ <br /> 返回生成的主键标示符 
+ <br /> Throws: 
+ <br /> HibernateException
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 实例： 
+ <br /> Session.save()方法用于实体对象的持久化保存，也就是说当执行session.save()方法时会生成对应的insert SQL语句，完成数据的保存。 
+ <br /> 如下面的代码：
+</div> 
+<div> 
+</div> 
+<div>
+ Java代码 
+ <br /> public static void insertUser()&nbsp;&nbsp; 
+ <br /> {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; Session sess = HibernateSessionFactory.getSession();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; User user = new User();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; Transaction tx = null;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; try 
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tx = sess.beginTransaction();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // do some work&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setLogonName(&quot;关羽&quot;);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setNickName(&quot;关云长&quot;);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setPassword(&quot;1234&quot;);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sess.save(user);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tx.commit();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; catch (Exception e)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (tx != null)&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tx.rollback();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; finally 
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sess.close();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> } 
+ <br /> &nbsp;&nbsp;&nbsp; public static void insertUser()
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Session sess = HibernateSessionFactory.getSession();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; User user = new User();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Transaction tx = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tx = sess.beginTransaction();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // do some work
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setLogonName(&quot;关羽&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setNickName(&quot;关云长&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.setPassword(&quot;1234&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sess.save(user);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tx.commit();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; catch (Exception e)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (tx != null)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tx.rollback();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; finally
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sess.close();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 当执行到session.save()方法时，Hibernate并不会马上生成insert SQL语句来进行数据的保存，而是当稍后清理session的缓存时才有可能执行insert SQL语句，那么session.save()方法到底会执行哪些步骤呢？
+</div> 
+<div> 
+</div> 
+<div>
+ Hibernate3.2中save()方法实现的源代码：
+</div> 
+<div> 
+</div> 
+<div>
+ 引用
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> Java代码 
+ <br /> /** 
+ <br /> * Concrete implementation of a Session, and also the central, organizing component 
+ <br /> * of Hibernate's internal implementation. As such, this class exposes two interfaces; 
+ <br /> * Session itself, to the application, and SessionImplementor, to other components 
+ <br /> * of Hibernate. This class is not threadsafe. 
+ <br /> * 
+ <br /> * @author Gavin King 
+ <br /> */ 
+ <br /> public final class SessionImpl extends AbstractSessionImpl&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; implements EventSource, org.hibernate.classic.Session, JDBCContext.Context {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; // save() operations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public void save(Object obj, Serializable id) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; save(null, obj, id);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public Serializable save(Object obj) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return save(null, obj);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public Serializable save(String entityName, Object object) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return fireSave( new SaveOrUpdateEvent(entityName, object, this) );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public void save(String entityName, Object object, Serializable id) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fireSave( new SaveOrUpdateEvent(entityName, object, id, this) );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; private Serializable fireSave(SaveOrUpdateEvent event) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; errorIfClosed();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; checkTransactionSynchStatus();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SaveOrUpdateEventListener[] saveEventListener = listeners.getSaveEventListeners();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( int i = 0; i &lt; saveEventListener.length; i++ ) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; saveEventListener[i].onSaveOrUpdate(event);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return event.getResultId();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码&nbsp;&nbsp; 
+ <br /> } 
+ <br /> /**
+ <br /> * Concrete implementation of a Session, and also the central, organizing component
+ <br /> * of Hibernate's internal implementation. As such, this class exposes two interfaces;
+ <br /> * Session itself, to the application, and SessionImplementor, to other components
+ <br /> * of Hibernate. This class is not threadsafe.
+ <br /> *
+ <br /> * @author Gavin King
+ <br /> */
+ <br /> public final class SessionImpl extends AbstractSessionImpl 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; implements EventSource, org.hibernate.classic.Session, JDBCContext.Context {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码
+ <br /> &nbsp;&nbsp;&nbsp; // save() operations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void save(Object obj, Serializable id) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; save(null, obj, id);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public Serializable save(Object obj) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return save(null, obj);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public Serializable save(String entityName, Object object) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return fireSave( new SaveOrUpdateEvent(entityName, object, this) );
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void save(String entityName, Object object, Serializable id) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fireSave( new SaveOrUpdateEvent(entityName, object, id, this) );
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private Serializable fireSave(SaveOrUpdateEvent event) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; errorIfClosed();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; checkTransactionSynchStatus();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SaveOrUpdateEventListener[] saveEventListener = listeners.getSaveEventListeners();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( int i = 0; i &lt; saveEventListener.length; i++ ) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; saveEventListener[i].onSaveOrUpdate(event);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return event.getResultId();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 持久化指定的游离态对象，首先要分配一个自动生成的主键标示符。(或者如果主键生成器正在使用，使用当前主键标示符属性值)
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 引用
+ <br /> 请看进行了如下总结： 
+ <br /> 一、在session的内部缓存中寻找保存对象，如果找到了，则认为此数据已经保存（曾经执行过insert操作），实体对象已经处于persistent状态，直接返回。此时即使数据相比之前的状态发生了变化，也将在事务提交时由脏数据检查来判定是否需要执行update操作。
+</div> 
+<div> 
+</div> 
+<div>
+ 二、如果实体对象实现了lifecycle接口，那么将执行待保存对象的onSave()方法。
+</div> 
+<div> 
+</div> 
+<div>
+ 三、如果实体对象实现了Validatable接口，那么将会执行相应的validate()方法。
+</div> 
+<div> 
+</div> 
+<div>
+ 四、如果存在拦截器对象，那么将会执行Interceptor.onSave()方法。
+</div> 
+<div> 
+</div> 
+<div>
+ 五、构造insert SQL语句完成数据保存。
+</div> 
+<div> 
+</div> 
+<div>
+ 六、数据保存成功后，设定实体对象的id为插入记录的id。
+</div> 
+<div> 
+</div> 
+<div>
+ 七、将保存后的实体对象纳入Hibernate的内部缓存（一级缓存）。注意Hibernate不会把保存后的实体对象纳入二级缓存，因为刚刚保存过的实体对象很可能在之后被修改，缓存的频繁更新以及带来的同步问题代价，超出了缓存该对象所带来的收益。
+</div> 
+<div> 
+</div> 
+<div>
+ 八、如果关联关系映射配置了cascade=&quot;save-update&quot;属性，save操作对关联对象级联操作。
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 引用
+</div> 
+<div> 
+</div> 
+<div>
+ update方法 
+ <br /> public void update(Object object) 
+ <br /> throws HibernateException
+</div> 
+<div> 
+</div> 
+<div>
+ Update the persistent instance with the identifier of the given detached instance. 
+ <br /> If there is a persistent instance with the same identifier, an exception is thrown. 
+ <br /> This operation cascades to associated instances if the association is mapped with cascade=&quot;save-update&quot;. 
+ <br /> 使用给定的游离状态对象的主键标示符来更新持久化状态实例对象。 
+ <br /> 如果存在相同主键标示符的持久化状态对象，抛出异常。 
+ <br /> 如果关联关系映射配置了cascade=&quot;save-update&quot;属性，update操作对关联对象级联操作。
+</div> 
+<div> 
+</div> 
+<div>
+ Parameters: 
+ <br /> object - a detached instance containing updated state 
+ <br /> 包含了要更新状态的游离状态对象 
+ <br /> Throws: 
+ <br /> HibernateException
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ Hibernate3.2中update()方法实现的源代码：
+</div> 
+<div> 
+</div> 
+<div>
+ 引用
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> Java代码 
+ <br /> /** 
+ <br /> * Concrete implementation of a Session, and also the central, organizing component 
+ <br /> * of Hibernate's internal implementation. As such, this class exposes two interfaces; 
+ <br /> * Session itself, to the application, and SessionImplementor, to other components 
+ <br /> * of Hibernate. This class is not threadsafe. 
+ <br /> * 
+ <br /> * @author Gavin King 
+ <br /> */ 
+ <br /> public final class SessionImpl extends AbstractSessionImpl&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; implements EventSource, org.hibernate.classic.Session, JDBCContext.Context {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; // update() operations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public void update(Object obj) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; update(null, obj);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public void update(Object obj, Serializable id) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; update(null, obj, id);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public void update(String entityName, Object object) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fireUpdate( new SaveOrUpdateEvent(entityName, object, this) );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public void update(String entityName, Object object, Serializable id) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fireUpdate(new SaveOrUpdateEvent(entityName, object, id, this));&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; private void fireUpdate(SaveOrUpdateEvent event) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; errorIfClosed();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; checkTransactionSynchStatus();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SaveOrUpdateEventListener[] updateEventListener = listeners.getUpdateEventListeners();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( int i = 0; i &lt; updateEventListener.length; i++ ) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; updateEventListener[i].onSaveOrUpdate(event);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码&nbsp;&nbsp; 
+ <br /> } 
+ <br /> /**
+ <br /> * Concrete implementation of a Session, and also the central, organizing component
+ <br /> * of Hibernate's internal implementation. As such, this class exposes two interfaces;
+ <br /> * Session itself, to the application, and SessionImplementor, to other components
+ <br /> * of Hibernate. This class is not threadsafe.
+ <br /> *
+ <br /> * @author Gavin King
+ <br /> */
+ <br /> public final class SessionImpl extends AbstractSessionImpl 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; implements EventSource, org.hibernate.classic.Session, JDBCContext.Context {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码
+ <br /> &nbsp;&nbsp;&nbsp; // update() operations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void update(Object obj) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; update(null, obj);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void update(Object obj, Serializable id) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; update(null, obj, id);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void update(String entityName, Object object) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fireUpdate( new SaveOrUpdateEvent(entityName, object, this) );
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void update(String entityName, Object object, Serializable id) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fireUpdate(new SaveOrUpdateEvent(entityName, object, id, this));
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void fireUpdate(SaveOrUpdateEvent event) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; errorIfClosed();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; checkTransactionSynchStatus();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SaveOrUpdateEventListener[] updateEventListener = listeners.getUpdateEventListeners();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( int i = 0; i &lt; updateEventListener.length; i++ ) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; updateEventListener[i].onSaveOrUpdate(event);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 实例： 
+ <br /> 前面我在实体对象状态转化部分曾经讲过，session.update()方法能够将一个处于游离状态的对象，重新纳入Hibernate的内部缓存，变成持久化对象。 
+ <br /> 如下面的代码：
+</div> 
+<div> 
+</div> 
+<div>
+ Java代码 
+ <br /> Configuration cfg = new Configuration();&nbsp;&nbsp; 
+ <br /> SessionFactory sf=cfg. configure().buildSessionFactory();&nbsp;&nbsp; 
+ <br /> Customer customer=new Customer(&quot;关羽&quot;,27);//customer对象处于自由状态&nbsp;&nbsp; 
+ <br /> Session session=sf.openSession();&nbsp;&nbsp; 
+ <br /> // 开启事务&nbsp;&nbsp;&nbsp; 
+ <br /> Transaction tx=session.beginTransaction();&nbsp;&nbsp; 
+ <br /> //保存后customer对象处于持久化状态&nbsp;&nbsp; 
+ <br /> session.save(customer);&nbsp;&nbsp; 
+ <br /> //清空缓存后customer对象处于游离状态&nbsp;&nbsp; 
+ <br /> session.flush();&nbsp;&nbsp; 
+ <br /> // 提交事务&nbsp;&nbsp; 
+ <br /> tx.commit();&nbsp;&nbsp; 
+ <br /> //session关闭&nbsp;&nbsp; 
+ <br /> session.close();&nbsp;&nbsp; 
+ <br /> 
+ <br /> // 又开启一个新的session&nbsp;&nbsp;&nbsp; 
+ <br /> Session session2=sf.openSession();&nbsp;&nbsp; 
+ <br /> Transaction tx2=session2.beginTransaction();&nbsp;&nbsp; 
+ <br /> //通过调用update()方法将游离状态的customer对象，再次转化成持久化状态&nbsp;&nbsp; 
+ <br /> session2.update(customer);&nbsp;&nbsp; 
+ <br /> //调用delete()方法后，当清空缓存时，会将customer对象移出缓存，同时会在数据库中生成delete事务，来删除customer对象对应的数据记录&nbsp;&nbsp; 
+ <br /> session2.delete(customer);&nbsp;&nbsp; 
+ <br /> tx.commit();&nbsp;&nbsp; 
+ <br /> session.close(); 
+ <br /> Configuration cfg = new Configuration();
+ <br /> SessionFactory sf=cfg. configure().buildSessionFactory();
+ <br /> Customer customer=new Customer(&quot;关羽&quot;,27);//customer对象处于自由状态
+ <br /> Session session=sf.openSession();
+ <br /> // 开启事务 
+ <br /> Transaction tx=session.beginTransaction();
+ <br /> //保存后customer对象处于持久化状态
+ <br /> session.save(customer);
+ <br /> //清空缓存后customer对象处于游离状态
+ <br /> session.flush();
+ <br /> // 提交事务
+ <br /> tx.commit();
+ <br /> //session关闭
+ <br /> session.close();
+</div> 
+<div> 
+</div> 
+<div>
+ // 又开启一个新的session 
+ <br /> Session session2=sf.openSession();
+ <br /> Transaction tx2=session2.beginTransaction();
+ <br /> //通过调用update()方法将游离状态的customer对象，再次转化成持久化状态
+ <br /> session2.update(customer);
+ <br /> //调用delete()方法后，当清空缓存时，会将customer对象移出缓存，同时会在数据库中生成delete事务，来删除customer对象对应的数据记录
+ <br /> session2.delete(customer);
+ <br /> tx.commit();
+ <br /> session.close();
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

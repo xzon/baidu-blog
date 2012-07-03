@@ -1,0 +1,225 @@
+<html><head><title><div class="tit">
+  引用 转载:关于Java占用内存的研究 （作者zms）
+</div></title></head><body><div id='tit'>引用 转载:关于Java占用内存的研究 （作者zms）</div><div id='cate'>细节</div><div id='date'>2008年03月25日 星期二 10:44 P.M.</div><div id='page'>155</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c75e37ad07a6960d4b36d69d.html'>http://hi.baidu.com/hxzon/blog/item/c75e37ad07a6960d4b36d69d.html</a><div id='cnt'><p>引用 转载:关于Java占用内存的研究 （作者zms）</p> 
+<p><em>引用</em></p> 
+<blockquote>
+ <a target="_blank" href="http://blog.163.com/winterdyoung"><font color="#000000">瓜瓜</font></a> 的 
+ <a target="_blank" href="http://blog.163.com/winterdyoung/blog/static/8671395200610942630936"><font color="#000000">转载:关于Java占用内存的研究 （作者zms）</font></a>
+ <br /> 关于Java占用内存的研究 （转载请注明作者zms）
+ <br /> 
+ <br /> 最近对程序占用内存方面做了一些优化，取得了不错的效果，总结了一些经验
+ <br /> 简要说一下，相信会对大家写出优质的程序有所帮助
+ <br /> 下面的论述针对32位系统，对64位系统不适用，后叙
+ <br /> 
+ <br /> 经常你写了一个程序，一测试，功能没问题，一看内存占用也不多，就不去考虑其它的东西了。但可能程序使用了一个什么数据结构，会当数据规模变大时，内存占用激增。
+ <br /> 
+ <br /> 基本&amp;关键的问题是，Java里各种东东占多少内存？？？？？？？？？
+ <br /> 
+ <br /> 对于primitive类型，有8个
+ <br /> byte short int long float double char boolean 它们的长度分别是
+ <br /> 1 2 4 8 4 8 2 1
+ <br /> 这个不罗嗦了，举例来说
+ <br /> long[] data=new long[1000];
+ <br /> 占用内存 8*1000 bytes
+ <br /> 此外，data本身是一个Object，也占用内存若干，后叙，当然它针对 8*1000来说，忽略不计
+ <br /> 
+ <br /> 再说Object的占用，在说这个之前，先说说引用，一惯的说法是
+ <br /> Java里没有指针了，只有引用，引用是安全的
+ <br /> 
+ <br /> 这个说法没错，但是从机理上来说，引用就是指针，只是jvm对指针的使用检查和限制很多，这个引用/指针变得很安全
+ <br /> 
+ <br /> 直接来结论：一个引用占4byte ，在32位系统上
+ <br /> 
+ <br /> Object obj=null;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //4byte
+ <br /> Object[] objs=new Object[1000]; //至少4*1000byte
+ <br /> 
+ <br /> 你看我定义了一个 obj，还是null，就占4byte
+ <br /> 定义了一个 objs,1000个元素，但都是null啊，就都每个占4byte
+ <br /> 是的！！！！！
+ <br /> 虽然obj==null，但它已经是 一个引用，或者说一个指针了
+ <br /> 指针也要占地方啊！！！！啊！！！！啊！！！！
+ <br /> 
+ <br /> 接下来，直接给另一个结论： Object占8byte，注意，纯Object
+ <br /> 
+ <br /> Object obj=new Object(); //多少？？？？
+ <br /> 
+ <br /> 8byte？？ 错！！ 12byte，忘了还有一个引用，8byte是Object的内容
+ <br /> 记住 Object obj=new Object(); 占12byte
+ <br /> 
+ <br /> Object[] objs=new Object[1000];
+ <br /> for(int i=0;i&lt;1000;i++) {
+ <br /> objs[i]=new Object();
+ <br /> }
+ <br /> 
+ <br /> 至少占用 12*1000 bytes
+ <br /> 
+ <br /> 推论： Object占12bytes，似乎和上面的结论矛盾？？！！
+ <br /> 没有！！ 不管Object，没有被垃圾回收之前，总得被别人引用吧？
+ <br /> 总的有指针指它吧？ 既然指，那个引用or指针就要占地方啊 4byte
+ <br /> 加起来是12byte，反正一个Object至少 12bytes
+ <br /> 
+ <br /> 还是直接给结论，推导的过程我就都包办了，咱不是脏活累活抢着干么！！
+ <br /> 一个Integer占 16 bytes
+ <br /> 
+ <br /> 这时您可能会有疑问，Integer=Object+int，就是：
+ <br /> public class Integer {
+ <br /> public int value;
+ <br /> }
+ <br /> Integer应该占 8+4=12 bytes啊
+ <br /> 你说的有道理，但是jvm对所有的Object有限制！！
+ <br /> 这个限制被我发现了，就是不管什么Object占的空间，要是8的倍数
+ <br /> 12不是8的倍数，只能是16了！！！
+ <br /> 
+ <br /> 推论：Byte也占16bytes!!!!!!!!!!!
+ <br /> 
+ <br /> 问：
+ <br /> Byte[] bytes=new Byte[1000];
+ <br /> 占用空间多少？
+ <br /> 答： 约为（至少为） (16+4)*1000 bytes
+ <br /> 好家伙！！！！！！！！
+ <br /> 
+ <br /> 
+ <br /> 论题：数组空间占用怎么算？
+ <br /> 我这里直接给结论了，推导这个花了更长的时间：
+ <br /> 对于数组来说，数组这个Object有一个length属性，数组的元素相当于其成员
+ <br /> public class Array {
+ <br /> public int length;
+ <br /> //... 其它成员
+ <br /> }
+ <br /> 对于数组，我们不是直接可以取length属性么，源于此
+ <br /> 
+ <br /> public byte[] bytes=new byte[1000]; 
+ <br /> System.out.println(bytes.length); // 看，有length属性
+ <br /> 上面的bytes换算过来是：
+ <br /> public class Array {
+ <br /> public int length;
+ <br /> public byte byte0;
+ <br /> public byte byte1;
+ <br /> ...
+ <br /> public byte byte999;
+ <br /> }
+ <br /> 上面的bytes占用的内存是：
+ <br /> 4+[8+4 + 1*1000] = 4+ [1012]=4+1016=1020
+ <br /> 4是 bytes这个引用，8是Object基占的，4是length属性占的
+ <br /> 1000是1000个成员占的，本来是 1012，但要求是8的倍数，变成 1016了
+ <br /> 总共是 1020
+ <br /> 再如：
+ <br /> byte[] bytes=new byte[4];
+ <br /> 的内存占用是:
+ <br /> 4+[8+4+4*1]=4+[16]=20;
+ <br /> 
+ <br /> byte[] bytes=new byte[3]; 也是 20
+ <br /> 
+ <br /> 对于元素是Object的数组，Object也是当作其成员，（注意只有引用这个数组的空间，这个可以推到普通Class上）
+ <br /> 
+ <br /> Byte[] bytes=new Byte[1000];
+ <br /> 这个 bytes的定义相当于:
+ <br /> public class Array {
+ <br /> public int length;
+ <br /> public Byte byte0;
+ <br /> .....
+ <br /> public Byte byte999;
+ <br /> }
+ <br /> 占用空间是：
+ <br /> 4+[8+4+4*1000]+16*1000= 4+ 4016 + 16000 = 你自己算吧
+ <br /> 
+ <br /> 推论：千万不要用 Byte[] 有20倍的差距！！！！！！！
+ <br /> 
+ <br /> 
+ <br /> 你可能一下子没明白过来，没关系多琢磨一下，对于普通的class来说
+ <br /> ，内容占用就是基加成员的占用，Object成员只记引用
+ <br /> public class Abc {
+ <br /> &nbsp;&nbsp; public int n;
+ <br /> &nbsp;&nbsp; public byte b;
+ <br /> &nbsp;&nbsp; public Object obj;
+ <br /> }
+ <br /> 它的内容占用是： [8+4+1+4]=24
+ <br /> 所以 Abc one=new Abc()的占用是 4+24=28
+ <br /> 提醒：对于 Abc的成员 obj没有计，如果要计入的话，循环这个过程就可以了。（琢磨一下）
+ <br /> 
+ <br /> 举例：
+ <br /> 
+ <br /> public class Abc {
+ <br /> &nbsp;&nbsp; public byte b;
+ <br /> &nbsp;&nbsp; public Object obj=null;
+ <br /> }
+ <br /> 
+ <br /> public class Def {
+ <br /> &nbsp;&nbsp; public int n;
+ <br /> &nbsp;&nbsp; public byte b;
+ <br /> &nbsp;&nbsp; public Abc obj=new Abc();
+ <br /> }
+ <br /> 问：
+ <br /> Def one=new Def(); //占多少？
+ <br /> 答：
+ <br /> 4+[8+4+1+4]+[8+1+4]=4+24+16=44
+ <br /> 
+ <br /> 
+ <br /> public class Abc {
+ <br /> &nbsp;&nbsp; public byte b;
+ <br /> &nbsp;&nbsp; public Object obj=null;
+ <br /> }
+ <br /> 
+ <br /> public class Def {
+ <br /> &nbsp;&nbsp; public int n;
+ <br /> &nbsp;&nbsp; public byte b;
+ <br /> &nbsp;&nbsp; public Abc[] objs=new Abc[100];
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int i=0;i&lt;10;i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; objs[i]=new Abc();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> 问：
+ <br /> Def one=new Def(); //占多少？
+ <br /> 答：
+ <br /> kao，一下我也算不出来，不过我写了程序，可以算出来，你给它一个Object，它就能递归的算出总共占了多少内存，这个程序不复杂，你也可以写出来。我等机会合适了再放出。
+ <br /> 
+ <br /> 单独说一下String，String的结构是：
+ <br /> public class String {
+ <br /> &nbsp;&nbsp;&nbsp; private final char value[];
+ <br /> &nbsp;&nbsp;&nbsp; private final int offset;
+ <br /> &nbsp;&nbsp;&nbsp; private final int count;
+ <br /> &nbsp;&nbsp;&nbsp; private int hash; // Default to 0
+ <br /> }
+ <br /> 所以，不考虑那个char[]的占用，一个String最少占用 [8+4+4+4+4]=24bytes
+ <br /> 加上引用，共28bytes
+ <br /> 所以
+ <br /> String s=&quot;&quot;;
+ <br /> 占用28bytes！！！！！ 尽管它的长度为0
+ <br /> 如果精确的算，加上引用一个String的占用是
+ <br /> 4+24+[8+4+2*length]
+ <br /> String s=&quot;&quot;; 的占用是 28+16= 44
+ <br /> String s=&quot;ab&quot; 的占用是 28+16= 44
+ <br /> String s=&quot;abc&quot; 的占用是 28+24 = 52
+ <br /> 
+ <br /> 要说的是，String是常用的类，这么看，String耗内存很多，所以jvm有优化，同样的内容尽量重用，所以除了28是必须的外，那个char[] 很可能一样
+ <br /> 比方说
+ <br /> String[] s=new String[1000];
+ <br /> for(int i=0;i&lt;1000;i++) {
+ <br /> &nbsp;&nbsp; s[i]=new String(&quot;abcdefasdjflksadjflkasdfj&quot;);
+ <br /> }
+ <br /> 的占用的数量级是 28*1000，那 1000个字符串本身基本上不占内存，只有一份！！！！！！
+ <br /> 反正String 至少是 28,最多也可能是28！！！！！！！！
+ <br /> 
+ <br /> 
+ <br /> 比较占内存的数据结构，这个很重要：
+ <br /> 基本上就是 primitive的包装
+ <br /> 
+ <br /> 实例：
+ <br /> 我以前用一个
+ <br /> Hashtable&lt;String,Integer&gt;的结构，有100万个元素
+ <br /> 改为String[]＋int[]后，内存占用改观不少，速度也很快
+ <br /> 100万的String[] 快排一下，也就2秒多，查找用2分，和hash也差不多少
+ <br /> 
+ <br /> 完！
+ <br /> 
+ <br /> 
+ <br /> 说明：
+ <br /> 1。 以上结论适用于32位系统，对于64位系统，有很多不同。反正结论是虽然64位系统能用的内容更多了，但相同的程序占用内存也多了不少
+ <br /> 2。 上面讨论的是类的实例占用的内存，没有考虑静态变量的占用。 静态变量引用的是算在Class数据里的，内容的占用和实例无关，单独计算就可以了
+ <br /> 3。 以上没有考虑 Class本身占的内存。 Class本身也需要占地方啊，就是类的结构，以及静态变量的引用的占用。但是这个占用是静态的，不随实例变多而变多的。也不好统计出来，想统计的话，看jvm源码里jclass的表示
+ <br /> 4。 别人的劳动成果请尊敬，转载请注明作者zms
+ <br /> 
+ <br /> 
+</blockquote></div></body></html>

@@ -1,0 +1,51 @@
+<html><head><title><div class="tit">
+  为JTable加上Row Header
+</div></title></head><body><div id='tit'>为JTable加上Row Header</div><div id='cate'>j&middot;swing</div><div id='date'>2011年02月17日 星期四 01:38 P.M.</div><div id='page'>0</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/50fa49c21d3f7226e4dd3b78.html'>http://hi.baidu.com/hxzon/blog/item/50fa49c21d3f7226e4dd3b78.html</a><div id='cnt'><p>为JTable加上Row Header</p>
+<p>http://blog.csdn.net/turbochen/archive/2002/05/10/8088.aspx</p>
+<p>1.什么是Row Header?<br />先来了解什么是Column Header. 打开Excel, 位于表格列上方,标有A,B,C,D...的地方就叫Column Header. 那Row Header就是左方标有行号的地方了.</p>
+<p>2.为什么要为JTable加Row Header?<br />Swing中的JTable提供了强大的表格处理能力, 但只提供了Column Header功能,却没有直接提供加Row Header功能. </p>
+<p>3.如何实现?<br />要想为JTable加上Row Header或Column Header, 要先将JTable放入一个JScrollPane. 我们先来看看JScrollPane的结构:<br /><img src="image/为JTable加上Row Header..c1ecf41fca116130f724e472.jpg" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/c1ecf41fca116130f724e472.jpg</p><br />如图所示,JScrollPane有9个部分组成,我们可以用JScrollPane的以下这些方法,为这9个区域加上不同的组件:<br />setColumnHeaderView(Component view)<br />setCorner(String key, Component corner)<br />setHorizontalScrollBar(JScrollBar horizontalScrollBar)<br />setRowHeaderView(Component view)<br />setVerticalScrollBar(JScrollBar verticalScrollBar)<br />setViewportView(Component view)<br />其中有些方法的参数是Component,而几乎所有的swing组件都是由Component继承而来的,也就是说,我们可以为这些区域加上任意的swing组件.<br />再看如下代码:<br />public class ScrollableTable extends JFrame<br />{<br />&nbsp;&nbsp;&nbsp; public ScrollableTable()<br />&nbsp;&nbsp;&nbsp; {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JScrollPane scrollPane = new JScrollPane(new JTable(10,10));<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.getContentPane().add(scrollPane);<br />&nbsp;&nbsp;&nbsp; }<br />}<br />这 个类将一个10*10单元格大小的Table加入了JScrollPane中,即图中的JViewPort的位置放置JTable,并且自动会为 JTable加上Column Header,这个是Swing为我们自动完成的,我们只告诉它JTable加入了JScrollPane,ColumnHeader是它自动加上的.</p>
+<p>要想为JTable加上row header实际上是为JScrollPane的Row Header区域加上一个类似于row header的东东.那什么组件最适于充当row header呢? 还是JTable! 对.我们再放一个JTable在JScrollPane的Row Header区域,让其行数与JViewPort中的JTable一样,并显示每一行的行号.如下:<br />&nbsp;&nbsp;&nbsp; DefaultTableModel model = new DefaultTableModel(50,10);<br />&nbsp;&nbsp;&nbsp; DefaultTableModel rowheadmodel = new DefaultTableModel(50,10);<br />&nbsp;&nbsp;&nbsp; JTable&nbsp;table = new&nbsp;JTable(model);<br />&nbsp;&nbsp;&nbsp; JTable rowHeaderTable = new JTable(rowheadmodel);<br />&nbsp;&nbsp;&nbsp;&nbsp;rowheadmodel.setColumnCount(1);<br />&nbsp;&nbsp;&nbsp;&nbsp;rowheadmodel.setColumnIdentifiers(new Object[]{&quot;&quot;});<br />&nbsp;&nbsp;&nbsp;&nbsp;rowHeaderTable.setEnabled(false);<br />&nbsp;&nbsp;&nbsp;&nbsp;rowHeaderTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);<br />&nbsp;&nbsp;&nbsp;&nbsp;rowHeaderTable.getColumnModel().getColumn(0).setPreferredWidth(50);<br />&nbsp;&nbsp;&nbsp; <span style="color: rgb(77, 179, 77);">/*为rowHeaderTable设置预设的绘制器*/</span><br />&nbsp;&nbsp;&nbsp;&nbsp;rowHeaderTable.setDefaultRenderer(rowHeaderTable.getColumnClass(0),new <span style="color: rgb(34, 34, 255);">RowHeaderRenderer(table)</span>);<br />&nbsp;&nbsp;&nbsp;&nbsp;rowHeaderTable.setPreferredScrollableViewportSize (<br />&nbsp;&nbsp;&nbsp;&nbsp;new Dimension<br />&nbsp;&nbsp;&nbsp;&nbsp;(<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rowHeaderTable.getColumnModel().getColumn(0).getPreferredWidth()<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ,0<br />&nbsp;&nbsp;&nbsp;&nbsp;)<br />&nbsp;&nbsp;&nbsp;&nbsp;);<br />&nbsp;&nbsp;&nbsp; <span style="color: rgb(92, 187, 68);">/*将table加入JScrollPane*/<br /></span>&nbsp;&nbsp;&nbsp;&nbsp;JScrollPane scrollPane = new JScrollPane(table);<br />&nbsp;&nbsp;&nbsp; <span style="color: rgb(85, 170, 85);">/*将rowHeaderTable作为row header加入JScrollPane的RowHeaderView区域*/<br /></span>&nbsp;&nbsp;&nbsp; scrollPane.setRowHeaderView(rowHeaderTable);<br />&nbsp;&nbsp;&nbsp;&nbsp;this.getContentPane().add(scrollPane);<br />&nbsp;&nbsp;&nbsp; <br />大 家发现没有,在代码中有一个RowHeaderRenderer类(标为蓝色字体的),这个类是做什么的呢? 为了实现在table中新增、删除行时,rowHeaderTable的行数与行号一起变化,也为了Row Header看起来更像Header,我们实现了一个TableCellRenderer,用JLabel作为单元格的绘制器,并用:<br />public class RowHeaderRenderer extends JLabel implements TableCellRenderer<br />{<br />&nbsp;&nbsp;&nbsp; JTable reftable;</p>
+<p>&nbsp;&nbsp;&nbsp; public RowHeaderRenderer(JTable reftable)<br />&nbsp;&nbsp;&nbsp; {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.reftable = reftable;<br />&nbsp;&nbsp;&nbsp; }</p>&nbsp;&nbsp;&nbsp; public Component getTableCellRendererComponent(JTable table,
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object obj,
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; boolean isSelected,
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; boolean hasFocus,
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int row, int col)
+<br />&nbsp;&nbsp;&nbsp; {
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ((DefaultTableModel)table.getModel()).setRowCount(reftable.getRowCount());
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JTableHeader header = reftable.getTableHeader();
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.setOpaque(true);
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<span style="color: rgb(102, 170, 85);">/*设为TableHeader的边框类型*/</span>
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setBorder(UIManager.getBorder(&quot;TableHeader.cellBorder&quot;));
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setHorizontalAlignment(CENTER);
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<span style="color: rgb(85, 170, 85);">/*设置背景色为TableHeader的背景色*/<br /></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setBackground(header.getBackground());
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Font font = header.getFont();
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( isSelect(row) )&nbsp;&nbsp;&nbsp; 
+<span style="color: rgb(85, 170, 85);">/* 当选取单元格时,在row header上设置成选取颜色 */<br /></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setForeground(Color.white);
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setBackground(Color.lightGray);
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setFont(font);
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setText(String.valueOf(row+1));
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setForeground(header.getForeground());
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setFont(font);
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setText(String.valueOf(row+1));
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return this;
+<br />&nbsp;&nbsp;&nbsp; }
+<br />&nbsp;&nbsp;&nbsp; private boolean isSelect(int row)
+<br />&nbsp;&nbsp;&nbsp; {
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int[] sel = reftable.getSelectedRows();
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( int i=0; i&lt;sel.length; i++ )
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (sel[i] == row ) return true;
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+<br />&nbsp;&nbsp;&nbsp; }
+<br />}
+<p>&nbsp;</p>
+<p>&nbsp;</p></div></body></html>

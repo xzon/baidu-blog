@@ -1,0 +1,244 @@
+<html><head><title><div class="tit">
+  Painting in AWT and Swing
+</div></title></head><body><div id='tit'>Painting in AWT and Swing</div><div id='cate'>j&middot;swing</div><div id='date'>2009年09月04日 星期五 04:03 P.M.</div><div id='page'>32</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5c77a7441a96b68bb3b7dc33.html'>http://hi.baidu.com/hxzon/blog/item/5c77a7441a96b68bb3b7dc33.html</a><div id='cnt'><h1>Painting in AWT and Swing</h1> 
+<h3>Good Painting Code Is the Key to App Performance</h3> 
+<p>By Amy Fowler</p> 
+<p><img alt="Painter's palette" src="image/Painting in AWT and .painters_palette.gif" /><p class="origImg">http://java.sun.com/products/jfc/tsc/articles/painting/images/painters_palette.gif</p>In a graphical system, a windowing toolkit is usually responsible for providing a framework to make it relatively painless for a graphical user interface (GUI) to render the right bits to the screen at the right time.</p> 
+<p>Both the AWT (abstract windowing toolkit) and Swing provide such a framework. But the APIs that implement it are not well understood by some developers -- a problem that has led to programs not performing as well as they could.</p> 
+<p>This article explains the AWT and Swing paint mechanisms in detail. Its purpose is to help developers write correct and efficient GUI painting code. While the article covers the general paint mechanism (where and when to render), it does not tell how to use Swing's graphics APIs to render a correct output. To learn how to render nice graphics, visit the <a href="http://java.sun.com/products/java-media/2D/index.jsp">Java 2D Web site</a>.</p> 
+<p>The main topics covered in this article are:</p> 
+<ul> 
+ <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#background">Evolution of Paint System</a></li> 
+ <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#awt">Painting in the AWT</a> 
+  <ul> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#triggers">System-Triggered vs. App-Triggered Painting</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#callback">The Paint Method</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#lw">Painting &amp; Lightweight Components</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#smart">&quot;Smart&quot; Painting</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#awt_summary">AWT Painting Guidelines</a></li> 
+  </ul> </li> 
+ <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#swing">Painting in Swing</a> 
+  <ul> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#db">Double Buffering Support</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#props">Additional Paint Properties</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#callbacks">The Paint Methods</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#paint_process">Paint Processing</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#mgr">The Repaint Manager</a></li> 
+   <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#swing_summary">Swing Painting Guidelines</a></li> 
+  </ul> </li> 
+ <li><a href="http://java.sun.com/products/jfc/tsc/articles/painting/#the_summary">Summary</a></li> 
+</ul> 
+<h2><a name="background"></a>Evolution of the Swing Paint System</h2> 
+<p>When the original AWT API was developed for JDK 1.0, only heavyweight components existed (&quot;heavyweight&quot; means that the component has it's own opaque native window). This allowed the AWT to rely heavily on the paint subsystem in each native platform. This scheme took care of details such as damage detection, clip calculation, and z-ordering. With the introduction of lightweight components in JDK 1.1 (a &quot;lightweight&quot; component is one that reuses the native window of its closest heavyweight ancestor), the AWT needed to implement the paint processing for lightweight components in the shared Java code. Consequently, there are subtle differences in how painting works for heavyweight and lightweight components.</p> 
+<p>After JDK 1.1, when the Swing toolkit was released, it introduced its own spin on painting components. For the most part, the Swing painting mechanism resembles and relies on the AWT's. But it also introduces some differences in the mechanism, as well as new APIs that make it easier for applications to customize how painting works.</p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img src="image/Painting in AWT and .a.gif" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h2><a name="awt"></a>Painting in AWT</h2> 
+<p>To understand how AWT's painting API works, helps to know what triggers a paint operation in a windowing environment. In AWT, there are two kinds of painting operations: system-triggered painting, and application-triggered painting.</p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img src="image/Painting in AWT and .a.gif" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="triggers"></a>System-triggered Painting</h3> 
+<p>In a system-triggered painting operation, the system requests a component to render its contents, usually for one of the following reasons:</p> 
+<ul> 
+ <li>The component is first made visible on the screen.</li> 
+ <li>The component is resized.</li> 
+ <li>The component has damage that needs to be repaired. (For example, something that previously obscured the component has moved, and a previously obscured portion of the component has become exposed).</li> 
+</ul> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img src="image/Painting in AWT and .a.gif" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3>App-triggered Painting</h3> 
+<p>In an application-triggered painting operation, the component decides it needs to update its contents because its internal state has changed. (For example,. a button detects that a mouse button has been pressed and determines that it needs to paint a &quot;depressed&quot; button visual).</p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img src="image/Painting in AWT and .a.gif" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="callback">The Paint Method</a></h3> 
+<p>Regardless of how a paint request is triggered, the AWT uses a &quot;callback&quot; mechanism for painting, and this mechanism is the same for both heavyweight and lightweight components. This means that a program should place the component's rendering code inside a particular overridden method, and the toolkit will invoke this method when it's time to paint. The method to be overridden is in java.awt.Component:</p> 
+<pre>public void paint(Graphics g)</pre>
+<p>When AWT invokes this method, the Graphics object parameter is pre-configured with the appropriate state for drawing on this particular component:</p> 
+<ul> 
+ <li>The Graphics object's color is set to the component's foreground property.</li> 
+ <li>The Graphics object's font is set to the component's font property.</li> 
+ <li>The Graphics object's translation is set such that the coordinate (0,0) represents the upper left corner of the component.</li> 
+ <li>The Graphics object's clip rectangle is set to the area of the component that is in need of repainting.</li> 
+</ul> 
+<p>Programs must use this Graphics object (or one derived from it) to render output. They are free to change the state of the Graphics object as necessary.</p> 
+<p>Here is a simple example of a paint callback which renders a filled circle in the bounds of a component: </p> 
+<p> </p>
+<table cellspacing="0" cellpadding="10" border="0"> 
+ <tbody> 
+  <tr> 
+   <td> <pre>public void paint(Graphics g) {
+        // Dynamically calculate size information
+        Dimension size = getSize();
+        // diameter
+        int d = Math.min(size.width, size.height); 
+        int x = (size.width - d)/2;
+        int y = (size.height - d)/2;
+
+        // draw circle (color already set to foreground)
+        g.fillOval(x, y, d, d);
+        g.setColor(Color.black);
+        g.drawOval(x, y, d, d);
+    }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br />  
+<p>Developers who are new to AWT might want to take a peek at the <a href="http://java.sun.com/products/jfc/tsc/articles/painting/src/PaintDemo.java">PaintDemo example</a>, which provides a runnable program example of how to use the paint callback in an AWT program.</p> 
+<p> </p> 
+<p>In general, programs should avoid placing rendering code at any point where it might be invoked outside the scope of the paint callback. Why? Because such code may be invoked at times when it is not appropriate to paint -- for instance, before the component is visible or has access to a valid Graphics object. It is not recommended that programs invoke paint() directly.</p> 
+<p>To enable app-triggered painting, the AWT provides the following java.awt.Component methods to allow programs to asynchronously request a paint operation:</p> 
+<pre>public void repaint() 
+    public void repaint(long tm) 
+    public void repaint(int x, int y, int width, int height) 
+    public void repaint(long tm, int x, int y, 
+                   int width, int height)</pre>
+<p>The following code shows a simple example of a mouse listener that uses repaint() to trigger updates on a theoretical button component when the mouse is pressed and released:</p> 
+<p> </p>
+<table cellspacing="0" cellpadding="10" border="0"> 
+ <tbody> 
+  <tr> 
+   <td> <pre>MouseListener l = new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                MyButton b = (MyButton)e.getSource();
+                b.setSelected(true);
+                b.repaint();            
+            }
+
+            public void mouseReleased(MouseEvent e) {
+                MyButton b = (MyButton)e.getSource();
+                b.setSelected(false);
+                b.repaint();            
+            }
+        };</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br />  
+<p>Components that render complex output should invoke repaint() with arguments defining only the region that requires updating. A common mistake is to always invoke the no-arg version, which causes a repaint of the entire component, often resulting in unnecessary paint processing.</p> 
+<h4>paint() vs. update()</h4> 
+<p>Why do we make a distinction between &quot;system-triggered&quot; and. &quot;app-triggered&quot; painting? Because AWT treats each of these cases slightly differently for heavyweight components (the lightweight case will be discussed later), which is unfortunately a source of great confusion.</p> 
+<p>For heavyweight components, these two types of painting happen in the two distinct ways, depending on whether a painting operation is system-triggered or app-triggered.</p> 
+<h4>System-triggered painting</h4> 
+<p>This is how a system-triggered painting operation takes place:</p> 
+<ol> 
+ <li>The AWT determines that either part or all of a component needs to be painted.</li> 
+ <li>The AWT causes the event dispatching thread to invoke paint() on the component.</li> 
+</ol> 
+<h4>App-triggered painting</h4> 
+<p>An app-triggered painting operation takes place as follows:</p> 
+<ol> 
+ <li>The program determines that either part or all of a component needs to be repainted in response to some internal state change. <p> </p> </li> 
+ <li>The program invokes repaint() on the component, which registers an asynchronous request to the AWT that this component needs to be repainted. <p> </p> </li> 
+ <li>The AWT causes the event dispatching thread to invoke update() on the component. <p>NOTE: If multiple calls to repaint() occur on a component before the initial repaint request is processed, the multiple requests may be collapsed into a single call to update(). The algorithm for determining when multiple requests should be collapsed is implementation-dependent. If multiple requests are collapsed, the resulting update rectangle will be equal to the union of the rectangles contained in the collapsed requests.</p> <p> </p> </li> 
+ <li>If the component did not override update(), the default implementation of update() clears the component's background (if it's not a lightweight component) and simply calls paint().</li> 
+</ol> 
+<p>Since by default, the final result is the same (paint() is called), many people don't understand the purpose of having a separate update() method at all. While it's true that the default implementation of update() turns around and calls paint(), this update &quot;hook&quot; enables a program to handle the app-triggered painting case differently, if desired. A program must assume that a call to paint() implies that the area defined by the graphic's clip rectangle is &quot;damaged&quot; and must be completely repainted, however a call to update() does not imply this, which enables a program to do incremental painting.</p> 
+<p>Incremental painting is useful if a program wishes to layer additional rendering on top of the existing bits of that component. The <a href="http://java.sun.com/products/jfc/tsc/articles/painting/src/UpdateDemo.java">UpdateDemo example</a> demonstrates a program which benefits from using update() to do incremental painting.</p> 
+<p>In truth, the majority of GUI components do not need to do incremental drawing, so most programs can ignore the update() method and simply override paint() to render the component in it's current state. This means that both system-triggered and app-triggered rendering will essentially be equivelent for most component implementations.</p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img src="image/Painting in AWT and .a.gif" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="lw"></a>Painting &amp; Lightweight Components</h3> 
+<p>From an application developer's perspective, the paint API is basically the same for lightweights as it is for heavyweights (that is, you just override paint() and invoke repaint() to trigger updates). However, since AWT's lightweight component framework is written entirely in common Java code, there are some subtle differences in the way the mechanism is implemented for lightweights.</p> 
+<p> </p> 
+<h4>How Lightweights Get Painted</h4> 
+<p>For a lightweight to exist, it needs a heavyweight somewhere up the containment hierarchy in order to have a place to paint. When this heavyweight ancestor is told to paint its window, it must translate that paint call to paint calls on all of its lightweight descendents. This is handled by java.awt.Container's paint() method , which calls paint() on any of its visible, lightweight children which intersect with the rectangle to be painted. So it's critical for all Container subclasses (lightweight or heavyweight) that override paint() to do the following:</p> 
+<p> </p>
+<table cellspacing="0" cellpadding="10" border="0"> 
+ <tbody> 
+  <tr> 
+   <td> <pre>public class MyContainer extends Container {
+        public void paint(Graphics g) {
+     // paint my contents first...
+     // then, make sure lightweight children paint
+     super.paint(g); 
+        }
+    }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br />  
+<p>If the call to super.paint() is missing, then the container's lightweight descendents won't show up (a very common problem when JDK 1.1 first introduced lightweights).</p> 
+<p>It's worth noting that the default implementation of Container.update() does not use recursion to invoke update() or paint() on lightweight descendents. This means that any heavyweight Container subclass that uses update() to do incremental painting must ensure that lightweight descendents are recursively repainted if necessary. Fortunately, few heavyweight container components need incremental painting, so this issue doesn't affect most programs.</p> 
+<p> </p> 
+<h4>Lightweights &amp; System-triggered Painting</h4> 
+<p>The lightweight framework code that implements the windowing behaviors (showing, hiding, moving, resizing, etc.) for lightweight components is written entirely in Java. Often, within the Java implementation of these functions, the AWT must explicitly tell various lightweight components to paint (essentially system-triggered painting, even though it's no longer originating from the native system). However, the lightweight framework uses repaint() to tell components to paint, which we previously explained results in a call to update() instead of a direct call to paint(). Therefore, for lightweights, system-triggered painting can follow two paths:</p> 
+<ul> 
+ <li>The system-triggered paint request originates from the native system (i.e. the lightweight's heavyweight ancestor is first shown), which results in a direct call to paint(). <p> </p> </li> 
+ <li>The system-triggered paint request originates from the lightweight framework (i.e., the lightweight is resized), which results in a call to update(), which by default is forwarded to paint() .</li> 
+</ul> 
+<p>In a nutshell, this means that for lightweight components there is no real distinction between update() and paint(), which further implies that the incremental painting technique should not be used for lightweight components.</p> 
+<h4>Lightweights and Transparency</h4> 
+<p>Since lightweight components &quot;borrow&quot; the screen real estate of a heavyweight ancestor, they support the feature of transparency. This works because lightweight components are painted from back to front and therefore if a lightweight component leaves some or all of its associated bits unpainted, the underlying component will &quot;show through.&quot; This is also the reason that the default implementation of update() will not clear the background if the component is lightweight.</p> 
+<p>The <a href="http://java.sun.com/products/jfc/tsc/articles/painting/src/LightweightDemo.java">LightweightDemo</a> sample program demonstrates the transparency feature of lightweight components.</p> 
+<h3><a name="smart"></a>&quot;Smart&quot; Painting</h3> 
+<p>While the AWT attempts to make the process of rendering components as efficient as possible, a component's paint() implementation itself can have a significant impact on overall performance. Two key areas that can affect this process are:</p> 
+<ul> 
+ <li>Using the clip region to narrow the scope of what is rendered.</li> 
+ <li>Using internal knowledge of the layout to narrow the scope of what children are painted (lightweights only).</li> 
+</ul> 
+<p>If your component is simple -- for example, if it's a pushbutton -- then it's not worth the effort to factor the rendering in order to only paint the portion that intersects the clip rectangle; it's preferable to just paint the entire component and let the graphics clip appropriately. However, if you've created a component that renders complex output, like a text component, then it's critical that your code use the clip information to narrow the amount of rendering.</p> 
+<p>Further, if you're writing a complex lightweight container that houses numerous components, where the component and/or its layout manager has information about the layout, then it's worth using that layout knowledge to be smarter about determining which of the children must be painted. The default implementation of Container.paint() simply looks through the children sequentially and tests for visibility and intersection -- an operation that may be unnecessarily inefficient with certain layouts. For example, if a container layed out the components in a 100x100 grid, then that grid information could be used to determine more quickly which of those 10,000 components intersect the clip rectangle and actually need to be painted.</p> 
+<p></p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img src="image/Painting in AWT and .a.gif" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="awt_summary"></a>AWT Painting Guidelines</h3> 
+<p>The AWT provides a simple callback API for painting components. When you use it, the following guidelines apply:</p> 
+<ol> 
+ <li>For most programs, all client paint code should be placed within the scope of the component's paint() method. <p> </p> </li> 
+ <li>Programs may trigger a future call to paint() by invoking repaint(), but shouldn't call paint() directly. <p> </p> </li> 
+ <li>On components with complex output, repaint() should be invoked with arguments which define only the rectangle that needs updating, rather than the no-arg version, which causes the entire component to be repainted. <p> </p> </li> 
+ <li>Since a call to repaint() results first in a call to update(), which is forwarded to paint() by default, heavyweight components may override update() to do incremental drawing if desired (lightweights do not support incremental drawing) <p> </p> </li> 
+ <li>Extensions of java.awt.Container which override paint() should always invoke super.paint() to ensure children are painted. <p> </p> </li> 
+ <li>Components which render complex output should make smart use of the clip rectangle to narrow the drawing operations to those which intersects with the clip area.</li> 
+</ol> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img src="image/Painting in AWT and .a.gif" border="0" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div></div></body></html>

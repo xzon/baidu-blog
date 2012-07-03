@@ -1,0 +1,385 @@
+<html><head><title><div class="tit">
+  20,21,22-Hibernate容器映射技术(Set、List、Map) -mldn学习笔记 -hxzon
+</div></title></head><body><div id='tit'>20,21,22-Hibernate容器映射技术(Set、List、Map) -mldn学习笔记 -hxzon</div><div id='cate'>默认分类</div><div id='date'>2008年08月16日 星期六 03:57 P.M.</div><div id='page'>110</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/16fe504e144a860fb3de05a7.html'>http://hi.baidu.com/hxzon/blog/item/16fe504e144a860fb3de05a7.html</a><div id='cnt'><div>
+ 20,21,22-Hibernate容器映射技术(Set、List、Map) -mldn学习笔记 -hxzon
+</div> 
+<div> 
+</div> 
+<div>
+ 1、数据库并未设置外键关联，但是配置文件设置了关联。那么在执行hql语句时，不会级联删除。但是用session.delete(model)时会级联删除。
+ <br /> Hibernate提供的delete方法最大的缺点就是必须先把数据级联查询出来之后再删除，才能级联删除。最好的做法是用hql按id进行删除。这时要在数据库中设置外键关联。
+ <br /> 2、本例中只有一个主表Person生成model类，
+ <font color="#ff0000">从表不生成model类</font>。本例从表没有主键。数据库中不可能有完全相同的两行记录，所以List例子中数据库还有一个索引列posit作为区分。
+ <br /> =============================
+ <br /> 一、1、Set数据库创建表
+ <br /> CREATE TABLE person
+ <br /> (
+ <br /> id INT AUTO_INCREMENT PRIMARY KEY NOT NULL ,
+ <br /> name VARCHAR(20)
+ <br /> ) ;
+ <br /> CREATE TABLE emails
+ <br /> (
+ <br /> id INT ,
+ <br /> address VARCHAR(50) ,
+ <br /> 
+ <font color="#ff0000">foreign key (id) references person(id) on delete cascade</font> 
+ <br /> ) ;
+ <br /> 2、一个人拥有多个不同的Email地址。private Set emails ;
+ <br /> &lt;hibernate-mapping&gt;
+ <br /> &lt;class name=&quot;org.lxh.hibernate.demo01.pojo.Person&quot; table=&quot;person&quot;&gt;
+ <br /> &nbsp;&nbsp; &lt;id name=&quot;id&quot; type=&quot;java.lang.Integer&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;column name=&quot;id&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;generator class=&quot;native&quot;&gt;&lt;/generator&gt;
+ <br /> &nbsp;&nbsp; &lt;/id&gt;
+ <br /> &nbsp;&nbsp; &lt;property name=&quot;name&quot; type=&quot;java.lang.String&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;column name=&quot;name&quot; length=&quot;20&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;/property&gt;
+ <br /> 
+ <font color="#ff0000">&nbsp;&nbsp; &lt;set name=&quot;emails&quot; table=&quot;emails&quot; lazy=&quot;false&quot;&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;key column=&quot;id&quot;&gt;&lt;/key&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;element type=&quot;java.lang.String&quot; column=&quot;address&quot;&gt;&lt;/element&gt;<br /> &nbsp;&nbsp; &lt;/set&gt;<br /> </font>&lt;/class&gt;
+ <br /> &lt;/hibernate-mapping&gt;
+ <br /> 3、package org.lxh.hibernate.demo01.oper;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.util.List;
+ <br /> import java.util.TreeSet;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.hibernate.Query;
+ <br /> import org.hibernate.Session;
+ <br /> import org.hibernate.cfg.Configuration;
+ <br /> import org.lxh.hibernate.demo01.pojo.Person;
+</div> 
+<div> 
+</div> 
+<div>
+ public class PersonOperate {
+ <br /> private Session session;
+</div> 
+<div> 
+</div> 
+<div>
+ public PersonOperate() {
+ <br /> &nbsp;&nbsp; this.session = new Configuration().configure().buildSessionFactory()
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; .openSession();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void insert(Person per) {
+ <br /> &nbsp;&nbsp; this.session.save(per);
+ <br /> &nbsp;&nbsp; this.session.beginTransaction().commit();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public Person queryById(int id) {
+ <br /> &nbsp;&nbsp; Person p = null;
+ <br /> &nbsp;&nbsp; String hql = &quot;FROM Person AS p where p.id=?&quot;;
+ <br /> &nbsp;&nbsp; Query q = this.session.createQuery(hql);
+ <br /> &nbsp;&nbsp; q.setInteger(0, id);
+ <br /> &nbsp;&nbsp; List all = q.list();
+ <br /> &nbsp;&nbsp; if (all.size() &gt; 0) {
+ <br /> &nbsp;&nbsp;&nbsp; p = (Person) all.get(0);
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return p;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // 进行更新
+ <br /> public void update(Person per) {
+ <br /> &nbsp;&nbsp; this.session.update(per);
+ <br /> &nbsp;&nbsp; this.session.beginTransaction().commit();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // 使用HQL删除
+ <br /> public void delete(int id) {
+ <br /> &nbsp;&nbsp; String hql = &quot;DELETE FROM Person WHERE id=?&quot;;
+ <br /> &nbsp;&nbsp; Query q = this.session.createQuery(hql);
+ <br /> &nbsp;&nbsp; q.setInteger(0, id);
+ <br /> &nbsp;&nbsp; q.executeUpdate();
+ <br /> &nbsp;&nbsp; this.session.beginTransaction().commit();
+ <br /> }
+ <br /> public void delete(Person per)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.session.delete(per) ;
+ <br /> &nbsp;&nbsp; this.session.beginTransaction().commit() ;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public static void main(String args[]) {
+ <br /> &nbsp;&nbsp; PersonOperate po = new PersonOperate();
+ <br /> //&nbsp;&nbsp; Person p = new Person();
+ <br /> &nbsp;&nbsp; // // 设置人的姓名
+ <br /> //&nbsp;&nbsp; p.setName(&quot;LiXingHua&quot;);
+ <br /> //&nbsp;&nbsp; p.setEmails(new TreeSet());
+ <br /> //&nbsp;&nbsp; p.getEmails().add(&quot;mldnqa@163.com&quot;);
+ <br /> //&nbsp;&nbsp; p.getEmails().add(&quot;li_xing_hua@263.com&quot;);
+ <br /> //&nbsp;&nbsp; p.getEmails().add(&quot;li_xing_hua@263.com&quot;);//可以看见数据库中只有一条记录，不会重复
+ <br /> //&nbsp;&nbsp; p.getEmails().add(&quot;mldnkf@163.com&quot;);
+ <br /> //&nbsp;&nbsp; po.insert(p);
+ <br /> &nbsp;&nbsp; // Person p = po.queryById(3);
+ <br /> &nbsp;&nbsp; //System.out.println(p.getName());
+ <br /> &nbsp;&nbsp; //System.out.println(p.getEmails());
+ <br /> &nbsp;&nbsp; // p.getEmails().add(&quot;mldn@mldn.cn&quot;);
+ <br /> &nbsp;&nbsp; // p.getEmails().add(&quot;163@163.com&quot;);
+ <br /> &nbsp;&nbsp; // po.update(p);
+ <br /> &nbsp;&nbsp; po.delete(2) ;
+ <br /> }
+ <br /> }
+ <br /> =====================================
+ <br /> 二、1、List数据库创建表
+ <br /> CREATE TABLE person
+ <br /> (
+ <br /> id INT AUTO_INCREMENT PRIMARY KEY NOT NULL ,
+ <br /> name VARCHAR(20)
+ <br /> ) ;
+ <br /> CREATE TABLE books
+ <br /> (
+ <br /> id INT ,
+ <br /> posit int ,
+ <br /> title VARCHAR(30) ,
+ <br /> 
+ <font color="#ff0000">foreign key (id) references person(id) on delete cascade <br /> </font>) ;
+ <br /> 2、一个人有多本书，书可以重复。private List books ;
+ <br /> &lt;hibernate-mapping&gt;
+ <br /> &lt;class name=&quot;org.lxh.hibernate.demo02.pojo.Person&quot; table=&quot;person&quot;&gt;
+ <br /> &nbsp;&nbsp; &lt;id name=&quot;id&quot; type=&quot;java.lang.Integer&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;column name=&quot;id&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;generator class=&quot;native&quot;&gt;&lt;/generator&gt;
+ <br /> &nbsp;&nbsp; &lt;/id&gt;
+ <br /> &nbsp;&nbsp; &lt;property name=&quot;name&quot; type=&quot;java.lang.String&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;column name=&quot;name&quot; length=&quot;20&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;/property&gt;
+ <br /> 
+ <font color="#ff0000">&nbsp;&nbsp; &lt;list name=&quot;books&quot; table=&quot;books&quot;&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;key column=&quot;id&quot;&gt;&lt;/key&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;index column=&quot;posit&quot;&gt;&lt;/index&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;element type=&quot;java.lang.String&quot; column=&quot;title&quot;&gt;&lt;/element&gt;<br /> &nbsp;&nbsp; &lt;/list&gt;<br /> </font>&lt;/class&gt;
+ <br /> &lt;/hibernate-mapping&gt;
+ <br /> posit用来区分两本相同的书。应用中不需我们关注。
+ <br /> 3、package org.lxh.hibernate.demo02.oper;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.util.Iterator;
+ <br /> import java.util.List;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.hibernate.Query;
+ <br /> import org.hibernate.Session;
+ <br /> import org.hibernate.cfg.Configuration;
+ <br /> import org.lxh.hibernate.demo02.pojo.Person;
+</div> 
+<div> 
+</div> 
+<div>
+ public class PersonOperate {
+ <br /> private Session session;
+</div> 
+<div> 
+</div> 
+<div>
+ public PersonOperate() {
+ <br /> &nbsp;&nbsp; this.session = new Configuration().configure().buildSessionFactory()
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; .openSession();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // 添加人员
+ <br /> public void insert(Person per) {
+ <br /> &nbsp;&nbsp; this.session.save(per);
+ <br /> &nbsp;&nbsp; this.session.beginTransaction().commit();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ // 根据ID查询人员信息
+ <br /> public Person queryById(int id) {
+ <br /> &nbsp;&nbsp; Person p = null;
+ <br /> &nbsp;&nbsp; String hql = &quot;FROM Person AS p where p.id=?&quot;;
+ <br /> &nbsp;&nbsp; Query q = this.session.createQuery(hql);
+ <br /> &nbsp;&nbsp; q.setInteger(0, id);
+ <br /> &nbsp;&nbsp; List all = q.list();
+ <br /> &nbsp;&nbsp; if (all.size() &gt; 0) {
+ <br /> &nbsp;&nbsp;&nbsp; p = (Person) all.get(0);
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return p;
+ <br /> }
+ <br /> 
+ <br /> public void update(Person per)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.session.update(per) ;
+ <br /> &nbsp;&nbsp; this.session.beginTransaction().commit() ;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * @param args
+ <br /> */
+ <br /> public static void main(String[] args) {
+ <br /> &nbsp;&nbsp; PersonOperate po = new PersonOperate();
+ <br /> &nbsp;&nbsp; // Person p = new Person();
+ <br /> &nbsp;&nbsp; // p.setName(&quot;LiXingHua&quot;);
+ <br /> &nbsp;&nbsp; // p.setBooks(new ArrayList());
+ <br /> &nbsp;&nbsp; // p.getBooks().add(&quot;Java 核心技术&quot;);
+ <br /> &nbsp;&nbsp; // p.getBooks().add(&quot;Java 核心技术&quot;);
+ <br /> &nbsp;&nbsp; // p.getBooks().add(&quot;Java 核心技术&quot;);
+ <br /> &nbsp;&nbsp; // p.getBooks().add(&quot;Java 核心技术&quot;);
+ <br /> &nbsp;&nbsp; // p.getBooks().add(&quot;Java 核心技术&quot;);
+ <br /> &nbsp;&nbsp; // p.getBooks().add(&quot;Oracle PL SQL编程&quot;);
+ <br /> &nbsp;&nbsp; // p.getBooks().add(&quot;WebSphere 开发指南&quot;);
+ <br /> &nbsp;&nbsp; //
+ <br /> &nbsp;&nbsp; // po.insert(p);
+ <br /> &nbsp;&nbsp; Person p = po.queryById(2);
+ <br /> //&nbsp;&nbsp; System.out.println(&quot;姓名：&quot; + p.getName());
+ <br /> //&nbsp;&nbsp; Iterator iter = p.getBooks().iterator() ;
+ <br /> //&nbsp;&nbsp; while(iter.hasNext())
+ <br /> //&nbsp;&nbsp; {
+ <br /> //&nbsp;&nbsp;&nbsp; System.out.println(&quot; |- &quot;+iter.next()) ;
+ <br /> //&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; p.getBooks().add(&quot;JSP 核心技术&quot;) ;
+ <br /> &nbsp;&nbsp; p.getBooks().add(&quot;JSP 核心技术&quot;) ;
+ <br /> &nbsp;&nbsp; p.getBooks().add(&quot;JSP 核心技术&quot;) ;
+ <br /> &nbsp;&nbsp; po.update(p) ;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+ <br /> =============================
+ <br /> 三、1、Map数据库创建表
+ <br /> CREATE TABLE person
+ <br /> (
+ <br /> id INT AUTO_INCREMENT PRIMARY KEY NOT NULL ,
+ <br /> name VARCHAR(20)
+ <br /> ) ;
+ <br /> CREATE TABLE phone
+ <br /> (
+ <br /> id INT ,
+ <br /> name VARCHAR(20) ,
+ <br /> numbers VARCHAR(30),
+ <br /> 
+ <font color="#ff0000">foreign key (id) references person(id) on delete cascade <br /> </font>) ;
+ <br /> 2、一个人有一个电话本，电话本里一个人名对应一个电话号码。private Map phone ;
+ <br /> &lt;hibernate-mapping&gt;
+ <br /> &lt;class name=&quot;org.lxh.hibernate.demo03.pojo.Person&quot; table=&quot;person&quot;&gt;
+ <br /> &nbsp;&nbsp; &lt;id name=&quot;id&quot; type=&quot;java.lang.Integer&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;column name=&quot;id&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;generator class=&quot;native&quot;&gt;&lt;/generator&gt;
+ <br /> &nbsp;&nbsp; &lt;/id&gt;
+ <br /> &nbsp;&nbsp; &lt;property name=&quot;name&quot; type=&quot;java.lang.String&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;column name=&quot;name&quot; length=&quot;20&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;/property&gt;
+ <br /> 
+ <font color="#ff0000">&nbsp;&nbsp; &lt;map name=&quot;phone&quot; table=&quot;phone&quot;&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;key column=&quot;id&quot;&gt;&lt;/key&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;index type=&quot;java.lang.String&quot; column=&quot;name&quot;&gt;&lt;/index&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;element type=&quot;java.lang.String&quot; column=&quot;numbers&quot;&gt;&lt;/element&gt;<br /> &nbsp;&nbsp; &lt;/map&gt;<br /> </font>&lt;/class&gt;
+ <br /> &lt;/hibernate-mapping&gt;
+ <br /> 3、package org.lxh.hibernate.demo03.oper;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.util.Iterator;
+ <br /> import java.util.List;
+ <br /> import java.util.Map;
+ <br /> import java.util.Set;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.hibernate.Query;
+ <br /> import org.hibernate.Session;
+ <br /> import org.hibernate.cfg.Configuration;
+ <br /> import org.lxh.hibernate.demo03.pojo.Person;
+</div> 
+<div> 
+</div> 
+<div>
+ public class PersonOperate {
+ <br /> private Session session;
+</div> 
+<div> 
+</div> 
+<div>
+ public PersonOperate() {
+ <br /> &nbsp;&nbsp; this.session = new Configuration().configure().buildSessionFactory()
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; .openSession();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void insert(Person per) {
+ <br /> &nbsp;&nbsp; this.session.save(per);
+ <br /> &nbsp;&nbsp; this.session.beginTransaction().commit();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public Person queryById(int id) {
+ <br /> &nbsp;&nbsp; Person per = null;
+ <br /> &nbsp;&nbsp; String hql = &quot;FROM Person AS p where p.id=?&quot;;
+ <br /> &nbsp;&nbsp; Query q = this.session.createQuery(hql);
+ <br /> &nbsp;&nbsp; q.setInteger(0, id);
+ <br /> &nbsp;&nbsp; List all = q.list();
+ <br /> &nbsp;&nbsp; if (all.size() &gt; 0) {
+ <br /> &nbsp;&nbsp;&nbsp; per = (Person) all.get(0);
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return per;
+ <br /> }
+ <br /> public void delete(int id)
+ <br /> {
+ <br /> &nbsp;&nbsp; String hql = &quot;DELETE FROM Person WHERE id=?&quot; ;
+ <br /> &nbsp;&nbsp; Query q = this.session.createQuery(hql) ;
+ <br /> &nbsp;&nbsp; q.setInteger(0, id) ;
+ <br /> &nbsp;&nbsp; q.executeUpdate() ;
+ <br /> &nbsp;&nbsp; this.session.beginTransaction().commit() ;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * @param args
+ <br /> */
+ <br /> public static void main(String[] args) {
+ <br /> &nbsp;&nbsp; PersonOperate po = new PersonOperate();
+ <br /> &nbsp;&nbsp; // Person p = new Person();
+ <br /> &nbsp;&nbsp; // p.setName(&quot;LiXingHua&quot;);
+ <br /> &nbsp;&nbsp; // p.setPhone(new HashMap());
+ <br /> &nbsp;&nbsp; // p.getPhone().put(&quot;zhangsan&quot;, &quot;123456)&quot;);
+ <br /> &nbsp;&nbsp; // p.getPhone().put(&quot;lisi&quot;, &quot;234567&quot;);
+ <br /> &nbsp;&nbsp; // p.getPhone().put(&quot;mldn&quot;, &quot;01051283346&quot;);
+ <br /> &nbsp;&nbsp; // po.insert(p);
+ <br /> //&nbsp;&nbsp; Person p = po.queryById(1);
+ <br /> //&nbsp;&nbsp; System.out.println(p.getName());
+ <br /> //&nbsp;&nbsp; Set s = p.getPhone().entrySet();
+ <br /> //&nbsp;&nbsp; Iterator iter = s.iterator();
+ <br /> //&nbsp;&nbsp; while (iter.hasNext()) {
+ <br /> //&nbsp;&nbsp;&nbsp; Map.Entry me = (Map.Entry) iter.next();
+ <br /> //&nbsp;&nbsp;&nbsp; System.out.println(me.getKey() + &quot; --&gt; &quot; + me.getValue()); 
+ <br /> //&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; po.delete(1) ;
+ <br /> }
+ <br /> }
+ <br /> ======
+</div></div></body></html>

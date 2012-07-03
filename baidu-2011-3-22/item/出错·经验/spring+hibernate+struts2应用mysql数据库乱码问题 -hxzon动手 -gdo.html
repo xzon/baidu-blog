@@ -1,0 +1,79 @@
+<html><head><title><div class="tit">
+  spring+hibernate+struts2应用mysql数据库乱码问题 -hxzon动手 -gdo
+</div></title></head><body><div id='tit'>spring+hibernate+struts2应用mysql数据库乱码问题 -hxzon动手 -gdo</div><div id='cate'>出错&middot;经验</div><div id='date'>2008年10月15日 星期三 10:42 A.M.</div><div id='page'>91</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b9214110985a28fac3ce799d.html'>http://hi.baidu.com/hxzon/blog/item/b9214110985a28fac3ce799d.html</a><div id='cnt'><div> 
+ <p>spring+hibernate+struts2应用mysql数据库乱码问题 -hxzon动手 -gdo</p> 
+ <p><font color="#ff0000">hxzon:<br /> 在spring配置文件里url末尾添加<br /> ?characterEncoding=gbk，没有变化。<br /> 在struts配置文件里写<br /> &lt;constant name=&quot;struts.i18n.encoding&quot; value=&quot;UTF-8&quot; /&gt;<br /> 还是乱码。<br /> 最后发现jsp页面里没改过来。<br /> 改为&lt;%@ page language=&quot;java&quot; pageEncoding=&quot;UTF-8&quot;%&gt;<br /> 不再乱码，而且去掉spring里写的那一句，也没乱码。<br /> 补充：spring中应该用转义字符才行。<br /> &lt;property name=&quot;url&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value=&quot;jdbc:mysql://localhost/mysql?useUnicode=true&amp;amp;characterEncoding=gbk&quot;/&gt;<br /> 数据库默认latin1，数据库建表默认utf8，连接使用gbk，中文不再乱码。<br /> </font>---相关资料-----------------------------------<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 今天用spring+hibernate+struts2写了一个简单的示例程序，使用spring来管理hibernate处理数据，整合了struts2，用了很长时间的webwork，使用struts2也还算是顺手，显示测试数据很顺利，当开始测试录入数据功能时，录入汉字发生了问题，录入的汉字全部成了乱码。</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp; 最开始认为是在tomcat中中文传输出现了问题，加入了中文过滤器，但问题没有解决，忽然想到了在struts2的属性文件中已经设置了编码为gbk:
+</div> 
+<div> 
+</div> 
+<div>
+ struts.properties
+ <br /> struts.i18n.encoding=GBK&nbsp;&nbsp; 
+ <br /> struts.objectFactory=spring&nbsp;&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ 应该不是在传输过程出的问题，在后台输入传入Action和Dao的数据，也全部能正常显示。
+</div> 
+<div> 
+</div> 
+<div>
+ 然后怀疑是mysql的设置问题，查找设置mysql的数据库编码设置方法，在设置后仍没有解决问题。
+</div> 
+<div> 
+</div> 
+<div>
+ 直接在mysql中执行Insert into user ('nam') values('汉字')，mysql执行后数据显示正常，说明数据库的编码也正确。
+</div> 
+<div> 
+</div> 
+<div>
+ 郁闷了，到底问题处在哪里?在执行hibernateTemplate的save（）方法之前，没有出现中文乱码问题，在数据库这方面也测试没有中文乱码问题，只有在hibernate持久化层这里的问题了。
+</div> 
+<div> 
+</div> 
+<div>
+ 查找持久化层传输数据到数据库服务器出现乱码的问题，终于找到了问题：
+</div> 
+<div> 
+</div> 
+<div>
+ hibernate持久化层在传输过程中未设置编码格式，这样在传输数据到数据库服务器后已经是乱码了，在oracle和sqlserver里没有出现传输乱码问题，所以没有想到会使这里的问题。
+</div> 
+<div> 
+</div> 
+<div>
+ 修改spring中关于数据源的配置参数：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 数据库链接方式：
+ <br /> 
+ <br /> &nbsp;&nbsp; jdbc:mysql://localhost:3306/springexample?characterEncoding=utf-8
+ <br /> &nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 在执行数据录入后，终于中文显示正常了。
+</div> 
+<div> 
+</div> 
+<div>
+ 在应用hibernate管理mysql数据库是不仅要注意web服务器和数据库的编码问题，同样要注意持久化层数据传输的编码问题。
+</div></div></body></html>

@@ -1,0 +1,464 @@
+<html><head><title><div class="tit">
+  Lesson: Concurrency - High Level Concurrency Objects
+</div></title></head><body><div id='tit'>Lesson: Concurrency - High Level Concurrency Objects</div><div id='cate'>j&middot;基础</div><div id='date'>2009年10月30日 星期五 04:22 P.M.</div><div id='page'>25</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6c45c81bd82f7ff0af51338a.html'>http://hi.baidu.com/hxzon/blog/item/6c45c81bd82f7ff0af51338a.html</a><div id='cnt'><p>Lesson: Concurrency - High Level Concurrency Objects</p> 
+<p> <a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/highlevel.html">http://java.sun.com/docs/books/tutorial/essential/concurrency/highlevel.html</a></p>
+<p>java基础进阶 java并发</p> 
+<div>
+ High Level Concurrency Objects
+</div> 
+<blockquote>
+ So far, this lesson has focused on the low-level APIs that have been part of the Java platform from the very beginning. These APIs are adequate for very basic tasks, but higher-level building blocks are needed for more advanced tasks. This is especially true for massively concurrent applications that fully exploit today's multiprocessor and multi-core systems. 
+ <p>In this section we'll look at some of the high-level concurrency features introduced with version 5.0 of the Java platform. Most of these features are implemented in the new <code><span style=";;font-family:NSimsun;">java.util.concurrent</span></code> packages. There are also new concurrent data structures in the Java Collections Framework.</p> 
+ <ul> 
+  <li><a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/newlocks.html">Lock objects</a> support locking idioms that simplify many concurrent applications.</li> 
+  <li><a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/executors.html">Executors</a> define a high-level API for launching and managing threads. Executor implementations provided by <code><span style=";;font-family:NSimsun;">java.util.concurrent</span></code> provide thread pool management suitable for large-scale applications.</li> 
+  <li><a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/collections.html">Concurrent collections</a> make it easier to manage large collections of data, and can greatly reduce the need for synchronization.</li> 
+  <li><a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/atomicvars.html">Atomic variables</a> have features that minimize synchronization and help avoid memory consistency errors.</li> 
+ </ul> 
+</blockquote> 
+<div>
+ Lock Objects
+</div> 
+<blockquote>
+ Synchronized code relies on a simple kind of reentrant lock. This kind of lock is easy to use, but has many limitations. More sophisticated locking idioms are supported by the 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/locks/package-summary.html" target="_blank"><code><span style=";;font-family:NSimsun;">java.util.concurrent.locks</span></code></a> package. We won't examine this package in detail, but instead will focus on its most basic interface, 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/locks/Lock.html" target="_blank"><code><span style=";;font-family:NSimsun;">Lock</span></code></a>. 
+ <p><code><span style=";;font-family:NSimsun;">Lock</span></code> objects work very much like the implicit locks used by synchronized code. As with implicit locks, only one thread can own a <code><span style=";;font-family:NSimsun;">Lock</span></code> object at a time. <code><span style=";;font-family:NSimsun;">Lock</span></code> objects also support a <code><span style=";;font-family:NSimsun;">wait/notify</span></code> mechanism, through their associated <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/locks/Condition.html" target="_blank"><code><span style=";;font-family:NSimsun;">Condition</span></code></a> objects.</p> 
+ <p>The biggest advantage of <code><span style=";;font-family:NSimsun;">Lock</span></code> objects over implicit locks is their ability to back out of an attempt to acquire a lock. The <code><span style=";;font-family:NSimsun;">tryLock</span></code> method backs out if the lock is not available immediately or before a timeout expires (if specified). The <code><span style=";;font-family:NSimsun;">lockInterruptibly</span></code> method backs out if another thread sends an interrupt before the lock is acquired.</p> 
+ <p>Let's use <code><span style=";;font-family:NSimsun;">Lock</span></code> objects to solve the deadlock problem we saw in <a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/liveness.html">Liveness</a>. Alphonse and Gaston have trained themselves to notice when a friend is about to bow. We model this improvement by requiring that our <code><span style=";;font-family:NSimsun;">Friend</span></code> objects must acquire locks for <em>both</em> participants before proceeding with the bow. Here is the source code for the improved model, <a class="SourceLink" href="http://java.sun.com/docs/books/tutorial/essential/concurrency/example/Safelock.java" target="_blank"><code><code><span style=";;font-family:NSimsun;">Safelock</span></code></code></a>. To demonstrate the versatility of this idiom, we assume that Alphonse and Gaston are so infatuated with their newfound ability to bow safely that they can't stop bowing to each other:</p> 
+ <blockquote> 
+  <pre>import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.Random;
+
+public class Safelock {
+    static class Friend {
+        private final String name;
+        private final Lock lock = new ReentrantLock();
+
+        public Friend(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return this.name;
+        }
+
+        public boolean impendingBow(Friend bower) {
+            Boolean myLock = false;
+            Boolean yourLock = false;
+            try {
+                myLock = lock.tryLock();
+                yourLock = bower.lock.tryLock();
+            } finally {
+                if (! (myLock &amp;&amp; yourLock)) {
+                    if (myLock) {
+                        lock.unlock();
+                    }
+                    if (yourLock) {
+                        bower.lock.unlock();
+                    }
+                }
+            }
+            return myLock &amp;&amp; yourLock;
+        }
+            
+        public void bow(Friend bower) {
+            if (impendingBow(bower)) {
+                try {
+                    System.out.format(&quot;%s: %s has bowed to me!%n&quot;, 
+                            this.name, bower.getName());
+                    bower.bowBack(this);
+                } finally {
+                    lock.unlock();
+                    bower.lock.unlock();
+                }
+            } else {
+                System.out.format(&quot;%s: %s started to bow to me, but&quot; +
+                        &quot; saw that I was already bowing to him.%n&quot;,
+                        this.name, bower.getName());
+            }
+        }
+
+        public void bowBack(Friend bower) {
+            System.out.format(&quot;%s: %s has bowed back to me!%n&quot;,
+                    this.name, bower.getName());
+        }
+    }
+
+    static class BowLoop implements Runnable {
+        private Friend bower;
+        private Friend bowee;
+
+        public BowLoop(Friend bower, Friend bowee) {
+            this.bower = bower;
+            this.bowee = bowee;
+        }
+    
+        public void run() {
+            Random random = new Random();
+            for (;;) {
+                try {
+                    Thread.sleep(random.nextInt(10));
+                } catch (InterruptedException e) {}
+                bowee.bow(bower);
+            }
+        }
+    }
+            
+
+    public static void main(String[] args) {
+        final Friend alphonse = new Friend(&quot;Alphonse&quot;);
+        final Friend gaston = new Friend(&quot;Gaston&quot;);
+        new Thread(new BowLoop(alphonse, gaston)).start();
+        new Thread(new BowLoop(gaston, alphonse)).start();
+    }
+}</pre>
+ </blockquote>
+</blockquote> 
+<div>
+ Executors
+</div> 
+<blockquote>
+ In all of the previous examples, there's a close connection between the task being done by a new thread, as defined by its 
+ <code><span style=";;font-family:NSimsun;">Runnable</span></code> object, and the thread itself, as defined by a 
+ <code><span style=";;font-family:NSimsun;">Thread</span></code> object. This works well for small applications, but in large-scale applications, it makes sense to separate thread management and creation from the rest of the application. Objects that encapsulate these functions are known as 
+ <em>executors</em>. The following subsections describe executors in detail. 
+ <ul> 
+  <li><a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/exinter.html">Executor Interfaces</a> define the three executor object types.</li> 
+  <li><a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/pools.html">Thread Pools</a> are the most common kind of executor implementation.</li> 
+ </ul> 
+</blockquote> 
+<div>
+ Executor Interfaces
+</div> 
+<blockquote>
+ The 
+ <code><span style=";;font-family:NSimsun;">java.util.concurrent</span></code> package defines three executor interfaces: 
+ <ul> 
+  <li><code><span style=";;font-family:NSimsun;">Executor</span></code>, a simple interface that supports launching new tasks.</li> 
+  <li><code><span style=";;font-family:NSimsun;">ExecutorService</span></code>, a subinterface of <code><span style=";;font-family:NSimsun;">Executor</span></code>, which adds features that help manage the lifecycle, both of the individual tasks and of the executor itself.</li> 
+  <li><code><span style=";;font-family:NSimsun;">ScheduledExecutorService</span></code>, a subinterface of <code><span style=";;font-family:NSimsun;">ExecutorService</span></code>, supports future and/or periodic execution of tasks.</li> 
+ </ul> Typically, variables that refer to executor objects are declared as one of these three interface types, not with an executor class type. 
+ <h3>The <code><span style=";;font-family:NSimsun;">Executor</span></code> Interface</h3> The 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/Executor.html" target="_blank"><code><span style=";;font-family:NSimsun;">Executor</span></code></a> interface provides a single method, 
+ <code><span style=";;font-family:NSimsun;">execute</span></code>, designed to be a drop-in replacement for a common thread-creation idiom. If 
+ <code><span style=";;font-family:NSimsun;">r</span></code> is a 
+ <code><span style=";;font-family:NSimsun;">Runnable</span></code> object, and 
+ <code><span style=";;font-family:NSimsun;">e</span></code> is an 
+ <code><span style=";;font-family:NSimsun;">Executor</span></code> object you can replace 
+ <blockquote> 
+  <pre>(new Thread(r)).start();</pre>
+ </blockquote>with 
+ <blockquote> 
+  <pre>e.execute(r);</pre>
+ </blockquote>However, the definition of 
+ <code><span style=";;font-family:NSimsun;">execute</span></code> is less specific. The low-level idiom creates a new thread and launches it immediately. Depending on the 
+ <code><span style=";;font-family:NSimsun;">Executor</span></code> implementation, 
+ <code><span style=";;font-family:NSimsun;">execute</span></code> may do the same thing, but is more likely to use an existing worker thread to run 
+ <code><span style=";;font-family:NSimsun;">r</span></code>, or to place 
+ <code><span style=";;font-family:NSimsun;">r</span></code> in a queue to wait for a worker thread to become available. (We'll describe worker threads in the section on 
+ <a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/pools.html">Thread Pools</a>.) 
+ <p>The executor implementations in <code><span style=";;font-family:NSimsun;">java.util.concurrent</span></code> are designed to make full use of the more advanced <code><span style=";;font-family:NSimsun;">ExecutorService</span></code> and <code><span style=";;font-family:NSimsun;">ScheduledExecutorService</span></code> interfaces, although they also work with the base <code><span style=";;font-family:NSimsun;">Executor</span></code> interface.</p> 
+ <h3>The <code><span style=";;font-family:NSimsun;">ExecutorService</span></code> Interface</h3> The 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/ExecutorService.html" target="_blank"><code><span style=";;font-family:NSimsun;">ExecutorService</span></code></a> interface supplements 
+ <code><span style=";;font-family:NSimsun;">execute</span></code> with a similar, but more versatile 
+ <code><span style=";;font-family:NSimsun;">submit</span></code> method. Like 
+ <code><span style=";;font-family:NSimsun;">execute</span></code>, 
+ <code><span style=";;font-family:NSimsun;">submit</span></code> accepts 
+ <code><span style=";;font-family:NSimsun;">Runnable</span></code> objects, but also accepts 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/Callable.html" target="_blank"><code><span style=";;font-family:NSimsun;">Callable</span></code></a> objects, which allow the task to return a value. The 
+ <code><span style=";;font-family:NSimsun;">submit</span></code> method returns a 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/Future.html" target="_blank"><code><span style=";;font-family:NSimsun;">Future</span></code></a> object, which is used to retrieve the 
+ <code><span style=";;font-family:NSimsun;">Callable</span></code> return value and to manage the status of both 
+ <code><span style=";;font-family:NSimsun;">Callable</span></code> and 
+ <code><span style=";;font-family:NSimsun;">Runnable</span></code> tasks. 
+ <p><code><span style=";;font-family:NSimsun;">ExecutorService</span></code> also provides methods for submitting large collections of <code><span style=";;font-family:NSimsun;">Callable</span></code> objects. Finally, <code><span style=";;font-family:NSimsun;">ExecutorService</span></code> provides a number of methods for managing the shutdown of the executor. To support immediate shutdown, tasks should handle <a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/interrupt.html">interrupts</a> correctly.</p> 
+ <h3>The <code><span style=";;font-family:NSimsun;">ScheduledExecutorService</span></code> Interface</h3> The 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/ScheduledExecutorService.html" target="_blank"><code><span style=";;font-family:NSimsun;">ScheduledExecutorService</span></code></a> interface supplements the methods of its parent 
+ <code><span style=";;font-family:NSimsun;">ExecutorService</span></code> with 
+ <code><span style=";;font-family:NSimsun;">schedule</span></code>, which executes a 
+ <code><span style=";;font-family:NSimsun;">Runnable</span></code> or 
+ <code><span style=";;font-family:NSimsun;">Callable</span></code> task after a specified delay. In addition, the interface defines 
+ <code><span style=";;font-family:NSimsun;">scheduleAtFixedRate</span></code> and 
+ <code><span style=";;font-family:NSimsun;">scheduleWithFixedDelay</span></code>, which executes specified tasks repeatedly, at defined intervals. 
+</blockquote> 
+<div>
+ Thread Pools
+</div> 
+<blockquote>
+ Most of the executor implementations in 
+ <code><span style=";;font-family:NSimsun;">java.util.concurrent</span></code> use 
+ <em>thread pools</em>, which consist of 
+ <em>worker threads</em>. This kind of thread exists separately from the 
+ <code><span style=";;font-family:NSimsun;">Runnable</span></code> and 
+ <code><span style=";;font-family:NSimsun;">Callable</span></code> tasks it executes and is often used to execute multiple tasks. 
+ <p>Using worker threads minimizes the overhead due to thread creation. Thread objects use a significant amount of memory, and in a large-scale application, allocating and deallocating many thread objects creates a significant memory management overhead.</p> 
+ <p>One common type of thread pool is the <em>fixed thread pool</em>. This type of pool always has a specified number of threads running; if a thread is somehow terminated while it is still in use, it is automatically replaced with a new thread. Tasks are submitted to the pool via an internal queue, which holds extra tasks whenever there are more active tasks than threads.</p> 
+ <p>An important advantage of the fixed thread pool is that applications using it <em>degrade gracefully</em>. To understand this, consider a web server application where each HTTP request is handled by a separate thread. If the application simply creates a new thread for every new HTTP request, and the system receives more requests than it can handle immediately, the application will suddenly stop responding to <em>all</em> requests when the overhead of all those threads exceed the capacity of the system. With a limit on the number of the threads that can be created, the application will not be servicing HTTP requests as quickly as they come in, but it will be servicing them as quickly as the system can sustain.</p> 
+ <p>A simple way to create an executor that uses a fixed thread pool is to invoke the <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/Executors.html#newFixedThreadPool%28int%29" target="_blank"><code><span style=";;font-family:NSimsun;">newFixedThreadPool</span></code></a> factory method in <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/Executors.html" target="_blank"><code><span style=";;font-family:NSimsun;">java.util.concurrent.Executors</span></code></a> This class also provides the following factory methods:</p> 
+ <ul> 
+  <li>The <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/Executors.html#newCachedThreadPool%28int%29" target="_blank"><code><span style=";;font-family:NSimsun;">newCachedThreadPool</span></code></a> method creates an executor with an expandable thread pool. This executor is suitable for applications that launch many short-lived tasks.</li> 
+  <li>The <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/Executors.html#newSingleThreadExecutor%28int%29" target="_blank"><code><span style=";;font-family:NSimsun;">newSingleThreadExecutor</span></code></a> method creates an executor that executes a single task at a time.</li> 
+  <li>Several factory methods are <code><span style=";;font-family:NSimsun;">ScheduledExecutorService</span></code> versions of the above executors.</li> 
+ </ul> If none of the executors provided by the above factory methods meet your needs, constructing instances of 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/ThreadPoolExecutor.html" target="_blank"><code><span style=";;font-family:NSimsun;">java.util.concurrent.ThreadPoolExecutor</span></code></a> or 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/ScheduledThreadPoolExecutor.html" target="_blank"><code><span style=";;font-family:NSimsun;">java.util.concurrent.ScheduledThreadPoolExecutor</span></code></a> will give you additional options. 
+</blockquote> 
+<p> </p> 
+<div>
+ Concurrent Collections
+</div> 
+<blockquote>
+ The 
+ <code><span style=";;font-family:NSimsun;">java.util.concurrent</span></code> package includes a number of additions to the Java Collections Framework. These are most easily categorized by the collection interfaces provided: 
+ <ul> 
+  <li><a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/BlockingQueue.html" target="_blank"><code><span style=";;font-family:NSimsun;">BlockingQueue</span></code></a> defines a first-in-first-out data structure that blocks or times out when you attempt to add to a full queue, or retrieve from an empty queue.</li> 
+  <li><a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/ConcurrentMap.html" target="_blank"><code><span style=";;font-family:NSimsun;">ConcurrentMap</span></code></a> is a subinterface of <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/Map.html" target="_blank"><code><span style=";;font-family:NSimsun;">java.util.Map</span></code></a> that defines useful atomic operations. These operations remove or replace a key-value pair only if the key is present, or add a key-value pair only if the key is absent. Making these operations atomic helps avoid synchronization. The standard general-purpose implementation of <code><span style=";;font-family:NSimsun;">ConcurrentMap</span></code> is <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/ConcurrentHashMap.html" target="_blank"><code><span style=";;font-family:NSimsun;">ConcurrentHashMap</span></code></a>, which is a concurrent analog of <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/HashMap.html" target="_blank"><code><span style=";;font-family:NSimsun;">HashMap</span></code></a>.</li> 
+  <li><a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/ConcurrentNavigableMap.html" target="_blank"><code><span style=";;font-family:NSimsun;">ConcurrentNavigableMap</span></code></a> is a subinterface of <code><span style=";;font-family:NSimsun;">ConcurrentMap</span></code> that supports approximate matches. The standard general-purpose implementation of <code><span style=";;font-family:NSimsun;">ConcurrentNavigableMap</span></code> is <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/ConcurrentSkipListMap.html" target="_blank"><code><span style=";;font-family:NSimsun;">ConcurrentSkipListMap</span></code></a>, which is a concurrent analog of <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/TreeMap.html" target="_blank"><code><span style=";;font-family:NSimsun;">TreeMap</span></code></a>.</li> 
+ </ul> 
+ <p>All of these collections help avoid <a href="http://java.sun.com/docs/books/tutorial/essential/concurrency/memconsist.html">Memory Consistency Errors</a> by defining a happens-before relationship between an operation that adds an object to the collection with subsequent operations that access or remove that object.</p> 
+</blockquote> 
+<div>
+ Atomic Variables
+</div> 
+<blockquote>
+ The 
+ <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/util/concurrent/atomic/package-summary.html" target="_blank"><code><span style=";;font-family:NSimsun;">java.util.concurrent.atomic</span></code></a> package defines classes that support atomic operations on single variables. All classes have 
+ <code><span style=";;font-family:NSimsun;">get</span></code> and 
+ <code><span style=";;font-family:NSimsun;">set</span></code> methods that work like reads and writes on 
+ <code><span style=";;font-family:NSimsun;">volatile</span></code> variables. That is, a 
+ <code><span style=";;font-family:NSimsun;">set</span></code> has a happens-before relationship with any subsequent 
+ <code><span style=";;font-family:NSimsun;">get</span></code> on the same variable. The atomic 
+ <code><span style=";;font-family:NSimsun;">compareAndSet</span></code> method also has these memory consistency features, as do the simple atomic arithmetic methods that apply to integer atomic variables. 
+ <p>To see how this package might be used, let's return to the <a class="SourceLink" href="http://java.sun.com/docs/books/tutorial/essential/concurrency/example/Counter.java" target="_blank"><code><code><span style=";;font-family:NSimsun;">Counter</span></code></code></a> class we originally used to demonstrate thread interference:</p> 
+ <blockquote> 
+  <pre>class Counter {
+    private int c = 0;
+
+    public void increment() {
+        c++;
+    }
+
+    public void decrement() {
+        c--;
+    }
+
+    public int value() {
+        return c;
+    }
+
+}</pre>
+ </blockquote>One way to make 
+ <code><span style=";;font-family:NSimsun;">Counter</span></code> safe from thread interference is to make its methods synchronized, as in 
+ <a class="SourceLink" href="http://java.sun.com/docs/books/tutorial/essential/concurrency/example/SynchronizedCounter.java" target="_blank"><code><code><span style=";;font-family:NSimsun;">SynchronizedCounter</span></code></code></a>: 
+ <blockquote> 
+  <pre>class SynchronizedCounter {
+    private int c = 0;
+
+    public synchronized void increment() {
+        c++;
+    }
+
+    public synchronized void decrement() {
+        c--;
+    }
+
+    public synchronized int value() {
+        return c;
+    }
+
+}</pre>
+ </blockquote>For this simple class, synchronization is an acceptable solution. But for a more complicated class, we might want to avoid the liveness impact of unnecessary synchronization. Replacing the 
+ <code><span style=";;font-family:NSimsun;">int</span></code> field with an 
+ <code><span style=";;font-family:NSimsun;">AtomicInteger</span></code> allows us to prevent thread interference without resorting to synchronization, as in 
+ <a class="SourceLink" href="http://java.sun.com/docs/books/tutorial/essential/concurrency/example/AtomicCounter.java" target="_blank"><code><code><span style=";;font-family:NSimsun;">AtomicCounter</span></code></code></a>: 
+ <blockquote> 
+  <pre>import java.util.concurrent.atomic.AtomicInteger;
+
+class AtomicCounter {
+    private AtomicInteger c = new AtomicInteger(0);
+
+    public void increment() {
+        c.incrementAndGet();
+    }
+
+    public void decrement() {
+        c.decrementAndGet();
+    }
+
+    public int value() {
+        return c.get();
+    }
+
+}</pre>
+ </blockquote>
+</blockquote> 
+<div>
+ For Further Reading
+</div> 
+<blockquote> 
+ <ul> 
+  <li><em>Concurrent Programming in Java: Design Principles and Pattern (2nd Edition)</em> by Doug Lea. A comprehensive work by a leading expert, who's also the architect of the Java platform's concurrency framework.</li> 
+  <li><em>Java Concurrency in Practice</em> by Brian Goetz, Tim Peierls, Joshua Bloch, Joseph Bowbeer, David Holmes, and Doug Lea. A practical guide designed to be accessible to the novice.</li> 
+  <li><em>Effective Java Programming Language Guide</em> by Joshua Bloch. Though this is a general programming guide, its chapter on threads contains essential &quot;best practices&quot; for concurrent programming.</li> 
+  <li><em>Concurrency: State Models &amp; Java Programs (2nd Edition)</em>, by Jeff Magee and Jeff Kramer. An introduction to concurrent programming through a combination of modeling and practical examples.</li> 
+ </ul> 
+</blockquote> 
+<p>======================= </p> 
+<p> </p> 
+<div>
+ Interrupts
+</div> 
+<blockquote>
+ An 
+ <em>interrupt</em> is an indication to a thread that it should stop what it is doing and do something else. It's up to the programmer to decide exactly how a thread responds to an interrupt, but it is very common for the thread to terminate. This is the usage emphasized in this lesson. 
+ <p>A thread sends an interrupt by invoking <a class="APILink" href="http://java.sun.com/javase/7/docs/api/java/lang/Thread.html#interrupt%28%29" target="_blank"><code><span style=";;font-family:NSimsun;">interrupt</span></code></a> on the <code><span style=";;font-family:NSimsun;">Thread</span></code> object for the thread to be interrupted. For the interrupt mechanism to work correctly, the interrupted thread must support its own interruption.</p> 
+ <h3>Supporting Interruption</h3> How does a thread support its own interruption? This depends on what it's currently doing. If the thread is frequently invoking methods that throw 
+ <code><span style=";;font-family:NSimsun;">InterruptedException</span></code>, it simply returns from the 
+ <code><span style=";;font-family:NSimsun;">run</span></code> method after it catches that exception. For example, suppose the central message loop in the 
+ <code><span style=";;font-family:NSimsun;">SleepMessages</span></code> example were in the 
+ <code><span style=";;font-family:NSimsun;">run</span></code> method of a thread's 
+ <code><span style=";;font-family:NSimsun;">Runnable</span></code> object. Then it might be modified as follows to support interrupts: 
+ <blockquote> 
+  <pre>for (int i = 0; i &lt; importantInfo.length; i++) {
+    //Pause for 4 seconds
+    try {
+        Thread.sleep(4000);
+    } catch (InterruptedException e) {
+        //We've been interrupted: no more messages.
+        return;
+    }
+    //Print a message
+    System.out.println(importantInfo[i]);
+}</pre>
+ </blockquote>Many methods that throw 
+ <code><span style=";;font-family:NSimsun;">InterruptedException</span></code>, such as 
+ <code><span style=";;font-family:NSimsun;">sleep</span></code>, are designed to cancel their current operation and return immediately when an interrupt is received. 
+ <p>What if a thread goes a long time without invoking a method that throws <code><span style=";;font-family:NSimsun;">InterruptedException</span></code>? Then it must periodically invoke <code><span style=";;font-family:NSimsun;">Thread.interrupted</span></code>, which returns <code><span style=";;font-family:NSimsun;">true</span></code> if an interrupt has been received. For example:</p> 
+ <blockquote> 
+  <pre>for (int i = 0; i &lt; inputs.length; i++) {
+    heavyCrunch(inputs[i]);
+    if (Thread.interrupted()) {
+        //We've been interrupted: no more crunching.
+        return;
+    }
+}</pre>
+ </blockquote>In this simple example, the code simply tests for the interrupt and exits the thread if one has been received. In more complex applications, it might make more sense to throw an 
+ <code><span style=";;font-family:NSimsun;">InterruptedException</span></code>: 
+ <blockquote> 
+  <pre>if (Thread.interrupted()) {
+    throw new InterruptedException();
+}</pre>
+ </blockquote>This allows interrupt handling code to be centralized in a 
+ <code><span style=";;font-family:NSimsun;">catch</span></code> clause. 
+ <h3>The Interrupt Status Flag</h3> The interrupt mechanism is implemented using an internal flag known as the 
+ <em>interrupt status</em>. Invoking 
+ <code><span style=";;font-family:NSimsun;">Thread.interrupt</span></code> sets this flag. When a thread checks for an interrupt by invoking the static method 
+ <code><span style=";;font-family:NSimsun;">Thread.interrupted</span></code>, interrupt status is cleared. The non-static 
+ <code><span style=";;font-family:NSimsun;">Thread.isInterrupted</span></code>, which is used by one thread to query the interrupt status of another, does not change the interrupt status flag. 
+ <p>By convention, any method that exits by throwing an <code><span style=";;font-family:NSimsun;">InterruptedException</span></code> clears interrupt status when it does so. However, it's always possible that interrupt status will immediately be set again, by another thread invoking <code><span style=";;font-family:NSimsun;">interrupt</span></code>.</p> 
+</blockquote> 
+<div>
+ Joins
+</div> 
+<blockquote>
+ The 
+ <code><span style=";;font-family:NSimsun;">join</span></code> method allows one thread to wait for the completion of another. If 
+ <code><span style=";;font-family:NSimsun;">t</span></code> is a 
+ <code><span style=";;font-family:NSimsun;">Thread</span></code> object whose thread is currently executing, 
+ <blockquote> 
+  <pre>t.join();</pre>
+ </blockquote>causes the current thread to pause execution until 
+ <code><span style=";;font-family:NSimsun;">t</span></code>'s thread terminates. Overloads of 
+ <code><span style=";;font-family:NSimsun;">join</span></code> allow the programmer to specify a waiting period. However, as with 
+ <code><span style=";;font-family:NSimsun;">sleep</span></code>, 
+ <code><span style=";;font-family:NSimsun;">join</span></code> is dependent on the OS for timing, so you should not assume that 
+ <code><span style=";;font-family:NSimsun;">join</span></code> will wait exactly as long as you specify. 
+ <p>Like <code><span style=";;font-family:NSimsun;">sleep</span></code>, <code><span style=";;font-family:NSimsun;">join</span></code> responds to an interrupt by exiting with an <code><span style=";;font-family:NSimsun;">InterruptedException</span></code>.</p> 
+</blockquote> 
+<div>
+ The SimpleThreads Example
+</div> 
+<blockquote>
+ The following example brings together some of the concepts of this section. 
+ <a class="SourceLink" href="http://java.sun.com/docs/books/tutorial/essential/concurrency/example/SimpleThreads.java" target="_blank"><code><span style=";;font-family:NSimsun;">SimpleThreads</span></code></a> consists of two threads. The first is the main thread that every Java application has. The main thread creates a new thread from the 
+ <code><span style=";;font-family:NSimsun;">Runnable</span></code> object, 
+ <code><span style=";;font-family:NSimsun;">MessageLoop</span></code>, and waits for it to finish. If the 
+ <code><span style=";;font-family:NSimsun;">MessageLoop</span></code> thread takes too long to finish, the main thread interrupts it. 
+ <p>The <code><span style=";;font-family:NSimsun;">MessageLoop</span></code> thread prints out a series of messages. If interrupted before it has printed all its messages, the <code><span style=";;font-family:NSimsun;">MessageLoop</span></code> thread prints a message and exits.</p> 
+ <blockquote> 
+  <pre>public class SimpleThreads {
+
+    //Display a message, preceded by the name of the current thread
+    static void threadMessage(String message) {
+        String threadName = Thread.currentThread().getName();
+        System.out.format(&quot;%s: %s%n&quot;, threadName, message);
+    }
+
+    private static class MessageLoop implements Runnable {
+        public void run() {
+            String importantInfo[] = {
+                &quot;Mares eat oats&quot;,
+                &quot;Does eat oats&quot;,
+                &quot;Little lambs eat ivy&quot;,
+                &quot;A kid will eat ivy too&quot;
+            };
+            try {
+                for (int i = 0; i &lt; importantInfo.length; i++) {
+                    //Pause for 4 seconds
+                    Thread.sleep(4000);
+                    //Print a message
+                    threadMessage(importantInfo[i]);
+                }
+            } catch (InterruptedException e) {
+                threadMessage(&quot;I wasn't done!&quot;);
+            }
+        }
+    }
+
+    public static void main(String args[]) throws InterruptedException {
+
+        //Delay, in milliseconds before we interrupt MessageLoop
+        //thread (default one hour).
+        long patience = 1000 * 60 * 60;
+
+        //If command line argument present, gives patience in seconds.
+        if (args.length &gt; 0) {
+            try {
+                patience = Long.parseLong(args[0]) * 1000;
+            } catch (NumberFormatException e) {
+                System.err.println(&quot;Argument must be an integer.&quot;);
+                System.exit(1);
+            }
+
+        }
+
+        threadMessage(&quot;Starting MessageLoop thread&quot;);
+        long startTime = System.currentTimeMillis();
+        Thread t = new Thread(new MessageLoop());
+        t.start();
+
+        threadMessage(&quot;Waiting for MessageLoop thread to finish&quot;);
+        //loop until MessageLoop thread exits
+        while (t.isAlive()) {
+            threadMessage(&quot;Still waiting...&quot;);
+            //Wait maximum of 1 second for MessageLoop thread to
+            //finish.
+            t.join(1000);
+            if (((System.currentTimeMillis() - startTime) &gt; patience) &amp;&amp;
+                    t.isAlive()) {
+                threadMessage(&quot;Tired of waiting!&quot;);
+                t.interrupt();
+                //Shouldn't be long now -- wait indefinitely
+                t.join();
+            }
+
+        }
+        threadMessage(&quot;Finally!&quot;);
+    }
+}</pre>
+ </blockquote>
+</blockquote> 
+<p> </p> 
+<p> </p></div></body></html>

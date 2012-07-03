@@ -1,0 +1,48 @@
+<html><head><title><div class="tit">
+  一对多实例 延迟加载问题 -mldn学习笔记 -hxzon -good
+</div></title></head><body><div id='tit'>一对多实例 延迟加载问题 -mldn学习笔记 -hxzon -good</div><div id='cate'>默认分类</div><div id='date'>2008年08月15日 星期五 12:12 P.M.</div><div id='page'>110</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/7bfbfe1974f6657cdbb4bdc4.html'>http://hi.baidu.com/hxzon/blog/item/7bfbfe1974f6657cdbb4bdc4.html</a><div id='cnt'><div>
+ 一对多实例 延迟加载问题 -mldn学习笔记 -hxzon -good
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;
+ <font size="2"> 1VSNDemo </font>
+ <br /> =============================================================
+ <br /> hxzon:
+ <br /> 1、在员工列表页面，书写&lt;td&gt;${e.dept.deptno }&lt;/td&gt;，可以成功执行，因为是外键。
+ <br /> 但是书写&lt;td&gt;${e.dept }&lt;/td&gt;或者&lt;td&gt;${e.dept.dname }&lt;/td&gt;会出错。因为是延迟加载，而session已经关闭。
+ <br /> 出错如下：
+ <br /> 严重: Servlet.service() for servlet jsp threw exception
+ <br /> org.hibernate.LazyInitializationException: could not initialize proxy - the owning Session was closed
+ <br /> 
+ <br /> 2、同样在部门列表书写&lt;td&gt;${dept.emps }&lt;/td&gt;也会出错。
+ <br /> 严重: Servlet.service() for servlet jsp threw exception
+ <br /> org.hibernate.LazyInitializationException: failed to lazily initialize a collection of role: org.lxh.vo.Dept.emps, no session or session was closed
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 3、映射文件Dept.hbm.xml中加入lazy=&quot;false&quot;后可以成功执行。
+ <br /> &lt;set cascade=&quot;all&quot; inverse=&quot;true&quot; name=&quot;emps&quot; sort=&quot;unsorted&quot; table=&quot;emp&quot; lazy=&quot;false&quot;&gt;
+ <br /> 如部门列表，按部门列出所有员工
+ <br /> &lt;c:forEach var=&quot;dept&quot; items=&quot;${all}&quot;&gt;
+ <br /> &lt;c:forEach var=&quot;emp&quot; items=&quot;${dept.emps}&quot;&gt;
+ <br /> &lt;td&gt;${emp.ename }&lt;/td&gt;
+ <br /> &lt;/c:forEach&gt;
+ <br /> &lt;/c:forEach&gt;
+ <br /> （注意，c:forEach与logic:iterate的写法。）
+ <br /> 
+ <br /> 重新去掉lazy属性后出错。
+ <br /> 
+ <br /> 4、同样，在Emp.hbm.xml中加入lazy=&quot;false&quot;，查询部门信息成功。
+ <br /> &lt;many-to-one class=&quot;org.lxh.vo.Dept&quot; name=&quot;dept&quot; lazy=&quot;false&quot;&gt;
+ <br /> 在员工列表，输出部门信息。
+ <br /> &lt;td&gt;${e.dept.dname}&lt;/td&gt;
+ <br /> 重新去掉lazy属性后，出错。
+ <br /> 输出部门类，${e.dept}，发现每次属于同一部门的员工的这个值相同。如同属A部门的，值都为org.lxh.vo.Dept@c7640b。但是每次刷新时值都不相同。
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ =====================================================
+ <br /> 
+ <p>hibernate延迟加载问题是开发者使用hibernate时经常遇到的问题。总结了一下，以便后来者少走弯路。<br /> 第一、硬编码方式<br /> 在调用设置延迟加载的集合时用Hibernate类的initialize方法初始化<br /> 加载。<br /> 形如：<br /> Hibernate.initialize(obj.getList());<br /> 第二、在web.xml中设置OpenSessionInViewFilter过滤器<br /> <br /> 形如：<br /> &lt;filter&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;filter-name&gt;OpenSessionInViewFilter&lt;/filter-name&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;filter-class&gt;org.springframework.orm.hibernate3.support.OpenSessionInViewFilter&lt;/filter-class&gt;<br /> &nbsp;&nbsp; &lt;/filter&gt;<br /> &nbsp;&nbsp; &lt;filter-mapping&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;filter-name&gt;OpenSessionInViewFilter&lt;/filter-name&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;url-pattern&gt;/*&lt;/url-pattern&gt;<br /> &nbsp;&nbsp; &lt;/filter-mapping&gt;<br /> ===============================<br /> hibernate延迟加载问题是开发者使用hibernate时经常遇到的问题。总结了一下，以便后来者少走弯路。<br /> 第一、硬编码方式<br /> 在调用设置延迟加载的集合时用Hibernate类的initialize方法初始化<br /> 加载。<br /> 形如：<br /> Hibernate.initialize(obj.getList());<br /> 第二、在web.xml中设置OpenSessionInViewFilter过滤器<br /> 形如：<br /> &lt;filter&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;filter-name&gt;OpenSessionInViewFilter&lt;/filter-name&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;filter-class&gt;org.springframework.orm.hibernate3.support.OpenSessionInViewFilter&lt;/filter-class&gt;<br /> &lt;/filter&gt;<br /> &lt;filter-mapping&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;filter-name&gt;OpenSessionInViewFilter&lt;/filter-name&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;url-pattern&gt;/*&lt;/url-pattern&gt;<br /> &lt;/filter-mapping&gt;<br /> ------------------------------<br /> hxzon:使用方法一ok。<br /> 代码如下<br /> &nbsp;&nbsp;&nbsp; public List queryAll() throws Exception {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List all = null;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String hql = &quot;FROM Dept AS d&quot;;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Query q = this.session.createQuery(hql);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; all = q.list();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Object o:all){<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Dept d=(Dept)o;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#ff0000">Hibernate.initialize(d.getEmps());//对每个部门的员工列表都抓取</font><br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Hibernate.initialize(all);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.session.close();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return all;<br /> &nbsp;&nbsp;&nbsp; }<br /> ---------------------<br /> &nbsp;&nbsp;&nbsp; public List queryAll() throws Exception {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List all = null;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String hql = &quot;FROM Emp AS e&quot;;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; all = this.session.createQuery(hql).list();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(Object o:all){<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Emp e=(Emp)o;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font color="#ff0000">Hibernate.initialize(e.getDept());</font><br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.session.close();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return all;<br /> &nbsp;&nbsp;&nbsp; }<br /> ===============================<br /> 如果结合spring，很多问题。hxzon</p> 
+</div></div></body></html>

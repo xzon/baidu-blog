@@ -1,0 +1,209 @@
+<html><head><title><div class="tit">
+  操作系统课程设计报告_首次适应算法
+</div></title></head><body><div id='tit'>操作系统课程设计报告_首次适应算法</div><div id='cate'>存档&middot;垃圾</div><div id='date'>2008年02月21日 星期四 10:07 P.M.</div><div id='page'>175</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/012a633801a2042796ddd840.html'>http://hi.baidu.com/hxzon/blog/item/012a633801a2042796ddd840.html</a><div id='cnt'><div>
+ 操作系统课程设计报告_首次适应算法
+</div> 
+<div> 
+</div> 
+<div>
+ 呵呵,给大家共享一下实验报告,随便写的,觉得有用便拿去用吧.
+</div> 
+<div> 
+</div> 
+<div>
+ 一、实验目的：
+ <br /> 熟悉首次适应算法，理解分配内存资源及回收资源的方法,加深记意。
+ <br /> 二、实验环境：
+ <br /> Win2000/winxp VC++6.0
+ <br /> 三、实验内容：
+ <br /> 编程实现初次内存分配算法、新申请资源分配算法、删除进程算法，回收合并算法等。
+ <br /> 四．实验函数
+ <br /> 程序主要以链表实现，相关函数如下：
+ <br /> 1．void Init(memoryspace &amp;L,int size)
+ <br /> 初始化空间段，大小可自定。
+ <br /> 2．void choice(memoryspace &amp;L)
+ <br /> 选择对作业的操作类型，选0退出程序，先1新建作业，输出已经分配和空闲资源情况，选3删除某作业，选4回收资源。
+ <br /> 3．void Add(memoryspace &amp;L)
+ <br /> 添加的作业。
+ <br /> 4．void Display(const memoryspace L)
+ <br /> 输出已经分配和空闲结点。
+ <br /> 5．void deltask(const memoryspace L)
+ <br /> 输出已经分配和空闲资源情况。
+ <br /> 6．void setfree(memoryspace &amp;L)
+ <br /> 回收空闲空间，若存在连续的空闲结点则合并。
+ <br /> 五．实验代码：
+ <br /> 程序代码
+ <br /> #include 
+ <br /> #include 
+ <br /> typedef struct LNode
+ <br /> { int size; //内存大小
+ <br /> int state; //0表示空闲，1表示已经装入作业
+ <br /> char task_name; //装入的作业名称
+ <br /> struct LNode *next;
+ <br /> }LNode,*memoryspace;
+ <br /> void Init(memoryspace &amp;L,int size); //初始化空间段
+ <br /> void choice(memoryspace &amp;L); //选择操作类型
+ <br /> void Add(memoryspace &amp;L); //添加作业
+ <br /> void Display(const memoryspace L); //显示作业
+ <br /> void deltask(const memoryspace L); //删除作业
+ <br /> void setfree(memoryspace &amp;L); //回收空闲空间
+ <br /> void main()
+ <br /> {
+ <br /> memoryspace L=new LNode; //memoryspace
+ <br /> int N;
+ <br /> cout&lt;&lt;&quot;初始多大空间,请输入一个整数:&quot;&lt; cin&gt;&gt;N;
+ <br /> Init(L,N); //初始化大小为1000的内存空间
+ <br /> choice(L); //进入操作
+ <br /> }
+ <br /> void Init(memoryspace &amp;L,int size) //初始化空间段
+ <br /> {
+ <br /> memoryspace p = new LNode;
+ <br /> p-&gt;size = size;
+ <br /> p-&gt;state = 0;
+ <br /> p-&gt;task_name = 'n';
+ <br /> p-&gt;next = NULL;
+ <br /> L-&gt;next = p;
+ <br /> }
+ <br /> void setfree(memoryspace &amp;L) //找出连续的空闲资源,回收空闲空间
+ <br /> {
+ <br /> memoryspace p=L-&gt;next,q=p-&gt;next;
+ <br /> while(p &amp;&amp; q)
+ <br /> {
+ <br /> if(p-&gt;state == 0 &amp;&amp; q-&gt;state == 0) //如果空间连续,则回收
+ <br /> {
+ <br /> p-&gt;size +=q-&gt;size;
+ <br /> p-&gt;next = p-&gt;next-&gt;next;
+ <br /> delete q;
+ <br /> q=p-&gt;next;
+ <br /> }
+ <br /> else
+ <br /> {
+ <br /> p = q;
+ <br /> q = q-&gt;next;
+ <br /> }
+ <br /> }
+ <br /> cout&lt;&lt;&quot;回收成功&quot;&lt; }
+ <br /> void deltask(const memoryspace L) //删除作业
+ <br /> {
+ <br /> char task_name;
+ <br /> int flag=0;
+ <br /> Display(L);
+ <br /> cout&lt;&lt;&quot;请输入需要回收的作业名称:&quot;;
+ <br /> cin&gt;&gt;task_name;
+</div> 
+<div> 
+</div> 
+<div>
+ memoryspace p=L,q=L-&gt;next;
+ <br /> while(q)
+ <br /> {
+ <br /> if(q-&gt;task_name == task_name)
+ <br /> {
+ <br /> q-&gt;state=0;
+ <br /> q-&gt;task_name='?';
+ <br /> flag=1;
+ <br /> break;
+ <br /> }
+ <br /> else
+ <br /> {
+ <br /> p = q;
+ <br /> q = q-&gt;next; //找到要删除作业的下一个结点
+ <br /> }
+ <br /> }
+ <br /> if(flag == 0)
+ <br /> cout&lt;&lt;&quot;删除作业不成功&quot;&lt; else
+ <br /> cout&lt;&lt;&quot;删除作业成功&quot;&lt; }
+</div> 
+<div> 
+</div> 
+<div>
+ void Display(const memoryspace L) //显示作业
+ <br /> {
+ <br /> int count=1;
+ <br /> memoryspace p = L-&gt;next;
+ <br /> cout&lt;&lt;&quot;结点号 作业 状态 大小&quot;&lt; while(p)
+ <br /> {
+ <br /> cout&lt;&lt;&quot;结点&quot;&lt; cin&gt;&gt;new_name;
+ <br /> cout&lt;&lt;&quot;请输入新任务的大小:&quot;;
+ <br /> cin&gt;&gt;new_size;
+</div> 
+<div> 
+</div> 
+<div>
+ while(p) //查找空闲资源进行分配
+ <br /> {
+ <br /> if (new_size&lt;=0)
+ <br /> {
+ <br /> cout&lt; break;
+ <br /> }
+ <br /> if(p-&gt;state==0 &amp;&amp; p-&gt;size &gt;= new_size) 
+ <br /> { 
+ <br /> //****************************************************//
+ <br /> memoryspace q = new LNode;
+ <br /> q-&gt;size = p-&gt;size - new_size; 
+ <br /> q-&gt;state = 0;
+ <br /> q-&gt;task_name='?';
+ <br /> q-&gt;next=NULL;
+ <br /> //****************************************************//
+ <br /> p-&gt;size = new_size;
+ <br /> p-&gt;state = 1;
+ <br /> p-&gt;task_name=new_name;
+ <br /> q-&gt;next = p-&gt;next;
+ <br /> p-&gt;next = q;
+ <br /> break; //分配完成便退出
+ <br /> }
+ <br /> else
+ <br /> {
+ <br /> p = p-&gt;next; //移动到足够分配的空结点
+ <br /> }
+ <br /> if(!p)
+ <br /> {
+ <br /> cout&lt;&lt;&quot;作业&quot;&lt; break;
+ <br /> }
+ <br /> }
+ <br /> p = L-&gt;next;
+ <br /> while(p) //删除大小为0的结点,当分配空间完时会出现0结点
+ <br /> {
+ <br /> if(p-&gt;size == 0)
+ <br /> {
+ <br /> q-&gt;next = q-&gt;next-&gt;next;
+ <br /> delete p;
+ <br /> p = q-&gt;next;
+ <br /> }
+ <br /> else 
+ <br /> {
+ <br /> q = p;
+ <br /> p = p-&gt;next;
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> void choice(memoryspace &amp;L) //选择操作类型
+ <br /> { 
+ <br /> int choice;
+ <br /> do
+ <br /> {
+ <br /> cout&lt;&lt;&quot;0.退出本程序&quot;&lt; cout&lt;&lt;&quot;1.添加新的作业&quot;&lt; cout&lt;&lt;&quot;2.显示当前作业&quot;&lt; cout&lt;&lt;&quot;3.删除一条作业&quot;&lt; cout&lt;&lt;&quot;4.回收空闲空间&quot;&lt; cout&lt; cin&gt;&gt;choice;
+ <br /> switch(choice)
+ <br /> {
+ <br /> case 0:
+ <br /> exit(1);break;
+ <br /> case 1:
+ <br /> Add(L); break;
+ <br /> case 2:
+ <br /> Display(L); break; 
+ <br /> case 3:
+ <br /> deltask(L); break;
+ <br /> case 4:
+ <br /> setfree(L); break;
+ <br /> default:
+ <br /> cout&lt;&lt;&quot;请输入正确的选择!&quot;&lt; break;
+ <br /> }
+ <br /> cout&lt; }while(choice!=0 ||choice!=1 || choice !=2 || choice!=3 || choice!=4);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 六．实验总结
+ <br /> 在一般的操作系统中,进程量都不是很大,于是添加新作业及回收资源的时候都是遍历整个链表对每个结点进行操作,这样也使算法易于实现.通过本次实验,我对操作系统的内存分配方法有了进一步的理解.
+</div></div></body></html>

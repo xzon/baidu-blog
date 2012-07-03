@@ -1,0 +1,89 @@
+<html><head><title><div class="tit">
+  17.2 Grizzly简介
+</div></title></head><body><div id='tit'>17.2 Grizzly简介</div><div id='cate'>细节</div><div id='date'>2009年09月21日 星期一 10:00 P.M.</div><div id='page'>29</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/f06d993d2745cd0abba1672a.html'>http://hi.baidu.com/hxzon/blog/item/f06d993d2745cd0abba1672a.html</a><div id='cnt'><h3>17.2 Grizzly简介</h3> 
+<p class="MsoNormal" style="text-indent: 21pt">正如前文所说，用Java技术来编写一个扩展性能很高的服务器软件是件很困难的事情。Java虚拟机的线程管理机制使得纯Java写的HTTP引擎很难响应成千上万的并发用户。正如Tomcat一样，在并发用户数不是很高的情况下能够获得很高的吞吐量，但是在高并发的情况下性能下降很快，变得不太稳定。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">在JDK 1.4推出NIO之后，有很多基于NIO的框架出现，利用NIO的新特性，来编写高性能的HTTP引擎。其中以Jean-Francois Arcand的Grizzly最为引人瞩目。Grizzly最早被用于Sun Java System Application Server, Platform Edition 8.1。随后成为开源软件GlassFish的一部分。在今后，Sun Java System Application Server 9.x的Platform Edition和Enterprise Edition都会使用Grizzly作为HTTP引擎。</p> 
+<p class="35">17.2.1 Grizzly的基本架构</p> 
+<p class="MsoNormal" style="text-indent: 21pt">图17-1描述了Grizzly的基本架构。</p> 
+<p align="center"><img height="385" src="image/17.2 Grizzly简介.html.image033.jpg" width="419" border="0" /><p class="origImg">http://book.csdn.net/BookFiles/551/img/image033.jpg</p></p> 
+<p align="center">图17-1 Grizzly的基本架构</p> 
+<p class="MsoNormal" style="text-indent: 21pt">Grizzly的基本架构主要包含以下几个方面：Pipeline、SelectorThread和Task。下面分别加以介绍。</p> 
+<h4>1. Pipeline</h4> 
+<p class="MsoNormal" style="text-indent: 21.4pt">在com.sun.enterprise.web.connector.grizzly包下，有许多与Pipeline相关的类，例如Pipeline、KeepAlivePipeline、ThreadPoolExecutorPipeline、LinkedListPipeline等。Pipeline是个不太好理解的词汇，其实把这些类叫做ThreadPoolWrapper可能更加合适和容易理解。只要熟悉服务器端的软件，对Thread Pool(线程池)一定不会陌生。线程比起进程来说，消耗的资源要少，共享数据更加简单。因此，现在大多数服务器软件(特别是HTTP服务器)都会采用多线程模式。但是线程的创建和关闭仍然是比较慢的系统服务，聪明的服务器软件设计者会在系统启动的时候，预先创建一些线程，并且将这些线程管理起来，在系统正常运行的时候服务于客户的请求。通过这样的手段，线程不需要在使用的时候临时创建，大大提高了软件的运行速度和效率。对这种线程的管理方法叫做线程池。线程池中的线程需要互相协作，有序地执行客户的请求。一般用于同步线程的结构叫任务队列。客户的请求根据先后顺序被放到了任务队列中，线程池中空闲的线程会从任务队列中获得任务并执行。</p> 
+<p class="MsoNormal" style="text-indent: 20.4pt">Grizzly中的Pipeline实际上封装了一个Thread Pool(线程池)和一个任务队列。Pipeline的主要目的是封装了一个统一的接口，可以让Grizzly根据配置文件任意选择不同算法的线程池，来获得不同的特点和性能。在Grizzly中已经实现了好几种线程池。其中有ThreadPoolExecutorPipeline(基于java.util.concurrent.ThreadPoolExecutor来实现的线程池)，还有LinkedListPipeline(使用简单的linklist数据结构管理的线程池)。在早期的Grizzly中还会看到一些其他的实现。经过测试以后，淘汰了一些性能不好的算法，目前只剩下这两种Pipeline了。事实上在大并发用户的测试中，LinkedListPipeline的性能是最好的，因此被设置为默认的选择。在以后的版本中，ThreadPoolExecutorPipeline也可能会消失，只保留性能最好的算法是明智的选择。但是现在还存在两种算法，其主要原因是java.util.concurrent.ThreadPoolExecutor的名声太响，所有的文章和测试都曾经证明过它的高性能。就连Grizzly的作者本身都不相信LinkedListPipeline的性能要比ThreadPoolExecutorPipeline好，只不过当前的测试结果事实如此。因此该作者自己也说，一旦有证据证明ThreadPoolExecutorPipeline的性能又重新超过LinkedListPipeline，他会立即将默认的设置指向ThreadPoolExecutorPipeline。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">KeepAlivePipeline是一个特例，它并不是用来执行特定任务的，而是用来维护HTTP协议中的持久连接的状态，例如维护最大的持久连接数，持久连接的timeout时间等。另外，异步的socketChannel中缺少一个类似socket.setSoTimeout的函数，这个函数在保证服务器软件的可靠性和安全性(抗DOS攻击)上，具有重要的作用。Grizzly是用KeepAlivePipeline类来模拟socket.setSoTimeout的作用。</p> 
+<h4>2. SelectorThread</h4> 
+<p class="MsoNormal" style="text-indent: 21pt">这是Grizzly的主要入口类，位于com.sun.enterprise.web.connector.grizzly的包下。在SelectorThread中，SocketChannel和Selector被创建并被初始化。当网络有请求进来的时候，Selector会根据不同的请求类型和NIO的不同事件进行不同的处理。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">当NIO的事件为OP_READ的时候，表明是原有的连接中有新的请求数据传过来了。这类请求属于ReadTask，应该交给负责处理ReadTask的处理器来处理。ReadTask有自己的Pipeline(也就是线程池)来处理，这样就不会占用主线程来处理Read的请求。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">当NIO的事件为OP_ACCEPT的时候，表明是有新的请求进来了，这类请求属于AcceptTask，应该交给负责处理AcceptTask的处理器来处理。在老版本的GlassFish中，AcceptTask也有自己的Pipeline来处理，这样就让AcceptTask在主线程以外的线程中执行。但是经过多次性能测试和比较，发现当AcceptTask在主线程(SelectorThread)中执行的时候，性能最好。因此，在读最新的Grizzly源代码的时候，会发现图17-1中的AcceptPipeline根本不存在，因为AcceptTask已经由SelectThread类中HandleAccept函数来执行了。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">当ReadTask执行完以后，表明整个请求的数据已经完全接收到，就可以进行请求处理了，请求处理属于ProcessTask，交给负责处理ProcessTask的处理器来处理。ProcessTask有自己的Pipeline(也就是线程池)来处理，这样就不会占用主线程来处理请求。</p> 
+<h4>3. Task</h4> 
+<p class="MsoNormal" style="text-indent: 21pt">在Grizzly的框架中包含下面几种任务。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">(1)&nbsp;&nbsp; AcceptTask：用于响应新的连接请求。前面已经说过，这个任务的类事实上已经不存在，没有单独抽象出来。因为处理Accept已经成为SelectThread内部的一部分了。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">(2)&nbsp;&nbsp; ProcessTask：用于处理并且响应请求。这个任务通常是对请求的数据进行解析，解析完后再将请求传递给其他服务的容器(如Servlet容器)进行真正的业务处理。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">(3)&nbsp;&nbsp; ReadTask：用于SocketChannel最初的读取操作。由于NIO是非阻塞的操作，最初的读取往往不能获得全部的请求数据，这时候，ReakTask会将任务委托给StreamAlgorithm，根据不同实现，用不同的方法将剩下的请求数据获取。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">在com.sun.enterprise.web.connector.grizzly.algorithms的包下，Grizzly默认实现了4个算法：</p> 
+<p class="1">l&nbsp;&nbsp; ContentLengthAlgorithm</p> 
+<p class="1">l&nbsp;&nbsp; SeekHeaderAlgorithm</p> 
+<p class="1">l&nbsp;&nbsp; StateMachineAlgorithm</p> 
+<p class="1">l&nbsp;&nbsp; NoParsingAlgorithm</p> 
+<p class="MsoNormal" style="text-indent: 21pt">前3个算法主要是围绕HTTP请求中的Content-length字段来进行解析。只要能读到这个字段的值，那么我们就可以预先判断整个请求的长度，从而确定什么时候完成请求读取，接着进行请求处理了。第4个算法是对请求数据根本不进行预处理，假设所有的数据都读进来了。如果最后发现请求数据读得不完全，再交给请求处理任务(ProcessTask)来负责将剩下的内容读取过来。</p> 
+<p class="35">17.2.2 源码阅读指南</p> 
+<p class="MsoNormal" style="text-indent: 21pt">根据图17-1的结构，结合Grizzly的源代码，可以看到Grizzly的大致脉络。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">SelectorThread是个入口，根据Grizzly所在的不同环境，启动的方法有所不同。如果Grizzly作为单独可运行的应用(Grizzly可以从GlassFish中独立出来)，在com.sun.enterprise. web.connector.grizzly.standalone包下的Main类是这样使用SelectorThread的：</p> 
+<p class="MsoNormal" style="text-indent: 21pt">【例17.4】单独运行的Grizzly对SelectorThread的调用：</p> 
+<p class="af0">private static void start(String args[]) throws Exception {</p> 
+<p class="af0" style="margin-left: 21.2pt; text-indent: 18pt">...</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; SelectorThread selectorThread = null;</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; String selectorThreadClassname = System.getProperty(SELECTOR_THREAD);</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; if (selectorThreadClassname != null){</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; selectorThread = loadInstance(selectorThreadClassname);</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; } else {</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; selectorThread = new SelectorThread();</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; }</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; selectorThread.setPort(port);</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; StaticResourcesAdapter adapter = new StaticResourcesAdapter();</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; adapter.setRootFolder(folder);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; selectorThread.setAdapter(adapter);</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; selectorThread.setDisplayConfiguration(true);</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; selectorThread.initEndpoint();</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; selectorThread.startEndpoint();</p> 
+<p class="af0">}</p> 
+<p class="MsoNormal" style="text-indent: 21pt">如果Grizzly是在GlassFish中，它作为服务线程，run()方法是整个线程启动的钥匙。从源码中很容易看出在run()方法中调用了startEndpoint()方法，startEndpoint()在做好一些准备工作之后，调用了startListener()。startListener()便进入了主线程的循环之中。在循环中只有一个方法，那就是doSelect()方法。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">在doSelect()中，可以很清楚地看到NIO的框架结构。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">【例17.5】SelectorThread中的doSelect()：</p> 
+<p class="af0">selectorState = selector.select(selectorTimeout);</p> 
+<p class="af0">...</p> 
+<p class="af0">readyKeys = selector.selectedKeys();</p> 
+<p class="af0">iterator = readyKeys.iterator();</p> 
+<p class="af0">while (iterator.hasNext()) {</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; key = iterator.next();</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; iterator.remove();</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; if (key.isValid()) {</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; handleConnection(key);</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; } else {</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cancelKey(key);</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp; }</p> 
+<p class="af0">}</p> 
+<p class="MsoNormal" style="text-indent: 21pt">与大多数NIO的架构一样，先是调用selector.select(selectorTimeout)，看看当前的频道有没有数据准备好了。如果有的话，通过selector.selectedKeys()将准备好的这些频道的SelectionKey取到。对这些频道的处理就交给handleConnection(key)函数了。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">【例17.6】SelectorThread中的handleConnection：</p> 
+<p class="af0" style="line-height: 13pt">protected void handleConnection(SelectionKey key) throws</p> 
+<p class="af0" style="margin-left: 42.25pt; text-indent: 20.75pt; line-height: 13pt">IOException,InterruptedException</p> 
+<p class="af0" style="line-height: 13pt">{</p> 
+<p class="af0" style="line-height: 13pt">&nbsp;&nbsp;&nbsp; Task task = null;</p> 
+<p class="af0" style="line-height: 13pt">&nbsp;&nbsp;&nbsp; if ((key.readyOps() &amp; SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT){</p> 
+<p class="af0" style="line-height: 13pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; handleAccept(key);</p> 
+<p class="af0" style="line-height: 13pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return;</p> 
+<p class="af0" style="margin-left: 0cm; line-height: 13pt">&nbsp;&nbsp;&nbsp; } else if ((key.readyOps() &amp; SelectionKey.OP_READ) == SelectionKey.OP_READ){</p> 
+<p class="af0" style="line-height: 13pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; task = handleRead(key);</p> 
+<p class="af0" style="line-height: 13pt">&nbsp;&nbsp;&nbsp; }</p> 
+<p class="af0" style="margin-left: 21.2pt; text-indent: 18pt; line-height: 13pt">if (((SocketChannel)key.channel()).isOpen()) {</p> 
+<p class="af0" style="line-height: 13pt">&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; task.execute();</p> 
+<p class="af0" style="margin-left: 21.2pt; text-indent: 18pt; line-height: 13pt">} else {</p> 
+<p class="af0" style="line-height: 13pt">&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; cancelKey(key);</p> 
+<p class="af0" style="margin-left: 21.2pt; text-indent: 18pt; line-height: 13pt">}</p> 
+<p class="af0" style="margin-left: 0cm; text-indent: 21pt; line-height: 13pt">}</p> 
+<p class="MsoNormal" style="text-indent: 21pt; line-height: 16pt">handleConnection函数很短，但是有一些重要的特点需要指出来。handleConnection的主要功能是区分那些已经准备好的频道，看看它们是属于新的连接(OP_ACCEPT)还是有新的请求数据(OP_READ)。</p> 
+<p class="MsoNormal" style="text-indent: 21pt; line-height: 16pt">如果是OP_ACCEPT，那么就调用函数handleAccept(key)。这个函数会在当前的线程内执行，主要的功能就是根据新来的连接创建新的频道，再将这个频道注册到Selector中。如果是OP_READ，那么就调用函数handleRead(key)。这个函数返回了一个Task。通过task.execute()将这个任务的实际运行交给Pipeline中的线程池来执行。换句话说，对新的请求数据的处理是在另外的线程中来处理的，而不是当前的线程。</p> 
+<p class="MsoNormal" style="text-indent: 21pt; line-height: 16pt">事实上，在早期的Grizzly的版本中，对OP_ACCEPT的处理与OP_READ一样，也是有单独的任务(AcceptTask)和单独的线程来执行。但是经过性能测试，证明当对OP_ACCEPT的处理在主线程的时候性能最好。因此就取消了AcceptTask在单独线程中的处理，演化为当前的模型。</p> 
+<p class="MsoNormal" style="text-indent: 21pt; line-height: 16pt">再随后的工作主要就交给ReadTask和ProcessTask去做了。这里不作详细的介绍。</p></div></body></html>

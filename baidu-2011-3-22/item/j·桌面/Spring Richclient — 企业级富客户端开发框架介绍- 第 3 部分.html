@@ -1,0 +1,183 @@
+<html><head><title><div class="tit">
+  Spring Richclient — 企业级富客户端开发框架介绍: 第 3 部分
+</div></title></head><body><div id='tit'>Spring Richclient — 企业级富客户端开发框架介绍: 第 3 部分</div><div id='cate'>j&middot;桌面</div><div id='date'>2010年12月30日 星期四 01:12 P.M.</div><div id='page'>2</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3047ad64e9a23ce2f63654ce.html'>http://hi.baidu.com/hxzon/blog/item/3047ad64e9a23ce2f63654ce.html</a><div id='cnt'><h1>Spring Richclient — 企业级富客户端开发框架介绍: 第 3 部分</h1> 
+<p>http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-</p>
+<p><a class="dwauthor" rel="#authortip1" href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#author1">刘 光瑞</a>, 软件架构师, 四达软件</p>
+<p><b>简介：</b>&nbsp;数据绑定是胖客户端应用中的重要概念，Spring Richclient 提供了功能强大的数据绑定功能，使我们从繁琐的视图与 Model 数据同步中解脱出来。同时，作为企业级胖客户端应用框架，Spring Richclient 为我们还提供了完善的数据验证功能，本文将详细讲解 Spring Richclient 的这两项重要功能。</p> 
+<p><a name="major1"><span class="atitle">前言</span></a></p> 
+<p>在本系列文章的第一篇中，初步演示了 Form 的使用方法。对于 Spring Richclient 应用来说，开发 Form 是如此的简便，这与 Spring Richclient 提供的强大的数据绑定和数据验证功能是分不开的。通过数据绑定，我们不需要再关心具体的控件，不需要再手动进行数据同步，只需要决定要显示的属性即可。而 通过框架的数据验证功能，大大提高了应用程序的安全性，使我们不再疲于复杂的数据校验逻辑。接下来我将详细介绍 Spring Richclient 这两项功能的实现机制。阅读本文之后，您可以完全按照需求编写自己的数据绑定和验证规则。</p> 
+<p><a name="major2"><span class="atitle">数据绑定</span></a></p> 
+<p>从某种角度上讲，数据绑定与 MVC/MVP 的设计模式是分不开的。通过这两种设计模式，实现了模型与视图的分离，而两者的分离所带来的问题就是模型与视图之间如何进行数据同步。对于 Swing 应用来说，一种显而易见的途径便是手动维护控件与 Model 之间的映射关系，初始化时，将 Model 中的数据设置到控件上，而提交数据时，则将控件中的数据设置到 Model 中。同时在这两个过程中还要完成数据转换的过程（以在文本框中显示整型为例，前者需要将整型值转化为字符串，而后者则需要将控件中的字符串转化为整型）。 这样不仅复杂，而且显然也不是一种好的实现方式，不仅设计糟糕而且极难复用。</p> 
+<p>一种更面向对象的实现方式是将 Model 与控件的交互封装为一系列的绑定对象，在该对象中完成上述一系列的工作，Spring Richclient 的数据绑定便是如此实现的。</p> 
+<p><a name="minor2.1"><span class="smalltitle">使用方法</span></a></p> 
+<p>在第一部分，我们介绍了如何为 Form 添加数据绑定控件。尽管我们只需要编写一行代码便可以增加一个数据绑定控件，可 Spring Richclient 却在这个过程中给我们完成了选择数据绑定、创建控件、国际化等各项工作。我们通过时序图来了解一下：</p> 
+<br /> 
+<a name="fig1"><b>图 1. 为 Form 增加绑定</b></a>
+<br /> 
+<img alt="图 1. 为 Form 增加绑定" src="image/Spring Richclient — .image001.png" height="312" width="572" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/image001.png</p> 
+<br /> 
+<p>（查看图 1 的 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/origin_image001.png" target="_blank">清晰版本</a>。）</p> 
+<p>从上图可以看出，通过绑定选择策略类（SwingBinderSelectionStrategy），我们可以根据属性类型找到合适的数据绑定，这大大简化了我们的工作。但是，如果有特殊需求，我们还是可以自己创建绑定对象并且添加到 Form 上，代码如下：</p> 
+<br /> 
+<a name="listing1"><b>清单 1. 为 Form 手动增加绑定</b></a>
+<br /> 
+<table border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody>
+  <tr>
+   <td class="code-outline"><pre class="displaycode">    <br />builder.add(new TextComponentBinder().bind(getFormModel(), &quot;lastName&quot;, null)); <br /></pre></td>
+  </tr>
+ </tbody> 
+</table> 
+<br /> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#fig1">图 1</a> 中，添加控件的操作由 add 方法完成，该方法首先会根据 Binding 创建相应的控件，同时为控件创建对应的 Label 以及设置显示文本，最后使用 TableLayoutBuilder 布局器添加到相应的 JPanel 上。</p> 
+<p>那么 Spring Richclient 是如何完成数据与控件绑定的呢？让我们看一下它的实现方式。</p> 
+<p><a name="minor2.2"><span class="smalltitle">实现方式</span></a></p> 
+<p>由 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#fig1">图 1</a> 可以看出，Spring Richclient 提供了两个重要的接口 Binder 和 Binding，前者负责创建控件，并且构造 Binding 对象，后者完成 Model 与视图的数据同步。Spring Richclient 所有的数据绑定类均实现了 Binding 接口，且存在一个对应的 Binder 实现类。</p> 
+<p>以文本控件的数据绑定为例，我们分别看一下 Binder 和 Binding 所完成的工作：</p> 
+<br /> 
+<a name="fig2"><b>图 2. TextComponentBinder</b></a>
+<br /> 
+<img alt="图 2. TextComponentBinder" src="image/Spring Richclient — .image002.png" height="450" width="476" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/image002.png</p> 
+<br /> 
+<br /> 
+<a name="fig3"><b>图 3. TextComponentBinding</b></a>
+<br /> 
+<img alt="图 3. TextComponentBinding" src="image/Spring Richclient — .image003.png" height="334" width="572" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/image003.png</p> 
+<br /> 
+<p>（查看图 3 的 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/origin_image003.png" target="_blank">清晰版本</a>。）</p> 
+<p>由 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#fig2">图 2</a> 可知 Binder 类创建控件是由 ComponentFactory 统一完成的（通过这个说明，也许您更能体会到 ApplicationServices 在整个应用中的作用，详细说明参见第二部分）。控件创建完毕后，Spring Richclient 将文本控件和 FormModel 封装为 Binding 对象，同时完成 Binding 属性的初始化。</p> 
+<p>在 Binding 对象中，主要完成了如下两方面的监听：</p> 
+<ul> 
+ <li>对 valueModel（FormModel 的每个属性对应一个 ValueModel 对象）的监听，确保 ValueModel 值变化时，能够更新控件展现。</li>
+ <li>对控件的监听，确保当控件变化时，能够更新 ValueModel。</li> 
+</ul> 
+<p>对于文本控件绑定来说，这两方面是通过类 AsYouTypeTextComponentAdapter 完成的：</p> 
+<ul> 
+ <li>为文本控件增加 DocumentListener 监听器，在插入文本、删除文本、更新文本时，均会使用当前控件中的文本更新 ValueModel 中的值。</li>
+ <li>该类继承了 AbstractValueModelAdapter 类，会自动为 ValueModel 增加属性变更事件，当 ValueModel 中的数据变更时，该类会将 ValueModel 中的数据更新到控件中。</li> 
+</ul> 
+<p>Spring Richclient 除了通过为控件增加监听器更新 ValueModel 外，还会通过继承 Swing 的 Model 实现（见 ComboBoxBinding，该类即实现了 BoundComboBoxModel 作为 JComboBox 的默认 Model）。</p> 
+<p><a name="minor2.3"><span class="smalltitle">自定义数据绑定</span></a></p> 
+<p>既然您已经了解了数据绑定的基本原理，那么接下来，我将一步步的创建一个 Spring Richclient 的数据绑定，您也可以通过这个过程进一步加深理解。</p> 
+<p>日期控件是应用中常见的展现控件，而且日期的展现和选择也是多种多样的。有的是以日历的形式展现，如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#fig4">图 4</a>：</p> 
+<br /> 
+<a name="fig4"><b>图 4. 日历形式的日期组件</b></a>
+<br /> 
+<img alt="图 4. 日历形式的日期组件" src="image/Spring Richclient — .image004.png" height="265" width="322" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/image004.png</p> 
+<br /> 
+<p>而有的则以一种比较简单的方式展现，如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#fig5">图 5</a>：</p> 
+<br /> 
+<a name="fig5"><b>图 5. 简单日期控件</b></a>
+<br /> 
+<img alt="图 5. 简单日期控件" src="image/Spring Richclient — .image005.png" height="36" width="280" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/image005.png</p> 
+<br /> 
+<p>作为示例，我们仅介绍后者的实现方式。依据上一节的描述，DateSelectorBinding 类的定义如下：</p> 
+<br /> 
+<a name="listing2"><b>清单 2. DateSelectorBinding</b></a>
+<br /> 
+<table border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody>
+  <tr>
+   <td class="code-outline"><pre class="displaycode">    <br />public class DateSelectorBinding extends AbstractBinding implements<br />        PropertyChangeListener, ItemListener {<br /><br />    public DateSelectorBinding(FormModel formModel, String formPropertyPath) {<br />        super(formModel, formPropertyPath, Date.class);<br />    }<br />    @Override<br />    protected JComponent doBindControl() {<br />    }<br /><br />    @Override<br />    protected void enabledChanged() {<br />    }<br /><br />    @Override<br />    protected void readOnlyChanged() {<br />    }<br />    public void itemStateChanged(ItemEvent event) {<br />    }<br />    public void propertyChange(PropertyChangeEvent event) {<br />    }<br /><br />}<br /></pre></td>
+  </tr>
+ </tbody> 
+</table> 
+<br /> 
+<p>该类继承自 AbstractBinding 并且实现了 PropertyChangeListener 和 ItemListener，前者监听 ValueModel 的变化来更新控件，后者监听控件变化来更新 ValueModel，初始化代码如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#listing3">清单 3</a>：</p> 
+<br /> 
+<a name="listing3"><b>清单 3. 初始化监听</b></a>
+<br /> 
+<table border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody>
+  <tr>
+   <td class="code-outline"><pre class="displaycode">    <br />    private void initListener() {<br />        getValueModel().addValueChangeListener(this);<br />        year.addItemListener(this);<br />        month.addItemListener(this);<br />        day.addItemListener(this);<br />    }<br /><br /> //当ValueModel变化时，更新控件<br />    public void propertyChange(PropertyChangeEvent event) {<br />        updateControl((Date) event.getNewValue());<br />    }<br /><br />    private void updateControl(Date value) {<br />        if (value != null) {<br />            Calendar date = Calendar.getInstance();<br />            date.setTime(value);<br />            year.setSelectedItem(date.get(Calendar.YEAR));<br />            month.setSelectedItem(date.get(Calendar.MONTH) + 1);<br />            day.setSelectedItem(date.get(Calendar.DAY_OF_MONTH));<br />        } else {<br />            year.setSelectedItem(null);<br />            month.setSelectedItem(null);<br />        }<br />    }<br /><br />    private void updateModel() {<br />        if (year.getSelectedItem() != null &amp;&amp; month.getSelectedItem() != null<br />                &amp;&amp; day.getSelectedItem() != null) {<br />            Calendar date = Calendar.getInstance();<br />            date.set(Calendar.YEAR, ((Integer) year.getSelectedItem()));<br />            date.set(Calendar.MONTH, ((Integer) month.getSelectedItem()) - 1);<br />            date.set(Calendar.DAY_OF_MONTH, ((Integer) day.getSelectedItem()));<br />            getValueModel().setValueSilently(date.getTime(),<br />                    DateSelectorBinding.this);<br />        } else {<br />            getValueModel().setValueSilently(null, DateSelectorBinding.this);<br />        }<br />    }<br /><br /> //当控件变化时，更新ValueModel<br />    public void itemStateChanged(ItemEvent event) {<br />        if (event.getSource() == month) {<br />            day.removeAllItems();<br />            if (event.getStateChange() == ItemEvent.SELECTED<br />                    &amp;&amp; event.getItem() != null) {<br />                Calendar date = Calendar.getInstance();<br />                date.set(Calendar.YEAR, (Integer) year.getSelectedItem());<br />                date.set(Calendar.MONTH, (Integer) event.getItem() - 1);<br />                int days = date.getActualMaximum(Calendar.DAY_OF_MONTH);<br />                for (int i = 1; i &lt;= days; i++) {<br />                    day.addItem(i);<br />                }<br />            }<br />        }<br />        updateModel();<br />    }<br /></pre></td>
+  </tr>
+ </tbody> 
+</table> 
+<br /> 
+<p>代码结构比较简单，在此不再赘述，您可以通过运行示例工程查看效果。</p> 
+<p><a name="major3"><span class="atitle">数据验证</span></a></p> 
+<p>接下来将介绍 Spring Richclient 另一项重要功能——数据验证。作为企业级应用，数据安全是至关重要的，提供一种有效的数据验证机制则有力的保证了输入数据的合法性，大大增加了应用程序的安全性。</p> 
+<p><a name="minor3.1"><span class="smalltitle">Form 中的数据验证</span></a></p> 
+<p>Spring Richclient 为我们提供了 ValidatingFormModel 完成 Form 数据保持和验证工作（DefaultFormModel 即实现了该接口），一般情况下，我们通过下面的方式设置 FormModel 的属性值：</p> 
+<br /> 
+<a name="listing4"><b>清单 4. 设置 Form 属性值</b></a>
+<br /> 
+<table border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody>
+  <tr>
+   <td class="code-outline"><pre class="displaycode">    <br />formModel.getValueModel(propertyName).setValue(newValue); <br /></pre></td>
+  </tr>
+ </tbody> 
+</table> 
+<br /> 
+<p>那么 Spring Richclient 是如何在这个过程中完成数据验证的呢？主要分为两步：</p> 
+<ol type="1"> 
+ <li>初始化 ValueModel 时，为其增加 PropertyChangeListener 监听器；</li>
+ <li>当通过控件或者手动设置 ValueModel 的值时，便会触发属性变更事件。在该事件处理中完成数据验证。</li> 
+</ol> 
+<p>让我们看一下事件响应的时序图：</p> 
+<br /> 
+<a name="fig6"><b>图 6. 数据验证</b></a>
+<br /> 
+<img alt="图 6. 数据验证" src="image/Spring Richclient — .image006.png" height="324" width="572" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/image006.png</p> 
+<br /> 
+<p>（查看图 6 的 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/origin_image006.png" target="_blank">清晰版本</a>。）</p> 
+<p>首先，DefaultFormModel 为我们提供了一个“是否进行数据验证”的开关。通过这个开关，我们可以方便的控制当前 Form 是否需要进行数据验证。如果需要进行数据验证，那么获取相应的验证器（Validator）进行数据验证，同时将验证结果添加到 DefaultValidationResults，最后更新 ValidationResultsModel（该类维护了验证结果信息。当验证结果发生变化时，将触发相应的事件 —— TitledPageApplicationDialog 上之所以能够实时显示验证结果便是通过监听该事件实现的）。</p> 
+<p><a name="minor3.2"><span class="smalltitle">验证器（Validator）</span></a></p> 
+<p>由 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#fig6">图 6</a> 可知，Spring Richclient 数据验证功能是通过接口 Validator 实现的，而且该接口的子接口 RichValidator 进一步增加了对单一属性的验证。Spring Richclient 共提供了四种验证器实现，而且所有验证器均实现了 RichValidator 接口。具体如下：</p> 
+<ol type="1"> 
+ <li>RulesValidator：Spring Richclient 默认验证器。通过提供 Constraint 接口闭包完成各式各样的数据验证功能。</li>
+ <li>HibernateRulesValidator：封装 Hibernate 的 ClassValidator 实现数据验证。如果您基于 Hibernate 实现数据访问层，那么通过该验证器便实现了数据层验证和 Form 验证的复用。</li>
+ <li>ValangRichValidator：该验证器通过 springmodules-validation 的 ValangValidator 实现。</li>
+ <li>CompositeRichValidator：一种组合验证器的实现。如果您既需要复用数据访问层的验证，又需要对 Form 增加一些额外验证，那么您可以使用 RulesValidator 和 HibernateRulesValidator 创建一个组合验证器。</li> 
+</ol> 
+<p>由于第 2、3 种数据验证为第三方框架实现，接下来我们重点介绍 RulesValidator。</p> 
+<p><a name="minor3.3"><span class="smalltitle">Spring Richclient 验证规则</span></a></p> 
+<p>与 Hibernate 基于注解的数据验证方式不同，在 RulesValidator 验证器中，每一个验证规则为一个 Constraint 对象。该接口提供了 test 方法进行具体的数据校验，而且 Spring Richclient 为我们以闭包的形式提供了各种验证规则实现。包括与、或、异或、非、范围验证、比较验证、长度验证、条件验证，甚至还有功能强大的正则表达式验证（具体可 查看 Spring Richclient org.springframework.rules.constraint 包下的代码）。</p> 
+<p>由于数据验证是以实体对象为单位，因此，Spring Richclient 将每个实体类的验证规则被封装为一个 Rules 对象。在该对象中，以 Map 的形式存放了属性与验证规则的映射。</p> 
+<p>通过各种规则的组合，我们可以实现各种各样的数据验证。而且通过 ConstraintsAccessor 可以方便的创建各种验证规则（Rules 继承了该类）</p> 
+<p>为了简化 Form 验证，Spring Richclient 进一步提供了 PropertyConstraint 接口。该接口自动从需要验证的对象中获取相应的属性值进行验证，而且添加到 Rules 中的验证规则均为 PropertyConstraint。如果我们希望定义自己的验证规则，只需要实现接口 Constraint 或者 PropertyConstraint 即可。在 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#listing5">清单 5</a> 中，我们定义了一个验证日期格式字符串的验证规则：</p> 
+<br /> 
+<a name="listing5"><b>清单 5. 自定义验证规则</b></a>
+<br /> 
+<table border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody>
+  <tr>
+   <td class="code-outline"><pre class="displaycode">    <br />public class DateFormatConstraint extends AbstractPropertyConstraint {<br /><br />    <br />    @Override<br />    protected boolean test(PropertyAccessStrategy domainObjectAccessStrategy) {<br />        Object value = domainObjectAccessStrategy<br />                .getPropertyValue(getPropertyName());<br />        if (value == null) {// 当属性值为空时，则不进行验证<br />            return true;<br />        }<br />        if (value instanceof String) {<br />            return value.toString().matches(<br />                    &quot;\\d{4}(\\-|\\/|\\.)\\d{1,2}(\\-|\\/|\\.)\\d{1,2}&quot;);<br />        } else {<br />            return false;<br />        }<br />    }<br /><br />}<br /></pre></td>
+  </tr>
+ </tbody> 
+</table> 
+<br /> 
+<p>如果我们希望该规则执行时依赖对象的另外一个属性，那么我们可以复写 AbstractPropertyConstraint 的 isDependentOn 方法，这样当执行该规则的同时，也会执行依赖属性的相关验证规则。</p> 
+<p>Spring Richclient 所有验证规则均维护在 RulesSource 中，并且作为应用程序服务由 ApplicationServices 管理，因此我们可以如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient3/index.html?ca=drs-#listing6">清单 6</a> 使用自定义验证规则：</p> 
+<br /> 
+<a name="listing6"><b>清单 6. 使用验证规则</b></a>
+<br /> 
+<table border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody>
+  <tr>
+   <td class="code-outline"><pre class="displaycode">    <br />public class SampleRulesSource extends DefaultRulesSource implements InitializingBean{<br /><br />    public void afterPropertiesSet() throws Exception {<br />        doInit();<br />    }<br /><br />    private void doInit() {<br />        Rules exampleRule = new Rules(Example.class);<br />        exampleRule.add(&quot;dateStringProperty&quot;, new DateFormatConstraint());<br />        addRules(exampleRule);<br />    }<br /><br />}<br /></pre></td>
+  </tr>
+ </tbody> 
+</table> 
+<br /> 
+<p>当然，如果您不希望将验证规则统一管理，而是像 Hibernate 一样分散到各个实体类中，那么您只需要实体类实现接口 PropertyConstraintProvider 即可，通过方法 getPropertyConstraint 可以方便的得到属性的验证规则。</p> 
+<p>了解了验证规则的配置方式，我们再讲一下 RulesValidator 是怎样完成数据验证的（具体参见 RulesValidator 的 validate(Object, String) 方法）。</p> 
+<p>首先，RulesValidator 会判断当前需要验证的对象是否实现了接口 PropertyConstraintProvider，如果实现了该接口，那么验证器将从当前需要验证的对象中获取对应的验证规则进行验证。</p> 
+<p>否则从验证规则源 RulesSource 中获取该类对应的 Rules 对象，对于 Rules 对象中维护的所有属性，如果等于当前需要验证的属性或者是当前需要验证属性依赖的属性（isDependentOn 为 true），则对属性对应的验证规则进行验证（即调用验证规则的 test 方法）。</p> 
+<p>验证完毕后，将验证结果更新到 DefaultValidationResults。</p> 
+<p><a name="major4"><span class="atitle">结束语</span></a></p> 
+<p>作为本系列文章的最后一部分，本文主要介绍了 Spring Richclient 的两项重要功能数据绑定和数据验证。也许仅仅通过本系列文章并不能将 Spring Richclient 的所有特性一一介绍清楚，但是想必您对 Spring Richclient 也有了一个基本认识，如果您想要进一步了解该框架可访问 Spring Richclient 论坛。</p> 
+<p><a name="author"><span class="atitle">关于作者</span></a></p> 
+<p>刘光瑞，现供职于北京四达软件担任软件架构师，长期从事基于 Swing 的企业级胖客户端应用程序开发，精通多种 Swing 开发框架，在企业级胖客户端应用开发上积累了丰富的经验。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p></div></body></html>

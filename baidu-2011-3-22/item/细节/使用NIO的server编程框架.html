@@ -1,0 +1,125 @@
+<html><head><title><div class="tit">
+  使用NIO的server编程框架
+</div></title></head><body><div id='tit'>使用NIO的server编程框架</div><div id='cate'>细节</div><div id='date'>2009年09月21日 星期一 09:35 P.M.</div><div id='page'>29</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c48e44a7dfb4d49fd043585f.html'>http://hi.baidu.com/hxzon/blog/item/c48e44a7dfb4d49fd043585f.html</a><div id='cnt'><p>使用NIO的server编程框架</p> 
+<p><a href="http://book.csdn.net/bookfiles/551/10055118438.shtml"><font color="#666699">17.1 NIO简介&nbsp;&nbsp;</font></a> <a href="http://book.csdn.net/bookfiles/551"><font color="#336699">GlassFish：开源的Java EE应用服务器 </font></a></p> 
+<p class="MsoNormal" style="text-indent: 21pt">作为Java EE Web层面的最前端，HTTP引擎是负责接收客户请求的最开始的部分，这部分的性能在很大程度上决定了整个Java EE产品的性能和可扩展性。回顾现有的J2EE产品，大部分的HTTP引擎都不是用纯Java编写的。例如，Sun的JES应用服务器内置了一个用本地语言(C/C++)开发Web服务器，JBoss的Web Server也不是纯Java的，它使用了大量与平台相关的运行库，只不过通过Apache的APR项目(http://apr.apache.org)来维护跨平台的特性。而那些纯Java的J2EE服务器，在部署的时候也推荐前置一个其他的Web服务器，例如(Apache、IIS等)。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">使用纯Java来构建具有扩展性很好的服务器软件，一直是一个比较困难的事情，特别是在单个的Java虚拟机上(非集群的环境)。这是由Java的线程模型和网络IO的特性所决定的。在JDK 1.4以前，Java的网络IO的接口都是阻塞式的，这意味着网络的阻塞会引起处理线程的停止，因此每个用户请求的处理从开始到最后完成，需要单独的处理线程。而Java的线程资源的分配和线程的调度都是有很大开销的，这使得在大量请求(数千个甚至上万个)同时到达的情况下，单个Java虚拟机很难满足大并发性的需要。为了解决可扩展性的问题，一些解决方案使用了多个Java虚拟机或者多个机器节点进行集群来满足大并发的请求。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">JDK 1.4版本(包括之后的版本)最显著的新特性就是增加了NIO(New IO)，能够以非阻塞的方式处理网络的请求，这就使得在Java中只需要少量的线程就能处理大量的并发请求了。但是使用NIO不是一件简单的技术，它的一些特点使得编程的模型比原来阻塞的方式更为复杂。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">Grizzly作为GlassFish中非常重要的一个项目，就是用NIO的技术来实现应用服务器中的高性能纯Java的HTTP引擎。Grizzly还是一个独立于GlassFish的框架结构，可以单独用来扩展和构建自己的服务器软件。</p> 
+<h4>本章重点：</h4> 
+<p class="1">l&nbsp;&nbsp; NIO的基本特点和编程方式</p> 
+<p class="1">l&nbsp;&nbsp; Grizzly的基本结构</p> 
+<p class="1">l&nbsp;&nbsp; Grizzly对NIO技术的运用手段</p> 
+<p class="1">l&nbsp;&nbsp; Grizzly对性能上的考虑和优化</p> 
+<h3>17.1 NIO简介</h3> 
+<p class="MsoNormal" style="text-indent: 21pt">理解NIO是学习本章的重要前提，因为Grizzly本身就是基于NIO的框架结构，所有的技术问题都是在NIO的技术上进行讨论的。如果读者对NIO不了解的话，建议首先了解NIO的基本概念。对NIO的介绍和学习指南很多，本章不会对NIO做详细的讲解。下面仅对NIO做一个简单的介绍，并列出与本章内容相关的一些NIO特性。</p> 
+<p class="35">17.1.1 NIO的基本概念</p> 
+<p class="MsoNormal" style="text-indent: 21pt">在JDK 1.4的新特性中，NIO无疑是最显著和鼓舞人心的。NIO的出现事实上意味着Java虚拟机的性能比以前的版本有了较大的飞跃。在以前的JVM的版本中，代码的执行效率不高(在最原始的版本中Java是解释执行的语言)，用Java编写的应用程序通常所消耗的主要资源就是CPU，也就是说应用系统的瓶颈是CPU的计算和运行能力。在不断更新的Java虚拟机版本中，通过动态编译技术使得Java代码执行的效率得到大幅度提高，几乎和操作系统的本地语言(例如C/C++)的程序不相上下。在这种情况下，应用系统的性能瓶颈就从CPU转移到IO操作了。尤其是服务器端的应用，大量的网络IO和磁盘IO的操作，使得IO数据等待的延迟成为影响性能的主要因素。NIO的出现使得Java应用程序能够更加紧密地结合操作系统，更加充分地利用操作系统的高级特性，获得高性能的IO操作。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">NIO在磁盘IO处理和文件处理上有很多新的特性来提高性能，本文不作详细的解释，而仅仅介绍NIO在处理网络IO方面的新特点，这些特点是理解Grizzly的最基本的概念。</p> 
+<h4>1. 数据缓冲(Buffer)处理</h4> 
+<p class="MsoNormal" style="text-indent: 21.2pt">数据缓冲(Buffer)是IO操作的基本元素。其实从本质上来说，无论是磁盘IO还是网络IO，应用程序所作的所有事情就是把数据放到相应的数据缓冲当中去(写操作)，或者从相应的数据缓冲中提取数据(读操作)。至于数据缓冲中的数据和IO设备之间的交互，则是操作系统和硬件驱动程序所关心的事情了。因此，数据缓冲在IO操作中具有重要的作用，是操作系统与应用之间的IO桥梁。在NIO的包中，Buffer类是所有类的基础。Buffer类当中定义数据缓冲的基本操作，包括put、get、reset、clear、flip、rewind等，这些基本操作是进行数据输入输出的手段。每一个基本的Java类型(boolean除外)都有相应的Buffer类，例如CharBuffer、IntBuffer、DoubleBuffer、ShortBuffer、LongBuffer、FloatBuffer和ByteBuffer。我们所关心的是ByteBuffer，因为操作系统与应用程序之间的数据通信最原始的类型就是Byte。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">“Direct ByteBuffer”是一个值得关注的Buffer类型。在创建ByteBuffer的时候可以使用ByteBuffer.allocateDirect()来创建一块直接(Direct)的ByteBuffer。这一块数据缓冲和一般的缓冲不一样。第一，它是一块连续的空间。第二，它的实现不是纯Java的代码，而是本地代码，它内存的分配不在Java的堆栈中，不受Java内存回收的影响。这种直接的ByteBuffer是NIO用来保证性能的重要手段。刚才提到，数据缓冲是操作系统和应用程序之间的IO接口。应用程序将需要“写出去”的数据放到数据缓冲中，操作系统从这块缓冲中获得数据执行写的操作。当IO设备数据传进来的时候，操作系统就会将数据放到相应的数据缓冲中，应用程序从缓冲中“读进”数据进行处理。一般的Java对象很难胜任这个直接的数据缓冲的工作。因为Java对象所占用的内存空间不一定是连续的，而且经常由于内存回收而改变地址。而操作系统需要的是一片连续的不变动的地址空间，才能完成IO操作。在原来的Java版本中需要Java虚拟机的介入，将数据进行转换、拷贝才能被操作系统所使用。而通过“Direct ByteBuffer”，应用程序能够直接与操作系统进行交流，大大减少了系统调用的次数，提高了执行的效率。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">数据缓冲的另外一个重要的特点是可以在一个数据缓冲上再建立一个或多个视图(View)缓冲。这个概念有些类似于数据库视图的概念：在数据库的物理表(Table)结构之上可以建立多个视图。同样，在一个数据缓冲之上也可以建立多个逻辑的视图缓冲。视图缓冲的用处很多，例如可以将Byte类型的缓冲当作Int类型的视图，来进行类型转换。视图缓冲也可以将一个大的缓冲看成是很多小的缓冲视图。这对提高性能很有帮助，因为创建物理的数据缓冲(特别是直接的数据缓冲)是非常耗时的操作，而创建视图却非常快。在Grizzly中就有这方面的考虑。</p> 
+<h4>2. 异步通道(Channel)</h4> 
+<p class="MsoNormal" style="text-indent: 20.6pt">Channel(后文又称频道，译法仅暗示存在多通道可选)是NIO的另外一个比较重要的新特点。Channel并不是对原有Java类的扩充和完善，而是完全崭新的实现。通过Channel，Java应用程序能够更好地与操作系统的IO服务结合起来，充分地利用上文提到的ByteBuffer，完成高性能的IO操作。Channel的实现也不是纯Java的，而是和操作系统结合紧密的本地代码。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">Channel的一个重要的特点是在网络套接字频道(SocketChannel)中，可以将其设置为异步非阻塞的方式。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">【例17.1】非阻塞方式的频道使用：</p> 
+<p class="af0" style="line-height: 15.5pt">SocketChannel sc = SocketChannel.open();</p> 
+<p class="af0" style="line-height: 15.5pt">sc.configureBlocking(false); // nonblocking</p> 
+<p class="af0" style="line-height: 15.5pt">...</p> 
+<p class="af0" style="line-height: 15.5pt">if (!sc.isBlocking()) {</p> 
+<p class="af0" style="margin-left: 21.2pt; text-indent: 18pt; line-height: 15.5pt">doSomething(cs);</p> 
+<p class="af0" style="line-height: 15.5pt">}</p> 
+<p class="MsoNormal" style="text-indent: 21pt">通过SocketChannel.configureBlocking(false)就可以将网络套接字频道设置为异步非阻塞模式。一旦设置成非阻塞的方式，从Socket中读和写就再也不会阻塞。虽然非阻塞只是一个设置问题，但是对应用程序的结构和性能却产生了天翻地覆的变化。</p> 
+<h4>3. 有条件的选择(Readiness Selection)</h4> 
+<p class="MsoNormal" style="text-indent: 21pt">熟悉UNIX的程序员对POSIX的select()或poll()函数应该比较熟悉。在现在大多数流行的操作系统中，都支持有条件地选择已经准备好的IO通道，这就使得只需要一个线程就能同时有效地管理多个IO通道。在JDK 1.4以前，Java语言是不具备这个功能的。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">NIO通过几个关键的类来实现这种有条件的选择的功能：</p> 
+<p class="MsoNormal" style="text-indent: 21pt">(1)&nbsp;&nbsp; Selector</p> 
+<p class="MsoNormal" style="text-indent: 21pt">Selector类维护了多个注册的Channel以及它们的状态。Channel需要向Selector注册，Selector负责维护和更新Channel的状态，以表明哪些Channel是准备好的。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">(2)&nbsp;&nbsp; SelectableChannel</p> 
+<p class="MsoNormal" style="text-indent: 21pt">SelectableChannel是可以被Selector所管理的Channel。FileChannel不属于Selectable- Channel，而SocketChannel是属于这类的Channel。因此在NIO中，只有网络的IO操作才有可能被有条件地选择。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">(3)&nbsp;&nbsp; SelectionKey</p> 
+<p class="MsoNormal" style="text-indent: 21pt">SelectionKey用于维护Selector和SelectableChannel之间的映射关系。当一个Channel向Selector注册之后，就会返回一个SelectionKey作为注册的凭证。SelectionKey中保存了两类状态值，一是这个Channel中哪些操作是被注册了的，二是有哪些操作是已经准备好的。</p> 
+<p class="35">17.1.2 NIO之前的Server程序的架构</p> 
+<p class="MsoNormal" style="text-indent: 21pt">在NIO出现以前(甚至在NIO出现了很长时间的现在)，在用Java编写服务器端的程序时，服务请求的接收模块大多数都会采用以下的框架(例如在Tomcat中的连接接入点：org.apache.tomcat.util.net.PoolTcpEndpoint就有相类似的结构)。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">【例17.2】阻塞方式的server编程框架：</p> 
+<p class="af0">class Server implements Runnable {</p> 
+<p class="af0" style="text-indent: 20.75pt">public void run() {</p> 
+<p class="af0" style="margin-left: 42.25pt; text-indent: 20.75pt">try {</p> 
+<p class="af0" style="margin-left: 63.25pt; text-indent: 20.75pt">ServerSocket ss = new ServerSocket(PORT);</p> 
+<p class="af0" style="margin-left: 63.25pt; text-indent: 20.75pt">while (!Thread.interrupted())</p> 
+<p class="af0" style="margin-left: 84.25pt; text-indent: 20.75pt">new Thread(new Handler(ss.accept())).start();</p> 
+<p class="af0" style="margin-left: 42.25pt; text-indent: 20.75pt">} catch (IOException ex) { /* ... */ }</p> 
+<p class="af0" style="text-indent: 20.75pt">}</p> 
+<p class="af0" style="text-indent: 20.75pt">static class Handler implements Runnable {</p> 
+<p class="af0" style="margin-left: 42.25pt; text-indent: 20.75pt">final Socket socket;</p> 
+<p class="af0" style="margin-left: 42.25pt; text-indent: 20.75pt">Handler(Socket s) { socket = s; }</p> 
+<p class="af0" style="margin-left: 42.25pt; text-indent: 20.75pt">public void run() {</p> 
+<p class="af0" style="margin-left: 63.25pt; text-indent: 20.75pt">try {</p> 
+<p class="af0" style="margin-left: 84.25pt; text-indent: 20.75pt">byte[] input = new byte[MAX_INPUT];</p> 
+<p class="af0" style="margin-left: 84.25pt; text-indent: 20.75pt">socket.getInputStream().read(input);</p> 
+<p class="af0" style="margin-left: 84.25pt; text-indent: 20.75pt">byte[] output = process(input);</p> 
+<p class="af0" style="margin-left: 84.25pt; text-indent: 20.75pt">socket.getOutputStream().write(output);</p> 
+<p class="af0" style="margin-left: 63.25pt; text-indent: 20.75pt">} catch (IOException ex) { /* ... */ }</p> 
+<p class="af0" style="margin-left: 42.25pt; text-indent: 20.75pt">}</p> 
+<p class="af0" style="margin-left: 42.25pt; text-indent: 20.75pt">private byte[] process(byte[] cmd) { /* ... */ }</p> 
+<p class="af0" style="text-indent: 20.75pt">}</p> 
+<p class="af0">}</p> 
+<p class="MsoNormal" style="text-indent: 21pt">上面的结构比较简单：在主线程的run()方法中，会有ServerSocket的accept()方法，它被循环地调用着，直到服务停止。accept()方法会被阻塞，直到新的连接请求的到来。当新的连接请求进来以后，系统会使用另外的线程来处理这个请求。处理线程在socket端口进行read()调用，读取所有的请求数据。read()也是一个阻塞的方法，一直到读取完所有的数据才会返回。数据经过处理以后，在同一个处理线程中将请求结果返回给客户端。在实际情况中，会比这个结构复杂得多，例如，处理线程是从一个线程池中获取，而不是每次都产生一个新的线程。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">这种结构在大多数情况下都可以获得很好的性能。例如Tomcat在性能指标的测试中获得了很高的吞吐量测量值。但是在并发性很大的情况下，这种结构不具有很好的可扩展性。例如有2000个客户请求同时到来，如果想要这2000个请求被同时处理，则需要2000个处理线程。这些线程在大多数的情况下可能都不在运行，而是阻塞在read()或write()的方法上了。在一台机器或者一个Java虚拟机上运行上千个线程是个挑战，线程经常会阻塞，因此CPU会在这些线程之间来回调度和切换，这会引起大量的系统调用和资源竞争，使得整个系统的扩展性能不高。</p> 
+<p class="35">17.1.3 使用NIO来提高系统扩展性</p> 
+<p class="MsoNormal" style="text-indent: 21pt">NIO使用非阻塞的API，通过实现少量的线程就能服务于大量的并发用户的请求。并且通过操作系统都支持的POSIX标准的select方式，来获得系统准备就绪的资源。使用这些手段，NIO就能够充分利用每个活动的线程来服务于大量的请求，减少系统资源的浪费。通常来说，一个NIO的服务架构会采用以下的结构。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">【例17.3】使用NIO的server编程框架：</p> 
+<p class="af0">public class Server {</p> 
+<p class="af0">&nbsp;&nbsp; public static void main(String[] argv) throws Exception {</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ServerSocketChannel serverCh = ServerSocketChannel.open();</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Selector selector = Selector.open();</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ServerSocket serverSocket = serverCh.socket();</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; serverSocket.bind(new InetSocketAddress(80));</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; serverCh.configureBlocking(false);</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; serverCh.register(selector,SelectionKey.OP_ACCEPT);</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(true){</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; selector.select();</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Iterator it = selector.selectedKeys().iterator();</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while (it.hasNext()) {</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SelectionKey key = (SelectionKey)it.next();</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (key.isAcceptable()) {</p> 
+<p class="af0" style="margin-left: 72.05pt; text-indent: 41.95pt">ServerSocketChannel server =</p> 
+<p class="af0" style="margin-left: 21.2pt; text-indent: 108pt">(ServerSocketChannel)key.channel();</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; SocketChannel channel = server.accept();</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; channel.configureBlocking(false);</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; channel.register(selector, SelectionKey.OP_READ);</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (key.isReadable()) {</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; readDataFromSocket(key);</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; it.remove();</p> 
+<p class="af0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+<p class="af0">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+<p class="af0" style="margin-left: 21.2pt; text-indent: 18pt">}</p> 
+<p class="af0">}</p> 
+<p class="MsoNormal" style="text-indent: 21pt">上面的结构比起阻塞式的框架都复杂一些。具体说明如下：</p> 
+<p class="1">l&nbsp;&nbsp; 通过ServerSocketChannel.open()获得一个Server的Channel对象。</p> 
+<p class="1">l&nbsp;&nbsp; 通过Selector.open()来获得一个Selector对象。</p> 
+<p class="1">l&nbsp;&nbsp; 从Server的Channel对象上可以获得一个Server的Socket，并让它在80端口监听。</p> 
+<p class="1">l&nbsp;&nbsp; 通过ServerSocketChannel.configureBlocking(false)可以将当前的Channel配置成异步非阻塞的方式。如果没有这一步，那么Channel默认的方式跟传统的一样，是阻塞式的。</p> 
+<p class="1">l&nbsp;&nbsp; 将当前的Channel注册到Selector对象中去，并告诉Selector当前的Channel关心的操作是OP_ACCEPT，也就是当有新的请求的时候，Selector负责更新此Channel的状态。</p> 
+<p class="1">l&nbsp;&nbsp; 在循环当中调用selector.select()，如果当前没有任何新的请求过来，并且原来的连接也没有新的请求数据到达，这个方法会阻塞住，一直等到新的请求数据过来为止。</p> 
+<p class="1">l&nbsp;&nbsp; 如果当前都请求的数据到达，那么selector.select()就会立刻退出，这时候可以从selector.selectedKeys()获得所有在当前selector注册过的并且有数据到达的这些Channel的信息(SelectionKey)。</p> 
+<p class="1">l&nbsp;&nbsp; 遍历所有的这些SelectionKey来获得相关的信息。如果某个SelectionKey的操作是OP_ACCEPT，也就是isAcceptable，那么可以判定这是那个Server Channel，并且是有新的连接请求到达了。</p> 
+<p class="1">l&nbsp;&nbsp; 当有新的请求来的时候，通过accept()方法可以获得新的channel服务于这个新来的请求。然后通过configureBlocking(false)可以将当前的Channel配置成异步非阻塞的方式。</p> 
+<p class="1">l&nbsp;&nbsp; 接着将这个新的channel也注册到selector中，并告诉Selector当前的Channel关心的操作是OP_READ，也就是当前Channel有新的数据到达的时候，Selector负责更新此Channel的状态。</p> 
+<p class="1">l&nbsp;&nbsp; 如果在循环当中发现某个SelectionKey的操作是OP_READ，也就是isReadable，那么可以判定这不是那个Server Channel，而是在循环内部注册的连接Channel，表明当前SelectionKey对应的这个Channel有数据到达了。</p> 
+<p class="1">l&nbsp;&nbsp; 有数据到达之后的处理方式是下面要详细讨论的问题，在这里，我们简单地用一个方法readDataFromSocket(key)来表示，功能就是从这个Channel中读取数据。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">从这个框架结构中可以看到，在一个线程中可以同时服务于多个连接，包括Server的监听服务。在同一个时刻，并不是所有的连接都会有数据到达，因此为每一个连接分配单独的线程没有必要。使用异步非阻塞方式，可以使用很少的线程，通过Select的方式来服务于多个连接请求，效率大大提高。</p> 
+<p class="35">17.1.4 使用NIO来制作HTTP引擎的最大挑战</p> 
+<p class="MsoNormal" style="text-indent: 21pt">程序实例17.3使用了configureBlocking(false)方法来将一个Channel设置成非阻塞式的。如何使用这个非阻塞的特性，请参看下面的方法调用：</p> 
+<p class="af0">count = socketChannel.read(byteBuffer)); //非阻塞的方式</p> 
+<p class="MsoNormal" style="text-indent: 21pt">阻塞式的方法调用如下：</p> 
+<p class="af0">count = socket.getInputStream().read(input); //阻塞的方式</p> 
+<p class="MsoNormal" style="text-indent: 21pt">阻塞的方式下的read，会一直等到byte[]类型的input被充满，或者InputStream遇到EOF(socket连接被关闭)的时候，这个函数调用才会被返回。而非阻塞的方式，立刻就返回了，当前连接中有多少数据就读多少。正因为有了这种非阻塞的模式，当前的线程在读了某个通道的数据之后，可以接着再读另外一个通道的数据，线程的利用率大大提高。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">虽然线程的利用率提高了，却带来了一些其他的挑战。最大的挑战就在于：当一个请求过来的时候，很难判断什么时候所有请求的数据全部读进来了。因为每次非阻塞方式的read都可能只读了一部分数据，甚至什么也没有读到。例如，一个HTTP请求：</p> 
+<p class="af0">HTTP/1.1 206 Partial content</p> 
+<p class="af0" style="margin-left: 0cm; text-indent: 21pt">GET http://www.w3.org/pub/WWW/TheProject.html</p> 
+<p class="MsoNormal" style="text-indent: 21pt">所有的请求数据都是以文本方式传输。在非阻塞的方式下，每一次对Channel进行读取的数据量大小不可预测，也许第一次读了“HTTP/1.1 206 Partial content”，第二次读取了“GET http://www.w3.org/pub/WWW”，第三次什么也没有读到。到底什么时候能把请求全部读完很难预测，在极端的情况下，也许最后几个字符永远也读不到。在请求没有完全读到以前，一般不进行请求处理，因为请求还不完整。在阻塞的情况下，读取的函数会一直等到请求的数据全部到来并且连接关闭以后才会返回，处理起来比较简单。但是非阻塞的方式就很复杂了。因为工作线程从一个连接读取完准备好的数据之后，又要为另一个连接服务。下次再转到先前连接的时候，以前读取的数据还需要恢复。还需要判断到底所有的请求数据是否都读完，是否可以开始对该请求的处理了。</p> 
+<p class="MsoNormal" style="text-indent: 21pt">在本章的后面各节中，我们会看到Grizzly采用了一个有限状态机来解析HTTP请求的header信息，读取其中的content-length数值，以便预先判断什么时候到达请求的末尾。</p></div></body></html>

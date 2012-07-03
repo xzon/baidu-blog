@@ -1,0 +1,280 @@
+<html><head><title><div class="tit">
+  Bash 实例，第一部分
+</div></title></head><body><div id='tit'>Bash 实例，第一部分</div><div id='cate'>Linux</div><div id='date'>2010年05月25日 星期二 03:28 P.M.</div><div id='page'>14</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/f06d993dd81b0a0cbba1671a.html'>http://hi.baidu.com/hxzon/blog/item/f06d993dd81b0a0cbba1671a.html</a><div id='cnt'><div> 
+ <h1>Bash 实例，第一部分</h1> 
+ <p><em>Bourne again shell (bash) 基本编程</em></p> 
+ <p><a href="http://www.ibm.com/developerworks/cn/linux/shell/bash/bash-1/index.html">http://www.ibm.com/developerworks/cn/linux/shell/bash/bash-1/index.html</a> <br /> <a href="http://www.ibm.com/developerworks/cn/linux/shell/index.html">http://www.ibm.com/developerworks/cn/linux/shell/index.html</a> Linux Shell 编程系列</p> 
+ <p>级别： 初级</p> 
+ <p><a href="http://www.ibm.com/developerworks/cn/linux/shell/bash/bash-1/index.html#author">Daniel Robbins</a> (<a href="mailto:drobbins@gentoo.org?subject=Bash%20%E5%AE%9E%E4%BE%8B%EF%BC%8C%E7%AC%AC%E4%B8%80%E9%83%A8%E5%88%86&amp;cc=drobbins@gentoo.org">drobbins@gentoo.org</a>), 总裁兼 CEO, Gentoo Technologies, Inc.</p> 
+ <p>2000 年 3 月 01 日</p> 
+ <p><a name="N10077"><span class="atitle">环境变量</span></a></p> 
+ <p>在 bash 和几乎所有其它 shell 中，用户可以定义环境变量，这些环境变量在以 ASCII 字符串存储。环境变量的最便利之处在于：它们是 UNIX 进程模型的标准部分。这意味着：环境变量不仅由 shell 脚本独用，而且还可以由编译过的标准程序使用。当在 bash 中“导出”环境变量时，以后运行的任何程序，不管是不是 shell 脚本，都可以读取设置。一个很好的例子是 vipw 命令，它通常允许 root 用户编辑系统口令文件。通过将 EDITOR 环境变量设置成喜爱的文本编辑器名称，可以配置 vipw，使其使用该编辑器，而不使用 vi，如果习惯于 xemacs 而确实不喜欢 vi，那么这是很便利的。</p> 
+ <p>在 bash 中定义环境变量的标准方法是：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ myvar='This is my environment variable!'</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>以上命令定义了一个名为 &quot;myvar&quot; 的环境变量，并包含字符串 &quot;This is my environment variable!&quot;。以上有几点注意事项：第一，在等号 &quot;=&quot; 的两边没有空格，任何空格将导致错误（试一下看看）。第二个件要注意的事是：虽然在定义一个字时可以省略引号，但是当定义的环境变量值多于一个字时（包含 空格或制表键），引号是必须的。</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+  <tbody> 
+   <tr> 
+    <td width="10"><img width="10" height="1" src="image/Bash 实例，第一部分.html.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+    <td> 
+     <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+      <tbody> 
+       <tr> 
+        <td bgcolor="#eeeeee"><a name="sidebar"><strong>引用细节</strong></a><br /> <p>有关如何在 bash 中使用引号的非常详尽的信息，请参阅 bash 帮助页面中的“引用”一节。特殊字符序列由其它值“扩展”（替换）确实使 bash 中字符串的处理变得复杂。本系列将只讲述最常用的引用功能。</p> </td> 
+       </tr> 
+      </tbody> 
+     </table> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <p>第三，虽然通常可以用双引号来替代单引号，但在上例中，这样做会导致错误。为什么呢？因为使用单引号禁用了称为扩展的 bash 特性，其中，特殊字符和字符系列由值替换。例如，&quot;!&quot; 字符是历史扩展字符，bash 通常将其替换为前面输入的命令。（本系列文章中将不讲述历史扩展，因为它在 bash 编程中不常用。有关历史扩展的详细信息，请参阅 bash 帮助页中的“历史扩展”一节。）尽管这个类似于宏的功能很便利，但我们现在只想在环境变量后面加上一个简单的感叹号，而不是宏。</p> 
+ <p>现在，让我们看一下如何实际使用环境变量。这有一个例子：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ echo $myvar<br />This is my environment variable!</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>通过在环境变量的前面加上一个 $，可以使 bash 用 myvar 的值替换它。这在 bash 术语中叫做“变量扩展”。但是，这样做将怎样：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ echo foo$myvarbar<br />foo</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>我们希望回显 &quot;fooThis is my environment variable!bar&quot;，但却不是这样。错在哪里？简单地说，bash 变量扩展设施陷入了困惑。它无法识别要扩展哪一个变量：$m、$my、$myvar 、$myvarbar 等等。如何更明确清楚地告述 bash 引用哪一个变量？试一下这个：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ echo foo${myvar}bar<br />fooThis is my environment variable!bar</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>如您所见，当环境变量没有与周围文本明显分开时，可以用花括号将它括起。虽然 $myvar 可以更快输入，并且在大多数情况下正确工作，但 ${myvar} 却能在几乎所有情况下正确通过语法分析。除此之外，二者相同，将在本系列的余下部分看到变量扩展的两种形式。请记住：当环境变量没有用空白（空格或制表 键）与周围文本分开时，请使用更明确的花括号形式。</p> 
+ <p>回想一下，我们还提到过可以“导出”变量。当导出环境变量时，它可以自动地由以后运行的任何脚本或可执行程序环境使用。shell 脚本可以使用 shell 的内置环境变量支持“到达”环境变量，而 C 程序可以使用 getenv() 函数调用。这里有一些 C 代码示例，输入并编译它们 -- 它将帮助我们从 C 的角度理解环境变量：</p> 
+ <br /> 
+ <p><a name="N100B4"><strong>myvar.c -- 样本环境变量 C 程序</strong></a></p> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">#include &lt;stdio.h&gt;<br />#include &lt;stdlib.h&gt;<br />int main(void) {<br />  char *myenvvar=getenv(&quot;EDITOR&quot;);<br />  printf(&quot;The editor environment variable is set to %s\n&quot;,myenvvar);<br />}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>将上面的代码保存到文件 myenv.c 中，然后发出以下命令进行编译：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ gcc myenv.c -o myenv</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>现在，目录中将有一个可执行程序，它在运行时将打印 EDITOR 环境变量的值（如果有值的话）。这是在我机器上运行时的情况：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ ./myenv<br />The editor environment variable is set to (null)</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>啊... 因为没有将 EDITOR 环境变量设置成任何值，所以 C 程序得到一个空字符串。让我们试着将它设置成特定值：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ EDITOR=xemacs<br />$ ./myenv<br />The editor environment variable is set to (null)</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>虽然希望 myenv 打印值 &quot;xemacs&quot;，但是因为还没有导出环境变量，所以它却没有很好地工作。这次让它正确工作：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ export EDITOR<br />$ ./myenv<br />The editor environment variable is set to xemacs</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>现在，如您亲眼所见：不导出环境变量，另一个进程（在本例中是示例 C 程序）就看不到环境变量。顺便提一句，如果愿意，可以在一行定义并导出环境变量，如下所示：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ export EDITOR=xemacs</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>这与两行版本的效果相同。现在该演示如何使用 unset 来除去环境变量：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ unset EDITOR<br />$ ./myenv<br />The editor environment variable is set to (null)</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+  <tbody> 
+   <tr> 
+    <td width="10"><img width="10" height="1" src="image/Bash 实例，第一部分.html.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+    <td> 
+     <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+      <tbody> 
+       <tr> 
+        <td bgcolor="#eeeeee"><a name="N100EA"><strong>dirname 和 basename</strong></a><br /> <p>请注意：dirname 和 basename 不是磁盘上的文件或目录，它们只是字符串操作命令。</p> </td> 
+       </tr> 
+      </tbody> 
+     </table> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <p><a name="N100F4"><span class="atitle">截断字符串概述</span></a></p> 
+ <p>截断字符串是将初始字符串截断成较小的独立块，它是一般 shell 脚本每天执行的任务之一。很多时候，shell 脚本需要采用全限定路径，并找到结束的文件或目录。虽然可以用 bash 编码实现（而且有趣），但标准 basename UNIX 可执行程序可以极好地完成此工作：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ basename /usr/local/share/doc/foo/foo.txt<br />foo.txt<br />$ basename /usr/home/drobbins<br />drobbins</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>Basename 是一个截断字符串的极简便工具。它的相关命令 dirname 返回 basename 丢弃的“另”一部分路径。</p> 
+ <pre class="displaycode">$ dirname /usr/local/share/doc/foo/foo.txt<br />/usr/local/share/doc/foo<br />$ dirname /usr/home/drobbins/<br />/usr/home</pre> 
+ <p><a name="N10108"><span class="atitle">命令替换</span></a></p> 
+ <p>需要知道一个简便操作：如何创建一个包含可执行命令结果的环境变量。这很容易：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ MYDIR=`dirname /usr/local/share/doc/foo/foo.txt`<br />$ echo $MYDIR<br />/usr/local/share/doc/foo</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>上面所做的称为“命令替换”。此例中有几点需要指出。在第一行，简单地将要执行的命令以 <em>反引号</em> 括起。那不是标准的单引号，而是键盘中通常位于 Tab 键之上的单引号。可以用 bash 备用命令替换语法来做同样的事：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ MYDIR=$(dirname /usr/local/share/doc/foo/foo.txt)<br />$ echo $MYDIR<br />/usr/local/share/doc/foo</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>如您所见，bash 提供多种方法来执行完全一样的操作。使用命令替换可以将任何命令或命令管道放在 ` ` 或 $( ) 之间，并将其分配给环境变量。真方便！下面是一个例子，演示如何在命令替换中使用管道：</p> 
+ <pre class="displaycode">MYFILES=$(ls /etc | grep pa)<br />bash-2.03$ echo $MYFILES<br />pam.d passwd</pre> 
+ <p><a name="N10126"><span class="atitle">象专业人员那样截断字符串</span></a></p> 
+ <p>尽管 basename 和 dirname 是很好的工具，但有时可能需要执行更高级的字符串“截断”，而不只是标准的路径名操作。当需要更强的说服力时，可以利用 bash 内置的变量扩展功能。已经使用了类似于 ${MYVAR} 的标准类型的变量扩展。但是 bash 自身也可以执行一些便利的字符串截断。看一下这些例子：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ MYVAR=foodforthought.jpg<br />$ echo ${MYVAR##*fo}<br />rthought.jpg<br />$ echo ${MYVAR#*fo}<br />odforthought.jpg</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>在第一个例子中，输入了 ${MYVAR##*fo}。它的确切含义是什么？基本上，在 ${ } 中输入环境变量名称，两个 ##，然后是通配符 (&quot;*fo&quot;)。然后，bash 取得 MYVAR，找到从字符串 &quot;foodforthought.jpg&quot; 开始处开始、且匹配通配符 &quot;*fo&quot; 的 <em>最长</em> 子字符串，然后将其从字符串的开始处截去。刚开始理解时会有些困难，为了感受一下这个特殊的 &quot;##&quot; 选项如何工作，让我们一步步地看看 bash 如何完成这个扩展。首先，它从 &quot;foodforthought.jpg&quot; 的开始处搜索与 &quot;*fo&quot; 通配符匹配的子字符串。以下是检查到的子字符串：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">f   <br />fo      MATCHES *fo<br />foo <br />food<br />foodf       <br />foodfo      MATCHES *fo<br />foodfor<br />foodfort    <br />foodforth<br />foodfortho  <br />foodforthou<br />foodforthoug<br />foodforthought<br />foodforthought.j<br />foodforthought.jp<br />foodforthought.jpg</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>在搜索了匹配的字符串之后，可以看到 bash 找到两个匹配。它选择最长的匹配，从初始字符串的开始处除去，然后返回结果。</p> 
+ <p>上面所示的第二个变量扩展形式看起来与第一个相同，但是它只使用一个 &quot;#&quot; -- 并且 bash 执行 <em>几乎</em> 同样的过程。它查看与第一个例子相同的子字符串系列，但是 bash 从初始字符串除去 <em>最短</em> 的匹配，然后返回结果。所以，一查到 &quot;fo&quot; 子字符串，它就从字符串中除去 &quot;fo&quot;，然后返回 &quot;odforthought.jpg&quot;。</p> 
+ <p>这样说可能会令人十分困惑，下面以一简单方式记住这个功能。当搜索最长匹配时，使用 ##（因为 ## 比 # 长）。当搜索最短匹配时，使用 #。看，不难记吧！等一下，怎样记住应该使用 '#' 字符来从字符串开始部分除去？很简单！注意到了吗：在美国键盘上，shift-4 是 &quot;$&quot;，它是 bash 变量扩展字符。在键盘上，紧靠 &quot;$&quot; 左边的是 &quot;#&quot;。这样，可以看到：&quot;#&quot; 位于 &quot;$&quot; 的“开始处”，因此（根据我们的记忆法），&quot;#&quot; 从字符串的开始处除去字符。您可能要问：如何从字符串末尾除去字符。如果猜到我们使用美国键盘上紧靠 &quot;$&quot; <em>右边</em> 的字符 (&quot;%)，那就猜对了。这里有一些简单的例子，解释如何截去字符串的末尾部分：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ MYFOO=&quot;chickensoup.tar.gz&quot;<br />$ echo ${MYFOO%%.*}<br />chickensoup<br />$ echo ${MYFOO%.*}<br />chickensoup.tar</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>正如您所见，除了将匹配通配符从字符串末尾除去之外，% 和 %% 变量扩展选项与 # 和 ## 的工作方式相同。请注意：如果要从末尾除去特定子字符串，不必使用 &quot;*&quot; 字符：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">MYFOOD=&quot;chickensoup&quot;<br />$ echo ${MYFOOD%%soup}<br />chicken</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>在此例中，使用 &quot;%%&quot; 或 &quot;%&quot; 并不重要，因为只能有一个匹配。还要记住：如果忘记了应该使用 &quot;#&quot; 还是 &quot;%&quot;，则看一下键盘上的 3、4 和 5 键，然后猜出来。</p> 
+ <p>可以根据特定字符偏移和长度，使用另一种形式的变量扩展，来选择特定子字符串。试着在 bash 中输入以下行：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ EXCLAIM=cowabunga<br />$ echo ${EXCLAIM:0:3}<br />cow<br />$ echo ${EXCLAIM:3:7}<br />abunga</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>这种形式的字符串截断非常简便，只需用冒号分开来指定起始字符和子字符串长度。</p> 
+ <p><a name="N10167"><span class="atitle">应用字符串截断</span></a></p> 
+ <p>现在我们已经学习了所有截断字符串的知识，下面写一个简单短小的 shell 脚本。我们的脚本将接受一个文件作为自变量，然后打印：该文件是否是一个 tar 文件。要确定它是否是 tar 文件，将在文件末尾查找模式 &quot;.tar&quot;。如下所示：</p> 
+ <br /> 
+ <p><a name="N10170"><strong>mytar.sh -- 一个简单的脚本</strong></a></p> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">#!/bin/bash<br />if [ &quot;${1##*.}&quot; = &quot;tar&quot; ]<br />then <br />    echo This appears to be a tarball.<br />else<br />    echo At first glance, this does not appear to be a tarball.<br />fi</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>要运行此脚本，将它输入到文件 mytar.sh 中，然后输入 &quot;chmod 755 mytar.sh&quot;，生成可执行文件。然后，如下做一下 tar 文件试验：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ ./mytar.sh thisfile.tar<br />This appears to be a tarball.<br />$ ./mytar.sh thatfile.gz<br />At first glance, this does not appear to be a tarball.</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>好，成功运行，但是不太实用。在使它更实用之前，先看一下上面使用的 &quot;if&quot; 语句。语句中使用了一个布尔表达式。在 bash 中，&quot;=&quot; 比较运算符检查字符串是否相等。在 bash 中，所有布尔表达式都用方括号括起。但是布尔表达式实际上测试什么？让我们看一下左边。根据前面所学的字符串截断知识，&quot;${1##*.}&quot; 将从环境变量 &quot;1&quot; 包含的字符串开始部分除去最长的 &quot;*.&quot; 匹配，并返回结果。这将返回文件中最后一个 &quot;.&quot; 之后的所有部分。显然，如果文件以 &quot;.tar&quot; 结束，结果将是 &quot;tar&quot;，条件也为真。</p> 
+ <p>您可能会想：开始处的 &quot;1&quot; 环境变量是什么。很简单 -- $1 是传给脚本的第一个命令行自变量，$2 是第二个，以此类推。好，已经回顾了功能，下面来初探 &quot;if&quot; 语句。</p> 
+ <p><a name="N10187"><span class="atitle">If 语句</span></a></p> 
+ <p>与大多数语言一样，bash 有自己的条件形式。在使用时，要遵循以上格式；即，将 &quot;if&quot; 和 &quot;then&quot; 放在不同行，并使 &quot;else&quot; 和结束处必需的 &quot;fi&quot; 与它们水平对齐。这将使代码易于阅读和调试。除了 &quot;if,else&quot; 形式之外，还有其它形式的 &quot;if&quot; 语句：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">if [ condition ]<br />then <br />    action<br />fi</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>只有当 <code><font face="NSimsun">condition</font></code> 为真时，该语句才执行操作，否则不执行操作，并继续执行 &quot;fi&quot; 之后的任何行。</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">if [ condition ]<br />then <br />    action<br />elif [ condition2 ]<br />then <br />    action2<br />.<br />.<br />.<br />elif [ condition3 ]<br />then <br />else<br />    actionx<br />fi</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>以上 &quot;elif&quot; 形式将连续测试每个条件，并执行符合第一个 <em>真</em> 条件的操作。如果没有条件为真，则将执行 &quot;else&quot; 操作，如果有一个条件为真，则继续执行整个 &quot;if,elif,else&quot; 语句之后的行。</p> 
+ <p><a name="N101A5"><span class="atitle">下一次</span></a></p> 
+ <p>我们已经学习了最基本的 bash 功能，现在要加快脚步，准备编写一些实际脚本。在下一篇中，将讲述循环概念、函数、名称空间和其它重要主题。然后，将准备好编写一些更复杂的脚本。在第三 篇中，将重点讲述一些非常复杂的脚本和功能，以及几个 bash 脚本设计选项。再见！</p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+</div></div></body></html>

@@ -1,0 +1,677 @@
+<html><head><title><div class="tit">
+  Java中的Drag and Drop详解与代码示例 -swingcode
+</div></title></head><body><div id='tit'>Java中的Drag and Drop详解与代码示例 -swingcode</div><div id='cate'>j&middot;swing</div><div id='date'>2008年04月13日 星期日 03:29 P.M.</div><div id='page'>142</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/1af2cabfb98c8e0f19d81fd9.html'>http://hi.baidu.com/hxzon/blog/item/1af2cabfb98c8e0f19d81fd9.html</a><div id='cnt'><div> 
+ <p>Java中的Drag and Drop详解与代码示例 -swingcode</p> 
+ <p> </p> 
+</div> 
+<div> 
+</div> 
+<div>
+ 我最近对对Java中的Drag and Drop做了一个总结, 觉得大致可以通过两种方法实现Drag and Drop:
+ <br /> 1.比较初级的D&amp;D:只利用java.awt.datatransfer.*中的类实现.
+ <br /> 2.高级D&amp;D: 利用javax.awt.dnd.*中的类实现.
+</div> 
+<div> 
+</div> 
+<div>
+ 比较初级D&amp;D:只利用java.awt.datatransfer.*中的类实现.
+ <br /> 这种方法只支持对JComponent的拖拽.
+ <br /> Drag and Drop的问题简单的说要涉及到两个部分: Drag Source, Drop target和Transferable 即从哪里drag来的, 以及drop到哪里去, 以及传输的数据.
+ <br /> 
+ <br /> Drag Source可以分为两种: 
+ <br /> 1.第一种是这样的JComponent, 他们有dragEnabled属性.这些JComponent包括: 
+ <br /> javax.swing.JColorChooser 
+ <br /> javax.swing.JFileChooser 
+ <br /> javax.swing.JList 
+ <br /> javax.swing.JTable 
+ <br /> javax.swing.JTree 
+ <br /> javax.swing.text.JTextComponent 
+ <br /> 这些JComponent要想作为一个Drag Source只要调用setDragEnabled( true)即可, 不用多余的操作.
+ <br /> 2. 另一种Drag Source没有dragEnabled属性, 也就没有setDragEnabled方法, 要想作为Drag Source, 那就要给Component添加MouseMotionListener, 并实现mouseDragged方法, 后面会举例介绍.
+ <br /> 
+ <br /> Drop Target, 任何JComponent都可以作为Drop Target, 但是也只有JComponent以及它的子类可以作为Drop Target, 其它的不行.
+ <br /> 
+ <br /> Transferable
+ <br /> 所有的Transferable都是javax.swing.Transferable的子类, 但是细分还是可以分为两种情况:
+ <br /> 第一种是利用javax.swing.Transferable, 因为javax.swing.Transferable 是一个具体类我们可以直接调用new TransferHandler( String property )生成的transfer handler 作为Component的Transfer Handler, 这样的transfer handler可以将 Java Bean 属性从一个组件传输到另一个组件的传输处理程序。
+ <br /> 第二种则是自定义一个TransferHandler的子类, 你可以在这个类中实现复杂的拖拽操作.
+ <br /> 下面有两个例子.
+ <br /> 第一个例子用简单的javax.swing.Transferable, 第二个例子定义一个javax.swing.Transferable的子类.
+ <br /> 例一
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> import java.awt.*;
+ <br /> import java.awt.event.*;
+ <br /> import javax.swing.*;
+ <br /> import javax.swing.event.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class LabelDnd ...{
+ <br /> &nbsp;&nbsp;&nbsp; private JFrame mainFrame;
+ <br /> &nbsp;&nbsp;&nbsp; private JPanel mainPanel;
+ <br /> &nbsp;&nbsp;&nbsp; private JLabel label;
+ <br /> &nbsp;&nbsp;&nbsp; private JTextField textField;
+ <br /> &nbsp;&nbsp;&nbsp; private JColorChooser colorChooser;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; private JMenuBar menuBar = new JMenuBar();
+ <br /> &nbsp;&nbsp;&nbsp; private JMenu menu = new JMenu( &quot;Menu&quot; );
+ <br /> &nbsp;&nbsp;&nbsp; private JMenuItem menuItem = new JMenuItem( &quot;Handle Foregound&quot; );
+ <br /> &nbsp;&nbsp;&nbsp; private TransferHandler t1 = new TransferHandler( &quot;text&quot; ) ;
+ <br /> &nbsp;&nbsp;&nbsp; private TransferHandler t2 = new TransferHandler( &quot;foreground&quot; );
+ <br /> &nbsp;&nbsp;&nbsp; public LabelDnd() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame = new JFrame();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel = new JPanel( new BorderLayout() );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; label = new JLabel( &quot;label&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; label.setTransferHandler( t1 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; menuItem.addActionListener( new ActionListener() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void actionPerformed( ActionEvent e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( label.getTransferHandler().equals( t1 ) ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LabelDnd.this.menuItem.setText( &quot;Handle Text&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; label.setTransferHandler( t2 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LabelDnd.this.menuItem.setText( &quot;Handle Foreground&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; label.setTransferHandler( t1 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; menu.add( menuItem );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; menu.setTransferHandler( t1 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; menuBar.add( menu );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.setJMenuBar( menuBar );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; label.addMouseListener( new MouseAdapter() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void mousePressed( MouseEvent e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JComponent c = (JComponent)e.getSource();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TransferHandler handler = c.getTransferHandler();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; handler.exportAsDrag( c, e, TransferHandler.COPY );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textField = new JTextField( 20 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textField.setDragEnabled( true );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; colorChooser = new JColorChooser();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; colorChooser.setDragEnabled( true );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel.add( label, BorderLayout.PAGE_START );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel.add( textField, BorderLayout.PAGE_END );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel.add( colorChooser, BorderLayout.WEST );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.getContentPane().add( mainPanel );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.pack();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.setLocationRelativeTo( null );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.setVisible( true );
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public static void main( String[] args ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new LabelDnd();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 效果如下:
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 你可以试着拖拽下。
+</div> 
+<div> 
+</div> 
+<div>
+ 例二
+ <br /> PictureDnd.java
+</div> 
+<div> 
+</div> 
+<div>
+ package dt;
+ <br /> import java.awt.*;
+ <br /> import javax.swing.*;
+ <br /> import java.awt.event.*;
+ <br /> import javax.swing.event.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import demo.gui.PictureComponent;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.datatransfer.*;
+ <br /> import java.io.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class PictureDnd ...{
+ <br /> &nbsp;&nbsp;&nbsp; JFrame mainFrame;
+ <br /> &nbsp;&nbsp;&nbsp; JPanel mainPanel;
+ <br /> &nbsp;&nbsp;&nbsp; PictureComponent[] pictures;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public static void main( String[] args ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new PictureDnd();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public PictureDnd() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame = new JFrame();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel = new JPanel( new GridLayout( 2, 2 ) );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pictures = new PictureComponent[ 4 ];
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pictures[ 0 ] = new PictureComponent( new ImageIcon( &quot;Sunset.jpg&quot; ).getImage() );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pictures[ 1 ] = new PictureComponent( new ImageIcon( &quot;Winter.jpg&quot; ).getImage() );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pictures[ 2 ] = new PictureComponent( null );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pictures[ 3 ] = new PictureComponent( null );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel.add( pictures[ 0 ] );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel.add( pictures[ 1 ] );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel.add( pictures[ 2 ] );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel.add( pictures[ 3 ] );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainPanel.setBorder( BorderFactory.createEmptyBorder( 20, 20, 20, 20 ) );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.getContentPane().add( mainPanel );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.setSize( 350, 400 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.setLocationRelativeTo( null );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mainFrame.setVisible( true );
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> PicrureComponent.java
+</div> 
+<div> 
+</div> 
+<div>
+ package demo.gui;
+ <br /> import java.awt.Color;
+ <br /> import java.awt.Dimension;
+ <br /> import java.awt.Graphics;
+ <br /> import java.awt.Image;
+ <br /> import java.awt.event.FocusEvent;
+ <br /> import java.awt.event.FocusListener;
+ <br /> import java.awt.event.MouseEvent;
+ <br /> import java.awt.event.MouseListener;
+ <br /> import java.util.HashSet;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.swing.JComponent;
+</div> 
+<div> 
+</div> 
+<div>
+ public class PictureComponent extends JComponent 
+ <br /> implements FocusListener, MouseListener ...{
+ <br /> &nbsp;&nbsp;&nbsp; Image image;
+ <br /> &nbsp;&nbsp;&nbsp; HashSet&lt; PictureComponent &gt; pcs = new HashSet&lt; PictureComponent &gt;();
+ <br /> &nbsp;&nbsp;&nbsp; public PictureComponent( Image image ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.image = image;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setPreferredSize( new Dimension(125, 125 ) );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setFocusable( true );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setTransferHandler( new PictureTransferHandler() );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; addFocusListener( this );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; addMouseListener( this );
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public HashSet&lt; PictureComponent &gt; getPcs() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return this.pcs;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void setPcs( HashSet&lt; PictureComponent &gt; pcs ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.pcs = pcs;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public Image getImage() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return this.image;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public void setImage( Image image )...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.image = image;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void paintComponent( Graphics graphics )...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Graphics g = graphics.create();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.setColor( Color.white );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.fillRect( 0, 0, 125,125 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( image != null ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawImage( image, 0, 0, 125, 125, Color.BLACK, this );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( isFocusOwner() ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.setColor( Color.red );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.setColor( Color.black );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawRect( 0, 0, 125, 125 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.dispose();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void focusGained( FocusEvent e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void focusLost( FocusEvent e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void mouseClicked( MouseEvent e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; requestFocusInWindow();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void mouseEntered( MouseEvent e ) ...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void mousePressed( MouseEvent e ) ...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void mouseExited( MouseEvent e ) ...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void mouseReleased( MouseEvent e ) ...{}
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ TransferablePicture:
+</div> 
+<div> 
+</div> 
+<div>
+ package demo.gui;
+ <br /> import java.awt.Image;
+ <br /> import java.awt.datatransfer.DataFlavor;
+ <br /> import java.awt.datatransfer.Transferable;
+</div> 
+<div> 
+</div> 
+<div>
+ /**//* Transferalbe */
+ <br /> public class TransferablePicture implements Transferable ...{
+ <br /> &nbsp;&nbsp;&nbsp; DataFlavor[] flavors = ...{ DataFlavor.imageFlavor };
+ <br /> &nbsp;&nbsp;&nbsp; Image image;
+ <br /> &nbsp;&nbsp;&nbsp; public TransferablePicture( Image image ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.image = image;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public DataFlavor[] getTransferDataFlavors() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return flavors;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public Object getTransferData( DataFlavor flavor ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( flavor.equals( DataFlavor.imageFlavor ) ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return image;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return null;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public boolean isDataFlavorSupported( DataFlavor flavor ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return flavor.equals( DataFlavor.imageFlavor );
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ PictureTransferHandler.java
+</div> 
+<div> 
+</div> 
+<div>
+ package demo.gui;
+ <br /> import java.awt.Image;
+ <br /> import java.awt.datatransfer.DataFlavor;
+ <br /> import java.awt.datatransfer.Transferable;
+ <br /> import java.awt.datatransfer.UnsupportedFlavorException;
+ <br /> import java.io.IOException;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.swing.Icon;
+ <br /> import javax.swing.ImageIcon;
+ <br /> import javax.swing.JComponent;
+ <br /> import javax.swing.TransferHandler;
+</div> 
+<div> 
+</div> 
+<div>
+ import dt.TransferablePicture;
+</div> 
+<div> 
+</div> 
+<div>
+ /**//* Transfer Handler */
+ <br /> class PictureTransferHandler extends TransferHandler ...{
+ <br /> &nbsp;&nbsp;&nbsp; public Transferable createTransferable( JComponent c ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PictureComponent pc = (PictureComponent)c;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new TransferablePicture( pc.getImage() );
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public boolean canImport( JComponent c, DataFlavor[] flavors ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for( DataFlavor flavor : flavors ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( flavor.equals( DataFlavor.imageFlavor ) ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return true;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public boolean importData( JComponent c, Transferable t ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( canImport(c, t.getTransferDataFlavors() ) ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PictureComponent pc = ( PictureComponent )c;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Image image = (Image)t.getTransferData( DataFlavor.imageFlavor );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pc.setImage( image );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println( &quot;它能接受&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return true;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch( UnsupportedFlavorException e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch( IOException e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println( &quot;它不能接受&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void exportDone( JComponent c, Transferable data, int action ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PictureComponent picture = ( PictureComponent )c;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( action == MOVE ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; picture.setImage( null );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public int getSourceActions( JComponent c )...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return COPY_OR_MOVE;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public Icon getVisualRepresentation( Transferable t ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Image image = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println( &quot;getVisualRepresentation&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; image = (Image)t.getTransferData( DataFlavor.imageFlavor );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch( Exception e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new ImageIcon( image );
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 效果如下:
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 2.高级D&amp;D:利用javax.awt.dnd.*中的类实现.
+ <br /> 第二种实现方法和第一种的区别主要是在Drag Source和Drop Target上.而且这第二种实现方法支持所有Component及其子类上实现拖拽,而不止是JComponent.
+ <br /> 
+ <br /> Drag Target&nbsp;&nbsp; 一个对象那个如果想作为拖拽源的话，必须和五个对象建立联系，这五个对象分别是：&nbsp;&nbsp;&nbsp; * java.awt.dnd.DragSource&nbsp;&nbsp;&nbsp; 获取DragSource的方法很简单，直接调用DragSource.getDefaultDragSource()；就可以得到DragSource对象&nbsp;&nbsp;&nbsp; * java.awt.dnd.DragGestureRecognizer&nbsp;&nbsp;&nbsp; DragGestureRecognizer类中实现了一些与平台无关的方法，我们如果想在自己的组件上实现拖拽的话只要调用createDefaultDragGestureRecognizer()方法就可以了&nbsp;&nbsp;&nbsp; 该方法接收三个参数，建立组件和拖拽动作之间的关系&nbsp;&nbsp;&nbsp; * java.awt.dnd.DragGestureListener&nbsp;&nbsp;&nbsp; 当建立了组件和拖拽动作之间的联系后，如果用户执行了拖拽操作，组件将发送一个消息给DragGestureListener监听器&nbsp;&nbsp;&nbsp; DragGestureListener监听器接下来会发送一个startDrag()消息给拖拽源对象，告诉组件应该执行拖拽的初始化操作了&nbsp;&nbsp;&nbsp; 拖拽源会产生一个DragSourceContext对象来监听动作的状态，这个监听过程是通过监听本地方法DragSourceContextPeer来实现的&nbsp;&nbsp;&nbsp; * java.awt.datatransfer.Transferable&nbsp;&nbsp;&nbsp; * java.awt.dnd.DragSourceListener&nbsp;&nbsp;&nbsp;&nbsp; DragSourceListener接口负责当鼠标拖拽对象经过组件时的可视化处理， DragSourceListener接口的显示结果只是暂时改变组件的外观&nbsp;&nbsp;&nbsp; 同时他提供一个feedback，当用户的拖拽操作完成之后会收到一个dragDropEnd的消息，我们可以在这个函数中执行相应的操作&nbsp;&nbsp;&nbsp; 再来回顾一下拖拽源的建立过程 1.DragGestureRecognizer 确认一个拖拽操作，同时告知 DragGestureListener. 2.假如actions and/or flavors are OK, DragGestureListener 让 DragSource 调用 startDrag(). 3.DragSource建立一个 DragSourceContext和一个DragSourceContextPeer. 4.DragSourceContext 把它自己作为一个DragSourceListener,侦听DragSourceContextPeer.DragSourceContextPeer会从本地系统得到Coponent的状态改变的通知(component entered/exited/is over), 并把他们代理给DragSourceContext.5.DragSourceContext通知 DragSourceListener,而DragSourceListener提供 drag over 的反馈(如果DropTargetListener接受这个动作). 典型的反馈包括让DrogSourceContext改变鼠标.&nbsp;&nbsp; 
+ <br /> 6.一旦drop完毕, DragSourceListener就得到一个dragDropEnd的通知消息.
+ <br /> Drop Source&nbsp;&nbsp; 创建一个 droppable Component必须和下面两个对象发生关联&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * java.awt.dnd.DropTarget&nbsp;&nbsp;&nbsp; DropTarget构造函数使DropTarget 和 DropTargetListener objects发生关联&nbsp;&nbsp;&nbsp; Droptarget对象提供 setComponent 和addDropTargetListener 两个方法&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * java.awt.dnd.DropTargetListener 
+ <br /> &nbsp;&nbsp;&nbsp; DropTargetListener需要与一个Component联系, 以让DropTargetListener在Component操作的时候能够显示”drag under”效果.&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; 下面的这个例子以第二种方式实现拖拽:
+ <br /> DragAndDrop.java
+</div> 
+<div> 
+</div> 
+<div>
+ package dnd;
+ <br /> import java.awt.*;
+ <br /> import javax.swing.*;
+ <br /> import java.awt.dnd.*;
+ <br /> import java.awt.datatransfer.*;
+ <br /> import java.io.*;
+ <br /> import javax.swing.tree.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class DragAndDrop extends JFrame ...{
+ <br /> &nbsp;&nbsp;&nbsp; JScrollPane jScrollPane1 = new JScrollPane();
+ <br /> &nbsp;&nbsp;&nbsp; JTextArea jTextArea1 = new JTextArea();
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public DragAndDrop() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.getContentPane().setLayout( new BorderLayout() );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jScrollPane1.getViewport().setBackground( new Color( 105, 38, 125 ) );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jTextArea1.setBackground( Color.orange );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jTextArea1.setToolTipText( &quot;&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JTree jtr = new JTree();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jtr.setBackground( Color.BLUE );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jScrollPane1.getViewport().add( jtr );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.getContentPane().add( jTextArea1, BorderLayout.PAGE_END );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.getContentPane().add( jScrollPane1, BorderLayout.PAGE_START );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Drag And Drop Relative.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DragSource dragSource = DragSource.getDefaultDragSource();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dragSource.createDefaultDragGestureRecognizer( jtr, DnDConstants.ACTION_COPY_OR_MOVE, new DragAndDropDragGestureListener() );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DropTarget dropTarget = new DropTarget( jTextArea1, new DragAndDropDropTargetListener() );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public static void main( String[] args ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DragAndDrop dad = new DragAndDrop();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dad.setTitle( &quot;拖拽演示&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dad.setSize( 400, 300 );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dad.setVisible( true );
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> DragAndDropDragGestureListener.java
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ package dnd;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.dnd.DragGestureEvent;
+ <br /> import java.awt.dnd.DragGestureListener;
+ <br /> import java.awt.dnd.DragSource;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.swing.JTree;
+ <br /> import javax.swing.tree.DefaultMutableTreeNode;
+ <br /> import javax.swing.tree.TreePath;
+</div> 
+<div> 
+</div> 
+<div>
+ /**//* Drag Gesture Listener */
+ <br /> public class DragAndDropDragGestureListener implements DragGestureListener ...{
+ <br /> &nbsp;&nbsp;&nbsp; public void dragGestureRecognized( DragGestureEvent dge ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JTree tree = (JTree)dge.getComponent();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TreePath path = tree.getSelectionPath();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( path != null ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DefaultMutableTreeNode selection = ( DefaultMutableTreeNode )path.getLastPathComponent();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DragAndDropTransferable dragAndDropTransferable = new DragAndDropTransferable( selection );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dge.startDrag( DragSource.DefaultCopyDrop, dragAndDropTransferable, new DragAndDropDragSourceListener() );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> DragAndDropDragSourceListener.java
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ package dnd;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.dnd.DnDConstants;
+ <br /> import java.awt.dnd.DragSource;
+ <br /> import java.awt.dnd.DragSourceContext;
+ <br /> import java.awt.dnd.DragSourceDragEvent;
+ <br /> import java.awt.dnd.DragSourceDropEvent;
+ <br /> import java.awt.dnd.DragSourceEvent;
+ <br /> import java.awt.dnd.DragSourceListener;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.swing.JTree;
+ <br /> import javax.swing.tree.DefaultMutableTreeNode;
+ <br /> import javax.swing.tree.TreePath;
+</div> 
+<div> 
+</div> 
+<div>
+ /**//* Drag Source Listener */
+ <br /> public class DragAndDropDragSourceListener implements DragSourceListener ...{
+ <br /> &nbsp;&nbsp;&nbsp; public void dragDropEnd( DragSourceDropEvent e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( e.getDropSuccess() ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int dropAction = e.getDropAction();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( dropAction == DnDConstants.ACTION_MOVE ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //System.out.println( &quot;MOVE: remove node&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void dragEnter( DragSourceDragEvent e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DragSourceContext context = e.getDragSourceContext();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int dropAction = e.getDropAction();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( ( dropAction &amp; DnDConstants.ACTION_COPY ) != 0 ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; context.setCursor( DragSource.DefaultCopyDrop );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else if( ( dropAction &amp; DnDConstants.ACTION_MOVE ) != 0 ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; context.setCursor( DragSource.DefaultMoveDrop );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; context.setCursor( DragSource.DefaultCopyNoDrop );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public void dragExit( DragSourceEvent e ) ...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void dragOver( DragSourceDragEvent e )...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void dropActionChanged( DragSourceDragEvent e )...{}
+ <br /> }
+ <br /> DragAndDropDropTargetListener.java
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ package dnd;
+ <br /> import java.awt.datatransfer.DataFlavor;
+ <br /> import java.awt.datatransfer.Transferable;
+ <br /> import java.awt.datatransfer.UnsupportedFlavorException;
+ <br /> import java.awt.dnd.DropTarget;
+ <br /> import java.awt.dnd.DropTargetDragEvent;
+ <br /> import java.awt.dnd.DropTargetDropEvent;
+ <br /> import java.awt.dnd.DropTargetEvent;
+ <br /> import java.awt.dnd.DropTargetListener;
+ <br /> import java.io.IOException;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.swing.JTextArea;
+</div> 
+<div> 
+</div> 
+<div>
+ /**//* Drop Target Listener */
+ <br /> public class DragAndDropDropTargetListener implements DropTargetListener ...{
+ <br /> &nbsp;&nbsp;&nbsp; public void dragEnter( DropTargetDragEvent e ) ...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void dragOver( DropTargetDragEvent e ) ...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void dropActionChanged( DropTargetDragEvent e ) ...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void dragExit( DropTargetEvent e ) ...{}
+ <br /> &nbsp;&nbsp;&nbsp; public void drop( DropTargetDropEvent e ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Transferable t = e.getTransferable();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String s = &quot;&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( t.isDataFlavorSupported( DataFlavor.stringFlavor ) ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s = t.getTransferData( DataFlavor.stringFlavor ).toString();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch( IOException ioe ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ioe.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch( UnsupportedFlavorException ufe ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ufe.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println( s );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DropTarget dt = (DropTarget)e.getSource();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JTextArea d = ( JTextArea )dt.getComponent();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( s != null &amp;&amp; s.equals( &quot;&quot; ) == false ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; d.append( s + &quot; &quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> DragAndDropTransferable.java
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ package dnd;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.datatransfer.DataFlavor;
+ <br /> import java.awt.datatransfer.Transferable;
+ <br /> import java.awt.datatransfer.UnsupportedFlavorException;
+ <br /> import java.io.IOException;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.swing.tree.DefaultMutableTreeNode;
+</div> 
+<div> 
+</div> 
+<div>
+ /**//* Drop Transferable */
+ <br /> public class DragAndDropTransferable implements Transferable ...{
+ <br /> &nbsp;&nbsp;&nbsp; private DefaultMutableTreeNode treeNode;
+ <br /> &nbsp;&nbsp;&nbsp; public DragAndDropTransferable( DefaultMutableTreeNode treeNode ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.treeNode = treeNode;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; DataFlavor[] flavors = ...{ DataFlavor.stringFlavor };
+ <br /> &nbsp;&nbsp;&nbsp; public DataFlavor[] getTransferDataFlavors() ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return flavors;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public boolean isDataFlavorSupported( DataFlavor flavor ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for( DataFlavor df : flavors ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if( df.equals( flavor ) ) ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return true;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; public Object getTransferData( DataFlavor df ) throws UnsupportedFlavorException, IOException ...{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return treeNode;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 效果如下:
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 参考网页:
+ <br /> 
+ <a href="http://blog.csdn.net/XXKKFF/archive/2007/01/11/1480506.aspx">http://blog.csdn.net/XXKKFF/archive/2007/01/11/1480506.aspx</a>
+ <br /> 
+ <a href="http://showmealone.blog.sohu.com/8609852.html">http://showmealone.blog.sohu.com/8609852.html</a>
+ <br /> 3. Drag and Drop Specifications:
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <a href="http://java.sun.com/j2se/1.5/pdf/dnd1.pdf">http://java.sun.com/j2se/1.5/pdf/dnd1.pdf</a>
+</div> 
+<div> 
+</div> 
+<div>
+ <a href="http://blog.csdn.net/xumingming64398966/archive/2007/01/24/1492409.aspx">http://blog.csdn.net/xumingming64398966/archive/2007/01/24/1492409.aspx</a>
+</div></div></body></html>

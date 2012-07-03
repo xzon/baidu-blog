@@ -1,0 +1,109 @@
+<html><head><title><div class="tit">
+  ASN.1 Library -chaosinmotion
+</div></title></head><body><div id='tit'>ASN.1 Library -chaosinmotion</div><div id='cate'>j&middot;通用</div><div id='date'>2009年08月06日 星期四 11:19 A.M.</div><div id='page'>39</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/00b94f544979475d574e006a.html'>http://hi.baidu.com/hxzon/blog/item/00b94f544979475d574e006a.html</a><div id='cnt'><p> </p> 
+<h2>ASN.1 Library -chaosinmotion</h2> 
+<p>The ASN.1 Library implements the various primitives and parsing strategies for creating and parsing BER, CER and DER encoded streams using the ASN.1 encoding standard. This standard library approaches the problem of parsing an incoming or generating an outgoing BER, CER or DER encoded stream through using proxy objects and hand-rolling a parser, though the possibility of grafting these classes onto an ASN.1 specification language parser is certainly there.</p> 
+<h2>New Version</h2> 
+<p>On August 14, 2008 a new version of the ASN.1 library was uploaded. This version now supports relative OIDs (oops), as well as the constructs outlined in <a class="external" title="http://www.ietf.org/rfc/rfc3641.txt" href="http://www.ietf.org/rfc/rfc3641.txt">RFC 3641</a>. This includes the external construct and the embedded pdv construct (both encoded like sequence objects, and thus inheriting from the <strong>BerConstruct</strong> object), and the UTF8, universal, character and BMP string types.</p> 
+<h2>Using the ASN.1 Library</h2> 
+<p>The ASN.1 library should hopefully simplify the construction of an application that needs to parse ASN.1 input and output streams.</p> 
+<h3>Writing an ASN.1 BER data stream</h3> 
+<p>Writing a BER output stream is relatively straight forward. You would first wrap your output stream object in a BerOutputStream, optionally specifying if the output stream should conform with BER, CER or DER encoding rules:</p> 
+<pre>ByteArrayOutputStream stream = new ByteArrayOutputStream();
+BerOutputStream out = new BerOutputStream(stream);</pre> 
+<p>In the above example we are wrapping a ByteArrayOutputStream, but you can wrap any valid OutputStream derived class.</p> 
+<p>You would then construct your output packet request by building the packet request using the various BerNode derived objects. For example, to create a sequence with two integers, one which is defined using the tag type for a primitive integer, another with an application identifier of 53:</p> 
+<pre>BerSequence seq = new BerSequence();
+seq.add(new BerInteger(10));
+seq.add(new BerInteger(Tag.APPLICATION | 53, 20));</pre> 
+<p>Then you would write the element to the output stream, optionally flushing the stream to make sure all of the bytes were written. (You would need to do this if the underlying output stream is a network connection.)</p> 
+<pre>seq.writeElement(out);
+out.flush();</pre> 
+<pre> </pre> 
+<p> </p> 
+<h3>Reading an ASN.1 BER data stream</h3> 
+<p>Reading a BER stream is a little more complex. It requires that you first create a BerParser derived class which can parse the ASN.1 specified protocol, then you create a BerInputStream wrapper around your input stream, and finally parse the packets as they come in.</p> 
+<h4>Creating a BER Parser Object</h4> 
+<p>Suppose we have a protocol we wish to parse, specified in the ASN.1 specification language <a class="external text" title="http://portal.etsi.org/mbs/" rel="nofollow" href="http://portal.etsi.org/mbs/">(borrowed from here and modified for illustration purposes)</a> as:</p> 
+<pre>ExampleProtocol DEFINITIONS  ::=
+BEGIN
+ ExampleProtocolMessage ::= CHOICE {
+                            rlcGeneralBroadcastInformation  RlcGeneralBroadcastInformation,
+                            rlcFrequencyList                RlcFrequencyList  }
+ RlcGeneralBroadcastInformation
+                       ::= [APPLICATION 0] SEQUENCE {
+                            duplexMode                      DuplexMode,
+                            frameOffset                     FrameOffset,
+                            uplinkPowerMaxRangingStart      UplinkPowerMax,
+                            infoText                        InfoText   }
+ DuplexMode            ::= ENUMERATED {fdd(0), tdd(1)}
+ FrameOffset           ::= INTEGER   (0 | 8..20)
+ UplinkPowerMax        ::= INTEGER   (10..20)
+ InfoText              ::= IA5String (SIZE (0..128))
+ RlcFrequencyList      ::= SEQUENCE  (SIZE(32)) OF PairOfCarrierFrequencies
+ PairOfCarrierFrequencies
+                       ::= [APPLICATION 1] SEQUENCE {
+                            uplinkCarrierFrequency          CarrierFrequency,
+                            downlinkCarrierFrequency        CarrierFrequency }
+ CarrierFrequency      ::= INTEGER (0..130000)
+END</pre> 
+<p>Notice that in the above specification, we have the following parser states: <strong>ExampleProtocolMessage</strong>, <strong>RlcGeneralBroadcastInformation</strong>, <strong>DuplexMode</strong>, <strong>FrameOffset</strong>, etc. Of these, there are four which are not defined as primitive types: <strong>ExampleProtocolMessage</strong> (a choice), <strong>RlcGeneralBroadcastInformation</strong>, <strong>RlcFrequencyList</strong> and <strong>PairOfCarrierFrequencies</strong>, which are all sequences.</p> 
+<p>These parser states determine the type of information we're looking for in order to determine the meaning of non-primitive types, such as the APPLICATION type--and while that does not come into play as much here, this can be of importance when parsing a protocol such as LDAP.</p> 
+<p>To this end we defined our states:</p> 
+<pre>public class TestParser extends BerParser
+{
+    private static final int ExampleProtocolMessage = BerParser.START;
+    private static final int RlcGeneralBroadcastInformation = 1;
+    private static final int RlcFrequencyList = 2;
+    private static final int PairOfCarrierFrequencies = 3;
+    ...</pre> 
+<p>These states represent the different components we're parsing. We only need to track the states for compound objects, such as sets and sequences.</p> 
+<p>Once we have defined the states in our BerParser-derived class TestParser, we would next need to fill in the <strong>create</strong> method. This method takes three arguments: the current tag being parsed, the current state we're in (which corresponds to the specific sequence or set we're parsing), and the input stream we're reading from.</p> 
+<p>Note that the <strong>create</strong> method is only called if we encounter an application-defined tag, so we do not need to create code to parse the primitive types such as INTEGER or REAL; this is handled for us automatically.</p> 
+<p>Our <strong>create</strong> method then would only really need to handle the ExampleProtocolMessage state; if other states are seen it is in error.</p> 
+<pre>public BerNode create(int tag, int state, BerInputStream stream) throws IOException
+    {
+        switch (state) {
+            case ExampleProtocolMessage:
+                // Application 0 == RlcGeneralBroadcastInformation
+                // Application 1 == RlcFrequencyList
+                if (tag == (Tag.APPLICATION | 0)) {
+                    return new BerSequence(tag,RlcGeneralBroadcastInformation,this,stream);
+                } else if (tag == (Tag.APPLICATION | 1)) {
+                    return new BerSequence(tag,RlcFrequencyList,this,stream);
+                } else {
+                    throw new AsnEncodingException(&quot;Unknown tag: &quot; + tag);
+                }
+                
+            case RlcGeneralBroadcastInformation:
+                throw new AsnEncodingException(&quot;Unknown tag: &quot; + tag);
+                
+            case RlcFrequencyList:
+                throw new AsnEncodingException(&quot;Unknown tag: &quot; + tag);
+                
+            case PairOfCarrierFrequencies:
+                throw new AsnEncodingException(&quot;Unknown tag: &quot; + tag);
+                
+            default:
+                throw new AsnEncodingException(&quot;Unknown state: &quot; + state);
+        }
+    }
+}</pre> 
+<p> </p> 
+<p> </p> 
+<h4>Using the Parser</h4> 
+<p>To parse an input stream into a collection of primitives which can later be manipulated by your application, you would need to do like the steps above: first, create a BerInputStream which wraps your input stream primitive:</p> 
+<pre>ByteArrayInputStream inStream = new ByteArrayInputStream(stream.toByteArray());
+BerInputStream in = new BerInputStream(inStream);</pre> 
+<p>Next you would need to create an instance of your parser object. (This could be created globally, as by default the underlying BerParser is thread safe.)</p> 
+<pre>TestParser parser = new TestParser();</pre> 
+<p>You then can parse the input stream as needed. If the <strong>readPacket</strong> method returns NULL you've probably hit the end of the input stream. Your protocol may define other messages to signify the end of the data stream as well.</p> 
+<pre>while (null != (node = parser.readPacket(in))) {
+    // do your operation.
+}</pre> 
+<p> </p> 
+<p><a href="http://www.chaosinmotion.com/wiki/index.php?title=ASN.1_Library">http://www.chaosinmotion.com/wiki/index.php?title=ASN.1_Library</a><br /> <a href="http://www.chaosinmotion.com/javadocs/uitools/index.html">http://www.chaosinmotion.com/javadocs/uitools/index.html</a></p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

@@ -1,0 +1,802 @@
+<html><head><title><div class="tit">
+  Chapter 27. Seam注解 -seam满江红
+</div></title></head><body><div id='tit'>Chapter 27. Seam注解 -seam满江红</div><div id='cate'>j&middot;后端</div><div id='date'>2009年03月09日 星期一 10:42 P.M.</div><div id='page'>63</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/eb0e402354de885a9822edb8.html'>http://hi.baidu.com/hxzon/blog/item/eb0e402354de885a9822edb8.html</a><div id='cnt'><div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2>Chapter 27. Seam注解 -seam满江红</h2> 
+   </div> 
+  </div> 
+  <div> 
+  </div> 
+ </div> 
+ <p>编写Seam应用程序时需要使用大量的注解。Seam让我们使用注解获得声明式编程风格。大部分注解由EJB3.0规范定义。 数据验证通过Hibernate Validator包定义。最后，Seam定义了它自己的注解集合，这就是我们这一章将要描述的。</p> 
+ <p>所有这些注解在 org.jboss.seam.annotations 包中定义。</p> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e15251"></a>27.1. 用于定义组件的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>我们要看的第一组注解让我们定义一个Seam组件。这些注解在组件（component）类中出现。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="name-annotation"></a>@Name 
+    </dt>
+    <dd> 
+     <pre>@Name(&quot;componentName&quot;)</pre> 
+     <p>为一个类定义一个Seam组件。所有Seam组件都需要该注解。</p> 
+    </dd>
+    <dt>
+     <a name="scope-annotation"></a>@Scope 
+    </dt>
+    <dd> 
+     <pre>@Scope(ScopeType.CONVERSATION)</pre> 
+     <p>定义默认的组件上下文。可以定义的值由 ScopeType 枚举：EVENT, PAGE, CONVERSATION, SESSION, BUSINESS_PROCESS, APPLICATION, STATELESS。</p> 
+     <p>当范围没有显式定义时，默认的范围取决于组件类型。 对于无状态会话bean，默认是 STATELESS。 对于Entity Bean和Stateful Session Bean，默认是 CONVERSATION。 对于JavaBean，默认是 EVENT。</p> 
+    </dd>
+    <dt>
+     <a name="role-annotation"></a>@Role 
+    </dt>
+    <dd> 
+     <pre>@Role(name=&quot;roleName&quot;, scope=ScopeType.SESSION)</pre> 
+     <p>允许一个Seam组件绑定多个上下文变量。 @Name/@Scope 注解定义一个“默认角色”。每一个 @Role 注解定一个附加角色。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>name — 上下文变量的名字。</p> </li> 
+       <li> <p>scope — 上下文变量的作用域。当没有显式定义作用域时，和上面一样默认取决于组件类型。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="roles-annotation"></a>@Roles 
+    </dt>
+    <dd> 
+     <pre>@Roles({
+        @Role(name=&quot;user&quot;, scope=ScopeType.CONVERSATION),
+        @Role(name=&quot;currentUser&quot;, scope=ScopeType.SESSION)
+    })</pre> 
+     <p>允许指定多个额外角色。</p> 
+    </dd>
+    <dt>
+     <a name="intercept-annotation"></a>@BypassInterceptors 
+    </dt>
+    <dd> 
+     <pre>@BypassInterceptors</pre> 
+     <p>取消在特定组件或者一个组件方法上的所有拦截器。</p> 
+    </dd>
+    <dt>
+     <a name="jndiname-annotation"></a>@JndiName 
+    </dt>
+    <dd> 
+     <pre>@JndiName(&quot;my/jndi/name&quot;)</pre> 
+     <p>Seam查找EJB组件的JNDI名。 如果没有显式指定JNDI名，Seam将使用由 org.jboss.seam.core.init.jndiPattern 指定的JNDI模式。</p> 
+    </dd>
+    <dt>
+     <a name="conversational-annotation"></a>@Conversational 
+    </dt>
+    <dd> 
+     <pre>@Conversational</pre> 
+     <p>声明一个对话作用域组件是对话式的，亦即只有长期运行的对话处于活动状态时，组件中的方法才可以被调用。</p> 
+    </dd>
+    <dt>
+     <a name="startup-annotation"></a>@Startup 
+    </dt>
+    <dd> 
+     <pre>@Scope(APPLICATION) @Startup(depends=&quot;org.jboss.seam.bpm.jbpm&quot;)</pre> 
+     <p>指定某个Application Scope的组件在初始化时立即启动。它主要用于特别的内置组件，用于引导象JNDI，数据源等等关键性的设施。</p> 
+     <pre>@Scope(SESSION) @Startup</pre> 
+     <p>指定某个Session Scope的组件在Session建立时立即启动。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>depends — 依赖于，指定必须在此之前启动的命名组件（如果已安装）。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="install-annotation"></a>@Install 
+    </dt>
+    <dd> 
+     <pre>@Install(false)</pre> 
+     <p>指定组件是否应该被默认安装。没有@Install注解则表明该组件应该被安装。</p> 
+     <pre>@Install(dependencies=&quot;org.jboss.seam.bpm.jbpm&quot;)</pre> 
+     <p>如果所指定的依赖组件被安装，那么该组件才安装。</p> 
+     <pre>@Install(genericDependencies=ManagedQueueSender.class)</pre> 
+     <p>如果所指定的类的某个实现组件被安装，那么该组件才安装。当无法确定依赖组件的唯一公开名字时，这就有用了。</p> 
+     <pre>@Install(classDependencies=&quot;org.hibernate.Session&quot;)</pre> 
+     <p>如果所指定的类在classpath中，那么该组件才安装。</p> 
+     <pre>@Install(precedence=BUILT_IN)</pre> 
+     <p>指定组件的优先级别。如果具有相同名字的多个组件存在，具有高优先级的才被安装。定义的优先级是（递增排序）：</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>BUILT_IN — 所有内置的Seam组件的优先级别</p> </li> 
+       <li> <p>FRAMEWORK — 用于扩展Seam的框架组件的优先级别</p> </li> 
+       <li> <p>APPLICATION — 应用程序的组件优先级别（默认优先级）</p> </li> 
+       <li> <p>DEPLOYMENT — 在特定部署中重载应用程序组件的组件优先级别</p> </li> 
+       <li> <p>MOCK — 在测试时mock对象使用的优先级别</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="synchronized-annotation"></a>@Synchronized 
+    </dt>
+    <dd> 
+     <pre>@Synchronized(timeout=1000)</pre> 
+     <p>如果组件被多个客户端并发访问，Seam应该串行化请求。如果一个请求在给定时间段内没有得到组件的锁，将抛出一个例外。</p> 
+    </dd>
+    <dt>
+     <a name="readonly-annotation"></a>@ReadOnly 
+    </dt>
+    <dd> 
+     <pre>@ReadOnly</pre> 
+     <p>声明JavaBean组件或者组件方法在调用结束时不要求状态复制。</p> 
+    </dd>
+    <dt>
+     <a name="autocreate-annotation"></a>@AutoCreate 
+    </dt>
+    <dd> 
+     <pre>@AutoCreate</pre> 
+     <p>声明组件将被自动建立，即使客户端不定义 create=true。</p> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e15487"></a>27.2. 用于双向注入的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>下面两个注解控制双向注入。这些属性用于组件实例变量或者属性访问方法中。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="in-annotation"></a>@In 
+    </dt>
+    <dd> 
+     <pre>@In</pre> 
+     <p>在每次组件调用开始时，从上下文变量注入此组件属性。如果上下文变量是null，那么一个异常将被抛出。</p> 
+     <pre>@In(required=false)</pre> 
+     <p>在每次组件调用开始时，从上下文变量注入此组件属性。上下文变量可为null。</p> 
+     <pre>@In(create=true)</pre> 
+     <p>在每次组件调用开始时，从上下文变量注入此组件属性。如果上下文变量为null，那么Seam实例化这个组件。</p> 
+     <pre>@In(value=&quot;contextVariableName&quot;)</pre> 
+     <p>显式指定上下文变量的名字，而不再使用注解定义的实例变量名。</p> 
+     <pre>@In(value=&quot;#{customer.addresses['shipping']}&quot;)</pre> 
+     <p>在每次组件调用开始时，用一个JSF EL表达式的计算结果来注入组件属性。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>value — 指定上下文变量名。默认是组件属性名。可选地，指定一个JSF EL表达式，放在 #{...} 符号中。</p> </li> 
+       <li> <p>create — 指定若上下文变量名在所有上下文中均未定义，Seam应该创建一个组件作为上下文变量，名字即为所要求的名字。默认为false。</p> </li> 
+       <li> <p>required — 指定若上下文变量名在所有上下文中均未定义，Seam应抛出异常。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="out-annotation"></a>@Out 
+    </dt>
+    <dd> 
+     <pre>@Out</pre> 
+     <p>在调用结束后注射出Seam组件属性到上下文变量。若属性为null，则抛出一个异常。</p> 
+     <pre>@Out(required=false)</pre> 
+     <p>在调用结束后注射出Seam组件属性到上下文变量。属性可以为null。</p> 
+     <pre>@Out(scope=ScopeType.SESSION)</pre> 
+     <p>在调用结束后注射出非Seam组件属性到指定scope。</p> 
+     <p>或者，若没有明确指定scope，则使用此 @Out 属性所属组件的scope。（如果此组件是无状态的，则使用 EVENTscope 。）</p> 
+     <pre>@Out(value=&quot;contextVariableName&quot;)</pre> 
+     <p>显式指定上下文变量名，而非使用注解中指定的实例变量名。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>value — 指定上下文变量名。默认为组件属性名。</p> </li> 
+       <li> <p>required — 指定若注射出时组件属性为null，Seam应抛出异常。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+   </dl>
+  </div> 
+  <p>注意一起使用这些注解相当常见，例如：</p> 
+  <pre>@In(create=true) @Out private User currentUser;</pre> 
+  <p>下一个注解支持 管理器组件（manager component） 模式，在该模式中一个Seam组件管理一些其他将被注入的class实例的生命周期。它在组件的getter方法中出现。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="unwrap-annotation"></a>@Unwrap 
+    </dt>
+    <dd> 
+     <pre>@Unwrap</pre> 
+     <p>指定注解的getter方法返回的对象是被注入的，而非组件实例本身。</p> 
+    </dd>
+   </dl>
+  </div> 
+  <p>下一个注解支持 工厂组件（factory component） 模式，在该模式中，一个Seam组件负责初始化上下文变量值。 如果出现非faces的request，在渲染response的时候，它用于初始化所需要的状态特别有用。它出现在组件方法中。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="factory-annotation"></a>@Factory 
+    </dt>
+    <dd> 
+     <pre>@Factory(&quot;processInstance&quot;) public void createProcessInstance() { ... }</pre> 
+     <p>说明当上下文变量没有值时，此组件的方法被用来初始化上下文变量值。它用于返回值是 void 的方法。</p> 
+     <pre>@Factory(&quot;processInstance&quot;, scope=CONVERSATION) public ProcessInstance createProcessInstance() { ... }</pre> 
+     <p>声明方法返回一个值，当上下文变量没有值时Seam应使用此值初始化命名上下文变量值。它用于返回一个值的方法。 若没有指明scope，则使用 @Factory 方法所在组件的scope（除非组件是无状态的，则使用 EVENT 上下文）。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>value — 指定上下文变量值。若为getter方法，默认为JavaBean属性名。</p> </li> 
+       <li> <p>scope — 指定Seam应绑定返回值的作用域。仅针对于返回一个值的工厂方法有意义。</p> </li> 
+       <li> <p>autoCreate — 无论什么时候请求变量，此工厂方法将自动被调用，即使@In未指定create=true。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+   </dl>
+  </div> 
+  <p>下面的注解让你注入一个 日志（Log）：</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="logger-annotation"></a>@Logger 
+    </dt>
+    <dd> 
+     <pre>@Logger(&quot;categoryName&quot;)</pre> 
+     <p>使用 org.jboss.seam.log.Log 的实例注入一个组件字段。对于Entity Bean，该字段必须声明为static。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>value — 指定日志category。默认是组件类名。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+   </dl>
+  </div> 
+  <p>最后一个注解让你注入一个request参数值：</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="requestparameter-annotation"></a>@RequestParameter 
+    </dt>
+    <dd> 
+     <pre>@RequestParameter(&quot;parameterName&quot;)</pre> 
+     <p>将request的参数值注入组件属性。基本类型的转化被自动地完成。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>value —指定request参数名。默认为组件属性名。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e15707"></a>27.3. 关于组件生命周期方法的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>这些注解允许组件响应它自己的生命周期事件。它们作用于组件方法。对每个组件class来说，每种注解只允许出现一次。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="create-annotation"></a>@Create 
+    </dt>
+    <dd> 
+     <pre>@Create</pre> 
+     <p>当组件实例被Seam初始化时，该方法应被调用。注意仅有JavaBean和Stateful Session Bean支持create方法。</p> 
+    </dd>
+    <dt>
+     <a name="destroy-annotation"></a>@Destroy 
+    </dt>
+    <dd> 
+     <pre>@Destroy</pre> 
+     <p>当上下文结束和它的上下文变量销毁时，该方法应被调用。注意仅有JavaBean和Stateful Session Bean支持destroy方法。</p> 
+     <p>Destroy方法应仅仅用于清理工作。Seam 会捕捉、记录，然后消灭destroy方法传播的任何异常。</p> 
+    </dd>
+    <dt>
+     <a name="observer-annotation"></a>@Observer 
+    </dt>
+    <dd> 
+     <pre>@Observer(&quot;somethingChanged&quot;)</pre> 
+     <p>指定当特定类型的component-driven（组件驱动）事件发生时，该方法应被调用。</p> 
+     <pre>@Observer(value=&quot;somethingChanged&quot;,create=false)</pre> 
+     <p>当指定类型的一个事件发生时，该方法应被调用，但若实例都不存在，则不创建实例。 若实例不存在并且create是false，事件将不会觉察到。create的默认值是true。</p> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e15755"></a>27.4. 用于声明上下文的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>这些注解提供声明式对话分界（declarative conversation demarcation）。它们在Seam组件方法中使用，通常是动作监听器方法（Action Listener Method）。</p> 
+  <p>每个Web请求有一个对话上下文和它关联。这些对话的大多数在请求结束时结束。如果你想要一个对话跨越多个请求，你必须通过调用标志为 @Begin 的方法来“提升”当然的对话为一个长期运行的对话（long-running conversation）。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="begin-annotation"></a>@Begin 
+    </dt>
+    <dd> 
+     <pre>@Begin</pre> 
+     <p>当此方法无异常的返回一个非空结果时，一个长期运行的对话开始。</p> 
+     <pre>@Begin(join=true)</pre> 
+     <p>若已经处于长期运行对话中，简单的延续此对话上下文。</p> 
+     <pre>@Begin(nested=true)</pre> 
+     <p>若已经处于长期运行对话中，一个新的被 嵌套（nested） 对话上下文开始。 该被嵌套的对话在遇到下一个 @End 时结束，并且外部上下文将恢复。在同一个外部对话中同时嵌套多个对话是完全合法的。</p> 
+     <pre>@Begin(pageflow=&quot;process definition name&quot;)</pre> 
+     <p>指定该对话的页面流（pageflow）的jBPM进程定义名。</p> 
+     <pre>@Begin(flushMode=FlushModeType.MANUAL)</pre> 
+     <p>指定任何Seam管理的持久上下文的flush模式。flushMode=FlushModeType.MANUAL 支持 原子对话（atomic conversations），这里所有写操作在会话上下文进入队列，直到显式调用 flush()（调用通常发生在对话结束时）。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>join — 定义当长期对话已经存在时的行为。 若是true，传播上下文。若为 false，抛出一个异常。 默认为false。当指定 nested=true 时，将忽略该设置。</p> </li> 
+       <li> <p>nested —当长期对话已经存在时，一个嵌套对话应该建立。</p> </li> 
+       <li> <p>flushMode — 设置任何在此会话期间创建的，被Seam管理的Hibernate Session或JPA持久上下文的flush模式。</p> </li> 
+       <li> <p>pageflow — 由 org.jboss.seam.bpm.jbpm.pageflowDefinitions 部署的一个jBPM处理的进程定义名。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="end-annotation"></a>@End 
+    </dt>
+    <dd> 
+     <pre>@End</pre> 
+     <p>当这个方法无异常的返回一个非空输出时，长期对话结束。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>beforeRedirect — 默认情况下，若有重定向，直到所有的重定向结束后，对话才会被真正destory。 设置beforeRedirect=true指定该对话应在当前request结束时就结束，并且在一个新的临时对话上下文中处理重定向。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="starttask-annotation"></a>@StartTask 
+    </dt>
+    <dd> 
+     <pre>@StartTask</pre> 
+     <p>&quot;开始&quot;一个jBPM任务。当此方法无异常的返回一个非空输出时，长期运行对话开始。此对话同在某个request具名参数中被指定的jBMP任务相关联。 在该会话上下文中，还定义了一个业务流程上下文（business process context），用作任务实例的业务流程实例。</p> 
+     <p>jBPM的 TaskInstance 在request context中以 taskInstance 的名字作为变量出现。 jPBM的 ProcessInstance 在request context中以 processInstance 的名字作为变量出现。（当然，这些对象也可用于通过 @In 注入。）</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>taskIdParameter — 保存有task id的request参数的名字。 默认为&quot;taskId&quot;，同时也是Seam taskList JSF component使用的默认值。</p> </li> 
+       <li> <p>flushMode — 设置任何在此对话期间创建的，被Seam管理的Hibernate Session或JPA持久上下文的flush模式。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="begintask-annotation"></a>@BeginTask 
+    </dt>
+    <dd> 
+     <pre>@BeginTask</pre> 
+     <p>恢复一个未完成的jBMP任务。当此方法无异常的返回一个非空值时，长时间运行的对话开始。此对话同在某个request参数中指定的jBMP任务相关联。 在该对话上下文中，还定义了一个业务流程上下文（business process context），用作任务实例的业务流程实例。</p> 
+     <p>jBPM的 org.jbpm.taskmgmt.exe.TaskInstance 在request context中以 taskInstance 的名字作为变量出现。 jBPM的 org.jbpm.graph.exe.ProcessInstance 在request context中以 processInstance 的名字作为变量出现。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>taskIdParameter — 保存有task id的request参数的名字。 默认为&quot;taskId&quot;，同时也是Seam taskList JSF component使用的默认值。</p> </li> 
+       <li> <p>flushMode — 设置任何在此会话期间创建的，被Seam管理的Hibernate Session或JPA持久上下文的flush模式。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="endtask-annotation"></a>@EndTask 
+    </dt>
+    <dd> 
+     <pre>@EndTask</pre> 
+     <p>&quot;结束&quot;一个jBPM任务。当此方法无异常返回一个非空输出时，结束长时间运行的会话。触发一个jBMP 流转（transition）。 若没有调用 transition 内置组件的 Transition.setName() 方法，实际被触发的将是默认的transition。</p> 
+     <pre>@EndTask(transition=&quot;transitionName&quot;)</pre> 
+     <p>触发给定jBPM流转。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>transition — 当任务结束时触发的jBPM流转名。默认为默认的流转transition。</p> </li> 
+       <li> <p>beforeRedirect — 默认情况下，若有重定向，直到所有的重定向结束后，会话才会被真正destory。 设置 beforeRedirect=true 指定该会话应在当前request结束时就结束，并且在一个新的临时会话上下文中处理重定向。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="createprocess-annotation"></a>@CreateProcess 
+    </dt>
+    <dd> 
+     <pre>@CreateProcess(definition=&quot;process definition name&quot;)</pre> 
+     <p>当方法无异常返回一个非空输出时，建立一个新的jBPM流程实例。 ProcessInstance 对象在上下文中以 processInstance 的名字作为一个变量出现。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>definition — 通过 org.jboss.seam.bpm.jbpm.processDefinitions 部署的jBPM 流程定义的名字。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="resumeprocess-annotation"></a>@ResumeProcess 
+    </dt>
+    <dd> 
+     <pre>@ResumeProcess(processIdParameter=&quot;processId&quot;)</pre> 
+     <p>当方法无异常返回一个非空输出时，重新进入一个已存的jBPM 流程实例的context。ProcessInstance 对象在上下文中以 processInstance 的名字作为一个变量出现。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>processIdParameter — 保存有该流程id的request参数名。默认是 &quot;processId&quot;.</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="transition-annotation"></a>@Transition 
+    </dt>
+    <dd> 
+     <pre>@Transition(&quot;cancel&quot;)</pre> 
+     <p>当此方法返回一个非空结果时，向在当前jBPM流程实例中发送一个流转信号。</p> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16071"></a>27.5. 用于在J2EE环境中使用Seam JavaBean组件的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>Seam提供一个注解，来让你根据某个动作监听器的输出强制回滚JTA事务。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="transactional-annotation"></a>@Transactional 
+    </dt>
+    <dd> 
+     <pre>@Transactional</pre> 
+     <p>声明JavaBean组件具有与Session Bean组件默认事务行为类似的行为。 也就是说，方法调用应该发生在一个事务中，如果当调用方法时没有事务存在，一个事务将特地为该方法启动。此注解可以在类或者方法级应用。 不要把此注解用于EJB3.0组件，那时候应该用 @TransactionAttribute！</p> 
+    </dd>
+    <dt>
+     @ApplicationException 
+    </dt>
+    <dd> 
+     <pre>@Transactional</pre> 
+     <p>TDB</p> 
+    </dd>
+    <dt>
+     @Interceptors 
+    </dt>
+    <dd> 
+     <pre>@Transactional</pre> 
+     <p>TDB</p> 
+    </dd>
+   </dl>
+  </div> 
+  <p>这些注解大多用在JavaBean Seam组件中。若你用EJB3.0组件，你应改采用标准的 @TransactionAttribute 注解。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16120"></a>27.6. 用于异常的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>这些注解让你指定Seam应如何处理一个从Seam组件中传播出来的异常。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="redirect-annotation"></a>@Redirect 
+    </dt>
+    <dd> 
+     <pre>@Redirect(viewId=&quot;error.jsp&quot;)</pre> 
+     <p>声明被注解的异常引起浏览器重定向到特定视图id。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>viewId — 指定重定向到的JSF视图id。你可以在这里使用EL。</p> </li> 
+       <li> <p>message — 指定显示的信息，默认是异常信息。</p> </li> 
+       <li> <p>end — 指明是否终止长时间运行的对话，默认为 false。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     <a name="httperror-annotation"></a>@HttpError 
+    </dt>
+    <dd> 
+     <pre>@HttpError(errorCode=404)</pre> 
+     <p>声明被注解的异常导致发送一个HTTP错误。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>errorCode — HTTP错误码，默认为500。</p> </li> 
+       <li> <p>message — 和HTTP错误一起被发送的信息，默认为异常消息。</p> </li> 
+       <li> <p>end — 指明是否终止长时间运行的对话，默认为 false。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16195"></a>27.7. 用于Seam Remoting 的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>Seam Remoting要求会话Bean的本地接口要采用以下的注解：</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="webremote-annotation"></a>@WebRemote 
+    </dt>
+    <dd> 
+     <pre>@WebRemote(exclude=&quot;path.to.exclude&quot;)</pre> 
+     <p>说明被注解的方法可以被客户端JavaScript脚本调用。 exclude 属性是可选项，用于从结果的对象图中排除特定对象（Remoting一章有更详细信息）。</p> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16215"></a>27.8. 用于Seam拦截器（interceptor）的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>以下注解出现在Seam拦截器类中。</p> 
+  <p>请查阅EJB3.0规范文档获得EJB拦截器定义所要求的注解的信息。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="interceptor-annotation"></a>@Interceptor 
+    </dt>
+    <dd> 
+     <pre>@Interceptor(stateless=true)</pre> 
+     <p>指定这个拦截器是无状态的，Seam可以优化复制。</p> 
+     <pre>@Interceptor(type=CLIENT)</pre> 
+     <p>指定次拦截器是一个“客户端”拦截器，在EJB容器之前调用它。</p> 
+     <pre>@Interceptor(around={SomeInterceptor.class, OtherInterceptor.class})</pre> 
+     <p>指定此拦截器在栈中的位置比给定的拦截器更高。</p> 
+     <pre>@Interceptor(within={SomeInterceptor.class, OtherInterceptor.class})</pre> 
+     <p>指定此拦截器在栈中的位置比给定的拦截器更深。</p> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16249"></a>27.9. 用于异步（asynchronicity）的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>以下注解用于声明一个异步方法，例如：</p> 
+  <pre>@Asynchronous public void scheduleAlert(Alert alert, @Expiration Date date) { ... }</pre> 
+  <pre>@Asynchronous public Timer scheduleAlerts(Alert alert,
+                                          @Expiration Date date,
+                                          @IntervalDuration long interval) { ... }</pre> 
+  <div>
+   <dl>
+    <dt>
+     <a name="asynchronous-annotation"></a>@Asynchronous 
+    </dt>
+    <dd> 
+     <pre>@Asynchronous</pre> 
+     <p>指定方法调用被异步处理。</p> 
+    </dd>
+    <dt>
+     <a name="duration-annotation"></a>@Duration 
+    </dt>
+    <dd> 
+     <pre>@Duration</pre> 
+     <p>此异步调用其中的一个参数，是在调用处理之前所进行的时间（若为嵌套调用，则是第一个被处理的调用之前所进行的时间）。</p> 
+    </dd>
+    <dt>
+     <a name="expiration-annotation"></a>@Expiration 
+    </dt>
+    <dd> 
+     <pre>@Expiration</pre> 
+     <p>此异步调用其中的一个参数，是调用所发生的时间（若为嵌套调用，则是第一个被处理的调用所发生的时间）。</p> 
+    </dd>
+    <dt>
+     <a name="intervalduration-annotation"></a>@IntervalDuration 
+    </dt>
+    <dd> 
+     <pre>@IntervalDuration</pre> 
+     <p>指明此异步调用方法会循环调用，这个注解参数是循环调用之间的时间间隔。</p> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16303"></a>27.10. 用于JSF的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>以下注解让使用JSF变得更容易。</p> 
+  <div>
+   <dl>
+    <dt>
+     @Converter 
+    </dt>
+    <dd> 
+     <p>允许一个Seam组件作为JSF转换器（JSF converter)。 被注解类必须是一个Seam组件，必须实现javax.faces.convert.Converter接口。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>id — JSF转换器id。默认为组件名。</p> </li> 
+       <li> <p>forClass — 若被指定，注册该组件为一个类型的默认转化器。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+    <dt>
+     @Validator 
+    </dt>
+    <dd> 
+     <p>允许一个Seam组件作为JSF验证器（JSF Validator）。 被注解类必须是一个Seam组件，必须实现 javax.faces.validator.Validator 接口。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <p>id — JSF验证器id。默认为组件名。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+   </dl>
+  </div> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h3><a name="d0e16353"></a>27.10.1. 和 dataTable 一起使用的注解</h3> 
+     </div> 
+    </div> 
+    <div> 
+    </div> 
+   </div> 
+   <p>以下注解让用Stateful Session Bean作为后台实现可点击列表更容易。它们在属性成员（attributes)上使用。</p> 
+   <div>
+    <dl>
+     <dt>
+      <a name="datamodel-annotation"></a>@DataModel 
+     </dt>
+     <dd> 
+      <pre>@DataModel(&quot;variableName&quot;)</pre> 
+      <p>将一个类型为 List、Map、Set 或 Object[] 的属性作为一个JSF DataModel 置入所属组件的scope（如果所属组件是 STATELESS则为EVENT scope ）。 当它是 Map 时，DataModel 的每一行是一个 Map.Entry。</p> 
+      <div> 
+       <ul type="disc"> 
+        <li> <p>value — 转换器上下文参数名。默认是属性名。</p> </li> 
+        <li> <p>scope — 若scope=ScopeType.PAGE 显式指定，则 DataModel 将在 PAGE 上下文作用域内。</p> </li> 
+       </ul> 
+      </div> 
+     </dd>
+     <dt>
+      <a name="datamodelselection-annotation"></a>@DataModelSelection 
+     </dt>
+     <dd> 
+      <pre>@DataModelSelection</pre> 
+      <p>从JSF DataModel（这是基本集合或者映射值的一个元素）注入一个选定值。 如果组件只定义一个 @DataModel 属性，那么 DataModel 所选中的值将被注入。 否则，每个 @DataModel 组件名称必须被指定到每个 @DataModelSelection 的值属性中。</p> 
+      <p>如果在所关联的 @DataModel 上声明了 PAGE scope，除了注入的DataModel Selection,所关联的DataModel也会被注入。 此时，如果标注有 @DataModel 注解的属性是getter方法，该Seam组件必须有同名的setter方法作为Business API的一部分。</p> 
+      <div> 
+       <ul type="disc"> 
+        <li> <p>value — 对话上下文参数名。若在组件中有一个明确的 @DataModel，则不需要该属性。</p> </li> 
+       </ul> 
+      </div> 
+     </dd>
+     <dt>
+      <a name="datamodelselectionindex-annotation"></a>@DataModelSelectionIndex 
+     </dt>
+     <dd> 
+      <pre>@DataModelSelectionIndex</pre> 
+      <p>暴露JSF DataModel 的选择索引作为一个组件属性（这是底层集合的行号，或者map key）。 如果组件只定义一个 @DataModel 属性，那么 DataModel 所选中的值将被注入。 否则，每个 @DataModel 组件名称必须被指定到每个 @DataModelSelection 的值属性中。</p> 
+      <div> 
+       <ul type="disc"> 
+        <li> <p>value — 对话上下文参数名。若在组件中有一个明确的 @DataModel 则不需要该属性。</p> </li> 
+       </ul> 
+      </div> 
+     </dd>
+    </dl>
+   </div> 
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16508"></a>27.11. 用于数据绑定的元数据注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>这些元数据注解使得list以外的其它数据结构实现类似 @DataModel 和 @DataModelSelection 的功能成为可能。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="databinderclass-annotation"></a>@DataBinderClass 
+    </dt>
+    <dd> 
+     <pre>@DataBinderClass(DataModelBinder.class)</pre> 
+     <p>指定此注解是一个数据绑定注解。</p> 
+    </dd>
+    <dt>
+     <a name="dataselectorclass-annotation"></a>@DataSelectorClass 
+    </dt>
+    <dd> 
+     <pre>@DataSelectorClass(DataModelSelector.class)</pre> 
+     <p>指定此注解是一个dataselection注解。</p> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16542"></a>27.12. 用于打包（packing)的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>这个注解提供一个为声明关于一系列要打包在一起的组件信息的机制。它能应用于任何Java包。</p> 
+  <div>
+   <dl>
+    <dt>
+     <a name="namespace-annotation"></a>@Namespace 
+    </dt>
+    <dd> 
+     <pre>@Namespace(value=&quot;http://jboss.com/products/seam/example/seampay&quot;)</pre> 
+     <p>指定目前包中的组件关联到给定命名空间。为了简化应用配置，声明的命名空间可以在 components.xml 文件中作为XML命名空间来使用。</p> 
+     <pre>@Namespace(value=&quot;http://jboss.com/products/seam/core&quot;, prefix=&quot;org.jboss.seam.core&quot;)</pre> 
+     <p>指定一个关联到给定包的命名空间。另外，它指定一个组件名前缀，用于XML文件中出现的组件名。 例如，一个和该命名空间关联的叫 init 的XML元素可被理解为实际引用一个叫做 org.jboss.seam.core.init 的组件。</p> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h2><a name="d0e16572"></a>27.13. 用于和Servlet容器集成的注解</h2> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>这些注解允许你将你的Seam组件和Servlet容器集成。</p> 
+  <div>
+   <dl>
+    <dt>
+     @Filter 
+    </dt>
+    <dd> 
+     <p>使一个用 @Filter 注解的Seam组件（它实现了 javax.servlet.Filter 接口）作为一个Servlet 过滤器（Filter）使用。它将会被Seam的主Filter执行。</p> 
+     <div> 
+      <ul type="disc"> 
+       <li> <pre>@Filter(around={&quot;seamComponent&quot;, &quot;otherSeamComponent&quot;})</pre> <p>指定此过滤器的在栈中的位置比指定过滤器更高。</p> </li> 
+       <li> <pre>@Filter(within={&quot;seamComponent&quot;, &quot;otherSeamComponent&quot;})</pre> <p>指定此过滤器在栈中的位置比既定的过滤器更深。</p> </li> 
+      </ul> 
+     </div> 
+    </dd>
+   </dl>
+  </div> 
+ </div> 
+ <p> </p> 
+</div></div></body></html>

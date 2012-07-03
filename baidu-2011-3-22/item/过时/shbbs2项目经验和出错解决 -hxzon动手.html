@@ -1,0 +1,58 @@
+<html><head><title><div class="tit">
+  shbbs2项目经验和出错解决 -hxzon动手
+</div></title></head><body><div id='tit'>shbbs2项目经验和出错解决 -hxzon动手</div><div id='cate'>过时</div><div id='date'>2008年08月18日 星期一 04:12 P.M.</div><div id='page'>110</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/64fbf5dedbdfd05295ee3765.html'>http://hi.baidu.com/hxzon/blog/item/64fbf5dedbdfd05295ee3765.html</a><div id='cnt'>shbbs2项目经验和出错解决 -hxzon动手
+<br /> 
+<br /> 5、request.getParameter(&quot;currentpage&quot;)返回的就是String类型，不必转化。
+<br /> request.getAttribute(&quot;currentpage&quot;)返回的是Object类型，要转化。
+<br /> setAttribute(&quot;1&quot;,&quot;1&quot;),只能被getAttribute取得，不能getParameter().
+<br /> 没有setParamter()方法。
+<br /> form里的值用getParameter获得，不可以getAttribute。
+<br /> 路径带的参数只能用getParameter().
+<br /> 动态form里参数的取得，get()返回Object,getString()返回String。
+<br /> 参数名字必须在struts-config.xml《form-property》里面定义，否则会出错。
+<br /> 只在含form的页面里定义这个参数，是会出错的。
+<br /> 如果用getParameter取form里的值，相对自由，不需在《form-property》里定义。
+<br /> 就只需要JSP页面、action取值操作，model类属性三者对应，不必再去和《form-property》对应。
+<br /> 但是JSP页面里使用《html：form》，则action一定要指定有一个form，就算里面没有任何属性。
+<br /> 否则出错如下：
+<br /> javax.servlet.jsp.JspException: Form bean not specified on mapping for action: &quot;/post.do?method=addPost&quot;。
+<br /> 如果只是用《form》，则action不必指定form。
+<br /> 但不用《html：form》，action路径必须指明全路径，即需加上应用名。
+<br /> 如果使用相对路径，则很容易出错。它会根据当前页面的路径变化基路径，使得跳转后的路径是失效的。
+<br /> 如http://localhost:8080/shbbs2/author/post_add.jsp?forumId=402881fb1bf78d95011bf79c6d7d0006
+<br /> 提交后地址会变成http://localhost:8080/post.do，或者http://localhost:8080/shbbs/author/post.do，
+<br /> 而正确路径应该是http://localhost:8080/shbbs/post.do。
+<br /> 不用《html：text》等标签，控件宽度也会出问题。
+<br /> 7、action路径一定要以斜杠开头，否则出错。
+<br /> 8、&lt;forward name=&quot;toCategoryList&quot; path=&quot;/category.do?method=getCategorys&quot; /&gt;
+<br /> 成功。
+<br /> 6、String postId=request.getParameter(&quot;postId&quot;);
+<br /> if(postId==null||postId.equals(&quot;&quot;))&nbsp;&nbsp; postId = (String) request.getAttribute(&quot;postId&quot;);
+<br /> 注意利用判断的短路径。
+<br /> 如果写成postId.equals(&quot;&quot;)||postId==null，当postId为null时null.equals()会抛出异常。
+<br /> 而postId==null||postId.equals(&quot;&quot;)，当postId为null时就已经为真，不再进行null.equals()。
+<br /> ================================================
+<br /> 1、将web.xml中的OpenSessionInViewFilter过滤器去掉。
+<br /> &lt;filter&gt;
+<br /> &lt;filter-name&gt;OpenSessionInViewFilter&lt;/filter-name&gt;
+<br /> &lt;filter-class&gt;
+<br /> org.springframework.orm.hibernate3.support.OpenSessionInViewFilter
+<br /> &lt;/filter-class&gt;
+<br /> &lt;/filter&gt;
+<br /> &lt;filter-mapping&gt;
+<br /> &lt;filter-name&gt;OpenSessionInViewFilter&lt;/filter-name&gt;
+<br /> &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+<br /> &lt;/filter-mapping&gt;
+<br /> 同时去除了Hibernate.initialize(f.getShbbsCategory())等抵消延迟加载的语句。
+<br /> 2、语句，直接hql语句时，字符串忘记加单引号。
+<br /> 如hql=&quot;...id='&quot;+id+&quot;'&quot;;写成了hql=&quot;...id&quot;+id;
+<br /> 结果报错如下
+<br /> java.lang.NoSuchMethodError: org.hibernate.hql.antlr.HqlBaseParser.recover(Lantlr/RecognitionException;Lantlr/collections/impl/BitSet;)V
+<br /> 3、带参数跳转到JSP页面，写成&quot;xxx.jsp&amp;p=a&quot;,应该是&quot;xxx.jsp?p=a&quot;。
+<br /> 跳转到的页面取这个参数，应该为&quot;${param.p}&quot;,直接&quot;${p}取不到。
+<br /> 将多对一的lazy设为false，又恢复正常。去掉和重新去掉，编辑论坛和删除论坛都出错。
+<br /> 4、form的type属性写错。出现下面错误。
+<br /> 严重: Servlet.service() for servlet action threw exception
+<br /> java.lang.NullPointerException
+<br /> at org.apache.struts.config.FormBeanConfig.createActionForm(FormBeanConfig.java:289)
+<br /></div></body></html>

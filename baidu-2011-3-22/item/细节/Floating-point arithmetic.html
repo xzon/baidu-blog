@@ -1,0 +1,386 @@
+<html><head><title><div class="tit">
+  Floating-point arithmetic
+</div></title></head><body><div id='tit'>Floating-point arithmetic</div><div id='cate'>细节</div><div id='date'>2011年01月14日 星期五 10:06 A.M.</div><div id='page'>2</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3376d7009d201b03738b655a.html'>http://hi.baidu.com/hxzon/blog/item/3376d7009d201b03738b655a.html</a><div id='cnt'><h1>Floating-point arithmetic</h1> 
+<h3>A look at the floating-point support of the Java virtual machine</h3> 
+<p class="byline">By&nbsp;Bill Venners,&nbsp;JavaWorld.com,&nbsp;10/01/96</p> 
+<p>http://www.javaworld.com/javaworld/jw-10-1996/jw-10-hood.html?page=1</p>
+<p>java 浮点数</p>
+<p>Welcome to another installment of <strong>Under The Hood</strong>. This column aims to give Java developers a glimpse of the hidden beauty beneath their running Java programs. This month's column continues the discussion, begun <a href="http://www.javaworld.com/javaworld/jw-09-1996/jw-09-bytecodes.html">last month</a>, of the bytecode instruction set of the Java virtual machine (JVM). This article takes a look at floating-point arithmetic in the JVM, and covers the bytecodes that perform floating-point arithmetic operations. Subsequent articles will discuss other members of the bytecode family. <br /> <br /> </p> 
+<h3>The main floating points</h3> 
+<p>The JVM's floating-point support adheres to the IEEE-754 1985 floating-point standard. This standard defines the format of 32-bit and 64-bit floating-point numbers and defines the operations upon those numbers. In the JVM, floating-point arithmetic is performed on 32-bit floats and 64-bit doubles. For each bytecode that performs arithmetic on floats, there is a corresponding bytecode that performs the same operation on doubles. </p> 
+<p>A floating-point number has four parts -- a sign, a mantissa, a radix, and an exponent. The sign is either a 1 or -1. The mantissa, always a positive number, holds the significant digits of the floating-point number. The exponent indicates the positive or negative power of the radix that the mantissa and sign should be multiplied by. The four components are combined as follows to get the floating-point value: </p> 
+<center>
+ sign * mantissa * radix 
+ <sup>exponent</sup>
+</center> 
+<br /> 
+<br /> 
+<p>Floating-point numbers have multiple representations, because one can always multiply the mantissa of any floating-point number by some power of the radix and change the exponent to get the original number. For example, the number -5 can be represented equally by any of the following forms in radix 10: </p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Forms of -5</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Sign</th> 
+    <th align="CENTER">Mantissa</th> 
+    <th align="CENTER">Radix <sup>exponent</sup></th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">-1</td> 
+    <td align="CENTER">50</td> 
+    <td align="CENTER">10 <sup>-1</sup></td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">-1</td> 
+    <td align="CENTER">5</td> 
+    <td align="CENTER">10 <sup>0</sup></td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">-1</td> 
+    <td align="CENTER">0.5</td> 
+    <td align="CENTER">10 <sup>1</sup></td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">-1</td> 
+    <td align="CENTER">0.05</td> 
+    <td align="CENTER">10 <sup>2</sup></td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<p>For each floating-point number there is one representation that is said to be <em>normalized.</em> A floating-point number is normalized if its mantissa is within the range defined by the following relation: </p> 
+<center>
+ 1/radix &lt;= mantissa &lt; 1
+</center> 
+<br /> 
+<br /> 
+<p>A normalized radix 10 floating-point number has its decimal point just to the left of the first non-zero digit in the mantissa. The normalized floating-point representation of -5 is -1 * 0.5 * 10 <sup>1</sup>. In other words, a normalized floating-point number's mantissa has no non-zero digits to the left of the decimal point and a non-zero digit just to the right of the decimal point. Any floating-point number that doesn't fit into this category is said to be <em>denormalized</em>. Note that the number zero has no normalized representation, because it has no non-zero digit to put just to the right of the decimal point. &quot;Why be normalized?&quot; is a common exclamation among zeros. </p> 
+<p>Floating-point numbers in the JVM use a radix of two. Floating-point numbers in the JVM, therefore, have the following form:</p> 
+<center>
+ sign * mantissa * 2 
+ <sup>exponent</sup>
+</center> 
+<br /> 
+<br /> 
+<p>The mantissa of a floating-point number in the JVM is expressed as a binary number. A normalized mantissa has its binary point (the base-two equivalent of a decimal point) just to the left of the most significant non-zero digit. Because the binary number system has just two digits -- zero and one -- the most significant digit of a normalized mantissa is always a one. </p> 
+<p>Page 2 of 5</p> 
+<p>The most significant bit of a float or double is its sign bit. The mantissa occupies the 23 least significant bits of a float and the 52 least significant bits of a double. The exponent, 8 bits in a float and 11 bits in a double, sits between the sign and mantissa. The format of a float is shown below. The sign bit is shown as an &quot;s,&quot; the exponent bits are shown as &quot;e,&quot; and the mantissa bits are shown as &quot;m&quot;: </p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Bit layout of Java float</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <td align="CENTER">s eeeeeeee mmmmmmmmmmmmmmmmmmmmmmm</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<p>A sign bit of zero indicates a positive number and a sign bit of one indicates a negative number. The mantissa is always interpreted as a positive base-two number. It is not a twos-complement number. If the sign bit is one, the floating-point value is negative, but the mantissa is still interpreted as a positive number that must be multiplied by -1. </p> 
+<p>The exponent field is interpreted in one of three ways. An exponent of all ones indicates the floating-point number has one of the special values of plus or minus infinity, or &quot;not a number&quot;&nbsp;(NaN). NaN is the result of certain operations, such as the division of zero by zero. An exponent of all zeros indicates a denormalized floating-point number. Any other exponent indicates a normalized floating-point number. </p> 
+<p>The mantissa contains one extra bit of precision beyond those that appear in the mantissa bits. The mantissa of a float, which occupies only 23 bits, has 24 bits of precision. The mantissa of a double, which occupies 52 bits, has 53 bits of precision. The most significant mantissa bit is predictable, and is therefore not included, because the exponent of floating-point numbers in the JVM indicates whether or not the number is normalized. If the exponent is all zeros, the floating-point number is denormalized and the most significant bit of the mantissa is known to be a zero. Otherwise, the floating-point number is normalized and the most significant bit of the mantissa is known to be one. </p> 
+<p>The JVM throws no exceptions as a result of any floating-point operations. Special values, such as positive and negative infinity or NaN, are returned as the result of suspicious operations such as division by zero. An exponent of all ones indicates a special floating-point value. An exponent of all ones with a mantissa whose bits are all zero indicates an infinity. The sign of the infinity is indicated by the sign bit. An exponent of all ones with any other mantissa is interpreted to mean &quot;not a number&quot; (NaN). The JVM always produces the same mantissa for NaN, which is all zeros except for the most significant mantissa bit that appears in the number. These values are shown for a float below: </p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Special float values</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Value</th> 
+    <th align="CENTER">Float bits (sign exponent mantissa)</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">+Infinity</td> 
+    <td align="CENTER">0 11111111 00000000000000000000000</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">-Infinity</td> 
+    <td align="CENTER">1 11111111 00000000000000000000000</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">NaN</td> 
+    <td align="CENTER">1 11111111 10000000000000000000000</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<p>Exponents that are neither all ones nor all zeros indicate the power of two by which to multiply the normalized mantissa. The power of two can be determined by interpreting the exponent bits as a positive number, and then subtracting a bias from the positive number. For a float, the bias is 126. For a double, the bias is 1023. For example, an exponent field in a float of 00000001 yields a power of two by subtracting the bias (126) from the exponent field interpreted as a positive integer (1). The power of two, therefore, is 1 - 126, which is -125. This is the smallest possible power of two for a float. At the other extreme, an exponent field of 11111110 yields a power of two of (254 - 126) or 128. The number 128 is the largest power of two available to a float. Several examples of normalized floats are shown in the following table: </p> 
+<p>Page 3 of 5</p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Normalized float values</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Value</th> 
+    <th align="CENTER">Float bits (sign exponent mantissa)</th> 
+    <th align="CENTER">Unbiased exponent</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Largest positive (finite) float</td> 
+    <td align="CENTER">0 11111110 11111111111111111111111</td> 
+    <td align="CENTER">128</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Largest negative (finite) float</td> 
+    <td align="CENTER">1 11111110 11111111111111111111111</td> 
+    <td align="CENTER">128</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Smallest normalized float</td> 
+    <td align="CENTER">1 00000001 00000000000000000000000</td> 
+    <td align="CENTER">-125</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Pi</td> 
+    <td align="CENTER">0 10000000 10010010000111111011011</td> 
+    <td align="CENTER">2</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<p>An exponent of all zeros indicates the mantissa is denormalized, which means the unstated leading bit is a zero instead of a one. The power of two in this case is the same as the lowest power of two available to a normalized mantissa. For the float, this is -125. This means that normalized mantissas multiplied by two raised to the power of -125 have an exponent field of 00000001, while denormalized mantissas multiplied by two raised to the power of -125 have an exponent field of 00000000. The allowance for denormalized numbers at the bottom end of the range of exponents supports gradual underflow. If the lowest exponent was instead used to represent a normalized number, underflow to zero would occur for larger numbers. In other words, leaving the lowest exponent for denormalized numbers allows smaller numbers to be represented. The smaller denormalized numbers have fewer bits of precision than normalized numbers, but this is preferable to underflowing to zero as soon as the exponent reaches its minimum normalized value. </p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Denormalized float values</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Value</th> 
+    <th align="CENTER">Float bits (sign exponent mantissa)</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Smallest positive (non-zero) float</td> 
+    <td align="CENTER">0 00000000 00000000000000000000001</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Smallest negative (non-zero) float</td> 
+    <td align="CENTER">1 00000000 00000000000000000000001</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Largest denormalized float</td> 
+    <td align="CENTER">1 00000000 11111111111111111111111</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Positive zero</td> 
+    <td align="CENTER">0 00000000 00000000000000000000000</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER">Negative zero</td> 
+    <td align="CENTER">1 00000000 00000000000000000000000</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<h3>Exposed float</h3> 
+<p>A Java float reveals its inner nature The applet below lets you play around with the floating-point format. The value of a float is displayed in several formats. The radix two scientific notation format shows the mantissa and exponent in base ten. Before being displayed, the actual mantissa is multiplied by 2 <sup>24</sup>, which yields an integral number, and the unbiased exponent is decremented by 24. Both the integral mantissa and exponent are then easily converted to base ten and displayed. </p> 
+<br /> 
+<br /> 
+<p>Click here for the source code of <a href="http://www.javaworld.com/javaworld/jw-10-1996/hood/source/ExposedFloat.java">Exposed Float</a>. </p> 
+<h3>Floating opcodes</h3> The following table shows the opcodes that pop two floating-point values from the top of the stack, add them, and push the result. The type of the values is indicated by the opcode itself, and the result always has the same type as the numbers being added. No exceptions are thrown by these opcodes. Overflow results in a positive or negative infinity, and underflow results in a positive or negative zero. 
+<br /> 
+<br /> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Floating-point addition</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Opcode</th> 
+    <th align="CENTER">Operand(s)</th> 
+    <th align="CENTER">Description</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>fadd</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two floats, adds them, and pushes the float result</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>dadd</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two doubles, adds them, and pushes the double result</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<p>Subtraction is performed on floats and doubles via the following opcodes. Each opcode causes the top two values of the appropriate type to be popped off the stack. The topmost value is subtracted from the value just beneath the topmost value. The result is pushed back onto the stack. No exceptions are thrown by either of these opcodes. </p> 
+<p>Page 4 of 5</p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Floating-point subtraction</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Opcode</th> 
+    <th align="CENTER">Operand(s)</th> 
+    <th align="CENTER">Description</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>fsub</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two floats, subtracts them, and pushes the float result</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>dsub</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two doubles, subtracts them, and pushes the double result</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<p>Multiplication of floats and doubles is accomplished via the following opcodes. Each opcode causes two values of the same type to be popped off the stack and multiplied. The result, of the same type as the numbers being multiplied, is pushed back onto the stack. No exceptions are thrown. </p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Floating-point multiplication</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Opcode</th> 
+    <th align="CENTER">Operand(s)</th> 
+    <th align="CENTER">Description</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>fmul</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two floats, multiplies them, and pushes the float result</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>dmul</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two doubles, multiplies them, and pushes the double result</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<p>The division experience is made available for floats and doubles by the following opcodes. The division opcodes cause the top two values of the appropriate type to be popped off the stack. The topmost value is divided by the value immediately beneath the topmost value. The result is pushed onto the stack. Floating-point division of a finite value by zero yields a positive or negative infinity. Floating-point division of zero by zero yields NaN. No exception is thrown as a result of any floating-point division. </p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Floating-point division</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Opcode</th> 
+    <th align="CENTER">Operand(s)</th> 
+    <th align="CENTER">Description</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>fdiv</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two floats, divides them, and pushes the float result</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>ddiv</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two doubles, divides them, and pushes the double result</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<p>The remainder operation is accomplished via the following opcodes on floats and doubles. The following opcodes cause the top two values to be popped from the stack. The topmost value is divided by the value just beneath it, and the remainder of that division is pushed back onto the stack. Floating-point remainder of any value divided by zero yields a NaN result. No exception is thrown as a result of any floating-point division. </p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Floating-point remainder</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Opcode</th> 
+    <th align="CENTER">Operand(s)</th> 
+    <th align="CENTER">Description</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>frem</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two floats, divides them, and pushes the float remainder</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>drem</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops two doubles, divides them, and pushes the double remainder</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<p>The following opcodes perform arithmetic negation on floats and doubles. Negation opcodes pop the top value from the stack, negates it, and pushes the result. </p> 
+<center> 
+ <table border="1"> 
+  <caption>
+   <strong>Floating-point negation</strong>
+  </caption> 
+  <tbody>
+   <tr> 
+    <th align="CENTER">Opcode</th> 
+    <th align="CENTER">Operand(s)</th> 
+    <th align="CENTER">Description</th> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>fneg</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops a float, negates it, and pushes the result</td> 
+   </tr> 
+   <tr> 
+    <td align="CENTER"><tt>dneg</tt></td> 
+    <td align="CENTER">(none)</td> 
+    <td align="LEFT">pops a double, negates it, and pushes the result</td> 
+   </tr> 
+  </tbody>
+ </table> 
+</center> 
+<br /> 
+<br /> 
+<h3>Circle of squares: A JVM&nbsp;simulation</h3> The applet below demonstrates a Java virtual machine executing a sequence of bytecodes that perform floating-point arithmetic. The bytecode sequence in the simulation was generated by 
+<tt>javac</tt> for the squareItForever() method of the class shown below: 
+<br /> 
+<br /> 
+<div> 
+ <div>
+  <pre>    class Struggle { <br />    static void squareItForever() { <br />        float f = 2; <br />        while (true) { <br />            f = f * f; <br />            f = 0 - f; <br />        } <br />    } <br />}<br /></pre>
+ </div> 
+</div> 
+<br /> 
+<br /> 
+<p>The actual bytecodes generated by <tt>javac</tt> for squareItForever() are shown below: </p> 
+<div> 
+ <div>
+  <pre>fconst_2          // Push float constant 2. <br />fstore_0          // Pop to local variable 0 (float f): float f = 2; <br />fload_0           // Push local variable 0 (float f). <br />fload_0           // Push local variable 0 (float f). <br />fmul              // Pop top two floats, multiply, push float result. <br />fstore_0          // Pop to local variable 0 (float f): f = f * f; <br />fconst_0          // Push float constant 0. <br />fload_0           // Push local variable 0 (float f). <br />fsub              // Subtract top float from next to top float: imByte = (byte) imInt; <br />fstore_0          // Pop result to local variable 0 (float f): f = 0 - f; <br />goto 2            // Jump back to the first fload_0 instruction: while (true) {} <br /></pre>
+ </div> 
+</div> 
+<br /> 
+<br /> 
+<p>The squareItForever() method repeatedly squares a float value until it hits infinity. Each time the float is squared it is also negated. The float starts out as 2. It only takes seven iterations before infinity is reached, which isn't nearly as long as it takes in real life. The hex representation of the bits that make up the float are shown in the &quot;hex value&quot; column in the applet. The &quot;value&quot; column shows the number as humans are used to seeing it. This human-friendly value is generated by the Float.toString() method. </p> 
+<p>Page 5 of 5</p> 
+<p>To drive the simulation, just press the &quot;Step&quot; button. Each press of the &quot;Step&quot; button will cause the JVM to execute one bytecode instruction. To start the simulation over, press the &quot;Reset&quot; button. The text area at the bottom of the applet describes the next instruction to be executed. Happy clicking. </p> 
+<br /> 
+<br /> 
+<p>Click here for the source code of <a href="http://www.javaworld.com/javaworld/jw-10-1996/hood/source/CircleOfSquares.java">Circle of Squares</a>. </p> 
+<h3>About the author</h3> Bill Venners has been writing software professionally for 12 years.Based in Silicon Valley, he provides software consulting and training services under the name Artima Software Company. Over the years he has developed software for the consumer electronics, education, semiconductor, and life insurance industries. He has programmed in many languages on many platforms: assembly language on various microprocessors, C on Unix, C++ on Windows, Java on the Web. He is author of the book: Inside the Java Virtual Machine, published by McGraw-Hill. 
+<p>&nbsp;</p>
+<p>&nbsp;</p></div></body></html>

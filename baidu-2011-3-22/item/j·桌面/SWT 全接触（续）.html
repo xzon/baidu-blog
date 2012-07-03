@@ -1,0 +1,309 @@
+<html><head><title><div class="tit">
+  SWT 全接触（续）
+</div></title></head><body><div id='tit'>SWT 全接触（续）</div><div id='cate'>j&middot;桌面</div><div id='date'>2008年03月29日 星期六 01:16 A.M.</div><div id='page'>153</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/68667ad9414be6ed38012f6f.html'>http://hi.baidu.com/hxzon/blog/item/68667ad9414be6ed38012f6f.html</a><div id='cnt'><p>SWT 全接触（续）</p> 
+<p><a name="N1018D"><span class="atitle">3. 用SWT绘制2D图形</span></a></p> 
+<p>用SWT绘图通常由两种方法，一种是借助Graphics Context，另一种是利用Draw2D。然而Draw2D是一个基于SWT Composite的轻量级组件，于是在效率上，它无法体现出SWT的Native Code的速度优势。故其虽然强大，但仅适用于绘图工作不是系统瓶颈的应用程序。所以我在这里只介绍第一种方法。</p> 
+<p><a name="N10196"><span class="smalltitle"><strong><font size="3">3.1 Graphics Context</font></strong></span></a></p> 
+<p>我们可以在任何实现了org.eclipse.swt.graphics.Drawable接口的类上绘制图形，这包括一个控件，一幅图像，一个显示设备或一个打印设备。类org.eclipse.swt.graphics.GC是一个封装了所有可执行的绘图操作的图形上下文（Graphics Context）。两种使用GC的方式我们已经在本节前言中提过，稍后会作详细说明。</p> 
+<p><a name="N1019F"><span class="smalltitle"><strong><font size="3">3.2 在一幅图像上绘制图形</font></strong></span></a></p> 
+<p>下面一段代码创建了一个带有图像的GC并在上面绘制了两条线：</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Image image = new Image(display,&quot;C:/music.gif&quot;); 
+GC gc = new GC(image); 
+Rectangle bounds = image.getBounds(); 
+gc.drawLine(0,0,bounds.width,bounds.height); 
+gc.drawLine(0,bounds.height,bounds.width,0); 
+gc.dispose(); 
+image.dispose();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="244" height="104" src="image/SWT 全接触（续）.html.image024.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image024.jpg</p> 
+<p>一旦你创建了一个GC，你就有责任通过它的dispose方法释放它的资源。一个由应用程序创建的GC需要立即被绘制，然后尽快释放掉。这是因为每个GC都需要一个底层的系统资源，而在某些操作系统中这些资源是稀缺的，像Win98就只允许同时创建五个GC对象。</p> 
+<p><a name="N101C5"><span class="smalltitle"><strong><font size="3">3.3 在Control上绘图</font></strong></span></a></p> 
+<p>类org.eclipse.swt.widgets.Control是可绘制的，所以你可以用像在图像上一样的方式来绘制图形。而和在图像上绘制所不同的是，如果你使用GC在一个Control上绘制图形，你需要知道当操作系统自身要绘制这个control的时候，它将覆盖掉你的改动。所以在一个Control上绘制图形的正确方法是加入其绘制事件的监听器。监听器类为org.eclipse.swt.events.PaintListener，其回调函数的参数是一个org.eclipse.swt.events.PaintEvent类的实例。这个PaintEvent实例中包含一个GC的引用，你可以向这个GC发送消息。下面的代码示例说明了如何建立这种类型的绘图：</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Shell shell = new Shell(display); 
+shell.addPaintListener(new PaintListener(){ 
+        public void paintControl(PaintEvent e){ 
+            Rectangle clientArea = shell.getClientArea(); 
+            e.gc.drawLine(0,0,clientArea.width,clientArea.height); 
+        } 
+    }); 
+shell.setSize(150,150)</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="256" height="180" src="image/SWT 全接触（续）.html.image026.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image026.jpg</p> 
+<p><a name="N101E8"><span class="smalltitle"><strong><font size="3">3.4 剪切（Clipping）</font></strong></span></a></p> 
+<p>GC的剪切域是可见绘图发生的部分。在缺省情况下，一个GC是一个被构造的可视部分边界。改变一个GC的剪切域可以让我们构造出各种图形效果。其中的一个例子是如果你想填充一个缺失了边缘的矩形。一种方法是绘制多边形矩形来组成所需要的图形，另一种方法就是剪切GC，然后对其剪切部分进行填充。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">shell.addPaintListener(new PaintListener() { 
+        public void paintControl(PaintEvent e) { 
+            Rectangle clientArea = shell.getClientArea(); 
+            int width = clientArea.width; 
+            int height = clientArea.height; 
+            e.gc.setClipping(20,20,width - 40, height - 40); 
+            e.gc.setBackground(display.getSystemColor(SWT.COLOR_CYAN)); 
+            e.gc.fillPolygon(new int[] {0,0,width,0,width/2,height}); 
+        } 
+    });</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>这段代码在Shell上的显示的过程效果如下：</p> 
+<p><br /> <img border="0" width="539" height="171" src="image/SWT 全接触（续）.html.image028.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image028.jpg</p></p> 
+<p><a name="N1020E"><span class="smalltitle"><strong><font size="3">3.5 画板（Canvas）</font></strong></span></a></p> 
+<p>虽然任何Control都可以通过自身的paintEvent来绘制图形，但其子类org.eclipse.swt.widgets.Canvas是专门被设计用来进行图形操作的特殊的绘图类。我们既可以使用一个Canvas，再加入一个绘图监听器来实现绘图，也可以通过继承来建立一个可重用的自定义Control。Canvas有很多style bit，可以在绘图发生时产生作用。</p> 
+<p><a name="N10217"><span class="smalltitle"><strong><font size="3">3.6 绘制直线和图形</font></strong></span></a></p> 
+<p>我们有很多方法可以在一个GC上画线，包括在两点之间，一系列离散的点之间或一个预定义的图形上都可以。直线是以GC的前景色来绘制的，我们可以通过GC绘制拥有不同厚度的各式直线。对于一个Paint事件，GC有着与Control组件一样的属性，即激发事件且缺省的直线样式固定为1个像素宽。</p> 
+<p>GC.drawLine(int x1, int y1, int x2, int y2);这条语句在可绘制的面板上的两点间花了一条直线，起始点为(x1,y1)，终止点为(x2，y2)。终止点包含在画好的直线中。如果起始点等于终止点的话，将会有一个独立的象素点被绘制出来。</p> 
+<p>GC.drawPolyline(int[] pointArray);这条语句绘制了一系列互相连接的线段，作为参数的数组用于描述点的位置。语句gc.drawPolyline(new int[] { 25,5,45,45,5,45 })；绘制了如下的图形：</p> 
+<p><br /> <img border="0" width="160" height="92" src="image/SWT 全接触（续）.html.image030.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image030.jpg</p></p> 
+<p>GC.drawPolygon(int[] pointArray);与drawPolyline(int[])是类似的，唯一区别在于最后一个点和低一个点是连接的。gc.drawPolygon(new int[] { 25,5,45,45,5,45 });将会获得与上图一样的结果。</p> 
+<p><strong>GC.drawRectangle(int x, int y, int width, int height);</strong>这条语句从左上角的（X，Y）点，用参数中的宽和高画出了一个矩形。gc.drawRectangle(5,5,90,45);将会绘制出如下图形：</p> 
+<p><br /> <img border="0" width="172" height="94" src="image/SWT 全接触（续）.html.image032.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image032.jpg</p></p> 
+<p><strong>GC.drawRoundedRectangle(int x,int y,int width,int height,int arcWidth,int arcHeight);</strong>一个圆矩形与标准矩形的区别就在于其四个角是圆的。圆矩形的每一个角都可以被想象成为1/4个椭圆，并且arcWidth和arcHeight由完整的椭圆的宽和高决定。gc.drawRoundedRectangle(5,5,90,45,25,15);绘制了一个左上角位置为5.5的圆矩形，右边的图形是放大后的效果：</p> 
+<p><br /> <img border="0" width="445" height="138" src="image/SWT 全接触（续）.html.image034.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image034.jpg</p></p> 
+<p><strong>GC.drawOval(int x, int y, int width, int height);</strong>一个椭圆是由其相对应的矩形的左上角的位置（x，y）来确定绘制位置的，其宽和高即为对应矩形的宽和高。对于圆形来说，只需要另宽和高相等即可。</p> 
+<p><br /> <img border="0" width="150" height="98" src="image/SWT 全接触（续）.html.image036.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image036.jpg</p></p> 
+<p><strong>GC.drawArc(int x, int y, int width, int height, int startAngle, int endAngle);</strong>曲线的绘制也是与一个相应的矩形有关，即其左上角的位置与宽和高都是相应矩形的属性。StartAntle是从横向的X开始计算的，所以0度指向的是东而不是北。曲线的绘制是从StartAngle到endAngle以逆时针方向执行。gc.drawArc(5,5,90,45,90,200);所绘制的图形如下：</p> 
+<p><br /> <img border="0" width="154" height="98" src="image/SWT 全接触（续）.html.image038.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image038.jpg</p></p> 
+<p><strong>GC.setLineStyle(int style);</strong>可以设置所绘制曲线的样式，下面列出了一些曲线样式常量（在org.eclipse.swt.SWT中定义）和与之对应的曲线的图像：</p> 
+<p><br /> <img border="0" width="464" height="116" src="image/SWT 全接触（续）.html.image040.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image040.jpg</p></p> 
+<p><strong>GC.setLineWidth(int width);</strong>可以用于指定所要绘制的曲线的宽度。缺省情况下的曲线宽度为1个像素。</p> 
+<p><br /> <img border="0" width="420" height="50" src="image/SWT 全接触（续）.html.image042.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image042.jpg</p></p> 
+<p>由于直线的样式和宽度挥作用到所有的绘图操作上，所以我们可以作出如点矩形或粗线椭圆这样的图形：</p> 
+<p><br /> <img border="0" width="162" height="89" src="image/SWT 全接触（续）.html.image044.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image044.jpg</p></p> 
+<p><a name="N102D2"><span class="smalltitle"><strong><font size="3">3.7 绘制文本</font></strong></span></a></p> 
+<p>文本可以被绘制在一个GC上， 字形是用GC的前景色和字体来绘制的，并且它所占用的区域是用GC背景色绘制的。要绘制文本，你需要定义要绘制文本的左上角，宽度和高度。有两组方法可以用来绘制文本，第一组方法的名字里都带有一个Text，并将会处理直线定界符和制表符。第二组API方法集的名字里都带有String，它们没有制表符或回车的处理，并主要用于控制像Eclipse的Java编辑器StyledText这样复杂的Control。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">GC.drawText(String text, int x, int y);
+Font font = new Font(display,&quot;Arial&quot;,14,SWT.BOLD | SWT.ITALIC); 
+// ... 
+gc.drawText(&quot;Hello World&quot;,5,5); 
+gc.setForeground(display.getSystemColor(SWT.COLOR_BLUE)); 
+gc.setFont(font); 
+gc.drawText(&quot;Hello\tThere\nWide\tWorld&quot;,5,25); 
+// ... 
+font.dispose();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="196" height="107" src="image/SWT 全接触（续）.html.image046.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image046.jpg</p> 
+<p>drawText API将控制字符\t处理为制表符，将\n处理为回车符。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">GC.drawString(String text, int x, int y);
+Font font = new Font(display,&quot;Arial&quot;,14,SWT.BOLD | SWT.ITALIC); 
+// ... 
+gc.drawString(&quot;Hello World&quot;,5,5); 
+gc.setForeground(display.getSystemColor(SWT.COLOR_BLUE)); 
+gc.setFont(font); 
+gc.drawString(&quot;Hello\tThere\nWide\tWorld&quot;,5,25); 
+// ... 
+font.dispose()</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="285" height="97" src="image/SWT 全接触（续）.html.image048.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image048.jpg</p> 
+<p>当使用drawString时，制表符和回车符将不会被处理。</p> 
+<p>在一个GC上绘制字符的时候，一个字符串所占用的大小取决于它的内容以及GC的字体。想要确定一个字符串在被绘制之后所占用的区域可以使用方法：GC.stringExtent(String text), 或 GC.textExtent(String text)。这两个方法都返回一个Point类，这个Point的X和Y是渲染参数字符串所需要的宽和高。</p> 
+<p><a name="N10318"><span class="smalltitle"><strong><font size="3">3.8 图形填充</font></strong></span></a></p> 
+<p>直线是用GC前景色绘制的，而图形的填充用的是GC的背景色。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">GC.fillPolygon(int[]);
+gc.setBackground(display.getSystemColor(SWT.COLOR_BLUE)); 
+gc.fillPolygon(new int[] { 25,5,45,45,5,45 }) 
+ 
+GC.fillRectangle(int x, int y, int width, int height);
+gc.fillRectangle(5,5,90,45);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="164" height="96" src="image/SWT 全接触（续）.html.image049.gif" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image049.gif</p> 
+<br /> 
+<br /> 
+<img border="0" width="165" height="98" src="image/SWT 全接触（续）.html.image050.gif" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image050.gif</p> 
+<p>需要注意的是，当一个矩形被填充的时候，右面和下面的边缘是不被包括在内的。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">GC.fillRoundedRectangle(int x, int y, int width, int height, int arcWidth, int arcHeight);
+gc.fillRoundRectangle(5,5,90,45,25,15);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="149" height="92" src="image/SWT 全接触（续）.html.image052.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image052.jpg</p> 
+<p>像GC.fillRectangle(...)方法一样，右面和下面的边缘不被包含在内，于是右下角的坐标为（94，49）而不是（95，50）。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">GC.fillOval(int x, int y, int width, int height);
+gc.fillOval(5,5,90,45);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="148" height="92" src="image/SWT 全接触（续）.html.image054.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image054.jpg</p> 
+<br /> 
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">GC.fillArc(int x, int y, int widt4h., int height, int startAngle, int endAngle);
+gc.fillArc(5,5,90,45,90,200);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="147" height="75" src="image/SWT 全接触（续）.html.image056.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image056.jpg</p> 
+<p>fillArc()的参数和drawArc()的参数是类似的，偏移量是从右面的轴开始填充，然后沿逆时针方向旋转给定的角度（endAngle-startAngle）。</p> 
+<p><strong>GC.fillGradientRectangle(int x, int y, int width. int height, vertical boolean);</strong></p> 
+<p>这个方法让我们可以指定图形在填充时所用的颜色可以从GC的前景色按梯度变化（渐变）到背景色。梯度既可以是横向的也可以是纵向的。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">gc.setBackgrouind(display,getSystemColor(SWT.COLOR_BLUE)); 
+gc.fillGradientRectangle(5,5,90,45,false);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>上面两条语句建立了一个使用黑色背景的从左至右的横向梯度填充。和其他填充方法一样，左面和下面的边缘不被包括在内，所以由下角的位置缩小一个像素。</p> 
+<p><br /> <img border="0" width="119" height="93" src="image/SWT 全接触（续）.html.image058.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image058.jpg</p> <br /> <br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">gc.setBackground(display.getSystemColor(SWT.COLOR_BLUE)); 
+gc.setForeground(display.getSystemColor(SWT.COLOR_CYAN)); 
+gc.fillGradientRectangle(5,5,90,45,true);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>上面这3行代码的含义为在纵向自顶向下用前cyan（景色）开始，并以蓝色（背景色）结束的填充。</p> 
+<p><br /> <img border="0" width="144" height="94" src="image/SWT 全接触（续）.html.image060.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image060.jpg</p></p> 
+<p><a name="N103E4"><span class="smalltitle"><strong><font size="3">3.9 异或（XOR）</font></strong></span></a></p> 
+<p>如果你设置了GC的XOR模式为true的话，将会发生如下情况：对于每一个像素点，原来被显示的红，绿，蓝的值将被已存在的红，绿，蓝色进行异或操作，所得结果既作为新的目标像素。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">shell.setBackground(display.getSystemColor(SWT.COLOR_WHITE)); 
+// ... 
+gc.setBackground(display.getSystemColor(SWT.COLOR_BLUE)); 
+gc.fillRectangle(5,5,90,45); 
+gc.setXORMode(true); 
+gc.setBackground(display.getSystemColor(SWT.COLOR_WHITE)); 
+gc.fillRectangle(20,20,50,50); 
+gc.setBackground(display.getSystemColor(SWT.COLOR_RED)); 
+gc.fillOval(80,20,50,50);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<img border="0" width="237" height="111" src="image/SWT 全接触（续）.html.image062.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image062.jpg</p> 
+<p><a name="N10407"><span class="smalltitle"><strong><font size="3">3.10 绘制图像（Draw Image）</font></strong></span></a></p> 
+<p>类org.eclipse.swt.graphics.Image被用来表示准备要在像打印机，显示器这样的设备上显示的图形。建立一个图像最简单的方法就是从组织好的文件格式中装载它。SWT所支持的图像格式有：GIF，BMP，JGP，PNG和TIFF。</p> 
+<p><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Image image = new Image(display,&quot;C:/eclipse_lg.gif&quot;); 
+GC.drawImage(Image image, int x, int y);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>每幅图像都有用其边界决定的尺寸。例如，图象eclipse_lg.gif的大小为115*164，我们可以通过image.getBounds()方法来进行设定。当一幅图像被绘制的时候，它将会以自身定义的边界作为显示之后的宽和高。<code><font face="NSimsun">gc.drawImage(image,5,5);</font></code></p> 
+<p>至此，SWT在2D绘图方面的讲解告一段落，上面所提到的内容涵盖了SWT的大部分绘图功能，并在每个部分都给出了要注意的细节。至于具体实现就要靠各位的聪明才智了。下面让我们进入最后的部分-SWT的3D绘图。</p> 
+<p> </p> 
+<p><a name="N10423"><span class="atitle">4 SWT与OpenGL编程</span></a></p> 
+<p>相较于Java3D API来说，SWT以前在3D图形绘制方面一直没有什么好的表现。OpenGL的加入会不会使SWT在3D领域有所作为还尚未可知，不过起码IBM的程序员们给了SWT机会。当大家了解了这个正处于试验阶段的组合之后，我们在SWT上绘制3D图形就不再是噩梦。</p> 
+<p>OpenGL是一个为创建高性能2D，3D图形而设计的多平台的标准。其硬件和软件的实现存在于多个系统之中，包括Windows，Linux和MacOS。OpenGL可以用于渲染简单的2D图形或复杂的3D游戏图形（OpenGL最主要的应用领域就是游戏）。作为一个正在处于事件阶段的Eclipse插件，我将在下面的小节中介绍如何在SWT窗口组件上用SWT绘制图形。在Eclipse最新的3.2版中，对OpenGL的支持被集成到org.eclipse.swt项目中，所以我们在实现的时候即可以选择以插件方式进行，也可以直接利用已经集成好的组件来进行图形操作。在本节，我们将以插件方式为例对代码进行说明。</p> 
+<p><a name="N1042F"><span class="smalltitle"><strong><font size="3">4.1 SWT OpenGL插件</font></strong></span></a></p> 
+<p>SWT实现了OpenGL1.1全部功能。包括三个核心类和一个数据类。核心类为GLContext，GL和GLU。GLContext架起了SWT和OpenGL之间的桥接。一个Context必须用Drawable，通常是用Canvas来创建，OpenGL可以在Drawable上渲染场景。需要注意的是，当context不再被使用的时候就应该将它释放掉。同样，一旦某个context被释放掉之后，就不应该再次试图去渲染它。每次Drawable改变大小的时候，context都需要通过调用其resize方法在通知这一事件。这个方法的调用让context调整自己的view port和视图参数。在下一节中将描述一个处理这一部分任务的类。</p> 
+<p>当context可用的时候，我们就可以通过定义在GL和GLU的一系列方法调用来绘制场景。一个GL类大概有超过330条命令。在GL和GLU中定义的这些函数和他们的Native实现几乎是一一对应的。下图给出了一个绘制矩形的例子，我们可以看到用C写成的API和SWT OpenGL API是何其相似：</p> 
+<p><br /> <img border="0" width="572" height="222" src="image/SWT 全接触（续）.html.image064.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image064.jpg</p></p> 
+<p><a name="N1044C"><span class="smalltitle"><strong><font size="3">4.2 SWT OpenGL编程基础</font></strong></span></a></p> 
+<p>在下面的小节中，我将描述一个显示四幅3D图像的应用程序。应用程序采用了GLSense，这是一个用于显示OpenGL场景的工具类。它和SWT的Canvas很像，所区别的是它所展现的内容是用OpenGL命令渲染的，而不是使用GC来绘制。要做到这一点，我们需要将一个GLContext类和一个SWT Canvas相关联，并且无论何时，当前上下文中的内容都应该是由在drawScene中定义的命令来渲染的。</p> 
+<p><br /> <img border="0" width="560" height="323" src="image/SWT 全接触（续）.html.image066.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image066.jpg</p></p> 
+<p>在构造函数中，一个SWT Canvas被创建出来。这就是那个要和一个GLContext相关联的Canvas实例。紧接着，这个Canvas又注册了两个监听器。第一个监听器的作用是确保这个Canvas无论何时被改变大小，其相应的GLContex也会收到通知并适当的改变大小。第二个监听器主要用于确保一旦Canvas被释放之后，其相对应的GLContext的也同时被释放。为了确保渲染区域是一个非零大小的区域，父组件的客户矩形区被取出来用于设置该Canvas的初始大小。这个初始大小可以在稍后用布局管理器或用户Action来修改。</p> 
+<p><br /> <img border="0" width="511" height="176" src="image/SWT 全接触（续）.html.image068.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image068.jpg</p></p> 
+<p>GLScene将Canvas的全部区域用于绘图。无论Canvas何时调整其尺寸，我们都要获取客户区并将新的宽度和高度传递给Contex，而context将根据新的宽度和高度适当的调整视图。</p> 
+<p><br /> </p>
+<table border="1"> 
+ <tbody> 
+  <tr> 
+   <td style="color: #ff0000">XML error: The image is not displayed because the width is greater than the maximum of 572 pixels. Please decrease the image width.</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>GLScene被分割为两个部分：初始化Context和初始化OpenGL的状态机。对于Context来说，我们只是简单的建立一个新的GLContext并使它成为当前被使用的Context。OpenGL的渲染总是在当前的context上进行绘制，因此如果你有超过一个活动的GLScene，很重要的一点是要在所有绘制动作发生之前将它的Context设置为当前的Context。initGL方法最开始提供清除颜色缓存颜色，随后建立了一个深度缓存（depth buffer）.第47行指出了深度值如何进行比较。这一比较函数主要用于拒绝或接受正在引用的像素。GL.GL_LEQUAL选项指定接受那些在视图上更接近或有相同距离的像素。第48行启动了深度测试（depth test），紧接的一行设定阴影模型为GL.GL_SMOOTH，这一设定的效果是如果表面上的两个顶点颜色不同的话，系统将对颜色进行插值。最后，第50行要求渲染引擎在计算颜色和纹理协调插值运算的时候起到关键的作用。</p> 
+<p><br /> </p>
+<table border="1"> 
+ <tbody> 
+  <tr> 
+   <td style="color: #ff0000">XML error: The image is not displayed because the width is greater than the maximum of 572 pixels. Please decrease the image width.</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>GLScene类的最后两个方法用于处理重绘和场景绘制。当场景何时需要重绘的时候，第一个方法为其他类提供重绘操作的接口。第二个方法主要用于让继承GLScene的子类覆写。其缺省实现只是简单的清除了颜色和深度缓存，通过装在鉴别矩阵（identify matrix）重新恢复调整系统。</p> 
+<p><a name="N104A5"><span class="smalltitle"><strong><font size="3">4.3 3D Chart</font></strong></span></a></p> 
+<p>利用上一节的准备，我们已经将主应用程序进行了划分。这个图像显示了4组数据。每一组数据都是由相同的固定点所组成，每个点都是从0.0到10.0之间的一个正值。</p> 
+<p>示例程序运行在一个非常简单的Eclipse view上，唯一值得注意的是Refresher，这个线程将强迫OpenGL场景被周期性的重绘。通过这种方法，当视图被移动或旋转的时候，component总能进行有效的更新渲染效果。run()方法调用的时间间隔为100毫秒，所以理论上的图像速度能达到每秒10帧。</p> 
+<p><br /> <img border="0" width="533" height="259" src="image/SWT 全接触（续）.html.image074.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image074.jpg</p></p> 
+<p>每个数据集合的点的值是用圆柱体来表示的。通过执行3个GLU调用，我们就能够绘制圆柱体：其中的两个用于渲染圆柱体两头的圆盘部分，另外一个用于渲染圆柱体的四周。例如，要渲染两个单元高的圆柱体，你可以用下面的代码来实现：</p> 
+<p><br /> <img border="0" width="470" height="148" src="image/SWT 全接触（续）.html.image076.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image076.jpg</p></p> 
+<p>第一行申请了绘制圆盘和圆柱所需的二次曲面。然后整个场景被逆时针旋转了90度，以便圆柱体可以被垂直绘制。下一步，底部的圆盘被渲染，然后是圆柱体的四周。在我们能够绘制顶部圆盘的时候，通过场景转换（scene translation），我们可以在Z轴移动两个单元。最后一个圆盘随后被绘制出来，调整系统通过向回移动两个单元来进行恢复。最后，由第一行申请的二次曲面被释放掉。</p> 
+<p>按照上述方法运行程序是很费时间的。当仅绘制一个圆柱体的时候，效率低下不是一个很严重的问题，但如果要绘制成百个对象的话就会严重影响程序的执行性能。对于这种情况，OpenGL给出了一个解决这个问题的技巧，就是使用显示列表（display list）。</p> 
+<p>一个显示列表是一组已编译的OpenGL命令。定义命令集合的列表被放在glNewList(int list, int mode) 和 glEndList()方法调用之间。第一个参数必须是一个正整数，可以用来唯一的表示一个被创建的显示列表。你可以让GL用glGenLists(int n)方法为你生成多个列表标识符。第二个参数用于指定列表是否被编译或编译之后立即被执行。大多数情况下你都需要编译这个列表。然后，你可以使用glCallList(int list)方法来显示整个列表。</p> 
+<p> </p> 
+<p><a name="N104DF"><span class="atitle">5 结束语</span></a></p> 
+<p>至此，有关于SWT与OpenGL图形有关的粗略功能就介绍完了，有鉴于3D图形对象和OpenGL的复杂性，一篇这样篇幅的文章肯定不能覆盖其每一个角落，我只能给各位一个动手尝试机会。希望整篇专题没有让你枯燥得睡着，并因此有了一个不错的SWT的基础，我的目的就达到了。</p> 
+<p><a name="author"><span class="atitle">关于作者</span></a></p> 
+<p>薛笛，是黑龙江大学研究生。他目前在黑龙江大学信息技术研究所工作，从事传感器网络和分布式数据库的研究，对Java技术特别感兴趣。可以通过 <a cmimpressionsent="1" href="mailto:jxuedi@gmail.com?cc="><font color="#5c81a7">jxuedi@gmail.com</font></a> 与他联系。</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-swt/">http://www.ibm.com/developerworks/cn/opensource/os-swt/</a></p></div></body></html>

@@ -1,0 +1,287 @@
+<html><head><title><div class="tit">
+  高级 Synth:有了最新的 Swing 外观，定制 UI 不在话下
+</div></title></head><body><div id='tit'>高级 Synth:有了最新的 Swing 外观，定制 UI 不在话下</div><div id='cate'>j&middot;桌面</div><div id='date'>2010年06月10日 星期四 04:55 P.M.</div><div id='page'>13</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/4caba78bb1713f729f2fb43b.html'>http://hi.baidu.com/hxzon/blog/item/4caba78bb1713f729f2fb43b.html</a><div id='cnt'><h1>高级 Synth:<em>有了最新的 Swing 外观，定制 UI 不在话下</em></h1> 
+<p>http://www.ibm.com/developerworks/cn/java/j-synth/</p> 
+<p>级别： 初级</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-synth/#author">Michael Abernethy</a> (<a href="mailto:mabernet@us.ibm.com?subject=%E9%AB%98%E7%BA%A7%20Synth&amp;cc=mabernet@us.ibm.com">mabernet@us.ibm.com</a>), 软件工程师, IBM</p> 
+<p>2005 年 2 月 01 日</p> 
+<blockquote>
+ 本文将深入透视 Synth 外观，它是 Java 5.0 中为 Swing 引入的最新内容。通过为 Java UI 编程引入“皮肤”的概念，Synth 使开发人员可以为应用程序创建和部署定制的外观。软件工程师 Michael Abernethy 将带您从头开始逐步构建一个具有 synth 外观的应用程序，让您充分了解 Synth 的概念。阅读本文之后，您应该可以在短时间内创建具有专业外观的 UI。
+</blockquote> 
+<p>就在 Sun 一如既往地试图“再次引入 Java Desktop”之际，Java UI 开发人员的抱怨之词亦已表面化：要创建完全定制的外观实在太难。这样做不仅要花费太多的时间，并且 Swing UI 代码的编写和文档的编制也极为不堪，常常是乱杂一气，缺乏规划。为了创建完整的外观，开发人员需要继承 Metal 外观的 39 个类，或者继承 Basic 外观的 60 个类。谁想通过重写整个包来改变应用程序呈现外观的方式呢？用 Swing 创建定制外观有多难，通过下面的事实同样可窥见一斑：在很多开发人员为开源项目添砖加瓦的时代，Internet 上可用的自定义 Swing 外观几乎是凤毛麟角 —— 总共大约是 20 个，其中少数在 SourceForge.net 上（请参阅<a href="http://www.ibm.com/developerworks/cn/java/j-synth/#resources">参考资料</a>）。</p> 
+<p><a name="Basics"><span class="atitle">美丽只是肤浅的东西</span></a></p> 
+<p>进入 Synth，Sun 希望它能使应用程序外观的个性化过程变得容易。Synth 的目标很简单 —— 让开发人员不必编写任何代码就可以创建新的外观。这似乎是个不错的解决方案。程序员一般没有突出的艺术才华，而图形设计人员通常也不是 Java 编程专家。Synth 把对外观的所有描述从代码中分离出来，而将其放入外部的 XML 文件和图像文件中，为上述问题提供了大快人心的解决之道。这种完全在外部文件中描述的外观被称作<em>皮肤（skin）</em>。</p> 
+<p>Sun 的皮肤概念并不是什么创新。例如，Winamp 有数百种皮肤，Firefox 也有几十种皮肤，这些皮肤很容易创建，只需更改一个 XML 文件即可。想像一下，仅仅修改一个 XML 文件，就能快速、容易地为 Java 应用程序创建一个外观。再想想这样一来的结果 —— 几百个互不相同的 Swing 外观。Java UI 开发人员当然有理由欢呼了。</p> 
+<p>本文将深入分析 Synth 外观，向您展示创建一个完整的外观或皮肤所需知道的一切。您会看到一个带有示例皮肤的应用程序，这个应用程序使用了 Synth 所有重要的概念。然后，我会逐步剖析这个皮肤，在构建 XML 文件的过程中，一一教会您 Synth 的各个概念。</p> 
+<p>本文最后一节将尽力回答开发人员关于 Synth 性能、bug 和缺陷以及 Synth 在省时方面的表现等种种问题。阅读本文之后，您应该会愿意拥护 Synth 作为外观解决方案，并准备马上使用它来创建自己的 Swing 外观。</p> 
+<p><a name="Basics"><span class="atitle">Synth 基础</span></a></p> 
+<p>Synth 是一个<em>白板（tabula rasa）</em>外观 —— 一块完全空白的画布，表现为一个完全空白的面板（panel），只有在 XML 文件中定义了组件时，它才会显示东西。一旦定义了组件，在应用程序上设置 Synth 外观就再容易不过了，如清单 1 所示：</p> 
+<br /> 
+<a name="example1"><strong>清单 1. 设置 Synth 外观 </strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br />   SynthLookAndFeel synth = new SynthLookAndFeel();<br />   synth.load(SynthFrame.class.getResourceAsStream(&quot;demo.xml&quot;), SynthFrame.class);<br />   UIManager.setLookAndFeel(synth);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>但是，对于 Synth，最重要的是要理解它是 XML 代码，而不是 Java 代码。虽然 Synth XML 格式一开始看上去比较吓人，但实际上很简单。如果使用 KISS （Keep It Simple Stupid）这道符咒，您可以快速地创建一个 XML 文件，并得到一个新的、可以运行的外观。</p> 
+<p>考虑到 KISS 指令，我将首先介绍 Synth XML 文件的主要构件 —— <code><font face="NSimsun">&lt;style&gt;</font></code> 标签。<code><font face="NSimsun">&lt;style&gt;</font></code> 标签包含描述一个组件的式样的所有信息，例如颜色、字体、图像文件、状态，以及一些特定于组件的属性。虽然一个 <code><font face="NSimsun">&lt;style&gt;</font></code> 标签可以描述多个组件，但构建 Synth 文件的最简便方法是为每个 Swing 组件创建一个式样。</p> 
+<p>创建好式样之后，便可以将式样链接到一个组件。<code><font face="NSimsun">&lt;bind&gt;</font></code> 标签通知 Synth 引擎将一个已定义的式样链接到一个组件，如清单 2 所示。这样的组合便完全创建了组件的新外观。</p> 
+<br /> 
+<a name="example2"><strong>清单 2. 将一种式样链接到一个组件</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br />&lt;style id=&quot;textfield&quot;&gt;<br />   // describe colors, fonts, and states<br />&lt;/style&gt;<br />&lt;bind style=&quot;textfield&quot; type=&quot;region&quot; key=&quot;Textfield&quot;/&gt;<br />&lt;style id=&quot;button&quot;&gt;<br />   // describe colors, fonts, and states<br />&lt;/style&gt;<br />&lt;bind style=&quot;button&quot; type=&quot;region&quot; key=&quot;Button&quot;/&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>关于 <code><font face="NSimsun">&lt;bind&gt;</font></code> 标签，要注意的一点是：<code><font face="NSimsun">&lt;bind&gt;</font></code> 标签中的 <code><font face="NSimsun">key</font></code> 属性映射到 <code><font face="NSimsun">javax.swing.plaf.synth.Region</font></code> 类中的常量。Synth 引擎使用这些常量将式样与一个实际的 Swing 组件链接。简单的组件，例如 <code><font face="NSimsun">JButton</font></code> 和 <code><font face="NSimsun">JTextField</font></code>，使用一个常量。有些更复杂的组件，例如 <code><font face="NSimsun">JScrollBar</font></code> 和 <code><font face="NSimsun">JTabbedPane</font></code>，则有多个常量，用于不同的部分。</p> 
+<p>我建议您在更熟悉 Synth 格式并且能够设置 XML 中的继承模型之前，使用每个组件一种式样（one-style-per-component）的设置。这种结构虽然没有利用所有 XML 的分层结构功能，但它是最容易设置、编写代码和调试的。</p> 
+<p>在处理 Synth XML 文件时，还有一点很重要，并不是任何形式都是合法的。如果有输入错误，或者在 XML 中使用了不正确的属性，这些错误只有当外观装载期间抛出一个运行时异常时才能发现。解决方法：在将 XML 文件发布给客户之前，对其进行测试。</p> 
+<p><a name="Demo"><span class="atitle">Demo 应用程序</span></a></p> 
+<p>我将带您构建一个简单的登录屏幕，用它作为例子应用程序，向您展示 Synth XML 文件的工作原理。该屏幕提供了足够多的组件，通过这些组件，可以看到 XML 文件的所有重要部分，如果使这些部分结合起来便可以创建一个完整的外观。</p> 
+<p>通过比较图 1 和图 2，具有 Ocean 外观的登录屏幕看上去与您预期的一样 —— 简单，直接，也令人厌烦。具有 Synth 外观的登录屏幕则完全不同。</p> 
+<br /> 
+<a name="N100DF"><strong>图 1. 具有 Ocean 外观的 Demo 应用程序 </strong></a>
+<br /> 
+<img alt="Ocean 外观" width="341" height="275" src="image/高级 Synth-有了最新的 Swing.ocean.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-synth/ocean.jpg</p> 
+<br /> 
+<br /> 
+<a name="figure2"><strong>图 2. 具有 Synth 外观的 Demo 应用程序</strong></a>
+<br /> 
+<img alt="Synth 外观" width="341" height="275" src="image/高级 Synth-有了最新的 Swing.synth.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-synth/synth.jpg</p> 
+<p><a name="Color"><span class="atitle">更改颜色和字体</span></a></p> 
+<p>为 demo 应用程序创建外观的第一步是设置默认颜色和字体。您将把 white Aharoni 字体作为每个组件的默认字体，如果没有特殊设置组件的话，就使用这种字体。</p> 
+<p>您可以将更改字体的 XML 放在 <code><font face="NSimsun">&lt;style&gt;</font></code> 标签内的任何地方。还可以将颜色嵌入到一个 <code><font face="NSimsun">&lt;state&gt;</font></code> 标签中。在本文的后面部分，我将更详细地讨论 <code><font face="NSimsun">&lt;state&gt;</font></code> 标签，但现在只需知道，一个简单的、不带属性的 <code><font face="NSimsun">&lt;state&gt;</font></code> <code><font face="NSimsun">&lt;/state&gt;</font></code> 标签可以包含任何状态，这个标签正是您在这里所需要的。</p> 
+<p><code><font face="NSimsun">color</font></code> 标签本身需要两个属性：</p> 
+<ul> 
+ <li><code><font face="NSimsun"><span class="boldcode">value</span> </font></code>可以是 <code><font face="NSimsun">java.awt.Color</font></code> 常量的任何 <code><font face="NSimsun">String</font></code> 表示（例如 <code><font face="NSimsun">RED</font></code>、<code><font face="NSimsun">BLUE</font></code>），或者，它可以是一种颜色的十六进制表示，前面加上 &quot;<code><font face="NSimsun">#</font></code>&quot; （例如 <code><font face="NSimsun">#669966</font></code>）。</li> 
+ <li><code><font face="NSimsun"><span class="boldcode">type</span> </font></code>描述文件应该设置哪个区域的颜色。选择有 <code><font face="NSimsun">BACKGROUND</font></code>、<code><font face="NSimsun">FOREGROUND</font></code>、<code><font face="NSimsun">TEXT_FOREGROUND</font></code>、<code><font face="NSimsun">TEXT_BACKGROUND</font></code> 和 <code><font face="NSimsun">FOCUS</font></code>。</li> 
+</ul> 
+<p><code><font face="NSimsun">font</font></code> 标签有两个必需的属性和一个可选属性。这三个属性直接映射到 <code><font face="NSimsun">java.awt.Font</font></code> 类中的三个参数：</p> 
+<ul> 
+ <li><strong><code><font face="NSimsun">name</font></code> </strong>：字体的名称（例如，<code><font face="NSimsun">Verdana</font></code>、<code><font face="NSimsun">Arial</font></code>）。</li> 
+ <li><strong><code><font face="NSimsun">size</font></code> </strong>：字体大小，以像素为单位。</li> 
+ <li><strong><code><font face="NSimsun">style</font></code> </strong>：如果不使用这个可选标签，那么将得到常规外观的字体。其他选项包括 <code><font face="NSimsun">BOLD</font></code> 和 <code><font face="NSimsun">ITALIC</font></code>。您还可以通过在这两个属性之间加一个空格来指定粗体加斜体的字体：<code><font face="NSimsun">BOLD ITALIC</font></code>（这种组合属性的技术对于 Synth XML 文件中的所有属性都适用）。</li> 
+</ul> 
+<p>最后，通过使用 <code><font face="NSimsun">.* wildcard</font></code>，将这个式样绑定到应用程序中的每个组件，而不是将其绑定到每个 <code><font face="NSimsun">JLabel</font></code> 和每个<code><font face="NSimsun">JButton</font></code>。这个通配符告诉 Synth 外观为每个组件指定一个默认的 white Aharoni 字体。清单 3 展示了用于设置组件字体和颜色的完整 XML 代码：</p> 
+<br /> 
+<a name="listing3"><strong>清单 3. 更改多个组件的字体和颜色</strong></a>
+<br /> 
+<pre class="displaycode"><br />&lt;style id=&quot;default&quot;&gt;<br />   &lt;font name=&quot;Aharoni&quot; size=&quot;14&quot;/&gt;<br />   &lt;state&gt;<br />      &lt;color value=&quot;#FFFFFF&quot; type=&quot;FOREGROUND&quot;/&gt;<br />   &lt;/state&gt;<br />&lt;/style&gt;<br />&lt;bind style=&quot;default&quot; type=&quot;region&quot; key=&quot;.*&quot;/&gt;</pre> 
+<p><a name="Images"><span class="atitle">使用图像</span></a></p> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-synth/#figure2">图 2</a> 中的 <code><font face="NSimsun">textfield</font></code> 边框不是常规外观的单像素矩形边框。可以使用一个图像来创建这些边框。这不是我们所熟悉的概念 —— 图像用在 button 和 label 中已经有些时候了 —— 但您可以想像在哪些地方会出问题。如何知道光标移动到什么地方，如何显示文本，如何创建不同大小的文本域？这些问题可以通过<em>图像拉伸（image stretching）</em>的概念来解决。一个图像文件必须描述应用程序中文本域各个边的长度，因此需要有一种方式来告诉 XML 文件如何适当地拉伸图像，以及如何处理常规的 <code><font face="NSimsun">textfield</font></code> 活动（carat 和文本控制）。</p> 
+<p>幸运的是，从早期带皮肤的应用程序起，就有一个方法可用于处理这种类型的拉伸。图像必须分成 9 个区域 —— 顶部、右上、右部、右下、底部、左下、左部、左上和中间 —— 这些区域是通过 XML 文件中的一个属性来指定的。然后呈现程序可以通过一定的方式拉伸图像，以适合指定的空间。图 3 展示了文本域图像是如何拉伸的。</p> 
+<br /> 
+<a name="N101EE"><strong>图 3. 在 Synth 中图像如何拉伸 </strong></a>
+<br /> 
+<img alt="Synth 外观" width="512" height="135" src="image/高级 Synth-有了最新的 Swing.textfield.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-synth/textfield.jpg</p> 
+<br /> 
+<p>图 3 中绿色填充区只会垂直拉伸。也就是说，当文本域比图像高的时候，这些区域就会变高。当文本域比图像长的时候，那些红色填充区只会水平拉伸。而黄色填充区则是大小固定的。不管文本域的大小如何，这些区域都会如它们在图像文件中那样显示。因为这些区域不会拉伸，因此它们应该包含所有画布、特殊底色、阴影和任何一旦拉伸就会看起来很古怪的东西。最后，中间区域是可选的。您可以选择画出或者忽略该区域。在我们的例子中，文本域的中间被忽略。此后，呈现程序使用这个区域来处理文本控制和 carat。也就是说，使用一个图像文件完全画出文本域。</p> 
+<p><code><font face="NSimsun">imagePainter</font></code> 标签提供了在外观中使用图像所需的所有信息。它只需要几个属性：</p> 
+<ul> 
+ <li><strong><code><font face="NSimsun">path</font></code> </strong>：所使用的图像的路径。</li> 
+ <li><strong><code><font face="NSimsun">sourceInsets</font></code> </strong>：按像素计算的 insets，表示图 3 中绿色区域的宽度和粉红色区域的高度。它们依次映射到顶部、左部、底部和右部。</li> 
+ <li><strong><code><font face="NSimsun">method</font></code> </strong>：这也许是最令人费解的属性。它直接映射到 <code><font face="NSimsun">javax.swing.plaf.synth.SynthPainter</font></code> 类中的一个函数。这个类包含大约 100 个函数，所有这些函数都以 <code><font face="NSimsun">paint</font></code> 开始。每个函数映射到在一个 Swing 组件中某个特定的绘画任务。您只需找到一个合适的函数，然后去掉 <code><font face="NSimsun">paint</font></code> 字符串，并使随后的首个字母为小写形式，便可以设置该属性。例如，<code><font face="NSimsun">paintTextFieldBorder</font></code> 是 <code><font face="NSimsun">textFieldBorder</font></code> 的属性。呈现程序（renderer）负责剩下的工作。</li> 
+ <li><strong><code><font face="NSimsun">paintCenter</font></code> </strong>：该属性允许您保留或者舍弃图像的中间区域（例如在一个按钮中）。在这个例子中，<code><font face="NSimsun">textfield</font></code> 舍弃了中间区域，以便显示文本。</li> 
+</ul> 
+<p>使用图像画边框的最后一步是加大默认的 insets，以便处理用来画这些 insets 的图像。如果没有更改 insets，那么就看不见任何图像。您需要添加一个 <code><font face="NSimsun">&lt;insets&gt;</font></code> 标签来增加 insets，以便在其中画出图像。在大多数情况下，insets 的值应该与在图像中使用的 insets 的值相同。</p> 
+<p>清单 4 展示了用于装载图像的 XML 代码。注意 <code><font face="NSimsun">sourceInsets</font></code> 如何确保图像只有适当的部分被拉伸。</p> 
+<br /> 
+<a name="listing4"><strong>清单 4. 装载图像</strong></a>
+<br /> 
+<pre class="displaycode"><br />&lt;style id=&quot;textfield&quot;&gt;<br />   &lt;opaque value=&quot;true&quot;/&gt;<br />   &lt;state&gt;<br />      &lt;font name=&quot;Aharoni&quot; size=&quot;14&quot;/&gt;<br />      &lt;color value=&quot;#D2DFF2&quot; type=&quot;BACKGROUND&quot;/&gt;<br />      &lt;color value=&quot;#000000&quot; type=&quot;TEXT_FOREGROUND&quot;/&gt;<br />   &lt;/state&gt;<br />   &lt;imagePainter method=&quot;textFieldBorder&quot; path=&quot;images/textfield.png&quot;<br />      sourceInsets=&quot;4 6 4 6&quot; paintCenter=&quot;false&quot;/&gt;<br />   &lt;insets top=&quot;4&quot; left=&quot;6&quot; bottom=&quot;4&quot; right=&quot;6&quot;/&gt;<br />&lt;/style&gt;<br />&lt;bind style=&quot;textfield&quot; type=&quot;region&quot; key=&quot;TextField&quot;/&gt;</pre> 
+<p><a name="States"><span class="atitle">处理不同的状态</span></a></p> 
+<p>从前面的例子可以看到，<code><font face="NSimsun">&lt;state&gt;</font></code> 标签是定义一个组件的焦点所在。在清单 <a href="http://www.ibm.com/developerworks/cn/java/j-synth/#listing3">3</a> 和清单 <a href="http://www.ibm.com/developerworks/cn/java/j-synth/#listing4">4</a> 中，color 和 font 标签都处在 <code><font face="NSimsun">&lt;state&gt;</font></code> 标签内。现在我将解释 <code><font face="NSimsun">&lt;state&gt;</font></code> 标签的作用。</p> 
+<p>默认状态是在 <code><font face="NSimsun">&lt;state&gt;</font></code> 标签中没有指定属性，这对于定义文本域和 label 中的颜色和字体已经足够了，因为这两种组件的状态不会改变。但是在那些状态会改变的组件中（例如按钮），可以为每种状态定义完全不同的外观。每种状态可以有它自己的颜色、字体和图像。您可以比较登录屏幕中 <strong>Cancel</strong> 按钮在默认状态（图 4）和 mouse-over 状态（图 5）下的不同。</p> 
+<br /> 
+<a name="N10299"><strong>图 4. DEFAULT 状态下的 Cancel 按钮</strong></a>
+<br /> 
+<img alt="Default 状态" width="341" height="275" src="image/高级 Synth-有了最新的 Swing.synth_normal.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-synth/synth_normal.jpg</p> 
+<br /> 
+<br /> 
+<a name="figure2"><strong>图 5. MOUSE_OVER 状态下的 Cancel 按钮</strong></a>
+<br /> 
+<img alt="Mouse over 状态" width="341" height="275" src="image/高级 Synth-有了最新的 Swing.synth_mouseover.jpg" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/java/j-synth/synth_mouseover.jpg</p> 
+<br /> 
+<p><code><font face="NSimsun">&lt;state&gt;</font></code> 标签只需要一个 <code><font face="NSimsun">value</font></code> 属性，该属性定义了实际的组件状态。如果没有指定 <code><font face="NSimsun">value</font></code>，如清单 3 和 4 所示，那么每种状态都使用默认值。如果指定 <code><font face="NSimsun">value</font></code> 属性，那么可以选择 <code><font face="NSimsun">ENABLED</font></code>、<code><font face="NSimsun">MOUSE_OVER</font></code>、<code><font face="NSimsun">PRESSED</font></code>、<code><font face="NSimsun">DISABLED</font></code>、<code><font face="NSimsun">FOCUSED</font></code>、<code><font face="NSimsun">SELECTED</font></code> 和 <code><font face="NSimsun">DEFAULT</font></code>。这些选择包含 Swing 中任何组件所有可能的状态。您还可以在不同选择间添加 <code><font face="NSimsun">and</font></code> 来组合各种状态。例如，如果您想在鼠标位于按钮之上以及按钮被按下的时候改变按钮上的字体，那么可以使用状态值 <code><font face="NSimsun">MOUSE_OVER and PRESSED</font></code>。</p> 
+<p>清单 5 展示了用于处理 demo 应用程序状态的 XML。注意每种状态是如何定义不同的图像和文本颜色的。</p> 
+<br /> 
+<a name="example5"><strong>清单 5. 处理状态</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br />&lt;style id=&quot;button&quot;&gt;<br />   &lt;state&gt;<br />      &lt;imagePainter method=&quot;buttonBackground&quot; path=&quot;images/button.png&quot;<br />         sourceInsets=&quot;9 10 9 12&quot; paintCenter=&quot;true&quot; stretch=&quot;true&quot;/&gt;<br />      &lt;insets top=&quot;9&quot; left=&quot;10&quot; bottom=&quot;9&quot; right=&quot;12&quot;/&gt;<br />      &lt;font name=&quot;Aharoni&quot; size=&quot;16&quot;/&gt;<br />      &lt;color type=&quot;TEXT_FOREGROUND&quot; value=&quot;#FFFFFF&quot;/&gt;<br />   &lt;/state&gt;<br />   &lt;state value=&quot;MOUSE_OVER&quot;&gt;<br />      &lt;imagePainter method=&quot;buttonBackground&quot; path=&quot;images/button_on.png&quot;<br />         sourceInsets=&quot;9 10 9 12&quot; paintCenter=&quot;true&quot; stretch=&quot;true&quot;/&gt;<br />      &lt;insets top=&quot;9&quot; left=&quot;10&quot; bottom=&quot;9&quot; right=&quot;12&quot;/&gt;<br />      &lt;color type=&quot;TEXT_FOREGROUND&quot; value=&quot;#FFFFFF&quot;/&gt;<br />   &lt;/state&gt;<br />   &lt;state value=&quot;PRESSED&quot;&gt;<br />      &lt;imagePainter method=&quot;buttonBackground&quot; path=&quot;images/button_press.png&quot;<br />         sourceInsets=&quot;10 12 8 9&quot; paintCenter=&quot;true&quot; stretch=&quot;true&quot;/&gt;<br />      &lt;insets top=&quot;10&quot; left=&quot;12&quot; bottom=&quot;8&quot; right=&quot;9&quot;/&gt;<br />      &lt;color type=&quot;TEXT_FOREGROUND&quot; value=&quot;#FFFFFF&quot;/&gt;<br />   &lt;/state&gt;<br />   &lt;property key=&quot;Button.margin&quot; type=&quot;insets&quot; value=&quot;0 0 0 0&quot;/&gt;<br />&lt;/style&gt;<br />&lt;bind style=&quot;button&quot; type=&quot;region&quot; key=&quot;Button&quot;/&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>处理 <code><font face="NSimsun">&lt;state&gt;</font></code> 标签的一个重要方面是知道哪些组件有哪些状态。显然，在这个例子中，按钮可以拥有默认状态、鼠标悬停（mouse-over）状态和被按下（pressed） 状态。对于这个例子，还可以定义一个聚焦（focused）和禁用（disabled）状态。但是对于一个面板，选中（selected）状态根本不适用，当鼠标处于面板之上时如果改变面板的状态，那么只能招来抱怨。</p> 
+<p><a name="ComponentSpecific"><span class="atitle">处理特定于组件的属性</span></a></p> 
+<p>定义对每种组件都通用的 XML 属性时，总是忽略了一些特定于组件的属性。例如 list 的行高、单选钮的图标和菜单的箭头图标，这些都是特定于组件的属性。可以定义的特定于组件的属性有 100 多种，但是为每个这样的属性定义一个 XML 属性就有些过分了。因此，Synth XML 文件允许设置特定于组件的属性。<code><font face="NSimsun">&lt;property&gt;</font></code> 标签就像一个 <code><font face="NSimsun">Hashtable</font></code>，它定义一个键/值对来设置属性。</p> 
+<p>登录屏幕示例的复选框演示了如何为特定于组件的属性编写代码。通过定义 <code><font face="NSimsun">imageIcon</font></code>，可以设置默认状态和选中状态下的 <code><font face="NSimsun">CheckBox.icon</font></code>。这就像是翻遍 100 个属性找到您想要的属性那样简单。</p> 
+<p>清单 6 展示了为登录屏幕中特定于组件的属性编写代码的 XML。注意要首先定义 <code><font face="NSimsun">imageIcon</font></code>。然后，通过使用图像图标的 ID，可以为复选框的每种状态设置一个图标。</p> 
+<br /> 
+<a name="example6"><strong>清单 6. 定义特定于组件的属性</strong></a>
+<br /> 
+<pre class="displaycode"><br />&lt;style id=&quot;checkbox&quot;&gt;<br />   &lt;imageIcon id=&quot;check_off&quot; path=&quot;images/checkbox_off.png&quot;/&gt;<br />   &lt;imageIcon id=&quot;check_on&quot; path=&quot;images/checkbox_on.png&quot;/&gt;<br />   &lt;property key=&quot;CheckBox.icon&quot; value=&quot;check_off&quot;/&gt;<br />   &lt;state value=&quot;SELECTED&quot;&gt;<br />      &lt;property key=&quot;CheckBox.icon&quot; value=&quot;check_on&quot;/&gt;<br />   &lt;/state&gt;<br />&lt;/style&gt;<br />&lt;bind style=&quot;checkbox&quot; type=&quot;region&quot; key=&quot;Checkbox&quot;/&gt;</pre> 
+<p><a name="CustomPainter"><span class="atitle">使用定制 painter </span></a></p> 
+<p>定义<a href="http://www.ibm.com/developerworks/cn/java/j-synth/#figure2">图 2</a> 中登录屏幕例子的最后工作是用曲线绘制渐变背景。用 XML 来实现这种背景似乎有些别扭，坦白地说，真是这样。但这样我便有机会展示 Synth，不限制您在 UI 设计中只使用图像和简单的颜色。您可以使用它来画任何东西。</p> 
+<p>Synth 允许重写其 paint 方法（即在 <code><font face="NSimsun">javax.swing.plaf.synth.SynthPainter</font></code> 类中的方法），该方法继承自 <code><font face="NSimsun">SynthPainter</font></code>，它将覆盖那些您想要定制绘画方式的特定函数。在这个例子中，需要定义 <code><font face="NSimsun">paintPanelBackground</font></code> 方法，因为这种设计不能以 Synth XML 格式描述。</p> 
+<p>为了使用定制的 painter，或者在 XML 中以任何方式创建一个类，可以使用 <code><font face="NSimsun">&lt;object&gt;</font></code> 标签。<code><font face="NSimsun">&lt;object&gt;</font></code> 标签允许创建和保持用于弥补 Synth 呈现程序的任何 Java 类。<code><font face="NSimsun">&lt;object&gt;</font></code> 标签带有两个元素：</p> 
+<ul> 
+ <li><strong><code><font face="NSimsun">class</font></code> </strong>：将创建的类的全名。</li> 
+ <li><strong><code><font face="NSimsun">id</font></code> </strong>：用于在 XML 文档中引用这个类实例的 ID 名。</li> 
+</ul> 
+<p>通过使用对象，不仅可以创建 <code><font face="NSimsun">BackgroundPainter</font></code> 类的实例 —— 这个类将用于绘制背景，而且还可以创建 <code><font face="NSimsun">ColorUIResource</font></code> 类的实例，在这个类中可以定义背景颜色。想一想：在 <code><font face="NSimsun">BackgroundPainter</font></code> 类中定义背景中使用的颜色，这与 Synth 的目标是矛盾的，Synth 的目标是在一个外部 XML 文件中定义一切，而不是在一个 Java 文件中进行硬编码。</p> 
+<p>使用定制 painter 的最后一步是告诉 Synth 呈现引擎，是您自己而不是 <code><font face="NSimsun">SynthPainter</font></code> 类来提供函数。在这个例子中，首先在 <code><font face="NSimsun">BackgroundPainter</font></code> 类中定义 <code><font face="NSimsun">paintPanelBackground</font></code> 函数，并让 <code><font face="NSimsun">SynthPainter</font></code> 类定义剩下的绘画函数。<code><font face="NSimsun">&lt;painter&gt;</font></code> 标签让您可以覆盖 <code><font face="NSimsun">SynthPainter</font></code> 函数。它带有两个元素：</p> 
+<ul> 
+ <li><strong><code><font face="NSimsun">method</font></code> </strong>：定制 painter 应该覆盖的方法。从 <a href="http://www.ibm.com/developerworks/cn/java/j-synth/#Images">使用图像</a> 一节中您已经得知，您可以在 <code><font face="NSimsun">javax.swing.plaf.synth.SynthPainter 类</font></code>中找到这些函数，但是应该删除每个函数开始部分的 <code><font face="NSimsun">paint</font></code> 字符串（例如，<code><font face="NSimsun">SynthPainter</font></code> 中的 <code><font face="NSimsun">paintPanelBackground</font></code> 在 XML 文件中应该是 <code><font face="NSimsun">panelBackground</font></code>）。</li> 
+ <li><strong>id</strong>：对将覆盖此方法的类的引用。</li> 
+</ul> 
+<p>为了在定制 painter 中使用颜色，必须将颜色保存在 <code><font face="NSimsun">javax.swing.UIDefaults</font></code> 类中。在清单 7 和清单 8 中可以看到，将颜色保存在 <code><font face="NSimsun">UIDefaults</font></code> 中十分简单，对于那些接触过 UI 创建的人来说应该，应该比较熟悉这些内容。在 XML 文件中定义的键将成为 <code><font face="NSimsun">UIManager</font></code> 中的引用，在 <code><font face="NSimsun">BackgroundPainter</font></code> 的 Java 代码中，可以使用 <code><font face="NSimsun">UIManager</font></code> 来获得颜色。</p> 
+<p>清单 7 展示了在例子应用程序中使用定制 painter 的 XML 代码。注意必须首先定义颜色。</p> 
+<br /> 
+<a name="example7"><strong>清单 7. 使用定制 painter</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br />&lt;style id=&quot;panel&quot;&gt;<br />   &lt;object id=&quot;background&quot; class=&quot;demo.synth.BackgroundPainter&quot;/&gt;<br />   &lt;object class=&quot;javax.swing.plaf.ColorUIResource&quot; id=&quot;startColor&quot;&gt;<br />      &lt;int&gt;30&lt;/int&gt;<br />      &lt;int&gt;123&lt;/int&gt;<br />      &lt;int&gt;235&lt;/int&gt;<br />   &lt;/object&gt;<br />   &lt;defaultsProperty key=&quot;Panel.startBackground&quot; type=&quot;idref&quot; value=&quot;startColor&quot;/&gt;<br />   &lt;object class=&quot;javax.swing.plaf.ColorUIResource&quot; id=&quot;endColor&quot;&gt;<br />      &lt;int&gt;1&lt;/int&gt;<br />      &lt;int&gt;20&lt;/int&gt;<br />      &lt;int&gt;80&lt;/int&gt;<br />   &lt;/object&gt;<br />   &lt;defaultsProperty key=&quot;Panel.endBackground&quot; type=&quot;idref&quot; value=&quot;endColor&quot;/&gt;<br />   &lt;painter method=&quot;panelBackground&quot; idref=&quot;background&quot;/&gt;<br />&lt;/style&gt;<br />&lt;bind style=&quot;panel&quot; type=&quot;region&quot; key=&quot;Panel&quot;/&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>清单 8 展示了例子应用程序的定制绘画类的 Java 代码：</p> 
+<br /> 
+<a name="example8"><strong>清单 8. 定制绘画的 Java 代码</strong></a>
+<br /> 
+<pre class="displaycode"><br />public class BackgroundPainter extends SynthPainter<br />{<br />   public void paintPanelBackground(SynthContext context,<br />                                    Graphics g, int x, int y,<br />                                    int w, int h)<br />   {<br />      Color start = UIManager.getColor(&quot;Panel.startBackground&quot;);<br />      Color end = UIManager.getColor(&quot;Panel.endBackground&quot;);<br />      Graphics2D g2 = (Graphics2D)g;<br />      GradientPaint grPaint = new GradientPaint(<br />          (float)x, (float)y, start,<br />          (float)w, (float)h, end);<br />      g2.setPaint(grPaint);<br />      g2.fillRect(x, y, w, h);<br />      g2.setPaint(null);<br />      g2.setColor(new Color(255, 255, 255, 120));<br />      g2.setRenderingHint(<br />          RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);<br />      CubicCurve2D.Double arc2d = new CubicCurve2D.Double(<br />          0, h/4, w/3, h/10, 66 * w, 1.5 * h, w, h/8);<br />      g2.draw(arc2d);<br />      g2.setRenderingHint(<br />      RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);<br />   }<br />}</pre> 
+<p><a name="Advanced"><span class="atitle">更高级的设置</span></a></p> 
+<p>本节包含两个超出登录屏幕例子范围的技术。在创建您自己的 Synth 外观时，您可能发现这两项技术很有用。</p> 
+<p><a name="nonswing"><span class="smalltitle">绘制非 Swing 组件</span></a></p> 
+<p>可以改变每个 Swing 组件的外观这一点虽然很棒，但是还应该能够改变其他组件 —— 开发人员创建的用于填补 Swing 空缺的组件 —— 的外观。在这种情况下，<code><font face="NSimsun">&lt;bind&gt;</font></code> 标签需要作出改变，以反映正在绘制的不是一个 Swing 组件。<code><font face="NSimsun">type</font></code> 属性可以有两种值：如果映射到一个 Swing 组件，则该值为 <code><font face="NSimsun">region</font></code>，如果映射到非 Swing 组件，则该值为 <code><font face="NSimsun">name</font></code>。因此，如果将 <code><font face="NSimsun">&lt;bind&gt;</font></code> 标签变为 <code><font face="NSimsun">&lt;bind style=&quot;mystyle&quot; type=&quot;name&quot; key=&quot;Custom.*&quot;/&gt;</font></code>，则会改变每个类名以 <code><font face="NSimsun">Custom</font></code> 开始的组件（例如，<code><font face="NSimsun">CustomTextField</font></code> 或 <code><font face="NSimsun">CustomLabel</font></code>），使它们使用 <code><font face="NSimsun">mystyle</font></code> 式样。</p> 
+<p><a name="hierarchies"><span class="smalltitle">式样的分层结构</span></a></p> 
+<p>除了在创建 XML 文件时使用 KISS 式样之外，还可以构建分层次的一些式样，并将这些式样应用于组件中。清单 9 应该可以清楚地演示这一点。注意，Synth 使用最后定义的属性来显示组件。</p> 
+<br /> 
+<a name="example9"><strong>清单 9. 分层结构的例子</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br />   &lt;style id=&quot;base&quot;&gt;<br />      &lt;color value=&quot;BLACK&quot; type=&quot;BACKGROUND&quot;/&gt;<br />      &lt;state&gt;<br />         &lt;font size=&quot;14&quot;/&gt;<br />      &lt;/state&gt;<br />   &lt;/style&gt;<br />   &lt;bind style=&quot;base&quot; type=&quot;region&quot; key=&quot;.*&quot;/&gt;<br />   &lt;style id=&quot;sublevel&quot; clone=&quot;base&quot;&gt;<br />      &lt;color value=&quot;RED&quot; type=&quot;BACKGROUND&quot;/&gt;<br />   &lt;/style&gt;<br />   &lt;bind style=&quot;sublevel&quot; type=&quot;region&quot; key=&quot;Label&quot;/&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>清单 9 中的代码使每个组件有一个黑色的背景，字体大小为 14，但 label 组件除外，label 组件拥有红色的背景。通过克隆 <code><font face="NSimsun">sublevel</font></code> 中的 <code><font face="NSimsun">base</font></code> 式样，清单 9 复制了整个式样。然后，您可以覆盖所需的任何特定属性。</p> 
+<p><a name="Examining"><span class="atitle">检验 Synth 的性能、可靠性和效率</span></a></p> 
+<p>至此，您已经看到如何创建用于 Synth 的 XML 文件，以及如何通过更改字体、更改颜色和添加图像来创建定制的外观，但对于 Synth 可能还有些疑问。如果您使用 Swing 已经有一段时间，那么我可以肯定，您首先想到的是性能问题。我设计了一些性能测试，这些测试表明，Synth 不会令您的 UI 慢如蜗牛。为了调查您可能看到的问题（并讨论我在使用 Synth 时已经碰到过的一些问题），我查看了 Java Bug Parade （请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-synth/#resources">参考资料</a>）。最后，我将回答最重要的问题 —— Synth 真的可以节省您的时间吗？</p> 
+<p><a name="Q1"><span class="smalltitle">装载那么多图像会不会使 Synth 变得更慢？</span></a></p> 
+<p>为了回答这个问题，我创建了两个测试，并让您更深切地体会 Synth 在性能方面与其他外观的比较。第一个测试将测试示例登录应用程序的装载时间。该测试装载 6 个 Synth 图像，并将这个装载时间与一个开发人员可能创建的一般屏幕的装载时间进行比较。第二个测试是关于装载时间的压力测试 —— 一个帧中有 100 多个组件。</p> 
+<p>两个测试都将测试 Ocean 和 Motif 外观的装载时间，以便进行比较。为了公正起见，我在三种机器上运行了这两个测试 —— 一种是安装 Windows XP 的手提电脑，一种是 SuSE Linux box，还有一种是 Red Hat Linux box。结果显示在表 1 和表 2 中。</p> 
+<br /> 
+<a name="table1"><strong>表 1. 登录屏幕的平均装载时间</strong></a>
+<br /> 
+<table border="1" cellspacing="1" cellpadding="3" width="70%"> 
+ <tbody> 
+  <tr> 
+   <td><strong>机器配置</strong></td> 
+   <td><strong>Ocean</strong></td> 
+   <td><strong>Motif</strong></td> 
+   <td><strong>Synth</strong></td> 
+  </tr> 
+  <tr> 
+   <td>Windows XP - 1.7GHz - 2GB RAM</td> 
+   <td>.32 seconds</td> 
+   <td>.29 seconds</td> 
+   <td>.57 seconds</td> 
+  </tr> 
+  <tr> 
+   <td>SuSE Linux 9.0 - 3.3GHz - 2GB RAM</td> 
+   <td>.23 seconds</td> 
+   <td>.20 seconds</td> 
+   <td>.45 seconds</td> 
+  </tr> 
+  <tr> 
+   <td>Red Hat Linux 3.0 - 1.4GHz - 512MB RAM</td> 
+   <td>.37 seconds</td> 
+   <td>.32 seconds</td> 
+   <td>.61 seconds</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<br /> 
+<br /> 
+<a name="table2"><strong>表 2. 包含 100 个组件的屏幕的平均装载时间</strong></a>
+<br /> 
+<table border="1" cellspacing="1" cellpadding="3" width="70%"> 
+ <tbody> 
+  <tr> 
+   <td><strong>机器配置</strong></td> 
+   <td><strong>Ocean</strong></td> 
+   <td><strong>Motif</strong></td> 
+   <td><strong>Synth</strong></td> 
+  </tr> 
+  <tr> 
+   <td>Windows XP - 1.7GHz - 2GB RAM</td> 
+   <td>.33 seconds</td> 
+   <td>.32 seconds</td> 
+   <td>.34 seconds</td> 
+  </tr> 
+  <tr> 
+   <td>SuSE Linux 9.0 - 3.3GHz - 2GB RAM</td> 
+   <td>.23 seconds</td> 
+   <td>.23 seconds</td> 
+   <td>.30 seconds</td> 
+  </tr> 
+  <tr> 
+   <td>Red Hat Linux 3.0 - 1.4GHz - 512MB RAM</td> 
+   <td>.40 seconds</td> 
+   <td>.40 seconds</td> 
+   <td>.43 seconds</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p>您可以看到，Synth 外观的装载时间只比 Ocean 和 Motif 慢一点点。但是请注意，登录屏幕与压力测试会比装载更慢一些。乍一看来，这似乎很奇怪，但如果仔细研究，便可以发现起因。压力测试没有装载复选框中所使用的图像，而登录屏幕却装载了这些图像。据此可以下结论，在 Synth 外观中使用的每个附加图像增加了装载时间。与含有两个使用两种不同图像的组件的应用程序相比，使用相同图像的 100 个组件装载起来要更快一些。减少所使用图像的数量可以提高 Synth 装载时间方面的性能。</p> 
+<p><a name="Q2"><span class="smalltitle">Synth 是不是像 Swing 一样，在第一次发布时满是 bug？</span></a></p> 
+<p>根据 Sun Java 开发者网站上 Bug Parade 的评判，Synth 看上去是一个比较干净、没有 bug 的产品。然而，没有哪个软件是完美的。Synth 曾经有 125 个 bug，这与 Synth 处理 <code><font face="NSimsun">JTabbedPane</font></code> 的方式不成比例。因此，如果您经历到一些问题，不要感到惊讶。然而，根据 Sun 的辩护，这些缺陷都处于“关闭（Closed）”状态。但通常的情况是，如果以前存在某些问题，那么这些问题在将来也很可能会出现。</p> 
+<p>虽然 bug 数据库为 Synth 赋予了一个相对干净的形象，我在处理登录屏幕的时候还是碰到一些问题。我第一次尝试更改 <code><font face="NSimsun">JPanel</font></code> 背景颜色时遭到失败。我创建了一个特定于 <code><font face="NSimsun">JPanel</font></code> 的式样，并将其绑定到所有 <code><font face="NSimsun">JPanel</font></code>，但这样行不通。而当我决定使用自己的定制 painter 时，事情就解决了。</p> 
+<p>一个更大的问题是当状态改变时对组件进行重新绘制。在处理按钮及其状态时，我发现，按钮上的文本不能正确地改变颜色。当初始化时，作为默认颜色的白色没有如期显示，并且直到触发了状态变化之后才出现，然后就被重新设置为默认颜色。如果仔细研究关于 Synth 的文档，就可以发现这个小花絮：“虽然可以为每种状态提供不同的字体，但在一般情况下，当组件的状态变化时，组件不会重新生效，所以，如果您试图为不同状态使用有明显不同大小的字体时，有可能会遇到字体大小的问题”。听起来似乎它们遇上了试图让 Synth 使用老的 Swing 代码的问题。因此，如果要在状态改变时更改字体，那么要小心。</p> 
+<p>Synth 看上去的确很少有 bug。但如果随处出点小问题，那些本应该行得通的代码就会行不通，我不会对此感到惊讶。不过，变通的办法不难找到。对于在工作中碰到的每个问题，我总能找到一个变通的办法。</p> 
+<p><a name="Q3"><span class="smalltitle">利用 Synth 可以创建出完全专业的外观吗？</span></a></p> 
+<p>回答是肯定的。Java 1.4 中发布的 GTK+ 和 Windows XP 外观就完全是用 Synth 创建的。（那时它不是一个已公布的 API。） 所以这方面显然没有问题。</p> 
+<p><a name="Q4"><span class="smalltitle">用 Synth 创建一个完整的外观比用 Java 代码编写这样的外观要快多少？</span></a></p> 
+<p>这很容易计算。这两种方法各自都包含两个步骤：</p> 
+<ol> 
+ <li>创建外观，这通常是由图形设计人员负责的工作。</li> 
+ <li>将图形界面转化成代码。</li> 
+</ol> 
+<p>不管是用 Java 编写代码还是使用 Synth，图形界面设计这部分工作所花的时间是相同的。根据我创建定制外观的经验，我估计为一个应用程序创建一个完整的外观需要两个图形设计人员两周的时间。也就是说，图像设计工作需要 4 人一周（person-week）的人力。</p> 
+<p>通常，根据我的经验，通过类继承的方式将图形界面翻译成立即可用的外观需要三个 Java 编程人员花大约两个月的时间。也就是说，编写 Java 代码需要 6 个人一个月（person-month）的人力。加上图形界面设计工作，通过重写 UI 类，用 Swing 创建一个完全定制的外观总共需要 7 个人一个月的工作量。这些数据有助于您明白为什么 Internet 上可供下载的定制外观是那么少。</p> 
+<p>通过将图形界面转换成一个 XML 文件，Synth 可以节省大量的时间。通过 Java 编程创建外观需要 6 个人一个月的工作量，而一个开发人员将图形界面转换成 Synth XML 文件只需两个星期。用 Synth 创建完整外观所需的工作量减少到仅仅 6 个人一周的工作量 —— 通过使用 Synth 节省了超过 5 个月的时间。对于一个由两个图形设计师和两个程序员组成的团队，在短短三个星期内便可以创建出一个完整的 Synth 外观。</p> 
+<p><a name="Conclusion"><span class="atitle">结束语</span></a></p> 
+<p>Synth 将皮肤的概念引入到 Swing 中。相对于传统的用 Java 代码编写定制外观的方法，Synth 最大的优势是节省时间。一个完整的 Swing 外观可以在不到一个月的时间里完成，这比用 Java 语言编程的方法要快 5 倍。对于有干劲的开发人员，在用 Java 代码编写一个外观的时间里，他可以创建 5 个 Synth 外观。</p> 
+<p>然而，Synth 并非毫无瑕疵。通过编写 Java 代码覆盖 Swing 外观，可以同时改变应用程序的外观和<em>感觉</em> 。而 Synth 只允许改变应用程序的外观。这是一个很大的不同之处。外观是指应用程序中使用的颜色、字体和图形。另一方面，感觉则对应于应用程序在交互期间展现出来的行为 —— 这里指单击一下鼠标右键，那里按下一个键。例如，如果您想改变一个 <code><font face="NSimsun">JList</font></code> 的行为，希望通过单击鼠标左键选中条目，然后再通过单击鼠标右键来删除条目，那么用 Synth 是无法做到这些的。您需要为新的外观编写 Java 代码。Synth 实际上应该称为一种新的 Swing 外观，而不是一种普通外观。通过 Synth 可以快速改变 UI 的外观，但 UI 的感觉永远都是默认的 Swing 感觉。</p> 
+<p>当然，如果您想通过为应用程序提供新的外观来使之整洁漂亮，或者渴望看到比令人讨厌的 Metal 外观（谢天谢地，在 Java 5.0 中它已成为历史）更好的 Swing 应用程序外观，那么 Synth 是很好的一个选择。它不存在性能问题，并且看上去 bug 也很少。Sun 已经表示，通过发布 GTK+ 外观，用 Synth 可以创建完整的外观。</p> 
+<p>令人吃惊的是，Synth 文档和实例现在还很少。阅读本文之后，对于 Synth 的工作原理您应该有一个更深的理解，并且能够使用一个组件一个样式标签（one-style-tag-per-one-component）的设计来生成一个完整的 Synth XML 文档。Synth 的继承和分层模型为创建 style 标签提供了更强大的方法，但没有它们仍然可以创建完整的外观。理想情况是：随着对 Synth 认识的加深，Swing UI 社区将出现皮肤数量的大爆炸。有了数百个可供选择的外观，通常那些加在 Swing 应用程序身上的“长相恐怖”、“丑陋”之类的责骂之词也将永远消失。</p> 
+<p>http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/j-synth/synth.jar</p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

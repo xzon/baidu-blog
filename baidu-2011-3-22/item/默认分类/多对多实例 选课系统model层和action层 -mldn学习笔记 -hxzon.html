@@ -1,0 +1,497 @@
+<html><head><title><div class="tit">
+  多对多实例 选课系统model层和action层 -mldn学习笔记 -hxzon
+</div></title></head><body><div id='tit'>多对多实例 选课系统model层和action层 -mldn学习笔记 -hxzon</div><div id='cate'>默认分类</div><div id='date'>2008年08月28日 星期四 10:31 A.M.</div><div id='page'>106</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/228ebe9949f73a0e6f068ccc.html'>http://hi.baidu.com/hxzon/blog/item/228ebe9949f73a0e6f068ccc.html</a><div id='cnt'><div>
+ 多对多实例 选课系统model层和action层 -mldn学习笔记 -hxzon
+ <br /> 
+ <br /> 一，数据库创建表
+ <br /> CREATE TABLE student
+ <br /> (
+ <br /> &nbsp;&nbsp;&nbsp; sid INT AUTO_INCREMENT PRIMARY KEY NOT NULL ,
+ <br /> &nbsp;&nbsp;&nbsp; name VARCHAR(32) NOT NULL ,
+ <br /> &nbsp;&nbsp;&nbsp; age INT ,
+ <br /> &nbsp;&nbsp;&nbsp; sex VARCHAR(2) NOT NULL 
+ <br /> ) ;
+ <br /> CREATE TABLE course
+ <br /> (
+ <br /> &nbsp;&nbsp;&nbsp; cid INT AUTO_INCREMENT PRIMARY KEY NOT NULL ,
+ <br /> &nbsp;&nbsp;&nbsp; name VARCHAR(32) NOT NULL ,
+ <br /> &nbsp;&nbsp;&nbsp; teacher VARCHAR(20) NOT NULL ,
+ <br /> &nbsp;&nbsp;&nbsp; creditHour INT 
+ <br /> ) ;
+ <br /> CREATE TABLE student_course
+ <br /> (
+ <br /> &nbsp;&nbsp;&nbsp; sid INT ,
+ <br /> &nbsp;&nbsp;&nbsp; cid INT ,
+ <br /> &nbsp;&nbsp;&nbsp; FOREIGN KEY(sid) REFERENCES student(sid) ,
+ <br /> &nbsp;&nbsp;&nbsp; FOREIGN KEY(cid) REFERENCES course(cid)
+ <br /> ) ;
+ <br /> 二，模型类
+ <br /> 只为数据表生成模型，关系表不生成模型。
+ <br /> 模型中除了自己的字段，还有两个集合字段，分别是另一个表，和关系表。
+ <br /> -------------------------
+ <br /> public class Course {
+ <br /> &nbsp;&nbsp;&nbsp; private int cid;
+ <br /> &nbsp;&nbsp;&nbsp; private String name;
+ <br /> &nbsp;&nbsp;&nbsp; private String teacher;
+ <br /> &nbsp;&nbsp;&nbsp; private int creditHour;
+ <br /> &nbsp;&nbsp;&nbsp; private Set students;
+ <br /> &nbsp;&nbsp;&nbsp; private Set sids ;//关系表
+ <br /> }
+ <br /> ------------------
+ <br /> public class Student {
+ <br /> &nbsp;&nbsp;&nbsp; private int sid;
+ <br /> &nbsp;&nbsp;&nbsp; private String name;
+ <br /> &nbsp;&nbsp;&nbsp; private int age;
+ <br /> &nbsp;&nbsp;&nbsp; private String sex;
+ <br /> &nbsp;&nbsp;&nbsp; private Set courses ;
+ <br /> &nbsp;&nbsp;&nbsp; private Set cids ;//关系表
+ <br /> }
+ <br /> 三，映射文件
+ <br /> -------------org.lxh.vo.Course--------------------------------------------------
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+ <br /> &lt;!DOCTYPE hibernate-mapping PUBLIC &quot;-//Hibernate/Hibernate Mapping DTD 3.0//EN&quot;
+ <br /> &quot;http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd&quot;&gt;
+ <br /> 
+ <br /> &lt;hibernate-mapping&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;class name=&quot;org.lxh.vo.Course&quot; table=&quot;course&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;id name=&quot;cid&quot; type=&quot;java.lang.Integer&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;cid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;generator class=&quot;native&quot;&gt;&lt;/generator&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/id&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;name&quot; type=&quot;java.lang.String&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;name&quot; length=&quot;32&quot; not-null=&quot;true&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;teacher&quot; type=&quot;java.lang.String&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;teacher&quot; length=&quot;20&quot; not-null=&quot;true&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;creditHour&quot; type=&quot;java.lang.Integer&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;creditHour&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;set name=&quot;sids&quot; table=&quot;student_course&quot; cascade=&quot;all&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;key&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;cid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/key&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;element type=&quot;java.lang.Integer&quot; column=&quot;sid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/set&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;set name=&quot;students&quot; inverse=&quot;true&quot; table=&quot;student_course&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;key&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;cid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/key&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;many-to-many class=&quot;org.lxh.vo.Student&quot; column=&quot;sid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/set&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/class&gt;
+ <br /> &lt;/hibernate-mapping&gt;
+ <br /> -------------org.lxh.vo.Student-----------------------------------
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+ <br /> &lt;!DOCTYPE hibernate-mapping PUBLIC &quot;-//Hibernate/Hibernate Mapping DTD 3.0//EN&quot;
+ <br /> &quot;http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd&quot;&gt;
+ <br /> 
+ <br /> &lt;hibernate-mapping&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;class name=&quot;org.lxh.vo.Student&quot; table=&quot;student&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;id name=&quot;sid&quot; type=&quot;java.lang.Integer&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;sid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;generator class=&quot;native&quot;&gt;&lt;/generator&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/id&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;name&quot; type=&quot;java.lang.String&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;name&quot; length=&quot;32&quot; not-null=&quot;true&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;age&quot; type=&quot;java.lang.Integer&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;age&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;sex&quot; type=&quot;java.lang.String&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;sex&quot; length=&quot;2&quot; not-null=&quot;true&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;set name=&quot;cids&quot; table=&quot;student_course&quot; cascade=&quot;all&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;key&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;sid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/key&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;element type=&quot;java.lang.Integer&quot; column=&quot;cid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/set&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;set name=&quot;courses&quot; inverse=&quot;true&quot; cascade=&quot;all&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; table=&quot;student_course&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;key&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;column name=&quot;sid&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/key&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;many-to-many class=&quot;org.lxh.vo.Course&quot; column=&quot;cid&quot;&gt;&lt;/many-to-many&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/set&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/class&gt;
+ <br /> &lt;/hibernate-mapping&gt;
+ <br /> --------------------------------------------
+ <br /> 四，action操作
+ <br /> 关注选课，和取消选课两个操作即可。
+ <br /> -------------CourseAction---------------------
+ <br /> package org.lxh.struts.action;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.util.List;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.servlet.http.HttpServletRequest;
+ <br /> import javax.servlet.http.HttpServletResponse;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.apache.struts.action.ActionForm;
+ <br /> import org.apache.struts.action.ActionForward;
+ <br /> import org.apache.struts.action.ActionMapping;
+ <br /> import org.apache.struts.actions.DispatchAction;
+ <br /> import org.lxh.factory.DAOFactory;
+ <br /> import org.lxh.struts.form.CourseForm;
+ <br /> import org.lxh.vo.Course;
+</div> 
+<div> 
+</div> 
+<div>
+ public class CourseAction extends DispatchAction {
+ <br /> &nbsp;&nbsp;&nbsp; // 显示所有选课（和selectall操作是完全相同的，除了转发的页面不同。）
+ <br /> &nbsp;&nbsp;&nbsp; public ActionForward choosecourse(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List all = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; all = DAOFactory.getCourseDAOInstance().queryAll();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;all&quot;, all);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;choosecourse&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // 取消选课
+ <br /> &nbsp;&nbsp;&nbsp; public ActionForward cancelchoosecourse(ActionMapping mapping,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ActionForm form, HttpServletRequest request,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int cid = Integer.parseInt(request.getParameter(&quot;cid&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int sid = Integer.parseInt(request.getParameter(&quot;sid&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Course c = DAOFactory.getCourseDAOInstance().queryByCId(cid);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c.getSids().remove(new Integer(sid));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DAOFactory.getCourseDAOInstance().update(c);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;cancelchoosecourse&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward insert(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CourseForm courseForm = (CourseForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Course c = new Course();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c.setName(courseForm.getName());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c.setTeacher(courseForm.getTeacher());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c.setCreditHour(Integer.parseInt(courseForm.getCreditHour()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DAOFactory.getCourseDAOInstance().insert(c);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;insertdo&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward delete(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CourseForm courseForm = (CourseForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DAOFactory.getCourseDAOInstance().delete(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integer.parseInt(courseForm.getCid()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (NumberFormatException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;deletedo&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward update(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CourseForm courseForm = (CourseForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Course c = new Course();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c.setCid(Integer.parseInt(courseForm.getCid()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c.setName(courseForm.getName());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c.setTeacher(courseForm.getTeacher());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c.setCreditHour(Integer.parseInt(courseForm.getCreditHour()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DAOFactory.getCourseDAOInstance().update(c);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;updatedo&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward selectid(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CourseForm courseForm = (CourseForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Course c = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c = DAOFactory.getCourseDAOInstance().queryByCId(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integer.parseInt(courseForm.getCid()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (NumberFormatException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;course&quot;, c);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;update&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward selectcoursestudent(ActionMapping mapping,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ActionForm form, HttpServletRequest request,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CourseForm courseForm = (CourseForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Course c = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; c = DAOFactory.getCourseDAOInstance().queryByCId(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integer.parseInt(courseForm.getCid()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (NumberFormatException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;course&quot;, c);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;liststudent&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward selectall(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List all = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; all = DAOFactory.getCourseDAOInstance().queryAll();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;all&quot;, all);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;list&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward selectlike(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List all = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; all = DAOFactory.getCourseDAOInstance().queryByLike(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.getParameter(&quot;keyWord&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;all&quot;, all);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;list&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+ <br /> ------------StudentAction------------------------------------
+ <br /> package org.lxh.struts.action;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.util.List;
+ <br /> import java.util.TreeSet;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.servlet.http.HttpServletRequest;
+ <br /> import javax.servlet.http.HttpServletResponse;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.apache.struts.action.ActionForm;
+ <br /> import org.apache.struts.action.ActionForward;
+ <br /> import org.apache.struts.action.ActionMapping;
+ <br /> import org.apache.struts.actions.DispatchAction;
+ <br /> import org.lxh.factory.DAOFactory;
+ <br /> import org.lxh.struts.form.StudentForm;
+ <br /> import org.lxh.vo.Student;
+</div> 
+<div> 
+</div> 
+<div>
+ public class StudentAction extends DispatchAction {
+ <br /> &nbsp;&nbsp;&nbsp; // 选课
+ <br /> &nbsp;&nbsp;&nbsp; public ActionForward choosecourse(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Student s = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s = DAOFactory.getStudentDAOInstance().queryBySId(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integer.parseInt(request.getParameter(&quot;sid&quot;)));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (NumberFormatException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (s != null) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 取出全部已选择的课程编号
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.setCids(new TreeSet());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String str[] = request.getParameterValues(&quot;cids&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (int i = 0; i &lt; str.length; i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.getCids().add(Integer.parseInt(str[i]));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DAOFactory.getStudentDAOInstance().update(s);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;choosecoursedo&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward insert(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StudentForm studentForm = (StudentForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Student s = new Student();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.setName(studentForm.getName());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.setSex(studentForm.getSex());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.setAge(Integer.parseInt(studentForm.getAge()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DAOFactory.getStudentDAOInstance().insert(s);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;insertdo&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward delete(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StudentForm studentForm = (StudentForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DAOFactory.getStudentDAOInstance().delete(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integer.parseInt(studentForm.getSid()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (NumberFormatException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;deletedo&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward update(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StudentForm studentForm = (StudentForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Student s = new Student();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.setSid(Integer.parseInt(studentForm.getSid()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.setName(studentForm.getName());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.setSex(studentForm.getSex());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s.setAge(Integer.parseInt(studentForm.getAge()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DAOFactory.getStudentDAOInstance().update(s);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;updatedo&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward selectid(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StudentForm studentForm = (StudentForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Student s = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s = DAOFactory.getStudentDAOInstance().queryBySId(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integer.parseInt(studentForm.getSid()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (NumberFormatException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;student&quot;, s);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;update&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward selectstudentcourse(ActionMapping mapping,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ActionForm form, HttpServletRequest request,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StudentForm studentForm = (StudentForm) form;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Student s = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s = DAOFactory.getStudentDAOInstance().queryBySId(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integer.parseInt(studentForm.getSid()));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (NumberFormatException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;student&quot;, s);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;listcourse&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward selectall(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List all = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; all = DAOFactory.getStudentDAOInstance().queryAll();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;all&quot;, all);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;list&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public ActionForward selectlike(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List all = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; all = DAOFactory.getStudentDAOInstance().queryByLike(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.getParameter(&quot;keyWord&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; request.setAttribute(&quot;all&quot;, all);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;list&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div></div></body></html>

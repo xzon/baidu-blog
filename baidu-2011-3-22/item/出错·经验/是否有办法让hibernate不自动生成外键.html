@@ -1,0 +1,77 @@
+<html><head><title><div class="tit">
+  是否有办法让hibernate不自动生成外键
+</div></title></head><body><div id='tit'>是否有办法让hibernate不自动生成外键</div><div id='cate'>出错&middot;经验</div><div id='date'>2010年09月16日 星期四 04:47 P.M.</div><div id='page'>7</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/02bd793ec39e9b3371cf6c34.html'>http://hi.baidu.com/hxzon/blog/item/02bd793ec39e9b3371cf6c34.html</a><div id='cnt'>是否有办法让hibernate不自动生成外键
+<br /> 
+<br /> @Entity
+<br /> public class BomMaterial extends BaseEntity implements Comparable&lt;BomMaterial&gt; {
+<br /> 
+<br /> 
+<br /> @ManyToOne(fetch = FetchType.EAGER)
+<br /> @NotFound(action = NotFoundAction.IGNORE)
+<br /> @JoinColumn(name = &quot;code&quot;, referencedColumnName = &quot;code&quot;, insertable = false, updatable = false)
+<br /> private Material material;
+<br /> 
+<br /> @ManyToOne(fetch = FetchType.EAGER)
+<br /> @NotFound(action = NotFoundAction.IGNORE)
+<br /> private Bom bom;
+<br /> }
+<br /> @Entity
+<br /> public class Material extends BaseEntity implements Comparable&lt;Material&gt; {
+<br /> 
+<br /> 
+<br /> @OneToMany(mappedBy = &quot;material&quot;, fetch = FetchType.LAZY)
+<br /> // @JoinColumn(name =&quot;code&quot;,referencedColumnName=&quot;code&quot; )
+<br /> private List&lt;BomMaterial&gt; bomMaterials;
+<br /> }
+<br /> @Entity
+<br /> public class Bom extends BaseEntity {
+<br /> 
+<br /> @OneToMany(mappedBy = &quot;bom&quot;, fetch = FetchType.LAZY)
+<br /> @OrderBy(value = &quot;code&quot;)
+<br /> @Cascade(value = { org.hibernate.annotations.CascadeType.DELETE })
+<br /> private List&lt;BomMaterial&gt; bomMaterials;
+<br /> }
+<br /> hibernate为BomMaterials只生成bom_id外键，没有生成关联Material的外键。
+<br /> ==========================
+<br /> @Entity
+<br /> public class Material extends BaseEntity implements Comparable&lt;Material&gt; {
+<br /> 
+<br /> @OneToMany(fetch = FetchType.LAZY)
+<br /> @NotFound(action = NotFoundAction.IGNORE)
+<br /> @JoinColumn(name = &quot;ownerId&quot;, referencedColumnName = &quot;id&quot;)
+<br /> @Where(clause = &quot;ownerType='material'&quot;)
+<br /> private List&lt;Upload&gt; uploads;
+<br /> }
+<br /> @Entity
+<br /> public class Upload extends BaseEntity {
+<br /> 
+<br /> @ManyToOne(fetch = FetchType.LAZY)
+<br /> @NotFound(action = NotFoundAction.IGNORE)
+<br /> private Uzer user;
+<br /> 
+<br /> @Column(columnDefinition = &quot;varchar(32) default ''&quot;)
+<br /> @Size(max = 32)
+<br /> private String ownerType;
+<br /> 
+<br /> @Column(columnDefinition = &quot;varchar(32) &quot;)
+<br /> @Size(max = 32)
+<br /> private String ownerId;
+<br /> 
+<br /> @Column(columnDefinition = &quot;varchar(2048) default ''&quot;)
+<br /> @Size(max = 2048)
+<br /> private String fileName;
+<br /> 
+<br /> @Column(columnDefinition = &quot;varchar(2048) default ''&quot;)
+<br /> @Size(max = 2048)
+<br /> private String filePath;
+<br /> 
+<br /> @Column(columnDefinition = &quot;varchar(2048) default ''&quot;)
+<br /> @Size(max = 2048)
+<br /> private String fileType;
+<br /> 
+<br /> @Column(columnDefinition = &quot;varchar(32) default ''&quot;)
+<br /> @Size(max = 32)
+<br /> private String createTime;
+<br /> }
+<br /> 会为Upload生成ownerId外键，用于关联Material。
+<br /> 是否有办法不让hibernate生成ownerId外键？</div></body></html>

@@ -1,0 +1,334 @@
+<html><head><title><div class="tit">
+  FCKeditor使用方法技术详解
+</div></title></head><body><div id='tit'>FCKeditor使用方法技术详解</div><div id='cate'>默认分类</div><div id='date'>2008年08月12日 星期二 11:33 A.M.</div><div id='page'>112</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/f1832bf56678d223bd310953.html'>http://hi.baidu.com/hxzon/blog/item/f1832bf56678d223bd310953.html</a><div id='cnt'>FCKeditor使用方法技术详解
+<br /> 
+<br /> 1、 概述
+<br /> FCKeditor是目前最优秀的可见即可得网页编辑器之一，它采用JavaScript编写。具备功能强大、配置容易、跨浏览器、支持多种编程语言、开源等特点。它非常流行，互联网上很容易找到相关技术文档，国内许多WEB项目和大型网站均采用了FCKeditor（如百度，阿里巴巴）。本文将通过与PHP相结合，从基本安装到高级的配置循序渐进介绍给广大PHPer。
+<br /> FCKeditor官方网站：[url]http://www.fckeditor.net/[/url]
+<br /> FCKeditor Wiki：[url]http://wiki.fckeditor.net/[/url]
+<br /> 2、 下载FCKeditor
+<br /> 登录FCKeditor官方站（[url]http://www.fckeditor.net[/url]），点击网站右上角“Download”链接。
+<br /> 笔者编写本文时，FCKeditor当前最新的稳定版本是2.4.3，因此我们下载此版本的zip压缩格式文档。如图1所示：
+<br /> 
+<br /> 
+<br /> 图1：下载FCKeditor 2.4.3（最新稳定版）
+<br /> 
+<br /> 注意：当点击“FCKeditor_2.4.3.zip”链接后，将跳转到sourceforge.net网站上自动下载。如果您当前使用Linux或Unix系统，可以点击“FCKeditor_2.4.3.tar.gz”链接下载.tar.gz格式的压缩包。
+<br /> 
+<br /> 3、 安装FCKeditor
+<br /> 解压“FCKeditor_2.4.3.zip”文档到您的网站目录下，我们先假定您存放FCKeditor和调用脚本存于同一个目录下。目录结构如下图所示：
+<br /> 
+<br /> 
+<br /> 图2：网站目录结构图
+<br /> 
+<br /> fckeditor目录包含FCKeditor2.4.3程序文件。check.php用于处理表单数据。add_article.php和add_article_js.html分别是PHP调用FCKeditor和JavaScript调用FCKeditor实例脚本文件。
+<br /> 3.1、用PHP调用FCKeditor
+<br /> 调用FCKeditor必须先载入FCKeditor类文件。具体代码如下。
+<br /> &lt;?php
+<br /> include(&quot;fckeditor/fckeditor.php&quot;) ; // 用于载入FCKeditor类文件
+<br /> ?&gt;
+<br /> 接下来，我们需要创建FCKeditor实例、指定FCKeditor存放路径和创建（显示）编辑器等。具体代码如下所示（代码一般放在表单内）。
+<br /> &lt;?php
+<br /> $oFCKeditor = new FCKeditor('FCKeditor1') ;&nbsp;&nbsp; // 创建FCKeditor实例
+<br /> $oFCKeditor-&gt;BasePath = './fckeditor/'; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp; // 设置FCKeditor目录地址
+<br /> $FCKeditor-&gt;Width='100%'; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; //设置显示宽度
+<br /> $FCKeditor-&gt;Height='300px'; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; //设置显示高度的高度
+<br /> $oFCKeditor-&gt;Create() ; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp; // 创建编辑器
+<br /> ?&gt;
+<br /> 下面是笔者创建好的实例代码，您可将代码保存为add_article.php。
+<br /> &lt;?php
+<br /> include(&quot;fckeditor/fckeditor.php&quot;) ; // 用于载入FCKeditor类文件
+<br /> ?&gt;
+<br /> &lt;html&gt;
+<br /> &lt;head&gt;
+<br /> &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=gb2312&quot;&gt;
+<br /> &lt;title&gt;用PHP调用FCKeditor&lt;/title&gt;
+<br /> &lt;/head&gt;
+<br /> &lt;body&gt;
+<br /> &lt;form action=&quot;check.php&quot; method=&quot;post&quot; name=&quot;exapmle&quot;&gt;
+<br /> &lt;?php
+<br /> $oFCKeditor = new FCKeditor('FCKeditor1') ;&nbsp;&nbsp; // 创建FCKeditor实例，可创建多个实例
+<br /> $oFCKeditor-&gt;BasePath = './fckeditor/'; &nbsp;&nbsp; // 设置FCKeditor目录地址
+<br /> $oFCKeditor-&gt;Create() ; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; // 创建编辑器
+<br /> ?&gt;
+<br /> &lt;input name=&quot;ok&quot; type=&quot;submit&quot; value=&quot;提交&quot; &gt;
+<br /> &lt;/form&gt;
+<br /> &lt;/body&gt;
+<br /> &lt;/html&gt;
+<br /> 通过浏览里打开http://you-address/add_article.php 查看FCKeditor安装效果。如图3所示。
+<br /> 
+<br /> 
+<br /> 图3：FCKeditor安装成功
+<br /> 
+<br /> 注意：如果您想将FCKeditor创建为HTML结果代码，以便于在模板引擎里面调用（如Smarty）可使用如下代码。
+<br /> $output = $oFCKeditor-&gt;CreateHtml() ;
+<br /> 
+<br /> 现在，您可通过POST方式获得编辑器的变量值。本例将表单的action设置为check.php，您可在check.php里使用代码
+<br /> $fckeditorValue = $_POST['FCKeditor1'];
+<br /> 获得编辑器的变量值了。
+<br /> 
+<br /> FCKeditor安装成功了。但是，我们还可以通过更多设置来使FCKeditor更加灵活人性化。具体方法文本后面介绍。
+<br /> 3.2、用JavaScript调用FCKeditor
+<br /> 调用FCKeditor必须先载入FCKeditor类文件，但与PHP调用方法不同，应用下面的代码。
+<br /> &lt;script type=&quot;text/javascript&quot; src=&quot;./fckeditor/fckeditor.js&quot;&gt;&lt;/script&gt; &lt;!--载入fckeditor类--&gt;
+<br /> 载入FCKeditor类成功后，有三种方法创建（显示）编辑器。
+<br /> 一：内嵌方法（推荐）
+<br /> 在您想要显示FCKeditor的地方创建如下代码（通常在表单里）：
+<br /> &lt;script type=&quot;text/javascript&quot;&gt;
+<br /> &nbsp;&nbsp; var oFCKeditor = new FCKeditor('FCKeditor1');
+<br /> &nbsp;&nbsp; oFCKeditor.BasePath = &quot;./fckeditor /&quot;;
+<br /> &nbsp;&nbsp; oFCKeditor.Create();
+<br /> &lt;/script&gt;
+<br /> 下面是笔者创建好的实例代码，您可将代码保存为add_article_js.html。
+<br /> &lt;html&gt;
+<br /> &lt;head&gt;
+<br /> &lt;script type=&quot;text/javascript&quot; src=&quot;./fckeditor/fckeditor.js&quot;&gt;&lt;/script&gt; &lt;!--载入fckeditor类--&gt;
+<br /> &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=gb2312&quot;&gt;
+<br /> &lt;title&gt;用JavaScript调用FCKeditor&lt;/title&gt;
+<br /> &lt;/head&gt;
+<br /> &lt;body&gt;
+<br /> &lt;form action=&quot;check.php&quot; method=&quot;post&quot; name=&quot;example&quot;&gt;
+<br /> &lt;script type=&quot;text/javascript&quot;&gt;
+<br /> &nbsp;&nbsp; var oFCKeditor = new FCKeditor('FCKeditor1');
+<br /> &nbsp;&nbsp; oFCKeditor.BasePath = &quot;./fckeditor/&quot;;
+<br /> &nbsp;&nbsp; oFCKeditor.Create();
+<br /> &lt;/script&gt;
+<br /> &lt;input name=&quot;ok&quot; type=&quot;submit&quot; value=&quot;提交&quot; &gt;
+<br /> &lt;/form&gt;
+<br /> &lt;/body&gt;
+<br /> &lt;/html&gt;
+<br /> 通过浏览里打开http://you-address/add_article_js.html 查看FCKeditor安装效果。效果和图3完全一样。
+<br /> 同样，如果您可以使用和前面一样的方法取得编辑器的POST变量值。
+<br /> $fckeditorValue = $_POST['FCKeditor1'];
+<br /> 二：文本区域（TEXTAREA）方法
+<br /> 同内嵌方法一样，也必须先载入fckeditor类。但创建（显示）编辑器同内嵌方法不同，我们需要为window.onload定义一个函数。这样，函数便可以在页面加载时执行了。函数的定义代码如下所示。
+<br /> &lt;script type=&quot;text/javascript&quot;&gt;
+<br /> window.onload = function()
+<br /> {
+<br /> &nbsp;&nbsp; var oFCKeditor = new FCKeditor( 'MyTextarea' ) ;
+<br /> &nbsp;&nbsp; oFCKeditor.BasePath = &quot;./FCKeditor/&quot; ;
+<br /> &nbsp;&nbsp; oFCKeditor.ReplaceTextarea() ;
+<br /> }
+<br /> &lt;/script&gt;
+<br /> 接着，您就可以在页面中（通常在表单里）定义id为MyTextarea的文本区域（TEXTAREA）。代码如下所示：
+<br /> &lt;textarea id =&quot;MyTextarea&quot; name=&quot;MyTextarea&quot; &gt;&lt;/textarea&gt;
+<br /> 下面是笔者创建好的实例代码，显示效果当然也是一样的。笔者这里就不哆嗦了。
+<br /> &lt;html&gt;
+<br /> &lt;head&gt;
+<br /> &lt;script type=&quot;text/javascript&quot; src=&quot;./fckeditor/fckeditor.js&quot;&gt;&lt;/script&gt; &lt;!--载入fckeditor类--&gt;
+<br /> &lt;script type=&quot;text/javascript&quot;&gt;
+<br /> &nbsp;&nbsp; window.onload = function()
+<br /> &nbsp;&nbsp; {
+<br /> &nbsp;&nbsp; &nbsp;&nbsp;&nbsp; var oFCKeditor = new FCKeditor( 'MyTextarea' ) ;
+<br /> &nbsp;&nbsp; &nbsp;&nbsp;&nbsp; oFCKeditor.BasePath = &quot;./fckeditor/&quot; ;
+<br /> &nbsp;&nbsp; &nbsp;&nbsp;&nbsp; oFCKeditor.ReplaceTextarea() ;
+<br /> &nbsp;&nbsp; }
+<br /> &lt;/script&gt;
+<br /> &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=gb2312&quot;&gt;
+<br /> &lt;title&gt;用JavaScript调用FCKeditor&lt;/title&gt;
+<br /> &lt;/head&gt;
+<br /> &lt;body&gt;
+<br /> &lt;form action=&quot;check.php&quot; method=&quot;post&quot; name=&quot;example&quot;&gt;
+<br /> &lt;textarea id =&quot;MyTextarea&quot; name=&quot;MyTextarea&quot; &gt;&lt;/textarea&gt;
+<br /> &lt;input name=&quot;ok&quot; type=&quot;submit&quot; value=&quot;提交&quot;&gt;
+<br /> &lt;/form&gt;
+<br /> &lt;/body&gt;
+<br /> &lt;/html&gt;
+<br /> 三：适合于Ajax的调用方法
+<br /> 同理，您同样需要加载类文件。然后使用下面的代码对div元素创建（显示）编辑器。
+<br /> var div = document.getElementById(&quot;myFCKeditor&quot;); //使用getElementById方法取得myFCKeditor ID元素
+<br /> var fck = new FCKeditor(&quot;myFCKeditor&quot;); //创建fckeditor实例
+<br /> div.innerHTML = fck.CreateHtml();//使用innerHTML方法，在myFCKeditor div元素里创建编辑器
+<br /> 
+<br /> 和使用PHP调用fckeditor实例一样，用javascript方法调用fckeditor实例也可以设置编辑器宽度和高度等。
+<br /> oFCKeditor.Height = 400 ; // 400 像素
+<br /> oFCKeditor.Height = &quot;250&quot; ;&nbsp;&nbsp; // 250 像素
+<br /> oFCKeditor.Width&nbsp;&nbsp; = &quot;100%&quot; ; // 百分比
+<br /> 4、 FCKeditor常用设置
+<br /> FCKeditor已经安装成功了，也可以使用了。但是我们可以通过一些简单的设置使FCKeditor更加符合您的项目需求。
+<br /> 设置工具栏很简单，只需打开fckeditor目录下面的fckconfig.js文件，按CTRL+F搜索FCKConfig.ToolbarSets[&quot;Default&quot;]代码，找到如下代码。
+<br /> FCKConfig.ToolbarSets[&quot;Default&quot;] = [
+<br /> ['Source','DocProps','-','Save','NewPage','Preview','-','Templates'],
+<br /> ['Cut','Copy','Paste','PasteText','PasteWord','-','Print','SpellCheck'],
+<br /> ['Undo','Redo','-','Find','Replace','-','SelectAll','RemoveFormat'],
+<br /> ['Form','Checkbox','Radio','TextField','Textarea','Select','Button','ImageButton','HiddenField'],
+<br /> '/',
+<br /> ['Bold','Italic','Underline','StrikeThrough','-','Subscript','Superscript'],
+<br /> ['OrderedList','UnorderedList','-','Outdent','Indent'],
+<br /> ['JustifyLeft','JustifyCenter','JustifyRight','JustifyFull'],
+<br /> ['Link','Unlink','Anchor'],
+<br /> ['Image','Flash','Table','Rule','Smiley','SpecialChar','PageBreak'],
+<br /> '/',
+<br /> ['Style','FontFormat','FontName','FontSize'],
+<br /> ['TextColor','BGColor'],
+<br /> ['FitWindow','-','About']
+<br /> ]
+<br /> 在默认情况下，FCKeditor会调用上面定义的所有工具栏按钮。大家可以根据自己的需求进行设置。表1对上面的配置选项功能说明进行汇总。
+<br /> 代码名称 功能 代码名称 功能
+<br /> Source 源代码 DocProps 页面属性
+<br /> - ｜分隔符 Save 保存
+<br /> NewPage 新建 Preview 预览
+<br /> Templates 模板 Cut 剪切
+<br /> Copy 复制 Paste 粘贴
+<br /> PasteText 粘贴为无格式文本 PasteWord 从MS Word粘贴
+<br /> Print 打印 SpellCheck 拼写检查
+<br /> Undo 撤消 Redo 重做
+<br /> Find 查找 Replace 替换
+<br /> SelectAll 全选 RemoveFormat 清除格式
+<br /> Form 表单 Checkbox 复选框
+<br /> Radio 单选框 TextField 单行文本
+<br /> Textarea 多行文本 Select 列表菜单
+<br /> Button 按钮 ImageButton 图像域
+<br /> HiddenField 隐藏域 Bold 加粗
+<br /> Italic 倾斜 Underline 下划线
+<br /> StrikeThrough 删除线 Subscript 下标
+<br /> Superscript 上标 OrderedList 插入／删除编号列表
+<br /> UnorderedList 插入／删除项目列表 Outdent 减少缩进
+<br /> Indent 增加缩进 JustifyLeft 左对齐
+<br /> JustifyCenter 居中对齐 JustifyRight 右对齐
+<br /> JustifyFull 两端对齐 Link 插入／编辑链接
+<br /> Unlink 取消链接 Anchor 插入／编辑锚点链接
+<br /> Image 插入编辑图像 Flash 插入／编辑Flash
+<br /> Table 插入／编辑表格 Rule 插入水平线
+<br /> Smiley 插入表情 SpecialChar 插入特殊符号
+<br /> PageBreak 插入分页 Style 样式
+<br /> FontFormat 格式 FontName 字体
+<br /> FontSize 大小 TextColor 文本颜色
+<br /> BGColor 背景颜色 FitWindow 全屏编辑
+<br /> About 关于Fuckeditor 
+<br /> 表1：工具栏配置选项功能进行汇总
+<br /> 
+<br /> 你也可以创建一个非默认的工具栏按钮设置，您可以从FCKConfig.ToolbarSets[&quot;Default&quot;]当中的代码重新复制一份，然后将Default改成您想要的名字。
+<br /> 
+<br /> 注意：fckconfig.js配置选项采用JavaScript语法，如果您不懂JavaScript的话，请在配置之前进行备份。
+<br /> 
+<br /> 笔者这里配置了一个适合于大部份网站使用的工栏目按钮（取消了一些不常用的工具栏按钮，并重新布局）。
+<br /> FCKConfig.ToolbarSets[&quot;MyDesign&quot;] = [
+<br /> ['Cut','Copy','Paste','PasteText','PasteWord','-','Undo','Redo','-','Find','Replace','-','RemoveFormat'],
+<br /> ['Link','Unlink','-','Image','Flash','Table'],
+<br /> ['FitWindow','-','Source'],
+<br /> '/',
+<br /> ['FontFormat','FontSize'],
+<br /> ['Bold','Italic','Underline'],
+<br /> ['OrderedList','UnorderedList','-','Outdent','Indent'],
+<br /> ['JustifyLeft','JustifyCenter','JustifyRight'],
+<br /> ['TextColor']
+<br /> ] ;
+<br /> 要想使用自定义的工具栏按钮，必须在创建FCKeditor实例后设置使用的工具栏选项。
+<br /> $oFCKeditor-&gt;ToolbarSet = ' MyDesign ' ; //PHP 
+<br /> oFCKeditor.ToolbarSet = &quot;MyDesign&quot;; &nbsp;&nbsp; //JavaScript
+<br /> 
+<br /> 接下来，我们对常用的一些设置选项功能进行总结，读者可参考fckeditor目录下fckconfig.js文件进行阅读。见表2
+<br /> 
+<br /> FCKConfig.AutoDetectLanguage 自动语言检查
+<br /> FCKConfig.DefaultLanguage 默认语言设计，建议改成zh-cn
+<br /> FCKConfig.ContextMenu 右键菜单内容
+<br /> FCKConfig.ToolbarStartExpanded 当页面载入的时候，工具栏默认情况下是否展开
+<br /> FCKConfig.FontColors 文字颜色列表
+<br /> FCKConfig.FontNames 字体列表，可加入国内常用的字体，如宋体、揩体、黑体等
+<br /> FCKConfig.FontSizes 字号列表
+<br /> FCKConfig.FontFormats 文字格式列表
+<br /> FCKConfig.StylesXmlPath 指定风格XML文件路径
+<br /> FCKConfig.TemplatesXmlPath 指定模板XML文件路径
+<br /> FCKConfig.BodyId 设置编辑器的id
+<br /> FCKConfig.BodyClass 设置编辑器的class
+<br /> FCKConfig.DefaultLinkTarget 设置链接默认情况下的target属性
+<br /> FCKConfig.BaseHref 相对链接的基地址
+<br /> FCKConfig.SkinPath 设置默认皮肤路径
+<br /> FCKConfig.SmileyPath 表情文件路径，您可以设置此项更改表情
+<br /> FCKConfig.SmileyImage 表情文件
+<br /> FCKConfig.SmileyColumns 将表情分成几列显示
+<br /> FCKConfig.SmileyWindowWidth 显示表情窗口的宽度，单位像素
+<br /> FCKConfig.SmileyWindowHeight 显示表情窗口的高度，单位像素
+<br /> 表2：常用设置选项功能汇总
+<br /> 
+<br /> 表2是笔者认为最重要的几个常选项，如果读者还需要更多选项的详细信息，可访问[url]http://warran.blueidea.com/archives/2006/3467.shtml[/url]网址获得。
+<br /> 5、 配置上传\文件浏览功能
+<br /> 5.1、配置上传 
+<br /> 要使您的FCKeditor能够使用上传功能，您必须进行以下配制。
+<br /> 
+<br /> 注意：FCKeditor不支持虚拟目录，您的路径设置都是针对网站根目录的绝对路径而言的。这点对于发布到远程网站目录的开发者极为不便，后面我们会对此进行讨论。
+<br /> 
+<br /> 一、打开fckeditor\editor\filemanager\upload\php\config.php，找到代码$Config['Enabled']，将值设置为true。
+<br /> 
+<br /> 二、接下来几行，设置$Config['UserFilesPath']，设置上传路径。
+<br /> 
+<br /> 三、打开fckeditor\fckconfig.js文件，找到代码_FileBrowserLanguage，将值设置为php。接下来一行，把_QuickUploadLanguage值也设置为php。
+<br /> 5.2、配置文件浏览 
+<br /> 一、打开fckeditor\editor\filemanager\browser\default\connectors\php\config.php
+<br /> 找到代码$Config['Enabled']，将值设置为true;
+<br /> 二、接下来几行，设置$Config['UserFilesPath']，设置浏览路径。
+<br /> 
+<br /> 5.3 、关于上传\文件浏览安全性问题
+<br /> 为了解决FCKeditor不支持虚拟目录问题，和FCKeditor文件上传的安全性考良。我们有必要在这里单论对此进行讨论。
+<br /> 打开fckeditor\editor\filemanager\upload\php\config.php，找到$Config['UserFilesPath']代码，在此行代码之前定义变量$root_path = $_SERVER['PHP_SELF'];
+<br /> 重新设置$Config['UserFilesPath']变量的值，示例如下。
+<br /> $Config['UserFilesPath'] = $root_path . '您想上传的目录名/' ;
+<br /> 
+<br /> 打开fckeditor\editor\filemanager\browser\default\connectors\php\config.php，找到代码$Config['UserFilesPath'],在此行代码之前定义变量$root_path = $_SERVER['PHP_SELF'];
+<br /> 重新设置$Config['UserFilesPath']变量的值，示例如下。
+<br /> $Config['UserFilesPath'] = $root_path . '您想浏览的目录名/'
+<br /> 至此，您的FCKeditor已解决不支持虚拟目录问题。接下来，我们介绍一种技巧配置只允许管理员才可以使用FCKeditor上传问题。
+<br /> 解决方法其实很简单，假如网站采用$_SESSION['admin_id']验证管理员的登录id，您只需将相关的脚本文件引入即可。然后使用下面的代码配置文件上传\浏览开关。
+<br /> $Config['Enabled'] = isset($_SESSION['admin_id']);
+<br /> 
+<br /> 6、 FCKeditor Api
+<br /> 最详细的FCKeditor Api文档默过于官方wiki提供的文档了。
+<br /> FCKeditor Api官方文档地址：[url]http://wiki.fckeditor.net/Developer's_Guide/Javascript_API[/url]
+<br /> 下面提供国内某网友的翻译文档，转载地址：[url]http://blog.imwebs.com/article.asp?id=322[/url]
+<br /> 
+<br /> FCK 编辑器加载后，将会注册一个全局的 FCKeditorAPI 对象。
+<br /> 
+<br /> FCKeditorAPI 对象在页面加载期间是无效的，直到页面加载完成。如果需要交互式地知道 FCK 编辑器已经加载完成，可使用&quot;FCKeditor_OnComplete&quot;函数。
+<br /> &lt;script type=&quot;text/javascript&quot;&gt;
+<br /> function FCKeditor_OnComplete(editorInstance) {
+<br /> &nbsp;&nbsp; FCKeditorAPI.GetInstance('FCKeditor1').Commands.GetCommand('FitWindow').Execute();
+<br /> }
+<br /> &lt;/script&gt;
+<br /> 
+<br /> 在当前页获得 FCK 编辑器实例：
+<br /> var Editor = FCKeditorAPI.GetInstance('InstanceName');
+<br /> 
+<br /> 从 FCK 编辑器的弹出窗口中获得 FCK 编辑器实例：
+<br /> var Editor = window.parent.InnerDialogLoaded().FCK;
+<br /> 
+<br /> 从框架页面的子框架中获得其它子框架的 FCK 编辑器实例：
+<br /> var Editor = window.FrameName.FCKeditorAPI.GetInstance('InstanceName');
+<br /> 
+<br /> 从页面弹出窗口中获得父窗口的 FCK 编辑器实例： 
+<br /> var Editor = opener.FCKeditorAPI.GetInstance('InstanceName');
+<br /> 
+<br /> 获得 FCK 编辑器的内容：
+<br /> oEditor.GetXHTML(formatted); // formatted 为：true|false，表示是否按HTML格式取出
+<br /> 也可用： 
+<br /> oEditor.GetXHTML();
+<br /> 
+<br /> 设置 FCK 编辑器的内容：
+<br /> oEditor.SetHTML(&quot;content&quot;, false); // 第二个参数为：true|false，是否以所见即所得方式设置其内容。此方法常用于&quot;设置初始值&quot;或&quot;表单重置&quot;哦作。
+<br /> 
+<br /> 插入内容到 FCK 编辑器：
+<br /> oEditor.InsertHtml(&quot;html&quot;); // &quot;html&quot;为HTML文本
+<br /> 
+<br /> 检查 FCK 编辑器内容是否发生变化：
+<br /> oEditor.IsDirty();
+<br /> 
+<br /> 在 FCK 编辑器之外调用 FCK 编辑器工具条命令：
+<br /> 命令列表如下：
+<br /> －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+<br /> DocProps, Templates, Link, Unlink, Anchor, BulletedList, NumberedList, About, Find, Replace, Image, Flash, SpecialChar, Smiley, Table, TableProp, TableCellProp, UniversalKey, Style, FontName, FontSize, FontFormat, Source, Preview, Save, NewPage, PageBreak, TextColor, BGColor, PasteText, PasteWord, TableInsertRow, TableDeleteRows, TableInsertColumn, TableDeleteColumns, TableInsertCell, TableDeleteCells, TableMergeCells, TableSplitCell, TableDelete, Form, Checkbox, Radio, TextField, Textarea, HiddenField, Button, Select, ImageButton, SpellCheck, FitWindow, Undo, Redo
+<br /> －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+<br /> 使用方法如下：
+<br /> －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+<br /> oEditor.Commands.GetCommand('FitWindow').Execute();
+<br /> －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+<br /> 7、 精简FCKeditor文件空间大小
+<br /> FCKeditor目录下面包含有许多示例代码，文档等资源，在我们的WEB项目正式发布式前，这些文件不但没有任何意义，反而会占用相当大的空间。下面我们介绍如何删除这些文件。
+<br /> 一：删除所有以“_”开头的文件夹
+<br /> 二：删除fckeditor目录下面除fckconfig.js、fckeditor.js、fckeditor.php、fckeditor_php4.php、fckeditor_php5.php、fckpackager.xml、fckstyles.xml、fcktemplates.xml、editor目录以外的所有文件（即，只保留刚才提到的几个文件和一个目录）。
+<br /> 三：进入fckeditor\editor\filemanager\browser\default\connectors文件夹，只保留PHP文件夹和test.html文件。
+<br /> 四：进入fckeditor\editor\filemanager\upload文件夹，只保留PHP文件夹和test.html文件。
+<br /> 五：进入fckeditor\editor文件夹，这个目录下面是一些语言包文件。除保留_getfontformat.html、_translationstatus.txt、en.js、zh.js、zh-cn.js外，其它语言包对国内项目来说意义不大，可以删除。
+<br /> 六：进入fckeditor\editor\skins文件夹，该文件夹保存FCKeditor文件，如果您不想用可以删除。
+<br /> 
+<br /> FCKeditor使用方法详解 LZ 可以自己仔细研究 这个里面全面介绍了使用方法 
+<br /></div></body></html>

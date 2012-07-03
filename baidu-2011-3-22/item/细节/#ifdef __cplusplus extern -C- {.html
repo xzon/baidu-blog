@@ -1,0 +1,73 @@
+<html><head><title><div class="tit">
+  #ifdef __cplusplus extern &quot;C&quot; {
+</div></title></head><body><div id='tit'>#ifdef __cplusplus extern &quot;C&quot; {</div><div id='cate'>细节</div><div id='date'>2010年03月22日 星期一 11:24 A.M.</div><div id='page'>16</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/bd6ca1ef7c62891afcfa3c54.html'>http://hi.baidu.com/hxzon/blog/item/bd6ca1ef7c62891afcfa3c54.html</a><div id='cnt'><p> #ifdef __cplusplus extern &quot;C&quot; {</p> 
+<p> #ifdef __cplusplus 倒底是什么意思？</p> 
+<p>&nbsp;&nbsp;</p> 
+<p>时常在cpp的代码之中看到这样的代码:</p> 
+<p> </p> 
+<p>#ifdef __cplusplus<br /> extern &quot;C&quot; {<br /> #endif</p> 
+<p> </p> 
+<p>//一段代码</p> 
+<p> </p> 
+<p>#ifdef __cplusplus<br /> }<br /> #endif<br /> 这样的代码到底是什么意思呢？首先，__cplusplus是cpp中的自定义宏，那么定义了这个宏的话表示这是一段cpp的代码，也就是说，上面的代码的含义是:如果这是一段cpp的代码，那么加入extern &quot;C&quot;{和}处理其中的代码。</p> 
+<p> </p> 
+<p> 要明白为何使用extern &quot;C&quot;，还得从cpp中对函数的重载处理开始说起。在c++中，为了支持重载机制，在编译生成的汇编码中，要对函数的名字进行一些处理，加入比如函数的返回类型等等.而在C中，只是简单的函数名字而已，不会加入其他的信息.也就是说:C++和C对产生的函数名字的处理是不一样的.</p> 
+<p> </p> 
+<p> 比如下面的一段简单的函数，我们看看加入和不加入extern &quot;C&quot;产生的汇编代码都有哪些变化:</p> 
+<p> </p> 
+<p>int f(void)<br /> {<br /> return 1;<br /> }<br /> 在加入extern &quot;C&quot;的时候产生的汇编代码是:</p> 
+<p> </p> 
+<p>.file &quot;test.cxx&quot;<br /> .text<br /> .align 2<br /> .globl _f<br /> .def _f; .scl 2; .type 32; .endef<br /> _f:<br /> pushl %ebp<br /> movl %esp， %ebp<br /> movl $1， %eax<br /> popl %ebp<br /> ret<br /> 但是不加入了extern &quot;C&quot;之后</p> 
+<p> </p> 
+<p>.file &quot;test.cxx&quot;<br /> .text<br /> .align 2<br /> .globl __Z1fv<br /> .def __Z1fv; .scl 2; .type 32; .endef<br /> __Z1fv:<br /> pushl %ebp<br /> movl %esp， %ebp<br /> movl $1， %eax<br /> popl %ebp<br /> ret<br /> 两段汇编代码同样都是使用gcc -S命令产生的，所有的地方都是一样的，唯独是产生的函数名，一个是_f，一个是__Z1fv。</p> 
+<p> </p> 
+<p> 明白了加入与不加入extern &quot;C&quot;之后对函数名称产生的影响，我们继续我们的讨论:为什么需要使用extern &quot;C&quot;呢？C++之父在设计C++之时，考虑到当时已经存在了大量的C代码，为了支持原来的C代码和已经写好C库，需要在C++中尽可能的支持C，而 extern &quot;C&quot;就是其中的一个策略。</p> 
+<p> </p> 
+<p> 试想这样的情况:一个库文件已经用C写好了而且运行得很良好，这个时候我们需要使用这个库文件，但是我们需要使用C++来写这个新的代码。如果这个代码使用的是C++的方式链接这个C库文件的话，那么就会出现链接错误.我们来看一段代码:首先，我们使用C的处理方式来写一个函数，也就是说假设这个函数当时是用C写成的:</p> 
+<p> </p> 
+<p>//f1.c<br /> extern &quot;C&quot;<br /> {<br /> void f1()<br /> {<br /> return;<br /> }<br /> }<br /> 编译命令是:gcc -c f1.c -o f1.o 产生了一个叫f1.o的库文件。再写一段代码调用这个f1函数:</p> 
+<p> </p> 
+<p>// test.cxx<br /> //这个extern表示f1函数在别的地方定义，这样可以通过<br /> //编译，但是链接的时候还是需要<br /> // 链接上原来的库文件.<br /> extern void f1();</p> 
+<p> </p> 
+<p>int main()<br /> {<br /> f1();</p> 
+<p> </p> 
+<p>return 0;<br /> }<br /> 通过gcc -c test.cxx -o test.o 产生一个叫test.o的文件。然后，我们使用gcc test.o f1.o来链接两个文件，可是出错了，错误的提示是:</p> 
+<p> </p> 
+<p>test.o(.text + 0x1f):test.cxx: undefine reference to 'f1()'<br /> 也就是说，在编译test.cxx的时候编译器是使用C++的方式来处理f1()函数的，但是实际上链接的库文件却是用C的方式来处理函数的，所以就会出现链接过不去的错误:因为链接器找不到函数。</p> 
+<p> </p> 
+<p> 因此，为了在C++代码中调用用C写成的库文件，就需要用extern &quot;C&quot;来告诉编译器:这是一个用C写成的库文件，请用C的方式来链接它们。</p> 
+<p> </p> 
+<p> 比如，现在我们有了一个C库文件，它的头文件是f.h，产生的lib文件是f.lib，那么我们如果要在C++中使用这个库文件，我们需要这样写:</p> 
+<p> </p> 
+<p>extern &quot;C&quot;<br /> {<br /> #include &quot;f.h&quot;<br /> }<br /> 回到上面的问题，如果要改正链接错误，我们需要这样子改写test.cxx:</p> 
+<p> </p> 
+<p>extern &quot;C&quot;<br /> {<br /> extern void f1();<br /> }</p> 
+<p> </p> 
+<p>int main()<br /> {<br /> f1();</p> 
+<p> </p> 
+<p>return 0;<br /> }<br /> 重新编译并且链接就可以过去了.</p> 
+<p> </p> 
+<p> 总结</p> 
+<p> </p> 
+<p> C和C++对函数的处理方式是不同的.extern &quot;C&quot;是使C++能够调用C写作的库文件的一个手段，如果要对编译器提示使用C的方式来处理函数的话，那么就要使用extern &quot;C&quot;来说明。</p> 
+<p> ===================</p> 
+<p> <strong>3.深层揭密extern &quot;C&quot;</strong><br /> <br /> extern &quot;C&quot; 包含双重含义，从字面上即可得到：首先，被它修饰的目标是“extern”的；其次，被它修饰的目标是“C”的。让我们来详细解读这两重含义。<br /> <br /> 被extern &quot;C&quot;限定的函数或变量是extern类型的；<br /> <br /> extern是C/C++语言中表明函数和全局变量作用范围（可见性）的关键字，该关键字告诉编译器，其声明的函数和变量可以在本模块或其它模块中使用。记住，下列语句：</p> 
+<p class="code"> extern int a;</p> 
+<p><br /> 仅仅是一个变量的声明，其并不是在定义变量a，并未为a分配内存空间。变量a在所有模块中作为一种全局变量只能被定义一次，否则会出现连接错误。<br /> <br /> 通常，在模块的头文件中对本模块提供给其它模块引用的函数和全局变量以关键字extern声明。例如，如果模块B欲引用该模块A中定义的全局变量和函数时只需包含模块A的头文件即可。这样，模块B中调用模块A中的函数时，在编译阶段，模块B虽然找不到该函数，但是并不会报错；它会在连接阶段中从模块A编译生成的目标代码中找到此函数。<br /> <br /> 与extern对应的关键字是 static，被它修饰的全局变量和函数只能在本模块中使用。因此，一个函数或变量只可能被本模块使用时，其不可能被extern “C”修饰。<br /> <br /> 被extern &quot;C&quot;修饰的变量和函数是按照C语言方式编译和连接的；<br /> <br /> <strong>未加extern “C”声明时的编译方式</strong><br /> <br /> 首先看看C++中对类似C的函数是怎样编译的。<br /> <br /> 作为一种面向对象的语言，C++支持函数重载，而过程式语言C则不支持。函数被C++编译后在符号库中的名字与C语言的不同。例如，假设某个函数的原型为：</p> 
+<p class="code">void foo( int x, int y );</p> 
+<p><br /> 该函数被C编译器编译后在符号库中的名字为 _foo，而C++编译器则会产生像_foo_int_int之类的名字（不同的编译器可能生成的名字不同，但是都采用了相同的机制，生成的新名字称为 “mangled name”）。<br /> <br /> _foo_int_int这样的名字包含了函数名、函数参数数量及类型信息，C++就是靠这种机制来实现函数重载的。例如，在C++中，函数void foo( int x, int y )与void foo( int x, float y )编译生成的符号是不相同的，后者为_foo_int_float。</p> 
+<p> 同样地，C++中的变量除支持局部变量外，还支持类成员变量和全局变量。用户所编写程序的类成员变量可能与全局变量同名，我们以&quot;.&quot;来区分。而本质上，编译器在进行编译时，与函数的处理相似，也为类中的变量取了一个独一无二的名字，这个名字与用户程序中同名的全局变量名字不同。<br /> <br /> <strong>未加extern &quot;C&quot;声明时的连接方式</strong><br /> <br /> 假设在C++中，模块A的头文件如下：</p> 
+<p class="code">// 模块A头文件 moduleA.h<br /> #ifndef MODULE_A_H<br /> #define MODULE_A_H<br /> int foo( int x, int y );<br /> #endif</p> 
+<p><br /> 在模块B中引用该函数：</p> 
+<p class="code">// 模块B实现文件 moduleB.cpp<br /> #include &quot;moduleA.h&quot;<br /> foo(2,3);</p> 
+<p><br /> 实际上，在连接阶段，连接器会从模块A生成的目标文件moduleA.obj中寻找_foo_int_int这样的符号！<br /> <br /> <strong>加extern &quot;C&quot;声明后的编译和连接方式</strong><br /> <br /> 加extern &quot;C&quot;声明后，模块A的头文件变为：</p> 
+<p class="code">// 模块A头文件 moduleA.h<br /> #ifndef MODULE_A_H<br /> #define MODULE_A_H<br /> extern &quot;C&quot; int foo( int x, int y );<br /> #endif</p> 
+<p><br /> 在模块 B的实现文件中仍然调用foo( 2,3 )，其结果是：<br /> <br /> （1）模块A编译生成foo的目标代码时，没有对其名字进行特殊处理，采用了C语言的方式；<br /> <br /> （2）连接器在为模块B的目标代码寻找foo(2,3)调用时，寻找的是未经修改的符号名_foo。<br /> <br /> 如果在模块A中函数声明了foo为extern &quot;C&quot;类型，而模块B中包含的是extern int foo( int x, int y ) ，则模块B找不到模块A中的函数；反之亦然。<br /> <br /> 所以，可以用一句话概括extern “C”这个声明的真实目的（任何语言中的任何语法特性的诞生都不是随意而为的，来源于真实世界的需求驱动。我们在思考问题时，不能只停留在这个语言是怎么做的，还要问一问它为什么要这么做，动机是什么，这样我们可以更深入地理解许多问题）：<br /> 实现C++与C及其它语言的混合编程。<br /> 明白了C++中extern &quot;C&quot;的设立动机，我们下面来具体分析extern &quot;C&quot;通常的使用技巧。</p> 
+<p><br /> <strong>4.extern &quot;C&quot;的惯用法</strong><br /> <br /> （1）在C++中引用C语言中的函数和变量，在包含C语言头文件（假设为cExample.h）时，需进行下列处理：</p> 
+<p class="code">extern &quot;C&quot;<br /> {<br /> #include &quot;cExample.h&quot;<br /> }</p> 
+<p><br /> 而在C语言的头文件中，对其外部函数只能指定为extern类型，C语言中不支持extern &quot;C&quot;声明，在.c文件中包含了extern &quot;C&quot;时会出现编译语法错误。<br /> <br /> 笔者编写的C++引用C函数例子工程中包含的三个文件的源代码如下：</p> 
+<p class="code">/* c语言头文件：cExample.h */<br /> #ifndef C_EXAMPLE_H<br /> #define C_EXAMPLE_H<br /> extern int add(int x,int y);<br /> #endif<br /> /* c语言实现文件：cExample.c */<br /> #include &quot;cExample.h&quot;<br /> int add( int x, int y )<br /> {<br /> return x + y;<br /> }<br /> // c++实现文件，调用add：cppFile.cpp<br /> extern &quot;C&quot;<br /> {<br /> #include &quot;cExample.h&quot;<br /> }<br /> int main(int argc, char* argv[])<br /> {<br /> add(2,3);<br /> return 0;<br /> }</p> 
+<p><br /> 如果C++调用一个C语言编写的.DLL时，当包括.DLL的头文件或声明接口函数时，应加extern &quot;C&quot; { }。<br /> <br /> （2）在C中引用C++语言中的函数和变量时，C++的头文件需添加extern &quot;C&quot;，但是在C语言中不能直接引用声明了extern &quot;C&quot;的该头文件，应该仅将C文件中将C++中定义的extern &quot;C&quot;函数声明为extern类型。<br /> 笔者编写的C引用C++函数例子工程中包含的三个文件的源代码如下：</p> 
+<p class="code">//C++头文件 cppExample.h<br /> #ifndef CPP_EXAMPLE_H<br /> #define CPP_EXAMPLE_H<br /> extern &quot;C&quot; int add( int x, int y );<br /> #endif<br /> //C++实现文件 cppExample.cpp<br /> #include &quot;cppExample.h&quot;<br /> int add( int x, int y )<br /> {<br /> return x + y;<br /> }<br /> /* C实现文件 cFile.c<br /> /* 这样会编译出错：#include &quot;cExample.h&quot; */<br /> extern int add( int x, int y );<br /> int main( int argc, char* argv[] )<br /> {<br /> add( 2, 3 );<br /> return 0;<br /> }</p> 
+<p><br /> 如果深入理解了第3节中所阐述的extern &quot;C&quot;在编译和连接阶段发挥的作用，就能真正理解本节所阐述的从C++引用C函数和C引用C++函数的惯用法。对第4节给出的示例代码，需要特别留意各个细节。</p> 
+<p> </p></div></body></html>

@@ -1,0 +1,119 @@
+<html><head><title><div class="tit">
+  Chapter 5 Continued: JNI Example
+</div></title></head><body><div id='tit'>Chapter 5 Continued: JNI Example</div><div id='cate'>j&middot;基础</div><div id='date'>2009年08月25日 星期二 10:42 P.M.</div><div id='page'>34</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/1f95819491d9a817d21b70ab.html'>http://hi.baidu.com/hxzon/blog/item/1f95819491d9a817d21b70ab.html</a><div id='cnt'><h1>Chapter 5 Continued: JNI Example</h1> 
+<p> </p> 
+<p>Chapter 5: <a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jni.html">Java Native Interface (JNI) Technology</a></p> 
+<ul> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html">JNI Example</a></li> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jnistring.html">Strings and Arrays</a></li> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniref.html">Other Programming Issues</a></li> 
+</ul> 
+<p><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#examp">http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#examp</a></p> 
+<p>This section presents the <code><font face="新宋体">ReadFile</font></code> example program. This example shows how you can use the Java Native Interface (JNI) to invoke a native method that makes C function calls to map a file into memory.</p> 
+<ul> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#examp">About the Example</a> 
+  <ul> 
+   <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#native">Native Method Declaration</a></li> 
+   <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#load">Load the Library</a></li> 
+   <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#comp">Compile the Program</a></li> 
+  </ul> </li> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#gen">Generate the Header File</a></li> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#sig">Method Signature</a></li> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#impl">Implement the Native Method</a></li> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#sol">Compile the Dynamic or Shared Object Library</a></li> 
+ <li><a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#run">Run the Example</a></li> 
+</ul> 
+<div> 
+ <p><strong>About the Example</strong></p> 
+ <p>You can call code written in any programming language from a program written in the Java language by declaring a native Java method, loading the library that contains the native code, and then calling the native method. The <code><font face="新宋体">ReadFile</font></code> source code below does exactly this.</p> 
+ <p>However, successfully running the program requires a few additional steps beyond compiling the Java language source file. After you compile, but before you run the example, you have to generate a header file. The native code implements the function defintions contained in the generated header file and implements the business logic as well. The following sections walk through all the steps.</p> 
+ <table class="grey4 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="10" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>import java.util.*;  class ReadFile { //Native method declaration   native byte[] loadFile(String name); //Load the library   static {     System.loadLibrary(&quot;nativelib&quot;);   }    public static void main(String args[]) {     byte buf[]; //Create class instance     ReadFile mappedFile=new ReadFile(); //Call native method to load ReadFile.java     buf=mappedFile.loadFile(&quot;ReadFile.java&quot;); //Print contents of ReadFile.java     for(int i=0;i&lt;buf.length;i++) {       System.out.print((char)buf[i]);     }   } }</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <a name="native"></a> 
+ <p><strong>Native Method Declaration</strong></p> 
+ <p>The <code><font face="新宋体">native</font></code> declaration provides the bridge to run the native function in the Java<a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html#TJVM"><sup>1</sup></a> virtual machine. In this example, the <code><font face="新宋体">loadFile</font></code> function maps onto a C function called <code><font face="新宋体">Java_ReadFile_loadFile</font></code>. The function implementation accepts a <code><font face="新宋体">String</font></code> that represents a file name and returns the contents of that file in the byte array.</p> 
+ <pre>native byte[] loadFile(String name);</pre> 
+ <a name="load"></a> 
+ <p><strong>Load the Library</strong></p> 
+ <p>The library containing the native code implementation is loaded by a call to <code><font face="新宋体">System.loadLibrary()</font></code>. Placing this call in a static initializer ensures this library is only loaded once per class. The library can be loaded outside of the static block if your application requires it. You might need to configure your environment so the <code><font face="新宋体">loadLibrary</font></code> method can find your native code library.</p> 
+ <pre>static {     System.loadLibrary(&quot;nativelib&quot;);   }</pre> 
+ <a name="comp"></a> 
+ <p><strong>Compile the Program</strong></p> 
+ <p>To compile the program, just run the <code><font face="新宋体">javac</font></code> compiler command as you normally would:</p> 
+ <pre>javac ReadFile.java</pre> 
+ <p>Next, you need to generate a header file with the native method declaration and implement the native method to call the C functions for loading and reading a file.</p> 
+ <a name="gen"></a> 
+ <p><strong>Generate the Header File</strong></p> 
+ <p>To generate a a header file, run the <code><font face="新宋体">javah</font></code> command on the <code><font face="新宋体">ReadFile</font></code> class. In this example, the generated header file is named <code><font face="新宋体">ReadFile.h</font></code>. It provides a method signature that you have to use when you implement the <code><font face="新宋体">loadfile</font></code> native function.</p> 
+ <pre>javah -jni ReadFile</pre> 
+ <p> </p> 
+ <blockquote>
+  <strong>Note:</strong> When running 
+  <code><font face="新宋体">javah</font></code> on your own classes, be sure to use the fully-qualified class name. 
+ </blockquote>
+ <a name="sig"></a> 
+ <p><strong>Method Signature</strong></p> 
+ <p>The <code><font face="新宋体">ReadFile.h</font></code> header file defines the interface to map the Java language method to the native C function. It uses a method signature to map the arguments and return value of the Java language <code><font face="新宋体">mappedfile.loadFile</font></code> method to the <code><font face="新宋体">loadFile</font></code> native method in the <code><font face="新宋体">nativelib</font></code> library. Here is the <code><font face="新宋体">loadFile</font></code> native method mapping (method signature):</p> 
+ <table class="grey4 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="10" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>/*    * Class:     ReadFile    * Method:    loadFile    * Signature: (Ljava/lang/String;)[B    */   JNIEXPORT jbyteArray JNICALL Java_ReadFile_loadFile     (JNIEnv *, jobject, jstring);</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>The method signature parameters function as follows:</p> 
+ <ul> 
+  <li><code><font face="新宋体">JNIEnv *</font></code>: A pointer to the JNI environment. This pointer is a handle to the current thread in the Java virtual machine, and contains mapping and other hosuekeeping information. <p> </p> </li> 
+  <li><code><font face="新宋体">jobject</font></code>: A reference to the method that called this native code. If the calling method is static, this parameter would be type <code><font face="新宋体">jclass</font></code> instead of <code><font face="新宋体">jobject</font></code>. <p> </p> </li> 
+  <li><code><font face="新宋体">jstring</font></code>: The parameter supplied to the native method. In this example, it is the name of the file to be read.</li> 
+ </ul> 
+ <a name="impl"></a> 
+ <p><strong>Implement the Native Method</strong></p> 
+ <p>In this native C source file, the <code><font face="新宋体">loadFile</font></code> definition is a copy and paste of the C declaration contained in <code><font face="新宋体">ReadFile.h</font></code>. The definition is followed by the native method implementation. JNI provides a mapping for both C and C++ by default.</p> 
+ <table class="grey4 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="10" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>#include &lt;jni.h&gt; #include &lt;sys/types.h&gt; #include &lt;sys/ipc.h&gt; #include &lt;sys/shm.h&gt; #include &lt;sys/mman.h&gt; #include &lt;sys/stat.h&gt; #include &lt;fcntl.h&gt; #include &lt;unistd.h&gt;  JNIEXPORT jbyteArray JNICALL Java_ReadFile_loadFile   (JNIEnv * env, jobject jobj, jstring name) {     caddr_t m;     jbyteArray jb;     jboolean iscopy;     struct stat finfo;     const char *mfile = (*env)-&gt;GetStringUTFChars(                 env, name, &amp;iscopy);     int fd = open(mfile, O_RDONLY);      if (fd == -1) {       printf(&quot;Could not open %s\n&quot;, mfile);     }     lstat(mfile, &amp;finfo);     m = mmap((caddr_t) 0, finfo.st_size,                 PROT_READ, MAP_PRIVATE, fd, 0);     if (m == (caddr_t)-1) {       printf(&quot;Could not mmap %s\n&quot;, mfile);       return(0);     }     jb=(*env)-&gt;NewByteArray(env, finfo.st_size);     (*env)-&gt;SetByteArrayRegion(env, jb, 0,   finfo.st_size, (jbyte *)m);     close(fd);     (*env)-&gt;ReleaseStringUTFChars(env, name, mfile);     return (jb); }</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>You can approach calling an existing C function instead of implementing one, in one of two ways:</p> 
+ <ol> 
+  <li>Map the name generated by JNI to the existing C function name. The <a href="http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniref.html#add">Language Issues</a> section shows how to map between Xbase database functions and Java language code <p> </p> </li> 
+  <li>Use the shared stubs code available from the <a href="http://java.sun.com/products/jdk/faq/jnifaq.html">JNI page</a> on the java.sun.com web site.</li> 
+ </ol> 
+ <a name="sol"></a> 
+ <p><strong>Compile the Dynamic or Shared Object Library</strong></p> 
+ <p>The library needs to be compiled as a dynamic or shared object library so it can be loaded at runtime. Static or archive libraries are compiled into an executable and cannot be loaded at runtime. The shared object or dynamic library for the <code><font face="新宋体">loadFile</font></code> example is compiled as follows:</p> 
+ <table class="grey4 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="10" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td> <pre><strong>Gnu C/Linux:</strong>  gcc  -o libnativelib.so -shared -Wl,-soname,libnative.so        -I/export/home/jdk1.2/include       -I/export/home/jdk1.2/include/linux nativelib.c        -static -lc  Gnu C++/Linux with Xbase  g++ -o libdbmaplib.so -shared -Wl,-soname,libdbmap.so       -I/export/home/jdk1.2/include      -I/export/home/jdk1.2/include/linux      dbmaplib.cc -static -lc -lxbase  <strong>Win32/WinNT/Win2000</strong>  cl -Ic:/jdk1.2/include     -Ic:/jdk1.2/include/win32     -LD nativelib.c -Felibnative.dll</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <a name="run"></a> 
+ <p><strong>Run the Example</strong></p> 
+ <p>To run the example, the Java virtual machine needs to be able to find the native library. To do this, set the library path to the current directory as follows:</p> 
+ <p> </p> 
+ <table class="grey4 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="10" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td> <pre><strong>Unix or Linux:</strong>   LD_LIBRARY_PATH=`pwd`   export LD_LIBRARY_PATH  <strong>Windows NT/2000/95:</strong>   set PATH=%path%;.</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>With the library path properly specified for your platform, invoke the program as you normally would with the interpreter command:</p> 
+ <pre>java ReadFile</pre> 
+ <p>_______<br /> <a name="TJVM"><sup>1</sup></a> As used on this web site, the terms &quot;Java virtual machine&quot; or &quot;JVM&quot; mean a virtual machine for the Java platform.</p> 
+</div></div></body></html>

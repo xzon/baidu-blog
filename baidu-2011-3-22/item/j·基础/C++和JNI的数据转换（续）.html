@@ -1,0 +1,64 @@
+<html><head><title><div class="tit">
+  C++和JNI的数据转换（续）
+</div></title></head><body><div id='tit'>C++和JNI的数据转换（续）</div><div id='cate'>j&middot;基础</div><div id='date'>2009年08月25日 星期二 09:08 P.M.</div><div id='page'>34</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6a2181d65cb04a2606088be0.html'>http://hi.baidu.com/hxzon/blog/item/6a2181d65cb04a2606088be0.html</a><div id='cnt'><div> 
+ <p>C++和JNI的数据转换（续）</p> 
+ <p>全部的C/C++方法实现代码如下:<br /> /**//*<br /> *<br /> * 一缕阳光(sundy)版权所有，保留所有权利。<br /> */<br /> /**//**<br /> * <br /> * TODO Jni 中一个从Java到C/C++参数传递测试类<br /> *<br /> * @author 刘正伟(sundy)<br /> * @see http://www.cnweblog.com/sundy<br /> * @see mailto:sundy26@126.com<br /> * @version 1.0<br /> * @since 2005-4-30<br /> * <br /> * 修改记录：<br /> * <br /> * 日期&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 修改人&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 描述<br /> * ----------------------------------------------------------------------------------------------<br /> *<br /> *<br /> *<br /> */<br /> // JniManage.cpp : 定义 DLL 应用程序的入口点。<br /> //<br /> package com.sundy.jnidemo;<br /> #include &quot;stdafx.h&quot;<br /> <br /> #include &lt;stdio.h&gt;<br /> #include &lt;math.h&gt;<br /> #include &quot;jni.h&quot;<br /> #include &quot;jni_md.h&quot;<br /> <br /> #include &quot;./head/Base.h&quot;<br /> #include &quot;head/wmi.h&quot;<br /> #include &quot;head/com_sundy_jnidemo_ChangeMethodFromJni.h&quot; //通过javah –jni javactransfer 生成<br /> #include &lt;stdio.h&gt;<br /> #include &quot;stdlib.h&quot;<br /> #include &quot;string.h&quot;<br /> <br /> #pragma comment (lib,&quot;BaseInfo.lib&quot;)<br /> #pragma comment (lib,&quot;jvm.lib&quot;)<br /> //硬盘信息<br /> struct&nbsp;&nbsp; {<br /> char name[256];<br /> int serial;<br /> }DiskInfo;<br /> /**//*BOOL APIENTRY DllMain( HANDLE hModule, <br /> DWORD ul_reason_for_call, <br /> LPVOID lpReserved<br /> )<br /> {<br /> LPTSTR strName = new CHAR[256] ;<br /> (*GetHostName)(strName);<br /> printf(&quot;%s\n&quot;,strName);<br /> delete [] strName;<br /> <br /> return TRUE;<br /> }*/<br /> //将jstring类型转换成windows类型<br /> char* jstringToWindows( JNIEnv *env, jstring jstr );<br /> //将windows类型转换成jstring类型<br /> jstring WindowsTojstring( JNIEnv* env, char* str );<br /> <br /> //主函数<br /> BOOL WINAPI DllMain(HANDLE hHandle, DWORD dwReason, LPVOID lpReserved)<br /> {<br /> return TRUE;<br /> }<br /> //输入常用的数值类型 Boolean,Byte,Char,Short,Int,Float,Double<br /> JNIEXPORT void JNICALL Java_com_sundy_jnidemo_ChangeMethodFromJni_displayParms<br /> (JNIEnv *env, jobject obj, jstring s, jint i, jboolean b)<br /> {<br /> const char* szStr = (env)-&gt;GetStringUTFChars(s, 0 );<br /> printf( &quot;String = [%s]\n&quot;, szStr );<br /> printf( &quot;int = %d\n&quot;, i );<br /> printf( &quot;boolean = %s\n&quot;, (b==JNI_TRUE ? &quot;true&quot; : &quot;false&quot;) );<br /> (env)-&gt;ReleaseStringUTFChars(s, szStr );<br /> }<br /> <br /> //调用一个静态方法,只有一个简单类型输出<br /> JNIEXPORT jint JNICALL Java_com_sundy_jnidemo_ChangeMethodFromJni_add<br /> (JNIEnv *env, jobject, jint a, jint b)<br /> {<br /> int rtn = (int)(a + b);<br /> return (jint)rtn;<br /> }<br /> <br /> /**/////输入一个数组,这里输入的是一个Boolean类型的数组<br /> JNIEXPORT void JNICALL Java_com_sundy_jnidemo_ChangeMethodFromJni_setArray<br /> (JNIEnv *env, jobject, jbooleanArray ba)<br /> {<br /> jboolean* pba = (env)-&gt;GetBooleanArrayElements(ba, 0 );<br /> jsize len = (env)-&gt;GetArrayLength(ba);<br /> int i=0;<br /> // change even array elements<br /> for( i=0; i &lt; len; i+=2 )<br /> {<br /> pba[i] = JNI_FALSE;<br /> printf( &quot;boolean = %s\n&quot;, (pba[i]==JNI_TRUE ? &quot;true&quot; : &quot;false&quot;) );<br /> }<br /> (env)-&gt;ReleaseBooleanArrayElements(ba, pba, 0 );<br /> }<br /> <br /> /**/////返回一个字符串数组<br /> JNIEXPORT jobjectArray JNICALL Java_com_sundy_jnidemo_ChangeMethodFromJni_getStringArray<br /> (JNIEnv *env, jobject)<br /> {<br /> jstring&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; str;<br /> jobjectArray args = 0;<br /> jsize&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; len = 5;<br /> char*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sa[] = { &quot;Hello,&quot;, &quot;world!&quot;, &quot;JNI&quot;, &quot;is&quot;, &quot;fun&quot; };<br /> int&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; i=0;<br /> args = (env)-&gt;NewObjectArray(len,(env)-&gt;FindClass(&quot;java/lang/String&quot;),0);<br /> for( i=0; i &lt; len; i++ )<br /> {<br /> str = (env)-&gt;NewStringUTF(sa[i] );<br /> (env)-&gt;SetObjectArrayElement(args, i, str);<br /> }<br /> return args;<br /> }<br /> <br /> //返回一个结构,这里返回一个硬盘信息的简单结构类型<br /> JNIEXPORT jobject JNICALL Java_com_sundy_jnidemo_ChangeMethodFromJni_getStruct<br /> (JNIEnv *env, jobject obj)<br /> {<br /> /**//* 下面为获取到Java中对应的实例类中的变量*/<br /> <br /> //获取Java中的实例类<br /> jclass objectClass = (env)-&gt;FindClass(&quot;com/sundy/jnidemo/DiskInfo&quot;);<br /> <br /> //获取类中每一个变量的定义<br /> //名字<br /> jfieldID str = (env)-&gt;GetFieldID(objectClass,&quot;name&quot;,&quot;Ljava/lang/String;&quot;);<br /> //序列号<br /> jfieldID ival = (env)-&gt;GetFieldID(objectClass,&quot;serial&quot;,&quot;I&quot;);<br /> <br /> <br /> //给每一个实例的变量付值<br /> (env)-&gt;SetObjectField(obj,str,(env)-&gt;NewStringUTF(&quot;my name is D:&quot;));<br /> (env)-&gt;SetShortField(obj,ival,10);<br /> <br /> return obj;<br /> }<br /> <br /> //返回一个结构数组，返回一个硬盘信息的结构数组<br /> JNIEXPORT jobjectArray JNICALL Java_com_sundy_jnidemo_ChangeMethodFromJni_getStructArray<br /> (JNIEnv *env, jobject _obj)<br /> {<br /> //申明一个object数组 <br /> jobjectArray args = 0;<br /> <br /> //数组大小<br /> jsize&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; len = 5;<br /> <br /> //获取object所属类,一般为ava/lang/Object就可以了<br /> jclass objClass = (env)-&gt;FindClass(&quot;java/lang/Object&quot;);<br /> <br /> //新建object数组<br /> args = (env)-&gt;NewObjectArray(len, objClass, 0);<br /> <br /> /**//* 下面为获取到Java中对应的实例类中的变量*/<br /> <br /> //获取Java中的实例类<br /> jclass objectClass = (env)-&gt;FindClass(&quot;com/sundy/jnidemo/DiskInfo&quot;);<br /> <br /> //获取类中每一个变量的定义<br /> //名字<br /> jfieldID str = (env)-&gt;GetFieldID(objectClass,&quot;name&quot;,&quot;Ljava/lang/String;&quot;);<br /> //序列号<br /> jfieldID ival = (env)-&gt;GetFieldID(objectClass,&quot;serial&quot;,&quot;I&quot;);<br /> <br /> //给每一个实例的变量付值，并且将实例作为一个object，添加到objcet数组中<br /> for(int i=0; i &lt; len; i++ )<br /> {<br /> //给每一个实例的变量付值<br /> jstring jstr = WindowsTojstring(env,&quot;我的磁盘名字是 D:&quot;);<br /> //(env)-&gt;SetObjectField(_obj,str,(env)-&gt;NewStringUTF(&quot;my name is D:&quot;));<br /> (env)-&gt;SetObjectField(_obj,str,jstr);<br /> (env)-&gt;SetShortField(_obj,ival,10);<br /> <br /> //添加到objcet数组中<br /> (env)-&gt;SetObjectArrayElement(args, i, _obj);<br /> }<br /> //返回object数组<br /> return args;<br /> <br /> }<br /> <br /> //将jstring类型转换成windows类型<br /> char* jstringToWindows( JNIEnv *env, jstring jstr )<br /> {<br /> int length = (env)-&gt;GetStringLength(jstr );<br /> const jchar* jcstr = (env)-&gt;GetStringChars(jstr, 0 );<br /> char* rtn = (char*)malloc( length*2+1 );<br /> int size = 0;<br /> size = WideCharToMultiByte( CP_ACP, 0, (LPCWSTR)jcstr, length, rtn,(length*2+1), NULL, NULL );<br /> if( size &lt;= 0 )<br /> return NULL;<br /> (env)-&gt;ReleaseStringChars(jstr, jcstr );<br /> rtn[size] = 0;<br /> return rtn;<br /> }<br /> //将windows类型转换成jstring类型<br /> jstring WindowsTojstring( JNIEnv* env, char* str )<br /> {<br /> jstring rtn = 0;<br /> int slen = strlen(str);<br /> unsigned short * buffer = 0;<br /> if( slen == 0 )<br /> rtn = (env)-&gt;NewStringUTF(str ); <br /> else<br /> {<br /> int length = MultiByteToWideChar( CP_ACP, 0, (LPCSTR)str, slen, NULL, 0 );<br /> buffer = (unsigned short *)malloc( length*2 + 1 );<br /> if( MultiByteToWideChar( CP_ACP, 0, (LPCSTR)str, slen, (LPWSTR)buffer, length ) &gt;0 )<br /> rtn = (env)-&gt;NewString( (jchar*)buffer, length );<br /> }<br /> if( buffer )<br /> free( buffer );<br /> return rtn;<br /> }</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ Java 测试native代码
+ <br /> 这没有什么多说的，看代码吧
+ <br /> 
+ <br /> //主测试程序
+ <br /> public static void main(String[] args) {
+ <br /> ChangeMethodFromJni changeJni = new ChangeMethodFromJni();
+ <br /> 
+ <br /> //输入常用的数值类型(string int boolean)
+ <br /> System.out
+ <br /> .println(&quot;------------------输入常用的数值类型(string int boolean)-----------&quot;);
+ <br /> changeJni.displayParms(&quot;Hello World!&quot;, 100, true);
+ <br /> 
+ <br /> //调用一个静态方法
+ <br /> System.out.println(&quot;------------------调用一个静态方法-----------&quot;);
+ <br /> int ret = changeJni.add(12, 20);
+ <br /> System.out.println(&quot;The result is: &quot; + String.valueOf(ret));
+ <br /> 
+ <br /> //输入一个数组
+ <br /> System.out.println(&quot;------------------输入一个数组-----------&quot;);
+ <br /> boolean[] blList = new boolean[] { true, false, true };
+ <br /> changeJni.setArray(blList);
+ <br /> 
+ <br /> //返回一个字符串数组
+ <br /> System.out.println(&quot;------------------返回一个字符串数组-----------&quot;);
+ <br /> String[] strList = changeJni.getStringArray();
+ <br /> for (int i = 0; i &lt; strList.length; i++) {
+ <br /> System.out.print(strList[i]);
+ <br /> }
+ <br /> System.out.println();
+ <br /> 
+ <br /> System.out.println(&quot;------------------返回一个结构-----------&quot;);
+ <br /> 
+ <br /> //返回一个结构
+ <br /> DiskInfo disk = changeJni.getStruct();
+ <br /> System.out.println(&quot;name:&quot; + disk.name);
+ <br /> System.out.println(&quot;Serial:&quot; + disk.serial);
+ <br /> 
+ <br /> //返回一个结构数组
+ <br /> 
+ <br /> System.out.println(&quot;------------------返回一个结构数组 -----------&quot;);
+ <br /> DiskInfo[] diskList = changeJni.getStructArray();
+ <br /> for (int i = 0; i &lt; diskList.length; i++) {
+ <br /> System.out.println(&quot;name:&quot; + diskList[i].name);
+ <br /> System.out.println(&quot;Serial:&quot; + diskList[i].serial);
+ <br /> }
+ <br /> 
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 注:本程序在VS2003,eclipse (jse5.0) winxp sp2编译通过
+</div> 
+<div> 
+</div></div></body></html>

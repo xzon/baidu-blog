@@ -1,0 +1,161 @@
+<html><head><title><div class="tit">
+  Welcome to SwingLabs SwingX!
+</div></title></head><body><div id='tit'>Welcome to SwingLabs SwingX!</div><div id='cate'>j&middot;桌面</div><div id='date'>2009年08月13日 星期四 10:31 A.M.</div><div id='page'>37</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/64697f318ecb1c10eac4af37.html'>http://hi.baidu.com/hxzon/blog/item/64697f318ecb1c10eac4af37.html</a><div id='cnt'><p> </p> 
+<p> </p> 
+<p>Welcome to SwingLabs SwingX!</p> 
+<p>Contains extensions to the Swing GUI toolkit, including new and enhanced components that provide functionality commonly required by rich client applications. Highlights include:</p> 
+<p>&nbsp;&nbsp;&nbsp; * Sorting, filtering, highlighting for tables, trees, and lists<br /> &nbsp;&nbsp;&nbsp; * Find/search<br /> &nbsp;&nbsp;&nbsp; * Auto-completion<br /> &nbsp;&nbsp;&nbsp; * Login/authentication framework<br /> &nbsp;&nbsp;&nbsp; * TreeTable component<br /> &nbsp;&nbsp;&nbsp; * Collapsible panel component<br /> &nbsp;&nbsp;&nbsp; * Date picker component<br /> &nbsp;&nbsp;&nbsp; * Tip-of-the-Day component</p> 
+<p>Many of these features will eventually be incorporated into the Swing toolkit, although API compatibility will not be guaranteed. The SwingX project focuses exclusively on the raw components themselves.</p> 
+<p><br /> SwingX-1.0<br /> 稳定 rah003 于 2009年5月31日 星期日，15:50:41 7.2 mB &nbsp;&nbsp; Milestone Release 1.0 <br /> SwingX-1.0-javadoc<br /> 稳定 rah003 于 2009年5月31日 星期日，15:24:55 5.03 mB &nbsp;&nbsp; Milestone Release 1.0, javadoc <br /> SwingX-1.0-sources<br /> 稳定 rah003 于 2009年5月31日 星期日，15:40:23 11.97 mB &nbsp;&nbsp; Milestone Release 1.0, sources</p> 
+<p>======================</p> 
+<dl>
+ <dt> 
+  <pre>public class <strong>JXTable</strong></pre>
+ </dt>
+ <dt>
+  extends JTable
+ </dt>
+ <dt>
+  implements TableColumnModelExtListener
+ </dt> 
+</dl> 
+<pre> </pre> 
+<p>Enhanced Table component with support for general SwingX sorting/filtering, rendering, highlighting, rollover and search functionality. Table specific enhancements include runtime configuration options like toggle column visibility, column sizing, PENDING JW ...</p> 
+<h2>Sorting and Filtering</h2> 
+<p>JXTable supports sorting and filtering of rows. Sorting support is single column only. It provides api to apply a specific sort order or to toggle the sort order of columns identified by view index or column identifier or reset all sorts.</p> 
+<pre><code>
+ table.setSortOrder(&quot;PERSON_ID&quot;, SortOrder.DESCENDING);
+ table.toggleSortOder(4);
+ table.resetSortOrder();
+ </code></pre> 
+<p>Sorting sequence can be configured per column by setting the TableColumnExt's &quot;comparator&quot; property. Sorting can be disabled per column or per table by <code><font face="新宋体">setSortable(boolean)</font></code>.</p> 
+<p>Typically, a JXTable is sortable by left clicking on column headers. By default, each subsequent click on a header reverses the order of the sort, and a sort arrow icon is automatically drawn on the header. The exact mapping of a user gesture to a sort effect is configurable by installing a custom SortGestureRecognizer on the JXTableHeader.</p> 
+<p>Rows can be filtered from a JXTable using a Filter class and a FilterPipeline. One assigns a FilterPipeline to the table using <code><font face="新宋体">setFilters(FilterPipeline)</font></code>. Filtering hides, but does not delete nor permanently remove rows from a JXTable. Filters are used to provide sorting to the table--rows are not removed, but the table is made to believe rows in the model are in a sorted order. <strong>NOTE:</strong> SwingX sorting/filtering is incompatible with core sorting/filtering in JDK 6+. Will be replaced by core functionality after switching the target jdk version from 5 to 6.</p> 
+<h2>Rendering and Highlighting</h2> 
+<p>As all SwingX collection views, a JXTable is a HighlighterClient (PENDING JW: formally define and implement, like in AbstractTestHighlighter), that is it provides consistent api to add and remove Highlighters which can visually decorate the rendering component.</p> 
+<p>An example multiple highlighting (default striping as appropriate for the current LookAndFeel, cell foreground on matching pattern, and shading a column):</p> 
+<pre><code>
+ 
+ Highlighter simpleStriping = HighlighterFactory.createSimpleStriping();
+ PatternPredicate patternPredicate = new PatternPredicate(&quot;ˆM&quot;, 1);
+ ColorHighlighter magenta = new ColorHighlighter(patternPredicate, null,
+       Color.MAGENTA, null, Color.MAGENTA);
+ Highlighter shading = new ShadingColorHighlighter(
+       new HighlightPredicate.ColumnHighlightPredicate(1));
+ 
+ table.setHighlighters(simpleStriping,
+        magenta,
+        shading);
+ </code></pre> 
+<p>To fully support, JXTable registers SwingX default table renderers instead of core defaults (see <code><font face="新宋体">DefaultTableRenderer</font></code>) The recommended approach for customizing rendered content it to intall a DefaultTableRenderer configured with a custom String- and/or IconValue. F.i. assuming the cell value is a File and should be rendered by showing its name followed and date of last change:</p> 
+<pre><code>
+ StringValue sv = new StringValue() {
+      public String getString(Object value) {
+        if (!(value instanceof File)) return StringValues.TO_STRING.getString(value);
+        return StringValues.FILE_NAME.getString(value) + &quot;, &quot; 
+           + StringValues.DATE_TO_STRING.getString(((File) value).lastModified());
+ }};
+ table.setCellRenderer(File.class, new DefaultTableRenderer(sv));
+ </code></pre> 
+<p><strong>Note</strong>: DefaultTableCellRenderer and subclasses require a hack to play nicely with Highlighters because it has an internal &quot;color memory&quot; in setForeground/setBackground. The hack is applied by default which might lead to unexpected side-effects in custom renderers subclassing DTCR. See <code><font face="新宋体">resetDefaultTableCellRendererHighlighter</font></code> for details.</p> 
+<h2>Rollover</h2> 
+<p>As all SwingX collection views, a JXTable supports per-cell rollover which is enabled by default. If enabled, the component fires rollover events on enter/exit of a cell which by default is promoted to the renderer if it implements RolloverRenderer, that is simulates live behaviour. The rollover events can be used by client code as well, f.i. to decorate the rollover row using a Highlighter.</p> 
+<pre><code>
+ JXTable table = new JXTable();
+ table.addHighlighter(new ColorHighlighter(HighlightPredicate.ROLLOVER_ROW, 
+      null, Color.RED);      
+ </code></pre> 
+<h2>Search</h2> 
+<p>As all SwingX collection views, a JXTable is searchable. A search action is registered in its ActionMap under the key &quot;find&quot;. The default behaviour is to ask the SearchFactory to open a search component on this component. The default keybinding is retrieved from the SearchFactory, typically ctrl-f (or cmd-f for Mac). Client code can register custom actions and/or bindings as appropriate.</p> 
+<p>JXTable provides api to vend a renderer-controlled String representation of cell content. This allows the Searchable and Highlighters to use WYSIWYM (What-You-See-Is-What-You-Match), that is pattern matching against the actual string as seen by the user.</p> 
+<h2>Column Configuration</h2> 
+<p>JXTable's default column model is of type TableColumnModelExt which allows management of hidden columns. Furthermore, it guarantees to delegate creation and configuration of table columns to its ColumnFactory. The factory is meant as the central place to customize column configuration.</p> 
+<p>Columns can be hidden or shown by setting the visible property on the TableColumnExt using <code><font face="新宋体">TableColumnExt.setVisible(boolean)</font></code>. Columns can also be shown or hidden from the column control popup.</p> 
+<p>The column control popup is triggered by an icon drawn to the far right of the column headers, above the table's scrollbar (when installed in a JScrollPane). The popup allows the user to select which columns should be shown or hidden, as well as to pack columns and turn on horizontal scrolling. To show or hide the column control, use the <code><font face="新宋体">setColumnControlVisible(boolean show)</font></code>method.</p> 
+<p>You can resize all columns, selected columns, or a single column using the methods like <code><font face="新宋体">packAll()</font></code>. Packing combines several other aspects of a JXTable. If horizontal scrolling is enabled using <code><font face="新宋体">setHorizontalScrollEnabled(boolean)</font></code>, then the scrollpane will allow the table to scroll right-left, and columns will be sized to their preferred size. To control the preferred sizing of a column, you can provide a prototype value for the column in the TableColumnExt using <code><font face="新宋体">TableColumnExt.setPrototypeValue(Object)</font></code>. The prototype is used as an indicator of the preferred size of the column. This can be useful if some data in a given column is very long, but where the resize algorithm would normally not pick this up.</p> 
+<p> </p> 
+<p>Keys/Actions registered with this component:</p> 
+<ul> 
+ <li>&quot;find&quot; - open an appropriate search widget for searching cell content. The default action registeres itself with the SearchFactory as search target.</li> 
+ <li>&quot;print&quot; - print the table</li> 
+ <li><code><font face="新宋体">HORIZONTALSCROLL_ACTION_COMMAND</font></code> - toggle the horizontal scrollbar</li> 
+ <li><code><font face="新宋体">PACKSELECTED_ACTION_COMMAND</font></code> - resize the selected column to fit the widest cell content</li> 
+ <li><code><font face="新宋体">PACKALL_ACTION_COMMAND</font></code> - resize all columns to fit the widest cell content in each column</li> 
+</ul> 
+<p>Key bindings.</p> 
+<ul> 
+ <li>&quot;control F&quot; - bound to actionKey &quot;find&quot;.</li> 
+</ul> 
+<p>Client Properties.</p> 
+<ul> 
+ <li><code><font face="新宋体">MATCH_HIGHLIGHTER</font></code> - set to Boolean.TRUE to use a SearchHighlighter to mark a cell as matching.</li> 
+</ul> 
+<p> </p> 
+<p> </p> 
+<dl>
+ <dt>
+  <strong>See Also:</strong> 
+ </dt>
+ <dd>
+  <code><font face="新宋体">JXTableHeader.SortGestureRecognizer</font></code>, Serialized Form
+ </dd>
+</dl>
+<dl>
+ ============================
+ <br /> &nbsp;&nbsp;&nbsp; public JXTaskPaneDemo() {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setLayout(new BorderLayout());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JXTaskPaneContainer container = new JXTaskPaneContainer();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JXTaskPane taskPane = new JXTaskPane();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.setTitle(&quot;TODO Tasks&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.add(new TODOAction(&quot;Prepare slides for JavaPolis&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.add(new TODOAction(&quot;Buy Christmas presents&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.add(new TODOAction(&quot;Meet with Brian about SwingLabs&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; container.add(taskPane);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane = new JXTaskPane();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.setTitle(&quot;Key Dates&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.add(new TODOAction(&quot;December 25&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.add(new TODOAction(&quot;January 1&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.add(new TODOAction(&quot;Febuary 14&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.add(new TODOAction(&quot;March 26&quot;));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; container.add(taskPane);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane = new JXTaskPane();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.setTitle(&quot;Notes&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; taskPane.add(new JScrollPane(new JTextArea(15, 20)));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; container.add(taskPane);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; add(new JScrollPane(container));
+ <br /> &nbsp;&nbsp;&nbsp; } 
+ <br /> ==========================
+ <br /> public class JXLoginPaneDemo {
+</dl>
+<dl>
+ &nbsp;&nbsp;&nbsp; public static void main(String[] args) throws Exception {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JXLoginPane panel = new JXLoginPane();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JFrame frame = JXLoginPane.showLoginFrame(panel);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; panel.setSaveMode(SaveMode.BOTH);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.pack();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.setVisible(true);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // server combo
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; panel = new JXLoginPane();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; panel.setServers(Arrays.asList(new String[] {&quot;server1&quot;,&quot;server2&quot;}));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame = JXLoginPane.showLoginFrame(panel);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; panel.setSaveMode(SaveMode.BOTH);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.pack();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.setVisible(true);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.err.println(&quot;exception when executing interactive tests:&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> }
+</dl></div></body></html>

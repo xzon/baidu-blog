@@ -1,0 +1,216 @@
+<html><head><title><div class="tit">
+  C语言嵌入式系统编程修炼之软件架构篇
+</div></title></head><body><div id='tit'>C语言嵌入式系统编程修炼之软件架构篇</div><div id='cate'>c&middot;基础</div><div id='date'>2007年12月25日 星期二 00:16 A.M.</div><div id='page'>186</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/bd6ca1ef77109012fdfa3cde.html'>http://hi.baidu.com/hxzon/blog/item/bd6ca1ef77109012fdfa3cde.html</a><div id='cnt'><div class="tit">
+ C语言嵌入式系统编程修炼之软件架构篇
+</div> 
+<div class="date"> 
+</div> 
+<table style="table-layout: fixed" class="FCK__ShowTableBorders"> 
+ <tbody> 
+  <tr> 
+   <td> 
+    <div class="cnt"> 
+     <strong>模块划分</strong>
+     <br /> 
+     <br /> 模块划分的&quot;划&quot;是规划的意思，意指怎样合理的将一个很大的软件划分为一系列功能独立的部分合作完成系统的需求。C语言作为一种结构化的程序设计语言，在模块的划分上主要依据功能（依功能进行划分在面向对象设计中成为一个错误，牛顿定律遇到了相对论），C语言模块化程序设计需理解如下概念：
+     <br /> 
+     <br /> （1） 模块即是一个.c文件和一个.h文件的结合，头文件(.h)中是对于该模块接口的声明；
+     <br /> 
+     <br /> （2） 某模块提供给其它模块调用的外部函数及数据需在.h中文件中冠以extern关键字声明；
+     <br /> 
+     <br /> （3） 模块内的函数和全局变量需在.c文件开头冠以static关键字声明；
+     <br /> 
+     <br /> （4） 永远不要在.h文件中定义变量！定义变量和声明变量的区别在于定义会产生内存分配的操作，是汇编阶段的概念；而声明则只是告诉包含该声明的模块在连接阶段从其它模块寻找外部函数和变量。如：
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>/*module1.h*/<br /> int a = 5; /* 在模块1的.h文件中定义int a */<br /> <br /> /*module1 .c*/<br /> #include &quot;module1.h&quot; /* 在模块1中包含模块1的.h文件 */<br /> <br /> /*module2 .c*/<br /> #include &quot;module1.h&quot; /* 在模块2中包含模块1的.h文件 */<br /> <br /> /*module3 .c*/<br /> #include &quot;module1.h&quot; /* 在模块3中包含模块1的.h文件 */</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 以上程序的结果是在模块1、2、3中都定义了整型变量a，a在不同的模块中对应不同的地址单元，这个世界上从来不需要这样的程序。正确的做法是：
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>/*module1.h*/<br /> extern int a; /* 在模块1的.h文件中声明int a */<br /> <br /> /*module1 .c*/<br /> #include &quot;module1.h&quot; /* 在模块1中包含模块1的.h文件 */<br /> int a = 5; /* 在模块1的.c文件中定义int a */<br /> <br /> /*module2 .c*/<br /> #include &quot;module1.h&quot; /* 在模块2中包含模块1的.h文件 */<br /> <br /> /*module3 .c*/<br /> #include &quot;module1.h&quot; /* 在模块3中包含模块1的.h文件 */</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 这样如果模块1、2、3操作a的话，对应的是同一片内存单元。
+     <br /> 
+     <br /> 一个嵌入式系统通常包括两类模块：
+     <br /> 
+     <br /> （1）硬件驱动模块，一种特定硬件对应一个模块；
+     <br /> 
+     <br /> （2）软件功能模块，其模块的划分应满足低偶合、高内聚的要求。
+     <br /> 
+     <br /> 
+     <strong>多任务还是单任务</strong>
+     <br /> 
+     <br /> 所谓&quot;单任务系统&quot;是指该系统不能支持多任务并发操作，宏观串行地执行一个任务。而多任务系统则可以宏观并行（微观上可能串行）地&quot;同时&quot;执行多个任务。
+     <br /> 
+     <br /> 多任务的并发执行通常依赖于一个多任务操作系统（OS），多任务OS的核心是系统调度器，它使用任务控制块（TCB）来管理任务调度功能。TCB包括任务的当前状态、优先级、要等待的事件或资源、任务程序码的起始地址、初始堆栈指针等信息。调度器在任务被激活时，要用到这些信息。此外，TCB还被用来存放任务的&quot;上下文&quot;（context)。任务的上下文就是当一个执行中的任务被停止时，所要保存的所有信息。通常，上下文就是计算机当前的状态，也即各个寄存器的内容。当发生任务切换时，当前运行的任务的上下文被存入TCB，并将要被执行的任务的上下文从它的TCB中取出，放入各个寄存器中。
+     <br /> 
+     <br /> 嵌入式多任务OS的典型例子有Vxworks、ucLinux等。嵌入式OS并非遥不可及的神坛之物，我们可以用不到1000行代码实现一个针对80186处理器的功能最简单的OS内核，作者正准备进行此项工作，希望能将心得贡献给大家。
+     <br /> 
+     <br /> 究竟选择多任务还是单任务方式，依赖于软件的体系是否庞大。例如，绝大多数手机程序都是多任务的，但也有一些小灵通的协议栈是单任务的，没有操作系统，它们的主程序轮流调用各个软件模块的处理程序，模拟多任务环境。
+     <br /> 
+     <br /> 
+     <strong>单任务程序典型架构</strong>
+     <br /> 
+     <br /> （1）从CPU复位时的指定地址开始执行；
+     <br /> 
+     <br /> （2）跳转至汇编代码startup处执行；
+     <br /> 
+     <br /> （3）跳转至用户主程序main执行，在main中完成：
+     <br /> 
+     <br /> a.初试化各硬件设备； 
+     <br /> 
+     <br /> b.初始化各软件模块；
+     <br /> 
+     <br /> c.进入死循环（无限循环），调用各模块的处理函数
+     <br /> 
+     <br /> 用户主程序和各模块的处理函数都以C语言完成。用户主程序最后都进入了一个死循环，其首选方案是：
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>while(1)<br /> {<br /> }</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 有的程序员这样写：
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>for(;;)<br /> {<br /> }</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 这个语法没有确切表达代码的含义，我们从for(;;)看不出什么，只有弄明白for(;;)在C语言中意味着无条件循环才明白其意。
+     <br /> 
+     <br /> 下面是几个&quot;著名&quot;的死循环：
+     <br /> 
+     <br /> （1）操作系统是死循环；
+     <br /> 
+     <br /> （2）WIN32程序是死循环；
+     <br /> 
+     <br /> （3）嵌入式系统软件是死循环；
+     <br /> 
+     <br /> （4）多线程程序的线程处理函数是死循环。
+     <br /> 
+     <br /> 你可能会辩驳，大声说：&quot;凡事都不是绝对的，2、3、4都可以不是死循环&quot;。Yes，you are right，但是你得不到鲜花和掌声。实际上，这是一个没有太大意义的牛角尖，因为这个世界从来不需要一个处理完几个消息就喊着要OS杀死它的WIN32程序，不需要一个刚开始RUN就自行了断的嵌入式系统，不需要莫名其妙启动一个做一点事就干掉自己的线程。有时候，过于严谨制造的不是便利而是麻烦。君不见，五层的TCP/IP协议栈超越严谨的ISO/OSI七层协议栈大行其道成为事实上的标准？
+     <br /> 
+     <br /> 经常有网友讨论：
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>printf(&quot;%d,%d&quot;,++i,i++); /* 输出是什么？*/<br /> c = a+++b; /* c=? */</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 等类似问题。面对这些问题，我们只能发出由衷的感慨：世界上还有很多有意义的事情等着我们去消化摄入的食物。
+     <br /> 
+     <br /> 实际上，嵌入式系统要运行到世界末日。
+     <br /> 
+     <br /> 
+     <strong>中断服务程序</strong>
+     <br /> 
+     <br /> 中断是嵌入式系统中重要的组成部分，但是在标准C中不包含中断。许多编译开发商在标准C上增加了对中断的支持，提供新的关键字用于标示中断服务程序(ISR)，类似于__interrupt、#program interrupt等。当一个函数被定义为ISR的时候，编译器会自动为该函数增加中断服务程序所需要的中断现场入栈和出栈代码。
+     <br /> 
+     <br /> 中断服务程序需要满足如下要求：
+     <br /> 
+     <br /> (1)不能返回值；
+     <br /> 
+     <br /> (2)不能向ISR传递参数；
+     <br /> 
+     <br /> (3) ISR应该尽可能的短小精悍；
+     <br /> 
+     <br /> (4) printf(char * lpFormatString,…)函数会带来重入和性能问题，不能在ISR中采用。
+     <br /> 
+     <br /> 在某项目的开发中，我们设计了一个队列，在中断服务程序中，只是将中断类型添加入该队列中，在主程序的死循环中不断扫描中断队列是否有中断，有则取出队列中的第一个中断类型，进行相应处理。
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>/* 存放中断的队列 */<br /> typedef struct tagIntQueue<br /> {<br /> int intType; /* 中断类型 */<br /> struct tagIntQueue *next;<br /> }IntQueue;<br /> <br /> IntQueue lpIntQueueHead;<br /> <br /> __interrupt ISRexample () <br /> {<br /> int intType;<br /> intType = GetSystemType();<br /> QueueAddTail(lpIntQueueHead, intType)；/* 在队列尾加入新的中断 */<br /> }</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 在主程序循环中判断是否有中断： 
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>While(1)<br /> {<br /> If( !IsIntQueueEmpty() )<br /> {<br /> intType = GetFirstInt();<br /> switch(intType) /* 是不是很象WIN32程序的消息解析函数? */<br /> {<br /> /* 对，我们的中断类型解析很类似于消息驱动 */<br /> case xxx: /* 我们称其为&quot;中断驱动&quot;吧？ */<br /> …<br /> break;<br /> case xxx:<br /> …<br /> break;<br /> …<br /> }<br /> }<br /> }</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 按上述方法设计的中断服务程序很小，实际的工作都交由主程序执行了。
+     <br /> 
+     <br /> 
+     <strong>硬件驱动模块</strong>
+     <br /> 
+     <br /> 一个硬件驱动模块通常应包括如下函数：
+     <br /> 
+     <br /> （1）中断服务程序ISR
+     <br /> 
+     <br /> （2）硬件初始化
+     <br /> 
+     <br /> a.修改寄存器，设置硬件参数（如UART应设置其波特率，AD/DA设备应设置其采样速率等）；
+     <br /> 
+     <br /> b.将中断服务程序入口地址写入中断向量表：
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>/* 设置中断向量表 */<br /> m_myPtr = make_far_pointer(0l); /* 返回void far型指针void far * */ <br /> m_myPtr += ITYPE_UART; /* ITYPE_UART： uart中断服务程序 */<br /> /* 相对于中断向量表首地址的偏移 */<br /> *m_myPtr = &amp;UART _Isr; /* UART _Isr：UART的中断服务程序 */</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> （3）设置CPU针对该硬件的控制线
+     <br /> 
+     <br /> a.如果控制线可作PIO（可编程I/O）和控制信号用，则设置CPU内部对应寄存器使其作为控制信号；
+     <br /> 
+     <br /> b.设置CPU内部的针对该设备的中断屏蔽位，设置中断方式（电平触发还是边缘触发）。
+     <br /> 
+     <br /> （4）提供一系列针对该设备的操作接口函数。例如，对于LCD，其驱动模块应提供绘制像素、画线、绘制矩阵、显示字符点阵等函数；而对于实时钟，其驱动模块则需提供获取时间、设置时间等函数。
+     <br /> 
+     <br /> 
+     <strong>C的面向对象化</strong>
+     <br /> 
+     <br /> 在面向对象的语言里面，出现了类的概念。类是对特定数据的特定操作的集合体。类包含了两个范畴：数据和操作。而C语言中的struct仅仅是数据的集合，我们可以利用函数指针将struct模拟为一个包含数据和操作的&quot;类&quot;。下面的C程序模拟了一个最简单的&quot;类&quot;：
+     <br /> 
+     <br /> 
+     <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center"> 
+      <tbody> 
+       <tr> 
+        <td>#ifndef C_Class<br /> #define C_Class struct<br /> #endif<br /> C_Class A <br /> {<br /> C_Class A *A_this; /* this指针 */<br /> void (*Foo)(C_Class A *A_this); /* 行为：函数指针 */<br /> int a; /* 数据 */<br /> int b;<br /> };</td> 
+       </tr> 
+      </tbody> 
+     </table> 
+     <br /> 我们可以利用C语言模拟出面向对象的三个特性：封装、继承和多态，但是更多的时候，我们只是需要将数据与行为封装以解决软件结构混乱的问题。C模拟面向对象思想的目的不在于模拟行为本身，而在于解决某些情况下使用C语言编程时程序整体框架结构分散、数据和函数脱节的问题。我们在后续章节会看到这样的例子。 
+     <br /> 
+     <br /> 
+     <strong>总结</strong>
+     <br /> 
+     <br /> 本篇介绍了嵌入式系统编程软件架构方面的知识，主要包括模块划分、多任务还是单任务选取、单任务程序典型架构、中断服务程序、硬件驱动模块设计等，从宏观上给出了一个嵌入式系统软件所包含的主要元素。
+     <br /> 
+     <br /> 请记住：软件结构是软件的灵魂！结构混乱的程序面目可憎，调试、测试、维护、升级都极度困难。
+    </div> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<a href="http://hi.baidu.com/%B6%E0%CE%AC%CA%FD%D7%E9/blog/item/412c71c6f65da3199c163d1c.html">http://hi.baidu.com/%B6%E0%CE%AC%CA%FD%D7%E9/blog/item/412c71c6f65da3199c163d1c.html</a></div></body></html>

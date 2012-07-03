@@ -1,0 +1,191 @@
+<html><head><title><div class="tit">
+  OGNL 的性能
+</div></title></head><body><div id='tit'>OGNL 的性能</div><div id='cate'>细节</div><div id='date'>2010年09月08日 星期三 06:54 P.M.</div><div id='page'>8</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/7bfbfe198d660c74dbb4bd53.html'>http://hi.baidu.com/hxzon/blog/item/7bfbfe198d660c74dbb4bd53.html</a><div id='cnt'><p><a name="OGNLHistory"><span class="atitle">OGNL 的性能</span></a></p> 
+<p>http://www.ibm.com/developerworks/cn/opensource/os-cn-ognl/index.html#main</p> 
+<p>http://struts.apache.org/2.0.14/docs/ognl-expression-compilation.html</p> 
+<p><a name="code-hd"><span class="atitle">如何使用 OGNL</span></a></p> 
+<p>OGNL 不仅能够去获取或者设置对象的属性，而也可以用来：完成实例方法的调用，静态方法的调用，表达式求值，Lambda 表达式等，下面我们看看如何使用 OGNL 来完成这些任务。</p> 
+<p><a name="code-hd"><span class="smalltitle"><code>ognl.Ognl</code>类</span></a></p> 
+<p>最简单的使用是直接使用 ognl.Ognl 类来评估一个 OGNL 表达式。 Ognl 类提供一些静态方法用来解析和解释 OGNL 表达式，最简单的示例是不使用上下文从一个对象中获取某个表达式的值，示例如下：</p> 
+<table width="100%" cellspacing="0" cellpadding="0" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import ognl.Ognl; import ognl.OgnlException; <br /> try { <br /> result = Ognl.getValue(expression, root);  <br /> }    <br /> catch (OgnlException ex)    <br /> {   // Report error or recover   }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 上 述代码将基于 root 对象评估 expression，返回结果，如果表达式有错，比如没有找到指定的属性，将抛出 OgnlException 。 更复杂一点的应用是使用预解析的表达式。这种方式允许在表达式求值之前就能捕获表达式的解析错误，应用开发人员可以缓存表达式解析出来的结果（AST）， 从而能在重复使用的时候提高性能。 Ognl 的 parseExpression 方法就是用来执行预解析操作的。 Ognl 2.7 版本后由于添加了“ Expression Compilation ”性能得到了质的提高，在后面章节会有介绍。 Ognl 类的获取和设置方法也可以接受一个 context map 参数，他允许你放一些自己的变量，并能在 Ognl 表达式中使用。缺省的上下文里只包含 #root 和 #context 两个键。下面的示例展示如何从 root 对象中解析出 documentName 属性，然后将当前用户名称添加到返回的结果后面：
+<br /> 
+<table width="100%" cellspacing="0" cellpadding="0" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">private Map context = new HashMap();    <br />  public void setUserName(String value)   <br />  {   <br />      context.put(&quot;userName&quot;, value);   <br />  }   <br />  try {   <br />     // get value using our own custom context map   <br />     result = Ognl.getValue(&quot;userName&quot;&quot;, context, root);   <br />  } catch (OgnlException ex) {   <br />      // Report error or recover   <br />  }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 上面提到的 #root 变量指向的就是当前的 root 变量（表达式求值的初始对象（initial object））, 而 #context 就是指向的 Map 对象，下面的例子可以更直观的说明
+<br /> 
+<pre class="displaycode">User root = new User(); <br />     root.setId(19612); <br />     root.setName(&quot;sakura&quot;);     <br />     Map context = new HashMap(); <br />     context.put(&quot;who&quot;, &quot;Who am i?&quot;);   <br />     try {       <br />       String who1 = (String)Ognl.getValue(&quot;#who&quot;, context, root);   <br />       String who2 = (String)Ognl.getValue(&quot;#context.who&quot;, context, root); <br />         Object whoExp = Ognl.parseExpression(&quot;#who&quot;); <br />       String who3 = (String)Ognl.getValue(whoExp, context, root); <br />       //who1 who2 who3 返回同样的值， whoExp 重复使用可以提高效率        <br />       String name1 = (String)Ognl.getValue(&quot;name&quot;, root); <br />       String name2 = (String)Ognl.getValue(&quot;#root.name&quot;, root);           <br />       //name1 name2 返回同样的值<br />     } catch (OgnlException e) { <br />       //error handling <br />     }</pre> 
+<p><a name="OGNLHistory"><span class="atitle">OGNL 的性能</span></a></p> 
+<p>OGNL，或者说表达式语言的性能主要又两方面来决定，一个就是对表达式的解析 (Parser)，另一个是表达式的执行，OGNL 采用 javaCC 来完成 parser 的实现，在 OGNL 2.7 中又对 OGNL 的执行部分进行了加强，使用 javasisit 来 JIT(Just-In-Time) 的生成 byte code 来完成表达式的执行。 Ognl 给这个功能的名字是：OGNL Expression Compilation 。 基本的使用方法是：</p> 
+<table width="100%" cellspacing="0" cellpadding="0" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SimpleObject root = new SimpleObject(); <br /> OgnlContext context =  (OgnlContext) Ognl.createDefaultContext(null); <br /><br /> Node node =  (Node) Ognl.compileExpression(context, root, &quot;user.name&quot;); <br /> String userName = （String）node.getAccessor().get(context, root);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 那 么使用 Expression Compilation 能给 Ognl 的性能带来什么了？ 一个性能方面的简单测试：对比了 4 中情况：分别是：直接 Java 调用 (1), OGNL 缓存使用 expression compilation (2), OGNL 缓存使用 OGNL expression parsed（3） 以及不使用任何缓存的结果（4）。 
+<br /> 
+<a name="fig1"><strong>图 1. 性能对比</strong></a>
+<br /> 
+<img width="500" height="300" src="image/OGNL 的性能.html.performanceCompare.jpg" alt="性能对比" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-cn-ognl/performanceCompare.jpg</p> 
+<br /> 
+<p>可以看到 expression compilation 非常接近使用 java 调用的时间，所以可以看到当表达式要被多次使用，使用 expression compilation 并且已经做好了缓存的情况下，OGNL 非常接近 java 直接调用的时间。</p> 
+<p>=================</p> 
+<p>OGNL Expression Compilation</p> 
+<div class="pagecontent"> 
+ <div class="wiki-content"> 
+  <p>This document is meant as a development/integration guide for anyone wanting to use the new OGNL 2.7 features for doing byte code runtime enhancements on OGNL statements.&nbsp; This is <em>not</em> meant for general user reference as it covers what are mostly internal API development concerns.</p> 
+  <h2><a name="OGNLExpressionCompilation-&amp;nbsp;BasicUsage"></a>&nbsp;Basic Usage</h2> 
+  <p>By default there isn't much you have to do to use the new compilation abilities in OGNL.&nbsp; Following is an example of compiling a simple property expression and invoking it.</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>SimpleObject root = new SimpleObject();<br />OgnlContext context =  (OgnlContext) Ognl.createDefaultContext(null);<br /><br />Node node =  (Node) Ognl.compileExpression(context, root, &quot;user.name&quot;);<br />String userName = node.getAccessor().get(context, root);</pre> 
+   </div> 
+  </div> 
+  <p>You'll notice that this example references the new <tt>ognl.enhance.ExpressionAccessor</tt> class. This is the interface used to create the enhanced expression versions of any given expression via javassist and should be used to set/get expression values from the compiled versions of the code. Although the old <tt>Ognl.getValue(node, context, root)</tt> method of getting/setting values will correctly detect a compiled expression and use the accessor directly as well, it's not going to be as fast as you doing it directly.</p> 
+  <h2><a name="OGNLExpressionCompilation-&amp;nbsp;ognl.enhance.OgnlExpressionCompiler"></a>&nbsp;ognl.enhance.OgnlExpressionCompiler</h2> 
+  <p>The core class involved in doing the management of these expression compilations by default is <tt>ognl.enhance.ExpressionCompiler</tt>, which implements <tt>ognl.enhance.OgnlExpressionCompiler</tt>. Although you can in theory use this default implementation it is not recommended for more robust integration points - such as being incorporated within a web framework. The majority of examples here are going to be based around the strategy that Tapestry has used to integrate these new features.</p> 
+  <h3><a name="OGNLExpressionCompilation-&amp;nbsp;TapestryOGNLIntegration"></a>&nbsp;Tapestry OGNL Integration</h3> 
+  <p>There are only small handful of classes/services involved in the Tapestry implementation of these features, so hopefully using them as a reference will help anyone trying to get started with this:</p> 
+  <ul> 
+   <li><span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://svn.apache.org/viewvc/tapestry/tapestry4/trunk/tapestry-framework/src/java/org/apache/tapestry/services/impl/HiveMindExpressionCompiler.java?view=markup">org.apache.tapestry.services.impl.HiveMindExpressionCompiler<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span> The Tapestry implementation of <tt>ognl.enhance.OgnlExpressionCompiler</tt> - which is a subclass of the <tt>ognl.enhance.ExpressionCompiler</tt> default implementation.</li> 
+   <li><span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://svn.apache.org/viewvc/tapestry/tapestry4/trunk/tapestry-framework/src/java/org/apache/tapestry/services/impl/ExpressionEvaluatorImpl.java?view=markup">org.apache.tapestry.services.impl.ExpressionEvaluatorImpl<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span> Main service point involved in compiling/evaluating OGNL expressions. This is the core service that the rest of Tapestry uses when dealing with OGNL expressions.</li> 
+   <li><span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://svn.apache.org/viewvc/tapestry/tapestry4/trunk/tapestry-framework/src/java/org/apache/tapestry/services/impl/ExpressionCacheImpl.java?view=markup">org.apache.tapestry.services.impl.ExpressionCacheImpl<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span> Service responsible for caching OGNL statements where appropriate.</li> 
+   <li><span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://svn.apache.org/viewvc/tapestry/tapestry4/trunk/tapestry-framework/src/java/org/apache/tapestry/binding/ExpressionBinding.java?view=markup">org.apache.tapestry.binding.ExpressionBinding<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span> Wrapper class which represents a single OGNL binding expression within Tapestry templates/annotations/html/etc. Anything formally specified in an html attribute for components in Tapestry is represented by a specific type of <tt>IBinding</tt>, <tt>ExpressionBinding</tt> represents the type of bindings for OGNL expressions.<br /> *<span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://svn.apache.org/viewvc/tapestry/tapestry4/trunk/tapestry-framework/src/java/org/apache/tapestry/bean/BeanProviderPropertyAccessor.java?view=markup">org.apache.tapestry.bean.BeanProviderPropertyAccessor<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span> One of the custom <tt>PropertyAccessor</tt> classes Tapestry registers with OGNL. This will be a good reference for the new source code generation methods you will need to implement for your <tt>PropertyAccessor</tt> classes if you want to compile expressions.</li> 
+  </ul> 
+  <h3><a name="OGNLExpressionCompilation-&amp;nbsp;ExpressionEvaluator"></a>&nbsp;ExpressionEvaluator</h3> 
+  <p>If you look at the <tt>ExpressionEvaluator</tt> source you'll see a block of initialization where the <tt>HiveMindExpressionCompiler</tt> and <tt>OgnlContext</tt> pools are setup:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>OgnlRuntime.setCompiler(new HiveMindExpressionCompiler(_classFactory));<br /><br />_contextPool = new GenericObjectPool(new PoolableOgnlContextFactory(_ognlResolver, _typeConverter));<br /><br />_contextPool.setMaxActive(-1);<br />_contextPool.setMaxIdle(-1);<br />_contextPool.setMinEvictableIdleTimeMillis(POOL_MIN_IDLE_TIME);<br />_contextPool.setTimeBetweenEvictionRunsMillis(POOL_SLEEP_TIME);</pre> 
+   </div> 
+  </div> 
+  <p>Some things like null handlers/property accessor configuration has been left out but you should have enough there to get a good idea of what is going on. Because creating new OgnlContext objects for every expression evaluation can be needlessly expensive Tapestry uses the Apache commons-pool library to manage pooling of these instances. It is recommended that you do the same where you can. You will also notice in other portions of the source some new method calls made on <tt>OgnlRuntime</tt>:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>OgnlRuntime.clearCache();<br />Introspector.flushCaches();</pre> 
+   </div> 
+  </div> 
+  <p>The OgnlRuntime class stores static <tt>Map</tt>-like instances of reflection meta cache information for all objects evaluated in OGNL expressions. The new <tt>clearCache</tt> method clears these caches out as the memory footprint can get quite large after a while. How often/when to call this will largely depend on how your framework works - just keep in mind that calling it too often will have a big impact on runtime performance of your app if you are doing normal application development sort of things with it.</p> 
+  <h3><a name="OGNLExpressionCompilation-&amp;nbsp;HiveMindExpressionCompiler"></a>&nbsp;HiveMindExpressionCompiler</h3> 
+  <p>Perhaps the most important class to examine is Tapestrys implementation of <tt>OgnlExpressionCompiler</tt>. This class still extends the default <tt>ExpressionCompiler</tt> provided by OGNL - but does a few more things that can't be made generic enough to live in the default implementation.</p> 
+  <p>One of these important differences is how Javassist is used to compile the expressions and the ClassLoader/ClassResolver it uses. Because these expressions are being compiled against what are already Javassist enhanced Tapestry component class instances this implementation needed to re-use existing hivemind Javassist services so that these enhanced classes could be correctly resolved while OGNL is evaluating them.</p> 
+  <p>If you don't have a need to provide this kind of classloading functionality you will probably still need to modify at least how the javassist <tt>ClassPool</tt> is being managed in your own implementations. The internal functionality of that library is such that the memory consumption of the pool is very large and will get unwieldy especially in development of web apps. Tapestry has a special state that users are used to which is known as &quot;disable caching&quot; - more or less meaning that javassist enhancements happen for every request instead of only once.</p> 
+  <p>Another very important piece of logic that this class handles is the generation of &quot;fail safe&quot; getters/setters when expressions just can't be compiled because of either internal errors or a specific syntax type used isn't yet able to support javassist compilations. This logic can sometimes get tricky in that in many instances OGNL expressions won't be compilable because the full expression contains a null reference. The basic idea is that the compiler keeps trying to compile these kinds of expressions until it either gets a fatal exception thrown or the full expression is able to be resolved. For example, the following expression would throw a <tt>UnsupportedCompilationException</tt> if the &quot;user&quot; object returned was null - resulting in no direct compilation being done at all:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>&quot;user.firstName&quot;</pre> 
+   </div> 
+  </div> 
+  <p>That doesn't mean that the user object might not be resolvable the next time this expression is invoked though, so the next time the compiler tries it may succeed in which case the whole expression is enhanced and the new <tt>ExpressionAccessor</tt> instance is attached to the root <tt>Node</tt> object by calling <tt>SimpleNode.setAccessor(newInstance)</tt>.</p> 
+  <p>The fail safe logic is there for expressions that are likely to never be resolvable for one reason or another. In these instances a <tt>ExpressionAccessor</tt> class instance is still created - with the major difference being that instead of pure java object expressions being compiled the get/set methods on the instance just call back to the standard OGNL getValue/setValue methods:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>public Object get(OgnlContext context, Object root)<br />{<br />  return _node.getValue($1, $2);<br />}</pre> 
+   </div> 
+  </div> 
+  <p>The <tt>$1, $2</tt> references are Javassist constructs which allow you to specify the first and second argument passed in to the calling method.</p> 
+  <h3><a name="OGNLExpressionCompilation-&amp;nbsp;ExpressionBinding"></a>&nbsp;ExpressionBinding</h3> 
+  <p>As stated previously, this class represents a single OGNL expression in Tapestry when used directly in html templates - such as:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>&lt;div jwcid=&quot;@Input&quot; value=&quot;ognl:user.firstName&quot; /&gt;</pre> 
+   </div> 
+  </div> 
+  <p>What you will want to examine in this class is how it deals with incrementally attempting expression evaluations using the local members <tt>_writeFailed, _accessor</tt>. Looking through the source of this implementation will probably be the best documentation available - but keep in mind that in many instances this object also has to deal with the possibility that a write statement may never happen.</p> 
+  <h3><a name="OGNLExpressionCompilation-&amp;nbsp;BeanProviderPropertyAccessor/CustomPropertyAccessorimplementations"></a>&nbsp;BeanProviderPropertyAccessor / Custom PropertyAccessor implementations</h3> 
+  <p>Besides the <tt>OgnlExpressionCompiler</tt> logic this will probably be the second most impactual area people will have to deal with in terms of having to write new code. In this specific instance there are three new <tt>PropertyAccessor</tt> methods you must implement in order to compile your expressions:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>public Class getPropertyClass(OgnlContext context, Object target, Object name)<br />{<br />  IBeanProvider provider = (IBeanProvider)target;<br />  String beanName = ((String)name).replaceAll(&quot;\&quot;&quot;, &quot;&quot;);<br /><br />  if (provider.canProvideBean(beanName))<br />    return provider.getBean(beanName).getClass();<br /><br />  return super.getPropertyClass(context, target, name);<br />}<br /><br />public String getSourceAccessor(OgnlContext context, Object target, Object name)<br />{<br />   IBeanProvider provider = (IBeanProvider)target;<br />   String beanName = ((String)name).replaceAll(&quot;\&quot;&quot;, &quot;&quot;);<br /><br />   if (provider.canProvideBean(beanName)) {<br /><br />       Class type = OgnlRuntime.getCompiler().getInterfaceClass(provider.getBean(beanName).getClass());<br /><br />       ExpressionCompiler.addCastString(context, &quot;((&quot; + type.getName() + &quot;)&quot;);<br /><br />       context.setCurrentAccessor(IBeanProvider.class);<br />       context.setCurrentType(type);<br /><br />       return &quot;.getBean(&quot; + name + &quot;))&quot;;<br />   }<br /><br />   return super.getSourceAccessor(context, target, name);<br />}<br /><br />public String getSourceSetter(OgnlContext context, Object target, Object name)<br />{<br />  throw new UnsupportedCompilationException(&quot;Can't set beans on IBeanProvider.&quot;);<br />}</pre> 
+   </div> 
+  </div> 
+  <p>Although this example may not provide with all of the possible use cases you may need to learn to properly implement these methods in your own <tt>PropertyAccessor</tt> implementations - the built in OGNL versions like <tt>ObjectPropertyAccessor, MapPropertyAccessor, ListPropertyAccessor, etc</tt> should provide more than enough data to work from. <span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://svn.opensymphony.com/svn/ognl/trunk/">http://svn.opensymphony.com/svn/ognl/trunk/<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span></p> 
+  <p>The most important part of the above logic you will want to look at is in how the new <tt>OgnlContext</tt> methods for setting object/accessor types are being set:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>context.setCurrentAccessor(IBeanProvider.class);<br />context.setCurrentType(type);</pre> 
+   </div> 
+  </div> 
+  <p>This meta information is used by the <tt>OgnlExpressionCompiler</tt> to correctly cast your specific expression object types during compilation. This process of casting/converting in to and out of native types is the most complicated part of this new logic and also the source of the greatest number of bugs reported in the OGNL jira. <span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://jira.opensymphony.com/browse/OGNL">http://jira.opensymphony.com/browse/OGNL<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span></p> 
+  <p>In this property accessor example the goal is to turn general statements like <tt>beans.emailValidator</tt> in to their pure source form - which would look something like this when all is said and done:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>((ValidatingBean)beanProvider.getBean(&quot;emailValidator&quot;))</pre> 
+   </div> 
+  </div> 
+  <p>There is also the ever important cast handling which you must do:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>Class type = OgnlRuntime.getCompiler().getInterfaceClass(provider.getBean(beanName).getClass());<br /><br />ExpressionCompiler.addCastString(context, &quot;((&quot; + type.getName() + &quot;)&quot;);</pre> 
+   </div> 
+  </div> 
+  <p>In this example the <tt>PropertyAccessor</tt> is trying to determine the class type and manually adding the cast string for the specific type to the overall statement by invoking the utility method <tt>addCastString(OgnlContext, String)</tt> on <tt>ExpressionCompiler</tt>. In many instances of expression compilation you might also be dealing with unknown method calls, where the more preferred way to do this kind of logic would be something like this: (taken from the OGNL ObjectPropertyAccessor implementation)</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>Method m = ...(various reflection gynamistics used to find a java.reflect.Method instance)<br /><br />context.setCurrentType(m.getReturnType());<br />context.setCurrentAccessor(OgnlRuntime.getCompiler().getSuperOrInterfaceClass(m, m.getDeclaringClass()));</pre> 
+   </div> 
+  </div> 
+  <p>When dealing with method calls it is very important that you do this specific kind of type setting on the <tt>OgnlContext</tt> class so that the casting done on your statements (which happens outside of the ObjectPropertyAccessor in this instance) can be done on the highest level interface defining that method. This becomes important when you are dealing with expressions that you would like to re-use against different object instances. For example, suppose we had an ognl expression like this (for Tapestry):</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>user.firstName</pre> 
+   </div> 
+  </div> 
+  <p>and the object it was compiled against was an instance of something looking like this:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>public abstract LoginPage extends BasePage implements UserPermissions {<br /><br />  public abstract User getUser();<br /><br />}<br /><br />..<br />/**<br /> * Interface for any page/component that holds references to the current system<br /> * User.<br /> */<br />public interface UserPermissions {<br />   User getUser();<br />}</pre> 
+   </div> 
+  </div> 
+  <p><tt>BasePage</tt> is a Tapestry specific class which is unimportant in this example. What is important to know is that if we had done something like this in the previous context setting example:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>context.setCurrentType(m.getReturnType());<br />context.setCurrentAccessor(m.getDeclaringClass());</pre> 
+   </div> 
+  </div> 
+  <p>It would have resulted in a compiled expression of:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>public void get(OgnlContext context, Object root)<br />{<br />  return ((LoginPage)root).getUser();<br />}</pre> 
+   </div> 
+  </div> 
+  <p>This is undesirable in situations where you would like to re-use OGNL expressions across many different class instances (which is what Tapestry does via the <tt>ExpressionCacheImpl</tt> listed above). The better/more re-usable compiled version should really look like:</p> 
+  <div class="preformatted"> 
+   <div class="preformattedContent"> 
+    <pre>public void get(OgnlContext context, Object root)<br />{<br />  return ((UserPermissions)root).getUser();<br />}</pre> 
+   </div> 
+  </div> 
+  <p>These are the more delicate parts of the compiler API that the majority of people will need to worry about during any integration efforts.</p> 
+  <h2><a name="OGNLExpressionCompilation-&amp;nbsp;KnownIssues/Limitations"></a>&nbsp;Known Issues / Limitations</h2> 
+  <ul> 
+   <li><strong>Compiler Errors</strong> - Despite the substantially large number of unit tests set up and thorough usage of many different types of expressions Tapestry users are still currently running in to fatal/non caught runtime errors when some of their OGNL expressions are compiled. In some instances these errors are blockers and they must either wait for someone to fix the bug (after being posted to <span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://jira.opensymphony.com/browse/OGNL">http://jira.opensymphony.com/browse/OGNL<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span> correctly) or re-work their expression to get around the error. I (jesse) generally try to fix these reported errors within a day or two (or sooner) when I can and immediately deploy the fixes to the OGNL snapshot maven2 repository. This doesn't mean that the vast majority of expressions won't compile fine, but it is something to keep in mind when you decide how to integrate the compiler logic in to your own framework.</li> 
+  </ul> 
+  <ul> 
+   <li><strong>Compile vs. normal expression evaluation</strong> - The current Tapestry implementation compiles OGNL expressions in both development AND production modes. This has the undesirable side effect of causing needless multiple method invocations on objects when compiling as well as the general overhead of performing compilations at all when people are just developing applications and not serving them in production environments. It is hoped that when OGNL becomes final this special development mode can go back to using normal OGNL expression evaluation during development and save compilation for production environments, but until then we've been worried about giving people false positives when testing their applications. Meaning - something may evaluate just fine when using <tt>Ognl.getValue(OgnlContext, Object root, String expression</tt> but fail completely when they deploy their app to production and the compiler kicks in. If you framework doesn't handle separate modes or have this kind of state set up it is something to keep in mind. The number of JIRA issues reported has gone way down since this all started but they do still trickle in which is enough to know that things aren't yet 100% reliable. I'm sure the plethora of Struts/WebWork/etc users available should be enough to iron out any remaining issues found but it's something to keep in mind.</li> 
+  </ul> 
+  <ul> 
+   <li><strong>Snapshot Repository</strong> - The current maven2 location of the OGNL development/snapshot release are all made to <span class="nobr"><a rel="nofollow" title="Visit page outside Confluence" href="http://opencomponentry.com/repository/m2-snapshot-repo/">http://opencomponentry.com/repository/m2-snapshot-repo/<sup><img width="7" height="7" border="0" align="absmiddle" src="image/OGNL 的性能.html.linkext7.gif" class="rendericon" /><p class="origImg">http://cwiki.apache.org/confluence/images/icons/linkext7.gif</p></sup></a></span>, while releases go out to ibiblio as per normal. If someone has a better place for these release to be made please feel free to contact jesse ( jkuhnert at gmail.com) with accessor information / instructions.</li> 
+  </ul> 
+ </div> 
+</div> 
+<p>=====================</p> 
+<p>Struts 2.2.1 distribution</p> 
+<ul> 
+ <li>The XWork is using the latest OGNL version 3.0, the OGNL source code repository is hosted at <a rel="nofollow" class="external-link" href="http://github.com/jkuhnert/ognl">Github</a></li> 
+ <li>Javassist dependency was excluded in OGNL, you must remember to include it, except when you are lunching an application on JBoss server</li> 
+</ul> 
+<p> </p></div></body></html>

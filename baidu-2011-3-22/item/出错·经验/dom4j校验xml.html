@@ -1,0 +1,187 @@
+<html><head><title><div class="tit">
+  dom4j校验xml
+</div></title></head><body><div id='tit'>dom4j校验xml</div><div id='cate'>出错&middot;经验</div><div id='date'>2009年08月15日 星期六 05:33 P.M.</div><div id='page'>37</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/8147287318d304158701b0d8.html'>http://hi.baidu.com/hxzon/blog/item/8147287318d304158701b0d8.html</a><div id='cnt'><div>
+ dom4j校验xml
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> import org.dom4j.Document;
+ <br /> import org.dom4j.io.OutputFormat;
+ <br /> import org.dom4j.io.SAXReader;
+ <br /> import org.dom4j.io.SAXValidator;
+ <br /> import org.dom4j.io.XMLWriter;
+ <br /> import org.dom4j.util.XMLErrorHandler;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.xml.parsers.SAXParser;
+ <br /> import javax.xml.parsers.SAXParserFactory;
+ <br /> import java.io.File;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> public static void validateXMLByXSD() {
+ <br /> &nbsp;&nbsp; String xmlFileName = &quot;H:\\backup\\gma\\sanjiangzuixinCID\\X7212_2LB1_GO.XML&quot;;
+ <br /> &nbsp;&nbsp; xmlFileName = &quot;H:\\backup\\gma\\nanruijibao\\PCS902.cid&quot;;
+ <br /> &nbsp;&nbsp; //String xsdFileName = &quot;
+ <a href="http://www.iec.ch/61850/2003/SCL">http://www.iec.ch/61850/2003/SCL</a> SCL.xsd&quot;;
+ <br /> &nbsp;&nbsp; String xsdFileName = Dom4jUtils.class.getResource(&quot;SCL.xsd&quot;).toString().substring(5);
+ <br /> &nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp; // 创建默认的XML错误处理器
+ <br /> &nbsp;&nbsp;&nbsp; XMLErrorHandler errorHandler = new XMLErrorHandler();
+ <br /> &nbsp;&nbsp;&nbsp; // 获取基于 SAX 的解析器的实例
+ <br /> &nbsp;&nbsp;&nbsp; SAXParserFactory factory = SAXParserFactory.newInstance();
+ <br /> &nbsp;&nbsp;&nbsp; // 解析器在解析时验证 XML 内容。
+ <br /> &nbsp;&nbsp;&nbsp; factory.setValidating(true);
+ <br /> &nbsp;&nbsp;&nbsp; // 指定由此代码生成的解析器将提供对 XML 名称空间的支持。
+ <br /> &nbsp;&nbsp;&nbsp; factory.setNamespaceAware(true);
+ <br /> &nbsp;&nbsp;&nbsp; // 使用当前配置的工厂参数创建 SAXParser 的一个新实例。
+ <br /> &nbsp;&nbsp;&nbsp; SAXParser parser = factory.newSAXParser();
+ <br /> &nbsp;&nbsp;&nbsp; // 创建一个读取工具
+ <br /> &nbsp;&nbsp;&nbsp; SAXReader xmlReader = new SAXReader();
+ <br /> &nbsp;&nbsp;&nbsp; // 获取要校验xml文档实例
+ <br /> &nbsp;&nbsp;&nbsp; Document xmlDocument = (Document) xmlReader.read(new File(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlFileName));
+ <br /> &nbsp;&nbsp;&nbsp; // 设置 XMLReader 的基础实现中的特定属性。核心功能和属性列表可以在
+ <br /> &nbsp;&nbsp;&nbsp; // [url]http://sax.sourceforge.net/?selected=get-set[/url] 中找到。
+ <br /> &nbsp;&nbsp;&nbsp; parser.setProperty(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;
+ <a href="http://java.sun.com/xml/jaxp/properties/schema">http://java.sun.com/xml/jaxp/properties/schemaLanguage</a>&quot;,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;
+ <a href="http://www.w3.org/2001/XMLSchema">http://www.w3.org/2001/XMLSchema</a>&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; parser.setProperty(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;
+ <a href="http://java.sun.com/xml/jaxp/properties/schemaSource">http://java.sun.com/xml/jaxp/properties/schemaSource</a>&quot;,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;file:&quot; + xsdFileName);
+ <br /> &nbsp;&nbsp;&nbsp; // 创建一个SAXValidator校验工具，并设置校验工具的属性
+ <br /> &nbsp;&nbsp;&nbsp; SAXValidator validator = new SAXValidator(parser.getXMLReader());
+ <br /> &nbsp;&nbsp;&nbsp; // 设置校验工具的错误处理器，当发生错误时，可以从处理器对象中得到错误信息。
+ <br /> &nbsp;&nbsp;&nbsp; validator.setErrorHandler(errorHandler);
+ <br /> &nbsp;&nbsp;&nbsp; // 校验
+ <br /> &nbsp;&nbsp;&nbsp; validator.validate(xmlDocument);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; XMLWriter writer = new
+ <br /> &nbsp;&nbsp;&nbsp; XMLWriter(OutputFormat.createPrettyPrint());
+ <br /> &nbsp;&nbsp;&nbsp; // 如果错误信息不为空，说明校验失败，打印错误信息
+ <br /> &nbsp;&nbsp;&nbsp; if (errorHandler.getErrors().hasContent()) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;XML文件通过XSD文件校验失败！&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; writer.write(errorHandler.getErrors());
+ <br /> &nbsp;&nbsp;&nbsp; } else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;Good! XML文件通过XSD文件校验成功！&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; } catch (Exception ex) {
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;XML文件: &quot; + xmlFileName + &quot; 通过XSD文件:&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + xsdFileName + &quot;检验失败。\n原因： &quot; + ex.getMessage());
+ <br /> &nbsp;&nbsp;&nbsp; ex.printStackTrace();
+ <br /> &nbsp;&nbsp; }
+ <br /> }
+ <br /> -------------------------
+ <br /> hxzon：
+ <br /> dom4j-1.4在
+ <br /> Document xmlDocument = (Document) xmlReader.read(new File(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlFileName));
+ <br /> 抛出异常出错。换用dom4j-1.6.1正常。
+ <br /> 打印出结果：
+ <br /> XML文件通过XSD文件校验失败！
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;errors&gt;
+ <br /> &lt;error column=&quot;35&quot; line=&quot;16&quot; systemID=&quot;file:/D:/project3/target/com/ptswitch/analyser/xml/SCL.xsd&quot;&gt;src-resolve: Cannot resolve the name 'tBaseElement' to a(n) 'type definition' component.&lt;/error&gt;
+ <br /> &lt;/errors&gt;org.dom4j.tree.DefaultElement@18d7ace [Element: &lt;errors attributes: []/&gt;]
+ <br /> 但这仍不是最终正确结果，因为缺其他xsd文件。
+ <br /> 导入所有文件后，
+ <br /> SCL.xsd
+ <br /> SCL.xsx
+ <br /> SCL_BaseSimpleTypes.xsd
+ <br /> SCL_BaseTypes.xsd
+ <br /> SCL_Communication.xsd
+ <br /> SCL_DataTypeTemplates.xsd
+ <br /> SCL_Enums.xsd
+ <br /> SCL_IED.xsd
+ <br /> SCL_Substation.xsd
+ <br /> tmp0000.xsd
+ <br /> 正确结果如下：
+ <br /> XML文件通过XSD文件校验失败！
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;errors&gt;
+ <br /> &lt;error column=&quot;15&quot; line=&quot;123&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-complex-type.2.4.a">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-complex-type.2.4.a</a>: Invalid content was found starting with element 'Inputs'. One of '{&quot;
+ <a href="http://www.iec.ch/61850/2003/SCL&quot;:GSEControl">http://www.iec.ch/61850/2003/SCL&quot;:GSEControl</a>, &quot;
+ <a href="http://www.iec.ch/61850/2003/SCL&quot;:SampledValueControl">http://www.iec.ch/61850/2003/SCL&quot;:SampledValueControl</a>, &quot;
+ <a href="http://www.iec.ch/61850/2003/SCL&quot;:SettingControl">http://www.iec.ch/61850/2003/SCL&quot;:SettingControl</a>, &quot;
+ <a href="http://www.iec.ch/61850/2003/SCL&quot;:SCLControl">http://www.iec.ch/61850/2003/SCL&quot;:SCLControl</a>, &quot;
+ <a href="http://www.iec.ch/61850/2003/SCL&quot;:Log} ">http://www.iec.ch/61850/2003/SCL&quot;:Log}'</a> is expected.&lt;/error&gt;
+ <br /> &lt;error column=&quot;58&quot; line=&quot;124&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-complex-type.2.4.a">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-complex-type.2.4.a</a>: Invalid content was found starting with element 'GooseSub'. One of '{WC[##other:&quot;
+ <a href="http://www.iec.ch/61850/2003/SCL">http://www.iec.ch/61850/2003/SCL</a>&quot;], &quot;
+ <a href="http://www.iec.ch/61850/2003/SCL&quot;:Text">http://www.iec.ch/61850/2003/SCL&quot;:Text</a>, &quot;
+ <a href="http://www.iec.ch/61850/2003/SCL&quot;:Private">http://www.iec.ch/61850/2003/SCL&quot;:Private</a>, &quot;
+ <a href="http://www.iec.ch/61850/2003/SCL&quot;:ExtRef} ">http://www.iec.ch/61850/2003/SCL&quot;:ExtRef}'</a> is expected.&lt;/error&gt;
+ <br /> &lt;error column=&quot;11&quot; line=&quot;144&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not</a> enough values specified for &amp;lt;unique&amp;gt; identity constraint specified for element &quot;AccessPoint&quot;.&lt;/error&gt;
+ <br /> &lt;error column=&quot;11&quot; line=&quot;162&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not</a> enough values specified for &amp;lt;unique&amp;gt; identity constraint specified for element &quot;AccessPoint&quot;.&lt;/error&gt;
+ <br /> &lt;error column=&quot;15&quot; line=&quot;174&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not</a> enough values specified for &amp;lt;unique&amp;gt; identity constraint specified for element &quot;DataTypeTemplates&quot;.&lt;/error&gt;
+ <br /> &lt;error column=&quot;15&quot; line=&quot;179&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not</a> enough values specified for &amp;lt;unique&amp;gt; identity constraint specified for element &quot;DataTypeTemplates&quot;.&lt;/error&gt;
+ <br /> &lt;error column=&quot;15&quot; line=&quot;201&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not</a> enough values specified for &amp;lt;unique&amp;gt; identity constraint specified for element &quot;DataTypeTemplates&quot;.&lt;/error&gt;
+ <br /> &lt;error column=&quot;15&quot; line=&quot;227&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;Not</a> enough values specified for &amp;lt;unique&amp;gt; identity constraint specified for element &quot;DataTypeTemplates&quot;.&lt;/error&gt;
+ <br /> &lt;error column=&quot;70&quot; line=&quot;230&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'SBOw' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;70&quot; line=&quot;230&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'SBOw' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;62&quot; line=&quot;231&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'Oper' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;62&quot; line=&quot;231&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'Oper' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;63&quot; line=&quot;232&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'Cancel' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;63&quot; line=&quot;232&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'Cancel' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;70&quot; line=&quot;308&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'SBOw' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;70&quot; line=&quot;308&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'SBOw' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;62&quot; line=&quot;309&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'Oper' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;62&quot; line=&quot;309&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'Oper' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;63&quot; line=&quot;310&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'Cancel' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;63&quot; line=&quot;310&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'Cancel' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;70&quot; line=&quot;333&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'SBOw' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;70&quot; line=&quot;333&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'SBOw' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;62&quot; line=&quot;334&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'Oper' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;62&quot; line=&quot;334&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'Oper' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;63&quot; line=&quot;335&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'Cancel' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;63&quot; line=&quot;335&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'Cancel' of attribute 'name' on element 'DA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;51&quot; line=&quot;517&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-datatype-valid.1.2.2</a>: 'SIUnit' is not a valid value of list type 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;error column=&quot;51&quot; line=&quot;517&quot; systemID=&quot;
+ <a href="file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3">file:///H:/backup/gma/sanjiangzuixinCID/X7212_2LB1_GO.XML&quot;&gt;cvc-attribute.3</a>: The value 'SIUnit' of attribute 'name' on element 'BDA' is not valid with respect to its type, 'tAttributeNameEnum'.&lt;/error&gt;
+ <br /> &lt;/errors&gt;
+ <br /> 
+ <br /> 
+ <a href="http://www.61850.com/">http://www.61850.com/</a>&nbsp;&nbsp; 网上验证。
+</div></div></body></html>

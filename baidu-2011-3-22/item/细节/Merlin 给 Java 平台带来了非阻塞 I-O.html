@@ -1,0 +1,316 @@
+<html><head><title><div class="tit">
+  Merlin 给 Java 平台带来了非阻塞 I/O
+</div></title></head><body><div id='tit'>Merlin 给 Java 平台带来了非阻塞 I/O</div><div id='cate'>细节</div><div id='date'>2008年04月09日 星期三 01:02 A.M.</div><div id='page'>145</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3650a9513b0eb68a8d5430e4.html'>http://hi.baidu.com/hxzon/blog/item/3650a9513b0eb68a8d5430e4.html</a><div id='cnt'><h1>Merlin 给 Java 平台带来了非阻塞 I/O</h1> 
+<p>新增的功能大幅降低了线程开销</p> 
+<p>级别： 初级</p> 
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-javaio/#author"><font color="#5c81a7">Aruna Kalagnanam</font></a> (<a cmimpressionsent="1" href="mailto:kaaruna@in.ibm.com?subject=Merlin 给 Java 平台带来了非阻塞 I/O&amp;cc=kaaruna@in.ibm.com"><font color="#5c81a7">kaaruna@in.ibm.com</font></a>), 软件工程师, IBM<br /> <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-javaio/#author"><font color="#5c81a7">Balu G</font></a> (<a cmimpressionsent="1" href="mailto:gbalu@in.ibm.com?subject=Merlin 给 Java 平台带来了非阻塞 I/O&amp;cc=gbalu@in.ibm.com"><font color="#5c81a7">gbalu@in.ibm.com</font></a>), 软件工程师, IBM</p> 
+<p>2002 年 3 月 12 日</p> 
+<blockquote>
+ Java 技术平台早就应该提供非阻塞 I/O 机制了。幸运的是，Merlin（JDK 1.4）有一根几乎在各个场合都适用的魔杖，而解除阻塞了的 I/O 的阻塞状态正是这位魔术师的专长。软件工程师 Aruna Kalagnanam 和 Balu G 介绍了 Merlin 的新 I/O 包 ― java.nio（NIO）― 的这种非阻塞功能，并且用一个套接字编程示例向您展示 NIO 能做些什么。请单击本文顶部或底部的 
+ <strong>讨论</strong>，在 
+ <a cmimpressionsent="1" href=":void forumWindow()"><font color="#5c81a7">讨论论坛</font></a>与作者及其他读者分享您关于本文的心得。 
+</blockquote> 
+<p>服务器在合理的时间之内处理大量客户机请求的能力取决于服务器使用 I/O 流的效率。同时为成百上千个客户机提供服务的服务器必须能够并发地使用 I/O 服务。Java 平台直到 JDK 1.4（也就是 Merlin）才支持非阻塞 I/O 调用。用 Java 语言写的服务器，由于其线程与客户机之比几乎是一比一，因而易于受到大量线程开销的影响，其结果是既导致了性能问题又缺乏可伸缩性。</p> 
+<p>为了解决这个问题，Java 平台的最新发行版引入了一组新的类。Merlin 的 java.nio 包充满了解决线程开销问题的技巧，包中最重要的是新的 <code><font face="NSimsun">SelectableChannel</font></code> 类和 <code><font face="NSimsun">Selector</font></code> 类。 <em>通道（channel）</em>是客户机和服务器之间的一种通信方式。 <em>选择器（selector）</em>与 Windows 消息循环类似，它从不同客户机捕获各种事件并将它们分派到相应的事件处理程序。在本文，我们将向您展示这两个类如何协同工作，从而为 Java 平台创建非阻塞 I/O 机制。</p> 
+<p><a name="h1"><span class="atitle">Merlin 之前的 I/O 编程</span></a></p> 
+<p>我们将从考察基础的、Merlin 之前的服务器-套接字（server-socket）程序开始。在 <code><font face="NSimsun">ServerSocket</font></code> 类的生存期中，其重要功能如下：</p> 
+<ul> 
+ <li>接受传入连接</li> 
+ <li>从客户机读取请求</li> 
+ <li>为请求提供服务</li> 
+</ul> 
+<p>我们来考察一下以上每一个步骤，我们用代码片段来说明。 首先，我们创建一个新的 <code><font face="NSimsun">ServerSocket</font></code> ：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">ServerSocket s = new ServerSocket();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>接着，我们要接受传入调用。这里，调用 <code><font face="NSimsun">accept()</font></code> 应该可以完成任务，但其中有个小陷阱您得当心：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Socket conn = s.accept( );</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>对 <code><font face="NSimsun">accept()</font></code> 的调用将一直阻塞，直到服务器套接字接受了一个请求连接的客户机请求。一旦建立了连接，服务器就使用 <code><font face="NSimsun">LineNumberReader</font></code> 读取客户机请求。因为 <code><font face="NSimsun">LineNumberReader</font></code> 要到缓冲区满时才成批地读取数据，所以这个调用在读时阻塞。 下面的片段显示了工作中的 <code><font face="NSimsun">LineNumberReader</font></code> （阻塞等等）。</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">InputStream in = conn.getInputStream();
+InputStreamReader rdr = new InputStreamReader(in);
+LineNumberReader lnr = new LineNumberReader(rdr);
+Request req = new Request();
+while (!req.isComplete() )
+{
+   String s = lnr.readLine();
+   req.addLine(s);
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><code><font face="NSimsun">InputStream.read()</font></code> 是另一种读取数据的方式。不幸的是， <code><font face="NSimsun">read</font></code> 方法也要一直阻塞到数据可用为止， <code><font face="NSimsun">write</font></code> 方法也一样，。</p> 
+<p>图 1 描绘了服务器的典型工作过程。黑体线表示处于阻塞的操作。</p> 
+<p><br /> <a name="figure1"><strong>图 1. 典型的工作中的服务器</strong></a><br /> <img height="304" alt="阻塞的 I/O 图" width="252" src="image/Merlin 给 Java 平台带来了非.blocking.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-javaio/blocking.gif</p></p> 
+<p>在 JDK 1.4 之前，自由地使用线程是处理阻塞问题最典型的办法。但这个解决办法会产生它自己的问题 ― 即线程开销，线程开销同时影响性能和可伸缩性。不过，随着 Merlin 和 java.nio 包的到来，一切都变了。</p> 
+<p>在下面的几个部分中，我们将考察 java.nio 的基本思想，然后把我们所学到的一些知识应用于修改前面描述的服务器-套接字示例。</p> 
+<p><a name="h2"><span class="atitle">反应器模式（Reactor pattern）</span></a></p> 
+<p>NIO 设计背后的基石是反应器设计模式。 分布式系统中的服务器应用程序必须处理多个向它们发送服务请求的客户机。然而，在调用特定的服务之前，服务器应用程序必须将每个传入请求多路分用并分派到各自相应的服务提供者。反应器模式正好适用于这一功能。它允许事件驱动应用程序将服务请求多路分用并进行分派，然后，这些服务请求被并发地从一个或多个客户机传送到应用程序。</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="40%" align="right" border="0"> 
+ <tbody> 
+  <tr> 
+   <td width="10"><img height="1" width="10" src="image/Merlin 给 Java 平台带来了非.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td> 
+    <table cellspacing="0" cellpadding="5" width="100%" border="1"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#eeeeee"><a name="sidebar1"><strong>反应器模式的核心功能</strong></a><br /> <p> </p> 
+        <ul> 
+         <li>将事件多路分用</li> 
+         <li>将事件分派到各自相应的事件处理程序</li> 
+        </ul> <p> </p> </td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>反应器模式与观察者模式（Observer pattern）在这个方面极为相似：当一个主体发生改变时，所有依属体都得到通知。不过，观察者模式与单个事件源关联，而反应器模式则与多个事件源关联。</p> 
+<p>请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-javaio/#resources"><font color="#5c81a7">参考资料</font></a>了解关于反应器模式的更多信息。</p> 
+<p><a name="h3"><span class="atitle">通道和选择器</span></a></p> 
+<p>NIO 的非阻塞 I/O 机制是围绕 <em>选择器</em>和 <em>通道</em>构建的。 <code><font face="NSimsun">Channel</font></code> 类表示服务器和客户机之间的一种通信机制。与反应器模式一致， <code><font face="NSimsun">Selector</font></code> 类是 <code><font face="NSimsun">Channel</font></code> 的多路复用器。 <code><font face="NSimsun">Selector</font></code> 类将传入客户机请求多路分用并将它们分派到各自的请求处理程序。</p> 
+<p>我们将仔细考察 <code><font face="NSimsun">Channel</font></code> 类和 <code><font face="NSimsun">Selector</font></code> 类的各个功能，以及这两个类如何协同工作，创建非阻塞 I/O 实现。</p> 
+<p><a name="N10132"><span class="smalltitle"><strong><font size="3">通道做什么</font></strong></span></a></p> 
+<p>通道表示连到一个实体（例如：硬件设备、文件、网络套接字或者能执行一个或多个不同 I/O 操作（例如：读或写）的程序组件）的开放连接。可以异步地关闭和中断 NIO 通道。所以，如果一个线程在某条通道的 I/O 操作上阻塞时，那么另一个线程可以将这条通道关闭。类似地，如果一个线程在某条通道的 I/O 操作上阻塞时，那么另一个线程可以中断这个阻塞线程。</p> 
+<p><br /> <a name="figure2"><strong>图 2. java.nio.channels 的类层次结构</strong></a><br /> <img height="381" alt="java.nio 包的类层次结构" width="353" src="image/Merlin 给 Java 平台带来了非.hierarchy.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-javaio/hierarchy.gif</p></p> 
+<p>如图 2 所示，在 java.nio.channels 包中有不少通道接口。我们主要关心 <code><font face="NSimsun">java.nio.channels.SocketChannel</font></code> 接口和 <code><font face="NSimsun">java.nio.channels.ServerSocketChannel</font></code> 接口。 这两个接口可用来分别代替 <code><font face="NSimsun">java.net.Socket</font></code> 和 <code><font face="NSimsun">java.net.ServerSocket</font></code> 。尽管我们当然将把注意力放在以非阻塞方式使用通道上，但通道可以以阻塞方式或非阻塞方式使用。</p> 
+<p><a name="N1015D"><span class="smalltitle"><strong><font size="3">创建一条非阻塞通道</font></strong></span></a></p> 
+<p>为了实现基础的非阻塞套接字读和写操作，我们要处理两个新类。它们是来自 java.net 包的 <code><font face="NSimsun">InetSocketAddress</font></code> 类，它指定连接到哪里，以及来自 java.nio.channels 包的 <code><font face="NSimsun">SocketChannel</font></code> 类，它执行实际的读和写操作。</p> 
+<p>这部分中的代码片段显示了一种经过修改的、非阻塞的办法来创建基础的服务器-套接字程序。请注意这些代码样本与第一个示例中所用的代码之间的变化，从添加两个新类开始：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">String host = ......;
+   InetSocketAddress socketAddress = new InetSocketAddress(host, 80);
+ 
+SocketChannel channel = SocketChannel.open();
+   channel.connect(socketAddress);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="40%" align="right" border="0"> 
+ <tbody> 
+  <tr> 
+   <td width="10"><img height="1" width="10" src="image/Merlin 给 Java 平台带来了非.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td> 
+    <table cellspacing="0" cellpadding="5" width="100%" border="1"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#eeeeee"><a name="sidebar2"><strong>缓冲区的角色</strong></a><br /> <p><code><font face="NSimsun">Buffer</font></code> 是包含特定基本数据类型数据的抽象类。从本质上说，它是一个包装器，它将带有 getter/setter 方法的固定大小的数组包装起来，这些 getter/setter 方法使得缓冲区的内容可以被访问。 <code><font face="NSimsun">Buffer</font></code> 类有许多子类，如下：</p> 
+        <ul> 
+         <li><code><font face="NSimsun">ByteBuffer</font></code></li> 
+         <li><code><font face="NSimsun">CharBuffer</font></code></li> 
+         <li><code><font face="NSimsun">DoubleBuffer</font></code></li> 
+         <li><code><font face="NSimsun">FloatBuffer</font></code></li> 
+         <li><code><font face="NSimsun">IntBuffer</font></code></li> 
+         <li><code><font face="NSimsun">LongBuffer</font></code></li> 
+         <li><code><font face="NSimsun">ShortBuffer</font></code></li> 
+        </ul> <code><font face="NSimsun">ByteBuffer</font></code> 是唯一支持对其它类型进行读写的类，因为其它类都是特定于类型的。一旦连接上，就可以使用 <code><font face="NSimsun">ByteBuffer</font></code> 对象从通道读数据或将数据写到通道。请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-javaio/#resources"><font color="#5c81a7">参考资料</font></a>了解关于 <code><font face="NSimsun">ByteBuffer</font></code> 的更多信息。 <p> </p> </td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>为了使通道成为非阻塞的，我们在通道上调用 <code><font face="NSimsun">configureBlockingMethod(false)</font></code> ，如下所示：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="350" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">channel.configureBlockingMethod(false);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在阻塞模式中，线程将在读或写时阻塞，一直到读或写操作彻底完成。如果在读的时候，数据尚未完全到达套接字，则线程将在读操作上阻塞，一直到数据可用。</p> 
+<p>在非阻塞模式中，线程将读取已经可用的数据（不论多少），然后返回执行其它任务。如果将真（true）传递给 <code><font face="NSimsun">configureBlockingMethod()</font></code> ，则通道的行为将与在 <code><font face="NSimsun">Socket</font></code> 上进行阻塞读或写时的行为完全相同。唯一的主要差别，如上所述，是这些阻塞读和写可以被其它线程中断。</p> 
+<p>单靠 <code><font face="NSimsun">Channel</font></code> 创建非阻塞 I/O 实现是不够的。要实现非阻塞 I/O， <code><font face="NSimsun">Channel</font></code> 类必须与 <code><font face="NSimsun">Selector</font></code> 类配合进行工作。</p> 
+<p><a name="N101F8"><span class="smalltitle"><strong><font size="3">选择器做什么</font></strong></span></a></p> 
+<p>在反应器模式情形中， <code><font face="NSimsun">Selector</font></code> 类充当 <code><font face="NSimsun">Reactor</font></code> 角色。 <code><font face="NSimsun">Selector</font></code> 对多个 <code><font face="NSimsun">SelectableChannels</font></code> 的事件进行多路复用。每个 <code><font face="NSimsun">Channel</font></code> 向 <code><font face="NSimsun">Selector</font></code> 注册事件。当事件从客户机处到来时， <code><font face="NSimsun">Selector</font></code> 将它们多路分用并将这些事件分派到相应的 <code><font face="NSimsun">Channel</font></code> 。</p> 
+<p>创建 <code><font face="NSimsun">Selector</font></code> 最简单的办法是使用 <code><font face="NSimsun">open()</font></code> 方法，如下所示：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Selector selector = Selector.open();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N10230"><span class="smalltitle"><strong><font size="3">通道遇上选择器</font></strong></span></a></p> 
+<p>每个要为客户机请求提供服务的 <code><font face="NSimsun">Channel</font></code> 都必须首先创建一个连接。下面的代码创建称为 <code><font face="NSimsun">Server</font></code> 的 <code><font face="NSimsun">ServerSocketChannel</font></code> 并将它绑定到本地端口：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">ServerSocketChannel serverChannel = ServerSocketChannel.open();
+serverChannel.configureBlocking(false);
+InetAddress ia = InetAddress.getLocalHost();
+InetSocketAddress isa = new InetSocketAddress(ia, port );
+serverChannel.socket().bind(isa);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>每个要为客户机请求提供服务的 <code><font face="NSimsun">Channel</font></code> 都必须接着将自己向 <code><font face="NSimsun">Selector</font></code> 注册。 <code><font face="NSimsun">Channel</font></code> 应根据它将处理的事件进行注册。例如，接受传入连接的 <code><font face="NSimsun">Channel</font></code> 应这样注册，如下：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SelectionKey acceptKey = 
+    channel.register( selector,SelectionKey.OP_ACCEPT);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><code><font face="NSimsun">Channel</font></code> 向 <code><font face="NSimsun">Selector</font></code> 的注册用 <code><font face="NSimsun">SelectionKey</font></code> 对象表示。满足以下三个条件之一， <code><font face="NSimsun">Key</font></code> 就失效：</p> 
+<ul> 
+ <li><code><font face="NSimsun">Channel</font></code> 被关闭。</li> 
+ <li><code><font face="NSimsun">Selector</font></code> 被关闭。</li> 
+ <li>通过调用 <code><font face="NSimsun">Key</font></code> 的 <code><font face="NSimsun">cancel()</font></code> 方法将 <code><font face="NSimsun">Key</font></code> 本身取消。</li> 
+</ul> 
+<p><code><font face="NSimsun">Selector</font></code> 在 <code><font face="NSimsun">select()</font></code> 调用时阻塞。接着，它开始等待，直到建立了一个新的连接，或者另一个线程将它唤醒，或者另一个线程将原来的阻塞线程中断。</p> 
+<p><a name="N1029E"><span class="smalltitle"><strong><font size="3">注册服务器</font></strong></span></a></p> 
+<p><code><font face="NSimsun">Server</font></code> 是那个将自己向 <code><font face="NSimsun">Selector</font></code> 注册以接受所有传入连接的 <code><font face="NSimsun">ServerSocketChannel</font></code> ，如下所示：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SelectionKey acceptKey = serverChannel.register(sel, SelectionKey.OP_ACCEPT);
+   while (acceptKey.selector().select() &gt; 0 ){
+     ......</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><code><font face="NSimsun">Server</font></code> 被注册后，我们根据每个关键字（key）的类型以迭代方式对一组关键字进行处理。一个关键字被处理完成后，就都被从就绪关键字（ready keys）列表中除去，如下所示：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Set readyKeys = sel.selectedKeys();
+    Iterator it = readyKeys.iterator();
+while (it.hasNext()) 
+{
+SelectionKey key = (SelectionKey)it.next();
+  it.remove();
+  ....
+  ....
+  ....
+ }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>如果关键字是可接受（acceptable）的，则接受连接，注册通道，以接受更多的事件（例如：读或写操作）。 如果关键字是可读的（readable）或可写的（writable），则服务器会指示它已经就绪于读写本端数据：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SocketChannel socket;
+if (key.isAcceptable()) {
+    System.out.println(&quot;Acceptable Key&quot;);
+    ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
+    socket = (SocketChannel) ssc.accept();
+    socket.configureBlocking(false);
+    SelectionKey another = 
+      socket.register(sel,SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+}
+if (key.isReadable()) {
+    System.out.println(&quot;Readable Key&quot;);
+    String ret = readMessage(key);
+    if (ret.length() &gt; 0) {
+      writeMessage(socket,ret);
+    }
+      
+}
+if (key.isWritable()) {
+    System.out.println(&quot;Writable Key&quot;);
+    String ret = readMessage(key);
+    socket = (SocketChannel)key.channel();   
+    if (result.length() &gt; 0 ) {
+      writeMessage(socket,ret);
+    }
+    }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="h4"><span class="atitle">唵嘛呢叭咪吽 — 非阻塞服务器套接字快显灵！</span></a></p> 
+<p>对 JDK 1.4 中的非阻塞 I/O 的介绍的最后一部分留给您：运行这个示例。</p> 
+<p>在这个简单的非阻塞服务器-套接字示例中，服务器读取发送自客户机的文件名，显示该文件的内容，然后将内容写回到客户机。</p> 
+<p>这里是您运行这个示例需要做的事情：</p> 
+<ol> 
+ <li>安装 JDK 1.4（请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-javaio/#resources"><font color="#5c81a7">参考资料</font></a>）。</li> 
+ <li>将两个 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-javaio/src.zip"><font color="#5c81a7">源代码文件</font></a>复制到您的目录。</li> 
+ <li>编译和运行服务器， <code><font face="NSimsun">java NonBlockingServer</font></code> 。</li> 
+ <li>编译和运行客户机， <code><font face="NSimsun">java Client</font></code> 。</li> 
+ <li>输入类文件所在目录的一个文本文件或 java 文件的名称。</li> 
+ <li>服务器将读取该文件并将其内容发送到客户机。</li> 
+ <li>客户机将把从服务器接收到的数据打印出来。（由于所用的 <code><font face="NSimsun">ByteBuffer</font></code> 的限制，所以将只读取 1024 字节。）</li> 
+ <li>输入 quit 或 shutdown 命令关闭客户机。</li> 
+</ol> 
+<div> 
+ <p><a name="h5"><span class="atitle">结束语</span></a></p> 
+ <p>Merlin 的新 I/O 包覆盖范围很广。Merlin 的新的非阻塞 I/O 实现的主要优点有两方面：线程不再在读或写时阻塞，以及 <code><font face="NSimsun">Selector</font></code> 能够处理多个连接，从而大幅降低了服务器应用程序开销。</p> 
+ <p>我们已经着重论述了新的 java.nio 包的这两大优点。我们希望，您将把在这里所学到的知识应用到自己的实际应用程序开发工作中。</p> 
+ <br /> 
+ <br /> 
+ <p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+ <ul> 
+  <li>您可以参阅本文在 developerWorks 全球站点上的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/j-javaio/index.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">英文原文</font></a>.</li> 
+  <li>请单击本文顶部或底部的 <strong>讨论</strong>参加本文的 <a cmimpressionsent="1" href=":void forumWindow()"><font color="#5c81a7">讨论论坛</font></a>。</li> 
+  <li>下载 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-javaio/src.zip"><font color="#5c81a7">源代码</font></a>运行本文的示例。</li> 
+  <li>安装 <a cmimpressionsent="1" href="http://java.sun.com/j2se/1.4/index.html"><font color="#5c81a7">JDK 1.4</font></a>。</li> 
+  <li>在 <a cmimpressionsent="1" href="http://java.sun.com/j2se/1.4/docs/guide/nio/"><font color="#5c81a7">NIO 主页</font></a>上了解所有新的非阻塞 I/O API。</li> 
+  <li>要更多了解对 JDK 1.4 的一般介绍，请参阅 <a cmimpressionsent="1" href="http://developer.java.sun.com/developer/technicalArticles/releases/j2se1.4/"><font color="#5c81a7">Java 2 platform, Standard Edition, v1.4 overview</font></a>。</li> 
+  <li>请访问 <a cmimpressionsent="1" href="http://jcp.org/jsr/detail/051.jsp"><font color="#5c81a7">Java Community Process</font></a>，了解 java.nio 包成为 Java 平台的一部分的过程。</li> 
+  <li>要了解对 Java 平台长期存在的线程开销问题的深入讨论方面的内容，请参阅 Allen Holub 的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/java/library/j-king.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">proposal for fixing the Java platform's threading problems</font></a>，其中有一部分讨论 Java I/O（ <em>developerWorks</em>，2000 年 10 月）。</li> 
+  <li>了解关于 <a cmimpressionsent="1" href="http://java.sun.com/j2se/1.4/docs/api/java/nio/ByteBuffer.html"><font color="#5c81a7">ByteBuffer 类</font></a>的更多信息。</li> 
+  <li>获取关于 <a cmimpressionsent="1" href="http://www.cs.vu.nl/~eliens/online/oo/I/2/reactor.html"><font color="#5c81a7">Reactor pattern</font></a>的更多信息。</li> 
+  <li>John Zukowski 的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/java/library/j-mercol.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7"><em>Magic with Merlin</em> </font></a>专栏讲述的都是 Merlin 给 Java 平台带来的变化。</li> 
+  <li><em>JavaWorld</em>上的文章“ <a cmimpressionsent="1" href="http://www.javaworld.com/javaworld/jw-09-2001/jw-0907-merlin_p.html"><font color="#5c81a7">Master Merlin's new I/O classes</font></a>”告诉您如何从非阻塞 I/O 和内存映射缓冲区获取最多性能。</li> 
+  <li>想探索一下作为一名开发者有哪些选择吗？请从 <em>developerWorks</em>的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/i-tools.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">developer kits from IBM</font></a>完整清单开始。</li> 
+  <li>您可在 <em>developerWorks</em>Java 技术专区找到数以百计的关于 Java 编程的各个方面的文章。</li> 
+ </ul> 
+ <br /> 
+ <br /> 
+ <p><a name="author"><span class="atitle">作者简介</span></a></p> 
+ <table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+  <tbody> 
+   <tr> 
+    <td colspan="3"><img height="5" width="100%" src="image/Merlin 给 Java 平台带来了非.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   </tr> 
+   <tr valign="top" align="left"> 
+    <td> <p> </p> </td> 
+    <td><img height="5" width="4" src="image/Merlin 给 Java 平台带来了非.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+    <td width="100%"> <p>Aruna Kalagnanam 是 IBM India Lab 电子商务集成技术方面的软件工程师。您可以通过 <a cmimpressionsent="1" href="mailto:kaaruna@in.ibm.com?cc=kaaruna@in.ibm.com"><font color="#5c81a7">kaaruna@in.ibm.com</font></a>与 Aruna 联系。</p> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0"> 
+  <tbody> 
+   <tr> 
+    <td colspan="3"><img height="5" width="100%" src="image/Merlin 给 Java 平台带来了非.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   </tr> 
+   <tr valign="top" align="left"> 
+    <td> <p> </p> </td> 
+    <td><img height="5" width="4" src="image/Merlin 给 Java 平台带来了非.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+    <td width="100%"> <p>Balu G 是 IBM India Lab 电子商务集成技术方面的软件工程师。可以通过 <a cmimpressionsent="1" href="mailto:gbalu@in.ibm.com?cc=gbalu@in.ibm.com"><font color="#5c81a7">gbalu@in.ibm.com</font></a>与 Balu 联系。</p> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<a href="http://www.ibm.com/developerworks/cn/java/j-javaio/">http://www.ibm.com/developerworks/cn/java/j-javaio/</a></div></body></html>

@@ -1,0 +1,318 @@
+<html><head><title><div class="tit">
+  基于Java的界面布局 DSL 的设计与实现
+</div></title></head><body><div id='tit'>基于Java的界面布局 DSL 的设计与实现</div><div id='cate'>j&middot;入门</div><div id='date'>2008年02月26日 星期二 01:53 A.M.</div><div id='page'>173</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/7bfbfe192034a97edab4bdb8.html'>http://hi.baidu.com/hxzon/blog/item/7bfbfe192034a97edab4bdb8.html</a><div id='cnt'><table style="border-top: #ffffff 17px solid" class="titel FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td align="center"> <h1 class="titel">基于Java的界面布局 DSL 的设计与实现 （1）</h1> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table style="margin: 2px 0px 20px" class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td bgcolor="#b1bcc0" height="1"> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table style="margin-bottom: 20px" class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td align="center"><span class="b">发布时间：2007.09.13 06:23</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="b"> 来源：赛迪网技术社区</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="b">作者：孙鸣</span></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="p11 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td style="word-wrap: break-word" align="left"> <p style="text-indent: 2em" class="a14c"> </p> <p style="text-indent: 2em">界面设计应该是一项充满创造性、富有乐趣的工作，但是却往往被认为非常的枯燥和繁琐。究其原因，是因为界面布局领域所采用的描述概念和具体的实现语言之间存在很大的语义隔阂。而一般的界面开发工具提供的所见即所得以及界面布局管理器等方案也无法很好地解决这个问题。</p> <p style="text-indent: 2em">在本文中，我们会给出一种更好的解决方案，我们不是去试图把界面设计者头脑中的设计概念和样式逐步降级、分解成所使用的实现语言能够理解的低层概念，也不是提供一些已经完成的、确定的但难以扩充和更改的布局样式库供界面设计者使用。我们所提供的是一种专门用于描述高层界面设计样式的语言。通过这种语言，界面设计者可以直接、明确地描述出他们头脑中的布局设计样式；通过这种语言，界面设计者可以自己方便地、灵活地制定自己需要的布局样式。此外，本文中给出的设计思想对于其他领域的设计也有很好的借鉴作用。</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">创造性，还是乏味？</p> <p style="text-indent: 2em">界面设计是一项非常有创造性，甚至富有艺术性的工作，一个简洁、易用、漂亮的界面在带给使用者方便的同时，也会给界面设计者带来极大的成就感。但是，在现实中，情况似乎并非如此，很多人都认为做界面是一项非常繁琐、机械、乏味的工作，并千方百计地去逃避界面相关的工作。这是为什么呢？</p> <p style="text-indent: 2em">原因很简单，因为做界面其实涉及两项工作，一项是界面的一些设计创意，包括界面的布局样式以及和使用者的交互方式，这项工作充满挑战和乐趣。但是，这些设计创意最终是要落实到实现上的，这就是第二项工作。此时，你头脑中那些清晰、完整的设计概念开始变得琐碎，你不得不和那些低层次的坐标位置打交道。更糟糕的是，当你好不容易做好了一个界面，但是发现其中某些元素的布局需要一些调整时，这个你本应认为是一个很简单的改变却造成大量重复的低层次坐标位置更改时，你肯定会认为做界面是多么的机械和乏味呀！</p> <p style="text-indent: 2em">其实，造成这种认识的根源在于界面设计创意和实现这些创意概念的语言之间存在很大的断层。这样，在具体实现时，你就必须得把这些清晰、完整的布局样式降级成一些琐碎、没有什么意义的低层次的坐标值，使得实现语言能够理解。这项工作不仅乏味，而且最终的实现也非常的脆弱 —— 一个在布局样式层面非常简单的更改，就会造成实现层面的巨大变动。比如：我们可以说把一组元素同时按比例缩小 10%，做过界面的朋友肯定知道这个更改意味着什么。</p> <p style="text-indent: 2em">为了应对这个断层的问题，目前几乎所有的涉及界面制作的开发工具都提供了相同的解决方法：可视化的界面设计工具以及布局管理器。但是这两种方法都没有从根本上解决这个问题。</p> <p style="text-indent: 2em">可视化界面设计工具确实避免了不少繁琐的界面元素摆放工作，但是对于专业的界面设计来说，通过拖放设计出来的界面在准确度和规范性上都有待提高，此外还有更为重要的一点，那就是存在于设计者头脑中的布局样式仍然没有被明确地描述出来，而是被降级成一个个摆放在一起的零散的组件，虽然这些组件本身是可视的。这个语义断层的存在同样会使得通过可视化界面设计工具设计出来的界面非常脆弱。</p> <p style="text-indent: 2em">布局管理器试图通过提供一些常用的布局样式来解决这个问题。但是，这种做法非常僵化，也就是说你只能使用现有的布局管理器，如果它们无法满足你的要求，你也无法自己定制。此外，这些布局管理器仅仅适合于一些简单的情况。对于一些复杂的布局样式来说，它们的描述能力就显得非常的不足。那些曾经和 GridBagLayOut 斗争过的朋友对此肯定深有体会。</p> <p style="text-indent: 2em">在本文中，我们会给出一种更好的解决方案，我们不是去试图把界面设计者头脑中的设计概念和样式逐步降级、分解成所使用的实现语言能够理解的低层概念，也不是提供一些已经完成的、确定的但难以扩充和更改的布局样式库供界面设计者使用。我们所提供的是一种专门用于描述高层界面设计样式的语言。通过这种语言，界面设计者可以直接、明确地描述出他们头脑中的布局设计样式，通过这种语言，界面设计者可以自己方便地、灵活地制定自己需要的布局样式。也就是说，本来仅存在于界面设计者头脑中的抽象布局样式，现在也变得可描述，可编程了。</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">界面布局语言介绍</p> <p style="text-indent: 2em">在学习界面布局语言的设计之前，先来了解一下该语言的使用是非常有帮助的。我们的界面布局语言非常简单，简单到只有一种原子：Component。Component 是一种基本的布局元素，可以对 Component 进行平移和伸缩，使其和给定的一个布局空间 Rectangle 匹配。比如对于 Button 这个 Component 来讲，它具有传统按钮的外观，但是它在布局上所占的实际空间则是由为其指定的 Rectangle 决定的。此外，Component 要最终在界面上显示出来，就必须有一个物理上的 Container。也就是说，只要给定了一个 Rectangle 和一个 Container，一个 Component 就可以在界面上指定的布局位置呈现出来。</p> <p style="text-indent: 2em">例如，当我们使用布局语言在一个 JFrame 上坐标位置为 (0,0) 展示一个 width 为 200，height 为 60 的按钮时，我们可以这样来描述（为了简洁起见，后面的代码实例中均略去 Layout 名字空间前缀）：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">Button().title(“button1”).at(0,0,200,60).in(this.getContentPane());</p> <p style="text-indent: 2em">仅仅提供这样一种原子元素的语言显然无法满足我们前面提到的目标。在我们的界面布局语言中，还提供了两种在布局中非常常用的两种从已有组件构造新组件的组合手段：above 和 beside。其中 above 组合子接收 3 个参数：两个现有 Component 以及一个比例，它会产生出一个新的复合 Component，其中按照给定的比例把第一个 Component 摆放在第二个 Component 之上。Beside 组合子接收同样的 3 个参数，并且也产生出一个新的复合 Component，其中按照给定的比例把第一个 Component 摆放在第二个Component左边。</p> <p style="text-indent: 2em">例如，如果我们希望在一个给定的 Container C 上的 Rectangle(0,0,300,40) 中，平行摆放一个 TextField 和一个 Button，且希望 TextField 占据 80% 的比例时，可以这样来描述：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">beside(TextField(), Button().title(“ok”), 0.8).at(0,0,300,40).in(C)</p> <p style="text-indent: 2em">同样，我们可以使用 above 来进行如下描述：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">above(TextField(), Button().title(“ok”), 0.5).at(0,0,300,60).in(C)</p> <p style="text-indent: 2em">值得注意的是，在我们的界面布局语言中，Component 在 beside 和 above 操作下是封闭的，也就是说 beside 和 above 操作的结果同样也是 Component，并完全可以作为基本的 Component 来再次进行 beside 和 above 组合。这样我们就可以使用这两个简单的操作生成更加复杂的 Component 来，从而完成复杂的界面布局。比如，我们可以这样来进行描述：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">Component L = beside(TextField (), Button().title(“…”), 0.8);</p> <p style="text-indent: 2em">above(L, Button().title(“ok”), 0.5). at(0,0,300,60).in(C)</p> <p style="text-indent: 2em">为了保证界面布局语言的完备性，我们增加了一种特殊的原子元素：Empty。它的作用只是占据一定的布局空间。比如，如果我们希望在一个布局空间中右半边放置一个 Button，左半边空置，就可以这些描述：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">beside(Empty(), Button(), 0.5).at(0,0,200,40).in(C)</p> <p style="text-indent: 2em">读者在后面可以看到，正是这个 Empty 以及 beside 和 above 操作的闭包性质为我们描述任意复杂的布局样式提供了可能。</p> <p style="text-indent: 2em">在有了这些基础的布局元素和组合手段后，我们就可以通过组合手段来把一些典型的布局样式抽象出来。在下一小节中读者将会看到，布局语言中的 beside 和 above 组合操作其实就是 Java 中的普通方法，因此我们的布局语言中不需要什么特别的抽象手段。也就是说，我们可以直接使用 Java 中已有的抽象手段。</p> <p style="text-indent: 2em">例如，如果我们希望抽象出这样一种布局样式，其中给定一个布局空间和一个布局组件，我们期望该组件能够按照指定的纵、横留白比例位于该布局空间的中心地带。我们可以把该布局样式抽象出来，并命名它为 center。并可以在更复杂的布局样式中把 center 当作一个基本语素使用。center 的实现如下：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>public Component center(Component cp, float hRatio, float vRatio) {
+float s1 = (1-2.0* hRatio)/ (1.0 - hRatio); 
+float s2 = (1-2.0*vRatio)/ (1.0-vRatio); 
+Component u = above(Empty(), above(cp, Empty(), s2), vRatio); 
+return beside(Empty(), beside(u, Empty(), s1), hRatio); 
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em">当我们想把一个按钮放置按照在横向 0.2，纵向 0.1 的留白比例放在布局空间 (0,0,100,30) 中时，我们可以简单的进行如下描述：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">center(Button().title(“I am at center.”), 0.1,0.1).at(0,0,300,60).in(C)</p> <p style="text-indent: 2em">我们还可以构建出 h_seq 和 v_seq 这样的布局样式，它们分别为把一组给定的布局元素横向顺序排列和纵向顺序排列，其实现如下：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>public Component h_seq(Component[] cps) {
+int len = cps.length; 
+if(len == 1) return cps[0]; 
+return beside(cps[0], h_seq(slice(cps, 1, len)), 1.0/len); 
+}
+
+public Component v_seq(Component[] cps) {
+int len = cps.length; 
+if(len == 1) return cps[0]; 
+return above(cps[0], v_seq(slice(cps, 1, len)), 1.0/len); 
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em">其中 slice 方法有 3 个参数，一个为布局元素数组，另外两个为区间的起止位置，该方法把给定布局元素数组中指定起止位置的区间部分作为一个新的布局元素数组返回。这两个方法的实现都比较简单直接。下面是两个应用例子：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>Component[] cps = new Component[]
+{ Button().title(“1”), Button().title(“2”), Button().title(“3”) }; 
+h_seq(cps).at(0,0,300,60).in(C)
+v_seq(cps).at(0,0,150,200).in(C)</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table style="border-top: #ffffff 17px solid" class="titel FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td align="center"> <h1 class="titel">基于Java的界面布局 DSL 的设计与实现 （2）</h1> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table style="margin: 2px 0px 20px" class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td bgcolor="#b1bcc0" height="1"> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table style="margin-bottom: 20px" class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td align="center"><span class="b"><font color="#30569d">发布时间：2007.09.13 06:23</font></span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="b"><font color="#30569d"> 来源：赛迪网技术社区</font></span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="b"><font color="#30569d">作者：孙鸣</font></span></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="p11 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td style="word-wrap: break-word" align="left"> <p style="text-indent: 2em" class="a14c"> </p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">在 center、h_seq、v_seq 这些布局样式的基础上，我们可以定义出更加高阶的样式来，比如，给定一布局元素序列，我们希望它们在给定的布局空间中按照 N 行、M 列排列。我们称之为 block，其实现如下：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>public Component block (Component[] cps, int N, int M) {
+Component[][] fcps = formalize(cps, N, M); 
+Component[] rows = new Component[fcps.length]; 
+for(int i = 0; i ＜ fcps.length; i++) {
+rows[i] = h_seq(fcps[i]); 
+}
+return v_seq(rows); 
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em">其中 formalize 是一个工具方法，它把一个给定的布局元素数组规范化为 N 行 M 列的形式，如果不足则用 Empty 组件补齐。</p> <p style="text-indent: 2em">如果希望在 block 中，每个元素都可以指定一些横向和纵向的留白，则可以定义一个 block_with_margin 布局样式，其实现如下：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>public Component block_with_margin(Component[] cps, int N, int M, 
+float hRatio, float vRatio) {
+Component[] ncps = new Component[cps.length]; 
+for(int i=0; i＜cps.length; i++) {
+ncps[i] = center(cps[i], hRatio, vRatio); 
+}
+return block(ncps, N, M); 
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em">好了，现在我们来看一个稍微复杂一些的例子，我们将使用前面制作的一些布局样式构建一个迷你计算器的外观，如下图所示：</p> <p style="text-indent: 2em">对应的描述代码如下：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>Component[] cs = new Component[]{
+Button().title(&quot;0&quot;), 
+Button().title(&quot;1&quot;), 
+Button().title(&quot;2&quot;), 
+Button().title(&quot;+&quot;),
+Button().title(&quot;3&quot;), 
+Button().title(&quot;4&quot;), 
+Button().title(&quot;5&quot;), 
+Button().title(&quot;-&quot;),
+Button().title(&quot;6&quot;), 
+Button().title(&quot;7&quot;), 
+Button().title(&quot;8&quot;), 
+Button().title(&quot;*&quot;),
+Button().title(&quot;9&quot;), 
+Button().title(&quot;=&quot;), 
+Button().title(&quot;%&quot;), 
+Button().title(&quot;/&quot;) 
+}; 
+
+Component opLayout = block(cs,4,4); 
+above( above( TextField(),
+beside( Button().title(&quot;Backspace&quot;), 
+Button().title(&quot;C&quot;),0.5), 
+0.5), 
+block(cs,4,4), 0.3).at(0,0,300,200).in(C);</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">如果我们现在希望将所有数字以及操作按钮按照横向和纵向各 2% 进行留白，我们所要做的仅仅是一行的改动，就是把：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">Component opLayout = block(cs,4,4);</p> <p style="text-indent: 2em">更改为：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">Component opLayout = block_with_margin(cs, 4, 4, 0.02, 0.02);</p> <p style="text-indent: 2em">这意味着什么呢？这意味着我们可以直接使用布局语言进行界面制作，我们可以直接针对布局进行编程，我们所写出来的界面代码就是我们的布局规格说明。</p> <p style="text-indent: 2em">从上面的介绍中，读者可以看出，我们的界面布局语言可以非常方便地定义出一些常见的布局样式，还可以把这些样式组合成更为复杂的一些高阶布局样式，并且这种组合是没有任何限制的。此外，这些布局样式的定义描述方式是和界面设计者头脑中所使用的一些布局词汇和规则贴近的。通过使用界面布局语言，界面设计者完全可以摆脱那些呆板、机械又难以定制和扩展的布局管理器，可以轻松地把头脑中的布局创意直接描述出来，逐步形成自己的布局样式库，充分享受这种创造性的工作所带来的乐趣。</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">界面布局语言设计与实现</p> <p style="text-indent: 2em">在本小节中，我们会对上面介绍的界面布局语言的一些设计和实现细节进行介绍。我们这里所讲解的是基于 Java Swing 的实现。读者可以根据自己的需要在其他的语言和界面开发工具包上去实现该界面布局语言。</p> <p style="text-indent: 2em">界面布局语言的主要设计思路有两点：</p> <p style="text-indent: 2em">在接口中遵循《Domain Driven Desing》作者 Eric Evans 提出的 FluentInterface 的概念；</p> <p style="text-indent: 2em">语言的层次化设计</p> <p style="text-indent: 2em">界面布局语言所提供的接口不是 Java 语言层面上的对象接口，也不是使用基于 Java 的语法来使用这些接口构建复杂的界面。相反，我们提供了一个面向界面设计规格描述的接口，接口的语义、规则以及命名完全和界面设计中的规则、概念相符，这样就可以直接使用代码来清晰、直接地表达出界面设计中的布局概念。</p> <p style="text-indent: 2em">在界面布局语言的设计上，我们没有采用定制的面向对象的设计，而是由一组处于不同层次的语言组成，每个层次都是通过对该层的基本原子进行组合构造而来，每个层次所构造出来的实体，则可以作为上一层语言的基本原子使用。这样，我们就在通用的 Java 语言之上，逐步构建出了一种专用于表达界面布局的语言。比起传统的对象设计，这种方法具有更高的抽象层次和通用性。</p> <p style="text-indent: 2em">我们来看一下界面布局语言中基本原子的实现细节，先来看一下 Component 的定义：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>public interface Component {
+public Component at(int x, int y, int width, int height); 
+public Component in(Container); 
+……
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">Button 的实现如下：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>public class Button implements Component{
+public JButton btn = new JButton(); 
+public Component title(String t){
+btn.setText(t); 
+return this; 
+}
+public Component at(int x, int y, int width, int height) {
+Rectangle rect = new Rectangle(x,y,width,height); 
+btn.setBounds(rect); 
+return this; 
+}
+public Component in(Container parent){
+parent.add(btn); 
+return this; 
+}
+……
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em">从上面的代码中，读者会发现这种写法和传统的 API 写法风格的不同。在这种风格中，为了能够将调用形成一个句子，每个调用在结束时都返回了 this。另外，在给方法起名时也有不同的考虑，不只是关注于该方法的职责和功能，而是更关注于该方法名在整个句子这个上下文中是否通顺、是否更富表达力。</p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table style="border-top: #ffffff 17px solid" class="titel FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td align="center"> <h1 class="titel">基于Java的界面布局 DSL 的设计与实现 （3）</h1> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table style="margin: 2px 0px 20px" class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td bgcolor="#b1bcc0" height="1"> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table style="margin-bottom: 20px" class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td align="center"><span class="b"><font color="#30569d">发布时间：2007.09.13 06:23</font></span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="b"><font color="#30569d"> 来源：赛迪网技术社区</font></span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="b"><font color="#30569d">作者：孙鸣</font></span></td> 
+  </tr> 
+ </tbody> 
+</table> 
+<table class="p11 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="560"> 
+ <tbody> 
+  <tr> 
+   <td style="word-wrap: break-word" align="left"> <p style="text-indent: 2em" class="a14c"> </p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">随着更多基本原子组件的编写，会发现 in 和 at 方法在很多组件中都重复出现，此时可以把它们提取到一个抽象基类中。这里这样写是为了清楚起见。</p> <p style="text-indent: 2em">下面我们来看看 Empty 组件，beside 和 above 组合子的实现方法，它们都很简单。</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>public class Empty implements Component {
+public Component at(int x,int y,int width,int height) {
+return this; 
+}
+public Component in(Container {
+return this; 
+}
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em">Empty 只是起到了一个布局空间占位的作用。beside 和 above 的实现如下：</p> <p style="text-indent: 2em"> </p> 
+    <center>
+     <ccid_nobr></ccid_nobr> 
+     <table border="1" cellspacing="0" bordercolorlight="#000000" bordercolordark="#ffffff" cellpadding="2" width="400" align="center"> 
+      <tbody> 
+       <tr> 
+        <td style="font-size: 9pt" class="code" bgcolor="#e6e6e6"> <pre>
+          <ccid_code></ccid_code>public class beside implements Component {
+private Component left,right; 
+private float ratio; 
+public beside(Component left,Component right,float ratio){
+this.left = left; 
+this.right = right; 
+this.ratio = ratio; 
+}
+public Component at(int x,int y,int width,int height) { 
+left.at(x, y, width*ratio,height); 
+right.at(x+ width*ratio, y, width*(1-ratio),height); 
+return this; 
+}
+public Component in(Container parent) {
+left.in(parent); 
+right.in (parent); 
+return this; 
+}
+……
+}
+public class above implements Component {
+private Component up,low; 
+private float ratio; 
+public above(Component up, Component low, float ratio){
+this.up = up; 
+this.low = low; 
+this.ratio = ratio; 
+}
+public Component at(int x,int y,int width,int height) { 
+up.at(x, y, width,height*ratio); 
+low.at(x, y+height*ratio, width,height*(1-ratio)); 
+return this; 
+}
+public Component in(Container parent) {
+up.in(parent); 
+low.in (parent); 
+return this; 
+}
+……
+}</pre> </td> 
+       </tr> 
+      </tbody> 
+     </table> 
+    </center> <p style="text-indent: 2em">为了保证组合操作的闭包性质，这两个组合子都实现了 Component 接口，并且把组合的结果当作一个 Component 返回。这两个组合子的主要功能就是把给定的布局空间按照指定的比例进行分隔，并把给定的组件放到分隔好的布局空间中去。其中的算法比较简单，就不再赘述。</p> <p style="text-indent: 2em">基于这些基本的原子元素和组合子，就可以构建出任意复杂程度的布局样式。在前面语言介绍小节中，我们给出了一些如：center、h_seq、v_seq、block 以及 block_with_margin 等简单布局样式的实现。读者可以根据自己的需要定义并积累自己的布局样式库。</p> <p style="text-indent: 2em">前面提到过，我们的界面布局语言是分层的，大家可以看出，在最底层是我们的 Java Swing 界面开发语言，我们在其上构建出了界面布局位置描述语言，使用该布局位置描述语言中的组合子：beside 和 above，我们在其上又构建出了用来定义和表达各种布局样式的布局样式描述语言。</p> <p style="text-indent: 2em">敏锐的读者会发现，在前面讲述的界面布局语言中仅仅涉及了界面布局元素的显示样式方面的内容，但是一个完整的界面是需要和后端的应用逻辑交互的，因此还需要一个粘合界面显示和应用模型的层次。</p> <p style="text-indent: 2em">确实是这样的，我们在这里之所以没有提这项内容主要是为了避免陷入其实现的琐碎细节中，从而可以集中介绍界面布局语言本身。为了能够对界面布局元素进行编程控制，我们让每个布局元素都有一个“拥有者”。和布局元素在物理上的包含关系不同，“拥有者”是编程语义上的。也就是说，对布局元素在编程意义上的所有控制操作都在其“拥有者”中完成，这种思路完全隔离了显示和控制，其实就是 MVP 模式的一种实现。</p> <p style="text-indent: 2em">比如，我们可以这样描述一个 Button：</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">Button().title(“button1”).ownby(btn1Controller);</p> <p style="text-indent: 2em">关于 Button 的所有事件处理和操控都在 btn1Controller 中完成。有机会的话，我们会在后续的文章中对此进行详细的介绍，现在我们将其实现作为一个练习留给读者来完成。</p> <p style="text-indent: 2em"> </p> <p style="text-indent: 2em">关于设计的几点思考</p> <p style="text-indent: 2em">在本文中，我们介绍了一种界面布局语言以及它的设计和实现。在此，我们有必要对其中的设计思路进行一个回顾。</p> <p style="text-indent: 2em">在设计中，我们没有采用对象技术中常用的一些设计手段，我们没有对界面布局本身进行抽象，也不是设计出一些特定的界面布局管理器。相反，我们把对象技术当成一种低层的抽象工具，并基于它来构建更高层次的抽象，创建出更加接近我们所工作的问题领域的语言，从而获得更高的生产力、表达力以及可重用性（还有什么比语言更加易于重用），这就是目前探讨的比较热烈的面向语言编程（Language-Oriented Programming）。</p> <p style="text-indent: 2em">前面已经介绍过，我们的界面布局语言是分层的，这种设计非常有助于构建健壮的程序。这里健壮的含意是指：问题领域中的一个小的更改，所导致的程序更改也应当是相应地小的。比如，我们在构建迷你计算器时，希望所有数字以及运算符按钮都在横向和纵向留一些空白，这个问题领域中的一个小的更改，所对应的程序更改就是把 block 更改为 block_with_margine 而已。此外，由于分层的存在，我们可以自由地修改不同层次的表达细节而对其他层次不会造成任何影响。也就是说，每一层提供了用于表达系统特征的不同词汇以及不同的更改方式和能力。</p> <p style="text-indent: 2em">由于动态语言提供了更高的动态性和元编程能力，因此在动态语言中更容易实现这种设计思路，我们也用 Python 语言基于 wxPython 界面工具库实现了本文中讲解的界面布局语言，相比 Java，它的实现确实要容易和清晰地多。</p> <p style="text-indent: 2em">（责任编辑：龚勋）</p> </td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

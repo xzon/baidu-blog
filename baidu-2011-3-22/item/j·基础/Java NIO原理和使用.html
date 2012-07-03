@@ -1,0 +1,32 @@
+<html><head><title><div class="tit">
+  Java NIO原理和使用
+</div></title></head><body><div id='tit'>Java NIO原理和使用</div><div id='cate'>j&middot;基础</div><div id='date'>2009年05月29日 星期五 07:08 P.M.</div><div id='page'>49</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/46ba07e9e315fa37b80e2dac.html'>http://hi.baidu.com/hxzon/blog/item/46ba07e9e315fa37b80e2dac.html</a><div id='cnt'><h3 align="center">Java NIO原理和使用</h3> 
+<p align="center"><a href="http://www.jdon.com/aboutme.htm">板桥里人</a> 2002/11/01 jdon.com</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="5" cellpadding="0" width="1%" align="left"> 
+ <tbody> 
+  <tr> 
+   <td> 
+    <div> 
+    </div> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p align="left">Java NIO非堵塞应用通常适用用在I/O读写等方面，我们知道，系统运行的性能瓶颈通常在I/O读写，包括对端口和文件的操作上，过去，在打开一个I/O通道后，read()将一直等待在端口一边读取字节内容，如果没有内容进来，read()也是傻傻的等，这会影响我们程序继续做其他事情，那么改进做法就是开设线程，让线程去等待，但是这样做也是相当耗费资源的。</p> 
+<p align="left">Java NIO非堵塞技术实际是采取Reactor模式，或者说是Observer模式为我们监察I/O端口，如果有内容进来，会自动通知我们，这样，我们就不必开启多个线程死等，从外界看，实现了流畅的I/O读写，不堵塞了。</p> 
+<p align="left">Java NIO出现不只是一个技术性能的提高，你会发现网络上到处在介绍它，因为它具有里程碑意义，从JDK1.4开始，Java开始提高性能相关的功能，从而使得Java在底层或者并行分布式计算等操作上已经可以和C或Perl等语言并驾齐驱。</p> 
+<p align="left">如果你至今还是在怀疑Java的性能，说明你的思想和观念已经完全落伍了，Java一两年就应该用新的名词来定义。从JDK1.5开始又要提供关于线程、并发等新性能的支持，Java应用在游戏等适时领域方面的机会已经成熟，Java在稳定自己中间件地位后，开始蚕食传统C的领域。</p> 
+<p align="left">本文主要简单介绍NIO的基本原理，在下一篇文章中，将结合Reactor模式和著名线程大师<a href="http://gee.cs.oswego.edu/dl/">Doug Lea</a>的一篇文章深入讨论。</p> 
+<p align="left">NIO主要原理和适用。</p> 
+<p align="left">NIO 有一个主要的类Selector,这个类似一个观察者，只要我们把需要探知的socketchannel告诉Selector,我们接着做别的事情，当有事件发生时，他会通知我们，传回一组SelectionKey,我们读取这些Key,就会获得我们刚刚注册过的socketchannel,然后，我们从这个Channel中读取数据，放心，包准能够读到，接着我们可以处理这些数据。</p> 
+<p align="left">Selector内部原理实际是在做一个对所注册的channel的轮询访问，不断的轮询(目前就这一个算法)，一旦轮询到一个channel有所注册的事情发生，比如数据来了，他就会站起来报告，交出一把钥匙，让我们通过这把钥匙来读取这个channel的内容。</p> 
+<p align="left">了解了这个基本原理，我们结合代码看看使用，在使用上，也在分两个方向，一个是线程处理，一个是用非线程，后者比较简单，看下面代码：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%" bgcolor="#cccccc"> 
+ <tbody> 
+  <tr> 
+   <td><br /> import java.io.*;<br /> import java.nio.*;<br /> import java.nio.channels.*;<br /> import java.nio.channels.spi.*;<br /> import java.net.*;<br /> import java.util.*; <p>/**<br /> *<br /> * @author Administrator<br /> * @version<br /> */<br /> public class NBTest {</p> <p><br /> /** Creates new NBTest */<br /> public NBTest()<br /> {<br /> }</p> <p> public void startServer() throws Exception<br /> {<br /> int channels = 0;<br /> int nKeys = 0;<br /> int currentSelector = 0;<br /> <br /> //使用Selector<br /> Selector selector = Selector.open();<br /> <br /> //建立Channel 并绑定到9000端口<br /> ServerSocketChannel ssc = ServerSocketChannel.open();<br /> InetSocketAddress address = new InetSocketAddress(InetAddress.getLocalHost(),9000); <br /> ssc.socket().bind(address);<br /> <br /> //使设定non-blocking的方式。<br /> ssc.configureBlocking(false);</p> <p> //向Selector注册Channel及我们有兴趣的事件<br /> SelectionKey s = ssc.register(selector, SelectionKey.OP_ACCEPT);<br /> printKeyInfo(s);</p> <p> while(true) //不断的轮询<br /> {<br /> debug(&quot;NBTest: Starting select&quot;);<br /> <br /> //Selector通过select方法通知我们我们感兴趣的事件发生了。<br /> nKeys = selector.select();<br /> //如果有我们注册的事情发生了，它的传回值就会大于0<br /> if(nKeys &gt; 0)<br /> {<br /> debug(&quot;NBTest: Number of keys after select operation: &quot; +nKeys);<br /> <br /> //Selector传回一组SelectionKeys<br /> //我们从这些key中的channel()方法中取得我们刚刚注册的channel。<br /> Set selectedKeys = selector.selectedKeys();<br /> Iterator i = selectedKeys.iterator();<br /> while(i.hasNext())<br /> {<br /> s = (SelectionKey) i.next();<br /> printKeyInfo(s);<br /> debug(&quot;NBTest: Nr Keys in selector: &quot; +selector.keys().size());<br /> <br /> //一个key被处理完成后，就都被从就绪关键字（ready keys）列表中除去<br /> i.remove();<br /> if(s.isAcceptable())<br /> {<br /> // 从channel()中取得我们刚刚注册的channel。<br /> Socket socket = ((ServerSocketChannel)s.channel()).accept().socket();<br /> SocketChannel sc = socket.getChannel();<br /> <br /> sc.configureBlocking(false);<br /> sc.register(selector, SelectionKey.OP_READ |SelectionKey.OP_WRITE);<br /> System.out.println(++channels);<br /> }<br /> else<br /> {<br /> debug(&quot;NBTest: Channel not acceptable&quot;);<br /> }<br /> }<br /> }<br /> else<br /> {<br /> debug(&quot;NBTest: Select finished without any keys.&quot;);<br /> }</p> <p> }<br /> <br /> }</p> <p><br /> private static void debug(String s)<br /> {<br /> System.out.println(s);<br /> }</p> <p><br /> private static void printKeyInfo(SelectionKey sk)<br /> {<br /> String s = new String();</p> <p> s = &quot;Att: &quot; + (sk.attachment() == null ? &quot;no&quot; : &quot;yes&quot;);<br /> s += &quot;, Read: &quot; + sk.isReadable();<br /> s += &quot;, Acpt: &quot; + sk.isAcceptable();<br /> s += &quot;, Cnct: &quot; + sk.isConnectable();<br /> s += &quot;, Wrt: &quot; + sk.isWritable();<br /> s += &quot;, Valid: &quot; + sk.isValid();<br /> s += &quot;, Ops: &quot; + sk.interestOps();<br /> debug(s);<br /> }</p> <p><br /> /**<br /> * @param args the command line arguments<br /> */<br /> public static void main (String args[])<br /> {<br /> NBTest nbTest = new NBTest();<br /> try<br /> {<br /> nbTest.startServer();<br /> }<br /> catch(Exception e)<br /> {<br /> e.printStackTrace();<br /> }<br /> }</p> <p>}</p> <p> </p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p align="left">这是一个守候在端口9000的noblock server例子，如果我们编制一个客户端程序，就可以对它进行互动操作，或者使用telnet 主机名 90000 可以链接上。</p> 
+<p align="left">通过仔细阅读这个例程，相信你已经大致了解NIO的原理和使用方法，下一篇，我们将使用多线程来处理这些数据，再搭建一个自己的Reactor模式。</p> 
+<p align="left"><a href="http://www.jdon.com/concurrent/nio%D4%AD%C0%ED%D3%A6%D3%C3.htm">http://www.jdon.com/concurrent/nio%D4%AD%C0%ED%D3%A6%D3%C3.htm</a></p></div></body></html>

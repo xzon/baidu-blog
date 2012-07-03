@@ -1,0 +1,503 @@
+<html><head><title><div class="tit">
+  hibernate的延迟加载通用方法
+</div></title></head><body><div id='tit'>hibernate的延迟加载通用方法</div><div id='cate'>默认分类</div><div id='date'>2008年08月15日 星期五 04:28 P.M.</div><div id='page'>110</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b9214110148e9cfac2ce7929.html'>http://hi.baidu.com/hxzon/blog/item/b9214110148e9cfac2ce7929.html</a><div id='cnt'><p>hibernate的延迟加载通用方法</p> 
+<p> </p>
+<table style="table-layout: fixed; word-break: break-all" class="FCK__ShowTableBorders" border="0" cellspacing="1" cellpadding="3" width="98%" bgcolor="#cccccc"> 
+ <tbody> 
+  <tr bgcolor="#f8f8f8"> 
+   <td> <p><a target="_blank" href="http://blogger.org.cn/blog/blog.asp?name=lhwork">lhwork</a> 发表于 2006-7-21 11:23:02</p> </td> 
+  </tr> 
+  <tr bgcolor="#ffffff"> 
+   <td> 
+    <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td><a><span class="postbody">呵呵，在忙一个项目，潜水很久，现在冒个泡：<br /> (本文适用在struts+spring+hibernate3上做开发的虫虫们) <br /> 类名：HibernateUtil <br /> <br /> 
+          <div style="border-bottom: rgb(204,204,204) 1px solid; border-left: rgb(204,204,204) 1px solid; padding-bottom: 4px; background-color: rgb(238,238,238); padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; border-top: rgb(204,204,204) 1px solid; border-right: rgb(204,204,204) 1px solid; padding-top: 4px">
+           <span style="color: rgb(0,0,255)">package</span>
+           <span style="color: rgb(0,0,0)"> com.antbee.j2eemodel.util;<br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">import</span>
+           <span style="color: rgb(0,0,0)"> java.lang.reflect.InvocationTargetException;<br /> </span>
+           <span style="color: rgb(0,0,255)">import</span>
+           <span style="color: rgb(0,0,0)"> java.lang.reflect.Method;<br /> </span>
+           <span style="color: rgb(0,0,255)">import</span>
+           <span style="color: rgb(0,0,0)"> java.util.Collection;<br /> </span>
+           <span style="color: rgb(0,0,255)">import</span>
+           <span style="color: rgb(0,0,0)"> java.util.Iterator;<br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">import</span>
+           <span style="color: rgb(0,0,0)"> org.springframework.orm.hibernate3.support.HibernateDaoSupport;<br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">public</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">class</span>
+           <span style="color: rgb(0,0,0)"> HibernateUtil </span>
+           <span style="color: rgb(0,0,255)">extends</span>
+           <span style="color: rgb(0,0,0)"> HibernateDaoSupport {<br /> <br /> </span>
+           <span style="color: rgb(0,128,0)">/**</span>
+           <span style="color: rgb(0,128,0)"><br /> * 初始化POJO类<br /> * </span>
+           <span style="color: rgb(128,128,128)">@author</span>
+           <span style="color: rgb(0,128,0)"> @家军<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> object POJO对象<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> methodName 方法名称<br /> * </span>
+           <span style="color: rgb(128,128,128)">@return</span>
+           <span style="color: rgb(0,128,0)"><br /> * </span>
+           <span style="color: rgb(128,128,128)">@version</span>
+           <span style="color: rgb(0,128,0)"> 1.0<br /> </span>
+           <span style="color: rgb(0,128,0)">*/</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">public</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">void</span>
+           <span style="color: rgb(0,0,0)"> initialize(Object object, String methodName) </span>
+           <span style="color: rgb(0,0,255)">throws</span>
+           <span style="color: rgb(0,0,0)"> SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {<br /> <br /> String[] methodArray </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> methodName.split(</span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">\\.</span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">);<br /> Method method </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">null</span>
+           <span style="color: rgb(0,0,0)">;<br /> Object initializeObject </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> object;<br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">if</span>
+           <span style="color: rgb(0,0,0)">(methodArray.length </span>
+           <span style="color: rgb(0,0,0)">==</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,0)">1</span>
+           <span style="color: rgb(0,0,0)">){<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().lock(initializeObject, org.hibernate.LockMode.NONE);<br /> method </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> object.getClass().getMethod(methodArray[</span>
+           <span style="color: rgb(0,0,0)">0</span>
+           <span style="color: rgb(0,0,0)">], </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> Class[] {});<br /> initializeObject </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> method.invoke(initializeObject, </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> Object[] {});<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().initialize(initializeObject);<br /> }</span>
+           <span style="color: rgb(0,0,255)">else</span>
+           <span style="color: rgb(0,0,0)">{<br /> </span>
+           <span style="color: rgb(0,0,255)">for</span>
+           <span style="color: rgb(0,0,0)">(</span>
+           <span style="color: rgb(0,0,255)">int</span>
+           <span style="color: rgb(0,0,0)"> i</span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)">0</span>
+           <span style="color: rgb(0,0,0)">;i</span>
+           <span style="color: rgb(0,0,0)">&lt;</span>
+           <span style="color: rgb(0,0,0)">methodArray.length;i</span>
+           <span style="color: rgb(0,0,0)">++</span>
+           <span style="color: rgb(0,0,0)">){<br /> method </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> initializeObject.getClass().getMethod(methodArray[i], </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> Class[] {});<br /> initializeObject </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> method.invoke(initializeObject, </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> Object[] {});<br /> }<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().lock(initializeObject, org.hibernate.LockMode.NONE);<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().initialize(initializeObject);<br /> }<br /> }<br /> <br /> </span>
+           <span style="color: rgb(0,128,0)">/**</span>
+           <span style="color: rgb(0,128,0)"><br /> * 初始化POJO类<br /> * </span>
+           <span style="color: rgb(128,128,128)">@author</span>
+           <span style="color: rgb(0,128,0)"> @家军<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> object POJO对象<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> methodName 方法名称数组<br /> * </span>
+           <span style="color: rgb(128,128,128)">@return</span>
+           <span style="color: rgb(0,128,0)"><br /> * </span>
+           <span style="color: rgb(128,128,128)">@version</span>
+           <span style="color: rgb(0,128,0)"> 1.0<br /> </span>
+           <span style="color: rgb(0,128,0)">*/</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">public</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">void</span>
+           <span style="color: rgb(0,0,0)"> initialize(Object object, String methodName[])<br /> </span>
+           <span style="color: rgb(0,0,255)">throws</span>
+           <span style="color: rgb(0,0,0)"> SecurityException, NoSuchMethodException,<br /> IllegalArgumentException, IllegalAccessException, InvocationTargetException {<br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">for</span>
+           <span style="color: rgb(0,0,0)"> (</span>
+           <span style="color: rgb(0,0,255)">int</span>
+           <span style="color: rgb(0,0,0)"> i </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,0)">0</span>
+           <span style="color: rgb(0,0,0)">; i </span>
+           <span style="color: rgb(0,0,0)">&lt;</span>
+           <span style="color: rgb(0,0,0)"> methodName.length; i</span>
+           <span style="color: rgb(0,0,0)">++</span>
+           <span style="color: rgb(0,0,0)">) {<br /> String[] methodArray </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> methodName[i].split(</span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">\\.</span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">);<br /> Method method </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">null</span>
+           <span style="color: rgb(0,0,0)">;<br /> Object initializeObject </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> object;<br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">if</span>
+           <span style="color: rgb(0,0,0)">(methodArray.length </span>
+           <span style="color: rgb(0,0,0)">==</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,0)">1</span>
+           <span style="color: rgb(0,0,0)">){<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().lock(initializeObject, org.hibernate.LockMode.NONE);<br /> method </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> object.getClass().getMethod(methodArray[</span>
+           <span style="color: rgb(0,0,0)">0</span>
+           <span style="color: rgb(0,0,0)">], </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> Class[] {});<br /> initializeObject </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> method.invoke(initializeObject, </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> Object[] {});<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().initialize(initializeObject);<br /> }</span>
+           <span style="color: rgb(0,0,255)">else</span>
+           <span style="color: rgb(0,0,0)">{<br /> </span>
+           <span style="color: rgb(0,0,255)">for</span>
+           <span style="color: rgb(0,0,0)">(</span>
+           <span style="color: rgb(0,0,255)">int</span>
+           <span style="color: rgb(0,0,0)"> j</span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)">0</span>
+           <span style="color: rgb(0,0,0)">;j</span>
+           <span style="color: rgb(0,0,0)">&lt;</span>
+           <span style="color: rgb(0,0,0)">methodArray.length;j</span>
+           <span style="color: rgb(0,0,0)">++</span>
+           <span style="color: rgb(0,0,0)">){<br /> method </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> initializeObject.getClass().getMethod(methodArray[j], </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> Class[] {});<br /> initializeObject </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> method.invoke(initializeObject, </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> Object[] {});<br /> }<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().lock(initializeObject, org.hibernate.LockMode.NONE);<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().initialize(initializeObject);<br /> }<br /> }<br /> <br /> }<br /> <br /> </span>
+           <span style="color: rgb(0,128,0)">/**</span>
+           <span style="color: rgb(0,128,0)"><br /> * 初始化POJO类<br /> * </span>
+           <span style="color: rgb(128,128,128)">@author</span>
+           <span style="color: rgb(0,128,0)"> @家军<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> object POJO对象<br /> * </span>
+           <span style="color: rgb(128,128,128)">@return</span>
+           <span style="color: rgb(0,128,0)"><br /> * </span>
+           <span style="color: rgb(128,128,128)">@version</span>
+           <span style="color: rgb(0,128,0)"> 1.0<br /> </span>
+           <span style="color: rgb(0,128,0)">*/</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">public</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">void</span>
+           <span style="color: rgb(0,0,0)"> initialize(Object object) </span>
+           <span style="color: rgb(0,0,255)">throws</span>
+           <span style="color: rgb(0,0,0)"> SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().lock(object, org.hibernate.LockMode.NONE);<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.getHibernateTemplate().initialize(object);<br /> }<br /> <br /> </span>
+           <span style="color: rgb(0,128,0)">/**</span>
+           <span style="color: rgb(0,128,0)"><br /> * 初始化POJO类<br /> * </span>
+           <span style="color: rgb(128,128,128)">@author</span>
+           <span style="color: rgb(0,128,0)"> @家军<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> collection POJO对象集合<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> methodName 方法名称数组<br /> * </span>
+           <span style="color: rgb(128,128,128)">@return</span>
+           <span style="color: rgb(0,128,0)"><br /> * </span>
+           <span style="color: rgb(128,128,128)">@version</span>
+           <span style="color: rgb(0,128,0)"> 1.0<br /> </span>
+           <span style="color: rgb(0,128,0)">*/</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">public</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">void</span>
+           <span style="color: rgb(0,0,0)"> initialize(Collection collection, String methodName[])<br /> </span>
+           <span style="color: rgb(0,0,255)">throws</span>
+           <span style="color: rgb(0,0,0)"> SecurityException, NoSuchMethodException,<br /> IllegalArgumentException, IllegalAccessException, InvocationTargetException {<br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">for</span>
+           <span style="color: rgb(0,0,0)">(Iterator i</span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)">collection.iterator();i.hasNext()Wink{<br /> Object object </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> i.next();<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.initialize(object,methodName);<br /> }<br /> }<br /> <br /> </span>
+           <span style="color: rgb(0,128,0)">/**</span>
+           <span style="color: rgb(0,128,0)"><br /> * 初始化POJO类<br /> * </span>
+           <span style="color: rgb(128,128,128)">@author</span>
+           <span style="color: rgb(0,128,0)"> @家军<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> collection POJO对象集合<br /> * </span>
+           <span style="color: rgb(128,128,128)">@param</span>
+           <span style="color: rgb(0,128,0)"> methodName 方法名称<br /> * </span>
+           <span style="color: rgb(128,128,128)">@return</span>
+           <span style="color: rgb(0,128,0)"><br /> * </span>
+           <span style="color: rgb(128,128,128)">@version</span>
+           <span style="color: rgb(0,128,0)"> 1.0<br /> </span>
+           <span style="color: rgb(0,128,0)">*/</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">public</span>
+           <span style="color: rgb(0,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">void</span>
+           <span style="color: rgb(0,0,0)"> initialize(Collection collection, String methodName)<br /> </span>
+           <span style="color: rgb(0,0,255)">throws</span>
+           <span style="color: rgb(0,0,0)"> SecurityException, NoSuchMethodException,<br /> IllegalArgumentException, IllegalAccessException, InvocationTargetException {<br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">for</span>
+           <span style="color: rgb(0,0,0)">(Iterator i</span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)">collection.iterator();i.hasNext()Wink{<br /> Object object </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> i.next();<br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.initialize(object,methodName);<br /> }<br /> }<br /> } </span>
+          </div> <br /> 这个方法的好外是：可以不在hbm.xml的文件当中，指定为lazy=true这个模式，可以直接使用。使用方法如下： <br /> 如果你使用SPRING，则需要把hibernateUtil注入其中： <br /> 
+          <div style="border-bottom: rgb(204,204,204) 1px solid; border-left: rgb(204,204,204) 1px solid; padding-bottom: 4px; background-color: rgb(238,238,238); padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; border-top: rgb(204,204,204) 1px solid; border-right: rgb(204,204,204) 1px solid; padding-top: 4px">
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">bean </span>
+           <span style="color: rgb(255,0,0)">id</span>
+           <span style="color: rgb(0,0,255)">=&quot;hibernateUtilTarget&quot;</span>
+           <span style="color: rgb(255,0,0)"> class</span>
+           <span style="color: rgb(0,0,255)">=&quot;com.antbee.j2eemodel.util.HibernateUtil&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">property </span>
+           <span style="color: rgb(255,0,0)">name</span>
+           <span style="color: rgb(0,0,255)">=&quot;sessionFactory&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">ref </span>
+           <span style="color: rgb(255,0,0)">local</span>
+           <span style="color: rgb(0,0,255)">=&quot;mssqlSessionFactory&quot;</span>
+           <span style="color: rgb(255,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">/&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">property</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">bean</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> <br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">bean </span>
+           <span style="color: rgb(255,0,0)">id</span>
+           <span style="color: rgb(0,0,255)">=&quot;hibernateUtil&quot;</span>
+           <span style="color: rgb(255,0,0)"> parent</span>
+           <span style="color: rgb(0,0,255)">=&quot;BaseTransactionProxy&quot;</span>
+           <span style="color: rgb(255,0,0)"> class</span>
+           <span style="color: rgb(0,0,255)">=&quot;org.springframework.transaction.interceptor.TransactionProxyFactoryBean&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">property </span>
+           <span style="color: rgb(255,0,0)">name</span>
+           <span style="color: rgb(0,0,255)">=&quot;target&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">ref </span>
+           <span style="color: rgb(255,0,0)">local</span>
+           <span style="color: rgb(0,0,255)">=&quot;hibernateUtilTarget&quot;</span>
+           <span style="color: rgb(255,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">/&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">property</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">bean</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,128,0)">&lt;!--</span>
+           <span style="color: rgb(0,128,0)">配置基础事务</span>
+           <span style="color: rgb(0,128,0)">--&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">bean </span>
+           <span style="color: rgb(255,0,0)">id</span>
+           <span style="color: rgb(0,0,255)">=&quot;BaseTransactionProxy&quot;</span>
+           <span style="color: rgb(255,0,0)"> class</span>
+           <span style="color: rgb(0,0,255)">=&quot;org.springframework.transaction.interceptor.TransactionProxyFactoryBean&quot;</span>
+           <span style="color: rgb(255,0,0)"> abstract</span>
+           <span style="color: rgb(0,0,255)">=&quot;true&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">property </span>
+           <span style="color: rgb(255,0,0)">name</span>
+           <span style="color: rgb(0,0,255)">=&quot;transactionManager&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">ref </span>
+           <span style="color: rgb(255,0,0)">bean</span>
+           <span style="color: rgb(0,0,255)">=&quot;mssqltransactionManager&quot;</span>
+           <span style="color: rgb(255,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">/&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">property</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">property </span>
+           <span style="color: rgb(255,0,0)">name</span>
+           <span style="color: rgb(0,0,255)">=&quot;proxyTargetClass&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">value</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)">true</span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">value</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">property</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">property </span>
+           <span style="color: rgb(255,0,0)">name</span>
+           <span style="color: rgb(0,0,255)">=&quot;transactionAttributes&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">props</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">prop </span>
+           <span style="color: rgb(255,0,0)">key</span>
+           <span style="color: rgb(0,0,255)">=&quot;*&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)">PROPAGATION_REQUIRED</span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">prop</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">props</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">property</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">bean</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"> </span>
+          </div> <br /> 使用示例： <br /> 如果你使用STRUTS，则需要这样： <br /> 
+          <div style="border-bottom: rgb(204,204,204) 1px solid; border-left: rgb(204,204,204) 1px solid; padding-bottom: 4px; background-color: rgb(238,238,238); padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; border-top: rgb(204,204,204) 1px solid; border-right: rgb(204,204,204) 1px solid; padding-top: 4px">
+           <span style="color: rgb(0,0,0)">List what_ur_view </span>
+           <span style="color: rgb(0,0,0)">=</span>
+           <span style="color: rgb(0,0,0)"> XXXManager.find(</span>
+           <span style="color: rgb(0,128,0)">//</span>
+           <span style="color: rgb(0,128,0)">取得你要展示的对象<br /> </span>
+           <span style="color: rgb(0,128,0)">//</span>
+           <span style="color: rgb(0,128,0)">如果这个对象当中有延迟加载的对象(SET)时，则需要如下加载就行</span>
+           <span style="color: rgb(0,128,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">this</span>
+           <span style="color: rgb(0,0,0)">.hibernateUtil.initialize(what_ur_view, </span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">getTbShipmentSale</span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">);<br /> </span>
+           <span style="color: rgb(0,128,0)">//</span>
+           <span style="color: rgb(0,128,0)">其中getTbShipmentSale是其对象(SET也可以操作) </span>
+          </div> <br /> 在页面显示的时候，你就可以使用JSTL如下表述： <br /> 
+          <div style="border-bottom: rgb(204,204,204) 1px solid; border-left: rgb(204,204,204) 1px solid; padding-bottom: 4px; background-color: rgb(238,238,238); padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; border-top: rgb(204,204,204) 1px solid; border-right: rgb(204,204,204) 1px solid; padding-top: 4px">
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">c:out </span>
+           <span style="color: rgb(255,0,0)">value</span>
+           <span style="color: rgb(0,0,255)">=&quot;${what_ur_view.tbShipmentSale.goodsReceivePersonPhone}&quot;</span>
+           <span style="color: rgb(255,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">/&gt;</span>
+           <span style="color: rgb(0,0,0)">//呵呵，是不是很爽呀。 </span>
+          </div> <br /> 同样的方法，我们也可以对一个SET在页面进行显示，方法如下： <br /> 
+          <div style="border-bottom: rgb(204,204,204) 1px solid; border-left: rgb(204,204,204) 1px solid; padding-bottom: 4px; background-color: rgb(238,238,238); padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; border-top: rgb(204,204,204) 1px solid; border-right: rgb(204,204,204) 1px solid; padding-top: 4px">
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">c:forEach </span>
+           <span style="color: rgb(255,0,0)">items</span>
+           <span style="color: rgb(0,0,255)">=&quot;${what_ur_view.tbShipmentProductMappingSet}&quot;</span>
+           <span style="color: rgb(255,0,0)"> var</span>
+           <span style="color: rgb(0,0,255)">=&quot;ProductMapping&quot;</span>
+           <span style="color: rgb(255,0,0)"> varStatus</span>
+           <span style="color: rgb(0,0,255)">=&quot;status&quot;</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">c:out </span>
+           <span style="color: rgb(255,0,0)">value</span>
+           <span style="color: rgb(0,0,255)">=&quot;${ProductMapping.productNum}&quot;</span>
+           <span style="color: rgb(255,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">/&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;</span>
+           <span style="color: rgb(128,0,0)">c:out </span>
+           <span style="color: rgb(255,0,0)">value</span>
+           <span style="color: rgb(0,0,255)">=&quot;${ProductMapping.tbOutOfWarehouse.outOfWarehouseNum}&quot;</span>
+           <span style="color: rgb(255,0,0)"> </span>
+           <span style="color: rgb(0,0,255)">/&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> </span>
+           <span style="color: rgb(0,0,255)">&lt;/</span>
+           <span style="color: rgb(128,0,0)">c:forEach</span>
+           <span style="color: rgb(0,0,255)">&gt;</span>
+           <span style="color: rgb(0,0,0)"><br /> //呵呵，支持多级嵌套， </span>
+          </div> <br /> 在ACTION当中则需要加入 
+          <div style="border-bottom: rgb(204,204,204) 1px solid; border-left: rgb(204,204,204) 1px solid; padding-bottom: 4px; background-color: rgb(238,238,238); padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; border-top: rgb(204,204,204) 1px solid; border-right: rgb(204,204,204) 1px solid; padding-top: 4px">
+           <span style="color: rgb(0,0,0)">hibernateUtil.initialize(what_ur_view.getTbShipmentProductMappingSet(),<br /> </span>
+           <span style="color: rgb(0,0,255)">new</span>
+           <span style="color: rgb(0,0,0)"> String[] { </span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">getTbProduct</span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">, </span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">getTbOutOfWarehouse</span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">,<br /> </span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)">getTbProductConfigure</span>
+           <span style="color: rgb(0,0,0)">&quot;</span>
+           <span style="color: rgb(0,0,0)"> }); </span>
+          </div> 呵，如果你要是在HIBERNATE当中使用，这个就太简单了吧。 <br /> <br /> 怎么样？呵呵呵， <br /> 从此，我对STRUTS的标签深恶痛绝，而对JSTL情有独钟了。</span></a><a target="_blank" href="http://www.blogjava.net/Images/dot.gif"><img title="点击在新窗口查看原始图片" border="0" src="image/hibernate的延迟加载通用方法.h.dot.gif" /><p class="origImg">http://www.blogjava.net/Images/dot.gif</p></a><a target="_blank" href="http://www.blogjava.net/Images/dot.gif"><img title="点击在新窗口查看原始图片" border="0" src="image/hibernate的延迟加载通用方法.h.dot.gif" /><p class="origImg">http://www.blogjava.net/Images/dot.gif</p></a><a target="_blank" href="http://www.blogjava.net/Images/dot.gif"><img title="点击在新窗口查看原始图片" border="0" src="image/hibernate的延迟加载通用方法.h.dot.gif" /><p class="origImg">http://www.blogjava.net/Images/dot.gif</p></a>.);</td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<a href="http://blogger.org.cn/blog/more.asp?name=lhwork&amp;id=16794">http://blogger.org.cn/blog/more.asp?name=lhwork&amp;id=16794</a></div></body></html>

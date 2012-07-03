@@ -1,0 +1,549 @@
+<html><head><title><div class="tit">
+  XML――(1)LIBXML2库windows使用指南
+</div></title></head><body><div id='tit'>XML――(1)LIBXML2库windows使用指南</div><div id='cate'>c&middot;库</div><div id='date'>2009年08月05日 星期三 09:45 A.M.</div><div id='page'>39</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/78749a829a875ab66d8119f7.html'>http://hi.baidu.com/hxzon/blog/item/78749a829a875ab66d8119f7.html</a><div id='cnt'><div>
+ XML――(1)LIBXML2库windows使用指南
+ <br /> 
+ <br /> 
+ <a href="http://www.blogjava.net/wxb_nudt/archive/2007/11/18/161340.html">http://www.blogjava.net/wxb_nudt/archive/2007/11/18/161340.html</a>
+ <br /> 
+ <a href="http://www.blogjava.net/Files/wxb_nudt/xml_src.rar">http://www.blogjava.net/Files/wxb_nudt/xml_src.rar</a>
+ <br /> 
+ <br /> 写这篇文章的原因有如下几点：
+ <br /> 1)C++标准库中没有操作XML的方法，用C++操作XML文件必须熟悉一种函数库，LIBXML2是其中一种很优秀的XML库，而且它同时支持多种编程语言；
+ <br /> 2)LIBXML2库的Tutorial写得不太好，尤其是编码转换的部分，不适用于中文编码的转换；
+ <br /> 3)网上的大多数关于Libxml2的介绍仅仅是翻译了自带的资料，没有详细介绍如何在windows平台下进行编程，更很少提到如何解决中文问题。
+ <br /> 基于以上几点原因，决定写一个在Windows平台下，使用C/C++语言，应用LibXml2库来进行xml文档操作，同时使用ICONV库进行中文编码转换的文档。其中还涉及了Makefile、XPATH等相关内容。
+ <br /> 
+ <br /> =====================================================
+ <br /> 1. 下载与安装LIBXML2和ICONV
+ <br /> Libxml2是一个C语言的XML程序库，可以简单方便的提供对XML文档的各种操作，并且支持XPATH查询，以及部分的支持XSLT转换等功能。Libxml2的下载地址是
+ <a href="http://xmlsoft.org/">http://xmlsoft.org/</a>，完全版的库是开源的，并且带有例子程序和说明文档。最好将这个库先下载下来，因为这样可以查看其中的文档和例子。
+ <br /> windows版本的的下载地址是
+ <a href="http://www.zlatkovic.com/libxml.en.html">http://www.zlatkovic.com/libxml.en.html</a>；这个版本只提供了头文件、库文件和dll，不包含源代码、例子程序和文档。在文本中，只需要下载libxml2库、iconv库和zlib库就行了（注意，libxml2库依赖iconv和zlib库，本文中重点关注libxml2和iconv，zlib不介绍），我使用的版本是libxml2-2.6.30.win32.zip、zlib-1.2.3.win32.zip和iconv-1.9.2.win32.zip。
+ <br /> 在编程的时候，我们使用windows版本的libxml2、zlib和iconv，将其解压缩到指定文件夹，例如D:&quot;libxml2-2.6.30.win32，D:&quot;zlib-1.2.3.win32以及D:&quot;iconv-1.9.2.win32。事实上，我们知道在windows下面使用头文件、库文件和dll是不需要安装的，它又没有使用任何需要注册的组件或者数据库，只需要告诉编译器和链接器这些资源的位置就可以了。
+ <br /> 注意：要在path变量中加上D:&quot;iconv-1.9.2.win32&quot;bin;D:&quot;zlib-1.2.3.win32&quot;bin;D:&quot;libxml2-2.6.30.win32&quot;bin这三个地址，否则在执行的时候就找不到。或者使用更简单的方法，把其中的三个dll到拷贝到system32目录中。
+ <br /> 有两种方法来编译链接基于libxml2的程序，第一种是在VC环境中设置lib和include路径，并在link设置中添加libxml2.lib和iconv.lib；第二种是用编译器选项告诉编译器cl.exe头文件的位置，并用链接器选项告诉链接器link.exe库文件的位置，同时在windows环境变量path中添加libxml2中bin文件夹的位置，以便于程序运行时可以找到dll（也可以将dll拷贝到system32目录下）。显然我选择了第二种，那么编译链接一个名为CreateXmlFile.cpp源文件的命令如下：
+ <br /> cl /c /I D:&quot;iconv-1.9.2.win32&quot;include /I D:&quot;libxml2-2.6.30.win32&quot;include CreateXmlFile.cpplink /libpath:D:&quot;iconv-1.9.2.win32&quot;lib /libpath:D:&quot;libxml2-2.6.30.win32&quot;lib CreateXmlFile.obj iconv.lib libxml2.lib
+ <br /> 显然这样很费时，那么再不用makefile就显得矫情了，于是，一个典型的使用nmake.exe（VC自带的makefile工具）的文件如下：MAKEFILE
+ <br /> #
+ <br /> # 本目录下所有源代码的makefile，使用方法是nmake TARGET_NAME=源代码文件名字（不加后缀）
+ <br /> # 例如 nmake TARGET_NAME=CreateXmlFile
+ <br /> # Author: Wang Xuebin
+ <br /> #
+ <br /> # Flags - 编译debug版本
+ <br /> #
+ <br /> #指定要使用的库的路径,需要用户修改的变量一般放在makefile文件的最上面
+ <br /> LIBXML2_HOME = D:&quot;libxml2-2.6.30.win32
+ <br /> ICONV_HOME = D:&quot;iconv-1.9.2.win32
+ <br /> #指定编译器选项,/c表明cl命令只编译不链接;/MTd表明使用多线程debug库;/Zi表明产生完整的调试信息;
+ <br /> #/Od表明关闭编译优化;/D _DEBUG表明定义一个名为_DEBUG的宏
+ <br /> CPP_FLAGS=/c /MTd /Zi /Od /D _DEBUG
+ <br /> #链接选项,/DEBUG表明创建Debug信息
+ <br /> EXE_LINK_FLAGS=/DEBUG
+ <br /> #指定链接的库
+ <br /> LIBS=iconv.lib libxml2.lib
+ <br /> #指定编译路径选项,链接路径选项
+ <br /> INCLUDE_FLAGS= /I $(LIBXML2_HOME)&quot;include /I $(ICONV_HOME)&quot;include
+ <br /> LIB_PATH_FLAGS = /libpath:$(ICONV_HOME)&quot;lib /libpath:$(LIBXML2_HOME)&quot;lib
+ <br /> #################################################
+ <br /> #
+ <br /> # Targets 目标
+ <br /> #
+ <br /> $(TARGET_NAME) : $(TARGET_NAME).exe
+ <br /> clean : $(TARGET_NAME).exe
+ <br /> $(TARGET_NAME).obj : $(TARGET_NAME).cpp
+ <br /> &nbsp;&nbsp;&nbsp; cl $(CPP_FLAGS) $(INCLUDE_FLAGS) $(TARGET_NAME).cpp
+ <br /> $(TARGET_NAME).exe : $(TARGET_NAME).obj
+ <br /> link $(EXE_LINK_FLAGS) $(LIB_PATH_FLAGS) $(TARGET_NAME).obj $(LIBS)
+ <br /> clean : $(TARGET_NAME).exe
+ <br /> del $(TARGET_NAME).exe
+ <br /> del $(TARGET_NAME).obj
+ <br /> del $(TARGET_NAME).ilk
+ <br /> del $(TARGET_NAME).pdb
+ <br /> 本文不准备介绍makefile的写法，但后续例子程序的编译链接依葫芦画瓢都没有问题，执行编译链接的命令如下：
+ <br /> nmake TARGET_NAME=CreateXmlFile
+ <br /> 执行清理的命令如下：
+ <br /> nmake TARGET_NAME=CreateXmlFile clean
+ <br /> 
+ <br /> =====================================================
+ <br /> 2. Libxml2中的数据类型和函数
+ <br /> 一个函数库中可能有几百种数据类型以及几千个函数，但是记住大师的话，90%的功能都是由30%的内容提供的。对于libxml2，我认为搞懂以下的数据类型和函数就足够了。
+ <br /> 2.1&nbsp;&nbsp; 内部字符类型xmlChar
+ <br /> xmlChar是Libxml2中的字符类型，库中所有字符、字符串都是基于这个数据类型。事实上它的定义是：xmlstring.h
+ <br /> typedef unsigned char xmlChar;
+ <br /> 使用unsigned char作为内部字符格式是考虑到它能很好适应UTF-8编码，而UTF-8编码正是libxml2的内部编码，其它格式的编码要转换为这个编码才能在libxml2中使用。
+ <br /> 还经常可以看到使用xmlChar*作为字符串类型，很多函数会返回一个动态分配内存的xmlChar*变量，使用这样的函数时记得要手动删除内存。
+ <br /> 2.2&nbsp;&nbsp; xmlChar相关函数
+ <br /> 如同标准c中的char类型一样，xmlChar也有动态内存分配、字符串操作等相关函数。例如xmlMalloc是动态分配内存的函数；xmlFree是配套的释放内存函数；xmlStrcmp是字符串比较函数等等。
+ <br /> 基本上xmlChar字符串相关函数都在xmlstring.h中定义；而动态内存分配函数在xmlmemory.h中定义。
+ <br /> 2.3&nbsp;&nbsp; xmlChar*与其它类型之间的转换
+ <br /> 另外要注意，因为总是要在xmlChar*和char*之间进行类型转换，所以定义了一个宏BAD_CAST，其定义如下：xmlstring.h
+ <br /> #define BAD_CAST (xmlChar *)
+ <br /> 原则上来说，unsigned char和char之间进行强制类型转换是没有问题的。
+ <br /> 2.4&nbsp;&nbsp; 文档类型xmlDoc、指针xmlDocPtr
+ <br /> xmlDoc是一个struct，保存了一个xml的相关信息，例如文件名、文档类型、子节点等等；xmlDocPtr等于xmlDoc*，它搞成这个样子总让人以为是智能指针，其实不是，要手动删除的。
+ <br /> xmlNewDoc函数创建一个新的文档指针。
+ <br /> xmlParseFile函数以默认方式读入一个UTF-8格式的文档，并返回文档指针。
+ <br /> xmlReadFile函数读入一个带有某种编码的xml文档，并返回文档指针；细节见libxml2参考手册。
+ <br /> xmlFreeDoc释放文档指针。特别注意，当你调用xmlFreeDoc时，该文档所有包含的节点内存都被释放，所以一般来说不需要手动调用xmlFreeNode或者xmlFreeNodeList来释放动态分配的节点内存，除非你把该节点从文档中移除了。一般来说，一个文档中所有节点都应该动态分配，然后加入文档，最后调用xmlFreeDoc一次释放所有节点申请的动态内存，这也是为什么我们很少看见xmlNodeFree的原因。
+ <br /> xmlSaveFile将文档以默认方式存入一个文件。
+ <br /> xmlSaveFormatFileEnc可将文档以某种编码/格式存入一个文件中。
+ <br /> 2.5&nbsp;&nbsp; 节点类型xmlNode、指针xmlNodePtr
+ <br /> 节点应该是xml中最重要的元素了，xmlNode代表了xml文档中的一个节点，实现为一个struct，内容很丰富：tree.h
+ <br /> typedef struct _xmlNode xmlNode;
+ <br /> typedef xmlNode *xmlNodePtr;
+ <br /> struct _xmlNode {
+ <br /> &nbsp;&nbsp;&nbsp; void&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *_private;/* application data */
+ <br /> &nbsp;&nbsp;&nbsp; xmlElementType&nbsp;&nbsp; type;&nbsp;&nbsp; /* type number, must be second ! */
+ <br /> &nbsp;&nbsp;&nbsp; const xmlChar&nbsp;&nbsp; *name;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* the name of the node, or the entity */
+ <br /> &nbsp;&nbsp;&nbsp; struct _xmlNode *children; /* parent-&gt;childs link */
+ <br /> &nbsp;&nbsp;&nbsp; struct _xmlNode *last;&nbsp;&nbsp; /* last child link */
+ <br /> &nbsp;&nbsp;&nbsp; struct _xmlNode *parent;/* child-&gt;parent link */
+ <br /> &nbsp;&nbsp;&nbsp; struct _xmlNode *next;&nbsp;&nbsp; /* next sibling link */
+ <br /> &nbsp;&nbsp;&nbsp; struct _xmlNode *prev;&nbsp;&nbsp; /* previous sibling link */
+ <br /> &nbsp;&nbsp;&nbsp; struct _xmlDoc *doc;/* the containing document */
+ <br /> &nbsp;&nbsp;&nbsp; /* End of common part */
+ <br /> &nbsp;&nbsp;&nbsp; xmlNs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *ns;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* pointer to the associated namespace */
+ <br /> &nbsp;&nbsp;&nbsp; xmlChar&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *content;&nbsp;&nbsp; /* the content */
+ <br /> &nbsp;&nbsp;&nbsp; struct _xmlAttr *properties;/* properties list */
+ <br /> &nbsp;&nbsp;&nbsp; xmlNs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *nsDef;&nbsp;&nbsp;&nbsp;&nbsp; /* namespace definitions on this node */
+ <br /> &nbsp;&nbsp;&nbsp; void&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *psvi;/* for type/PSVI informations */
+ <br /> &nbsp;&nbsp;&nbsp; unsigned short&nbsp;&nbsp; line;&nbsp;&nbsp; /* line number */
+ <br /> &nbsp;&nbsp;&nbsp; unsigned short&nbsp;&nbsp; extra; /* extra data for XPath/XSLT */
+ <br /> };
+ <br /> 可以看到，节点之间是以链表和树两种方式同时组织起来的，next和prev指针可以组成链表，而parent和children可以组织为树。同时还有以下重要元素：
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 节点中的文字内容：content；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 节点所属文档：doc；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 节点名字：name；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 节点的namespace：ns；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 节点属性列表：properties；
+ <br /> Xml文档的操作其根本原理就是在节点之间移动、查询节点的各项信息，并进行增加、删除、修改的操作。
+ <br /> xmlDocSetRootElement函数可以将一个节点设置为某个文档的根节点，这是将文档与节点连接起来的重要手段，当有了根结点以后，所有子节点就可以依次连接上根节点，从而组织成为一个xml树。
+ <br /> 2.6&nbsp;&nbsp; 节点集合类型xmlNodeSet、指针xmlNodeSetPtr
+ <br /> 节点集合代表一个由节点组成的变量，节点集合只作为Xpath的查询结果而出现（XPATH的介绍见后面），因此被定义在xpath.h中，其定义如下：
+ <br /> /*
+ <br /> * A node-set (an unordered collection of nodes without duplicates).
+ <br /> */
+ <br /> typedef struct _xmlNodeSet xmlNodeSet;
+ <br /> typedef xmlNodeSet *xmlNodeSetPtr;
+ <br /> struct _xmlNodeSet {
+ <br /> &nbsp;&nbsp;&nbsp; int nodeNr;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* number of nodes in the set */
+ <br /> &nbsp;&nbsp;&nbsp; int nodeMax;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* size of the array as allocated */
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr *nodeTab;/* array of nodes in no particular order */
+ <br /> &nbsp;&nbsp;&nbsp; /* @@ with_ns to check wether namespace nodes should be looked at @@ */
+ <br /> };
+ <br /> 可以看出，节点集合有三个成员，分别是节点集合的节点数、最大可容纳的节点数，以及节点数组头指针。对节点集合中各个节点的访问方式很简单，如下：
+ <br /> xmlNodeSetPtr nodeset = XPATH查询结果;
+ <br /> for (int i = 0; i &lt; nodeset-&gt;nodeNr; i++)
+ <br /> {
+ <br /> nodeset-&gt;nodeTab[i];
+ <br /> }
+ <br /> 注意，libxml2是一个c函数库，因此其函数和数据类型都使用c语言的方式来处理。如果是c++，我想我宁愿用STL中的vector来表示一个节点集合更好，而且没有内存泄漏或者溢出的担忧。
+ <br /> 2.7 字符串 XML 之间转换函数
+ <br /> void xmlDocDumpFormatMemory(xmlDocPtr cur, xmlChar ** mem, int * size, int format);
+ <br /> Dump an XML document in memory and return the #xmlChar * and it's size. It's up to the caller to free the memory with xmlFree(). Note that @format = 1 provide node indenting only if xmlIndentTreeOutput = 1 or xmlKeepBlanksDefault(0) was called
+ <br /> cur: the document 
+ <br /> mem: OUT: the memory pointer 
+ <br /> size: OUT: the memory length 
+ <br /> format: should formatting spaces been added
+ <br /> 
+ <br /> int xmlSaveFormatFileEnc(const char * filename, xmlDocPtr cur, const char * encoding,int format)
+ <br /> Dump an XML document to a file or an URL.
+ <br /> filename: the filename or URL to output 
+ <br /> cur: the document being saved 
+ <br /> encoding: the name of the encoding to use or NULL. 
+ <br /> format: should formatting spaces be added. 
+ <br /> Returns: the number of bytes written or -1 in case of error. Note that @format = 1 provide node indenting only if xmlIndentTreeOutput = 1 or xmlKeepBlanksDefault(0) was called
+ <br /> 
+ <br /> xmlDocPtr xmlParseDoc (xmlChar *cur);&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> parse an XML in-memory document and build a tree.&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> cur : a pointer to an array of xmlChar&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> Returns : the resulting document tree&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> xmlDocPtr xmlParseMemory (const char *buffer, int ize);&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> parse an XML in-memory block and build a tree.
+ <br /> 
+ <br /> =====================================================
+ <br /> 3.简单xml操作例子
+ <br /> 了解以上基本知识之后，就可以进行一些简单的xml操作了。当然，还没有涉及到内码转换（使得xml中可以处理中文）、xpath等较复杂的操作。
+ <br /> 3.1&nbsp;&nbsp; 创建xml文档
+ <br /> 有了上面的基础，创建一个xml文档显得非常简单，其流程如下：
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlNewDoc函数创建一个文档指针doc；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlNewNode函数创建一个节点指针root_node；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlDocSetRootElement将root_node设置为doc的根结点；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 给root_node添加一系列的子节点，并设置子节点的内容和属性；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlSaveFile将xml文档存入文件；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlFreeDoc函数关闭文档指针，并清除本文档中所有节点动态申请的内存。
+ <br /> 注意，有多种方式可以添加子节点：第一是用xmlNewTextChild直接添加一个文本子节点；第二是先创建新节点，然后用xmlAddChild将新节点加入上层节点。
+ <br /> 源代码文件是CreateXmlFile.cpp，如下：
+ <br /> /********************************************************************
+ <br /> &nbsp;&nbsp;&nbsp; created:&nbsp;&nbsp; 2007/11/09
+ <br /> &nbsp;&nbsp;&nbsp; created:&nbsp;&nbsp; 9:11:2007&nbsp;&nbsp; 15:34
+ <br /> &nbsp;&nbsp;&nbsp; filename: CreateXmlFile.cpp
+ <br /> &nbsp;&nbsp;&nbsp; author:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Wang xuebin
+ <br /> &nbsp;&nbsp;&nbsp; depend:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; libxml2.lib
+ <br /> &nbsp;&nbsp;&nbsp; build:&nbsp;&nbsp;&nbsp;&nbsp; nmake TARGET_NAME=CreateXmlFile
+ <br /> &nbsp;&nbsp;&nbsp; purpose:&nbsp;&nbsp; 创建一个xml文件
+ <br /> *********************************************************************/
+ <br /> #include &lt;stdio.h&gt;
+ <br /> #include &lt;libxml/parser.h&gt;
+ <br /> #include &lt;libxml/tree.h&gt;
+ <br /> #include &lt;iostream.h&gt;
+ <br /> int main()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; //定义文档和节点指针
+ <br /> &nbsp;&nbsp;&nbsp; xmlDocPtr doc = xmlNewDoc(BAD_CAST&quot;1.0&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr root_node = xmlNewNode(NULL,BAD_CAST&quot;root&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; //设置根节点
+ <br /> &nbsp;&nbsp;&nbsp; xmlDocSetRootElement(doc,root_node);
+ <br /> &nbsp;&nbsp;&nbsp; //在根节点中直接创建节点
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewTextChild(root_node, NULL, BAD_CAST &quot;newNode1&quot;, BAD_CAST &quot;newNode1 content&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewTextChild(root_node, NULL, BAD_CAST &quot;newNode2&quot;, BAD_CAST &quot;newNode2 content&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewTextChild(root_node, NULL, BAD_CAST &quot;newNode3&quot;, BAD_CAST &quot;newNode3 content&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; //创建一个节点，设置其内容和属性，然后加入根结点
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr node = xmlNewNode(NULL,BAD_CAST&quot;node2&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr content = xmlNewText(BAD_CAST&quot;NODE CONTENT&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlAddChild(root_node,node);
+ <br /> &nbsp;&nbsp;&nbsp; xmlAddChild(node,content);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewProp(node,BAD_CAST&quot;attribute&quot;,BAD_CAST &quot;yes&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; //创建一个儿子和孙子节点
+ <br /> &nbsp;&nbsp;&nbsp; node = xmlNewNode(NULL, BAD_CAST &quot;son&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlAddChild(root_node,node);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr grandson = xmlNewNode(NULL, BAD_CAST &quot;grandson&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlAddChild(node,grandson);
+ <br /> &nbsp;&nbsp;&nbsp; xmlAddChild(grandson, xmlNewText(BAD_CAST &quot;This is a grandson node&quot;));
+ <br /> &nbsp;&nbsp;&nbsp; //存储xml文档
+ <br /> &nbsp;&nbsp;&nbsp; int nRel = xmlSaveFile(&quot;CreatedXml.xml&quot;,doc);
+ <br /> &nbsp;&nbsp;&nbsp; if (nRel != -1)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cout&lt;&lt;&quot;一个xml文档被创建,写入&quot;&lt;&lt;nRel&lt;&lt;&quot;个字节&quot;&lt;&lt;endl;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; //释放文档内节点动态申请的内存
+ <br /> &nbsp;&nbsp;&nbsp; xmlFreeDoc(doc);
+ <br /> &nbsp;&nbsp;&nbsp; return 1;
+ <br /> }
+ <br /> 编译链接命令如下：
+ <br /> nmake TARGET_NAME=CreateXmlFile
+ <br /> 然后执行可执行文件CreateXmlFile.exe，会生成一个xml文件CreatedXml.xml，打开后如下所示：
+ <br /> &lt;?xml version=&quot;1.0&quot;?&gt;
+ <br /> &lt;root&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;newNode1&gt;newNode1 content&lt;/newNode1&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;newNode2&gt;newNode2 content&lt;/newNode2&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;newNode3&gt;newNode3 content&lt;/newNode3&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;node2 attribute=&quot;yes&quot;&gt;NODE CONTENT&lt;/node2&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;son&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;grandson&gt;This is a grandson node&lt;/grandson&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/son&gt;
+ <br /> &lt;/root&gt;
+ <br /> 最好使用类似XMLSPY这样的工具打开，因为这些工具可以自动整理xml文件的栅格，否则很有可能是没有任何换行的一个xml文件，可读性较差。
+ <br /> 3.2&nbsp;&nbsp; 解析xml文档
+ <br /> 解析一个xml文档，从中取出想要的信息，例如节点中包含的文字，或者某个节点的属性，其流程如下：
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlReadFile函数读出一个文档指针doc；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlDocGetRootElement函数得到根节点curNode；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; curNode-&gt;xmlChildrenNode就是根节点的子节点集合；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 轮询子节点集合，找到所需的节点，用xmlNodeGetContent取出其内容；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlHasProp查找含有某个属性的节点；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 取出该节点的属性集合，用xmlGetProp取出其属性值；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 用xmlFreeDoc函数关闭文档指针，并清除本文档中所有节点动态申请的内存。
+ <br /> 注意：节点列表的指针依然是xmlNodePtr，属性列表的指针也是xmlAttrPtr，并没有xmlNodeList或者xmlAttrList这样的类型。看作列表的时候使用它们的next和prev链表指针来进行轮询。只有在Xpath中有xmlNodeSet这种类型，其使用方法前面已经介绍了。
+ <br /> 源代码如下：ParseXmlFile.cpp
+ <br /> /********************************************************************
+ <br /> &nbsp;&nbsp;&nbsp; created:&nbsp;&nbsp; 2007/11/15
+ <br /> &nbsp;&nbsp;&nbsp; created:&nbsp;&nbsp; 15:11:2007&nbsp;&nbsp; 11:47
+ <br /> &nbsp;&nbsp;&nbsp; filename: ParseXmlFile.cpp
+ <br /> &nbsp;&nbsp;&nbsp; author:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Wang xuebin
+ <br /> &nbsp;&nbsp;&nbsp; depend:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; libxml2.lib
+ <br /> &nbsp;&nbsp;&nbsp; build:&nbsp;&nbsp;&nbsp;&nbsp; nmake TARGET_NAME=ParseXmlFile
+ <br /> &nbsp;&nbsp;&nbsp; purpose:&nbsp;&nbsp; 解析xml文件
+ <br /> *********************************************************************/
+ <br /> #include &lt;libxml/parser.h&gt;
+ <br /> #include &lt;iostream.h&gt;
+ <br /> int main(int argc, char* argv[])
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; xmlDocPtr doc;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //定义解析文档指针
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr curNode;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //定义结点指针(你需要它为了在各个结点间移动)
+ <br /> &nbsp;&nbsp;&nbsp; xmlChar *szKey;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //临时字符串变量
+ <br /> &nbsp;&nbsp;&nbsp; char *szDocName;
+ <br /> &nbsp;&nbsp;&nbsp; if (argc &lt;= 1)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;Usage: %s docname&quot;n&quot;, argv[0]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return(0);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; szDocName = argv[1];
+ <br /> &nbsp;&nbsp;&nbsp; doc = xmlReadFile(szDocName,&quot;GB2312&quot;,XML_PARSE_RECOVER); //解析文件
+ <br /> &nbsp;&nbsp;&nbsp; //检查解析文档是否成功，如果不成功，libxml将指一个注册的错误并停止。
+ <br /> &nbsp;&nbsp;&nbsp; //一个常见错误是不适当的编码。XML标准文档除了用UTF-8或UTF-16外还可用其它编码保存。
+ <br /> &nbsp;&nbsp;&nbsp; //如果文档是这样，libxml将自动地为你转换到UTF-8。更多关于XML编码信息包含在XML标准中.
+ <br /> &nbsp;&nbsp;&nbsp; if (NULL == doc)
+ <br /> &nbsp;&nbsp;&nbsp; { 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fprintf(stderr,&quot;Document not parsed successfully. &quot;n&quot;);&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; curNode = xmlDocGetRootElement(doc); //确定文档根元素
+ <br /> &nbsp;&nbsp;&nbsp; /*检查确认当前文档中包含内容*/
+ <br /> &nbsp;&nbsp;&nbsp; if (NULL == curNode)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fprintf(stderr,&quot;empty document&quot;n&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlFreeDoc(doc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; /*在这个例子中，我们需要确认文档是正确的类型。“root”是在这个示例中使用文档的根类型。*/
+ <br /> &nbsp;&nbsp;&nbsp; if (xmlStrcmp(curNode-&gt;name, BAD_CAST &quot;root&quot;))
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fprintf(stderr,&quot;document of the wrong type, root node != root&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlFreeDoc(doc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; curNode = curNode-&gt;xmlChildrenNode;
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr propNodePtr = curNode;
+ <br /> &nbsp;&nbsp;&nbsp; while(curNode != NULL)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //取出节点中的内容
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ((!xmlStrcmp(curNode-&gt;name, (const xmlChar *)&quot;newNode1&quot;)))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; szKey = xmlNodeGetContent(curNode);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;newNode1: %s&quot;n&quot;, szKey);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlFree(szKey);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //查找带有属性attribute的节点
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (xmlHasProp(curNode,BAD_CAST &quot;attribute&quot;))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; propNodePtr = curNode;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; curNode = curNode-&gt;next;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; //查找属性
+ <br /> &nbsp;&nbsp;&nbsp; xmlAttrPtr attrPtr = propNodePtr-&gt;properties;
+ <br /> &nbsp;&nbsp;&nbsp; while (attrPtr != NULL)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!xmlStrcmp(attrPtr-&gt;name, BAD_CAST &quot;attribute&quot;))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlChar* szAttr = xmlGetProp(propNodePtr,BAD_CAST &quot;attribute&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cout&lt;&lt;&quot;get attribute = &quot;&lt;&lt;szAttr&lt;&lt;endl;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlFree(szAttr);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; attrPtr = attrPtr-&gt;next;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; xmlFreeDoc(doc);
+ <br /> &nbsp;&nbsp;&nbsp; return 0;
+ <br /> }
+ <br /> 编译链接命令如下：
+ <br /> nmake TARGET_NAME=ParseXmlFile
+ <br /> 执行命令如下，使用第一次创建的xml文件作为输入：
+ <br /> ParseXmlFile.exe CreatedXml.xml
+ <br /> 观察源代码可发现，所有以查询方式得到的xmlChar*字符串都必须使用xmlFree函数手动释放。否则会造成内存泄漏。
+ <br /> 3.3&nbsp;&nbsp; 修改xml文档
+ <br /> 有了上面的基础，修改xml文档的内容就很简单了。首先打开一个已经存在的xml文档，顺着根结点找到需要添加、删除、修改的地方，调用相应的xml函数对节点进行增、删、改操作。源代码见ChangeXmlFile，编译链接方法如上。执行下面的命令：
+ <br /> ChangeXmlFile.exe CreatedXml.xml
+ <br /> 可以得到一个修改后的xml文档ChangedXml.xml，如下：
+ <br /> &lt;?xml version=&quot;1.0&quot;?&gt;
+ <br /> &lt;root&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;newNode2&gt;content changed&lt;/newNode2&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;newNode3 newAttr=&quot;YES&quot;&gt;newNode3 content&lt;/newNode3&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;node2 attribute=&quot;no&quot;&gt;NODE CONTENT&lt;/node2&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;son&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;grandson&gt;This is a grandson node&lt;/grandson&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;newGrandSon&gt;new content&lt;/newGrandSon&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/son&gt;
+ <br /> &lt;/root&gt;
+ <br /> 需要注意的是，并没有xmlDelNode或者xmlRemoveNode函数，我们删除节点使用的是以下一段代码：
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!xmlStrcmp(curNode-&gt;name, BAD_CAST &quot;newNode1&quot;))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlNodePtr tempNode;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tempNode = curNode-&gt;next;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlUnlinkNode(curNode);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlFreeNode(curNode);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; curNode = tempNode;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; continue;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> 即将当前节点从文档中断链（unlink），这样本文档就不会再包含这个子节点。这样做需要使用一个临时变量来存储断链节点的后续节点，并记得要手动删除断链节点的内存。
+ <br /> 3.4&nbsp;&nbsp; 使用XPATH查找xml文档
+ <br /> 简而言之，XPATH之于xml，好比SQL之于关系数据库。要在一个复杂的xml文档中查找所需的信息，XPATH简直是必不可少的工具。XPATH语法简单易学，并且有一个很好的官方教程，见
+ <a href="http://www.zvon.org/xxl/XPathTutorial/Output_chi/introduction.html">http://www.zvon.org/xxl/XPathTutorial/Output_chi/introduction.html</a>。这个站点的XML各种教程齐全，并且有包括中文在内的各国语言版本，真是让我喜欢到非常！
+ <br /> 使用XPATH之前，必须首先熟悉几个数据类型和函数，它们是使用XPATH的前提。在libxml2中使用Xpath是非常简单的，其流程如下：
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 定义一个XPATH上下文指针xmlXPathContextPtr context，并且使用xmlXPathNewContext函数来初始化这个指针；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 定义一个XPATH对象指针xmlXPathObjectPtr result，并且使用xmlXPathEvalExpression函数来计算Xpath表达式，得到查询结果，将结果存入对象指针中；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 使用result-&gt;nodesetval得到节点集合指针，其中包含了所有符合Xpath查询结果的节点；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 使用xmlXPathFreeContext释放上下文指针；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 使用xmlXPathFreeObject释放Xpath对象指针；
+ <br /> 具体的使用方法可以看XpathForXmlFile.cpp的这一段代码，其功能是查找符合某个Xpath语句的对象指针：
+ <br /> xmlXPathObjectPtr getNodeSet(xmlDocPtr doc, const xmlChar *szXpath)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; xmlXPathContextPtr context;&nbsp;&nbsp;&nbsp; //XPATH上下文指针
+ <br /> &nbsp;&nbsp;&nbsp; xmlXPathObjectPtr result;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //XPATH对象指针，用来存储查询结果
+ <br /> &nbsp;&nbsp;&nbsp; context = xmlXPathNewContext(doc);&nbsp;&nbsp;&nbsp;&nbsp; //创建一个XPath上下文指针
+ <br /> &nbsp;&nbsp;&nbsp; if (context == NULL)
+ <br /> &nbsp;&nbsp;&nbsp; { 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;context is NULL&quot;n&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NULL;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; result = xmlXPathEvalExpression(szXpath, context); //查询XPath表达式，得到一个查询结果
+ <br /> &nbsp;&nbsp;&nbsp; xmlXPathFreeContext(context);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //释放上下文指针
+ <br /> &nbsp;&nbsp;&nbsp; if (result == NULL)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;xmlXPathEvalExpression return NULL&quot;n&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NULL;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; if (xmlXPathNodeSetIsEmpty(result-&gt;nodesetval))&nbsp;&nbsp; //检查查询结果是否为空
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlXPathFreeObject(result);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;nodeset is empty&quot;n&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NULL;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; return result;&nbsp;&nbsp; 
+ <br /> }
+ <br /> 一个完整的使用Xpath的例子在代码XpathForXmlFile.cpp中，它查找一个xml文件中符合&quot;/root/node2[@attribute='yes']&quot;语句的结果，并且将找到的节点的属性和内容打印出来。编译链接命令如下：
+ <br /> nmake TARGET_NAME=XpathForXmlFile
+ <br /> 执行方式如下：
+ <br /> XpathForXmlFile.exe CreatedXml.xml
+ <br /> 观察结果可以看出找到了一个节点，即root下面node2节点，它的attribute属性值正好等于yes。更多关于Xpath的内容可以参考XPATH官方手册。只有掌握了XPATH，才掌握了使用大型XML文件的方法，否则每寻找一个节点都要从根节点找起，会把人累死。
+ <br /> 
+ <br /> =====================================================
+ <br /> 4. 用ICONV解决XML中的中文问题
+ <br /> Libxml2中默认的内码是UTF-8，所有使用libxml2进行处理的xml文件，必须首先显式或者默认的转换为UTF-8编码才能被处理。
+ <br /> 要在xml中使用中文，就必须能够在UTF-8和GB2312内码（较常用的一种简体中文编码）之间进行转换。Libxml2提供了默认的内码转换机制，并且在libxml2的Tutorial中有一个例子，事实证明这个例子并不适合用来转换中文。
+ <br /> 所以需要我们显式的使用ICONV来进行内码转换，libxml2本身也是使用ICONV进行转换的。ICONV是一个专门用来进行编码转换的库，基本上支持目前所有常用的编码。它是glibc库的一个部分，常常被用于UNIX系统中。当然，在windows下面使用也没有任何问题。前面已经提到了ICONV的安装和使用方法，这里主要讲一下编程相关问题。
+ <br /> 本节其实和xml以及libxml2没有太大关系，你可以把它简单看作是一个编码转换方面的专题。我们仅仅需要学会使用两个函数就可以了，即从UTF-8转换到GB2312的函数u2g，以及反向转换的函数g2u，源代码在wxb_codeConv.c中：
+ <br /> /********************************************************************
+ <br /> &nbsp;&nbsp;&nbsp; created:&nbsp;&nbsp; 2007/11/15
+ <br /> &nbsp;&nbsp;&nbsp; created:&nbsp;&nbsp; 15:11:2007&nbsp;&nbsp; 10:30
+ <br /> &nbsp;&nbsp;&nbsp; filename: wxb_codeConv.c
+ <br /> &nbsp;&nbsp;&nbsp; author:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Wang xuebin
+ <br /> &nbsp;&nbsp;&nbsp; depend:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; iconv.lib
+ <br /> &nbsp;&nbsp;&nbsp; build:&nbsp;&nbsp;&nbsp;&nbsp; 不需要build，被包含到其它源代码中
+ <br /> &nbsp;&nbsp;&nbsp; purpose:&nbsp;&nbsp; 提供从UTF-8到GB2312的内码转换，以及反向的转换
+ <br /> *********************************************************************/
+ <br /> #include &quot;iconv.h&quot;
+ <br /> #include &lt;string.h&gt;
+ <br /> //代码转换:从一种编码转为另一种编码 
+ <br /> int code_convert(char* from_charset, char* to_charset, char* inbuf,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int inlen, char* outbuf, int outlen)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; iconv_t cd;
+ <br /> &nbsp;&nbsp;&nbsp; char** pin = &amp;inbuf; 
+ <br /> &nbsp;&nbsp;&nbsp; char** pout = &amp;outbuf;
+ <br /> &nbsp;&nbsp;&nbsp; cd = iconv_open(to_charset,from_charset); 
+ <br /> &nbsp;&nbsp;&nbsp; if(cd == 0)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1;
+ <br /> &nbsp;&nbsp;&nbsp; memset(outbuf,0,outlen); 
+ <br /> &nbsp;&nbsp;&nbsp; if(iconv(cd,(const char**)pin,(unsigned int *)&amp;inlen,pout,(unsigned int*)&amp;outlen)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; == -1)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return -1; 
+ <br /> &nbsp;&nbsp;&nbsp; iconv_close(cd);
+ <br /> &nbsp;&nbsp;&nbsp; return 0; 
+ <br /> }
+ <br /> //UNICODE码转为GB2312码 
+ <br /> //成功则返回一个动态分配的char*变量，需要在使用完毕后手动free，失败返回NULL
+ <br /> char* u2g(char *inbuf) 
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; int nOutLen = 2 * strlen(inbuf) - 1;
+ <br /> &nbsp;&nbsp;&nbsp; char* szOut = (char*)malloc(nOutLen);
+ <br /> &nbsp;&nbsp;&nbsp; if (-1 == code_convert(&quot;utf-8&quot;,&quot;gb2312&quot;,inbuf,strlen(inbuf),szOut,nOutLen))
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; free(szOut);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; szOut = NULL;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; return szOut;
+ <br /> } 
+ <br /> //GB2312码转为UNICODE码 
+ <br /> //成功则返回一个动态分配的char*变量，需要在使用完毕后手动free，失败返回NULL
+ <br /> char* g2u(char *inbuf) 
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; int nOutLen = 2 * strlen(inbuf) - 1;
+ <br /> &nbsp;&nbsp;&nbsp; char* szOut = (char*)malloc(nOutLen);
+ <br /> &nbsp;&nbsp;&nbsp; if (-1 == code_convert(&quot;gb2312&quot;,&quot;utf-8&quot;,inbuf,strlen(inbuf),szOut,nOutLen))
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; free(szOut);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; szOut = NULL;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; return szOut;
+ <br /> } 
+ <br /> 使用的时候将这个c文件include到其它源文件中。include一个c文件并不奇怪，在c语言的年代我们常常这么干，唯一的害处的编译链接出来的可执行程序体积变大了。当然这时因为我们这段代码很小的原因，再大一点我就要用dll了。
+ <br /> 从UTF-8到GB2312的一个典型使用流程如下：
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 得到一个UTF-8的字符串szSrc；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 定义一个char*的字符指针szDes，并不需要给他动态审判内存；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; szDes = u2g(szSrc)，这样就可以得到转换后的GB2312编码的字符串；
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 使用完这个字符串后使用free(szDes)来释放内存。
+ <br /> 本文并不准备讲述iconv中的函数细节，因为那几个函数以及数据类型都非常简单，我们还是重点看一下如何在libxml2中使用编码转换来处理带有中文的xml文件。下面是使用以上方法来创建一个带有中文的XML文件的例子程序CreateXmlFile_cn.cpp，源代码如下：
+ <br /> /********************************************************************
+ <br /> &nbsp;&nbsp;&nbsp; created:&nbsp;&nbsp; 2007/11/17
+ <br /> &nbsp;&nbsp;&nbsp; created:&nbsp;&nbsp; 9:11:2007&nbsp;&nbsp; 15:34
+ <br /> &nbsp;&nbsp;&nbsp; filename: CreateXmlFile.cpp
+ <br /> &nbsp;&nbsp;&nbsp; author:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Wang xuebin
+ <br /> &nbsp;&nbsp;&nbsp; depend:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; libxml2.lib iconv.lib
+ <br /> &nbsp;&nbsp;&nbsp; build:&nbsp;&nbsp;&nbsp;&nbsp; nmake TARGET_NAME=CreateXmlFile_cn
+ <br /> &nbsp;&nbsp;&nbsp; purpose:&nbsp;&nbsp; 创建一个xml文件，其中包含中文
+ <br /> *********************************************************************/
+ <br /> #include &lt;stdio.h&gt;
+ <br /> #include &lt;libxml/parser.h&gt;
+ <br /> #include &lt;libxml/tree.h&gt;
+ <br /> #include &lt;iostream.h&gt;
+ <br /> #include &quot;wxb_codeConv.c&quot; //自己写的编码转换函数
+ <br /> int main(int argc, char **argv)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; //定义文档和节点指针
+ <br /> &nbsp;&nbsp;&nbsp; xmlDocPtr doc = xmlNewDoc(BAD_CAST&quot;1.0&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr root_node = xmlNewNode(NULL,BAD_CAST&quot;root&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; //设置根节点
+ <br /> &nbsp;&nbsp;&nbsp; xmlDocSetRootElement(doc,root_node);
+ <br /> &nbsp;&nbsp;&nbsp; //一个中文字符串转换为UTF-8字符串，然后写入
+ <br /> &nbsp;&nbsp;&nbsp; char* szOut = g2u(&quot;节点1的内容&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; //在根节点中直接创建节点
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewTextChild(root_node, NULL, BAD_CAST &quot;newNode1&quot;, BAD_CAST &quot;newNode1 content&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewTextChild(root_node, NULL, BAD_CAST &quot;newNode2&quot;, BAD_CAST &quot;newNode2 content&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewTextChild(root_node, NULL, BAD_CAST &quot;newNode3&quot;, BAD_CAST &quot;newNode3 content&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewChild(root_node, NULL, BAD_CAST &quot;node1&quot;,BAD_CAST szOut);
+ <br /> &nbsp;&nbsp;&nbsp; free(szOut);
+ <br /> &nbsp;&nbsp;&nbsp; //创建一个节点，设置其内容和属性，然后加入根结点
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr node = xmlNewNode(NULL,BAD_CAST&quot;node2&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNodePtr content = xmlNewText(BAD_CAST&quot;NODE CONTENT&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlAddChild(root_node,node);
+ <br /> &nbsp;&nbsp;&nbsp; xmlAddChild(node,content);
+ <br /> &nbsp;&nbsp;&nbsp; szOut = g2u(&quot;属性值&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewProp(node,BAD_CAST&quot;attribute&quot;,BAD_CAST szOut);
+ <br /> &nbsp;&nbsp;&nbsp; free(szOut);
+ <br /> &nbsp;&nbsp;&nbsp; //创建一个中文节点
+ <br /> &nbsp;&nbsp;&nbsp; szOut = g2u(&quot;中文节点&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; xmlNewChild(root_node, NULL, BAD_CAST szOut,BAD_CAST &quot;content of chinese node&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; free(szOut);
+ <br /> &nbsp;&nbsp;&nbsp; //存储xml文档
+ <br /> &nbsp;&nbsp;&nbsp; int nRel = xmlSaveFormatFileEnc(&quot;CreatedXml_cn.xml&quot;,doc,&quot;GB2312&quot;,1);
+ <br /> &nbsp;&nbsp;&nbsp; if (nRel != -1)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cout&lt;&lt;&quot;一个xml文档被创建,写入&quot;&lt;&lt;nRel&lt;&lt;&quot;个字节&quot;&lt;&lt;endl;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; xmlFreeDoc(doc);
+ <br /> &nbsp;&nbsp;&nbsp; return 1;
+ <br /> }
+ <br /> 编译链接命令如下：
+ <br /> nmake TARGET_NAME=CreateXmlFile_cn
+ <br /> 完成后执行CreateXmlFile_cn.exe可以生成一个xml文件CreatedXml_cn.xml，其内容如下：
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;GB2312&quot;?&gt;
+ <br /> &lt;root&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;newNode1&gt;newNode1 content&lt;/newNode1&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;newNode2&gt;newNode2 content&lt;/newNode2&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;newNode3&gt;newNode3 content&lt;/newNode3&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;node1&gt;节点1的内容&lt;/node1&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;node2 attribute=&quot;属性值&quot;&gt;NODE CONTENT&lt;/node2&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;中文节点&gt;content of chinese node&lt;/中文节点&gt;
+ <br /> &lt;/root&gt;
+ <br /> 观察可知，节点的名称、内容、属性都可以使用中文了。在解析、修改和查找XML文档时都可以使用上面的方法，只要记住，进入xml文档之前将中文编码转换为UTF-8编码；从XML中取出数据时，不管三七二十一都可以转换为GB2312再用，否则你很有可能见到传说中的乱码！
+ <br /> 
+ <br /> =====================================================
+ <br /> 5. 用XML来做点什么
+ <br /> 有了以上的基础，相信已经可以顺利的在c/c++程序中使用XML文档了。那么，我们到底要用XML来做什么呢？我随便说一说自己的想法：
+ <br /> 第一，可以用来作为配置文件。例如很多组件就是用XML来做配置文件；当然，我们知道用INI做配置文件更简单，只要熟悉两个函数就可以了；不过，复杂一点的配置文件我还是建议采用XML；
+ <br /> 第二，可以用来作为在程序之间传送数据的格式，这样的话最好给你的xml先定义一个XML Schema，这样的数据首先可以做一个良构校验，还可以来一个Schema校验，如此的话出错率会比没有格式的数据小得多。目前XML已经广泛作为网络之间的数据格式了；
+ <br /> 第三，可以用来作为你自定义的数据存储格式，例如对象持久化之类的功能；
+ <br /> 最后，可以用来显示你的技术很高深，本来你要存储一个1，结果你这样存储了：
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;GB2312&quot;?&gt;
+ <br /> &lt;root&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;My_Program_Code content=&quot;1&quot;&gt;&lt;/My_Program_Code&gt;
+ <br /> &lt;/root&gt;
+ <br /> 然后再用libxml2取出来，最好还来几次编码转换，是不是让人觉得你很牛呢，哈哈！说笑了，千万不要这么做。
+</div> 
+<div> 
+</div> 
+<div>
+ <a href="http://hi.baidu.com/fuxy0921/blog/item/7991943c86bad006baa167a7.html">http://hi.baidu.com/fuxy0921/blog/item/7991943c86bad006baa167a7.html</a>
+</div></div></body></html>

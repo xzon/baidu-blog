@@ -1,0 +1,89 @@
+<html><head><title><div class="tit">
+  自定义布局管理器-CenterLayout
+</div></title></head><body><div id='tit'>自定义布局管理器-CenterLayout</div><div id='cate'>j&middot;入门</div><div id='date'>2008年04月16日 星期三 04:37 P.M.</div><div id='page'>142</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3376d70052aed814728b65db.html'>http://hi.baidu.com/hxzon/blog/item/3376d70052aed814728b65db.html</a><div id='cnt'><p>自定义布局管理器-CenterLayout</p> 
+<div class="newscon">
+ 上文自定义布局管理器-FormLayout介绍了FormLayout的参考实现，利用FormLayout，通过指定left、top、
+ <br /> 
+ <br /> right（可选）、bottom（可选）布局约束可以对组件进行精确定位。然而有些组件在业务上是有固定尺寸的，例如自定义组件之Button介绍的一样，通过给按钮指定4种状态时的图片，那么组件的最佳尺寸就是图片的尺寸，因此组件的PreferredSize就可以确定，所以此时只需要组件中心的确定坐标就可以了，实际组件的Location只和其PreferredSize有关。如下图所示：
+ <br /> 
+ <br /> 这就是CenterLayout的思想。
+ <br /> 
+ <br /> 修改FormData，只需要添加两个变量即可。
+ <br /> public class FormData {
+ <br /> public FormAttachment left; 
+ <br /> 
+ <br /> public FormAttachment right; 
+ <br /> 
+ <br /> public FormAttachment top; 
+ <br /> 
+ <br /> public FormAttachment bottom; 
+ <br /> 
+ <br /> public FormAttachment centerX; 
+ <br /> 
+ <br /> public FormAttachment centerY; 
+ <br /> }
+ <br /> CenterLayout与FormLayout不同只在于addLayoutComponent、layoutContainer这两个
+ <br /> 
+ <br /> 方法实现，其他接口方法均相同，所以下面只介绍这两个方法实现，其他接口方法请
+ <br /> 
+ <br /> 参阅上文自定义布局管理器-FormLayout
+ <br /> 在addLayoutComponent方法的开头，同样是对布局约束参数constraints合法性进行检查，这点与FormLayout大致相同。
+ <br /> 
+ <br /> if (constraints == null) {
+ <br /> throw new IllegalArgumentException(&quot;constraints can't be 
+ <br /> 
+ <br /> null&quot;); 
+ <br /> } else if (!(constraints instanceof FormData)) {
+ <br /> throw new IllegalArgumentException(&quot;constraints must be a&quot;
+ <br /> + FormData.class.getName() + &quot;instance&quot;); 
+ <br /> } else {
+ <br /> ...... 
+ <br /> }
+ <br /> 进行空值判断和类型判断。然后在else块中的代码如下：
+ <br /> synchronized (comp.getTreeLock()) {
+ <br /> FormData formData = (FormData) constraints; 
+ <br /> if (formData.centerX == null || formData.centerY == null) {
+ <br /> throw new IllegalArgumentException(
+ <br /> &quot;centerX FormAttachment and centerY 
+ <br /> 
+ <br /> FormAttachment can't be null&quot;); 
+ <br /> } else if (comp.getPreferredSize() == null) {
+ <br /> throw new RuntimeException(
+ <br /> &quot;component must have preferred size before be 
+ <br /> 
+ <br /> add into parent with CenterLayout&quot;); 
+ <br /> }
+ <br /> componentMap.put(comp, (FormData) constraints); 
+ <br /> }
+ <br /> 对于CenterLayout来说，FormData对象的centerX、centerY必须给出，因为它代表，点的坐标，除此之外组件必须有PreferredSize属性来指定组件大小。
+ <br /> 
+ <br /> layoutContainer方法实现也大致相同
+ <br /> public synchronized void layoutContainer(Container target) {
+ <br /> synchronized (target.getTreeLock()) {
+ <br /> int w = target.getWidth(); 
+ <br /> int h = target.getHeight(); 
+ <br /> Component[] components = target.getComponents(); 
+ <br /> for (Component component : components) {
+ <br /> FormData formData = componentMap.get(component); 
+ <br /> if (formData != null) {
+ <br /> ......
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> 上面这步与FormLayout一样。关键在if语句块内，代码如下：
+ <br /> FormAttachment centerX = formData.centerX; 
+ <br /> FormAttachment centerY = formData.centerY; 
+ <br /> int width = component.getPreferredSize().width; 
+ <br /> int height = component.getPreferredSize().height; 
+ <br /> int x = (int) (centerX.percentage * w) + centerX.offset 
+ <br /> 
+ <br /> - width
+ <br /> / 2; 
+ <br /> int y = (int) (centerY.percentage * h) + centerY.offset
+ <br /> - height / 2; 
+ <br /> component.setBounds(x, y, width, height); 
+ <br /> 获得centerX、centerY以及最佳尺寸，如上图所示，不难得出x、y的计算方法。
+ <br /> 
+ <br /> 至此，自定义布局管理器就介绍到这里，这两个布局类可以解决很多静态布局需求，所谓静态布局是指容器内有什么组件是固定的。如果遇到动态界面，例如组件的内容依照用户级别、插件扩展点等因素决定，也并不是难事，因为了解了布局管理器运行机制以后可很容易地定义适合你需求的布局类。对于静态布局来说，你可能厌倦了hard coding来布局，你希望这一切由xml这样的配置搞定，好，下一部分则开始“压轴戏”——用配置文件解决布局。
+</div></div></body></html>

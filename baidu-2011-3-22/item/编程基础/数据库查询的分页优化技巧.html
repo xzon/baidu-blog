@@ -1,0 +1,21 @@
+<html><head><title><div class="tit">
+  数据库查询的分页优化技巧
+</div></title></head><body><div id='tit'>数据库查询的分页优化技巧</div><div id='cate'>编程基础</div><div id='date'>2009年05月14日 星期四 09:59 P.M.</div><div id='page'>51</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/012a6338e1e8242b97ddd897.html'>http://hi.baidu.com/hxzon/blog/item/012a6338e1e8242b97ddd897.html</a><div id='cnt'><p><span>数据库查询的分页优化技巧</span></p> 
+<span> <p> 分页浏览功能是常见的Web应用功能，对于MySQL数据库来说可以很轻松的使用limit语句实现分页，而对于SQL Server数据库来说，常见的方法是使用数据集本身的游标实现分页，这种方法对于少量数据来说没什么问题，但是对于稍大一点的数据量，例如几十万条数据，则查询速度会降低很多，这里我介绍一种常用的技巧，只要简单的重新构造一下查询SQL语句，就能大幅提高查询性能的方法。</p> <p> 在分页算法中，影响查询速度的关键因素在于返回数据集的大小，我们先在数据表中设置一个名为id的主键，数值为自增量的整数，然后通过重构查询SQL语句，就可以实现SQL查询的优化，重构的SQL如下所示</p> <p> </p> 
+ <div class="code">
+  select top 页大小 *
+  <br /> from table1
+  <br /> where id&lt;=
+  <br /> (select min (id) from
+  <br /> (select top ((页码-1)*页大小) id from table1 order by id desc) as T
+  <br /> ) 
+  <br /> order by id desc
+ </div> <p> </p> <p> 下面的JSP演示代码中，intPageSize为页大小，intPage为页码，id为主键，演示了操作一个t_Product表，并加入各类查询条件之后的重构SQL的主要语句，经过实际调试，经过这样简单优化后的SQL查询速度远远高于优化前的查询速度。</p> <p> </p> 
+ <div class="code">
+  String sql=&quot; from t_Product where 1=1 and &quot;;
+  <br /> String ProductName = request.getParameter(&quot;ProductName&quot;);
+  <br /> if (ProductName!=null) sql=sql+&quot;ProductName like '%&quot; + ProductName + &quot;%' and &quot; ;
+  <br /> sql=sql.substring(0,sql.length()-4); // 去掉尾部的 and 字符串
+  <br /> sql=&quot;select top &quot; + String.valueOf(intPageSize) + &quot; *&quot; +sql+&quot; and id &lt;=(select min(id) from (select top &quot; + String.valueOf(intPage*intPageSize) + &quot; id &quot; + sql + &quot; order by id desc) as T) &quot;; //通过子查询加快速度
+  <br /> sql=sql+&quot; order by id desc &quot;;
+ </div> </span></div></body></html>

@@ -1,0 +1,408 @@
+<html><head><title><div class="tit">
+  用UML设计Java应用程序
+</div></title></head><body><div id='tit'>用UML设计Java应用程序</div><div id='cate'>无分类</div><div id='date'>2008年04月10日 星期四 07:58 P.M.</div><div id='page'>143</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3874b28f4aea92ebf11f360a.html'>http://hi.baidu.com/hxzon/blog/item/3874b28f4aea92ebf11f360a.html</a><div id='cnt'><p><font color="#ff0000" size="3">用UML设计Java应用程序</font></p> 
+<p>来源：转载自umlchina，Hans-Erik Erikkson, Magnus Penker著，刘忠(caulzhong@sina.com) 译</p> 
+<p class="content">本文的案例学习提供了一个例子，说明如何将UML用在现实中。一个处理图书馆借阅和预定图书和杂志的应用程序，可以大到足够检验UML解决现实问题能力的程度。但是如果太大的话，则不适合在杂志上发表。</p> 
+<p>在分析模型中，用用例和域分析描述了应用程序。我们进一步把它扩展成设计模型。在设计模型中，我们描述了典型的技术解决方案细节。最后，我们编写了一段Java代码（代码连同完整的分析和设计模型放在网上，以一种包括评估版在内的Rational Rose能够识别的格式在线提供。）</p> 
+<p>必须注意，这里只是一个可行的解决方案。可能会有许多其他的解决方案。没有绝对正确的方案。当然，有的方案更好一些，但只有不断的实践和努力的工作才能掌握相应的技能。 1．需求（Requirements）<br /> 典型地，由系统最终用户的代表写出文本形式的需求规范文档。对于该图书馆应用程序来说，需求规范文档应该类似于这样：</p> 
+<p>1. 这是一个图书馆支持系统；</p> 
+<p>2. 图书馆将图书和杂志借给借书者。借书者已经预先注册，图书和杂志也预先注册；</p> 
+<p>3. 图书馆负责新书的购买。每一本图书都购进多本书。当旧书超期或破旧不堪时，从图书馆中去掉。</p> 
+<p>4. 图书管理员是图书馆的员工。他们的工作就是和读者打交道并在软件系统的支持下工作。</p> 
+<p>5. 借阅人可以预定当前没有的图书和杂志。这样，当他所预定的图书和杂志归还回来或购进时，就通知预定人。当预定了某书的借书者借阅了该书后，预定就取消。或者通过显式的取消过程强行取消预定。</p> 
+<p>6. 图书馆能够容易地建立、修改和删除标题、借书者、借阅信息和预定信息。</p> 
+<p>7. 系统能够运行在所有流行的技术环境中，包括Unix, Windows和OS/2，并应有一个现代的图形用户界面 (GUI)。</p> 
+<p>8. 系统容易扩展新功能。</p> 
+<p>系统的第一版不必考虑预定的图书到达后通知预定人的功能，也不必检查借书过期的情况。 2．分析（Analysis）<br /> 系统分析的目的是捕获和描述所有的系统需求，并且建立一个模型来定义系统中主要的域类。通过系统分析达到开发者和需求者的理解和沟通。因此，分析一般都是分析员和用户协作的产物。</p> 
+<p>在这个阶段，程序开发者不应该考虑代码或程序的问题；它只是理解需求和实现系统的第一步。</p> 
+<p>2．1需求分析（Requirements Analysis）<br /> 分析的第一步是确定系统能够做什么？谁来使用这个系统？这些分别叫角se（actors）和用例（use cases）。用例描述了系统提供什么样的功能。通过阅读和分析文档，以及和潜在的用户讨论系统来分析用例。</p> 
+<p>图书馆的角se定为图书管理员和借书人。图书管理员是软件系统的用户；而借书者则是来借阅或预定图书杂志的客户。偶尔，图书管理员或图书馆的其他工作人员也可能是一个借书者。借书者不直接和系统交互，借书人的功能由图书管理员代为执行。</p> 
+<p>图书馆系统中的用例有：</p> 
+<p>1. 借书</p> 
+<p>2. 还书</p> 
+<p>3. 预定</p> 
+<p>4. 取消预定</p> 
+<p>5. 增加标题</p> 
+<p>6. 修改或删除标题</p> 
+<p>7. 增加书目</p> 
+<p>8. 删除书目</p> 
+<p>9. 增加借书者</p> 
+<p>10. 修改或删除借书者</p> 
+<p>由于一本书通常有多个备份，因此系统必须将书的标题和书目的概念区分开。</p> 
+<p>图书馆系统分析的结果写在UML 用例图中，如图1所示。每一个用例都附带有文本文档，描述用例和客户交互的细节。文本是通过与客户讨论得到的。用例“借书”描述如下：</p> 
+<p>1．如果借阅者没有预定：</p> 
+<p>h 确定标题</p> 
+<p>h 确定该标题下有效的书目</p> 
+<p>h 确定借书者</p> 
+<p>h 图书馆将书借出</p> 
+<p>h 登记一个新的借阅</p> 
+<p>2．如果借阅者有预定：</p> 
+<p>h 确定借书人</p> 
+<p>h 确定标题</p> 
+<p>h 确定该标题下有效的书目</p> 
+<p>h 图书馆将相应的书目借出</p> 
+<p>h 登记一个新的借阅</p> 
+<p>h 取消预定</p> 
+<p>除了定义系统的功能需求之外，在分析过程中用例用于检查是否有相应的域类已经被定义，然后他们可以被用在设计阶段，确保解决方案可以有效地处理系统功能。可以在顺序图中可视化实现细节。</p> 
+<p><img width="532" height="344" src="image/用UML设计Java应用程序.html.umljav2.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav2.gif</p></p> 
+<p><br /> 图1：角se和用例。分析中的第一步就是指出系统能被用来做什么，谁将去使用它。它们分别就是用例和角se。所有的用例必须始于角se，而且有些用例也结束于角se。角se是位于你所工作的系统外部的人或其他系统。一台打印机或一个数据库都可能是一个角se。本系统有两个角se：借阅者和图书管理员。通过与用户或客户的讨论，可以将每一个用例用文字进行说明。</p> 
+<p> </p> 
+<p>2．2域分析（Domain Analysis）<br /> 系统分析也详细地列出了域（系统中的关键类）。为了导出一个域分析，可以阅读规范文档（specifications）和用例，查找哪一些概念应该被系统处理。或者组织一个集体讨论，在用户及领域专家共同的参与下指出系统中必须处理的关键概念，以及它们之间的关系。</p> 
+<p>图书馆系统中的域类如下：borrowerinformation（如此命名是为了与用例图中的角se borrower区分开来），title，book title, magazine title, item, reservation和loan。这些类以及它们之间的关系记录在类图文档中，如图2所示。域类定义为Business object版型，Business object版型是一个用户自定义的版型，指定该类的对象是关键域的一部分，并且应该在系统中持久存储。</p> 
+<p>其中有些类有UML状态图，用来显示这些类的对象可能具有的不同状态，以及触发他们的状态发生改变的事件。该例子中有状态图的类是item 和title类。</p> 
+<p>用例lend item（借阅者没有预定的情况）的顺序图显示在图3中。所有用例的顺序图都可从在线模型中查到。</p> 
+<p><img width="555" height="650" src="image/用UML设计Java应用程序.html.umljav3.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav3.gif</p></p> 
+<p>图2：域类结构。域分析详细说明了系统中的关键类。对每一个对象而言，如果它调用了其他对象的方法，那么在他们之间就用一条直线连结起来，以显示他们之间的关系。每一个代表类的四边形被分成了三部分，最顶层包括类的名称，中间一层是类的属性，最底层是类的方法。类之间的直线是关联，用来指出一个对象调用另一个对象的方法。如果再仔细看，将会发现在Loan和Item之间的关联关系中靠近Loan的一端有“0..1”,这代表关联的重数。重数“0..1表示Item可以感知0个到1个loan。其他可能出现的重数还有：“0..*”表示0或多；“1”表示就是1；“0”表示就是0，“1..*”表示1或多。</p> 
+<p>当对顺序图建模时，必须提供窗体和对话框作为人机交互的界面。在本分析当中，只要知道借书、预定和还书需要窗体就可以了。在此，详细的界面不必考虑。</p> 
+<p>为了把系统中的窗体类和域类分开，所有的窗体类组织在一起放在GUI Package包中。域类组织在一起放在Business Package包中。</p> 
+<p> </p> 
+<p><img width="562" height="473" src="image/用UML设计Java应用程序.html.umljav4.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav4.gif</p></p> 
+<p><br /> 图3：Lend item场景的顺序图。场景是从头到尾实现一个用例的一次特定的过程。场景总是始于角se，而角se是属于系统外部的。场景描绘了从所有角se的观点出发，完成一次系统动作的完整过程。UML在用顺序图来图示场景。本用例图显示了在借阅者没有预定图书的情况下的Lend用例。横在图的顶部的是参与交互的对象。自上而下表示时间的流逝。首先，图书管理员尝试去查找标题。标有“Lending Window”的是用户界面，在分析阶段作为一个粗略的对象。横在顺序图中的每一个箭头都是一次方法的调用，箭头的首端是调用的对象，箭头的末端是被调用的对象。</p> 
+<p>3．设计（Design）<br /> 设计阶段对分析模型进行扩展并将模型进一步细化，并考虑技术细节和限制条件。设计的目的是指定一个可行的解决方案，以便能很容易地转变成为编程代码。</p> 
+<p>设计可以分成两个阶段：</p> 
+<p>体系结构设计阶段（Architecture Design）。这是一个从较高层次的进行的设计，用来定义包（子系统），描述包之间的依赖性及通信机制。很自然，目的是要设计一个清晰简单的体系结构，有很少的依赖性，而且尽可能避免双向依赖。详细设计阶段（Detailed Design）。在此阶段，所有的类都详尽地进行描述，给编写代码的程序员一个清晰的规范说明。UML中的动态模型用来说明类的对象如何在特定的情况下做出相应的表现。</p> 
+<p>3．1体系结构设计<br /> 一个良好的体系结构设计是一个可扩展的和可改变的系统的基础。包可能关注特定的功能领域或关注特定的技术领域。把应用程序逻辑（域类）和技术逻辑分开是至关重要的，这样不管哪一部分的改变都不会影响其他的部分。</p> 
+<p>本案例的包或叫子系统如下：</p> 
+<p>User-Interface Package包。该包中的类基于Java AWT包，java AWT是一个用来书写用户界面应用程序的Java的标准库。该包和Business-objects Package包协作。Business-objects Package包包含那些实际存储数据的类。UI包调用Business 对象的操作，对他们进行取出或插入数据操作。</p> 
+<p>Business-object Package。该包包括域类，这些域类（如borrowerinformation，title，item，loan等）来自于分析模型。设计阶段完整地定义了这些类的操作，并增加了一些其他细节来支持持续存储。Business-object包与Database Package进行协作。所有的Business-object类必须继承Database Package中的persistent类。</p> 
+<p>Database Package。Database Package向Business-object包中的类提供服务，以便他们能够持续地存储。在当前版本中，persistent类将把它的子类的对象存储到文件系统的文件中。</p> 
+<p>Utility Package。Utility Package包含了一些服务，用来被系统中其他包调用。当前，ObjId类是该包中的唯一的类。用来被整个系统包括User-Interface，Business-Object和Database package使用。</p> 
+<p>这些包的内部设计如图4所示.</p> 
+<p><img width="304" height="435" src="image/用UML设计Java应用程序.html.umljav5.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav5.gif</p></p> 
+<p>图4：图书馆应用程序体系结构设计总览。本类图显示了应用程序包以及它们之间的依赖性。Database包提供了persistence类。Utility包提供了Object ID类。Business-Object包包含了域类（详细情况参见图5）最后，UI包（在本例中它是基于标准Jaa AWT库）调用business对象中的操作来实现对他们的数据存取操作。，</p> 
+<p>3．2详细设计<br /> 细节设计描述了新的技术性的类，如User-Interface和Database 包中的类，并且丰富了分析阶段所形成的Business-Object类。类图、状态图和动态图用的还是分析阶段所形成的图，但对他们定义的更加详细，具有了更高的技术水平。在分析阶段对用例进行的文字性描述在此用来证明用例在设计阶段也能被处理。顺序图就是用来说明用例如何在系统中被实现的。</p> 
+<p>Database Package。应用程序必须有持续存储的对象。因此，必须增加数据层来提供这样的服务。为简单起见，我们将对象以文件的形式保存在磁盘上。存储的细节被应用程序隐藏起来，只需调用诸如store（）， update（），delete（）和find（）这样的公共操作即可。这些都是persistent类的一部分，所有需要持续对象的类必须继承它。</p> 
+<p>对类进行持续处理的一个重要因子就是ObjId类。它的对象用来引用系统中的任何持续对象（不管这个对象是在磁盘上还是已经被读进了应用程序之中）。ObjId是Object Identity的简写，它是一个广为应用的技术，用来有效地处理应用程序中的对象引用。通过使用object identifiers，一个对象ID能被传递到普通的persistent.getobject（）操作中，进而该对象将被从持续的存储体中取出或存储。通常情况下，这些都是通过每个持续类的一个getobject操作完成的。当然，持续类同时也作一些检查或格式转换的操作。一个对象标识符也能作为一个参数很容易地在两个操作之间传递（例如，一个查找特定对象的查询窗口可以将它的查询结果通过object id传递给另一个窗口 ）。</p> 
+<p>ObjId是一个系统中所有的包（User Interface , Business Object和Database）都能使用的通用类，所以在设计阶段它被放置在Utility包中，而不是放在Database包中。</p> 
+<p>当前对persistent类的实现还能改进。为此，定义persistent类的接口，方便持续存储的改变。一些备选的方案可能是：将对象存储在一个关系数据库中或存储在面向对象的数据库中，或使用Java 1.1所支持的持续对象来存储他们。</p> 
+<p>Business-Object Package。设计阶段的Business-Object包基于相应的分析阶段的放置域类的包。类和类之间的关系以及他们的行为继续保留，只是被描述的更为详细，包括他们的关系和行为如何被实现。</p> 
+<p>分析模型中的一些操作中被翻译成设计模型的操作，另一些改了名字。这是很正常的事，因为分析阶段得到的是每一个类的草图，而设计阶段是对系统的详细描述。因此，设计模型的操作必须有设计良好的特征值和返回值（由于空间限制，图5没有显示，但他们在在线模型中都有）。注意以下所列的设计和分析阶段的变化：</p> 
+<p>1. 系统的当前版本不要求检查书目是否按时归还，也不要求处理预定的次序。因此没有在loan 和reservation类中设置日期属性。</p> 
+<p>2. 除了最长借阅期外，对杂志和书标题的处理方式是一样的。因此分析阶段的子类magazine title和book title被认为在设计阶段是不必要的，而是在title类中增加type属性来指出该标题引用的是一本书还是一本杂志。在面向对象的设计中不存在设计不能简化分析的说法。</p> 
+<p>如果认为有必要的话，在将来的版本中这些简化都可以很容易地被取消。</p> 
+<p>分析阶段的状态图也在设计阶段细化了。状态图显示了如何表示状态及如何在系统中处理状态。设计阶段的title 类的状态图如图6所示。其他的对象可以通过调用如图所示的操作addreservation（）和removereservation（）来改变title对象的状态。</p> 
+<p>User-Interface Package。User-Interface Package位于其他包的“上面”。在系统中它为用户提供输出信息和服务。正如上面曾经提到的，该包是基于标准Java AWT（abstract windows toolkit）类的。</p> 
+<p>设计模型中的动态模型放置在GUI包中，因为所有和用户的交互都从用户界面开始。在此声明，顺序图用来显示动态模型。用例在设计模型中的实现通过顺序图被详细地显示出来，包括类中的实际操作。</p> 
+<p>顺序图由一系列的交互构成。在实现阶段（编码），考虑到具体情况，可能会有更多的交互。图7显示了add title用例的顺序图。实际的操作和特征值从在线模型代码中可以看到。</p> 
+<p><img width="594" height="684" src="image/用UML设计Java应用程序.html.umljav6.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav6.gif</p></p> 
+<p><br /> 图5：商业对象设计（Business-Object design）。本图描述了在Business-Object包中的不同类的设计。设计包括定型模型，更完全地定制界面，给属性选择数据类型等等。</p> 
+<p> </p> 
+<p>6：Title的状态图。Title具有预定和非预定状态，在设计中，通过称为“reservations”的矢量来实现。</p> 
+<p><img width="552" height="403" src="image/用UML设计Java应用程序.html.umljav8.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav8.gif</p></p> 
+<p>7：Add Title的顺序图。本图中所涉及到的用户界面问题的详细情况已经超出了本文的讨论范围。</p> 
+<p><img width="524" height="204" src="image/用UML设计Java应用程序.html.umljav9.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav9.gif</p></p> 
+<p>协作图可以作为顺序图的替代，如图8所示：</p> 
+<p>图8：Add Title的协作图。本图中涉及到的用户界面问题的详细情况已经超出了本文讨论的范围</p> 
+<p>3．3 用户界面 设计（User-lnterface Design）<br /> 设计阶段的一个特定的活动是创建用户界面。</p> 
+<p>图书馆系统的用户界面基于用例，分为以下几部分，每一部分都在主窗体菜单上给出一个单独的菜单项。</p> 
+<p>Functions：实现系统基本功能的窗体，通过它可以实现借阅、归还和对图书的预定。</p> 
+<p>Information：查看系统信息的窗体，收集了借阅者和图书的信息。</p> 
+<p>Maintenance：维护系统的窗体，添加、修改和删除标题、借阅者和书目。</p> 
+<p>图9显示了一个User-Interface Package中类图的例子。其中包含了典型的AWT事件句柄。按钮（button）、标签（label）和编辑（edit）等的属性没有显示。</p> 
+<p>典型地，每一个窗体都给出了系统的一个服务，并且映射一个最初的用例（尽管并非所有的用户界面都必须从用例中映射）。创建成功的用户界面已经超出了本文所讨论的范围。在此邀请读者来考虑用symantec visual cafe 环境开发的本应用程序的UI代码（已经放在网上）。</p> 
+<p> </p> 
+<p>图9：功能类图模型。功能菜单中的用户界面类一般都有1对1的关联关系，表示需要建立关联的窗口类，或者需要访问关联的商业对象类。 <img width="710" height="477" src="image/用UML设计Java应用程序.html.umljav11.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav11.gif</p></p> 
+<p>4．实现（Implementation）</p> 
+<p>在构造或称实现阶段进行程序编写。该应用程序要求能运行在几个不同的处理器和不同的操作系统上，因此选择Java来实现系统。Java可以轻松地将逻辑类映射为代码组件，因为在类和Java代码文件之间有1对1的映射。</p> 
+<p>图10：组件图显示了依赖性。源代码组件实现了域类，他们之间的关联显示为双向依赖性 <img width="522" height="209" src="image/用UML设计Java应用程序.html.umljav12.gif" /><p class="origImg">http://www.uml.org.cn/sjms/images/umljav12.gif</p></p> 
+<p>图10显示，设计模型的组件视图简单地将逻辑视图中的类映射为组件视图中的组件。每个逻辑视图包含了一个指向逻辑视图中类的连接，因此可以很容易地在不同的视图之间导航（即便象本例只是简单地使用了文件名）。由于依赖性可以从逻辑视图的类图中得到，因此组件图中没有显示组件之间的依赖性。</p> 
+<p>编写代码时，从下面的设计模型的图中取出规范说明：</p> 
+<p>1．类规范：每一个类的规范详细地显示了必要的属性和操作。</p> 
+<p>2．类图：类图由类构成，显示了类的结构以及类之间的关系。</p> 
+<p>3．状态图：类的状态图显示了类可能具有的状态以及需要处理的状态转移（以及触发转移的操作）。</p> 
+<p>4．动态图（顺序图、协作图和活动图）：涉及到类的对象，显示了类中的特定方法如何实现，或对象之间如何使用其它类的对象进行交互。</p> 
+<p>5．用例图和规范：当开发者需要了解更多的关于系统如何被使用的信息时（当开发者感到他或她已经迷失在一片细节中），他们显示了系统被使用的结果。</p> 
+<p>很自然，设计中的某些缺陷可以在编码阶段发现。可能需要一些新的操作或修改某些操作，这意味着开发者必须改变设计模型。这在所有的工程中都会发生。重要的是将设计模型和代码同步，以便使模型能够成为系统的最终文档。</p> 
+<p>这里给出了loan 类和部分titleframe类的Java代码。整个应用程序的Java代码可以从网上查到。当学习这些代码时，注意结合UML模型，考虑UML结构是如何被转变为代码的。注意以下几点：</p> 
+<p>1．Java包规范是与类所属的逻辑视图或组件视图中相应的包等值的代码。</p> 
+<p>2．私有属性对应于模型中指定的属性；并且，很自然Java 方法对应于模型中的操作。</p> 
+<p>3．ObjId类（对象标识符）被调用来实现关联。也就是说，关联通常和类一起保存（因为ObjId类是持续的）。</p> 
+<p>程序清单1的代码示例来自于loan类，loan类是一个Business-Object类，用来存放借阅信息。由于该类主要是信息的存放处，因此程序的实现是直接的，代码也简单。大多数的功能继承了Database 包中的Persistent类。该类的唯一属性是对象标识符，将item和borrowerinformation类关联起来。并且这些关联属性也在Write（）和Read（）操作中被保存。</p> 
+<p>试着在Add Title顺序图（图7）上下文中检验一下程序清单2中显示的Addbutton_Clicked（）操作。结合顺序图阅读代码，可以看出：它就是另一个对顺序图所表达的协作关系的更为详细的描述。</p> 
+<p>所有设计模型中的顺序图的编码都包含在源代码当中（操作名和类名显示在顺序图中）</p> 
+<p>5．测试和部署(Test and Deployment)<br /> 编码结束后，UML的使用还没有停止。例如，可以检验用例能否在已完成的应用程序中得到很好的支持。对于系统的部署来说，利用模型和本文可以做一份得心应手的文档。</p> 
+<p>6．总结<br /> 本学习案例的不同部分由一组人分别来设计完成。他们以做实际工程的方式努力完成该工作。尽管不同的阶段和活动似乎是独立的，而且以严格的顺序来管理，但在实际工作中仍然有很多反复。设计中的经验和教训反馈到分析模型，实现阶段所发现的新情况在设计模型中更改或更新。这就是建立面向对象系统的一般方法。</p> 
+<p>本文摘录自UML Toolkit，New York：Wiley &amp; Sons，1998. Hans-Erik Erikkson是一个有名的C++和OO技术方面的作者。Magnus Penker是Astrakan培训副主席，Astrankan是一个瑞典专攻OO建模和设计的公司。</p> 
+<p>原文链接：http://www.umlchina.com/Indepth/DesignJava.htm<br /> 模型及源码：<a href="http://www.umlchina.com/zippdf/libraryjava.zip">http://www.umlchina.com/zippdf/libraryjava.zip</a>&nbsp;&nbsp; （都已经失效hxzon）</p> 
+<p>附：主要术语中英文对照</p> 
+<p>actor：角se</p> 
+<p>use case：用例</p> 
+<p>domain：域</p> 
+<p>domain analysis：域分析</p> 
+<p>specification：规范文档</p> 
+<p>sequence diagram：顺序图</p> 
+<p>collaboration diagram：协作图</p> 
+<p>component diagram：组件图</p> 
+<p>state diagram：状态图</p> 
+<p>dependency：依赖性</p> 
+<p>attribute：属性</p> 
+<p>method：方法</p> 
+<p>operation：操作</p> 
+<p>association：关联</p> 
+<p>multiplicity：重数</p> 
+<p>class：类</p> 
+<p>object：对象</p> 
+<p>package：包</p> 
+<p>implementation：实现</p> 
+<p>deployment：部署</p> 
+<p> </p> 
+<p>附：源代码 <br /> Listing 1. Loan class. Loan is a Business-object class used for storing information about a loan. Most of the functionality is inherited from the Persistent class in the Database Package.</p> 
+<p> </p> 
+<p>// Loan.java: represents a loan. The loan refer to one</p> 
+<p>// title and one borrower.</p> 
+<p>//</p> 
+<p> </p> 
+<p>Package bo;</p> 
+<p>import util.ObjId;</p> 
+<p>import db.*;</p> 
+<p>import java.io.*;</p> 
+<p>import java.util.*;</p> 
+<p> </p> 
+<p>public class Loan extends Persistent</p> 
+<p>{</p> 
+<p>private ObjId item;</p> 
+<p>private ObjId borrower;</p> 
+<p>public Loan()</p> 
+<p>{</p> 
+<p>}</p> 
+<p>public Loan(ObjId it, ObjId b)</p> 
+<p>{</p> 
+<p>item = it;</p> 
+<p>borrower = b;</p> 
+<p>}</p> 
+<p>public BorrowerInformation getBorrower()</p> 
+<p>{</p> 
+<p>BorrowerInformation ret =</p> 
+<p>(BorrowerInformation) Persistent.getObject(borrower);</p> 
+<p>return ret;</p> 
+<p>}</p> 
+<p>public String getTitleName()</p> 
+<p>{</p> 
+<p>Item it = (Item) Persistent.getObject(item);</p> 
+<p>return it.getTitleName();</p> 
+<p>}</p> 
+<p>public Item getItem()</p> 
+<p>{</p> 
+<p>Item it =</p> 
+<p>(Item) Persistent.getObject(item);</p> 
+<p>return it;</p> 
+<p>}</p> 
+<p>public int getItemId()</p> 
+<p>{</p> 
+<p>Item it = (Item) Persistent.getObject(item);</p> 
+<p>return it.getId();</p> 
+<p>}</p> 
+<p>public void write(RandomAccessFile out)</p> 
+<p>throws IOException</p> 
+<p>{</p> 
+<p>item.write(out);</p> 
+<p>borrower.write(out);</p> 
+<p> </p> 
+<p>}</p> 
+<p>public void read(RandomAccessFile in)</p> 
+<p>throws IOException</p> 
+<p>{</p> 
+<p>item = new ObjId();</p> 
+<p>item.read(in);</p> 
+<p>borrower = new ObjId();</p> 
+<p>borrower.read(in);</p> 
+<p>}</p> 
+<p>}</p> 
+<p> </p> 
+<p> </p> 
+<p>Listing 2. TitleFrame Class. This is another, more detailed description of the collaboration described by the diagram in Figure 7.</p> 
+<p> </p> 
+<p>// TitleFrame.java</p> 
+<p>//</p> 
+<p> </p> 
+<p>Package ui;</p> 
+<p> </p> 
+<p>import bo.*;</p> 
+<p>import util.*;</p> 
+<p> </p> 
+<p>import java.awt.*;</p> 
+<p> </p> 
+<p>public class TitleFrame extends Frame {</p> 
+<p>private Title current;</p> 
+<p> </p> 
+<p>void addButton_Clicked(Event event) {</p> 
+<p>if (Title.findOnName(titleField.getText()) != null)</p> 
+<p>{</p> 
+<p>new MessageBox(</p> 
+<p>this,&quot;A Title with that name already exists!&quot;);</p> 
+<p>return;</p> 
+<p>}</p> 
+<p>if (Title.findOnISBN(isbnField.getText()) != null)</p> 
+<p>{</p> 
+<p>new MessageBox(</p> 
+<p>this,&quot;A title with the</p> 
+<p>same isbn/nr field already exists!&quot;);</p> 
+<p>return;</p> 
+<p>}</p> 
+<p>int type = 0;</p> 
+<p>if (bookButton.getState() == true)</p> 
+<p>type = Title.TYPE_BOOK;</p> 
+<p>else if (magazineButton.getState() == true)</p> 
+<p>type = Title.TYPE_MAGAZINE;</p> 
+<p>else</p> 
+<p>{</p> 
+<p>new MessageBox(this,&quot;Please give type of title!&quot;);</p> 
+<p>return;</p> 
+<p>}</p> 
+<p>current =</p> 
+<p>new Title(</p> 
+<p>titleField.getText(),</p> 
+<p>authorField.getText(),</p> 
+<p>isbnField.getText(),</p> 
+<p>type);</p> 
+<p>int itemno;</p> 
+<p>if (itemsField.getText().equals(&quot;&quot;))</p> 
+<p>itemno = 0;</p> 
+<p>else</p> 
+<p>itemno = Integer.valueOf(</p> 
+<p>itemsField.getText()).intValue();</p> 
+<p>if (itemno &gt; 25)</p> 
+<p>{</p> 
+<p>new MessageBox(this, &quot;Maximum number of items is 25!&quot;);</p> 
+<p>return;</p> 
+<p>}</p> 
+<p>for (int i = 0; i &lt;\&lt;&gt; itemno; i++)</p> 
+<p>{</p> 
+<p>Item it = new Item(current.getObjId(),i+1);</p> 
+<p>it.store();</p> 
+<p>current.addItem(it.getObjId());</p> 
+<p>}</p> 
+<p>current.store();</p> 
+<p>titleField.setText(&quot;&quot;);</p> 
+<p>authorField.setText(&quot;&quot;);</p> 
+<p>isbnField.setText(&quot;&quot;);</p> 
+<p>itemsField.setText(&quot;&quot;);</p> 
+<p>bookButton.setState(false);</p> 
+<p>magazineButton.setState(false);</p> 
+<p> </p> 
+<p>}</p> 
+<p> </p> 
+<p>void cancelButton_Clicked(Event event) {</p> 
+<p>dispose();</p> 
+<p>}</p> 
+<p> </p> 
+<p>public TitleFrame() {</p> 
+<p> </p> 
+<p>//{{INIT_CONTROLS</p> 
+<p>setLayout(null);</p> 
+<p>addNotify();</p> 
+<p>resize(</p> 
+<p>insets().left + insets().right + 430,insets().top +</p> 
+<p>insets().bottom + 229);</p> 
+<p>titleLabel = new java.awt.Label(&quot;Title Name&quot;);</p> 
+<p>titleLabel.reshape(</p> 
+<p>insets().left + 12,insets().top + 24,84,24);</p> 
+<p>add(titleLabel);</p> 
+<p>titleField = new java.awt.TextField();</p> 
+<p>titleField.reshape(</p> 
+<p>insets().left + 132,insets().top + 24,183,24);</p> 
+<p>add(titleField);</p> 
+<p>authorField = new java.awt.TextField();</p> 
+<p>authorField.reshape(</p> 
+<p>insets().left + 132,insets().top + 60,183,24);</p> 
+<p>add(authorField);</p> 
+<p>isbnField = new java.awt.TextField();</p> 
+<p>isbnField.reshape(</p> 
+<p>insets().left + 132,insets().top + 96,183,24);</p> 
+<p>add(isbnField);</p> 
+<p>label1 = new java.awt.Label(&quot;ISBN / Nr&quot;);</p> 
+<p>label1.reshape(</p> 
+<p>insets().left + 12,insets().top + 96,84,24);</p> 
+<p>add(label1);</p> 
+<p>label2 = new java.awt.Label(&quot;Author&quot;);</p> 
+<p>label2.reshape(</p> 
+<p>insets().left + 12,insets().top + 60,84,24);</p> 
+<p>add(label2);</p> 
+<p>addButton = new java.awt.Button(&quot;Insert&quot;);</p> 
+<p>addButton.reshape(</p> 
+<p>insets().left + 348,insets().top + 24,60,24);</p> 
+<p>add(addButton);</p> 
+<p>cancelButton = new java.awt.Button(&quot;Close&quot;);</p> 
+<p>cancelButton.reshape(</p> 
+<p>insets().left + 348,insets().top + 192,60,24);</p> 
+<p>add(cancelButton);</p> 
+<p>label3 = new java.awt.Label(&quot;Items available&quot;);</p> 
+<p>label3.reshape(</p> 
+<p>insets().left + 12,insets().top + 192,108,24);</p> 
+<p>add(label3);</p> 
+<p>itemsField = new java.awt.TextField();</p> 
+<p>itemsField.reshape(</p> 
+<p>insets().left + 132,insets().top + 192,36,23);</p> 
+<p>add(itemsField);</p> 
+<p>Group1 = new CheckboxGroup();</p> 
+<p>bookButton =</p> 
+<p>new java.awt.Checkbox(&quot;Book&quot;, Group1, false);</p> 
+<p>bookButton.reshape(</p> 
+<p>insets().left + 132,insets().top + 132,108,24);</p> 
+<p>add(bookButton);</p> 
+<p>magazineButton =</p> 
+<p>new java.awt.Checkbox(&quot;Magazine&quot;, Group1, false);</p> 
+<p>magazineButton.reshape(</p> 
+<p>insets().left + 132,insets().top + 156,108,24);</p> 
+<p>add(magazineButton);</p> 
+<p>label4 = new java.awt.Label(&quot;Type&quot;);</p> 
+<p>label4.reshape(</p> 
+<p>insets().left + 12,insets().top + 132,108,24);</p> 
+<p>add(label4);</p> 
+<p>setTitle(&quot;Insert Title Window&quot;);</p> 
+<p>//}}</p> 
+<p>bookButton.setState(true);</p> 
+<p>titleField.requestFocus();</p> 
+<p> </p> 
+<p>//{{INIT_MENUS</p> 
+<p>//}}</p> 
+<p>}</p> 
+<p> </p> 
+<p>public TitleFrame(String title) {</p> 
+<p>this();</p> 
+<p>setTitle(title);</p> 
+<p>}</p> 
+<p> </p> 
+<p>public synchronized void show() {</p> 
+<p>move(50, 50);</p> 
+<p>super.show();</p> 
+<p>}</p> 
+<p> </p> 
+<p>public boolean handleEvent(Event event) {</p> 
+<p>if (event.id == Event.WINDOW_DESTROY) {</p> 
+<p>dispose();</p> 
+<p>return true;</p> 
+<p>}</p> 
+<p>if (event.target == addButton &amp;&amp; event.id ==</p> 
+<p>Event.ACTION_EVENT) {</p> 
+<p>addButton_Clicked(event);</p> 
+<p>return true;</p> 
+<p>}</p> 
+<p>if (event.target == cancelButton &amp;&amp; event.id ==</p> 
+<p>Event.ACTION_EVENT) {</p> 
+<p>cancelButton_Clicked(event);</p> 
+<p>return true;</p> 
+<p>}</p> 
+<p>return super.handleEvent(event);</p> 
+<p>}</p> 
+<p> </p> 
+<p>//{{DECLARE_CONTROLS</p> 
+<p>java.awt.Label titleLabel;</p> 
+<p>java.awt.TextField titleField;</p> 
+<p>java.awt.TextField authorField;</p> 
+<p>java.awt.TextField isbnField;</p> 
+<p>java.awt.Label label1;</p> 
+<p>java.awt.Label label2;</p> 
+<p>java.awt.Button addButton;</p> 
+<p>java.awt.Button cancelButton;</p> 
+<p>java.awt.Label label3;</p> 
+<p>java.awt.TextField itemsField;</p> 
+<p>java.awt.Checkbox bookButton;</p> 
+<p>CheckboxGroup Group1;</p> 
+<p>java.awt.Checkbox magazineButton;</p> 
+<p>java.awt.Label label4;</p> 
+<p>//}}</p> 
+<p> </p> 
+<p>//{{DECLARE_MENUS</p> 
+<p>//}}</p> 
+<p>}</p></div></body></html>

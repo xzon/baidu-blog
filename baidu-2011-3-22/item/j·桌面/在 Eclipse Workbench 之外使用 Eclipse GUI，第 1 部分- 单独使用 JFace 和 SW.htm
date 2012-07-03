@@ -1,0 +1,472 @@
+<html><head><title><div class="tit">
+  在 Eclipse Workbench 之外使用 Eclipse GUI，第 1 部分: 单独使用 JFace 和 SWT
+</div></title></head><body><div id='tit'>在 Eclipse Workbench 之外使用 Eclipse GUI，第 1 部分: 单独使用 JFace 和 SWT</div><div id='cate'>j&middot;桌面</div><div id='date'>2008年03月30日 星期日 01:42 P.M.</div><div id='page'>152</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3d8e6d609b316c40ebf8f8d6.html'>http://hi.baidu.com/hxzon/blog/item/3d8e6d609b316c40ebf8f8d6.html</a><div id='cnt'><h1><span style="color: #999999">在 Eclipse Workbench 之外使用 Eclipse GUI，第 1 部分: </span>单独使用 JFace 和 SWT</h1> 
+<p>构建一个简单的文件资源管理器应用程序</p> 
+<p>级别： 初级</p> 
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/#author"><font color="#5c81a7">Adrian Van Emmenis</font></a> (<a cmimpressionsent="1" href="mailto:van@vanemmenis.com?subject=单独使用 JFace 和 SWT&amp;cc="><font color="#5c81a7">van@vanemmenis.com</font></a>), 独立顾问</p> 
+<p>2003 年 4 月 09 日</p> 
+<blockquote>
+ 尽管人们通常在 Eclipse Workbench 内部使用 Eclipse GUI 组件（JFace 和 SWT），但它们本身被设计为自包含的框架。即使在 Eclipse Workbench 之外，JFace 的可插入式设计仍允许您用极少的代码开发复杂的 GUI。在由三篇文章组成的这一系列中，A. O. Van Emmenis 将演示如何构建这样的独立应用程序。在第 1 部分中，他从“Hello, World”示例开始，然后逐步将其构建成一个（非常）简单的文件资源管理器。他介绍了一些主要的 JFace 类（和几个 SWT 窗口构件），同时还介绍了一些技巧、窍门和设计问题。
+</blockquote> 
+<p><a name="N10052"><span class="atitle">简介</span></a></p> 
+<p>开放源码 Eclipse 项目是 Java 领域中最有趣的新近开发项目之一。Eclipse 把自己描述成“一种通用的工具平台 — 开放的可扩展 IDE，可用于任何用途且没有特殊之处”。关于 Eclipse 的介绍，请参阅 <em>developerWorks</em>文章“ <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/java/library/os-ecov/?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><font color="#5c81a7">Getting started with the Eclipse Platform</font></a>”。</p> 
+<p>它的两个主要组件是名为 SWT 的图形库和与其匹配的名为 JFace 的实用程序框架。在本文中，我将集中讨论这些组件。Eclipse 网站（请参阅本文后面的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/#resources"><font color="#5c81a7">参考资料</font></a>）中的 Eclipse 技术概述（Eclipse Technical Overview）对这两个组件的描述如下：</p> 
+<ul> 
+ <li><strong>SWT</strong>是一个窗口构件集和图形库，它集成于本机窗口系统但有独立于 OS 的 API。</li> 
+ <li><strong>JFace</strong>是用 SWT 实现的 UI 工具箱，它简化了常见的 UI 编程任务。JFace 在其 API 和实现方面都是独立于窗口系统的，它旨在使用 SWT 而不隐藏它。</li> 
+</ul> 
+<p>图 1 演示了 Eclipse、JFace 和 SWT 之间的关系。</p> 
+<p><br /> <a name="N1007D"><strong>图 1. Eclipse Workbench、JFace 和 SWT</strong></a><br /> <img alt="图 1. Eclipse Workbench,JFace 和 SWT" width="319" height="141" src="image/在 Eclipse Workbench .jface_and_swt.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/jface_and_swt.gif</p></p> 
+<p>已发表的关于 JFace 和 SWT 的大多数文章（到目前为止）就如何在较大型 Eclipse 框架的环境中使用它们进行了讨论。在本文中，我打算采取另一种方法。我将向您演示如何在独立的 Java 程序中使用 JFace 和 SWT。</p> 
+<p>我选择的示例是文件资源管理器。我们实际上不会实现很多真正的功能，但我们将使用足够多的 GUI，以使您了解如何构建一个功能完整的程序。</p> 
+<p><a name="N10092"><span class="smalltitle"><strong><font size="3">安装说明</font></strong></span></a></p> 
+<p>您可以下载本文中 <a cmimpressionsent="1" href="http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/os-ecgui1/examples.zip"><font color="#5c81a7">示例的源代码</font></a>，但要把我的系统设置考虑在内：</p> 
+<ul> 
+ <li>Windows 2000</li> 
+ <li>Eclipse，稳定构建 M3（2002 年 11 月 15 日）</li> 
+ <li>Eclipse 安装在 C:\eclipse-2.1.0 中</li> 
+</ul> 
+<p> </p> 
+<p>随后的所有调整名称和文件分隔符的工作留给您完成，以便程序能在您的系统上正确地运行。</p> 
+<p><a name="N100B2"><span class="smalltitle"><strong><font size="3">构建／运行指导</font></strong></span></a></p> 
+<p>您需要将以下 jar 文件置于类路径（class path）上： <br /> <code><br /> <font face="NSimsun">C:\eclipse-2.1.0\plugins\org.eclipse.jface_2.1.0\jface.jar <br /> C:\eclipse-2.1.0\plugins\org.eclipse.runtime_2.1.0\runtime.jar <br /> C:\eclipse-2.1.0\plugins\org.eclipse.swt.win32_2.1.0\ws\win32\swt.jar <br /> C:\eclipse-2.1.0\plugins\org.eclipse.ui.workbench_2.1.0\workbench.jar <br /> C:\eclipse-2.1.0\plugins\org.eclipse.core.runtime_2.1.0\runtime.jar <br /> </font></code></p> 
+<p>为确保 Java VM 获得您在运行时使用的 GUI 的正确共享库，请结合以下参数运行它：</p> 
+<p><code><font face="NSimsun">-Djava.library.path=C:\eclipse-2.1.0\plugins\org.eclipse.swt.win32_2.1.0\os\win32\x86\</font></code></p> 
+<p>最后，请在包含 <strong>icons</strong>文件夹的文件夹中运行程序，这样示例就可以找到包含图标的 gif 文件。</p> 
+<p><a name="N100DD"><span class="atitle">Hello, World</span></a></p> 
+<p>让我们从我能想到的最简单的 JFace 程序开始，逐步扩充它，将其构建为最常见的“Hello, World”程序。</p> 
+<p><a name="listing_1"><strong>清单 1. Hello（版本 1）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import org.eclipse.jface.window.*;
+import org.eclipse.swt.widgets.*;
+public class Hello
+{
+  public static void main(String[] args)
+  {
+    ApplicationWindow w = new ApplicationWindow(null);
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>这里我们创建了一个名为 <code><font face="NSimsun">Hello</font></code> 的类，其中 main 方法仅仅创建了一个 ApplicationWindow，然后打开它。 <code><font face="NSimsun">setBlockOnOpen()</font></code> 使 <code><font face="NSimsun">open()</font></code> 阻塞，直到窗口关闭为止。</p> 
+<p>在窗口已关闭之后，我们获取当前的 Display 并除去它。这会释放在操作系统中用到的资源（以后我将讨论为什么这样做总是良好的习惯做法）。</p> 
+<p>当您运行该程序时，您会看到类似图 2 的窗口：</p> 
+<p><br /> <a name="N10108"><strong>图 2. Hello（版本 2）</strong></a><br /> <img alt="图 2. Hello(版本 2)" width="112" height="97" src="image/在 Eclipse Workbench .hello_in_action_1.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/hello_in_action_1.gif</p></p> 
+<p>就是如此。它甚至没有说“Hello, World”。在修正它之前，让我们把话题转到 JFace 窗口。</p> 
+<p><a name="N1011A"><span class="atitle">JFace 应用程序窗口</span></a></p> 
+<p>窗口是顶级窗口（换句话说，由 OS 窗口管理器管理的窗口）的 <code><font face="NSimsun">JFace</font></code> 类。JFace 窗口实际上不是顶级窗口的 GUI 对象（SWT 已经提供了一个，名为 <em>Shell</em>）。相反，JFace 窗口是助手对象，它知道对应的 SWT Shell 对象，并提供代码来帮助创建／编辑它，以及侦听它的事件等。图 3 演示了您的代码、JFace 和 SWT 之间的关系。</p> 
+<p><a name="Figure 3"><strong>图 3. 您的代码、JFace Window 和 SWT Shell 之间的关系</strong> </a><br /> <img alt="您的代码,JFace Window 和 SWT Shell 之间的关系" width="382" height="163" src="image/在 Eclipse Workbench .jface_and_swt_shell.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/jface_and_swt_shell.gif</p></p> 
+<p>事实上，这一模型是理解 JFace 如何工作的关键。它并不真的是 SWT 之上的层，而且它没有试图向您隐藏 SWT。相反，JFace 意识到有几种使用 SWT 的常用模式，而且它提供了一些实用程序代码，以帮助您更方便地对这些模式编程。</p> 
+<p>为了做到这一点，JFace 提供可使用的对象，或提供可将其子类化的类（有时它两者都提供）。</p> 
+<p>尽管我们仅仅直接使用了一个 <code><font face="NSimsun">ApplicationWindow</font></code> ，但实际上它们被设计为可以子类化也可以加入特定行为。它们有现成的菜单栏、工具栏、供您插入特定于应用程序的内容的区域和状态栏 — 全都是可选的。图 4 用 JFace File Explorer 示例本身演示了这些区域。</p> 
+<p><br /> <a name="N1014B"><strong>图 4. 应用程序窗口的各个部分</strong></a><br /> <img alt="图 4. 应用程序窗口的各个部分" width="600" height="330" src="image/在 Eclipse Workbench .parts_of_app_window.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/parts_of_app_window.gif</p></p> 
+<p>让我们改进 Hello，使它成为 <code><font face="NSimsun">ApplicationWindow</font></code> 的子类。更改的行在清单 2 中突出显示。</p> 
+<p><a name="code2"><strong>清单 2. Hello（版本 2）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import org.eclipse.jface.window.*;
+import org.eclipse.swt.widgets.*;
+public class Hello extends ApplicationWindow
+{
+  public Hello()
+  {
+    super(null);
+  }
+  public static void main(String[] args)
+  {
+    Hello w = new Hello();
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>您编写的构造函数必须调用超类构造函数（如往常一样）。让我们暂时不考虑该构造函数的参数。</p> 
+<p>运行该程序的结果与前一个程序没有任何不同。缺省情况下，程序不会为我们显示任何装饰性的东西。</p> 
+<p>我们的程序要创建一个带有文本“Hello, World”的按钮。这个按钮要显示在内容（Contents）区域。要做到这一点，我们必须实现 <code><font face="NSimsun">Control createContents(Composite parent)</font></code> 方法。</p> 
+<p><code><font face="NSimsun">ApplicationWindow</font></code> 将在所有其它窗口构件已经创建之后但窗口在屏幕上显示之前调用该方法。</p> 
+<p>参数 parent 是代表内容区域的复合窗口构件。</p> 
+<p>这里的想法是您创建一个复合窗口构件，将其添加到 parent，然后添加您的窗口构件，并返回您创建的复合窗口构件。图 5 演示了实例层次结构。</p> 
+<p><br /> <a name="N10188"><strong>图 5. Application Window 的实例层次结构</strong></a><br /> <img alt="图 5. Application Window 的实例层次结构" width="478" height="281" src="image/在 Eclipse Workbench .instance_hierarchy_of_app_w.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/instance_hierarchy_of_app_w.gif</p></p> 
+<p>我们的内容目前非常简单：parent 下的单一按钮，如清单 3 所示。</p> 
+<p><a name="code3"><strong>清单 3. Hello（版本 3）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.widgets.*;
+public class Hello extends ApplicationWindow
+{
+  public Hello()
+  {
+    super(null);
+  }
+  protected Control createContents(Composite parent)
+  {
+    Button b = new Button(parent, SWT.PUSH);
+    b.setText(&quot;Hello World&quot;);
+    return b;
+  }
+  public static void main(String[] args)
+  {
+    Hello w = new Hello();
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>结果是图 6。</p> 
+<p><br /> <a name="N101AA"><strong>图 6. Hello（版本 3）</strong></a><br /> <img alt="图 6. Hello(版本 3)" width="112" height="53" src="image/在 Eclipse Workbench .hello_in_action_3.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/hello_in_action_3.gif</p></p> 
+<p>这就是我们要实现的。我们使用 JFace 创建的第一个“Hello, World”程序：包含单一按钮的窗口。</p> 
+<p>现在让我们继续讨论文件资源管理器这一话题。首先，我们将创建显示文件夹层次结构的树查看器。</p> 
+<p><a name="N101BF"><span class="atitle">使用 TreeViewer</span></a></p> 
+<p>和 <code><font face="NSimsun">ApplicationWindow</font></code> 一样， <code><font face="NSimsun">TreeViewer</font></code> 不是真正的 SWT 窗口构件，它也没有打算向您隐藏 SWT 窗口构件。它使用 SWT 树窗口构件来显示各项，并且还使用许多其它对象来协助它。</p> 
+<p>不象 <code><font face="NSimsun">ApplicationWindow</font></code> ，JFace <code><font face="NSimsun">TreeViewer</font></code> 并不旨在被子类化。</p> 
+<p>这里的想法是 <code><font face="NSimsun">TreeViewer</font></code> 知道要显示的树的根元素。当然，您必须告诉它那个对象是什么： <code><font face="NSimsun">TreeViewer: void setInput(Object rootElement)</font></code></p> 
+<p>为了开始显示，树查看器向根元素请求子元素并显示它们。然后，当用户展开其中的一个子元素时，树查看器向该节点请求子元素，以此类推。实际上，并不完全是那样。 <code><font face="NSimsun">TreeViewer</font></code> 并不直接使用域对象 — 而是使用另一个名为 <code><font face="NSimsun">ContentProvider</font></code> 的对象，这个对象才使用域对象，如图 7 所示。</p> 
+<p><br /> <a name="N101F3"><strong>图 7. TreeViewer、ContentProvider 和域对象</strong></a><br /> <img alt="图 7. TreeViewer,ContentProvider 和域对象" width="587" height="355" src="image/在 Eclipse Workbench .tree_and_domain.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/tree_and_domain.gif</p></p> 
+<p>当然，您必须实现 <code><font face="NSimsun">ContentProvider</font></code> 。对于 <code><font face="NSimsun">TreeViewer</font></code> ，您的类必须实现 <code><font face="NSimsun">ITreeContentProvider</font></code> 接口。</p> 
+<p><a name="N10211"><span class="atitle">实现 TreeContentProvider</span></a></p> 
+<p>有六个方法需要实现。实际上我们不用做全部的工作，只需实现其中的三个就行，因此，本着“即时满意（instant gratification）”的精神，让我们暂时只考虑那几个方法吧。</p> 
+<p>下面的代码演示了树查看器如何向内容提供程序请求正好位于根元素下的顶级元素：</p> 
+<p><code><font face="NSimsun">ITreeContentProvider: public Object[] getElements(Object element)</font></code></p> 
+<p>随后，每当它需要特定元素的子元素时，它就使用以下方法：</p> 
+<p><code><font face="NSimsun">ITreeContentProvider: public Object[] getChildren(Object element)</font></code></p> 
+<p>为了知道某个节点是否有子元素（有的话会将小加号放到它旁边），树查看器只需请求该节点的子元素，然后会询问有多少子元素。万一您的代码需要更快捷的方法来做到这一点，则您必须实现另一个方法：</p> 
+<p><code><font face="NSimsun">public boolean hasChildren(Object element)</font></code></p> 
+<p>正如您所见，内容提供程序不持有对任何域对象的引用。持有对这些域对象的引用的是树查看器本身，它把这些域对象作为参数传递给内容提供程序中的各个方法。</p> 
+<p>在我们的例子中，节点是 <em>File</em> 对象。为获取子元素，我们使用 <code><font face="NSimsun">listFiles()</font></code> 。我们必须记得要检查 <code><font face="NSimsun">listFiles()</font></code> 是否返回 null，然后使其变成空数组。</p> 
+<p>为了获取顶级元素（正好位于根元素之下），我们只需重用 <code><font face="NSimsun">getChildren()</font></code> 方法。</p> 
+<p><code><font face="NSimsun">getParent()</font></code> 方法被用来实现 <code><font face="NSimsun">reveal(Object element)</font></code> 方法，后者使树查看器滚动其 SWT 树窗口构件，以便显示树中特定的节点。问题是：如果此刻实际上并没有显示那个节点，那么应该在哪里显示它？JFace 会寻找其父元素，以及父元素的父元素等等，直到它达到已显示的节点，然后它再次回头寻找，直到目标节点已显示。</p> 
+<p><code><font face="NSimsun">hasChildren()</font></code> 方法只是做了显而易见（未优化）的事情，最后我们有了清单 4 中所示的代码。</p> 
+<p><a name="code4"><strong>清单 4. FileTreeContentProvider（版本 1）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import java.io.*;
+import java.util.*;
+import org.eclipse.jface.viewers.*;
+public class FileTreeContentProvider implements ITreeContentProvider
+{
+  public Object[] getChildren(Object element)
+  {
+    Object[] kids = ((File) element).listFiles();
+    return kids == null ? new Object[0] : kids;
+  }
+  public Object[] getElements(Object element)
+  {
+    return getChildren(element);
+  }
+  public boolean hasChildren(Object element)
+  {
+    return getChildren(element).length &gt; 0;
+  }
+  public Object getParent(Object element)
+  {
+    return ((File)element).getParent();
+  }
+  public void dispose()
+  {
+  }
+  public void inputChanged(Viewer viewer, Object old_input, Object new_input)
+  {
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N1026D"><span class="atitle">实现顶级 Explorer 类</span></a></p> 
+<p>我们将采用 Hello, World 程序，更改其名称，然后用 <code><font face="NSimsun">createContents()</font></code> 方法创建 <code><font face="NSimsun">TreeViewer</font></code> （而不是创建一个按钮），将其内容提供程序设置为我们的文件树内容提供程序，然后将输入设置到某个文件夹。在这个例子中，我选择的文件夹是 C: 驱动器中的顶级文件夹。</p> 
+<p>注：需要从 <code><font face="NSimsun">createContents()</font></code> 返回 SWT 窗口构件。正如前面提到的，JFace Tree Viewer 不是 SWT 窗口构件，因此我们不能将它返回。我们需要从树查看器获取真正的窗口构件。我们通过使用 <code><font face="NSimsun">getTree()</font></code> 做到这一点。</p> 
+<p>我们的主窗口类现在看起来与下面相似：</p> 
+<p><a name="code_explorer_1"><strong>清单 5. Explorer（版本 1）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.widgets.*;
+public class Explorer extends ApplicationWindow
+{
+  public Explorer()
+  {
+    super(null);
+  }
+  protected Control createContents(Composite parent)
+  {
+    TreeViewer tv = new TreeViewer(parent);
+    tv.setContentProvider(new FileTreeContentProvider());
+    tv.setInput(new File(&quot;C:\\&quot;));
+    return tv.getTree();
+  }
+  public static void main(String[] args)
+  {
+    Explorer w = new Explorer();
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>运行该程序，您将看到与图 8 相似的结果。</p> 
+<p><br /> <a name="N1029C"><strong>图 8. Explorer（版本 1）</strong></a><br /> <img alt="图 8. Explorer(版本 1)" width="328" height="373" src="image/在 Eclipse Workbench .explorer_1.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/explorer_1.gif</p></p> 
+<p>除了样板文件代码，我们只需向 Hello, World 程序添加 9 行代码就可做到这一点。</p> 
+<p>正如您可能猜想的那样，程序用 <em>File</em> 的 <code><font face="NSimsun">toString()</font></code> 方法来显示这些文件，这不是我们真正想要的。要改变这一点，我们需要提供一个标签提供程序。</p> 
+<p><a name="N102B8"><span class="atitle">实现标签提供程序</span></a></p> 
+<p>正如有一个内容提供程序对象可用来获取树节点的子元素一样，当需要实际显示这些节点时，树查看器有另一个助手对象：标签提供程序。和前面一样，我们需要设置它：</p> 
+<p><code><font face="NSimsun">public void setLabelProvider(IBaseLabelProvider labelProvider)</font></code></p> 
+<p>而且需要实现下面的方法以返回要为每个元素显示的文本：</p> 
+<p><code><font face="NSimsun">public String getText(Object element)</font></code></p> 
+<p>如果我们将标签提供程序添加到树查看器图中，就会得到图 9。</p> 
+<p><br /> <a name="N102D7"><strong>图 9. 显示内容提供程序和标签提供程序的树查看器</strong></a><br /> <img alt="图 9. 显示内容提供程序和标签提供程序的树查看器" width="586" height="266" src="image/在 Eclipse Workbench .tree_viewer_showing_label.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/tree_viewer_showing_label.gif</p></p> 
+<p>我们可以实现接口 <code><font face="NSimsun">ILabelProvider</font></code> ，但将缺省实现 <code><font face="NSimsun">LabelProvider</font></code> 子类化更容易（如果没有显式地设置标签提供程序，则使用的就是这个类）。</p> 
+<p>我们希望利用 <code><font face="NSimsun">getText()</font></code> 做的事是返回文件名最后的部分 — 相对文件名而非 <code><font face="NSimsun">toString()</font></code> 缺省使用的绝对文件名。图 6 演示了代码。</p> 
+<p><a name="code6"><strong>图 6. FileTreeLabelProvider（版本 1）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+public class FileTreeLabelProvider extends LabelProvider
+{
+  public String getText(Object element)
+  {
+    return ((File) element).getName();
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>而且我们必须记得使树查看器使用这个标签提供程序，如清单 7 所示。</p> 
+<p><a name="code2"><strong>清单 7. Explorer（版本 2）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.widgets.*;
+public class Explorer extends ApplicationWindow
+{
+  public Explorer()
+  {
+    super(null);
+  }
+  protected Control createContents(Composite parent)
+  {
+    TreeViewer tv = new TreeViewer(parent);
+    tv.setContentProvider(new FileTreeContentProvider());
+    tv.setLabelProvider(new FileTreeLabelProvider());
+    tv.setInput(new File(&quot;C:\\&quot;));
+    return tv.getTree();
+  }
+  public static void main(String[] args)
+  {
+    Explorer w = new Explorer();
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>这一次运行该程序时，我们会获得更清楚的视觉效果，如图 10 所示。</p> 
+<p><br /> <a name="N1031A"><strong>图 10. Explorer（版本 2）</strong></a><br /> <img alt="图 10. Explorer(版本 2)" width="298" height="373" src="image/在 Eclipse Workbench .explorer_2.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/explorer_2.gif</p></p> 
+<p>我们现在要做的是将树查看器移到左边，将一个表查看器放在右边，以显示在树查看器中已选中的文件夹中的文件列表。</p> 
+<p><a name="N1032C"><span class="atitle">使用表查看器</span></a></p> 
+<p>为了处理表，JFace 有一个 <code><font face="NSimsun">TableViewer</font></code> 。和 <code><font face="NSimsun">TreeViewer</font></code> 一样，它有输入（根对象）、内容提供程序和标签提供程序。它比树查看器简单，因为它不需要处理树。图 11 演示了内容提供程序和标签提供程序。</p> 
+<p><br /> <a name="N1033F"><strong>图 11. 显示内容提供程序和标签提供程序的表查看器</strong></a><br /> <img alt="图 11. 显示内容提供程序和标签提供程序的表查看器" width="586" height="266" src="image/在 Eclipse Workbench .table_viewer_showing_label.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/table_viewer_showing_label.gif</p></p> 
+<p>设置输入对象的方法与前面相同：</p> 
+<p><code><font face="NSimsun">TableViewer: void setInput(Object rootElement)</font></code></p> 
+<p><a name="N10358"><span class="atitle">实现文件表查看器内容提供程序</span></a></p> 
+<p>让我们考虑内容提供程序。这一次，根元素比树查看器根元素简单。表查看器仅仅期望根对象有许多子元素，因此要实现的唯一有趣方法是获取子元素的方法：</p> 
+<p><code><font face="NSimsun">public Object[] getElements(Object rootElement)</font></code></p> 
+<p>要实现的接口是 <code><font face="NSimsun">IStructuredContentProvider</font></code> 。</p> 
+<p>根对象是一个文件夹；其子元素是该文件夹包含的文件／文件夹。因此我们的文件表内容提供程序类与清单 8 类似。</p> 
+<p><a name="code8"><strong>清单 8. FileTableContentProvider（版本 1）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+public class FileTableContentProvider implements IStructuredContentProvider
+{
+  public Object[] getElements(Object element)
+  {
+    Object[] kids = null;
+    kids = ((File) element).listFiles();
+    return kids == null ? new Object[0] : kids;
+  }
+  public void dispose()
+  {
+  }
+  public void inputChanged(Viewer viewer, Object old_object, Object new_object)
+  {
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>因此我们现在有两个查看器：树查看器和表查看器。为了将它们相邻地安置在一起，我们创建了 SWT SashForm 窗口构件。该窗口构件用一个用户可以调节的边框分隔其子元素。然后，我们将树和表添加到框格表单（sash form）（图 12）。</p> 
+<p><br /> <a name="N10382"><strong>图 12. 包含树查看器和表查看器的框格表单</strong></a><br /> <img alt="图 12. 包含树查看器和表查看器的框格表" width="159" height="141" src="image/在 Eclipse Workbench .sash_form.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/sash_form.gif</p></p> 
+<p>接下来要做的是使表查看器查看用户在树查看器中选中的每个文件夹。要做到这一点，我们必须侦听事件。</p> 
+<p>&nbsp;&nbsp;&nbsp; tv.addSelectionChangedListener(new ISelectionChangedListener()<br /> &nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void selectionChanged(SelectionChangedEvent event)<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; IStructuredSelection selection =<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (IStructuredSelection) event.getSelection();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object selected_file = selection.getFirstElement();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tbv.setInput(selected_file);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; });<br /> &nbsp;&nbsp;&nbsp; return sash_form;<br /> }<br /> public static void main(String[] args)<br /> {<br /> &nbsp;&nbsp;&nbsp; Explorer w = new Explorer();<br /> &nbsp;&nbsp;&nbsp; w.setBlockOnOpen(true);<br /> &nbsp;&nbsp;&nbsp; w.open();<br /> &nbsp;&nbsp;&nbsp; Display.getCurrent().dispose();<br /> }<br /> }</p> 
+<p>如果运行该程序，就会得到类似图 13 的结果。</p> 
+<p><br /> <a name="N103CC"><strong>图 13. Explorer（版本 3）</strong></a><br /> <img alt="图 13. Explorer(版本 3)" width="460" height="346" src="image/在 Eclipse Workbench .explorer_3.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/explorer_3.gif</p></p> 
+<p>和树查看器一样，如果不显式地给表查看器设置标签提供程序，它就会使用缺省的标签提供程序。这就是这里发生的情况 — 如果您还记得的话，缺省行为是显示由元素的 <code><font face="NSimsun">toString()</font></code> 方法返回的字符串，它正好是绝对文件名。</p> 
+<p>让我们实现自己的表标签提供程序。</p> 
+<p><a name="N103E5"><span class="atitle">实现文件表标签提供程序</span></a></p> 
+<p>现在只需考虑一个方法：</p> 
+<p><code><font face="NSimsun">public String getColumnText(Object element, int column)</font></code></p> 
+<p>这里有两个参数：要获取其标签的元素和列索引（从 0 开始）。</p> 
+<p>该方法的实现相当简单 — 如果我们不考虑列索引参数的话，如清单 10 所示。</p> 
+<p><a name="code10"><strong>清单 10. FileTableLabelProvider（版本 1）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.swt.graphics.*;
+public class FileTableLabelProvider implements ITableLabelProvider
+{
+  public String getColumnText(Object obj, int i)
+  {
+    return ((File) obj).getName();
+  }
+  public void addListener(ILabelProviderListener ilabelproviderlistener)
+  {
+  }
+  public void dispose()
+  {
+  }
+  public boolean isLabelProperty(Object obj, String s)
+  {
+    return false;
+  }
+  public void removeListener(ILabelProviderListener ilabelproviderlistener)
+  {
+  }
+  public Image getColumnImage(Object arg0, int arg1)
+  {
+    return null;
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>要配置表使其包含一列且列首标签为“Name”，必须从表查看器抽取表窗口构件，将表的列这一窗口构件作为表的子元素来创建，并给它设置一些属性，如清单 11 中所示。</p> 
+<p><a name="code11"><strong>清单 11. Explorer（版本 4）</strong> </a> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.custom.*;
+import org.eclipse.swt.widgets.*;
+public class Explorer extends ApplicationWindow
+{
+  public Explorer()
+  {
+    super(null);
+  }
+  protected Control createContents(Composite parent)
+  {
+    SashForm sash_form = new SashForm(parent, SWT.HORIZONTAL | SWT.NULL);
+    TreeViewer tv = new TreeViewer(sash_form);
+    tv.setContentProvider(new FileTreeContentProvider());
+    tv.setLabelProvider(new FileTreeLabelProvider());
+    tv.setInput(new File(&quot;C:\\&quot;));
+    final TableViewer tbv = new TableViewer(sash_form, SWT.BORDER);
+    tbv.setContentProvider(new FileTableContentProvider());
+    tbv.setLabelProvider(new FileTableLabelProvider());
+    TableColumn column = new TableColumn(tbv.getTable(), SWT.LEFT);
+    column.setText(&quot;Name&quot;);
+    column.setWidth(200);
+    tbv.getTable().setHeaderVisible(true);
+    tv.addSelectionChangedListener(new ISelectionChangedListener()
+    {
+      public void selectionChanged(SelectionChangedEvent event)
+      {
+        IStructuredSelection selection =
+          (IStructuredSelection) event.getSelection();
+        Object selected_file = selection.getFirstElement();
+        tbv.setInput(selected_file);
+      }
+    });
+    return sash_form;
+  }
+  public static void main(String[] args)
+  {
+    Explorer w = new Explorer();
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+  }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>运行该程序，我们应得到类似图 14 的结果。</p> 
+<p><br /> <a name="N10419"><strong>图 14. Explorer（版本 4）</strong></a><br /> <img alt="图 14. Explorer(版本 4)" width="521" height="387" src="image/在 Eclipse Workbench .explorer_4.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/explorer_4.gif</p></p> 
+<p><a name="N10428"><span class="atitle">结束语</span></a></p> 
+<p>我们在很短的时间里完成了非常多的 JFace 编码工作。我们已经使用了一个应用程序窗口和两个查看器（树和表），并实现了它们的内容和标签提供程序。我们已经使用的 SWT 窗口构件有：Button、SashForm、Table 和 TableColumn，而且实现了一个事件侦听器。</p> 
+<p>但本文也有一些不完善的地方。我们没有考虑内容／标签提供程序中的一些方法，树查看器既显示文件又显示文件夹，没有显示图标，而且没有涉及菜单栏、工具栏、状态栏或任何弹出菜单。</p> 
+<p>在下一篇文章中，我们将整理内容／标签提供程序，并对查看器进行排序和过滤。我们将给窗口添加状态栏，给两个查看器都添加图标，并了解 JFace 图像注册表（image registry）。</p> 
+<p> </p> 
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+<ul> 
+ <li>您可以参阅本文在 developerWorks 全球站点上的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/os-ecgui1/index.html?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><font color="#5c81a7">英文原文</font></a>.</li> 
+ <li>下载本文中 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/examples.zip"><font color="#5c81a7">示例的源代码</font></a>。</li> 
+ <li>请参阅主要的 <a cmimpressionsent="1" href="http://www.eclipse.org/"><font color="#5c81a7">Eclipse 网站</font></a>以获得下载文件、文档、邮件压缩文档和各种文章。</li> 
+ <li>有关在 Eclipse Workbench 内使用树查看器的描述，请参阅 Eclipse 网站上的 <a cmimpressionsent="1" href="http://www.eclipse.org/articles/treeviewer-cg/TreeViewerArticle.htm"><font color="#5c81a7">How to use the JFace Tree Viewer</font></a>。</li> 
+ <li>有关项目开发计划、FAQ 和便利的 SWT 代码片段列表，请查阅 <a cmimpressionsent="1" href="http://dev.eclipse.org/viewcvs/index.cgi/~checkout~/platform-swt-home/dev.html"><font color="#5c81a7">SWT 组件开发资源</font></a>。</li> 
+ <li>在以下 <em>developerWorks</em>文章中了解有关 Eclipse 的更多信息：</li> 
+ <li> 
+  <ul> 
+   <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/opensource/library/os-ecov?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><font color="#5c81a7">Getting started with the Eclipse Platform</font></a>（2002 年 11 月）</li> 
+   <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/opensource/library/os-ecplug?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><font color="#5c81a7">Developing Eclipse plug-ins</font></a>（2002 年 12 月）</li> 
+   <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/opensource/library/os-swing?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><font color="#5c81a7">Plug a Swing-based development tool into Eclipse</font></a>（2002 年 10 月）</li> 
+   <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/java/library/j-nativegui/index.html?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><font color="#5c81a7">Create native, cross-platform GUI applications</font></a>（2002 年 4 月）</li> 
+   <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/opensource/library/os-i18n?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><font color="#5c81a7">Internationalizing your Eclipse plug-in</font></a>（2002 年 6 月）</li> 
+   <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/opensource/library/os-i18n2/?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><font color="#5c81a7">Testing your internationalized Eclipse plug-in</font></a>（2002 年 7 月）</li> 
+   <li> </li> 
+  </ul> </li> 
+ <li>在 <em>developerWorks</em>开放源码项目专区查找 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/"><font color="#5c81a7">更多的开放源码资源</font></a>。</li> 
+</ul> 
+<p> </p> 
+<p><a name="author"><span class="atitle">关于作者</span></a></p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td colspan="3"><img width="100%" height="5" src="image/在 Eclipse Workbench .c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+  </tr> 
+  <tr valign="top" align="left"> 
+   <td> <p><img border="0" alt="作者照片" align="left" width="64" height="80" src="image/在 Eclipse Workbench .p-vanemmenis.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/i/p-vanemmenis.jpg</p></p> </td> 
+   <td><img width="4" height="5" src="image/在 Eclipse Workbench .c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td width="100%"> <p>A. O. Van Emmenis 是一位独立顾问，专门从事 Java/J2EE 培训和咨询工作，他在英国的剑桥工作。Van 已经在软件行业工作了约 20 年左右。他最初与对象打交道是在 CAD 行业使用 Smalltalk 的时候，他现在在工作中主要使用 Java。他对敏捷（Agile）方法和 GUI 设计特别感兴趣。您可以通过 <a cmimpressionsent="1" href="mailto:van@vanemmenis.com?cc="><font color="#5c81a7">van@vanemmenis.com</font></a>与 Van 联系。</p> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<a href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/</a></div></body></html>

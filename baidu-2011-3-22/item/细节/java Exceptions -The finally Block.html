@@ -1,0 +1,442 @@
+<html><head><title><div class="tit">
+  java Exceptions -The finally Block
+</div></title></head><body><div id='tit'>java Exceptions -The finally Block</div><div id='cate'>细节</div><div id='date'>2009年10月31日 星期六 01:00 A.M.</div><div id='page'>25</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/4a613fdb274ad16cd1164e08.html'>http://hi.baidu.com/hxzon/blog/item/4a613fdb274ad16cd1164e08.html</a><div id='cnt'><p>java Exceptions -The finally Block</p> 
+<p><a href="http://java.sun.com/docs/books/tutorial/essential/exceptions/putItTogether.html">http://java.sun.com/docs/books/tutorial/essential/exceptions/putItTogether.html</a></p>
+<p>java基础进阶</p> 
+<div>
+ The finally Block
+</div> 
+<blockquote>
+ The 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block 
+ <em>always</em> executes when the 
+ <code><span style=";;font-family:新宋体;">try</span></code> block exits. This ensures that the 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block is executed even if an unexpected exception occurs. But 
+ <code><span style=";;font-family:新宋体;">finally</span></code> is useful for more than just exception handling — it allows the programmer to avoid having cleanup code accidentally bypassed by a 
+ <code><span style=";;font-family:新宋体;">return</span></code>, 
+ <code><span style=";;font-family:新宋体;">continue</span></code>, or 
+ <code><span style=";;font-family:新宋体;">break</span></code>. Putting cleanup code in a 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block is always a good practice, even when no exceptions are anticipated. 
+ <blockquote>
+  <hr /> 
+  <strong>Note:</strong> If the JVM exits while the 
+  <code><span style=";;font-family:新宋体;">try</span></code> or 
+  <code><span style=";;font-family:新宋体;">catch</span></code> code is being executed, then the 
+  <code><span style=";;font-family:新宋体;">finally</span></code> block may not execute. Likewise, if the thread executing the 
+  <code><span style=";;font-family:新宋体;">try</span></code> or 
+  <code><span style=";;font-family:新宋体;">catch</span></code> code is interrupted or killed, the 
+  <code><span style=";;font-family:新宋体;">finally</span></code> block may not execute even though the application as a whole continues. 
+  <hr /> 
+ </blockquote> 
+ <p>The <code><span style=";;font-family:新宋体;">try</span></code> block of the <code><span style=";;font-family:新宋体;">writeList</span></code> method that you've been working with here opens a <code><span style=";;font-family:新宋体;">PrintWriter</span></code>. The program should close that stream before exiting the <code><span style=";;font-family:新宋体;">writeList</span></code> method. This poses a somewhat complicated problem because <code><span style=";;font-family:新宋体;">writeList</span></code>'s <code><span style=";;font-family:新宋体;">try</span></code> block can exit in one of three ways.</p> 
+ <ol> 
+  <li>The <code><span style=";;font-family:新宋体;">new FileWriter</span></code> statement fails and throws an <code><span style=";;font-family:新宋体;">IOException</span></code>.</li> 
+  <li>The <code><span style=";;font-family:新宋体;">vector.elementAt(i)</span></code> statement fails and throws an <code><span style=";;font-family:新宋体;">ArrayIndexOutOfBoundsException</span></code>.</li> 
+  <li>Everything succeeds and the <code><span style=";;font-family:新宋体;">try</span></code> block exits normally.</li> 
+ </ol> The runtime system always executes the statements within the 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block regardless of what happens within the 
+ <code><span style=";;font-family:新宋体;">try</span></code> block. So it's the perfect place to perform cleanup. 
+ <p>The following <code><span style=";;font-family:新宋体;">finally</span></code> block for the <code><span style=";;font-family:新宋体;">writeList</span></code> method cleans up and then closes the <code><span style=";;font-family:新宋体;">PrintWriter</span></code>.</p> 
+ <blockquote> 
+  <pre>finally {
+    if (out != null) { 
+        System.out.println(&quot;Closing PrintWriter&quot;);
+        out.close(); 
+    } else { 
+        System.out.println(&quot;PrintWriter not open&quot;);
+    } 
+}</pre>
+ </blockquote>In the 
+ <code><span style=";;font-family:新宋体;">writeList</span></code> example, you could provide for cleanup without the intervention of a 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block. For example, you could put the code to close the 
+ <code><span style=";;font-family:新宋体;">PrintWriter</span></code> at the end of the 
+ <code><span style=";;font-family:新宋体;">try</span></code> block and again within the exception handler for 
+ <code><span style=";;font-family:新宋体;">ArrayIndexOutOfBoundsException</span></code>, as follows. 
+ <blockquote> 
+  <pre>try {
+    
+    <strong>out.close();       //Don't do this; it duplicates code.</strong> 
+    
+} catch (FileNotFoundException e) {
+    <strong>out.close();       //Don't do this; it duplicates code.</strong>
+    System.err.println(&quot;Caught: FileNotFoundException: &quot; 
+                      + e.getMessage());
+    throw new RuntimeException(e);
+    
+} catch (IOException e) {
+    System.err.println(&quot;Caught IOException: &quot; 
+                      + e.getMessage());
+}</pre>
+ </blockquote>However, this duplicates code, thus making the code difficult to read and error-prone should you modify it later. For example, if you add code that can throw a new type of exception to the 
+ <code><span style=";;font-family:新宋体;">try</span></code> block, you have to remember to close the 
+ <code><span style=";;font-family:新宋体;">PrintWriter</span></code> within the new exception handler. 
+ <blockquote>
+  <hr /> 
+  <strong>Important:</strong> The 
+  <code><span style=";;font-family:新宋体;">finally</span></code> block is a key tool for preventing resource leaks. When closing a file or otherwise recovering resources, place the code in a 
+  <code><span style=";;font-family:新宋体;">finally</span></code> block to ensure that resource is 
+  <em>always</em> recovered. 
+ </blockquote>
+</blockquote> 
+<div>
+ Putting It All Together
+</div> 
+<blockquote>
+ The previous sections described how to construct the 
+ <code><span style=";;font-family:新宋体;">try</span></code>, 
+ <code><span style=";;font-family:新宋体;">catch</span></code>, and 
+ <code><span style=";;font-family:新宋体;">finally</span></code> code blocks for the 
+ <code><span style=";;font-family:新宋体;">writeList</span></code> method in the 
+ <code><span style=";;font-family:新宋体;">ListOfNumbers</span></code> class. Now, let's walk through the code and investigate what can happen. 
+ <p>When all the components are put together, the <code><span style=";;font-family:新宋体;">writeList</span></code> method looks like the following.</p> 
+ <blockquote> 
+  <pre>public void writeList() {
+    PrintWriter out = null;
+
+    try {
+        System.out.println(&quot;Entering try statement&quot;);
+        out = new PrintWriter(
+                   new FileWriter(&quot;OutFile.txt&quot;));
+            for (int i = 0; i &lt; SIZE; i++)
+                out.println(&quot;Value at: &quot; + i + &quot; = &quot; 
+                             + vector.elementAt(i));
+    
+    } catch (ArrayIndexOutOfBoundsException e) {
+         System.err.println(&quot;Caught &quot; 
+                     + &quot;ArrayIndexOutOfBoundsException: &quot; 
+                     +   e.getMessage());
+     
+    } catch (IOException e) {
+         System.err.println(&quot;Caught IOException: &quot; 
+                             +  e.getMessage());
+     
+    } finally {
+         if (out != null) {
+             System.out.println(&quot;Closing PrintWriter&quot;);
+             out.close();
+  
+         } 
+         else {
+             System.out.println(&quot;PrintWriter not open&quot;);
+         }
+     }
+}</pre>
+ </blockquote>As mentioned previously, this method's 
+ <code><span style=";;font-family:新宋体;">try</span></code> block has three different exit possibilities; here are two of them. 
+ <ol> 
+  <li>Code in the <code><span style=";;font-family:新宋体;">try</span></code> statement fails and throws an exception. This could be an <code><span style=";;font-family:新宋体;">IOException</span></code> caused by the <code><span style=";;font-family:新宋体;">new FileWriter</span></code> statement or an <code><span style=";;font-family:新宋体;">ArrayIndexOutOfBoundsException</span></code> caused by a wrong index value in the <code><span style=";;font-family:新宋体;">for</span></code> loop.</li> 
+  <li>Everything succeeds and the <code><span style=";;font-family:新宋体;">try</span></code> statement exits normally.</li> 
+ </ol> Let's look at what happens in the 
+ <code><span style=";;font-family:新宋体;">writeList</span></code> method during these two exit possibilities. 
+</blockquote> 
+<h3>Scenario 1: An Exception Occurs</h3> 
+<blockquote>
+ The statement that creates a 
+ <code><span style=";;font-family:新宋体;">FileWriter</span></code> can fail for a number of reasons. For example, the constructor for the 
+ <code><span style=";;font-family:新宋体;">FileWriter</span></code> throws an 
+ <code><span style=";;font-family:新宋体;">IOException</span></code> if the program cannot create or write to the file indicated. 
+ <p>When <code><span style=";;font-family:新宋体;">FileWriter</span></code> throws an <code><span style=";;font-family:新宋体;">IOException</span></code>, the runtime system immediately stops executing the <code><span style=";;font-family:新宋体;">try</span></code> block; method calls being executed are not completed. The runtime system then starts searching at the top of the method call stack for an appropriate exception handler. In this example, when the <code><span style=";;font-family:新宋体;">IOException</span></code> occurs, the <code><span style=";;font-family:新宋体;">FileWriter</span></code> constructor is at the top of the call stack. However, the <code><span style=";;font-family:新宋体;">FileWriter</span></code> constructor doesn't have an appropriate exception handler, so the runtime system checks the next method — the <code><span style=";;font-family:新宋体;">writeList</span></code> method — in the method call stack. The <code><span style=";;font-family:新宋体;">writeList</span></code> method has two exception handlers: one for <code><span style=";;font-family:新宋体;">IOException</span></code> and one for <code><span style=";;font-family:新宋体;">ArrayIndexOutOfBoundsException</span></code>.</p> 
+ <p>The runtime system checks <code><span style=";;font-family:新宋体;">writeList</span></code>'s handlers in the order in which they appear after the <code><span style=";;font-family:新宋体;">try</span></code> statement. The argument to the first exception handler is <code><span style=";;font-family:新宋体;">ArrayIndexOutOfBoundsException</span></code>. This does not match the type of exception thrown, so the runtime system checks the next exception handler — <code><span style=";;font-family:新宋体;">IOException</span></code>. This matches the type of exception that was thrown, so the runtime system ends its search for an appropriate exception handler. Now that the runtime has found an appropriate handler, the code in that <code><span style=";;font-family:新宋体;">catch</span></code> block is executed.</p> 
+ <p>After the exception handler executes, the runtime system passes control to the <code><span style=";;font-family:新宋体;">finally</span></code> block. Code in the <code><span style=";;font-family:新宋体;">finally</span></code> block executes regardless of the exception caught above it. In this scenario, the <code><span style=";;font-family:新宋体;">FileWriter</span></code> was never opened and doesn't need to be closed. After the <code><span style=";;font-family:新宋体;">finally</span></code> block finishes executing, the program continues with the first statement after the <code><span style=";;font-family:新宋体;">finally</span></code> block.</p> 
+ <p>Here's the complete output from the <code><span style=";;font-family:新宋体;">ListOfNumbers</span></code> program that appears when an <code><span style=";;font-family:新宋体;">IOException</span></code> is thrown.</p> 
+ <blockquote> 
+  <pre>Entering try statement
+Caught IOException: OutFile.txt
+PrintWriter not open</pre>
+ </blockquote>The boldface code in the following listing shows the statements that get executed during this scenario: 
+ <blockquote> 
+  <pre>public void writeList() {
+   <strong>PrintWriter out = null;
+
+    try {
+        System.out.println(&quot;Entering try statement&quot;);
+        out = new PrintWriter(
+                   new FileWriter(&quot;OutFile.txt&quot;));</strong>
+        for (int i = 0; i &lt; SIZE; i++)
+            out.println(&quot;Value at: &quot; + i 
+          + &quot; = &quot; + vector.elementAt(i));
+          
+    } catch (ArrayIndexOutOfBoundsException e) {
+          System.err.println(&quot;Caught &quot; 
+                    + &quot;ArrayIndexOutOfBoundsException: &quot; 
+                    + e.getMessage());
+     
+    } <strong>catch (IOException e) {
+            System.err.println(&quot;Caught IOException: &quot;  
+                                +  e.getMessage());
+     
+    } finally {
+        if (out != null) {</strong>
+            System.out.println(&quot;Closing PrintWriter&quot;);
+            out.close();
+        } 
+     <strong>else {
+            System.out.println(&quot;PrintWriter not open&quot;);
+        }</strong>
+    }
+}</pre>
+ </blockquote>
+</blockquote> 
+<h3>Scenario 2: The try Block Exits Normally</h3> 
+<blockquote>
+ In this scenario, all the statements within the scope of the 
+ <code><span style=";;font-family:新宋体;">try</span></code> block execute successfully and throw no exceptions. Execution falls off the end of the 
+ <code><span style=";;font-family:新宋体;">try</span></code> block, and the runtime system passes control to the 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block. Because everything was successful, the 
+ <code><span style=";;font-family:新宋体;">PrintWriter</span></code> is open when control reaches the 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block, which closes the 
+ <code><span style=";;font-family:新宋体;">PrintWriter</span></code>. Again, after the 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block finishes executing, the program continues with the first statement after the 
+ <code><span style=";;font-family:新宋体;">finally</span></code> block. 
+ <p>Here is the output from the <code><span style=";;font-family:新宋体;">ListOfNumbers</span></code> program when no exceptions are thrown.</p> 
+ <blockquote> 
+  <pre>Entering try statement
+Closing PrintWriter</pre>
+ </blockquote>The boldface code in the following sample shows the statements that get executed during this scenario. 
+ <blockquote> 
+  <pre>public void writeList() {
+    <strong>PrintWriter out = null;
+    try {
+        System.out.println(&quot;Entering try statement&quot;);
+        out = new PrintWriter(
+                  new FileWriter(&quot;OutFile.txt&quot;));
+        for (int i = 0; i &lt; SIZE; i++)
+            out.println(&quot;Value at: &quot; + i + &quot; = &quot; 
+                         +  vector.elementAt(i));
+    
+    }</strong> catch (ArrayIndexOutOfBoundsException e) {
+         System.err.println(&quot;Caught &quot; 
+                     + &quot;ArrayIndexOutOfBoundsException: &quot; 
+                     + e.getMessage());
+     
+    } catch (IOException e) {
+         System.err.println(&quot;Caught IOException: &quot; 
+                            + e.getMessage());
+     
+    } <strong>finally {
+         if (out != null) {
+             System.out.println(&quot;Closing PrintWriter&quot;);
+             out.close();
+          }</strong> 
+          else {
+             System.out.println(&quot;PrintWriter not open&quot;);
+          }
+    }
+}</pre>
+ </blockquote>
+</blockquote> 
+<p> </p> 
+<div>
+ Unchecked Exceptions — The Controversy
+</div> 
+<blockquote> 
+ <p>Because the Java programming language does not require methods to catch or to specify unchecked exceptions (<code><span style=";;font-family:新宋体;">RuntimeException</span></code>, <code><span style=";;font-family:新宋体;">Error</span></code>, and their subclasses), programmers may be tempted to write code that throws only unchecked exceptions or to make all their exception subclasses inherit from <code><span style=";;font-family:新宋体;">RuntimeException</span></code>. Both of these shortcuts allow programmers to write code without bothering with compiler errors and without bothering to specify or to catch any exceptions. Although this may seem convenient to the programmer, it sidesteps the intent of the <code><span style=";;font-family:新宋体;">catch</span></code> or <code><span style=";;font-family:新宋体;">specify</span></code> requirement and can cause problems for others using your classes.</p> 
+ <p>Why did the designers decide to force a method to specify all uncaught checked exceptions that can be thrown within its scope? Any <code><span style=";;font-family:新宋体;">Exception</span></code> that can be thrown by a method is part of the method's public programming interface. Those who call a method must know about the exceptions that a method can throw so that they can decide what to do about them. These exceptions are as much a part of that method's programming interface as its parameters and <code><span style=";;font-family:新宋体;">return</span></code> value.</p> 
+ <p>The next question might be: &quot;If it's so good to document a method's API, including the exceptions it can throw, why not specify runtime exceptions too?&quot; Runtime exceptions represent problems that are the result of a programming problem, and as such, the API client code cannot reasonably be expected to recover from them or to handle them in any way. Such problems include arithmetic exceptions, such as dividing by zero; pointer exceptions, such as trying to access an object through a null reference; and indexing exceptions, such as attempting to access an array element through an index that is too large or too small.</p> 
+ <p>Runtime exceptions can occur anywhere in a program, and in a typical one they can be very numerous. Having to add runtime exceptions in every method declaration would reduce a program's clarity. Thus, the compiler does not require that you catch or specify runtime exceptions (although you can).</p> 
+ <p>One case where it is common practice to throw a <code><span style=";;font-family:新宋体;">RuntimeException</span></code> is when the user calls a method incorrectly. For example, a method can check if one of its arguments is incorrectly <code><span style=";;font-family:新宋体;">null</span></code>. If an argument is <code><span style=";;font-family:新宋体;">null</span></code>, the method might throw a <code><span style=";;font-family:新宋体;">NullPointerException</span></code>, which is an <em>unchecked</em> exception.</p> 
+ <p>Generally speaking, do not throw a <code><span style=";;font-family:新宋体;">RuntimeException</span></code> or create a subclass of <code><span style=";;font-family:新宋体;">RuntimeException</span></code> simply because you don't want to be bothered with specifying the exceptions your methods can throw.</p> 
+ <p>Here's the bottom line guideline: If a client can reasonably be expected to recover from an exception, make it a checked exception. If a client cannot do anything to recover from the exception, make it an unchecked exception.</p> 
+</blockquote> 
+<div>
+ Advantages of Exceptions
+</div> 
+<blockquote>
+ Now that you know what exceptions are and how to use them, it's time to learn the advantages of using exceptions in your programs. 
+ <h3>Advantage 1: Separating Error-Handling Code from &quot;Regular&quot; Code</h3> 
+ <blockquote>
+  Exceptions provide the means to separate the details of what to do when something out of the ordinary happens from the main logic of a program. In traditional programming, error detection, reporting, and handling often lead to confusing spaghetti code. For example, consider the pseudocode method here that reads an entire file into memory. 
+  <blockquote> 
+   <pre>readFile {
+    <strong><em>open the file;
+    determine its size;
+    allocate that much memory;
+    read the file into memory;
+    close the file;</em></strong>
+}</pre>
+  </blockquote>At first glance, this function seems simple enough, but it ignores all the following potential errors. 
+  <ul> 
+   <li>What happens if the file can't be opened?</li> 
+   <li>What happens if the length of the file can't be determined?</li> 
+   <li>What happens if enough memory can't be allocated?</li> 
+   <li>What happens if the read fails?</li> 
+   <li>What happens if the file can't be closed?</li> 
+  </ul> To handle such cases, the 
+  <code><span style=";;font-family:新宋体;">readFile</span></code> function must have more code to do error detection, reporting, and handling. Here is an example of what the function might look like. 
+  <blockquote> 
+   <pre>errorCodeType <strong>readFile {</strong>
+    initialize errorCode = 0;
+    
+    <strong><em>open the file;</em></strong>
+    if (<em>theFileIsOpen</em>) {
+        <strong><em>determine the length of the file;</em></strong>
+        if (<em>gotTheFileLength</em>) {
+            <strong><em>allocate that much memory;</em></strong>
+            if (<em>gotEnoughMemory</em>) {
+                <strong><em>read the file into memory;</em></strong>
+                if (<em>readFailed</em>) {
+                    errorCode = -1;
+                }
+            } else {
+                errorCode = -2;
+            }
+        } else {
+            errorCode = -3;
+        }
+        <strong><em>close the file;</em></strong>
+        if (<em>theFileDidntClose</em> &amp;&amp; <em>errorCode</em> == 0) {
+            errorCode = -4;
+        } else {
+            errorCode = errorCode and -4;
+        }
+    } else {
+        errorCode = -5;
+    }
+    return errorCode;
+}</pre>
+  </blockquote>There's so much error detection, reporting, and returning here that the original seven lines of code are lost in the clutter. Worse yet, the logical flow of the code has also been lost, thus making it difficult to tell whether the code is doing the right thing: Is the file really being closed if the function fails to allocate enough memory? It's even more difficult to ensure that the code continues to do the right thing when you modify the method three months after writing it. Many programmers solve this problem by simply ignoring it — errors are reported when their programs crash. 
+  <p>Exceptions enable you to write the main flow of your code and to deal with the exceptional cases elsewhere. If the <code><span style=";;font-family:新宋体;">readFile</span></code> function used exceptions instead of traditional error-management techniques, it would look more like the following.</p> 
+  <blockquote> 
+   <pre><strong><em>readFile</em></strong> {
+    try {
+        <strong><em>open the file;
+        determine its size;
+        allocate that much memory;
+        read the file into memory;
+        close the file;</em></strong>
+    } catch (<em>fileOpenFailed</em>) {
+       <strong><em>doSomething;</em></strong>
+    } catch (<em>sizeDeterminationFailed</em>) {
+        <strong><em>doSomething;</em></strong>
+    } catch (<em>memoryAllocationFailed</em>) {
+        <strong><em>doSomething;</em></strong>
+    } catch (<em>readFailed</em>) {
+        <strong><em>doSomething;</em></strong>
+    } catch (<em>fileCloseFailed</em>) {
+        <strong><em>doSomething;</em></strong>
+    }
+}</pre>
+  </blockquote>Note that exceptions don't spare you the effort of doing the work of detecting, reporting, and handling errors, but they do help you organize the work more effectively. 
+ </blockquote> 
+ <h3>Advantage 2: Propagating Errors Up the Call Stack</h3> 
+ <blockquote>
+  A second advantage of exceptions is the ability to propagate error reporting up the call stack of methods. Suppose that the 
+  <code><span style=";;font-family:新宋体;">readFile</span></code> method is the fourth method in a series of nested method calls made by the main program: 
+  <code><span style=";;font-family:新宋体;">method1</span></code> calls 
+  <code><span style=";;font-family:新宋体;">method2</span></code>, which calls 
+  <code><span style=";;font-family:新宋体;">method3</span></code>, which finally calls 
+  <code><span style=";;font-family:新宋体;">readFile</span></code>. 
+  <blockquote> 
+   <pre>method1 {
+    <strong><em>call method2;</em></strong>
+}
+
+method2 {
+    <strong><em>call method3;</em></strong>
+}
+
+method3 {
+    <strong><em>call readFile;</em></strong>
+}</pre>
+  </blockquote>Suppose also that 
+  <code><span style=";;font-family:新宋体;">method1</span></code> is the only method interested in the errors that might occur within 
+  <code><span style=";;font-family:新宋体;">readFile</span></code>. Traditional error-notification techniques force 
+  <code><span style=";;font-family:新宋体;">method2</span></code> and 
+  <code><span style=";;font-family:新宋体;">method3</span></code> to propagate the error codes returned by 
+  <code><span style=";;font-family:新宋体;">readFile</span></code> up the call stack until the error codes finally reach 
+  <code><span style=";;font-family:新宋体;">method1</span></code>—the only method that is interested in them. 
+  <blockquote> 
+   <pre><strong>method1</strong> {
+    errorCodeType error;
+    error = <strong><em>call method2;</em></strong>
+    if (error)
+        <strong><em>doErrorProcessing;</em></strong>
+    else
+        <strong><em>proceed;</em></strong>
+<strong>}</strong>
+
+errorCodeType <strong>method2 {</strong>
+    errorCodeType error;
+    error = call <strong>method3;</strong>
+    if (error)
+        return error;
+    else
+        <strong><em>proceed;</em></strong>
+<strong>}</strong>
+
+errorCodeType <strong>method3 {</strong>
+    errorCodeType error;
+    error = <strong>call readFile;</strong>
+    if (error)
+        return error;
+    else
+        <strong><em>proceed;</em></strong>
+<strong>}</strong></pre>
+  </blockquote>Recall that the Java runtime environment searches backward through the call stack to find any methods that are interested in handling a particular exception. A method can duck any exceptions thrown within it, thereby allowing a method farther up the call stack to catch it. Hence, only the methods that care about errors have to worry about detecting errors. 
+  <blockquote> 
+   <pre><strong>method1</strong> {
+    try {
+        <strong><em>call method2;</em></strong>
+    } catch (<em>exception</em> e) {
+        <strong><em>doErrorProcessing;</em></strong>
+    }
+}
+
+<strong>method2</strong> throws <em>exception</em> {
+    <strong><em>call method3;</em></strong>
+}
+
+<strong>method3</strong> throws exception <strong>{
+    <em>call readFile;</em>
+}</strong></pre>
+  </blockquote>However, as the pseudocode shows, ducking an exception requires some effort on the part of the middleman methods. Any checked exceptions that can be thrown within a method must be specified in its 
+  <code><span style=";;font-family:新宋体;">throws</span></code> clause. 
+ </blockquote> 
+ <h3>Advantage 3: Grouping and Differentiating Error Types</h3> 
+ <blockquote>
+  Because all exceptions thrown within a program are objects, the grouping or categorizing of exceptions is a natural outcome of the class hierarchy. An example of a group of related exception classes in the Java platform are those defined in 
+  <code><span style=";;font-family:新宋体;">java.io</span></code> — 
+  <code><span style=";;font-family:新宋体;">IOException</span></code> and its descendants. 
+  <code><span style=";;font-family:新宋体;">IOException</span></code> is the most general and represents any type of error that can occur when performing I/O. Its descendants represent more specific errors. For example, 
+  <code><span style=";;font-family:新宋体;">FileNotFoundException</span></code> means that a file could not be located on disk. 
+  <p>A method can write specific handlers that can handle a very specific exception. The <code><span style=";;font-family:新宋体;">FileNotFoundException</span></code> class has no descendants, so the following handler can handle only one type of exception.</p> 
+  <blockquote> 
+   <pre>catch (FileNotFoundException e) {
+    ...
+}</pre>
+  </blockquote>A method can catch an exception based on its group or general type by specifying any of the exception's superclasses in the 
+  <code><span style=";;font-family:新宋体;">catch</span></code> statement. For example, to catch all I/O exceptions, regardless of their specific type, an exception handler specifies an 
+  <code><span style=";;font-family:新宋体;">IOException</span></code> argument. 
+  <blockquote> 
+   <pre>catch (IOException e) {
+    ...
+}</pre>
+  </blockquote>This handler will be able to catch all I/O exceptions, including 
+  <code><span style=";;font-family:新宋体;">FileNotFoundException</span></code>, 
+  <code><span style=";;font-family:新宋体;">EOFException</span></code>, and so on. You can find details about what occurred by querying the argument passed to the exception handler. For example, use the following to print the stack trace. 
+  <blockquote> 
+   <pre>catch (IOException e) {
+    e.printStackTrace();  //Output goes to System.err.
+    e.printStackTrace(System.out);  //Send trace to stdout.
+}</pre>
+  </blockquote>You could even set up an exception handler that handles any 
+  <code><span style=";;font-family:新宋体;">Exception</span></code> with the handler here. 
+  <blockquote> 
+   <pre>catch (Exception e) {    //<em>A (too) general exception handler</em>
+    ...
+}</pre>
+  </blockquote>The 
+  <code><span style=";;font-family:新宋体;">Exception</span></code> class is close to the top of the 
+  <code><span style=";;font-family:新宋体;">Throwable</span></code> class hierarchy. Therefore, this handler will catch many other exceptions in addition to those that the handler is intended to catch. You may want to handle exceptions this way if all you want your program to do, for example, is print out an error message for the user and then exit. 
+  <p>In most situations, however, you want exception handlers to be as specific as possible. The reason is that the first thing a handler must do is determine what type of exception occurred before it can decide on the best recovery strategy. In effect, by not catching specific errors, the handler must accommodate any possibility. Exception handlers that are too general can make code more error-prone by catching and handling exceptions that weren't anticipated by the programmer and for which the handler was not intended.</p> 
+  <p>As noted, you can create groups of exceptions and handle exceptions in a general fashion, or you can use the specific exception type to differentiate exceptions and handle exceptions in an exact fashion.</p> 
+ </blockquote>
+</blockquote> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

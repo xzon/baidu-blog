@@ -1,0 +1,38 @@
+<html><head><title><div class="tit">
+  J2me开发中使用泛型和基本类型的自动拆箱
+</div></title></head><body><div id='tit'>J2me开发中使用泛型和基本类型的自动拆箱</div><div id='cate'>细节</div><div id='date'>2007年12月12日 星期三 00:10 A.M.</div><div id='page'>194</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/95758bb12729a5570923028d.html'>http://hi.baidu.com/hxzon/blog/item/95758bb12729a5570923028d.html</a><div id='cnt'><h1>J2me开发中使用泛型和基本类型的自动拆箱</h1> 
+<div class="article_c"> 
+ <p> 泛型：</p> 
+ <p> Java 语言中最容易引发错误的因素之一 － 需要不断地将表达式向下类型转换（downcast）为比其静态类型更为具体的数据类型。比如将Vector中的数据取出来之后，强制转换为实际类型。在JDK1.5之前，不得不这样做，JDK1.5之后，程序员再也不用这么辛苦了.</p> 
+ <p> 代码</p> 
+ <code><font face="新宋体"> //JDK1.5 <br /> Vector&lt;String&gt;v=newVector&lt;String&gt;(); <br /> v.add(&quot;A&quot;); <br /> Stringa=v.elementAt(0);//注意这里，get出来之后，直接就是String类型的了 <br /> //JDK1.4 <br /> Vectorv=newVector(); <br /> v.add(&quot;A&quot;); <br /> Stringb=(String)v.elementAt(0);//JDK1.4的作法 </font></code> 
+ <p> </p> 
+ <p> 基本类型的自动拆箱/装箱</p> 
+ <p> Java中的集合类，只能处理对象类型，对于基本类型boolean,byte,short...int,long等，要想放到集合中去，则必须转换成对应的包装类 Boolean,Byte,Short...Integer,Long等类型。而JDK1.5开始支持的基本类型与对应包装类型的自动拆箱/装箱，则省去了很多麻烦。</p> 
+ <p> 代码</p> 
+ <code><font face="新宋体"> //JDK1.5 <br /> Integera=1; <br /> Integerb=2; <br /> System.out.println(a+b); <br /> //JDK1.4 <br /> Integera=newInteger(1); <br /> Integerb=newInteger(2); <br /> System.out.println(a.intValue()+b.intValue()); </font></code> 
+ <p> </p> 
+ <p> 很可惜的是，在J2me流行的开发平台上既不能用泛型，也不能用基本类型的自动拆/装</p> 
+ <p> 这里介绍一种方法，使大家可以在开发J2me的时候也享受到Java的新功能，降低大家的工作难度</p> 
+ <p> 1.需要的安装的软件及下载地址</p> 
+ <p> JDK1.5+ sun.com</p> 
+ <p> wtk sun.com</p> 
+ <p> eclipse eclipse.org</p> 
+ <p> ant ant.apache.org</p> 
+ <p> antenna sf.net/projects/antenna</p> 
+ <p> 2.开始</p> 
+ <p> 新建项目,选择1.5或更高的编译级别，类库中导入j2me开发需要的midp和cldc包，然后就可以用泛型写J2me的代码了</p> 
+ <p> 3.编译，预校验,打包</p> 
+ <p> 采用ant和antenna来辅助</p> 
+ <p> 注意编译时不能指定source为1.5以下</p> 
+ <p> 使用antenna的wtkpreverify校验</p> 
+ <p> 将资源文件打入包中</p> 
+ <p> 使用Jad生成器产生jad文件</p> 
+ <p> 4.注意事项</p> 
+ <p> a.字符串连接，JDK1.5会自动用StringBuilder来优化，这个类在j2me中不存在，注意在代码中不能省事直接用 &quot;a&quot;+i+&quot;b&quot;,需要用StringBuffer来写</p> 
+ <p> b.基本类型的装箱,即由基本类型转为包装类型,编译器采用类似 Integer.valueOf(int)的方法来转的，此方法在J2me中不存在，需要注意，涉及到基本类型转包装类型的，要在代码中自己转，以避免出现上面的方法调用</p> 
+ <p> 附编译脚本:</p> 
+ <p> 代码</p> 
+ <code><font face="新宋体"> &lt;?xmlversion=&quot;1.0&quot;?&gt; <br /> &lt;projectname=&quot;project&quot;default=&quot;build&quot;basedir=&quot;.&quot;&gt; <br /> &lt;!--设置WTK属性.--&gt; <br /> &lt;propertyname=&quot;wtk.home&quot;value=&quot;C:WTK25&quot;/&gt; <br /> &lt;propertyname=&quot;wtk.midp.version&quot;value=&quot;1.0&quot;/&gt; <br /> &lt;propertyname=&quot;wtk.cldc.version&quot;value=&quot;1.0&quot;/&gt; <br /> &lt;!--AntJ2me任务定义--&gt; <br /> &lt;taskdefresource=&quot;antenna.properties&quot;classpath=&quot;D:eclipseantenna.jar&quot;/&gt; <br /> &lt;!--设置--&gt; <br /> &lt;propertyname=&quot;jar.name&quot;value=&quot;Test&quot;/&gt; <br /> &lt;targetname=&quot;build&quot;&gt; <br /> &lt;!--编译--&gt; <br /> &lt;javacsrcdir=&quot;src&quot;destdir=&quot;classes&quot;classpath=&quot;${wtk.home}libcldcapi10.jar;${wtk.home}libmidpapi10.jar&quot;/&gt; <br /> &lt;!--打包--&gt; <br /> &lt;jardestfile=&quot;${jar.name}.jar&quot;basedir=&quot;classes&quot;/&gt; <br /> &lt;!--预校验--&gt; <br /> &lt;wtkpreverifyjarfile=&quot;${jar.name}.jar&quot;/&gt; <br /> &lt;!--打入资源--&gt; <br /> &lt;execexecutable=&quot;jar.exe&quot;&gt; <br /> &lt;argline=&quot;-uf${jar.name}.jar-Cres.&quot;/&gt; <br /> &lt;/exec&gt; <br /> &lt;/target&gt; <br /> &lt;/project&gt; </font></code> 
+ <p> </p> 
+</div></div></body></html>

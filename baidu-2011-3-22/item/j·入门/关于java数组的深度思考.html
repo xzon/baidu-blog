@@ -1,0 +1,21 @@
+<html><head><title><div class="tit">
+  关于java数组的深度思考
+</div></title></head><body><div id='tit'>关于java数组的深度思考</div><div id='cate'>j&middot;入门</div><div id='date'>2008年02月29日 星期五 07:29 P.M.</div><div id='page'>171</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/73a47dec470d90d52e2e21fd.html'>http://hi.baidu.com/hxzon/blog/item/73a47dec470d90d52e2e21fd.html</a><div id='cnt'><h5>关于java数组的深度思考</h5> 
+<div class="con_all"> 
+ <p> </p> 
+ <p><font color="#000080">刚刚开始接触java数组的人都会听到一句类似的话：java是纯面向对象的语言，他的数组也是一个对象。<br /> 于是乎，我就按照一个对象的方式来使用数组，心安理得。直到我接触到C的数组后，才发现将数组作为一个类来使用在实现上是多么的“不自然”。<br /> 首先我们看一下表面现象，数组创建的时候采用的是如下语句：<br /> MyClass[] arr = new MyClass[9];<br /> 而普通类采用的是如下语句：<br /> MyClass obj = new MyClass();<br /> 就是说，创建数组的时候不使用小括号传参。使得数组和普通类看起来就有很多不同，因为小括号里的参数是传递给构造方法的，进而让人感觉数组类是没有构造方法的。</font></p> 
+ <p><br /> <font color="#000080">再往深了想，还有很多让人感觉不自然的东西。可以肯定的是，java确实将数组作为了一个类来处理。还是用上面的例子说明：<br /> 可以通过以下方法得到MyClass[]的Class实例：arr.getClass()或MyClass[].class。这样，我就可以向数组类里面“窥探”了。<br /> Class clazz = MyClass[].class;<br /> System.out.println(clazz.getConstructors().length);<br /> 打印出来的结果是0；证明数组类确实没有构造方法。</font></p> 
+ <p><br /> <font color="#000080">如果强行执行clazz.newInstance();就会得到下面的错误。<br /> java.lang.InstantiationException: [Larraytest.MyClass;<br /> 证明数组类不能够通过普通的反射方式来创建一个实例。</font></p> 
+ <p><br /> <font color="#000080">再看看数组类的“庐山真面目”：<br /> System.out.println(clazz);<br /> 输出是：<br /> [Larraytest.MyClass</font></p> 
+ <p><font color="#000080">对Java Class文件结构稍有了结就知道，这个字符串的意思就是一个元素类型为arraytest.MyClass的一维数组。也就是说，数组类型不是和普通类一样，以一个全限定路径名+类名来作为自己的唯一标示的，而是以[+一个或者多个L+数组元素类全限定路径+类来最为唯一标示的。这个()也是数组和普通类的区别。而这个区别似乎在某种程度上说明数组和普通java类在实现上有很大区别。因为java虚拟机(java指令集)在处理数组类和普通类的时候，肯定会做出区分。我猜想，可能会有专门的java虚拟机指令来处理数组。</font></p> 
+ <p><font color="#000080">既然我们可以得到数组的Class类实例，就说明肯定需要调用ClassLoader的defineClass(不一定非要是loadClass方法)方法，来构造一个Class实例。java虚拟机规范规定，任何一个可以被加载的类，如果其类文件存储在文件系统上，那么一个*.class文件只能存储一个类信息，也就是说，数组类的信息不可能以类文件的形式存储在本地磁盘上(否则任意一个类都要配有255个数组类了.....)，既然这样，那就说明java虚拟机肯定内置了一块用来声明数组类的数据(不管是几级数组)。这是符合java虚拟机规范的，规范规定class类数据可以来自任意介质，包括本地磁盘、网络、数据库、内存等等。</font></p> 
+ <p><font color="#000080">分析到这里，我基本上可以肯定：java对数组对象化的操作的支持是指令级的，也就是说java虚拟机有专门针对数组的指令。数组的Class类实例是java虚拟机动态创建动态加载的，其结构与普通java类的Class实例有一些不同。</font></p> 
+ <p> </p> 
+ <p><br /> <font color="#000080">JDK API中有一个java.lang.reflect.Array类，这个类提供了很多方法(绝大多数是native方法，这在另一个方面证明了java对数组的支持是专用指令支持的，否则用本地方法干嘛^_^)，用来弥补我们对数组操作的局限性。<br /> 下面这句话用来创建一个一维的、长度为10的、类型为arraytest.MyClass的数组：<br /> arraytest.MyClass[] arr = (arraytest.MyClass[]) Array.newInstance(arraytest.MyClass, 10);</font></p> 
+ <p><font color="#000080">下面这句话用来创建一个二维的、3乘5的、类型为arraytest.MyClass的数组：<br /> int[] arrModel = new int[]{3,5};<br /> Object arrObj = Array.newInstance(Sub.class, arrModel);<br /> 当然你可以用一个数组的引用指向上面的二维数组，这里我们用一个Object的引用指向他。<br /> 使用的时候，我们也是可以利用Array类提供的方法来实现：</font></p> 
+ <p><font color="#000080">System.out.println(Array.getLength(arrObj);//第一维长度为3<br /> System.out.println(Array.getLength(Array.get(arrObj, 2)));//第二维长度为5，这里如果写3，就会得到你意想之中的java.lang.ArrayIndexOutOfBoundsException</font></p> 
+ <p><font color="#000080">打印结果是如我所想的：<br /> 3<br /> 5</font></p> 
+ <p><font color="#ff0000">对于数组的Class类实例，还有一些奇怪的现象：<br /> 在运行代码java.lang.reflect.Field fieldarr = clazz.getField(&quot;length&quot;);的时候，会抛出异常：java.lang.NoSuchFieldException: length，这似乎在说数组类没有length这个域，而这个域其实是我们用的最多的一个（也就是说这个域是肯定存在的）。我想关于数组的Class类实例、数组的实现等，还有很多“猫腻”在里面。</font><br /> <font color="#000080"><br /> 顺便说一句，java数组最多只能是255维的。这个让人看到了C的影子，嘿嘿。</font></p> 
+ <p><font color="#000080">“Java把数组当作一个java类来处理”说起来容易，用起来自然，但是细细想来，还是有很多不简单的地方呀。 </font></p> 
+ <p> </p> 
+</div></div></body></html>

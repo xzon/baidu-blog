@@ -1,0 +1,38 @@
+<html><head><title><div class="tit">
+  关于dma模式自动改变导致DVD刻录速度慢、失败的原因及解决方法
+</div></title></head><body><div id='tit'>关于dma模式自动改变导致DVD刻录速度慢、失败的原因及解决方法</div><div id='cate'>动手</div><div id='date'>2008年03月09日 星期日 08:58 P.M.</div><div id='page'>165</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/e484bf389a5cf3c6d56225df.html'>http://hi.baidu.com/hxzon/blog/item/e484bf389a5cf3c6d56225df.html</a><div id='cnt'><p>关于dma模式自动改变导致DVD刻录速度慢、失败的原因及解决方法</p> 
+<p>硬盘的DMA模式大家应该都知道吧，硬盘的PATA模式有DMA33、DMA66、DMA100和DMA133，最新的SATA-150都出来了！一般来说现在大多数人用的还是PATA模式的硬盘，硬盘使用DMA模式相比以前的PIO模式传输的速度要快2~8倍。DMA模式的起用对系统的性能起到了实质的作用。以前有很多文章介绍过如何打开DMA模式，我在这里也就不多说了。</p> 
+<p style="text-indent: 2em">但笔者发现一个新的“问题”——Windows 2000、XP、2003系统有时会自行关闭硬盘的DMA模式，自动改用PIO模式运行！这就造成在使用以上系统中硬盘性能突然下降，其中最明显的现象有：系统起动速度明显变慢，一般来说正常Windows XP系统启动时那个由左向右运动的滑条最多走2～4次系统就能启动，但这一问题发生时可能会走5～8次或更多！而且在运行系统时进行硬盘操作时明显感觉变慢，在运行一些大的软件时CPU占用率时常达到100%而产生停顿，玩一些大型3D游戏时（比如极品飞 车6）画面时有明显停顿（很多人这时以为是自己的显卡问题，当然如果你使用的是三年前的显卡玩这些游戏是有点老了，但如果你用的是今年才买的GF显卡那就不是它的问题了），出现以上问题时大家最好看看自己硬盘的DMA模式是不是被Windows 系统自行关闭了。查看自己的系统是否打开DMA模式：</p> 
+<p style="text-indent: 2em">1. 双击“管理工具”，然后双击“计算机管理”；</p> 
+<p style="text-indent: 2em">2. 单击“系统工具”，然后单击“设备管理器”；</p> 
+<p style="text-indent: 2em">3. 展开“IDE ATA/ATAPI 控制器”节点；</p> 
+<p style="text-indent: 2em">4. 双击您的“主要IDE控制器”；</p> 
+<p style="text-indent: 2em">5. 点击“高级设置”。</p> 
+<p style="text-indent: 2em">看到“设备0”，下面的传输模式应设为“DMA（若可用）”，再下面“当前传输模式”，如果是“Ultra DMA Mode *（*为数字，DMA33为2，DMA66为4，DMA100为5、DMA133为6）”，那么你的系统正常，但如果以前你自己设的是“Ultra DMA Mode 6”又没有改动，而现在是“Ultra DMA Mode 4”或“Ultra DMA Mode 2”更或者是“PIO 模式”而且改不过来！可能就是系统自行关闭了DMA模式了。</p> 
+<p style="text-indent: 2em">分析问题：</p> 
+<p style="text-indent: 2em">好了，先来说说问题是如何产生的。在Windows 2000/XP/2003中有这样一个设定： Windows IDE/ATAPI 端口驱动程序 (Atapi.sys) 累积收到总共6个超时或循环冗余检验 (CRC) 错误后，驱动程序将把通信速度（传送模式）从最快的直接内存访问 (DMA) 模式分步骤降为较慢的 DMA 模式。如果驱动程序继续收到超时或 CRC 错误，则驱动程序最终将把传送模式降为最慢的模式（PIO 模式）。 问题就在这里！一般来说一个正常的硬盘很少会有超时或循环冗余检验 (CRC) 错误，但是当我们使用这些系统里的挂起（也有叫休眠）并恢复计算机后就很容易造成超时或循环冗余检验 (CRC) 错误。因为系统设定的超时值为4秒，当系统向 ATA 磁盘发出读取请求时如果硬盘回应时间超过 4 秒的超时值时才会产生超时或循环冗余检验 (CRC) 错误，但因为系统在挂起（也有叫休眠）时硬盘是在停转状态中，恢复计算机时硬盘有个从停止到运动的过程，这就很容易造成大部分硬盘回应时间超过 4 秒的超时值。也就是说当我们使用计算机挂起6次后系统就会把通信速度（传送模式）从最快的直接内存访问 (DMA) 模式分步骤降为较慢的 DMA 模式。如果挂起6次以上则驱动程序最终将把传送模式降为最慢的模式（PIO 模式）。这就是Windows 系统突然变慢的原因。</p> 
+<p style="text-indent: 2em">解决问题：</p> 
+<p style="text-indent: 2em">若要为受影响的设备重新启用典型DMA或更快DMA的传送模式，请执行以下操作：</p> 
+<p style="text-indent: 2em">1. 双击“管理工具”，然后双击“计算机管理”；</p> 
+<p style="text-indent: 2em">2. 单击“系统工具”，然后单击“设备管理器”；</p> 
+<p style="text-indent: 2em">3. 展开“IDE ATA/ATAPI 控制器”节点；</p> 
+<p style="text-indent: 2em">4. 双击您要为其恢复典型 DMA 传送模式的控制器；</p> 
+<p style="text-indent: 2em">5. 单击“驱动程序”选项卡；</p> 
+<p style="text-indent: 2em">6. 单击“卸载”。</p> 
+<p style="text-indent: 2em">当此过程完成后，重新启动您的计算机。当 Windows 重新启动后，将重新枚举硬盘控制器，同时与该控制器相连的每个设备的传送模式将重置为默认值。</p> 
+<p style="text-indent: 2em">但这样只是把硬盘设备的传送模式重置为默认值，当我们再使用挂起系统时系统又会自行关闭DMA模式！所以我们还要做以下操作：</p> 
+<p style="text-indent: 2em">1. 单击“开始”，单击“运行”，键入 Regedit，然后单击“确定”。</p> 
+<p style="text-indent: 2em">2. 在注册表中找到并单击以下项：</p> 
+<p style="text-indent: 2em">HKEY_LOCAL_MACHINE \ SYSTEM \ CurrentControlSet \ Control \ Class \ {4D36E96A-E325-11CE-BFC1-08002BE10318} \ 0001</p> 
+<p style="text-indent: 2em">和</p> 
+<p style="text-indent: 2em">HKEY_LOCAL_MACHINE \ SYSTEM \ CurrentControlSet \ Control \ Class \ {4D36E96A-E325-11CE-BFC1-08002BE10318} \ 0002</p> 
+<p style="text-indent: 2em">3. 在“编辑”菜单上，指向“新建”，然后单击“DWORD 值”。</p> 
+<p style="text-indent: 2em">4. 键入 ResetErrorCountersOnSuccess，然后按 Enter 键。</p> 
+<p style="text-indent: 2em">5. 在“编辑”菜单上，单击“修改”。</p> 
+<p style="text-indent: 2em">6. 键入 l，然后单击“确定”。</p> 
+<p style="text-indent: 2em">7. 按照下列步骤操作，然后退出注册表编辑器：</p> 
+<p style="text-indent: 2em">注意：上面注册表最后的项“{4D36E96A-E325-11CE-BFC1-08002BE10318}”列出的带有“0001”编号的子项对应于一台仅有一个 IDE 控制器的计算机的主要 IDE 通道和次要 IDE 通道。如果您的计算机有两个 IDE 控制器，则对于每个控制器，主要 IDE 通道和次要 IDE 通道的带有编号的子项分别是：“0001、0002、0003、0004、0005、0006……”。</p> 
+<p style="text-indent: 2em">为检查是否找到了正确的子项，请检查子项的 DriverDesc 值是包含字符串值“主要 IDE 通道”，还是包含字符串值“次要 IDE 通道”。</p> 
+<p style="text-indent: 2em">建立以上注册表键值的目的是：</p> 
+<p style="text-indent: 2em">在Windows中，使系统向 ATA 磁盘发出读取请求时的 4 秒的超时值更改为 10 秒。还实现了一种较不严格的变通策略以在发生超时错误和 CRC 错误时降低传送模式（从较快的 DMA 模式到较慢的 DMA 模式，最终降为 PIO 模式）。以前的情况是，在每当累积发生的超时错误或 CRC 错误的总数达到 6 次时，IDE/ATAPI 端口驱动程序 (Atapi.sys) 将降低传送模式。当我们建立以上注册表键值实现新的策略后，Atapi.sys 仅在连续发生 6 次超时错误或 CRC 错误后才降低传送模式。</p> 
+<p style="text-indent: 2em">这一新的策略实现后将大大降低系统降低或关闭DMA传送模式的机会。现在我们可以安心地使用挂起系统和高性能的DMA硬盘模式，再也不会发生系统性能突然下降的情况了。</p></div></body></html>

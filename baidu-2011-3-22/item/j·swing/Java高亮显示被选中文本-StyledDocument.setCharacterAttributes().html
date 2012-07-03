@@ -1,0 +1,80 @@
+<html><head><title><div class="tit">
+  Java高亮显示被选中文本:StyledDocument.setCharacterAttributes()
+</div></title></head><body><div id='tit'>Java高亮显示被选中文本:StyledDocument.setCharacterAttributes()</div><div id='cate'>j&middot;swing</div><div id='date'>2009年09月01日 星期二 09:41 A.M.</div><div id='page'>33</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c75e37ad0ede91004b36d682.html'>http://hi.baidu.com/hxzon/blog/item/c75e37ad0ede91004b36d682.html</a><div id='cnt'><div>
+ Java高亮显示被选中文本:StyledDocument.setCharacterAttributes()
+</div> 
+<div>
+ 复用代码
+</div> 
+<div></div> 
+<div>
+ javax.swing.text.JTextComponent。requestFocus();
+ <br />javax.swing.text.JTextComponent。select(start, end);
+</div> 
+<div></div> 
+<div>
+ 不获得焦点，文本被选中但不会高亮。
+</div> 
+<div></div> 
+<div>
+ -----------------------
+ <br />hxzon：上面的方式转移了焦点，更好的方式如下：
+</div> 
+<div></div> 
+<div>
+ JTextPane hexPane;
+ <br />SimpleAttributeSet notSelected;
+ <br />SimpleAttributeSet selected;
+ <br />StyledDocument doc;
+ <br />//设置样式
+ <br />notSelected = new SimpleAttributeSet();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; selected = new SimpleAttributeSet(notSelected);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StyleConstants.setForeground(selected, new DefaultTreeCellRenderer().getTextSelectionColor());
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StyleConstants.setBackground(selected, new DefaultTreeCellRenderer().getBackgroundSelectionColor());
+ <br />//文本内容
+ <br />hexPane.setText(packet.messageToHex());
+ <br />//高亮显示被选中文本
+ <br />goosetree.addTreeSelectionListener(new TreeSelectionListener() {
+</div> 
+<div></div> 
+<div>
+ &nbsp;&nbsp; public void valueChanged(TreeSelectionEvent e) {
+ <br />&nbsp;&nbsp;&nbsp; TreePath treePath = e.getPath();
+ <br />&nbsp;&nbsp;&nbsp; if (treePath == null) {
+ <br />&nbsp;&nbsp;&nbsp;&nbsp; return;
+ <br />&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp; DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .getLastPathComponent();
+ <br />&nbsp;&nbsp;&nbsp; int offset = 0;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int len = 0;
+ <br />&nbsp;&nbsp;&nbsp; if (node.getUserObject() instanceof PropertyNode) {
+ <br />&nbsp;&nbsp;&nbsp;&nbsp; PropertyNode leaf = (PropertyNode) node.getUserObject();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp; offset = leaf.offset;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp; len = leaf.len;
+ <br />&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp; else if (node.getUserObject() instanceof GooseNode) {
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GooseNode leaf = (GooseNode) node.getUserObject();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; offset = leaf.offset;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; len = leaf.len;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp; else if (node.getUserObject() instanceof DatasetNode) {
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DatasetNode leaf = (DatasetNode) node.getUserObject();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; offset = leaf.offset;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; len = leaf.len;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int end = offset + len;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; offset = offset * 2 + offset;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; end = end * 2 + end;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; offset += offset / 48;
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; end += end / 48 - 1;
+ <br />//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hexPane.requestFocus();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; doc=hexPane.getStyledDocument();
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; doc.setCharacterAttributes(0, doc.getLength(), notSelected, true);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; doc.setCharacterAttributes(offset, end - offset, selected, true);
+ <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hexPane.select(offset, end);//加上此句，当选中文本不可见时滚动条自动滚动
+ <br />&nbsp;&nbsp; }
+</div> 
+<div></div> 
+<div>
+ });
+</div></div></body></html>

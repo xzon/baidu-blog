@@ -1,0 +1,300 @@
+<html><head><title><div class="tit">
+  Qt 4 访问 mysql 数据库的简单教程
+</div></title></head><body><div id='tit'>Qt 4 访问 mysql 数据库的简单教程</div><div id='cate'>工具使用</div><div id='date'>2009年04月13日 星期一 01:03 A.M.</div><div id='page'>56</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/4ceeedf806573807d9f9fdaa.html'>http://hi.baidu.com/hxzon/blog/item/4ceeedf806573807d9f9fdaa.html</a><div id='cnt'><p>Qt 4 访问 mysql 数据库的简单教程</p> 
+<p>云帆 2006/5/18<br /> <br /> 因为目前无法使用linux， 所以 Qt 4.1.2 是 windows 开源版， mySql 5.0.21 也是windows 开源版。不过这2个软件都是跨平台的，方法大同小异。<br /> <br /> <font color="#0000ff"><strong>一、配置windows下开发环境。</strong></font><br /> <br /> <strong>1. Qt 的安装</strong><br /> 这个很简单， 去 trolltech 网站自己下载一个 windows 开源版的就好了。然后双击安装， 一路next， 如果问是否需要安装 MinGW， 点是， 然后next下去， 就完成了。<br /> <br /> <strong>2. MySQL 的安装</strong><br /> 我不喜欢安装东西， 所以去 www.mysql.com 下了个非安装版， 直接放到C盘下了。<br /> <br /> 至此， 安装环境完成。 <br /> <br /> <font color="#0000ff"><strong>二、解决 mysql 的 Qt 驱动问题</strong></font><br /> <br /> 这个问题困扰了我一些时间， 因为 Qt 安装完后， 没有带 mySQL 的驱动， 写好的程序运行会提示说 “Driver not loaded”。不过还好， 在 src 目录下可以找到 mysql qt 驱动的源代码。 后来我用 Qt assistant 上说的方法，但始终无法生成库文件， 总有链接错误。 后来google 一下，在 qtcn 上看到他们站长发的一篇文章，才知道是 mysql 默认带的库文件是 ms 格式的， 所以使用 make 的话，ld 程序链接时会失败。 如果大家使用linux系统， 那么就只需按 assistant 说的就够了， 下面 XChinux 也提到了。<br /> <br /> 解决的办法他也给出了。转录如下：<br /> <br /> 以下引用引自：http://www.qtcn.org/bbs/read.php?tid=4210&amp;fpage=&amp;toread=&amp;page=1<br /> 作者：XChinux</p> 
+<div style="font-weight: bold; margin-left: 2em;" class="smalltxt">
+ QUOTE:
+</div> 
+<div style="border: 1px solid rgb(238, 213, 146); padding: 10px; margin: 3px 2em 2em;" class="altbg2">
+ Qt4 OpenSource for mingw中编译MySQL驱动
+ <br /> 
+ <br /> mingw-utils包下载：http://www.qtcn.org/download/mingw-utils-0.3.tar.gz
+ <br /> 
+ <br /> 在Qt4的文档中在Windows下关于怎样编译mysql的驱动上面说
+ <br /> 
+ <br /> 
+ <div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+  <div style="float: left;">
+   CODE:
+  </div> 
+  <div style="float: right; text-align: right;">
+   <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+  </div> 
+ </div> 
+ <div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+  You need to get the MySQL installation files. Run SETUP.EXE and choose &quot;Custom Install&quot;. Install the &quot;Libs &amp; Include Files&quot; Module. Build the plugin as follows (here it is assumed that MySQL is installed in C:\MYSQL):
+  <br /> cd %QTDIR%\src\plugins\sqldrivers\mysql
+  <br /> qmake -o Makefile &quot;INCLUDEPATH+=C:\MYSQL\INCLUDE&quot; &quot;LIBS+=C:\MYSQL\LIB\OPT\LIBMYSQL.LIB&quot; mysql.pro
+  <br /> nmake
+  <br /> If you are not using a Microsoft compiler, replace nmake with make in the line above.
+ </div> 这就是一个容易搞混的地方，上面是使用的libmysql.lib和nmake来编译的，如果使用的是msvc的编译器，那上面是没问题的，但是如果使用的是mingw编译器，那就会出错，有undefined reference....等类错误字样。这是因为mingw使用的库和msvc使用的不同格式的库而引起的。而mysql只提供了msvc可使用的库。 qt4 for mingw要想编译出qsqlmysql库来，我们先得编译出mingw需要的libmysql.a这个文件来，可使用mingw工具来生成。
+ <br /> mingw -utils包里的reimp命令（如果没有这个命令的话，可从本帖开头处给出的地址中下载这个文件，并把它解压开后的bin目录里的内容拷贝到 mingw的bin目录下面。mysql安装的时候默认的安装路径中有空格，我们得先把它的include和lib目录拷贝到没有空格的路径下，比如C: \mysql下）
+ <br /> 
+ <br /> 
+ <div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+  <div style="float: left;">
+   CODE:
+  </div> 
+  <div style="float: right; text-align: right;">
+   <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+  </div> 
+ </div> 
+ <div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+  cd c:\mysql\lib\opt
+  <br /> reimp -d libmysql.lib
+  <br /> dlltool -k -d libmysql.def -l libmysql.a
+ </div> 如此，这样我们的命令行为（注意qmake和make）：
+ <br /> 
+ <br /> 
+ <div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+  <div style="float: left;">
+   CODE:
+  </div> 
+  <div style="float: right; text-align: right;">
+   <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+  </div> 
+ </div> 
+ <div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+  &nbsp;&nbsp; cd %QTDIR%\src\plugins\sqldrivers\mysql
+  <br /> qmake -o Makefile &quot;INCLUDEPATH+=C:\MYSQL\INCLUDE&quot; &quot;LIBS+=C:\MYSQL\LIB\OPT\LIBMYSQL.a&quot; mysql.pro
+  <br /> make
+ </div> 这下便会在%QTDIR%\plugins\sqldrivers目录下面生成libqsqlmysql.a, qsqlmysql.dll这两个文件了。
+</div> 
+<p>有一点， 就是下载他给出的mingw-utils-0.3.tar.gz 文件， 只需要把里面的 reimp 工具复制到你的 minGW目录下的bin 里就可以了，这样按上面的步骤就可以生成需要的驱动了。 make 结束后， 库文件会生成到qt的系统目录中去。<br /> <br /> <br /> <font color="#0000ff"><strong>三、简单配置 mysql</strong></font><br /> <br /> <strong>1. 运行 mysql 服务</strong>（假定 mysql 安装在 C：\mysql 下）<br /> 打开一个控制台窗口， 就是“DOS”窗口，</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ cd c:\mysql\bin
+ <br /> mysqld
+</div> 
+<p>正常情况下， 什么提示都没有， 当然你不放心的话， 去C:\mysql\data 找扩展名是err 的文件看一下， 所有的日志都在里面。另外，建议把 C:\mysql\bin 加入系统的PATH中， 这样就可以在任何目录下运行mysql了， 以下默认是加到 PATH中的，大家可以通过在我的电脑点击右键， 选择“属性”，然后点“高级”标签页，点“环境变量”按钮， 进去找到 PATH的变量，加上&quot;;c:\mysql\data\&quot;。<br /> <br /> <strong>2. 测试客户端链接</strong><br /> 再开一个“DOS”窗口， 输入：</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ mysql -u root
+</div> 
+<p>来访问 mysql 服务， 这个非安装版， 默认含有 root 用户， 也就是mysql 里的最高用户， 什么都可以做。同时默认 root 用户没有密码。 当然你可以登录后使用</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ SET PASSWORD= PASSWORD(&quot;密码&quot;)
+</div> 
+<p>来设置自己的密码。<br /> <br /> 登录后， 就进入 mysql 环境， 提示符也成了 mysql&gt;<br /> <br /> <strong>3. 为我们的测试程序新建一些数据</strong><br /> <br /> <strong>3.1 创建一个数据库</strong></p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ mysql&gt; create database example;
+ <br /> Query OK, 1 row affected (0.03 sec)
+ <br /> mysql&gt; use example;
+ <br /> Database changed
+</div> 
+<p>这样就创建了一个叫 example 的数据库， 我们后面就使用这个库来做试验。<br /> <br /> <strong>3.2 创建一个可以完全控制这个数据库的用户</strong></p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ mysql&gt; GRANT all
+ <br /> -&gt; ON example.*
+ <br /> -&gt; TO yunfan@localhost;
+ <br /> Query OK, 0 rows affected (0.00 sec)
+</div> 
+<p>通过上面的语句， 系统会自动更新系统的用户表，新建一个叫做 yunfan 的用户， 这个用户只可以通过本机来访问数据库， 至于网络访问权限，我没有测试， 但是应该也是大同小异，改@后面就可以了。注意， 这个新创建的用户是没有密码的， root 可以给他设置密码， 还是使用 grant 命令操作，不过我是后面用yunfan登录后自己设置的（用上面说过 set password 的方法）。yunfan 这个用户被赋予了 example 数据库的完全权限。<br /> <br /> <strong>3.3 用 yunfan 帐号登录</strong></p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ mysql -u yunfan
+</div> 
+<p>如果有密码， 那么使用</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ mysql -u yunfan -p
+</div> 
+<p>或者输入完-p后直接回车， 程序会让你输入密码。<br /> <br /> <strong>3.4 新建一个表</strong></p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ mysql&gt; CREATE TABLE employee (
+ <br /> -&gt; id&nbsp;&nbsp; CHAR(3),
+ <br /> -&gt; lastname VARCHAR(30),
+ <br /> -&gt; firstname VARCHAR(20),
+ <br /> -&gt; dob DATETIME,
+ <br /> -&gt; phone VARCHAR(10)
+ <br /> -&gt; );
+ <br /> Query OK, 0 rows affected (0.00 sec)
+</div> 
+<p>这样就新建了一个叫做 employee 的表，含有 4 个字段， id 号， 姓， 名，生日， 电话。<br /> <br /> 我们然后插入2条记录：</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ mysql&gt; INSERT INTO employee VALUES (&quot;001&quot;, &quot;热&quot;, &quot;X&quot;, &quot;2000-05-18&quot;, &quot;5188&quot;);
+ <br /> Query OK, 1 row affected (0.05 sec)
+ <br /> mysql&gt; INSERT INTO employee VALUES (&quot;002&quot;, &quot;包&quot;, &quot;子&quot;, &quot;2000-05-18&quot;, &quot;5198&quot;)
+ <br /> Query OK, 1 row affected (0.00 sec)
+</div> 
+<p>那么， 现在我们就准备好了所有数据了。<br /> <br /> <font color="#0000ff"><strong>四、 Qt 4 的一个简单访问 mysql 的例子</strong></font><br /> <br /> <strong>1 Qt 连接 mysql 实例讲解</strong><br /> <br /> 下面的例子非常的简单， 使用了 QTextEdit 来显示查询到的内容，主要是要说明Qt 4 中如何连接和访问数据库。至于用什么显示， 不是现在我们关心的问题。：）</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ #include &lt;QtGui&gt;
+ <br /> #include &lt;QtSql&gt;
+ <br /> 
+ <br /> int main(int argc, char **argv)
+ <br /> {
+ <br /> QApplication app(argc, argv);
+ <br /> 
+ <br /> QTextEdit display;
+ <br /> display.resize(400, 160);
+ <br /> display.show();
+ <br /> 
+ <br /> // 下面进行数据库的设置
+ <br /> QSqlDatabase db = QSqlDatabase::addDatabase(&quot;QMYSQL&quot;); // 使用mysql数据库驱动
+ <br /> db.setHostName(&quot;localhost&quot;);
+ <br /> db.setDatabaseName(&quot;example&quot;); // 我们之前建立的数据库
+ <br /> db.setUserName(&quot;yunfan&quot;); // 我们创建的 yunfan 用户名
+ <br /> db.setPassword(&quot;password&quot;); // yunfan 用户的密码
+ <br /> 
+ <br /> bool ok = db.open(); // 尝试连接数据库
+ <br /> 
+ <br /> if(ok){ // 这里用yunfan已经成功连上数据库
+ <br /> QSqlQuery query;&nbsp;&nbsp; // 新建一个查询的实例
+ <br /> 
+ <br /> if(query.exec(&quot;select * from employee&quot;)){&nbsp;&nbsp; // 尝试列出 employee 表的所有记录
+ <br /> // 本次查询成功
+ <br /> int numRows = 0;
+ <br /> 
+ <br /> // 询问数据库驱动，是否驱动含有某种特性
+ <br /> if(db.driver()-&gt;hasFeature(QSqlDriver::QuerySize)){
+ <br /> numRows = query.size(); // 如果支持结果影响的行数，那么直接记录下来
+ <br /> } else{
+ <br /> query.last();&nbsp;&nbsp; //否则定位到结果最后，qt 文档说，这个方法非常慢
+ <br /> numRows = query.at() + 1;
+ <br /> }
+ <br /> 
+ <br /> QString id, lname, fname, phone;
+ <br /> QDateTime dob;
+ <br /> display.append(&quot;===========================================&quot;);
+ <br /> display.append(QString::fromLocal8Bit(&quot; id |&nbsp;&nbsp; 姓名 |&nbsp;&nbsp; 生日 &nbsp;&nbsp;&nbsp; | 电话&quot;));
+ <br /> display.append(&quot;--------------------------------------&quot;);
+ <br /> while(query.next()){ // 定位结果到下一条记录
+ <br /> id = query.value(0).toString();
+ <br /> lname = QString::fromLocal8Bit(query.value(1).toByteArray());
+ <br /> fname = QString::fromLocal8Bit(query.value(2).toByteArray());
+ <br /> dob = query.value(3).toDateTime();
+ <br /> phone = QString::fromLocal8Bit(query.value(4).toByteArray());
+ <br /> QString result = id + &quot; &quot; + fname + lname + &quot;&nbsp;&nbsp; &quot; + (dob.toString()) + &quot;&nbsp;&nbsp; &quot;+phone;
+ <br /> display.append(result);
+ <br /> }
+ <br /> display.append(&quot;============================================&quot;);
+ <br /> display.append(QString(&quot;totally %1 rows&quot;).arg( numRows) );
+ <br /> } else {
+ <br /> // 如果查询失败，用下面的方法得到具体数据库返回的原因
+ <br /> QSqlError error = query.lastError(); 
+ <br /> display.append(&quot;From mysql database: &quot; + error.databaseText());
+ <br /> }
+ <br /> } else {
+ <br /> // 打开数据库失败，显示数据库返回的失败描述
+ <br /> display.append(&quot;cannot open database.&quot;);
+ <br /> display.append(&quot;Reason: &quot; + db.lastError().databaseText());
+ <br /> }
+ <br /> QApplication::connect(&amp;app, SIGNAL(lastWindowClose()), &amp;app, SLOT(quit()));
+ <br /> return app.exec();
+ <br /> }
+</div> 
+<p><strong>2 编译程序</strong><br /> <br /> 存盘后（假定存为 client.cpp ）， 我们需要生成qt 工程文件。 打开“DOS”窗口，cd 到<br /> 你client.cpp 所在的目录下， 输入</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ qmake -project -o client.pro
+</div> 
+<p>这样就生成了工程文件 client.pro, 但是这对编译是不够的，因为还需要手动让qmake生成makefile的时候链接相关的sql库文件。现在，打开client.pro, 随便找一行，回车来建个新行，<br /> 然后加上几个字：</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ QT += sql
+</div> 
+<p>然后存盘就搞定了， 就这么简单 ：）。 接下来就是固定套路</p> 
+<div style="font-weight: bold; margin-left: 2em; margin-right: 2em;" class="smalltxt"> 
+ <div style="float: left;">
+  CODE:
+ </div> 
+ <div style="float: right; text-align: right;">
+  <a href="http://www.myswear.net/forum/viewthread.php?tid=5060&amp;extra=page%3D1#" class="smalltxt"><font color="#336699">[Copy to clipboard]</font></a>
+ </div> 
+</div> 
+<div style="clear: both; border: 1px solid rgb(238, 213, 146); padding: 5px 10px 10px; margin: 3px 2em 2em;" class="altbg2">
+ qmake
+ <br /> make
+</div> 
+<p>看看新生成的 Release 目录下， 我们的 client 程序已经编译好了。运行一下试试看 ；）<br /> <br /> <br /> <font color="#0000ff"><strong>五、总结一下</strong></font><br /> <br /> 大家可以看到，使用 Qt 来连接 mysql 是非常简单的事情， 当然 Qt 还提供了一些数据库相关的 widget 来更好的显示，更新数据。这个以后我用到了也会相继写些总结出来， 大家一起共享。我在整个上面的过程中， 最郁闷的地方是Qt的mysql驱动还需要用户自己编译，相信这个会给很多人带来麻烦（如果使用linux系统， 那么按 Qt 文档生成驱动应该是完全没有问题的， windows用户会遇到库格式不兼容的问题）。好了， 这也是我第一次用Qt 来访问数据库， 也是一次摸 mysql， 说错的，不合适的地方，大家扔砖头吧。</p></div></body></html>

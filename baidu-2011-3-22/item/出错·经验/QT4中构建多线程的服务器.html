@@ -1,0 +1,200 @@
+<html><head><title><div class="tit">
+  QT4中构建多线程的服务器
+</div></title></head><body><div id='tit'>QT4中构建多线程的服务器</div><div id='cate'>出错&middot;经验</div><div id='date'>2009年04月28日 星期二 03:43 P.M.</div><div id='page'>53</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/0857fa03eba35b80d53f7cfd.html'>http://hi.baidu.com/hxzon/blog/item/0857fa03eba35b80d53f7cfd.html</a><div id='cnt'><p>QT4中构建多线程的服务器</p> 
+<div>
+ 首先说一下对
+ <strong><span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e5%a4%9a%e7%ba%bf%e7%a8%8b"><font color="#0f83f8">多线程</font></a></span></strong>这个名词的理解过程。以前听说过很多次多线程这个词，而且往往与
+ <span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e6%9c%8d%e5%8a%a1%e5%99%a8"><font color="#0f83f8">服务器</font></a></span>联系起来，因此一直把多线程误解为服务器特有的功能；直到这次
+ <span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e8%af%be%e7%a8%8b%e8%ae%be%e8%ae%a1"><font color="#0f83f8">课程设计</font></a></span>，仔细
+ <span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e5%ad%a6%e4%b9%a0"><font color="#0f83f8">学习</font></a></span>了一下多线程的机制，才知道真正的意思。简单的来说，就是同时有多个线程一起运行，而不同的线程可以执行不同的操作。举个例子，一个图像处理工具，可以用鼠标一边移动图像，一边用快捷键缩放图像，此时，移动图像、缩放图像就是不同的线程来处理的，如果不支持多线程而是单线程的，那么只能挨个操作了。
+</div> 
+<p> </p> 
+<p>而对于服务器来说，多线程的这个特性太有用了，因为多线程使得服务器可能同时响应多个客户端的请求，所以现在服务器大多采用多线程，所以才会造成我开始的误解。</p> 
+<p>不管是多线程，还是服务器，QT中已经封装好了特定的类，所以使用起来也很方便。</p> 
+<p>下面<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e5%bb%ba%e7%ab%8b"><font color="#0f83f8">建立</font></a></span>一个支持多线程、TCP的服务器。</p> 
+<p>首先建立一个服务器。新建一个类(<strong>Server</strong>)继承QT中的QTcpServer类即可。服务器的职责是监听端口。当监听到有客户端试图与服务器建立连接的时候，分配<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/socket"><font color="#0f83f8">socket</font></a></span>与客户端连接，再进行数据<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e9%80%9a%e4%bf%a1"><font color="#0f83f8">通信</font></a></span>。QTcpServer的listen()方法执行监听过程，可以指定监听的地址和端口。若给定了QHostAddress类型的监听地址，则监听该地址，否则，监听所有地址；若给定了quint16类型的监听端口，则监听该端口，否则，随机选定一个监听端口。</p> 
+<div class="dp-highlighter"> 
+ <div class="bar"> 
+  <div class="tools">
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">view plain</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">copy to clipboard</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">print</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">?</font></a>
+  </div> 
+ </div> 
+ <ol class="dp-cpp"> 
+  <li class="alt"><span><span>Server * server = </span><span class="keyword"><strong><font color="#5697d9">new</font></strong></span><span> Server; &nbsp;&nbsp;</span></span></li> 
+  <li><span class="keyword"><strong><font color="#5697d9">if</font></strong></span><span>(!server-&gt;listen(host,port)){ &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>...</span><span class="comment"><font color="#808080">//error </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li><span>}&nbsp;&nbsp;</span></li> 
+ </ol> 
+</div> 
+<pre class="c" style="display: none" name="code">Server * server = new Server;
+if(!server-&gt;listen(host,port)){
+...//error
+}</pre> 
+<p>QTcpServer有一个虚函数incomingConnection(int socketDescriptor)，服务器每当监听到一个客户端试图建立连接的时候，会自动调用这个函数，因此，处理这个请求的过程就可以在这个函数中电影，即在子类Server的定义阶段，重新定义incomingConnection()这个函数。对于一个多线程的服务器，每当客户端试图连接的时候，服务器应该启动一个线程，负责对这个客户端进行服务，所以，incomingConnection()这个函数所要做的就是建立一个线程，而所建立的线程的作用就是对客户端进行服务，而这其中建立socket连接是基础。服务器在监听到客户端试图建立socket连接时，会为此socket分配一个唯一的标识socketDescriptor，这个标识将在服务器端建立socket连接时使用，所以应提供给每一个线程。</p> 
+<p>在QT中使用多线程，建立一个类(<strong>Thread</strong>)继承QThread类即可。QThread类也有一个虚函数，这个函数是run()，线程建立并启动(QThread::start())后，就会执行这里面的代码，因此，线程的逻辑过程就应该在run()里面定义。服务器的线程要根据socketDescriptor标识的socket建立连接，然后进行数据通信，所以要将socketDescriptor传入到Thread中，前面说过，线程是在incomingConnection()里面建立，用构造函数将socketDescriptor传入Thread类，再用socketDescriptor建立socket连接。</p> 
+<p>定义incomingConnection()</p> 
+<div class="dp-highlighter"> 
+ <div class="bar"> 
+  <div class="tools">
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">view plain</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">copy to clipboard</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">print</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">?</font></a>
+  </div> 
+ </div> 
+ <ol class="dp-cpp"> 
+  <li class="alt"><span><span class="keyword"><strong><font color="#5697d9">void</font></strong></span><span> incomingConnection(</span><span class="datatypes"><strong><font color="#2e8b57">int</font></strong></span><span> socketDescriptor){ &nbsp;&nbsp;</span></span></li> 
+  <li><span>&nbsp;&nbsp;&nbsp;&nbsp; Thread * </span><span class="keyword"><strong><font color="#5697d9">thread</font></strong></span><span> = </span><span class="keyword"><strong><font color="#5697d9">new</font></strong></span><span> Thread(socketDescriptor); &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#5697d9">thread</font></strong></span><span>-&gt;start(); &nbsp;&nbsp;</span></li> 
+  <li><span>}&nbsp;&nbsp;</span></li> 
+ </ol> 
+</div> 
+<pre class="c" style="display: none" name="code">void incomingConnection(int socketDescriptor){
+    Thread * thread = new Thread(socketDescriptor);
+    thread-&gt;start();
+}</pre> 
+<p>定义run()</p> 
+<div class="dp-highlighter"> 
+ <div class="bar"> 
+  <div class="tools">
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">view plain</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">copy to clipboard</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">print</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt%e4%b8%ad%e6%9e%84%e5%bb%ba%e5%a4%9a%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%9c%8d%e5%8a%a1%e5%99%a8.html#"><font color="#808080">?</font></a>
+  </div> 
+ </div> 
+ <ol class="dp-cpp"> 
+  <li class="alt"><span><span class="keyword"><strong><font color="#5697d9">void</font></strong></span><span> run(){ &nbsp;&nbsp;</span></span></li> 
+  <li><span>&nbsp;&nbsp;&nbsp;&nbsp; QTcpSocket * socket = </span><span class="keyword"><strong><font color="#5697d9">new</font></strong></span><span> QTcpSocket(socketDescriptor); &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp; ...</span><span class="comment"><font color="#808080">//数据通信 </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li><span>}&nbsp;&nbsp;</span></li> 
+ </ol> 
+</div> 
+<pre class="c" style="display: none" name="code">void run(){
+    QTcpSocket * socket = new QTcpSocket(socketDescriptor);
+    ...//数据通信
+}</pre> 
+<p>自此，一个简单的多线程服务器建立完毕。</p> 
+<p>写的不好，望请指教。</p> 
+<p>============================<br /> QT4中socket通信</p> 
+<div>
+ 最
+</div> 
+<p>近的<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e8%bd%af%e4%bb%b6%e5%b7%a5%e7%a8%8b"><font color="#0f83f8">软件工程</font></a></span>课程设计让我重新开始使用QT，上次数据结构的<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e8%af%be%e7%a8%8b%e8%ae%be%e8%ae%a1"><font color="#0f83f8">课程设计</font></a></span>也是用QT，虽然是做出来了，但是现在想想，那个时候对QT的理解，或者说得更广一点，对OO的理解，简直太差劲了，当然，人的知识是进步的，所以现在有这样的感受是很正常的。虽然整体的开发工作还没有完全结束，但是已经有了很多心得体会，所以特来记录分享一下。</p> 
+<p> </p> 
+<p>我们的系统采用的是C/S结构，所以客户端与<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e6%9c%8d%e5%8a%a1%e5%99%a8"><font color="#0f83f8">服务器</font></a></span>通信是最关键，不幸的是，虽然我们没有用过QT的<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/socket"><font color="#0f83f8">socket</font></a></span>类，我们也没有估计好<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e9%80%9a%e4%bf%a1"><font color="#0f83f8">通信</font></a></span>的难度，等到意识到第一次使用的困难时，已经是第5天了，始终没有进展，我临危受命。现在是第6天，刚刚把通信模块封装好，算是对这两天的<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e7%aa%81%e5%87%bb"><font color="#0f83f8">突击</font></a></span>的一个回报。</p> 
+<p>我们遇到的问题socket已经<span class="yo2keyword yo2keyword_tag"><a title="Tag 了 1 篇文章" href="http://lennard.yo2.cn/articles/tag/%e5%bb%ba%e7%ab%8b"><font color="#0f83f8">建立</font></a></span>，并且发送端已经将消息发送，但是接收端始终收不到消息。（我用的socket类型是TCP，也就是QTcpSocket类）</p> 
+<p>发送端(发送端一直不存在问题)代码如下：</p> 
+<div class="dp-highlighter"> 
+ <div class="bar"> 
+  <div class="tools">
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">view plain</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">copy to clipboard</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">print</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">?</font></a>
+  </div> 
+ </div> 
+ <ol class="dp-cpp"> 
+  <li class="alt"><span><span>... </span><span class="comment"><font color="#808080">// 建立连接，客户端和服务器端有区别，在此省略&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></span></li> 
+  <li><span>QByteArray block; &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>QDataStream out(&amp;block,QIODevice::WriteOnly);&nbsp;&nbsp;</span><span class="comment"><font color="#808080">// 写信息至block中，用到QDataStream类&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li><span>socket.write(block);</span><span class="comment"><font color="#808080">// 信息写完毕，写入socket，由socket发送&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>socket.disconnectFormHost(); &nbsp;&nbsp;</span></li> 
+  <li><span>socket.waitForDisconnected();&nbsp;&nbsp;</span></li> 
+ </ol> 
+</div> 
+<pre class="c" style="display: none" name="code">... // 建立连接，客户端和服务器端有区别，在此省略<br />
+QByteArray block;
+QDataStream out(&amp;block,QIODevice::WriteOnly);  // 写信息至block中，用到QDataStream类<br />
+socket.write(block);// 信息写完毕，写入socket，由socket发送<br />
+socket.disconnectFormHost();
+socket.waitForDisconnected();</pre> 
+<p>有问题的接收端代码如下：</p> 
+<div class="dp-highlighter"> 
+ <div class="bar"> 
+  <div class="tools">
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">view plain</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">copy to clipboard</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">print</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">?</font></a>
+  </div> 
+ </div> 
+ <ol class="dp-cpp"> 
+  <li class="alt"><span><span>... </span><span class="comment"><font color="#808080">// 建立连接&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></span></li> 
+  <li><span>QDataStream in(&amp;socket);</span><span class="comment"><font color="#808080">// 接收socket中的数据流&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>... </span><span class="comment"><font color="#808080">// 从数据流 in 中读数据</font></span><span>&nbsp;&nbsp;</span></li> 
+ </ol> 
+</div> 
+<pre class="c" style="display: none" name="code">... // 建立连接<br />
+QDataStream in(&amp;socket);// 接收socket中的数据流<br />
+... // 从数据流 in 中读数据</pre> 
+<p>以上是最原始的接收和发送端工作过程，调试过程中，分别讲两端的socket的状态打印出来，结果是发送端为A connection is established. 而接收端为The socket has started establishing a connection. 也就是说发送端正确的建立了连接，并将数据写入，而接收端只是正在建立连接，而并没有建立好，所以是根本不会受到数据的。所以先要确保接收端的连接建立好。waitForConnected()方法就可以解决这个问题，它将一直等待直到连接已经建立。</p> 
+<p>改进后的接收端代码：</p> 
+<div class="dp-highlighter"> 
+ <div class="bar"> 
+  <div class="tools">
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">view plain</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">copy to clipboard</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">print</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">?</font></a>
+  </div> 
+ </div> 
+ <ol class="dp-cpp"> 
+  <li class="alt"><span><span>... </span><span class="comment"><font color="#808080">// 建立连接&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></span></li> 
+  <li><span>socket.waitForConnected(5000) </span><span class="comment"><font color="#808080">// 5000表示等待的时间，默认参数为3000，单位是百万分之一秒 </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>QDataStream in(&amp;socket);</span><span class="comment"><font color="#808080">// 接收socket中的数据流&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li><span>... </span><span class="comment"><font color="#808080">// 从数据流 in 中读数据</font></span><span>&nbsp;&nbsp;</span></li> 
+ </ol> 
+</div> 
+<pre class="c" style="display: none" name="code">... // 建立连接<br />
+socket.waitForConnected(5000) // 5000表示等待的时间，默认参数为3000，单位是百万分之一秒
+QDataStream in(&amp;socket);// 接收socket中的数据流<br />
+... // 从数据流 in 中读数据</pre> 
+<p>此时，接收端输出的socket状态为A connection is established，连接成功建立。<br /> 但是还是收不到信息，参考了一下别人的程序，再比对一下参考手册，原来QTcpSocket的爷爷类(其实是父类QAbstractSocket的父类)QIODevice有一个readyRead的信号(signal)，当信息准备好并可以读的时候，这个信号就将发出，也就是说，只有当这个信号发出的时候，才可以读消息。所以要把读消息的动作read作为一个槽(slot)，并将其与readyRead信号连接。</p> 
+<div class="dp-highlighter"> 
+ <div class="bar"> 
+  <div class="tools">
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">view plain</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">copy to clipboard</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">print</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">?</font></a>
+  </div> 
+ </div> 
+ <ol class="dp-cpp"> 
+  <li class="alt"><span><span>connect(&amp;socket,SIGNAL(readyRead()),</span><span class="keyword"><strong><font color="#5697d9">this</font></strong></span><span>,SLOT(read()));&nbsp;&nbsp;</span></span></li> 
+ </ol> 
+</div> 
+<pre class="c" style="display: none" name="code">connect(&amp;socket,SIGNAL(readyRead()),this,SLOT(read()));</pre> 
+<p>但是直接触发socket信号，而不用图形界面的动作来触发一个动作并由这个动作来触发socket信号一直也触发不了read这个动作。但是我要封装成一个接口类提供给上层使用，用图形界面自然是不现实的，于是翻阅了手册，发现了一个QAbstractSocket类的一个方法——waitForReadyRead()，这个方法将一直等待到数据可以读时结束，此时就可以读数据了。方法也很简单：</p> 
+<div class="dp-highlighter"> 
+ <div class="bar"> 
+  <div class="tools">
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">view plain</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">copy to clipboard</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">print</font></a>
+   <a href="http://lennard.yo2.cn/articles/qt4%e4%b8%adsocket%e9%80%9a%e4%bf%a1.html#"><font color="#808080">?</font></a>
+  </div> 
+ </div> 
+ <ol class="dp-cpp"> 
+  <li class="alt"><span><span>... </span><span class="comment"><font color="#808080">// 建立连接&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></span></li> 
+  <li><span>socket.waitForConnected(5000) </span><span class="comment"><font color="#808080">// 5000表示等待的时间，默认参数为3000，单位是百万分之一秒&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li class="alt"><span class="keyword"><strong><font color="#5697d9">if</font></strong></span><span>(!socket.waitForReadyRead(3000)){</span><span class="comment"><font color="#808080">//3000为等待时间，没有默认的等待时间，单位是百万分之一秒 </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li><span class="keyword"><strong><font color="#5697d9">return</font></strong></span><span> ; &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>}&lt;BR&gt; &nbsp;&nbsp;</span></li> 
+  <li><span>QDataStream in(&amp;socket);</span><span class="comment"><font color="#808080">// 接收socket中的数据流&lt;BR&gt; </font></span><span>&nbsp;&nbsp;</span></li> 
+  <li class="alt"><span>... </span><span class="comment"><font color="#808080">// 从数据流 in 中读数据</font></span><span>&nbsp;&nbsp;</span></li> 
+ </ol> 
+</div> 
+<pre class="c" style="display: none" name="code">... // 建立连接<br />
+socket.waitForConnected(5000) // 5000表示等待的时间，默认参数为3000，单位是百万分之一秒<br />
+if(!socket.waitForReadyRead(3000)){//3000为等待时间，没有默认的等待时间，单位是百万分之一秒
+return ;
+}<br />
+QDataStream in(&amp;socket);// 接收socket中的数据流<br />
+... // 从数据流 in 中读数据</pre> 
+<p>这样，数据成功读取出来，实现数据的通信。</p> 
+<p>单向的数据传输问题解决了，然后再利用单向的数据通信组装成双向的数据通信，这过程中也会遇到不少问题，将在另一篇日志介绍。</p> 
+<p>========================<br /> hxzon：关键：clientConnection-&gt;waitForReadyRead();</p></div></body></html>

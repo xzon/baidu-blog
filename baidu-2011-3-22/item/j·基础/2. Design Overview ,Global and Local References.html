@@ -1,0 +1,194 @@
+<html><head><title><div class="tit">
+  2. Design Overview ,Global and Local References
+</div></title></head><body><div id='tit'>2. Design Overview ,Global and Local References</div><div id='cate'>j&middot;基础</div><div id='date'>2009年08月27日 星期四 05:57 P.M.</div><div id='page'>33</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5ca0364e33bf4fc3d0c86a30.html'>http://hi.baidu.com/hxzon/blog/item/5ca0364e33bf4fc3d0c86a30.html</a><div id='cnt'><p>2. Design Overview ,Global and Local References</p> 
+<p> </p> 
+<p> </p> 
+<h2 class="pHeading1">Referencing Java Objects</h2> 
+<a name="wp16786"></a> 
+<p class="pBody">Primitive types, such as integers, characters, and so on, are copied between Java and native code. Arbitrary Java objects, on the other hand, are passed by reference. The VM must keep track of all objects that have been passed to the native code, so that these objects are not freed by the garbage collector. The native code, in turn, must have a way to inform the VM that it no longer needs the objects. In addition, the garbage collector must be able to move an object referred to by the native code.</p> 
+<a name="wp1242"></a> 
+<h3 class="pHeading2">Global and Local References</h3> 
+<a name="wp16947"></a> 
+<p class="pBody">The JNI divides object references used by the native code into two categories: <em class="cEmphasis">local</em> and <em class="cEmphasis">global references</em>. Local references are valid for the duration of a native method call, and are automatically freed after the native method returns. Global references remain valid until they are explicitly freed.</p> 
+<a name="wp16977"></a> 
+<p class="pBody">Objects are passed to native methods as local references. All Java objects returned by JNI functions are local references. The JNI allows the programmer to create global references from local references. JNI functions that expect Java objects accept both global and local references. A native method may return a local or global reference to the VM as its result.</p> 
+<a name="wp528"></a> 
+<p class="pBody">In most cases, the programmer should rely on the VM to free all local references after the native method returns. However, there are times when the programmer should explicitly free a local reference. Consider, for example, the following situations:</p> 
+<ul class="pBullet1">
+ <a name="wp648"></a> 
+ <div class="pBullet1"> 
+  <li>A native method accesses a large Java object, thereby creating a local reference to the Java object. The native method then performs additional computation before returning to the caller. The local reference to the large Java object will prevent the object from being garbage collected, even if the object is no longer used in the remainder of the computation.</li> 
+ </div> 
+ <a name="wp650"></a> 
+ <div class="pBullet1Last"> 
+  <li>A native method creates a large number of local references, although not all of them are used at the same time. Since the VM needs a certain amount of space to keep track of a local reference, creating too many local references may cause the system to run out of memory. For example, a native method loops through a large array of objects, retrieves the elements as local references, and operates on one element at each iteration. After each iteration, the programmer no longer needs the local reference to the array element.</li> 
+ </div> 
+</ul> 
+<a name="wp681"></a> 
+<p class="pBody">The JNI allows the programmer to manually delete local references at any point within a native method. To ensure that programmers can manually free local references, JNI functions are not allowed to create extra local references, except for references they return as the result.</p> 
+<a name="wp707"></a> 
+<p class="pBody">Local references are only valid in the thread in which they are created. The native code must not pass local references from one thread to another.</p> 
+<a name="wp529"></a> 
+<h3 class="pHeading2">Implementing Local References</h3> 
+<a name="wp16789"></a> 
+<p class="pBody">To implement local references, the Java VM creates a registry for each transition of control from Java to a native method. A registry maps nonmovable local references to Java objects, and keeps the objects from being garbage collected. All Java objects passed to the native method (including those that are returned as the results of JNI function calls) are automatically added to the registry. The registry is deleted after the native method returns, allowing all of its entries to be garbage collected.</p> 
+<a name="wp1272"></a> 
+<p class="pBody"><span style="color: rgb(255,0,0)">There are different ways to implement a registry, such as using a table, a linked list, or a hash table. Although reference counting may be used to avoid duplicated entries in the registry, a JNI implementation is not obliged to detect and collapse duplicate entries. </span></p> 
+<a name="wp1247"></a> 
+<p class="pBody">Note that local references cannot be faithfully implemented by conservatively scanning the native stack. The native code may store local references into global or heap data structures.</p> 
+<h3 class="pHeading2">Accessing Primitive Arrays</h3> 
+<a name="wp16798"></a> 
+<p class="pBody">This overhead is not acceptable for large Java objects containing many primitive data types, such as integer arrays and strings. (Consider native methods that are used to perform vector and matrix calculations.) It would be grossly inefficient to iterate through a Java array and retrieve every element with a function call.</p> 
+<a name="wp16799"></a> 
+<p class="pBody">One solution introduces a notion of “pinning” so that the native method can ask the VM to pin down the contents of an array. The native method then receives a direct pointer to the elements. This approach, however, has two implications:</p> 
+<ul class="pBullet1">
+ <a name="wp17027"></a> 
+ <div class="pBullet1"> 
+  <li>The garbage collector must support pinning.</li> 
+ </div> 
+ <a name="wp17028"></a> 
+ <div class="pBullet1Last"> 
+  <li>The VM must lay out primitive arrays contiguously in memory. Although this is the most natural implementation for most primitive arrays, boolean arrays can be implemented as packed or unpacked. Therefore, native code that relies on the exact layout of boolean arrays will not be portable.</li> 
+ </div> 
+</ul> 
+<a name="wp17032"></a> 
+<p class="pBody">We adopt a compromise that overcomes both of the above problems.</p> 
+<a name="wp17037"></a> 
+<p class="pBody">First, we provide a set of functions to copy primitive array elements between a segment of a Java array and a native memory buffer. Use these functions if a native method needs access to only a small number of elements in a large array.</p> 
+<a name="wp17038"></a> 
+<p class="pBody">Second, programmers can use another set of functions to retrieve a pinned-down version of array elements. Keep in mind that these functions may require the Java VM to perform storage allocation and copying. Whether these functions in fact copy the array depends on the VM implementation, as follows:</p> 
+<ul class="pBullet1">
+ <a name="wp17039"></a> 
+ <div class="pBullet1"> 
+  <li>If the garbage collector supports pinning, and the layout of the array is the same as expected by the native method, then no copying is needed.</li> 
+ </div> 
+ <a name="wp17040"></a> 
+ <div class="pBullet1Last"> 
+  <li>Otherwise, the array is copied to a nonmovable memory block (for example, in the C heap) and the necessary format conversion is performed. A pointer to the copy is returned.</li> 
+ </div> 
+</ul> 
+<a name="wp17041"></a> 
+<p class="pBody">Lastly, the interface provides functions to inform the VM that the native code no longer needs to access the array elements. When you call these functions, the system either unpins the array, or it reconciles the original array with its non-movable copy and frees the copy.</p> 
+<a name="wp740"></a> 
+<p class="pBody">Our approach provides flexibility. A garbage collector algorithm can make separate decisions about copying or pinning for each given array. For example, the garbage collector may copy small objects, but pin the larger objects.</p> 
+<a name="wp743"></a> 
+<p class="pBody">A JNI implementation must ensure that native methods running in multiple threads can simultaneously access the same array. For example, the JNI may keep an internal counter for each pinned array so that one thread does not unpin an array that is also pinned by another thread. Note that the JNI does not need to lock primitive arrays for exclusive access by a native method. Simultaneously updating a Java array from different threads leads to nondeterministic results.</p> 
+<p class="pBody"> </p> 
+<h2 class="pHeading1">Global and Local References</h2> 
+<p><a name="wp16274"></a></p> 
+<h3>Global References</h3> 
+<h3 class="pHeading2"><a name="NewGlobalRef"></a>NewGlobalRef</h3> 
+<a name="wp16278"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">jobject NewGlobalRef(JNIEnv *env, jobject obj);</font></code></p> 
+<a name="wp16282"></a> 
+<p class="pBody">Creates a new global reference to the object referred to by the <code class="cCode"><font face="新宋体">obj</font></code> argument. The <code class="cCode"><font face="新宋体">obj</font></code> argument may be a global or local reference. Global references must be explicitly disposed of by calling <code class="cCode"><font face="新宋体">DeleteGlobalRef()</font></code>.</p> 
+<a name="wp18585"></a> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p>Index 21 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4">PARAMETERS:</h5> 
+<a name="wp18586"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">env</font></code>: the JNI interface pointer.</p> 
+<a name="wp18587"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">obj</font></code>: a global or local reference.</p> 
+<a name="wp18589"></a> 
+<h5 class="pHeading4">RETURNS:</h5> 
+<a name="wp18590"></a> 
+<p class="pBody">Returns a global reference, or <code class="cCode"><font face="新宋体">NULL</font></code> if the system runs out of memory.</p> 
+<a name="wp16294"></a> 
+<h3 class="pHeading2"><a name="DeleteGlobalRef"></a>DeleteGlobalRef</h3> 
+<a name="wp16298"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">void DeleteGlobalRef(JNIEnv *env, jobject globalRef);</font></code></p> 
+<a name="wp16302"></a> 
+<p class="pBody">Deletes the global reference pointed to by <code class="cCode"><font face="新宋体">globalRef</font></code>.</p> 
+<p><a name="wp23724"></a></p> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p align="left">Index 22 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4">PARAMETERS:</h5> 
+<a name="wp18651"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">env</font></code>: the JNI interface pointer.</p> 
+<a name="wp18652"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">globalRef</font></code>: a global reference.</p> 
+<p><a name="wp18654"></a></p> 
+<h3>Local References</h3> 
+<p>Local references are valid for the duration of a native method call. They are freed automatically after the native method returns. Each local reference costs some amount of Java Virtual Machine resource. Programmers need to make sure that native methods do not excessively allocate local references. Although local references are automatically freed after the native method returns to Java, excessive allocation of local references may cause the VM to run out of memory during the execution of a native method.</p> 
+<h3 class="pHeading2"><a name="DeleteLocalRef"></a>DeleteLocalRef</h3> 
+<a name="wp18655"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">void DeleteLocalRef(JNIEnv *env, jobject localRef);</font></code></p> 
+<a name="wp18656"></a> 
+<p class="pBody">Deletes the local reference pointed to by <code class="cCode"><font face="新宋体">localRef</font></code>.</p> 
+<p><a name="wp18657"></a></p> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p>Index 23 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4">PARAMETERS:</h5> 
+<a name="wp18658"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">env</font></code>: the JNI interface pointer.</p> 
+<a name="wp18659"></a> 
+<p class="pBody"><code class="cCode"><font face="新宋体">localRef</font></code>: a local reference.</p> 
+<p><a name="wp16334"></a></p> 
+<p class="pBody"> </p>
+<table border="1" cellspacing="0" cellpadding="5" width="80%" align="center"> 
+ <tbody> 
+  <tr> 
+   <td bgcolor="#ffffcc"> <h2><u>Note</u></h2> <p>JDK/JRE 1.1 provides the <code><font face="新宋体">DeleteLocalRef</font></code> function above so that programmers can manually delete local references. For example, if native code iterates through a potentially large array of objects and uses one element in each iteration, it is a good practice to delete the local reference to the no-longer-used array element before a new local reference is created in the next iteration.</p> <p>As of JDK/JRE 1.2 an additional set of functions are provided for local reference lifetime management. They are the four functions listed below.</p> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<h3 class="pHeading2"><a name="ensure_local_capacity"></a>EnsureLocalCapacity</h3> 
+<p><a name="EnsureLocalCapacity"></a><code><font face="新宋体">jint EnsureLocalCapacity(JNIEnv *env, jint capacity);</font></code></p> 
+<p>Ensures that <em>at least</em> a given number of local references can be created in the current thread. Returns 0 on success; otherwise returns a negative number and throws an <code><font face="新宋体">OutOfMemoryError</font></code>.</p> 
+<p>Before it enters a native method, the VM automatically ensures that at least <strong>16</strong> local references can be created.</p> 
+<p>For backward compatibility, the VM allocates local references beyond the ensured capacity. (As a debugging support, the VM may give the user warnings that too many local references are being created. In the JDK, the programmer can supply the <code><font face="新宋体">-verbose:jni</font></code> command line option to turn on these messages.) The VM calls <code><font face="新宋体">FatalError</font></code> if no more local references can be created beyond the ensured capacity.</p> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p class="pBody">Index 26 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4"><font color="#ff0000">SINCE:</font></h5> 
+<p>JDK/JRE 1.2</p> 
+<h3 class="pHeading2"><a name="push_local_frame"></a>PushLocalFrame</h3> 
+<p><a name="PushLocalFrame"></a><code><font face="新宋体">jint PushLocalFrame(JNIEnv *env, jint capacity);</font></code></p> 
+<p>Creates a new local reference frame, in which at least a given number of local references can be created. Returns 0 on success, a negative number and a pending <code><font face="新宋体">OutOfMemoryError</font></code> on failure.</p> 
+<p>Note that local references already created in previous local frames are still valid in the current local frame.</p> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p class="pBody">Index 19 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4"><font color="#ff0000">SINCE:</font></h5> 
+<p>JDK/JRE 1.2</p> 
+<h3 class="pHeading2"><a name="pop_local_frame"></a>PopLocalFrame</h3> 
+<p><a name="PopLocalFrame"></a><code><font face="新宋体">jobject PopLocalFrame(JNIEnv *env, jobject result);</font></code></p> 
+<p>Pops off the current local reference frame, frees all the local references, and returns a local reference in the previous local reference frame for the given <code><font face="新宋体">result</font></code> object.</p> 
+<p>Pass <code><font face="新宋体">NULL</font></code> as <code><font face="新宋体">result</font></code> if you do not need to return a reference to the previous frame.</p> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p class="pBody">Index 20 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4"><font color="#ff0000">SINCE:</font></h5> 
+<p>JDK/JRE 1.2</p> 
+<h3 class="pHeading2"><a name="new_local_ref"></a>NewLocalRef</h3> 
+<p><a name="NewLocalRef"></a><code><font face="新宋体">jobject NewLocalRef(JNIEnv *env, jobject ref);</font></code></p> 
+<p>Creates a new local reference that refers to the same object as <code><font face="新宋体">ref</font></code>. The given <code><font face="新宋体">ref</font></code> may be a global or local reference. Returns <code><font face="新宋体">NULL</font></code> if <code><font face="新宋体">ref</font></code> refers to <code><font face="新宋体">null</font></code>.</p> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p class="pBody">Index 25 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4"><font color="#ff0000">SINCE:</font></h5> 
+<p>JDK/JRE 1.2</p> 
+<h2><a name="weak"></a>Weak Global References</h2> 
+<p class="pBody">Weak global references are a special kind of global reference. Unlike normal global references, a weak global reference allows the underlying Java object to be garbage collected. Weak global references may be used in any situation where global or local references are used. When the garbage collector runs, it frees the underlying object if the object is only referred to by weak references. A weak global reference pointing to a freed object is functionally equivalent to <code><font face="新宋体">NULL</font></code>. Programmers can detect whether a weak global reference points to a freed object by using <code><font face="新宋体">IsSameObject</font></code> to compare the weak reference against <code><font face="新宋体">NULL</font></code>.</p> 
+<p>Weak global references in JNI are a simplified version of the Java Weak References, available as part of the Java 2 Platform API ( <code><font face="新宋体">java.lang.ref</font></code> package and its classes). <a name="weakrefs clarification"></a></p> 
+<p><strong>Clarification</strong> &nbsp;&nbsp;&nbsp;<em>(added June 2001)</em></p> 
+<blockquote> 
+ <p><em>Since garbage collection may occur while native methods are running, objects referred to by weak global references can be freed at any time. While weak global references can be used where global references are used, it is generally inappropriate to do so, as they may become functionally equivalent to </em><code><font face="新宋体">NULL</font></code><em> without notice. </em></p> 
+ <p><em>While </em><code><font face="新宋体">IsSameObject</font></code><em> can be used to determine whether a weak global reference refers to a freed object, it does not prevent the object from being freed immediately thereafter. Consequently, programmers may not rely on this check to determine whether a weak global reference may used (as a non-</em><code><font face="新宋体">NULL</font></code><em> reference) in any future JNI function call. </em></p> 
+ <p><em>To overcome this inherent limitation, it is recommended that a standard (strong) local or global reference to the same object be acquired using the JNI functions </em><code><font face="新宋体">NewLocalRef</font></code><em> or </em><code><font face="新宋体">NewGlobalRef</font></code><em>, and that this strong reference be used to access the intended object. These functions will return </em><code><font face="新宋体">NULL</font></code><em> if the object has been freed, and otherwise will return a strong reference (which will prevent the object from being freed). The new reference should be explicitly deleted when immediate access to the object is no longer required, allowing the object to be freed. </em></p> 
+ <p><em>The weak global reference is weaker than other types of weak references (Java objects of the SoftReference or WeakReference classes). A weak global reference to a specific object will not become functionally equivalent to </em><code><font face="新宋体">NULL</font></code><em> until after SoftReference or WeakReference objects referring to that same specific object have had their references cleared. </em></p> 
+ <p><em>The weak global reference is weaker than Java's internal references to objects requiring finalization. A weak global reference will not become functionally equivalent to </em><code><font face="新宋体">NULL</font></code><em> until after the completion of the the finalizer for the referenced object, if present. </em></p> 
+ <p><em>Interactions between weak global references and PhantomReferences are undefined. In particular, implementations of a Java VM may (or may not) process weak global references after PhantomReferences, and it may (or may not) be possible to use weak global references to hold on to objects which are also referred to by PhantomReference objects. This undefined use of weak global references should be avoided. </em></p> 
+</blockquote> 
+<p> </p> 
+<h3 class="pHeading2"><a name="NewWeakGlobalRef"></a>NewWeakGlobalRef</h3> 
+<p><code><font face="新宋体">jweak NewWeakGlobalRef(JNIEnv *env, jobject obj);</font></code></p> 
+<p>Creates a new weak global reference. Returns <code><font face="新宋体">NULL</font></code> if <code><font face="新宋体">obj</font></code> refers to <code><font face="新宋体">null</font></code>, or if the VM runs out of memory. If the VM runs out of memory, an <code><font face="新宋体">OutOfMemoryError</font></code> will be thrown.</p> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p class="pBody">Index 226 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4"><font color="#ff0000">SINCE:</font></h5> 
+<p>JDK/JRE 1.2</p> 
+<h3 class="pHeading2"><a name="DeleteWeakGlobalRef"></a>DeleteWeakGlobalRef</h3> 
+<p><code><font face="新宋体">void DeleteWeakGlobalRef(JNIEnv *env, jweak obj);</font></code></p> 
+<p>Delete the VM resources needed for the given weak global reference.</p> 
+<h5 class="pHeading4">LINKAGE:</h5> 
+<p class="pBody">Index 227 in the JNIEnv interface function table.</p> 
+<h5 class="pHeading4"><font color="#ff0000">SINCE:</font></h5> 
+<p>JDK/JRE 1.2</p></div></body></html>

@@ -1,0 +1,207 @@
+<html><head><title><div class="tit">
+  hibernate学习笔记(三，四) 控制事务
+</div></title></head><body><div id='tit'>hibernate学习笔记(三，四) 控制事务</div><div id='cate'>j&middot;入门</div><div id='date'>2008年08月27日 星期三 12:09 P.M.</div><div id='page'>107</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/9105a20ffcbc8febab64579c.html'>http://hi.baidu.com/hxzon/blog/item/9105a20ffcbc8febab64579c.html</a><div id='cnt'><p>hibernate学习笔记(三，四) 控制事务</p> 
+<p>hibernate学习笔记(三)</p> 
+<ol> 
+ <li class="alt"><span twffan="done"><span twffan="done">一、many－to－one关系在数据库中如何体现，在JavaBean中如何体现，在Hibernate中如何映射many－to－one关系。 &nbsp;&nbsp;</span></span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span class="number" twffan="done">1</span><span twffan="done">、数据库中：一个表的主健对应另一个表的外健。 &nbsp;&nbsp;</span></li> 
+ <li><span class="number" twffan="done">2</span><span twffan="done">、javaBean中：一个对象包含另一个对象的一个引用，另一个对象包含这个对象的一组（集合，用set）引用。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span class="number" twffan="done">3</span><span twffan="done">、在hibernate中：用set.key指定具体列。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">我们以订单Order（一方）和订单项Item（多方）为例： &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">a、Order.hbm.xml的写法： &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done"> name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Order&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;ec_order&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;id name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;id&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;id&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;integer&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;generator </span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">=</span><span class="string" twffan="done"><font color="#0000ff">&quot;native&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;/id&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;owner&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;owner&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;string&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;phone&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;phone&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;string&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;address&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;address&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;string&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;set name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;items&quot;</font></span><span twffan="done"> cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;all-delete-orphan&quot;</font></span><span twffan="done"> inverse=</span><span class="string" twffan="done"><font color="#0000ff">&quot;true&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;key column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;orderid&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;one-to-many </span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Item&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;/set&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;/</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">注：inverse＝“</span><span class="keyword" twffan="done"><strong><font color="#7f0055">true</font></strong></span><span twffan="done">”表示忽略集合一端的变化。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;all-delete-orphan&quot;</font></span><span twffan="done">:这个比较麻烦一点，我们先来看看把cascade设为all的情况：在我们调用session.delete(order)时，会删除order下所有的item，但是如果调用order.getItems().remove(item)，然后调用session.update(order)则不会删除此item，只会把 ec_item表中该条item记录的order_id设置为</span><span class="keyword" twffan="done"><strong><font color="#7f0055">null</font></strong></span><span twffan="done">。因此，如果想通过order.getItems.remove(item)删除对象，需要在已有级联的基础上加上“delete-orphan”。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">b、Item.hbm.xml的写法 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done"> name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Item&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;ec_item&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;id name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;id&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;id&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;integer&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;generator </span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">=</span><span class="string" twffan="done"><font color="#0000ff">&quot;native&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;/id&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;product&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;product&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;string&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;amount&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;amount&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;integer&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;many-to-one name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;order&quot;</font></span><span twffan="done"> </span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Order&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;orderid&quot;</font></span><span twffan="done">/&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;/</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">inverse=</span><span class="string" twffan="done"><font color="#0000ff">&quot;true&quot;</font></span><span twffan="done">就是在设置如果在内存中的修改或添加了这个集合中的某一个或某几个对象他不会将全部集合的信息同步到数据库， &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">而是只将集合中被修改的对象重新同步到数据库。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">cascade属性是设置级联操作的也就是在操作一端的数据如果影响到多端数据时会进行级联操作， &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;none&quot;</font></span><span twffan="done">,cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;save-update&quot;</font></span><span twffan="done">,cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;delete&quot;</font></span><span twffan="done">,cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;all&quot;</font></span><span twffan="done"> cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;persist&quot;</font></span><span twffan="done"> &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;delete-orphan&quot;</font></span><span twffan="done">,cascade属性的值常用的设置为以上五项： &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">none就是不使用级联操作，默认级联是none。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">save-update也就是只有对象保存操作（持久化操作）或者是持久化对象的更新操作，才会级联操作关联对象（子对象）。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">persist就只是将级联对象也持久化到数据库。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">delete对持久化对象的删除操作时会进行级联操作关联对象（子对象）。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">all对持久化对象的所有操作都会级联操作关联对象（子对象）。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">all-delete-orphan，在多端进行删除操作时，会再多端表中留下</span><span class="keyword" twffan="done"><strong><font color="#7f0055">null</font></strong></span><span twffan="done">空纪录，设置了级联操作为delete之会将表中表示关联的外键id置成</span><span class="keyword" twffan="done"><strong><font color="#7f0055">null</font></strong></span><span twffan="done">， &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">不会将这条纪录也删除掉，而把级联设置成delete-orphan就不会留有空纪录，而是级联的把相关纪录删除掉。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">batch-size这个属性只能够写在set标签中，这个属性带表批量加载，也就是在加载一端的集合属性时会一次加载指定的数量的对象， &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">而不是默认的一个一个的加载，会提高效率，批量加载只能用于延迟加载和立即加载策略，也就是（lazy=</span><span class="string" twffan="done"><font color="#0000ff">&quot;true&quot;</font></span><span twffan="done">或者lazy=</span><span class="string" twffan="done"><font color="#0000ff">&quot;false&quot;</font></span><span twffan="done">）。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">lazy=</span><span class="string" twffan="done"><font color="#0000ff">&quot;true&quot;</font></span><span twffan="done"> 延迟加载，所谓的延迟加载，就是对一端的集合属性的加载策略，就是在不使用到集合中的对象的数据就不会真正的加载集合 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">中的对象数据，而是家在一个代理对象就相当于的一个空的容器。这也就是会出现LazyInitializationException异常，也就是没有初始化 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">这个代理的集合对象，在事先查询到了集合中的对象就会初始化这个对象，如果Session没有关闭就会在查询加载集合中的对象信息，如果 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">提前关闭了Session，当使用集合中的对象信息时就会有这个异常。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">fetch=</span><span class="string" twffan="done"><font color="#0000ff">&quot;join&quot;</font></span><span twffan="done">，这就是使用了预先抓取策略，也就是针对关联的对象的加载策略，在使用到关联对象的信息时会再发送sql语句，如果不使 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">用fetch=</span><span class="string" twffan="done"><font color="#0000ff">&quot;join&quot;</font></span><span twffan="done">，就会不使用表连接而是先查出一端的关联id再一条一条的发送sql语句查询到关联对象信息，使用了fetch=</span><span class="string" twffan="done"><font color="#0000ff">&quot;join&quot;</font></span><span twffan="done">就会使 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">用表连接将关联对象信息直接查寻出来的。fetch=</span><span class="string" twffan="done"><font color="#0000ff">&quot;lazy&quot;</font></span><span twffan="done">这个是默认的设置。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">注意： &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">在使用fetch=</span><span class="string" twffan="done"><font color="#0000ff">&quot;join&quot;</font></span><span twffan="done">要区分开他和外连接的区别，他不会忽略配置文件中的加载策略，而使用了外连接就会忽略配置文件中使用了外连接的 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">一端的所有加载策略，而替之为立即加载。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">例：班级 tream，身份证 Certigicate 学生 student &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">身份证和学生是一对一关系，班级和学生是一对多的关系。学生对身份证的加载策略是预先抓取，学生对班级是预先抓取，但是班级对学生 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">是延迟加载。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">现在使用了外连接 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">Query q=session.createQuery(</span><span class="string" twffan="done"><font color="#0000ff">&quot;from Student as s left join s.team&quot;</font></span><span twffan="done">); &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">as 的语法是取别名的语法。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">也就是使用了外连接的来查寻班级，这样就会忽略，学生对象对其所有属性除了使用外连接查寻的属性，而其余都会使用立即加载。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;&quot;</font></span><span twffan="done"> not-</span><span class="keyword" twffan="done"><strong><font color="#7f0055">null</font></strong></span><span twffan="done">=</span><span class="string" twffan="done"><font color="#0000ff">&quot;true&quot;</font></span><span twffan="done">&gt;,这样也就会使这个属性不能够为空值 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">查询对象，可以使用get()和load()方法，不过前提是必须知道该对象持久化时的唯一标识，也就是id，和这个对象的类对象。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">二、多对多的映射实现（many-to-many） &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">一般多对多关联会拆分成两个一对多的关系来实现多对多关系，也可以通过hibernate提供的解决方案来实现。其实hibernate的实现方式是通过中间表间接的实现了多对多关系，实际上也是将多对多拆分成两个双向的一对多关系。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">多对多关系XML文件的配置 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;hibernate-mapping&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done"> name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Course&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;course&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;set name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;clazz&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;class_course&quot;</font></span><span twffan="done"> inverse=</span><span class="string" twffan="done"><font color="#0000ff">&quot;true&quot;</font></span><span twffan="done">&gt;&lt;!--设置中间表的表名--&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;key column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;courseid&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;many-to-many column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;classid&quot;</font></span><span twffan="done"> </span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Clazz&quot;</font></span><span twffan="done">/&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;/set&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;/</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;/hibernate-mapping&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;hibernate-mapping&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done"> name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Clazz&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;class&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;set name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;course&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;class_course&quot;</font></span><span twffan="done"> cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;save-update&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;key column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;classid&quot;</font></span><span twffan="done">/&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;many-to-many column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;courseid&quot;</font></span><span twffan="done"> </span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Course&quot;</font></span><span twffan="done">/&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;/set&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;/</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;/hibernate-mapping&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">Hibernate知识点小记 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">一、cascade &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">cascade属性是设置级联操作的也就是在操作一端的数据如果影响到多端数据时会进行级联操作，一对一的时候直接写在标签上，其他的要写在set标签上 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;none|save-update|all|all-delete-orphan&quot;</font></span><span twffan="done"> &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">none 就是不使用级联操作，默认级联是none。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">save-update 也就是只有对象保存操作（持久化操作）或者是持久化对象的更新操作，才会级联操作关联对象（子对象）。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">all 对持久化对象的所有操作都会级联操作关联对象（子对象）。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">all-delete-orphan，在多端进行删除操作时，会再多端表中留下</span><span class="keyword" twffan="done"><strong><font color="#7f0055">null</font></strong></span><span twffan="done">空纪录，设置了级联操作为delete之会将表中表示关联的外键id置成</span><span class="keyword" twffan="done"><strong><font color="#7f0055">null</font></strong></span><span twffan="done">，不会将这条纪录也删除掉，而把级联设置成delete-orphan就不会留有空纪录，而是级联的把相关纪录删除掉。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">二、inverse &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">inverse=</span><span class="string" twffan="done"><font color="#0000ff">&quot;true&quot;</font></span><span twffan="done">就是在设置如果在内存中的修改或添加了这个集合中的某一个或某几个对象他不会将全部集合的信息同步到数据库，而是只将集合中被修改的对象重新同步到数据库 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">三、lazy &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">lazy=“</span><span class="keyword" twffan="done"><strong><font color="#7f0055">true</font></strong></span><span twffan="done">” &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">延迟加载，所谓的延迟加载，就是对一端的集合属性的加载策略，就是在不使用到集合中的对象的数据就不会真正的加载集合中的对象数据，而是家在一个代理对象就相当于的一个空的容器。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">这也就是会出现LazyInitializationException异常，也就是没有初始化这个代理的集合对象，在事先查询到了集合中的对象就会初始化这个对象，如果Session没有关闭就会在查询加载集合中的对象信息，如果提前关闭了Session，当使用集合中的对象信息时就会有这个异常。 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">四、fetch &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">fetch=“join”，这就是使用了预先抓取策略，也就是针对关联的对象的加载策略，在使用到关联对象的信息时会再发送sql语句，如果不使用fetch=“join”，就会不使用表连接而是先查出一端的关联id再一条一条的发送sql语句查询到关联对象信息，使用了fetch=“join”就会使用表连接将关联对象信息直接查寻出来的。fetch=“lazy”这个是默认的设置。 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">五、多对多 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">写配置文件的时候要紧记一个原则就不会错了： &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;key column =””&gt;总是和本身类的主键id对应 &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;column=””&gt;总是和关联类的主键id相对应 &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">比如： &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;set name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;courses&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;enrollments &quot;</font></span><span twffan="done"> inverse=</span><span class="string" twffan="done"><font color="#0000ff">&quot;true&quot;</font></span><span twffan="done"> cascade=</span><span class="string" twffan="done"><font color="#0000ff">&quot;save-update&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;key column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;sid&quot;</font></span><span twffan="done">/&gt; &nbsp;&nbsp;</span></li> 
+ <li><span twffan="done">&lt;many-to-many </span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done">=</span><span class="string" twffan="done"><font color="#0000ff">&quot;Course&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;cid&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+ <li class="alt"><span twffan="done">&lt;/set&gt;&nbsp;&nbsp;&nbsp;</span></li> 
+</ol> 
+<p class="alt">hibernate学习笔记(四)</p> 
+<div class="alt"> 
+ <ol class="dp-j"> 
+  <li class="alt"><span twffan="done"><span twffan="done">一、Hibernate控制的事务 &nbsp;&nbsp;</span></span></li> 
+  <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">ACID &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">atomicity consistency isolation durability &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">事务保证原子操作的不可分，也就是操作的同时成功或同时失败。 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">Transaction tran=session.beginTranaction(); &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">tran.commit(); &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">tran.rollback(); &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">以上是事务对象的方法，来实现对事务的支持。 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">二、hibernate的事务隔离级别 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">hibernate的事务隔离级别和JDBC中大致相同。 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">设置时要在hibernate.cfg.xml配置 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;hibernate.connection.isolation&quot;</font></span><span twffan="done">&gt;</span><span class="number" twffan="done">4</span><span twffan="done">&lt;/property&gt; &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span class="number" twffan="done">1</span><span twffan="done">，读未提交的数据（Read uncommitted isolation） &nbsp;&nbsp;</span></li> 
+  <li><span class="number" twffan="done">2</span><span twffan="done">，读已提交的数据（Read committed isolation） &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span class="number" twffan="done">4</span><span twffan="done">，可重复读级别（Repeatable read isolation） &nbsp;&nbsp;</span></li> 
+  <li><span class="number" twffan="done">8</span><span twffan="done">，可串行化级别（Serializable isolation） &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">三、hibernate的锁（悲观锁，乐观锁） &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">session.get(User.</span><span class="keyword" twffan="done"><strong><font color="#7f0055">class</font></strong></span><span twffan="done"> , userid , LockMode.UPGRADE); &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">悲观锁是由数据库本身所实现的，会对数据库中的数据进行锁定，也就是锁行。 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">LockMode.UPGRADE,修改锁，在get()方法中加上这个设置作为第三个参数。 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">LockMode.NONE 无锁机制 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">LockMode.READ 读取锁 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">LockMode.WRITE 写入锁，不能在程序中直接使用 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">还可以使用Session.lock() Query.setLockMode() Criteria.setLockMode()方法来设置锁 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">乐观锁，也就是通过对记录加上某些信息来解决并发访问的问题。 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">版本检查&lt;version&gt;标签 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">要在其表中多加上一列表示版本信息，会在读取时读到这个版本号，并在修改之后更新这个版本号，并且只有版本号相同才会予以更新，如果版本号低，就会抛出例外。 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">&lt;version name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;version&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;version&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;integer&quot;</font></span><span twffan="done"> /&gt; &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">时间戳 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">使用时间戳，是通过最后修改时间来判断是否来做更新操作，也就是只有在最后更新时间之后才会做更新。 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">&lt;timestamp name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;updateTime&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;updatetime&quot;</font></span><span twffan="done">/&gt; &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">四、类继承关系映射 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">建表策略 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">（</span><span class="number" twffan="done">1</span><span twffan="done">）所有类建一个表 （</span><span class="number" twffan="done">2</span><span twffan="done">）只为具体类建表 （</span><span class="number" twffan="done">3</span><span twffan="done">）每个类建一个表。 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">只为具体类建表，使用于不使用多态的情况下，具体类之间没有继承关系时适用 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">需要针对每个类写映射配置文件，就和普通的单表映射的xml文件相同。 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">也可以使用一个xml文件来进行映射，可以通过写union-subclass标签来表现其关系 &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">这里不能使用id生成策略中的</span><span class="keyword" twffan="done"><strong><font color="#7f0055">native</font></strong></span><span twffan="done">，而是要指定特定的生成策略。 &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">例： &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">&lt;union-subclass name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;notpad&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;tpcc_notpad&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;wight&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;wight&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;integer&quot;</font></span><span twffan="done">/&gt; &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">&lt;/union-subclass&gt; &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&lt;union-subclass name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;desktop&quot;</font></span><span twffan="done"> table=</span><span class="string" twffan="done"><font color="#0000ff">&quot;tpcc_desktop&quot;</font></span><span twffan="done">&gt; &nbsp;&nbsp;</span></li> 
+  <li><span twffan="done">&lt;property name=</span><span class="string" twffan="done"><font color="#0000ff">&quot;LCD&quot;</font></span><span twffan="done"> column=</span><span class="string" twffan="done"><font color="#0000ff">&quot;isLCD&quot;</font></span><span twffan="done"> type=</span><span class="string" twffan="done"><font color="#0000ff">&quot;yes_no&quot;</font></span><span twffan="done">/&gt; &nbsp;&nbsp;</span></li> 
+  <li class="alt"><span twffan="done">&lt;/union-subclass&gt;</span></li> 
+ </ol> 
+</div> 
+<div class="alt"> 
+</div></div></body></html>

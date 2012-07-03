@@ -1,0 +1,34 @@
+<html><head><title><div class="tit">
+  在struts1.x中防止重复提交的实现
+</div></title></head><body><div id='tit'>在struts1.x中防止重复提交的实现</div><div id='cate'>默认分类</div><div id='date'>2008年08月26日 星期二 02:12 P.M.</div><div id='page'>108</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6b460efaa8f9579158ee9012.html'>http://hi.baidu.com/hxzon/blog/item/6b460efaa8f9579158ee9012.html</a><div id='cnt'><p>在struts1.x中防止重复提交的实现</p> 
+<p>当我们在Struts中提交表单后，可以通过会退按钮返回到原来的表单页面，进行重复性提交。这在很多情况下是不允许的。比如当注册用户的表单中，当提交成功后，回退或者按刷新按钮可以再次提交表单，这样造成数据的不一致性，因为数据已经提交。</p> 
+<p>Struts中可以利用同步令牌机制来解决重复提交表单的问题。在Struts的Action中提供了和同步令牌相关的方法</p> 
+<p>protected boolean isTokenValid(HttpServletRequest request)</p> 
+<p>此方法用来判断当前用户会话中存储的令牌值和当前请求参数的令牌值是否一致，如果不一致返回false，一致则返回true。当我们利用Action进行相应调用处理时，就是利用此方法判断令牌值是否一致来决定是否进行处理</p> 
+<p>protected void saveToken(HttpServletRequest request)</p> 
+<p>此方法创建一个新的令牌值，将其保存在当前的会话（session）范围内。如果当前的会话对象不存在，则创建会话对象</p> 
+<p>protected void resetToken(HttpServletRequest request)</p> 
+<p>此方法对当前会话范围的令牌值进行复位操作，即删除当前会话范围的令牌值</p> 
+<p>了解了以上方法后，我们就可以在我们的应用中利用这些方法防止表单的重复性提交。例如在此我们实现一个简单的数据增加操作，首先需要显示给用户一个信息录入表单，显示此录入表单页面前，需要给当前的请求分配一个同步令牌值，并存储在当前的会话范围内。并在当前的录入页面中生成一个隐藏域，令牌值作为此隐藏域的内容，当用户提交时，控制器获取隐藏域的内容，利用isValidToken方法判断此参数内容是否和会话中存储的令牌值内容匹配，如果不匹配则进行适当的错误处理</p> 
+<p>由于要在页面显示前生成此次请求的令牌值，所以通过一个额外的Action生成令牌值，并转发到录入页面，例如在此额外的Action为：PersonAddPreparedAction，此action的配置为：</p> 
+<p>&nbsp;&nbsp;&nbsp; &lt;action<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; path=&quot;/personAddPrepared&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; scope=&quot;request&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type=&quot;com.frank.action.PersonAddPreparedAction&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;forward name=&quot;personAdd&quot; path=&quot;/personAdd.jsp&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;/action&gt;</p> 
+<p>其中包括一个转发路径personAdd，转发到personAdd.jsp(实际的信息录入页面）。在此Action中生成令牌值，转发到录入页面：</p> 
+<p>public ActionForward execute(ActionMapping mapping, ActionForm form,<br /> &nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {<br /> &nbsp;&nbsp; this.saveToken(request);<br /> &nbsp;&nbsp; return mapping.findForward(&quot;personAdd&quot;);<br /> }</p> 
+<p>完成了此次操作后，生成了令牌值，并存储在了当前的会话中，转发到personAdd.jsp，开始信息的录入提交。</p> 
+<p>personAdd.jsp页面非常的简单</p> 
+<p>&nbsp;&nbsp; &lt;html:errors/&gt;<br /> &nbsp;&nbsp; &lt;html:form action=&quot;/person.do?action=add&quot;&gt; <br /> &nbsp;&nbsp;&nbsp; personname : &lt;html:text property=&quot;personname&quot; value=&quot;&quot;/&gt;&lt;html:errors property=&quot;personname&quot;/&gt;&lt;br/&gt;<br /> &nbsp;&nbsp;&nbsp; age : &lt;html:text property=&quot;age&quot; value=&quot;&quot;/&gt;&lt;html:errors property=&quot;age&quot;/&gt;&lt;br/&gt;&nbsp;&nbsp;&nbsp;<br /> &nbsp;&nbsp;&nbsp; gender : &lt;html:radio property=&quot;gender&quot; value=&quot;M&quot;/&gt;男<br /> &nbsp;&nbsp;&nbsp; &lt;html:radio property=&quot;gender&quot; value=&quot;F&quot;/&gt;女<br /> &nbsp;&nbsp;&nbsp; &lt;html:errors property=&quot;gender&quot;/&gt;&lt;br/&gt;</p> 
+<p><br /> &nbsp;&nbsp;&nbsp; &lt;html:submit value=&quot;ADD&quot;/&gt;&lt;html:cancel/&gt;<br /> &nbsp;&nbsp; &lt;/html:form&gt;</p> 
+<p>提交后请求personAction，进行实际的业务操作</p> 
+<p>PersonAction中的add契约方法完成数据的增加（在此PersonAction继承了DispatchAction），PersonAction的配置如下：</p> 
+<p>&nbsp;&nbsp;&nbsp; &lt;action<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; attribute=&quot;personForm&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; input=&quot;/personAdd.jsp&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; name=&quot;personForm&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parameter=&quot;action&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; path=&quot;/person&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; scope=&quot;request&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; type=&quot;com.frank.action.PersonAction&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;forward name=&quot;addFail&quot; path=&quot;/personAdd.jsp&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;forward name=&quot;addSuccess&quot; path=&quot;/personList.jsp&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp; &lt;/action&gt;</p> 
+<p>PersonAction的add方法代码如下：</p> 
+<p>public ActionForward add(ActionMapping mapping, ActionForm form,<br /> &nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {<br /> &nbsp;&nbsp; PersonForm personForm = (PersonForm) form;// TODO Auto-generated method stub<br /> &nbsp;&nbsp; String personname=personForm.getPersonname();<br /> &nbsp;&nbsp; int age=personForm.getAge();<br /> &nbsp;&nbsp; String gender=personForm.getGender();<br /> &nbsp;&nbsp; PersonRule personRule=new PersonRule();<br /> &nbsp;&nbsp; ActionMessages errors=new ActionMessages();<br /> &nbsp;&nbsp; if(!this.isTokenValid(request)){<br /> &nbsp;&nbsp;&nbsp; this.saveToken(request);<br /> &nbsp;&nbsp;&nbsp; errors.add(ActionMessages.GLOBAL_MESSAGE,new ActionMessage(&quot;register.error&quot;));<br /> &nbsp;&nbsp;&nbsp; this.saveErrors(request, errors);<br /> &nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;addFail&quot;);<br /> &nbsp;&nbsp; }else{<br /> &nbsp;&nbsp;&nbsp; this.resetToken(request);<br /> &nbsp;&nbsp;&nbsp; if(personRule.addPerson(personname, age, gender)){<br /> &nbsp;&nbsp;&nbsp;&nbsp; return mapping.findForward(&quot;addSuccess&quot;);<br /> &nbsp;&nbsp;&nbsp; }else{<br /> &nbsp;&nbsp;&nbsp;&nbsp; return mapping.getInputForward();<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp; }<br /> }</p> 
+<p>此方法首先获取ActionForm的数据内容，然后判断令牌值是否匹配（判断会话中的令牌值和请求参数中的令牌值）。如果不匹配则重新生成令牌值，并记录错误信息，转发到addFail（即信息录入页面重新录入）。如果匹配则删除当前会话中的令牌值（这样，当点回退或者刷新按钮重复提交时，因为此时令牌值已经被删除，显然不匹配，则不进行实际的业务操作，即防止了重复提交），完成实际的业务操作。</p> 
+<p>在属性文件中加入register.error属性，用于保存错误信息</p> 
+<p>register.error=you already submit form</p> 
+<p>测试：</p> 
+<p><img style="text-align: center; margin: 0px auto 10px; display: block" border="0" src="image/在struts1.x中防止重复提交的实现.11b65e141a9.jpg" /><p class="origImg">http://1812.img.pp.sohu.com.cn/images/blog/2008/6/26/0/18/11b65e141a9.jpg</p></p> 
+<p>从PersonAddPreparedAction控制器转发到注册页面，此时生成了令牌值保存到当前的会话中，查看此页面的源代码，会发现自动生成了隐藏域，同时记录了令牌值，当提交时，此隐藏域的令牌值也会提交，以后即可和存储在当前会话中的令牌值进行比较了</p> 
+<p>&lt;input type=&quot;hidden&quot; name=&quot;org.apache.struts.taglib.html.TOKEN&quot; value=&quot;893ffef11148c6569a3c10f2309a0e21&quot;&gt;</p> 
+<p>首次提交时，没有任何的问题，但是点刷新重复提交或者回退到原来页面进行重复提交时，不会提交成功，而是转发到注册页面，提示错误</p> 
+<p><img style="text-align: center; margin: 0px auto 10px; display: block" border="0" src="image/在struts1.x中防止重复提交的实现.11b65f08c5f.jpg" /><p class="origImg">http://1822.img.pp.sohu.com.cn/images/blog/2008/6/26/0/22/11b65f08c5f.jpg</p></p></div></body></html>

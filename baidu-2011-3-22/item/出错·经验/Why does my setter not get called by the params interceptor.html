@@ -1,0 +1,32 @@
+<html><head><title><div class="tit">
+  Why does my setter not get called by the params interceptor
+</div></title></head><body><div id='tit'>Why does my setter not get called by the params interceptor</div><div id='cate'>出错&middot;经验</div><div id='date'>2009年03月19日 星期四 01:02 P.M.</div><div id='page'>60</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b494610903c25dc73ac763d6.html'>http://hi.baidu.com/hxzon/blog/item/b494610903c25dc73ac763d6.html</a><div id='cnt'><p>Why does my setter not get called by the params interceptor</p> 
+<p><a href="http://struts.apache.org/2.0.14/docs/why-does-my-setter-not-get-called-by-the-params-interceptor.html">http://struts.apache.org/2.0.14/docs/why-does-my-setter-not-get-called-by-the-params-interceptor.html</a></p> 
+<p><a href="http://cephas.net/blog/2007/01/04/ognl-getter-and-setter-types-must-match/">http://cephas.net/blog/2007/01/04/ognl-getter-and-setter-types-must-match/</a> 全文</p> 
+<h3>OGNL: getter and setter types must match</h3> 
+<p>Yesterday I ran into a interesting bug with the <a href="http://www.opensymphony.com/webwork/">WebWork</a> application I spend my waking hours working on, at least initially I thought it was a WebWork bug. I had a <a href="http://www.opensymphony.com/webwork/api/com/opensymphony/xwork/Action.html">WebWork action</a> with a getter / setter combination that looked like this:</p> 
+<pre>public void setUser(String username) {
+...
+}
+public User getUser() {
+...
+}</pre> 
+<p>The thinking here was that if I invoked the action using a request like this:</p> 
+<pre>/myaction.jspa?user=aaron</pre> 
+<p>then the action would look up the user based on the given username and populate a User object, which would then be returned by the getUser() method (populating the user instance using a custom IOC interceptor would have also worked but would have been overkill in this particular case). The problem was that the setUser(String username) method was never getting called. After checking and double checking the method names and the parameter being passed, I googled around and found <a href="http://www.mail-archive.com/dev@struts.apache.org/msg23196.html">this email thread</a> which discusses the very issue, saying that the problem was in fact not with WebWork, nor with it’s underlying expression engine <a href="http://www.opensymphony.com/webwork/wikidocs/OGNL.html">OGNL</a>, but rather the ‘Java reflection API semantics’. In the thread, Laurie Harper, a Struts committer, says that the:</p> 
+<blockquote> 
+ <p>… restriction (where getter and setter have to be of the same type) comes from the Java relection API semantics, not OGNL. A property can only have one type, so it makes sense that the getter and setter for a JavaBean property must agree on that type.</p> 
+</blockquote> 
+<p>I didn’t doubt what he said, but I needed to see it with my own eyes, so I dove into the deep sea that is OGNL, reflection and JavaBeans. First I read the <a href="http://java.sun.com/products/javabeans/docs/spec.html">JavaBeans specification</a>, which seems to back up his story: page 55 of the PDF says this:</p> 
+<blockquote> 
+ <p>By default, we use design patterns to locate properties by looking for methods of the form:<br /> public &lt;PropertyType&gt; get&lt;PropertyName&gt;();<br /> public void set&lt;PropertyName&gt;(&lt;PropertyType&gt; a);<br /> If we discover a matching pair of “get&lt;PropertyName&gt;” and “set&lt;PropertyName&gt;” methods<br /> <em>that take and return the same type</em>, then we regard these methods as defining a read-write property whose name will be “&lt;propertyName&gt;”.</p> 
+</blockquote> 
+<p>So the JavaBeans specification requires the getter and setter to be of the same type, but how does OGNL figure out that the I’m trying to trick it with two different types?</p> 
+<p>I found the answer by digging pretty deep: the <a href="http://www.opensymphony.com/ognl/api/ognl/OgnlRuntime.html">OgnlRuntime</a> class looks up a <a href="http://java.sun.com/j2se/1.5.0/docs/api/java/beans/PropertyDescriptor.html">PropertyDescriptor</a> for the given class (in my case the WebWork action) and then calls the <a href="http://java.sun.com/j2se/1.5.0/docs/api/java/beans/PropertyDescriptor.html#getWriteMethod%28%29">getWriteMethod()</a> on the PropertyDescriptor instance. The documentation for that method mentions that it may return null if the property can’t be written but the documentation doesn’t mention why that might happen. If you grab the source for the PropertyDescriptor class, you’ll see that the getWriteMethod() method invokes a private method findPropertyType(), which is where I finally found the culprit. It compares the return type of the getter and the parameter type of the setter and throws an IntrospectionException if the types don’t match (line 602), which the getWriteMethod() catches and then returns null, which leaves the OgnlRuntime with no method to call.</p> 
+<p>So it sounds to me like this is really a JavaBean specification requirement, not a Java reflection API semantic, but then I guess it’s all just semantics anyway right?</p> 
+<p>----------------</p> 
+<p>Aaron, thanks for the clarification and the effort to check this out. I’ve added it to the WebWork FAQ.</p> 
+<div class="content"> 
+ <p><strong>[WW-1412] ParamRemoverInterceptor broken…</strong></p> 
+ <p>The ParamRemoverInterceptor is suffering from the getter/setter problem as described <a href="http://wiki.opensymphony.com/display/WW/Why+does+my+setter+not+get+called" rel="nofollow">http://wiki.opensymphony.com/display/WW/Why+does+my+setter+not+get+called</a><br /> <a href="http://cephas.net/blog/2007/01/04/ognl-getter-and-setter-types-must-match/" rel="nofollow">http://cephas.net/blog/2007/01/04/ognl-getter-and-setter-types-must-match/</a> describes the is….</p> 
+</div></div></body></html>

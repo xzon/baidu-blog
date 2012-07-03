@@ -1,0 +1,169 @@
+<html><head><title><div class="tit">
+  //MouseDraw.java，鼠标拖动图像-Java源代码
+</div></title></head><body><div id='tit'>//MouseDraw.java，鼠标拖动图像-Java源代码</div><div id='cate'>存档&middot;垃圾</div><div id='date'>2007年12月08日 星期六 00:46 A.M.</div><div id='page'>197</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/407eb51cec78408886d6b64c.html'>http://hi.baidu.com/hxzon/blog/item/407eb51cec78408886d6b64c.html</a><div id='cnt'><div>
+ //MouseDraw.java，鼠标拖动图像-Java源代码
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.*;
+ <br /> import java.awt.event.*;
+ <br /> import java.util.*;
+ <br /> import javax.swing.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class MouseDraw
+ <br /> {&nbsp;&nbsp;&nbsp; public static void main(String[] args)
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp; MouseFrame frame = new MouseFrame();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.show();&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; }
+ <br /> class MouseFrame extends JFrame
+ <br /> { public MouseFrame()
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setTitle(&quot;利用鼠标画图&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setSize(WIDTH, HEIGHT);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 将panel加入到frame
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MousePanel panel = new MousePanel();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Container contentPane = getContentPane();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; contentPane.add(panel);&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; public static final int WIDTH = 300;
+ <br /> &nbsp;&nbsp;&nbsp; public static final int HEIGHT = 200;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> class MousePanel extends JPanel
+ <br /> {&nbsp;&nbsp;&nbsp; public MousePanel()
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp; faces = new ArrayList(); //初始化链表
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; facetypes = new ArrayList();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; current = null;&nbsp;&nbsp;&nbsp; //初始化当前图像位置
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String imageName = &quot;smile.gif&quot;;&nbsp;&nbsp;&nbsp;&nbsp; //加载图像
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; smileimg = Toolkit.getDefaultToolkit().getImage(imageName);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; imageName = &quot;cry.gif&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cryimg = Toolkit.getDefaultToolkit().getImage(imageName);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MediaTracker tracker = new MediaTracker(this);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tracker.addImage(smileimg, 0);tracker.addImage(cryimg, 1);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try{ tracker.waitForID(0);tracker.waitForID(1); }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; catch (InterruptedException exception) {}
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //得到图像的高度和宽度
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; imageWidth = smileimg.getWidth(this);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; imageHeight = smileimg.getWidth(this);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //注册监听器
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; addMouseListener(new MouseHandler());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; addMouseMotionListener(new MouseMotionHandler());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void paintComponent(Graphics g)
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp; super.paintComponent(g);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //显示当前光标位置
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String text = &quot;鼠标指针位置：&quot; + mousex + &quot;：&quot; + mousey;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawString(text, 10, 10);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //显示图像
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (int i = 0; i &lt; faces.size(); i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //得到图像位置
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int x = (int)((Rectangle)faces.get(i)).getX();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int y = (int)((Rectangle)faces.get(i)).getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //得到图像类型
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; text = (String)(facetypes.get(i));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(text.equals(&quot;smile&quot;))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawImage(smileimg, x, y, null);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawImage(cryimg, x, y, null);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> //查找某个点是否在链表faces中的某个矩形内部
+ <br /> &nbsp;&nbsp;&nbsp; public Rectangle search(Point pt)
+ <br /> &nbsp;&nbsp;&nbsp; {&nbsp;&nbsp; for (int i = 0; i &lt; faces.size(); i++)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp; Rectangle rect = (Rectangle)faces.get(i);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (rect.contains(pt))&nbsp;&nbsp; return rect;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return null;}
+ <br /> &nbsp;&nbsp;&nbsp; //将以点pt为中心，以图像大小为高度和宽度的矩形加入链表faces中
+ <br /> &nbsp;&nbsp;&nbsp; public void add(Point pt)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //取得点pt的坐标
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int x = (int)pt.getX();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int y = (int)pt.getY();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //生成矩形
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; current = new Rectangle(x - imageWidth / 2,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y - imageHeight / 2,imageWidth,&nbsp;&nbsp;&nbsp; imageHeight);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //将生成的矩形加入链表faces中
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; faces.add(current);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //将图像类型加入链表facetypes中
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; facetypes.add(facetype);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();}
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; //修改图像的类型
+ <br /> &nbsp;&nbsp;&nbsp; public void modify(Rectangle rect)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (rect == null) return;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int index = faces.indexOf(rect);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String text = (String)(facetypes.get(index));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(text.equals(&quot;smile&quot;))
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; facetypes.set(index, &quot;cry&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; facetypes.set(index, &quot;smile&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; private ArrayList faces;
+ <br /> &nbsp;&nbsp;&nbsp; private ArrayList facetypes;
+ <br /> &nbsp;&nbsp;&nbsp; private Rectangle current;
+ <br /> &nbsp;&nbsp;&nbsp; private Image smileimg;
+ <br /> &nbsp;&nbsp;&nbsp; private Image cryimg;
+ <br /> &nbsp;&nbsp;&nbsp; private int imageWidth;
+ <br /> &nbsp;&nbsp;&nbsp; private int imageHeight;
+ <br /> &nbsp;&nbsp;&nbsp; private String facetype;
+ <br /> &nbsp;&nbsp;&nbsp; private int mousex,mousey;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> private class MouseHandler extends MouseAdapter
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void mousePressed(MouseEvent event)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //得到鼠标光标的当前位置
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mousex = event.getX();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mousey = event.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //查找当前位置是否已有图像
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; current = search(event.getPoint());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (current == null)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //添加一个“笑脸”图像
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; facetype = &quot;smile&quot;;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; add(event.getPoint());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //对图像进行切换
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; modify(current);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ private class MouseMotionHandler
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; implements MouseMotionListener
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void mouseMoved(MouseEvent event)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //得到鼠标光标的当前位置
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mousex = event.getX();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mousey = event.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void mouseDragged(MouseEvent event)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //得到鼠标光标的当前位置
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mousex = event.getX();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mousey = event.getY();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 拖动图像
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; current.setFrame(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mousex - imageWidth / 2,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mousey - imageHeight / 2,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; imageWidth,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; imageHeight);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; repaint();}}}
+</div></div></body></html>

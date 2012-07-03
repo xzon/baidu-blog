@@ -1,0 +1,109 @@
+<html><head><title><div class="tit">
+  js和jsp获取网页的访问来源及其应用
+</div></title></head><body><div id='tit'>js和jsp获取网页的访问来源及其应用</div><div id='cate'>j&middot;web</div><div id='date'>2009年10月20日 星期二 11:19 A.M.</div><div id='page'>26</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6aeeab3418b7d4bdd0a2d38e.html'>http://hi.baidu.com/hxzon/blog/item/6aeeab3418b7d4bdd0a2d38e.html</a><div id='cnt'><div>
+ js和jsp获取网页的访问来源及其应用
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 有时我们想知道此页的前一页地址(此页是浏览者从哪里链接过来的)的时候，就用到“访问来源”的方法。javascript用于任意扩展名的页面，但需要跟其他语言(如JSP，PHP)整合。
+</div> 
+<div> 
+</div> 
+<div>
+ Javascript方法：
+ <br /> &lt;script language=&quot;javascript&quot;&gt;
+ <br /> document.write(document.referrer);
+ <br /> &lt;/script&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ jsp方法：request.getHeader(&quot;Referer&quot;)
+</div> 
+<div> 
+</div> 
+<div>
+ 比较：
+ <br /> 1.javascript里是&quot;referrer&quot;,jsp里是&quot;referer&quot;,前者比后者多一个&quot;r&quot;;
+ <br /> 2.前者如直接输入网址，则显示为空，后者显示null;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 获取网页的访问来源又有什么用途呢？一是可以跟踪记录从哪些网站、网页上访问了自己的站点或者页面；二是可以记住刚才访问的页面，可以跳转回去；还有一个很重要的用途，就是防盗链。一些网站的资源如图片、视频等，可能被链到其它网站上，或者黑客频繁的访问某些资源，把网站搞瘫痪，于是一些网站用了防盗链技术。一种简单的防盗链方法就是获取访问的url，比对是否是自己的url或者经授权的url，不符合条件的就不让访问，或者显示一些提示信息。
+ <br /> 道高一尺，魔高一丈。访问的url是很容易被伪造的，我们再做一个c.asp：
+ <br /> &lt;%
+ <br /> Dim http
+ <br /> set http = server.createobject(&quot;Microsoft.XMLHTTP&quot;)
+ <br /> http.open &quot;GET&quot;,&quot;
+ <a href="http://localhost/a.asp%22,false">http://localhost/a.asp&quot;,false</a>
+ <br /> http.setRequestHeader &quot;Referer&quot;,&quot;
+ <a href="http://www.baidu.com/">http://www.baidu.com/</a>&quot;
+ <br /> http.send()
+ <br /> Response.write http.Responsetext
+ <br /> %&gt;
+ <br /> 然后在浏览器输入
+ <a href="http://localhost/c.asp">http://localhost/c.asp</a>（根据实际修改访问路径），页面上看到如下内容:
+ <br /> 访问来源是：
+ <a href="http://www.baidu.com/">http://www.baidu.com/</a>
+ <br /> 11111111111
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 可以看到Referer很容易的被伪造成一个任意输入的字符串。说了半天，HTTP_REFERER还是防君子不防小人，呵呵。 
+ <br /> =========================
+ <br /> Jsp获取访问者真实IP地址
+</div> 
+<div> 
+</div> 
+<div>
+  在JSP里，获取客户端的IP地址的方法是：request.getRemoteAddr()，这种方法在大部分情况下都是有效的。但是在通过了 Apache,Squid等反向代理软件就不能获取到客户端的真实IP地址了。如果使用了反向代理软件，用 request.getRemoteAddr()方法获取的IP地址是：127.0.0.1或192.168.1.110，而并不是客户端的真实ＩＰ。
+</div> 
+<div> 
+</div> 
+<div>
+  经过代理以后，由于在客户端和服务之间增加了中间层，因此服务器无法直接拿到客户端的 IP，服务器端应用也无法直接通过转发请求的地址返回给客户端。但是在转发请求的HTTP头信息中，增加了X－FORWARDED－FOR信息。用以跟踪原有的客户端IP地址和原来客户端请求的服务器地址。当我们访问index.jsp/时，其实并不是我们浏览器真正访问到了服务器上的index.jsp 文件，而是先由代理服务器去访问index.jsp ，代理服务器再将访问到的结果返回给我们的浏览器，因为是代理服务器去访问index.jsp的，所以index.jsp中通过 request.getRemoteAddr()的方法获取的IP实际上是代理服务器的地址，并不是客户端的IP地址。
+</div> 
+<div> 
+</div> 
+<div>
+  于是可得出获得客户端真实IP地址的方法一：
+ <br /> public String getRemortIP(HttpServletRequest request) { 
+ <br /> if (request.getHeader(&quot;x-forwarded-for&quot;) == null) { 
+ <br /> return request.getRemoteAddr(); 
+ <br /> } 
+ <br /> return request.getHeader(&quot;x-forwarded-for&quot;); 
+ <br /> }&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 获得客户端真实IP地址的方法二：
+ <br /> public String getIpAddr(HttpServletRequest request) { 
+ <br /> String ip = request.getHeader(&quot;x-forwarded-for&quot;); 
+ <br /> if(ip == null || ip.length() == 0 || &quot;unknown&quot;.equalsIgnoreCase(ip)) { 
+ <br /> ip = request.getHeader(&quot;Proxy-Client-IP&quot;); 
+ <br /> } 
+ <br /> if(ip == null || ip.length() == 0 || &quot;unknown&quot;.equalsIgnoreCase(ip)) { 
+ <br /> ip = request.getHeader(&quot;WL-Proxy-Client-IP&quot;); 
+ <br /> } 
+ <br /> if(ip == null || ip.length() == 0 || &quot;unknown&quot;.equalsIgnoreCase(ip)) { 
+ <br /> ip = request.getRemoteAddr(); 
+ <br /> } 
+ <br /> return ip; 
+ <br /> }&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 可是，如果通过了多级反向代理的话，X-Forwarded-For的值并不止一个，而是一串IP值，究竟哪个才是真正的用户端的真实IP呢？
+</div> 
+<div> 
+</div> 
+<div>
+  答案是取X-Forwarded-For中第一个非unknown的有效IP字符串。如：
+ <br /> X-Forwarded-For：192.168.1.110, 192.168.1.120, 192.168.1.130, 192.168.1.100
+ <br /> 用户真实IP为： 192.168.1.110
+</div></div></body></html>

@@ -1,0 +1,163 @@
+<html><head><title><div class="tit">
+  FEST-Swing -Swing GUI testing
+</div></title></head><body><div id='tit'>FEST-Swing -Swing GUI testing</div><div id='cate'>j&middot;桌面</div><div id='date'>2009年08月18日 星期二 03:14 P.M.</div><div id='page'>36</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c289db544b772d51d1090689.html'>http://hi.baidu.com/hxzon/blog/item/c289db544b772d51d1090689.html</a><div id='cnt'><div> 
+ <p>FEST-Swing -Swing GUI testing<br /> <br /> fest-swing-1.2a2.zip ,source code and jar</p> 
+ <h1>Welcome to the FEST Swing Module</h1> 
+ <p><br /> FEST-Swing is a Java library that provides a <a class="urllink" rel="nofollow" href="http://martinfowler.com/bliki/FluentInterface.html">fluent interface</a> for functional Swing GUI testing. This library provides an easy-to-use API that makes creation and maintenance of GUI tests easy.</p> 
+ <h2>Examples</h2> 
+ <p class="vspace">The following example shows a test verifying that an error message is displayed if the user forgets to enter her password when trying to log in an application:</p> 
+ <div class="vspace"> 
+ </div> 
+ <pre>dialog.<span class="fnc">comboBox</span>(<span class="str">&quot;domain&quot;</span>).<span class="fnc">select</span>(<span class="str">&quot;Users&quot;</span>);
+  dialog.<span class="fnc">textBox</span>(<span class="str">&quot;username&quot;</span>).<span class="fnc">enterText</span>(<span class="str">&quot;leia.organa&quot;</span>);
+  dialog.<span class="fnc">button</span>(<span class="str">&quot;login&quot;</span>).<span class="fnc">click</span>();
+  dialog.<span class="fnc">optionPane</span>().<span class="fnc">requireErrorMessage</span>()
+                     .<span class="fnc">requireMessage</span>(<span class="str">&quot;Please enter your password&quot;</span>);</pre> 
+ <p> </p> 
+ <p><a href="http://code.google.com/p/fest/downloads/list">http://code.google.com/p/fest/downloads/list</a><br /> <a href="http://www.javaworld.com/javaworld/jw-07-2007/jw-07-fest.html">http://www.javaworld.com/javaworld/jw-07-2007/jw-07-fest.html</a></p> 
+ <pre></pre>
+ <h2>Writing your first GUI test</h2>
+ <p>When writing GUI tests, use the fixtures in the package <tt><a rel="nofollow" href="http://fest.easytesting.org/swing/apidocs/org/fest/swing/fixture/package-summary.html"><font face="新宋体">org.fest.swing.fixture</font></a></tt>. These fixtures provide specific methods to simulate user interaction with a GUI component and also provide assertion methods that verify the state of such GUI component. Although you could work with the FEST <tt><a rel="nofollow" href="http://fest.easytesting.org/swing/apidocs/org/fest/swing/core/Robot.html"><font face="新宋体">Robot</font></a></tt> directly, the <tt><font face="新宋体">Robot</font></tt> is too low-level and requires considerably more code than the fixtures.</p>
+ <p>There is one fixture per Swing component. Each fixture has the same name as the Swing component they can handle ending with &quot;Fixture.&quot; For example, a <tt><font face="新宋体">JButtonFixture</font></tt> knows how to simulate user interaction and verify state of a <tt><font face="新宋体">JButton</font></tt>.</p>
+ <p>For our first test, let's assume we have a very simple <tt><font face="新宋体">JFrame</font></tt> that contains a <tt><font face="新宋体">JTextField</font></tt>, a <tt><font face="新宋体">JLabel</font></tt> and a <tt><font face="新宋体">JButton</font></tt>:</p>
+ <p><img border="0" align="absMiddle" src="image/FEST-Swing -Swing GU.fsgs01.png" /><p class="origImg">http://docs.codehaus.org/download/attachments/117899693/fsgs01.png</p></p>
+ <p>The expected behavior of this GUI is: when user clicks on the <tt><font face="新宋体">JButton</font></tt>, the text of the <tt><font face="新宋体">JTextField</font></tt> should be copied to the <tt><font face="新宋体">JLabel</font></tt>.</p>
+ <p>The following sections describe the steps necessary to test our GUI.</p>
+ <h3><a name="GettingStarted-Creatingatestfromscratch"></a>Creating a test from scratch</h3>
+ <h4><a name="GettingStarted-1.EnablechecksforEDTaccessviolation"></a>1. Enable checks for EDT access violation</h4>
+ <p>FEST provides the class <tt><font face="新宋体">FailOnThreadViolationRepaintManager</font></tt> that forces a test failure if access to GUI components is not performed on the EDT. You can find more details <a title="Testing that access to Swing components is done in the EDT" href="http://docs.codehaus.org/display/FEST/Testing+that+access+to+Swing+components+is+done+in+the+EDT">here</a>.</p>
+ <h4><a name="GettingStarted-2.CreateafixtureforaFrameorDialog"></a>2. Create a fixture for a Frame or Dialog</h4>
+ <p>Depending on the GUI to test, create a fixture to handle either a <tt><font face="新宋体">Frame</font></tt> or a <tt><font face="新宋体">Dialog</font></tt> in the &quot;setUp&quot; method of your test. The &quot;setUp&quot; method is the method that initializes the test fixture <strong>before</strong> running <strong>each</strong> test method:</p>
+ <ul>
+  <li><tt><font face="新宋体">setUp</font></tt> method (JUnit 3.8.x)</li>
+  <li>a method marked with <tt><font face="新宋体">@Before</font></tt> (JUnit 4.x)</li>
+  <li>a method marked with <tt><font face="新宋体">@BeforeMethod</font></tt> (TestNG)</li>
+ </ul>
+ <p>The following example uses a <tt><a rel="nofollow" href="http://fest.easytesting.org/swing/apidocs/org/fest/swing/fixture/FrameFixture.html"><font face="新宋体">FrameFixture</font></a></tt>:</p>
+ <div style="border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; border-left-width: 1px" class="code panel">
+  <div class="codeContent panelContent">
+   <pre class="code-java"><span class="code-keyword">private</span> FrameFixture window;
+
+@BeforeMethod <span class="code-keyword">public</span> void setUp() {
+  MyFrame frame = GuiActionRunner.execute(<span class="code-keyword">new</span> GuiQuery&lt;MyFrame&gt;() {
+      <span class="code-keyword">protected</span> MyFrame executeInEDT() {
+        <span class="code-keyword">return</span> <span class="code-keyword">new</span> MyFrame();  
+      }
+  });
+  window = <span class="code-keyword">new</span> FrameFixture(frame);
+  window.show(); <span class="code-comment">// shows the frame to test
+</span>}</pre> 
+  </div> 
+ </div> 
+ <p>It may seem a little weird the way we create a new instance of <tt><font face="新宋体">MyFrame</font></tt>. Since creation of a frame triggers a &quot;paint&quot; action, we need to create the frame in the Event Dispatch Thread (EDT.) More details about the EDT and Swing threading can be found <a title="Swing's Event Dispatch Thread (EDT)" href="http://docs.codehaus.org/display/FEST/Swing%27s+Event+Dispatch+Thread+%28EDT%29">here</a>.</p> 
+ <h4><a name="GettingStarted-3.CleanupresourcesusedbyFESTSwing"></a>3. Clean up resources used by FEST-Swing</h4> 
+ <p>FEST-Swing forces sequential test execution, regardless of the testing framework (JUnit or TestNG.) To do so, it uses a semaphore to give access to the keyboard and mouse to a single test. Cleaning up resources after running each test method releases the lock on such semaphore. To clean up resources simply call the method <tt><font face="新宋体">cleanUp</font></tt> in the FEST-Swing fixture inside:</p> 
+ <ul> 
+  <li><tt><font face="新宋体">tearDown</font></tt> method (JUnit 3.8.x)</li> 
+  <li>any method marked with <tt><font face="新宋体">@After</font></tt> (JUnit 4.x)</li> 
+  <li>any method marked with <tt><font face="新宋体">@AfterMethod</font></tt> (TestNG)</li> 
+ </ul> 
+ <p>Example:</p> 
+ <div style="border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; border-left-width: 1px" class="code panel"> 
+  <div class="codeContent panelContent"> 
+   <pre class="code-java">@AfterMethod <span class="code-keyword">public</span> void tearDown() {
+  window.cleanUp();
+}</pre> 
+  </div> 
+ </div> 
+ <h4><a name="GettingStarted-4.WritemethodstotestyourGUI'sbehavior"></a>4. Write methods to test your GUI's behavior</h4> 
+ <p>Start using <a rel="nofollow" href="http://fest.easytesting.org/swing/apidocs/org/fest/swing/fixture/package-summary.html">FEST-Swing fixtures</a> to test your GUI. FEST-Swing fixtures simulate a user interacting with a GUI in order to verify that such GUI behaves as we expect. For our example, we need to verify that the text in the <tt><font face="新宋体">JTextField</font></tt> is copied to the <tt><font face="新宋体">JLabel</font></tt> when the <tt><font face="新宋体">JButton</font></tt> is clicked:</p> 
+ <div style="border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; border-left-width: 1px" class="code panel"> 
+  <div class="codeContent panelContent"> 
+   <pre class="code-java">@Test <span class="code-keyword">public</span> void shouldCopyTextInLabelWhenClickingButton() {
+  window.textBox(<span class="code-quote">&quot;textToCopy&quot;</span>).enterText(<span class="code-quote">&quot;Some random text&quot;</span>);
+  window.button(<span class="code-quote">&quot;copyButton&quot;</span>).click();
+  window.label(<span class="code-quote">&quot;copiedText&quot;</span>).requireText(<span class="code-quote">&quot;Some random text&quot;</span>);
+}</pre> 
+  </div> 
+ </div> 
+ <p>As you probably guessed by now, in our example we look up UI components by their unique name.</p> 
+ <h4><a name="GettingStarted-Puttingeverythingtogether"></a>Putting everything together</h4> 
+ <p>The following code listing shows the whole test that verifies the described GUI is behaving correctly:</p> 
+ <div style="border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; border-left-width: 1px" class="code panel"> 
+  <div class="codeContent panelContent"> 
+   <pre class="code-java"><span class="code-keyword">import</span> org.testng.annotations.*;
+<span class="code-keyword">import</span> org.fest.swing.fixture.FrameFixture;
+
+<span class="code-keyword">public</span> class FirstGUITest {
+
+  <span class="code-keyword">private</span> FrameFixture window;
+
+  @BeforeClass <span class="code-keyword">public</span> void setUpOnce() {
+    FailOnThreadViolationRepaintManager.install();
+  }
+
+  @BeforeMethod <span class="code-keyword">public</span> void setUp() {
+    MyFrame frame = GuiActionRunner.execute(<span class="code-keyword">new</span> GuiQuery&lt;MyFrame&gt;() {
+        <span class="code-keyword">protected</span> MyFrame executeInEDT() {
+          <span class="code-keyword">return</span> <span class="code-keyword">new</span> MyFrame();  
+        }
+    });
+    window = <span class="code-keyword">new</span> FrameFixture(frame);
+    window.show(); <span class="code-comment">// shows the frame to test
+</span>  }
+
+  @AfterMethod <span class="code-keyword">public</span> void tearDown() {
+    window.cleanUp();
+  }
+
+  @Test <span class="code-keyword">public</span> void shouldCopyTextInLabelWhenClickingButton() {
+    window.textBox(<span class="code-quote">&quot;textToCopy&quot;</span>).enterText(<span class="code-quote">&quot;Some random text&quot;</span>);
+    window.button(<span class="code-quote">&quot;copyButton&quot;</span>).click();
+    window.label(<span class="code-quote">&quot;copiedText&quot;</span>).requireText(<span class="code-quote">&quot;Some random text&quot;</span>);
+  }
+}</pre> 
+  </div> 
+ </div> 
+ <h2><a name="GettingStarted-Alternatively,extendaFESTSwingtestcase"></a>Alternatively, extend a FEST-Swing test case</h2> 
+ <p>Starting with version 1.1, FEST-Swing provides a base test case class, to simplify creation of GUI tests. The following code listing provides the same functionality as the example from the previous section, with less code, thanks to <tt><a rel="nofollow" href="http://easytesting.org/swing/testng/apidocs/org/fest/swing/testng/testcase/FestSwingTestngTestCase.html"><font face="新宋体">FestSwingTestngTestCase</font></a></tt>:</p> 
+ <div style="border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; border-left-width: 1px" class="code panel"> 
+  <div class="codeContent panelContent"> 
+   <pre class="code-java"><span class="code-keyword">import</span> org.testng.annotations.*;
+<span class="code-keyword">import</span> org.fest.swing.fixture.FrameFixture;
+<span class="code-keyword">import</span> org.fest.swing.testng.testcase.FestSwingTestngTestCase;
+
+<span class="code-keyword">public</span> class FirstGUITest <span class="code-keyword">extends</span> FestSwingTestngTestCase {
+
+  <span class="code-keyword">private</span> FrameFixture window;
+
+  <span class="code-keyword">protected</span> void onSetUp() {
+    MyFrame frame = GuiActionRunner.execute(<span class="code-keyword">new</span> GuiQuery&lt;MyFrame&gt;() {
+        <span class="code-keyword">protected</span> MyFrame executeInEDT() {
+          <span class="code-keyword">return</span> <span class="code-keyword">new</span> MyFrame();  
+        }
+    });
+    <span class="code-comment">// IMPORTANT: note the call to 'robot()'
+</span>    <span class="code-comment">// we must use the Robot from FestSwingTestngTestCase
+</span>    window = <span class="code-keyword">new</span> FrameFixture(robot(), frame);
+    window.show(); <span class="code-comment">// shows the frame to test
+</span>  }
+
+  @Test <span class="code-keyword">public</span> void shouldCopyTextInLabelWhenClickingButton() {
+    window.textBox(<span class="code-quote">&quot;textToCopy&quot;</span>).enterText(<span class="code-quote">&quot;Some random text&quot;</span>);
+    window.button(<span class="code-quote">&quot;copyButton&quot;</span>).click();
+    window.label(<span class="code-quote">&quot;copiedText&quot;</span>).requireText(<span class="code-quote">&quot;Some random text&quot;</span>);
+  }
+}</pre> 
+  </div> 
+ </div> 
+ <div class="panelMacro"> 
+  <table class="warningMacro FCK__ShowTableBorders"> 
+   <colgroup>
+    <col width="24" />
+    <col />
+   </colgroup> 
+   <tbody> 
+    <tr> 
+     <td valign="top"><img border="0" align="absMiddle" width="16" height="16" src="image/FEST-Swing -Swing GU.forbidden.gif" /><p class="origImg">http://docs.codehaus.org/images/icons/emoticons/forbidden.gif</p></td> 
+     <td><strong>Warning</strong><br /> <p>When using a base <tt><font face="新宋体">TestCase</font></tt>, do not create a new <tt><font face="新宋体">Robot</font></tt>. The base <tt><font face="新宋体">TestCase</font></tt> creates one for you. If there is more than one <tt><font face="新宋体">Robot</font></tt> in your test, only the first one will have access to the screen, while the rest will block till they get the 'screen lock'. A <tt><font face="新宋体">Robot</font></tt> can be created manually or indirectly using the constructors <tt><a rel="nofollow" href="http://fest.easytesting.org/swing/apidocs/org/fest/swing/fixture/FrameFixture.html#FrameFixture%28java.awt.Frame%29"><font face="新宋体">FrameFixture(Frame)</font></a></tt> or <tt><a rel="nofollow" href="http://fest.easytesting.org/swing/apidocs/org/fest/swing/fixture/DialogFixture.html#DialogFixture%28java.awt.Dialog%29"><font face="新宋体">DialogFixture(Dialog)</font></a></tt>. Please use the overloaded versions that take a <tt><font face="新宋体">Robot</font></tt> as parameter, passing the already created <tt><font face="新宋体">Robot</font></tt> (by calling the method <tt><font face="新宋体">robot()</font></tt>.)</p> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div>  
+</div></div></body></html>

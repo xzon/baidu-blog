@@ -1,0 +1,522 @@
+<html><head><title><div class="tit">
+  Java：所有的equals方法实现都是错误的？
+</div></title></head><body><div id='tit'>Java：所有的equals方法实现都是错误的？</div><div id='cate'>细节</div><div id='date'>2009年09月01日 星期二 00:22 A.M.</div><div id='page'>33</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/de6430d378ea50093bf3cfec.html'>http://hi.baidu.com/hxzon/blog/item/de6430d378ea50093bf3cfec.html</a><div id='cnt'><h1>Java：所有的equals方法实现都是错误的？</h1> 
+<p>本文介绍了一种改写（override）equals 方法的技巧。使用该技巧，即使在实体类的子类添加了新的域（field）时，仍然能够满足 equals 方法的约定。</p> 
+<p>在《Effective Java》一书的第 8 条目中，Josh Bloch 将子类化时满足 equals 约定这一困难描述为：面向对象语言中等值关系的最根本问题。Bloch 这样写道：</p> 
+<p>不存在一种方式，能够在扩展非实例类并添加值组件的同时，仍然满足equals的约定。除非你愿意放弃面向对象的抽象性这一优点。</p> 
+<p>《Programming in Scala》一书中的第 28 章提供了一种方法，子类可以对非实例类进行扩展，添加值组件，而同时满足 equals 约定。虽然书中提供的那种技巧是用于定义 Scala 类，但一样适用于 Java 中的类定义。在本文中，为了讲解这种方法，我将使用《Programming in Scala》中相关章节，改编相关的文本，并将原书中的 Scala 示例代码转换为了 Java 代码。</p> 
+<p>常见的等值陷阱</p> 
+<p>Class java.lang.Object 定义了一个 equals 方法，其中的子类可以进行改写（override）。不幸的是，最终的结果表明，在面向对象语言中，编写正确的等值方法相当困难。事实上，在对 Java 代码的大量正文进行研究之后，几位作者在 2007 年的一份论文中作出如下结论：几乎所有 equals 方法的实现都是错误的。</p> 
+<p>这是一个严重的问题，因为等值方法是很多代码的根本。其一，对于类型 C，一个错误的等值方法可能意味着，你不能可靠地将一个类型 C 的对象放入集合中。你可能有两个等值的类型 C 元素 elem1、elem2，即“em1.equals(elem2)”输出 true。然而，在下面的示例中，equals 方法的实现就是一种常见的错误：</p> 
+<pre></pre>
+<ol>
+ <li>Set&lt; C&gt; hashSet = new java.util.HashSet&lt; C&gt;();</li>
+ <li>hashSet.add(elem1);</li>
+ <li>hashSet.contains(elem2); // 返回 false！</li>
+</ol> 
+<p>存在四种常见的陷阱，它们都会在改写equals时导致非一致性的行为：</p> 
+<p>◆使用错误的原型对equals进行定义。</p> 
+<p>◆更改equals而未同时更改 hashCode。</p> 
+<p>◆对equals进行定义时涉及可变域（field）。</p> 
+<p>◆未能成功地将equals定义为等值关系。</p> 
+<p>这四种陷阱将在下文中具体讲述。</p> 
+<p>陷阱 1：使用错误的原型对equals进行定义</p> 
+<p>在下面的代码中，我们将为普通点的类添加一个等值方法：</p> 
+<pre></pre>
+<ol>
+ <li>public class Point {</li>
+ <li> </li>
+ <li>private final int x;</li>
+ <li>private final int y;</li>
+ <li> </li>
+ <li>public Point(int x, int y) {</li>
+ <li>this.x = x;</li>
+ <li>this.y = y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getX() {</li>
+ <li>return x;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getY() {</li>
+ <li>return y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>// ...</li>
+ <li>}</li>
+</ol> 
+<p>一个显而易见的错误定义如下：</p> 
+<pre></pre>
+<ol>
+ <li>// 一个完全错误的 equals 定义</li>
+ <li>public boolean equals(Point other) {</li>
+ <li>return (this.getX() == other.getX() &amp;&amp; this.getY() == other.getY());</li>
+ <li>}</li>
+</ol> 
+<p>这种方法的错误之处是什么？初一看，它可以正常运行：</p> 
+<pre></pre>
+<ol>
+ <li>Point p1 = new Point(1, 2);</li>
+ <li>Point p2 = new Point(1, 2);</li>
+ <li> </li>
+ <li>Point q = new Point(2, 3);</li>
+ <li> </li>
+ <li>System.out.println(p1.equals(p2)); // prints true</li>
+ <li> </li>
+ <li>System.out.println(p1.equals(q)); // 输出 false</li>
+</ol> 
+<p>然而，一旦你将point放入集合中，问题就出来了：</p> 
+<pre></pre>
+<ol>
+ <li>import java.util.HashSet;</li>
+ <li> </li>
+ <li>HashSet&lt; Point&gt; coll = new HashSet&lt; Point&gt;();</li>
+ <li>coll.add(p1);</li>
+ <li> </li>
+ <li>System.out.println(coll.contains(p2)); // 输出 false</li>
+</ol> 
+<p>coll 怎么可能不包含 p2 呢？你已经将 p1 添加到其中，而 p1 等于 p2。在下面的互操作中，进行比较的点的具体类型被隐藏，这时，导致问题的原因将清晰可见。将 p2a 定义为 p2 的别名，但使用的是 Object 类型而不是 Point：</p> 
+<pre></pre>
+<ol>
+ <li>Object p2a = p2;</li>
+</ol> 
+<p>现在，如果你重复第一个比较，使用别名 p2a 而不是 p2，结果是：</p> 
+<pre></pre>
+<ol>
+ <li>System.out.println(p1.equals(p2a)); // 输出 false</li>
+</ol> 
+<p>哪里出错了呢？事实上，由于类型不同，之前指定的 equals 版本并没有改写标准方法 equals。下面是在根类 Object 中定义的 equals 方法：</p> 
+<pre></pre>
+<ol>
+ <li>public boolean equals(Object other)</li>
+</ol> 
+<p>由于 Point 中的 equals 方法使用 Point 而不是 Object 作为参数，因此，它并未对 Object 中的 equals 进行改写。相反，它只是一种重载的替代方法。Java 中重载由参数的静态类型解析，而不是运行时（run-time）类型。因此，只要参数的静态类型是 Point，就调用 Point 中的 equals 方法。同样，如果静态参数是 Object 类型，就调用 Object 中的 equals 方法。该方法没有被改写，因此在对 object 参数进行比较时，仍使用该方法。这就是“p1.equals(p2a)”输出 false 的原因，即使点 p1 和 p2a 具有相同的 x 和 y 值。这也是为什么在 HashSet 中 contains 方法返回 false 的原因。该方法是针对对常规集合进行操作，因此它会调用 Object 中的常规 equals 方法，而不是 Point 中重载的方法变种。</p> 
+<p>下面的代码定义了一个更好的equals方法：</p> 
+<pre></pre>
+<ol>
+ <li>// 一个更好的定义，但仍不是完美的</li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof Point) {</li>
+ <li>Point that = (Point) other;</li>
+ <li>result = (this.getX() == that.getX() &amp;&amp; this.getY() == that.getY());</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+</ol> 
+<p>现在，equals 具有了正确的类型。它将 Object 类型的值作为参数并输出一个 boolean 结果。该方法的实现使用了 instanceof 和 cast（类型转换）。它首先检测其他（other）对象是否为 Point 类型。如果是，它将对这 2 个点的坐标进行比较，然后返回结果。否则，输出为 false。</p> 
+<p>陷阱2 ：更改equals而未同时更改hashCode</p> 
+<p>如果你使用 Point 的最新定义，再次对 p1和 p2a 进行比较，将会得到期望中的结果：true。但是，如果你重复 HashSet.contains 测试，结果仍可能是 false：</p> 
+<pre></pre>
+<ol>
+ <li>Point p1 = new Point(1, 2);</li>
+ <li>Point p2 = new Point(1, 2);</li>
+ <li> </li>
+ <li>HashSet&lt; Point&gt; coll = new HashSet&lt; Point&gt;();</li>
+ <li>coll.add(p1);</li>
+ <li> </li>
+ <li>System.out.println(coll.contains(p2)); // （很可能）输出 false</li>
+</ol> 
+<p>事实上，输出结果不是百分百确定。你也可能从测试中得到true值。如果得到的结果是true，你可以试试另外一些坐标为1和2的点。最终，你将会找到一个未包含在集合中的点。这里出现错误的原因是，Point重定义了equals而没有对hashCode进行重定义。</p> 
+<p>请注意，上述实例中的集合为HashSet。这表示，集合中元素被放在由相应的散列码决定的哈希桶（hash bucket）中。在contains测试中，它首先查找散列桶，然后对哈希桶中的所有元素和指定元素进行比较。现在，Point类的最新版本确实对 equals进行了重定义，但它没有同时对hashCode进行重定义。所以 hashCode 仍然保持 Object 类中其版本的值：分配对象地址的某种变化格式。p1 和 p2 的散列码几乎肯定是不同，即使这两个点的域（field）是相同的。不同的散列码意味着集合中散列桶具有较高概率的非重复性。contains 测试将根据 p2 的散列码在相应的散列桶中查找匹配的元素。大多数情况下，点 p1 会位于另一个散列桶中，因此绝不会找到它。p1 和 p2 有可能很偶然地位于同一散列桶中。对于这种情况，测试将返回ture 值。</p> 
+<p>问题在于，Point 的上次实现违法了Object 类中定义的hashCode约定：</p> 
+<p>如果两个对象根据equals(Object) 方法是等值的，那么对两个对象中任何一个调用 hashCode 方法都必须得到相同的整型结果。</p> 
+<p>事实上，在Java中，通常应同时对 hashCode 和equals进行重定义,这一事实是广为人知的。此外，hashCode 可能仅依赖equals所依赖的域。对于 Point 类，以下将是一个合适的 hashCode 定义：</p> 
+<pre></pre>
+<ol>
+ <li>public class Point {</li>
+ <li> </li>
+ <li>private final int x;</li>
+ <li>private final int y;</li>
+ <li> </li>
+ <li>public Point(int x, int y) {</li>
+ <li>this.x = x;</li>
+ <li>this.y = y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getX() {</li>
+ <li>return x;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getY() {</li>
+ <li>return y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof Point) {</li>
+ <li>Point that = (Point) other;</li>
+ <li>result = (this.getX() == that.getX() &amp;&amp; this.getY() == that.getY());</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public int hashCode() {</li>
+ <li>return (41 * (41 + getX()) + getY());</li>
+ <li>}</li>
+ <li>}</li>
+</ol> 
+<p>这只是 hashCode 多种可能的实现中的一种。将常量 41 加到一个整型域 x 上，所得结果再乘以素数 41，然后在加上另一个整型域 y。这样就可以提供合理分布的散列码，而运行时间和代码大小也会降低。</p> 
+<p>在定义与 Point 相似的类时，添加 hashCode 解决了等值的问题。但是，还有其他的问题需要注意。</p> 
+<p>陷阱 3 ：对equals进行定义时涉及可变域</p> 
+<p>以下对 Point 类进行一项细微的修改：</p> 
+<pre></pre>
+<ol>
+ <li>public class Point {</li>
+ <li> </li>
+ <li>private int x;</li>
+ <li>private int y;</li>
+ <li> </li>
+ <li>public Point(int x, int y) {</li>
+ <li>this.x = x;</li>
+ <li>this.y = y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getX() {</li>
+ <li>return x;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getY() {</li>
+ <li>return y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public void setX(int x) {</li>
+ <li>this.x = x;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public void setY(int y) {</li>
+ <li>this.y = y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof Point) {</li>
+ <li>Point that = (Point) other;</li>
+ <li>result = (this.getX() == that.getX() &amp;&amp; this.getY() == that.getY());</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public int hashCode() {</li>
+ <li>return (41 * (41 + getX()) + getY());</li>
+ <li>}</li>
+ <li>}</li>
+</ol> 
+<p>唯一的不同之处是域 x 和 y 不再是 final 类型，同时添加了两个集合方法，允许用户更改 x 和 y 值。现在，equals和 hashCode 方法的定义涉及了这些可变域，因此域更改时它们的结果也将改变。一旦你将点放入集合中，这会带来很奇怪的效果：</p> 
+<pre></pre>
+<ol>
+ <li>Point p = new Point(1, 2);</li>
+ <li> </li>
+ <li>HashSet&lt; Point&gt; coll = new HashSet&lt; Point&gt;();</li>
+ <li>coll.add(p);</li>
+ <li> </li>
+ <li>System.out.println(coll.contains(p)); // 输出 true</li>
+</ol> 
+<p>现在，如果更改点 p 中的域，集合还将包含该点吗？ 我们来试试下面的代码：</p> 
+<pre></pre>
+<ol>
+ <li>p.setX(p.getX() + 1);</li>
+ <li> </li>
+ <li>System.out.println(coll.contains(p)); // （很可能）输出 false&nbsp;&nbsp;</li>
+</ol> 
+<p>这看起来很奇怪。p 到哪里去了？如果你对集合的 iterator 是否包含 p 进行测试，会得到各位奇怪的结果：</p> 
+<pre></pre>
+<ol>
+ <li>Iterator&lt; Point&gt; it = coll.iterator();</li>
+ <li>boolean containedP = false;</li>
+ <li>while (it.hasNext()) {</li>
+ <li>Point nextP = it.next();</li>
+ <li>if (nextP.equals(p)) {</li>
+ <li>containedP = true;</li>
+ <li>break;</li>
+ <li>}</li>
+ <li>}</li>
+ <li> </li>
+ <li>System.out.println(containedP); // 输出 true</li>
+</ol> 
+<p>此处的集合不包含 p，但 p 却在该集合的元素之中！发生了什么事呢？在更改 x 域之后，点 p 最后被放在了该集合 coll 下错误的散列桶中。也就是，其初始散列桶与散列码的新值已不再对应。在某种意义上可以说，点 p 在集合 coll 中消失了，即使它仍然是集合中元素。</p> 
+<p>从这个示例得出的教训就是，当equals和 hashCode 取决于可变状态时，可能会为用户带来问题。如果他们将这种对象放入集合中，必须小心，不要修改决定性的状态。而这是很棘手的。如果你现在需要进行一个比较，要考虑到对象的当前状态，通常不应直接使用 equals，而是使用其他命名。 对于 Point 的上一个定义，更为可取的是省略 hashCode 的重定义，并且命名比较方法 equalContents，或者使用其他不同于equals的命名。 这样，Point 将能够继承equals和 hashCode 的缺省实现。</p> 
+<p> </p> 
+<p>陷阱 4：未能成功地将equals定义为等值关系</p> 
+<p>Object 中equals的约定指出 equals 必须实现非空对象的等值关系：</p> 
+<p>◆自反性：对于如何非空值 x，表达式 x.equals(x) 应返回true。</p> 
+<p>◆对称性：对于任何非空值：x 和 y，x.equals(y) 应返回true，当且仅当 y.equals(x) 返回 true。</p> 
+<p>◆传递性：对于任何非空值 x、y、z，如果 x.equals(y)返回 true 并且 y.equals(z) 返回 true，那么x.equals(z) 应返回 true。</p> 
+<p>◆一致性：对于任何非空值：x 和 y，多次调用 x.equals(y)应始终返回 true 或始终返回 false，如果对象的equals比较中所用信息未被修改。</p> 
+<p>◆对于任何非空值 x，x.equals(null) 应返回 false。</p> 
+<p>目前，对于 Point 类所使用的equals定义满足了equals的约定。然而，一旦涉及子类，事情将变得更加复杂。比如说，Point 有一个子类 ColoredPoint，其中添加了一个 Color 类型的域 color。假定将 Color 定义为枚举类型：</p> 
+<pre></pre>
+<ol>
+ <li>public enum Color {</li>
+ <li>RED, ORANGE, YELLOW, GREEN, BLUE, INDIGO, VIOLET;</li>
+ <li>}</li>
+</ol> 
+<p>ColoredPoint 改写 equals，并添加新的 color 域：</p> 
+<pre></pre>
+<ol>
+ <li>public class ColoredPoint extends Point { // 问题：equals 不对称</li>
+ <li> </li>
+ <li>private final Color color;</li>
+ <li> </li>
+ <li>public ColoredPoint(int x, int y, Color color) {</li>
+ <li>super(x, y);</li>
+ <li>this.color = color;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof ColoredPoint) {</li>
+ <li>ColoredPoint that = (ColoredPoint) other;</li>
+ <li>result = (this.color.equals(that.color) &amp;&amp; super.equals(that));</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+ <li>}</li>
+</ol> 
+<p>很多程序员都可能这样编写代码。请注意，在这种情况下，类 ColoredPoint 不必改写 hashCode。因为 ColoredPoint 的equals的新定义比 Point 中被改写的定义更为严格（意味着等值的对象更少），hashCode 的约定仍然有效。 如果两个颜色点是相等的，它们必须具有相同的坐标，因此也已保证它们的散列码是相等的。</p> 
+<p>以类 ColoredPoint 本身为例，equals的定义看起来没问题。但，一旦普通点和颜色点混合着一起时，equals的约定就将被破坏。 例如：</p> 
+<pre></pre>
+<ol>
+ <li>Point p = new Point(1, 2);</li>
+ <li> </li>
+ <li>ColoredPoint cp = new ColoredPoint(1, 2, Color.RED);</li>
+ <li> </li>
+ <li>System.out.println(p.equals(cp)); // 输出 true</li>
+ <li> </li>
+ <li>System.out.println(cp.equals(p)); // 输出 false</li>
+</ol> 
+<p>相等比较“pequalscp”将调用 p 的equals方法，已在类 Point 中定义。该方法仅考虑两个点的坐标。因此，相等比较输出 true 值。而另一方面，相等比较“cp equals p”调用 cp 的 equals 方法，其中类 ColoredPoint 中已定义。该方法返回 false，因为 p 不是 ColoredPoint。该方法返回 false，因为 p 不是 ColoredPoint。因此，equals定义的关系不是对称的。</p> 
+<p>对称的缺失将为集合造成意想不到的后果。下面为一个示例：</p> 
+<pre></pre>
+<ol>
+ <li>Set&lt; Point&gt; hashSet1 = new java.util.HashSet&lt; Point&gt;();</li>
+ <li>hashSet1.add(p);</li>
+ <li>System.out.println(hashSet1.contains(cp)); // 输出 false</li>
+ <li> </li>
+ <li>Set&lt; Point&gt; hashSet2 = new java.util.HashSet&lt; Point&gt;();</li>
+ <li>hashSet2.add(cp);</li>
+ <li>System.out.println(hashSet2.contains(p)); // 输出 true</li>
+</ol> 
+<p>因此，即使 p 和 cp 是相等的，一个 contains 测试成功，而另一个却失败。</p> 
+<p>如何更改equals的 定义可以让它变为对称？基本上有两种方式。您可以使关系更一般或更严格。使它更加一般意味着对两个对象，a 和 b 被认为是相等的，如果比较 a 和 b 或 b 和 a 输出 true。以下为完成该功能的代码：</p> 
+<pre></pre>
+<ol>
+ <li>public class ColoredPoint extends Point { // 有问题：equals 不具有传递性</li>
+ <li> </li>
+ <li>private final Color color;</li>
+ <li> </li>
+ <li>public ColoredPoint(int x, int y, Color color) {</li>
+ <li>super(x, y);</li>
+ <li>this.color = color;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof ColoredPoint) {</li>
+ <li>ColoredPoint that = (ColoredPoint) other;</li>
+ <li>result = (this.color.equals(that.color) &amp;&amp; super.equals(that));</li>
+ <li>}</li>
+ <li>else if (other instanceof Point) {</li>
+ <li>Point that = (Point) other;</li>
+ <li>result = that.equals(this);</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+ <li>}</li>
+</ol> 
+<p>在 ColoredPoint 中，equals的新定义比旧版本多了一种情况的检查：如果其他对象是 Point 而不是 ColoredPoint，该方法将使用 Point 的equals方法。这样就可以取得预期的效果，使equals具有对称性。现在，“cp.equals(p)”和“p.equals(cp)”都返回 true。然而，equals的约定还是被打破了。现在的问题是，新的关系不再具有传递性！为了演示这个问题，下面进行一系列的声明。定义一个点和两个不同色的颜色点，所有点在同一位置：</p> 
+<pre></pre>
+<ol>
+ <li>ColoredPoint redP = new ColoredPoint(1, 2, Color.RED);</li>
+ <li>ColoredPoint blueP = new ColoredPoint(1, 2, Color.BLUE);</li>
+</ol> 
+<p>单独来看，redp 等于 p 并且 p 等于 bluep：</p> 
+<pre></pre>
+<ol>
+ <li>System.out.println(redP.equals(p)); // 输出 true</li>
+ <li> </li>
+ <li>System.out.println(p.equals(blueP)); // 输出 true</li>
+</ol> 
+<p>然而，比较 redP 和 blueP，输出 false：</p> 
+<pre></pre>
+<ol>
+ <li>System.out.println(redP.equals(blueP)); // 输出 false</li>
+</ol> 
+<p>因此，这违反了equals约定中的传递性子条款。</p> 
+<p>让equals关系更一般看来是死路一条。下面我们试试让它更严格。使equals更严格的一个方法是：不同类的对象，不同地对待。通过修改类 Point 和 ColoredPoint 中的equals方法来实现。 在类 Point 中，可以添加一个额外的比较，用于检查其他点的运行时类是否与这个点的类相同，代码如下：</p> 
+<pre></pre>
+<ol>
+ <li>// 技术上有效，但仍不能令人满意的 equals 方法</li>
+ <li>public class Point {</li>
+ <li> </li>
+ <li>private final int x;</li>
+ <li>private final int y;</li>
+ <li> </li>
+ <li>public Point(int x, int y) {</li>
+ <li>this.x = x;</li>
+ <li>this.y = y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getX() {</li>
+ <li>return x;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getY() {</li>
+ <li>return y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof Point) {</li>
+ <li>Point that = (Point) other;</li>
+ <li>result = (this.getX() == that.getX() &amp;&amp; this.getY() == that.getY()</li>
+ <li>&amp;&amp; this.getClass().equals(that.getClass()));</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public int hashCode() {</li>
+ <li>return (41 * (41 + getX()) + getY());</li>
+ <li>}</li>
+ <li>}</li>
+</ol> 
+<p>然后，你就可以将类 ColoredPoint 的实现恢复为之前违反了对称性要求的版本：</p> 
+<pre></pre>
+<ol>
+ <li>public class ColoredPoint extends Point { // 不再违反平衡性要求</li>
+ <li> </li>
+ <li>private final Color color;</li>
+ <li> </li>
+ <li>public ColoredPoint(int x, int y, Color color) {</li>
+ <li>super(x, y);</li>
+ <li>this.color = color;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof ColoredPoint) {</li>
+ <li>ColoredPoint that = (ColoredPoint) other;</li>
+ <li>result = (this.color.equals(that.color) &amp;&amp; super.equals(that));</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+ <li>}</li>
+</ol> 
+<p>在这里，类 Point 的实例被认为与系统类的其他实例是相等的，仅当对象具有相同的坐标，并且具有相同的运行时类，即每个对象 .getClass() 返回相同的值。 新的定义可以满足对象性和传递性的要求，因为现在对不同类之间的每次对比都将返回 false。因此，颜色点永远不会与普通点相等。这种约定看起来是合理的，当有人会指出新的定义太过严格了。</p> 
+<p>下面使用稍微有点绕的方式定义位于坐标(1, 2)上的点：</p> 
+<pre></pre>
+<ol>
+ <li>Point pAnon = new Point(1, 1) {</li>
+ <li>@Override public int getY() {</li>
+ <li>return 2;</li>
+ <li>}</li>
+ <li>};</li>
+</ol> 
+<p>pAnon 等于 p 吗？答案是否定的，因为与 p 和 pAnon 关联的 java.lang.Class 对象是不同的。对于 p 是 Point 类，而对于 pAnon，它是 Point 的一个匿名子类。 但显然，pAnon 只是位于坐标(1, 2)上的另一个点。 认为它与 p 不同，看起来并不合理。</p> 
+<p>明智的方式：canEqual 方法</p> 
+<p>从以上各种情况，看起来我们进退两难。是否存在一种明智的方式，在类层次结构的多个分层中对等值比较进行重定义，而同时满足其约定？事实上，有这样一种方式，但它需要另一个方法来重定义equals和 hashCode。这个想法是，只要类重定义 equals（和 hashCode），它就应该同时显式地声明，该类的所有对象与使用不同等值方法的超类中的对象，绝对不会相等。通过对重定义equals的每个类添加方法 canEqual 就可以实现。以下为该方法的原型：</p> 
+<pre></pre>
+<ol>
+ <li>public boolean canEqual(Object other)</li>
+</ol> 
+<p>当其他（other）对象是（重）定义了 canEqual 的类的实例时，该方法应返回 true，或者返回 false。它从equals中调用，以确保这些对象使用2种方式都是可比较的。下面是类 Point 新的也是最后的一个实现：</p> 
+<pre></pre>
+<ol>
+ <li>public class Point {</li>
+ <li> </li>
+ <li>private final int x;</li>
+ <li>private final int y;</li>
+ <li> </li>
+ <li>public Point(int x, int y) {</li>
+ <li>this.x = x;</li>
+ <li>this.y = y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getX() {</li>
+ <li>return x;</li>
+ <li>}</li>
+ <li> </li>
+ <li>public int getY() {</li>
+ <li>return y;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof Point) {</li>
+ <li>Point that = (Point) other;</li>
+ <li>result = (that.canEqual(this) &amp;&amp; this.getX() == that.getX() &amp;&amp; this.getY() == that.getY());</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public int hashCode() {</li>
+ <li>return (41 * (41 + getX()) + getY());</li>
+ <li>}</li>
+ <li> </li>
+ <li>public boolean canEqual(Object other) {</li>
+ <li>return (other instanceof Point);</li>
+ <li>}</li>
+ <li>}</li>
+</ol> 
+<p>类 Point：该版本的equals方法包含了一个附加的要求，由 canEqual 方法决定，其他（other）对象可以等于这个（this）对象。Point 中的 canEqual 实现声明所有 Point 实例都可以是相等的。</p> 
+<p>下面是 ColoredPoint 相应的实现：</p> 
+<pre></pre>
+<ol>
+ <li>public class ColoredPoint extends Point { // 不再违反对称性要求</li>
+ <li> </li>
+ <li>private final Color color;</li>
+ <li> </li>
+ <li>public ColoredPoint(int x, int y, Color color) {</li>
+ <li>super(x, y);</li>
+ <li>this.color = color;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean equals(Object other) {</li>
+ <li>boolean result = false;</li>
+ <li>if (other instanceof ColoredPoint) {</li>
+ <li>ColoredPoint that = (ColoredPoint) other;</li>
+ <li>result = (that.canEqual(this) &amp;&amp; this.color.equals(that.color) &amp;&amp; super.equals(that));</li>
+ <li>}</li>
+ <li>return result;</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public int hashCode() {</li>
+ <li>return (41 * super.hashCode() + color.hashCode());</li>
+ <li>}</li>
+ <li> </li>
+ <li>@Override public boolean canEqual(Object other) {</li>
+ <li>return (other instanceof ColoredPoint);</li>
+ <li>}</li>
+ <li>}</li>
+</ol> 
+<p>可以证明 Point 和 ColoredPoint 的新定义满足了equals的约定。 等值是对称和可传递的。将一个 Point 与 ColoredPoint 比较，总会输出 false。事实上，任何普通点 p 和颜色点 cp，“p.equals(cp)”将返回 false ，因为“cp.canEqual(p)”将返回 false。反向进行比较，“cp.equals(p)”也将返回 false ，因为 p 的确不是ColoredPoint，所以 ColoredPoint 中equals正文中第一个 instanceof 检查将失败。</p> 
+<p>另一方面， Point 的不同子类的实例可以是相等的，只要这些类没有重定义等值比较方法。例如，使用新的类定义，p 和 pAnon 的比较结果为 true。下面是一些例子：</p> 
+<pre></pre>
+<ol>
+ <li>Point p = new Point(1, 2);</li>
+ <li> </li>
+ <li>ColoredPoint cp = new ColoredPoint(1, 2, Color.INDIGO);</li>
+ <li> </li>
+ <li>Point pAnon = new Point(1, 1) {</li>
+ <li>@Override public int getY() {</li>
+ <li>return 2;</li>
+ <li>}</li>
+ <li>};</li>
+ <li> </li>
+ <li>Set
+  <point></point> coll = new java.util.HashSet
+  <point></point>();</li>
+ <li>coll.add(p);</li>
+ <li> </li>
+ <li>System.out.println(coll.contains(p)); // 输出 true</li>
+ <li> </li>
+ <li>System.out.println(coll.contains(cp)); // 输出 false</li>
+ <li> </li>
+ <li>System.out.println(coll.contains(pAnon)); // 输出 true</li>
+</ol> 
+<p>这些例子显示，如果超类equals实现定义并调用 canEqual，那么实现子类的程序员可以决定他们的子类是否与超类的实例相等。由于 ColoredPoint 改写了 canEqual，例如，颜色点可能远不会与普通点相等。但由于 pAnon 中引用的匿名子类并未改写 canEqual，其实例可以与 Point 实例相等。</p> 
+<p>对 canEqual 方式，一种可能的批评是，它违反了里氏替换原则（Liskov Substitution Principle：缩写 LSP）。例如，通过比较运行时类来实现 equals 的技巧，被认为违反了 LSP，因为该技巧导致无法定义这样一个子类：其实例可以等于超类的实例。其推理思路是，LSP 声明：在需要超类实例的地方，你应能够使用（调换）子类实例。但是，在之前的实例中，“coll.contains(cp)”返回 false，即使 cp 的 x 和 y 值与集合中点相匹配。因此，看起来它可能像是违反了 LSP，因为你不能中出现 Point 的地方使用 ColoredPoint。但是，我们认为这是一种错误的解释，因为 LSP 并不要求子类的行为与超类完全相同，而只是它的行为方式能够满足超类的约定。</p> 
+<p>编写equals方法对运行时类进行比较的问题不在于它违反了 LSP，而是它没有为你提供一种方式，用来创建其实例与超类实例相等的子类。例如，如果我们之前的实例中使用运行时类的技巧，“coll.contains(pAnon)”将返回 false，而这不是我们想要的。相反，我们真的想要“coll.contains(cp)”返回 false，因为通过改写 ColoredPoint 中的 equals，我们基本上是在表示，一个位于坐标(1, 2)上的深蓝色点与位于(1, 2)的非颜色点并不相同。因此，在前面的例子中，我们可以将两个不同 Point 子类实例传递到集合的 contains 方法中，并且得到两个不同的结果，两个都是正确的。</p> 
+<p>原文：How to Write an Equality Method in Java</p> 
+<p>作者：Martin Odersky，Lex Spoon，以及Bill Venners</p> 
+<p>译者：<a href="http://tsaizb.blog.51cto.com/">司马牵牛</a></p></div></body></html>

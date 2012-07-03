@@ -1,0 +1,113 @@
+<html><head><title><div class="tit">
+  struts2和Spring整合 配置文件 -v512学习笔记 -hxzon -good
+</div></title></head><body><div id='tit'>struts2和Spring整合 配置文件 -v512学习笔记 -hxzon -good</div><div id='cate'>j&middot;web</div><div id='date'>2008年08月27日 星期三 11:51 A.M.</div><div id='page'>107</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/07156a81f0366ddebc3e1e89.html'>http://hi.baidu.com/hxzon/blog/item/07156a81f0366ddebc3e1e89.html</a><div id='cnt'><div>
+ struts2和Spring整合 配置文件 -v512学习笔记 -hxzon -good
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> 截图。
+ <br /> =================
+ <br /> 添加struts2类库。增加 struts2-spring-plugin-x-x-x.jar文件。
+ <br /> 在web.xml中添加Spring上下文参数和监听器。（在struts2的过滤器之前）。
+ <br /> 
+ <font color="#ff0000">&lt;context-param&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-name&gt;contextConfigLocation&lt;/param-name&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-value&gt;/WEB-INF/applicationContext*.xml&lt;/param-value&gt;<br /> &lt;/context-param&gt;<br /> &lt;listener&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;listener-class&gt;org.springframework.web.context.ContextLoaderListener&lt;/listener-class&gt;<br /> &lt;/listener&gt;<br /> </font>-------------------------------------------------------------
+ <br /> 在web.xml中添加lazyLoadingFilter过滤器。要放在struts2过滤器之前。但过滤器映射集中到所有过滤器之后。
+ <br /> 页面显示完了才关闭session。
+ <br /> 
+ <font color="#ff0000">&lt;filter&gt;<br /> &lt;filter-name&gt;lazyLoadingFilter&lt;/filter-name&gt;<br /> &lt;filter-class&gt;org.springframework.orm.hibernate3.support.OpenSessionInViewFilter<br /> &lt;/filter-class&gt; &lt;/filter&gt;<br /> &lt;filter-mapping&gt;<br /> &nbsp;&nbsp; &lt;filter-name&gt;lazyLoadingFilter&lt;/filter-name&gt;<br /> &nbsp;&nbsp; &lt;url-pattern&gt;*.action&lt;/url-pattern&gt;<br /> &lt;/filter-mapping&gt;<br /> </font>------------------------------------------------------------------
+ <br /> 在web.xml中添加struts2所需的过滤器。
+ <br /> 
+ <font color="#ff0000">&lt;filter&gt;<br /> &nbsp;&nbsp; &lt;filter-name&gt;struts2&lt;/filter-name&gt;<br /> &nbsp;&nbsp; &lt;filter-class&gt;<br /> &nbsp;&nbsp; org.apache.struts2.dispatcher.FilterDispatcher<br /> &nbsp;&nbsp; &lt;/filter-class&gt;<br /> &lt;/filter&gt;<br /> &lt;filter-mapping&gt;<br /> &nbsp;&nbsp; &lt;filter-name&gt;struts2&lt;/filter-name&gt;<br /> &nbsp;&nbsp; &lt;url-pattern&gt;/*&lt;/url-pattern&gt;<br /> &lt;/filter-mapping&gt;<br /> </font>=================================
+ <br /> 在struts.xml配置文件，添加constant，将action交由Spring管理。
+ <br /> &lt;struts&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <font color="#ff0000">&lt;constant name=&quot;struts.objectFactory&quot; value=&quot;spring&quot; /&gt;<br /> </font>&lt;/struts&gt;
+ <br /> -----------------------------------------
+ <br /> 添加action配置。（action类，继承com.opensynphony.xwork2.ActionSupport）
+ <br /> 注意这些action，并不指定类，而是指定了代号（bean的id），如class=&quot;addBean&quot;。
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+ <br /> &lt;!DOCTYPE struts PUBLIC
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;-//Apache Software Foundation//DTD Struts Configuration 2.0//EN&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;http://struts.apache.org/dtds/struts-2.0.dtd&quot;&gt;
+ <br /> &lt;struts&gt;
+ <br /> &lt;constant name=&quot;struts.objectFactory&quot; value=&quot;spring&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;include file=&quot;struts-default.xml&quot;/&gt; （似乎并没有此句）
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <font color="#ff0000">&lt;package name=&quot;crm_employee&quot; extends=&quot;struts-default&quot; namespace=&quot;/emp&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;action name=&quot;add&quot; class=&quot;addBean&quot; method=&quot;add&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;result&gt;list.action&lt;/result&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/action&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;action name=&quot;list&quot; class=&quot;listBean&quot; method=&quot;list&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;result&gt;/emp/list.jsp&lt;/result&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/action&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;action name=&quot;delete&quot; class=&quot;deleteBean&quot; method=&quot;delete&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;result&gt;list.action&lt;/result&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/action&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/package&gt;<br /> </font>&lt;/struts&gt;
+ <br /> ==================================
+ <br /> 在applicationContext.xml配置action。
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <font color="#ff0000">&lt;bean id=&quot;addBean&quot; class=&quot;com.liuwei.crm.action.EmployeeAction&quot; scope=&quot;prototype&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;employeeManager&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;employeeManager&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/bean&gt;<br /> </font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;bean id=&quot;deleteBean&quot; class=&quot;com.liuwei.crm.action.EmployeeAction&quot; scope=&quot;prototype&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;employeeManager&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;employeeManager&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/bean&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;bean id=&quot;listBean&quot; class=&quot;com.liuwei.crm.action.EmployeeAction&quot; scope=&quot;prototype&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;employeeManager&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref bean=&quot;employeeManager&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/bean&gt;
+ <br /> ---------------------------------------------------
+ <br /> 添加事务管理。先修改开头。
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+ <br /> 
+ <font color="#ff0000">&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlns:aop=&quot;http://www.springframework.org/schema/aop&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlns:tx=&quot;http://www.springframework.org/schema/tx&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xsi:schemaLocation=&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; http://www.springframework.org/schema/beans<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; http://www.springframework.org/schema/beans/spring-beans-2.0.xsd<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; http://www.springframework.org/schema/tx<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; http://www.springframework.org/schema/tx/spring-tx-2.0.xsd<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; http://www.springframework.org/schema/aop<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; http://www.springframework.org/schema/aop/spring-aop-2.0.xsd&quot;&gt;</font>
+</div> 
+<div> 
+</div> 
+<div>
+ 配置事务管理器，事务传播特性。。
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <font color="#ff0000">&lt;!-- 配置事务管理器 --&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;bean id=&quot;transactionManager&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; class=&quot;org.springframework.orm.hibernate3.HibernateTransactionManager&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name=&quot;sessionFactory&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;ref local=&quot;sessionFactory&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/property&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/bean&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 配置事务特性 ，配置 add、delete 和 update 开始的方法，事务传播特性为required--&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;tx:advice id=&quot;txAdvice&quot; transaction-manager=&quot;transactionManager&quot;&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;tx:attributes&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;tx:method name=&quot;add*&quot; propagation=&quot;REQUIRED&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;tx:method name=&quot;delete*&quot; propagation=&quot;REQUIRED&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;tx:method name=&quot;update*&quot; propagation=&quot;REQUIRED&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;tx:method name=&quot;*&quot; read-only=&quot;true&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/tx:attributes&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/tx:advice&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 配置哪些类的方法进行事务管理， 当前 cn.com.jobedu.crm.service 包中的子包、 类中所有方法需要，还需要参考 tx:advice 的设置 --&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;aop:config&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;aop:pointcut id=&quot;allManagerMethod&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; expression=&quot;execution (* cn.com.jobedu.crm.service.*.*(..))&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;aop:advisor advice-ref=&quot;txAdvice&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pointcut-ref=&quot;allManagerMethod&quot; /&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/aop:config&gt;<br /> </font>===============================
+ <br /> 编写页面。/emp/list.jsp
+ <br /> 
+ <font color="#ff0000">&lt;% taglib uri=&quot;/struts-tags&quot; prefix=&quot;s&quot;%&gt;<br /> </font>输出信息。
+ <br /> &lt;s:iterator value=&quot;employees&quot; &gt;
+ <br /> &lt;s:property value=&quot;id&quot; /&gt;
+ <br /> &lt;s:property value=&quot;address&quot; /&gt;
+ <br /> &lt;/s:iterator&gt;
+ <br /> ===================================
+ <br /> 调试中出错，包冲突，去掉了hibernate3.1核心库中的一个jar。（xercex-2.6.2.jar）（必须在项目能力那里去除，否则重新部署又会添加）。
+ <br /> ===================================================
+ <br /> 几种方式整合struts2和Spring -struts2权威指南 -hxzon
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> 1.初始化Spring容器（两种方式，优先使用第一种）
+ <br /> 一,利用ContextLoaderListener
+ <br /> &lt;listener&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;listener-class&gt;org.springframework.web.context.ContextLoaderListener&lt;/listener-class&gt;
+ <br /> &lt;/listener&gt;
+ <br /> 默认查找WEB-INF下的applicationContext.xml.
+ <br /> 如果有多个配置文件,则还需要在之前添加参数如下
+ <br /> &lt;context-param&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-name&gt;contextConfigLocation&lt;/param-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-value&gt;/WEB-INF/applicationContext*.xml&lt;/param-value&gt;
+ <br /> &lt;/context-param&gt;
+ <br /> 二,利用load-on-startup Servlet
+ <br /> 这种方式主要是有些web服务器不支持servlet2.3以上的规范.
+ <br /> &lt;servlet&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;servlet-name&gt;context&lt;/servlet-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;servlet-class&gt;org.springframework.web.context.ContextLoaderServlet&lt;/servlet-class&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;!-- 以下值越小越早进行容器创建，但Listener总是比所有的servlet更早 --》
+ <br /> &nbsp;&nbsp;&nbsp; &lt;load-on-startup&gt;1&lt;/load-on-startup&gt;
+ <br /> &lt;/servlet&gt;
+ <br /> 如果有多个配置文件，也要像第一种方式那样添加参数。
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> 2.struts2和Spring整合（hxzon：推荐使用第一种方式）
+ <br /> 一,struts.xml中的修改
+ <br /> 只需将action的class属性改为applicationContext.xml里对应Bean实例的id.
+ <br /> applicationContext.xml里添加action对应的Bean.
+ <br /> &lt;bean id=&quot;xxx&quot; class=&quot;实现类&quot; scope=&quot;prototype&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;property name=&quot;yyy&quot; ref=&quot;yyy&quot; /&gt;
+ <br /> &lt;/bean&gt;
+ <br /> 不足是action配置了两次,冗余.
+ <br /> 二,使用自动装配
+ <br /> struts.xml完全不需要修改.
+ <br /> applicationContext.xml添加业务逻辑组件.
+ <br /> &lt;bean id=&quot;xxx&quot; class=&quot;业务逻辑实现类&quot; /&gt;
+ <br /> 这样就可以通过匹配id名自动将xxx注入到action中.
+ <br /> 省了大量配置代码,不足是降低依赖关系的透明性和清晰性.
+ <br /> &nbsp;&nbsp;&nbsp; 第13章 整合Spring -hxzon
+</div></div></body></html>

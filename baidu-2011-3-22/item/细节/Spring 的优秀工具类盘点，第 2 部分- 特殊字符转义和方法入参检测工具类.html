@@ -1,0 +1,351 @@
+<html><head><title><div class="tit">
+  Spring 的优秀工具类盘点，第 2 部分: 特殊字符转义和方法入参检测工具类
+</div></title></head><body><div id='tit'>Spring 的优秀工具类盘点，第 2 部分: 特殊字符转义和方法入参检测工具类</div><div id='cate'>细节</div><div id='date'>2009年12月28日 星期一 01:16 P.M.</div><div id='page'>20</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/7794b7358d0ea880a71e12ce.html'>http://hi.baidu.com/hxzon/blog/item/7794b7358d0ea880a71e12ce.html</a><div id='cnt'><p> </p> 
+<h1><span style="color: rgb(153,153,153)">Spring 的优秀工具类盘点，第 2 部分: </span>特殊字符转义和方法入参检测工具类</h1> 
+<p>级别： 初级</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-utils2/#author">陈 雄华</a> (<a href="mailto:quickselect@163.com?subject=%E7%89%B9%E6%AE%8A%E5%AD%97%E7%AC%A6%E8%BD%AC%E4%B9%89%E5%92%8C%E6%96%B9%E6%B3%95%E5%85%A5%E5%8F%82%E6%A3%80%E6%B5%8B%E5%B7%A5%E5%85%B7%E7%B1%BB">quickselect@163.com</a>), 技术总监, 宝宝淘网络科技有限公司</p> 
+<p>2007 年 8 月 31 日</p> 
+<blockquote> 
+ <p>Spring 不但提供了一个功能全面的应用开发框架，本身还拥有众多可以在程序编写时直接使用的工具类，您不但可以在 Spring 应用中使用这些工具类，也可以在其它的应用中使用，这些工具类中的大部分是可以在脱离 Spring 框架时使用的。了解 Spring 中有哪些好用的工具类并在程序编写时适当使用，将有助于提高开发效率、增强代码质量。</p> 
+ <p>在这个分为两部分的文章中，我们将从众多的 Spring 工具类中遴选出那些好用的工具类介绍给大家。<a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-utils1/">第 1 部分</a> 介绍了与文件资源操作和 Web 相关的工具类。在第 2 部分中将介绍特殊字符转义和方法入参检测工具类。</p> 
+</blockquote> 
+<p><a name="N1005D"><span class="atitle">特殊字符转义</span></a></p> 
+<p>由于 Web 应用程序需要联合使用到多种语言，每种语言都包含一些特殊的字符，对于动态语言或标签式的语言而言，如果需要动态构造语言的内容时，一个我们经常会碰到的问题就是特殊字符转义的问题。下面是 Web 开发者最常面对需要转义的特殊字符类型：</p> 
+<ul> 
+ <li>HTML 特殊字符；</li> 
+ <li>JavaScript 特殊字符；</li> 
+ <li>SQL 特殊字符；</li> 
+</ul> 
+<p>如果不对这些特殊字符进行转义处理，则不但可能破坏文档结构，还可以引发潜在的安全问题。Spring 为 HTML 和 JavaScript 特殊字符提供了转义操作工具类，它们分别是 HtmlUtils 和 JavaScriptUtils。</p> 
+<p><a name="N10075"><span class="smalltitle">HTML 特殊字符转义</span></a></p> 
+<p>HTML 中 &lt;，&gt;，&amp; 等字符有特殊含义，它们是 HTML 语言的保留字，因此不能直接使用。使用这些个字符时，应使用它们的转义序列：</p> 
+<ul> 
+ <li>&amp;：&amp;amp;</li> 
+ <li>&quot; ：&amp;quot;</li> 
+ <li>&lt; ：&amp;lt;</li> 
+ <li>&gt; ：&amp;gt;</li> 
+</ul> 
+<p>由于 HTML 网页本身就是一个文本型结构化文档，如果直接将这些包含了 HTML 特殊字符的内容输出到网页中，极有可能破坏整个 HTML 文档的结构。所以，一般情况下需要对动态数据进行转义处理，使用转义序列表示 HTML 特殊字符。下面的 JSP 网页将一些变量动态输出到 HTML 网页中：</p> 
+<p><br /> <a name="list1"><strong>清单 1. 未进行 HTML 特殊字符转义处理网页</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;%@ page language=&quot;java&quot; contentType=&quot;text/html; charset=utf-8&quot;%&gt;
+&lt;%!
+   String userName = &quot;&lt;/td&gt;&lt;tr&gt;&lt;/table&gt;&quot;;
+   String address = &quot; \&quot; type=\&quot;button&quot;;
+ %&gt;
+&lt;table border=&quot;1&quot;&gt;
+   &lt;tr&gt;
+     &lt;td&gt;姓名：&lt;/td&gt;&lt;td&gt;&lt;%=userName%&gt;&lt;/td&gt; ①
+   &lt;/tr&gt;
+   &lt;tr&gt;
+     &lt;td&gt;年龄：&lt;/td&gt;&lt;td&gt;28&lt;/td&gt;
+   &lt;/tr&gt;
+&lt;/table&gt;
+ &lt;input value=&quot;&lt;%=address%&gt;&quot;  type=&quot;text&quot; /&gt; ②</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在 ① 和 ② 处，我们未经任何转义处理就直接将变量输出到 HTML 网页中，由于这些变量可能包含一些特殊的 HTML 的字符，它们将可能破坏整个 HTML 文档的结构。我们可以从以上 JSP 页面的一个具体输出中了解这一问题：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;table border=&quot;1&quot;&gt;
+   &lt;tr&gt;
+     &lt;td&gt;姓名：&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;tr&gt;&lt;/table&gt;&lt;/td&gt; 
+     ① 破坏了 &lt;table&gt; 的结构
+   &lt;/tr&gt;
+   &lt;tr&gt;
+     &lt;td&gt;年龄：&lt;/td&gt;&lt;td&gt;28&lt;/td&gt;
+   &lt;/tr&gt;
+&lt;/table&gt;
+ &lt;input value=&quot; &quot; type=&quot;button&quot;  type=&quot;text&quot; /&gt; 
+ ② 将本来是输入框组件偷梁换柱为按钮组件</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>融合动态数据后的 HTML 网页已经面目全非，首先 ① 处的 &lt;table&gt; 结构被包含 HTML 特殊字符的 userName 变量截断了，造成其后的 &lt;table&gt; 代码变成无效的内容；其次，② 处 &lt;input&gt; 被动态数据改换为按钮类型的组件（type=&quot;button&quot;）。为了避免这一问题，我们需要事先对可能破坏 HTML 文档结构的动态数据进行转义处理。Spring 为我们提供了一个简单适用的 HTML 特殊字符转义工具类，它就是 HtmlUtils。下面，我们通过一个简单的例子了解 HtmlUtils 的具体用法：</p> 
+<p><br /> <a name="list2"><strong>清单 2. HtmpEscapeExample</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">package com.baobaotao.escape;
+import org.springframework.web.util.HtmlUtils;
+public class HtmpEscapeExample {
+    public static void main(String[] args) {
+        String specialStr = &quot;&lt;div id=\&quot;testDiv\&quot;&gt;test1;test2&lt;/div&gt;&quot;;
+        String str1 = HtmlUtils.htmlEscape(specialStr); ①转换为HTML转义字符表示
+        System.out.println(str1);
+       
+        String str2 = HtmlUtils.htmlEscapeDecimal(specialStr); ②转换为数据转义表示
+        System.out.println(str2);
+       
+        String str3 = HtmlUtils.htmlEscapeHex(specialStr); ③转换为十六进制数据转义表示
+        System.out.println(str3);
+       
+        ④下面对转义后字符串进行反向操作
+        System.out.println(HtmlUtils.htmlUnescape(str1));
+        System.out.println(HtmlUtils.htmlUnescape(str2));
+        System.out.println(HtmlUtils.htmlUnescape(str3));
+    }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>HTML 不但可以使用通用的转义序列表示 HTML 特殊字符，还可以使用以 # 为前缀的数字序列表示 HTML 特殊字符，它们在最终的显示效果上是一样的。HtmlUtils 提供了三个转义方法：</p> 
+<p> </p>
+<table class="data-table-1 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <th>方法</th> 
+   <th>说明</th> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">static String htmlEscape(String input)</font></code></td> 
+   <td>将 HTML 特殊字符转义为 HTML 通用转义序列；</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">static String htmlEscapeDecimal(String input)</font></code></td> 
+   <td>将 HTML 特殊字符转义为带 # 的十进制数据转义序列；</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">static String htmlEscapeHex(String input)</font></code></td> 
+   <td>将 HTML 特殊字符转义为带 # 的十六进制数据转义序列；</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>此外，HtmlUtils 还提供了一个能够将经过转义内容还原的方法：htmlUnescape(String input)，它可以还原以上三种转义序列的内容。运行以上代码，您将可以看到以下的输出：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">str1:&amp;lt;div id=&amp;quot;testDiv&amp;quot;&amp;gt;test1;test2&amp;lt;/div&amp;gt;
+str2:&amp;#60;div id=&amp;#34;testDiv&amp;#34;&amp;#62;test1;test2&amp;#60;/div&amp;#62;
+str3:&amp;#x3c;div id=&amp;#x22;testDiv&amp;#x22;&amp;#x3e;test1;test2&amp;#x3c;/div&amp;#x3e;
+&lt;div id=&quot;testDiv&quot;&gt;test1;test2&lt;/div&gt;
+&lt;div id=&quot;testDiv&quot;&gt;test1;test2&lt;/div&gt;
+&lt;div id=&quot;testDiv&quot;&gt;test1;test2&lt;/div&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>您只要使用 HtmlUtils 对代码 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-utils2/#list1">清单 1</a> 的 userName 和 address 进行转义处理，最终输出的 HTML 页面就不会遭受破坏了。</p> 
+<p><a name="N100F5"><span class="smalltitle">JavaScript 特殊字符转义</span></a></p> 
+<p>JavaScript 中也有一些需要特殊处理的字符，如果直接将它们嵌入 JavaScript 代码中，JavaScript 程序结构将会遭受破坏，甚至被嵌入一些恶意的程序。下面列出了需要转义的特殊 JavaScript 字符：</p> 
+<ul> 
+ <li>' ：\'</li> 
+ <li>&quot; ：\&quot;</li> 
+ <li>\ ：\\</li> 
+ <li>走纸换页： \f</li> 
+ <li>换行：\n</li> 
+ <li>换栏符：\t</li> 
+ <li>回车：\r</li> 
+ <li>回退符：\b</li> 
+</ul> 
+<p></p> 
+<p>我们通过一个具体例子演示动态变量是如何对 JavaScript 程序进行破坏的。假设我们有一个 JavaScript 数组变量，其元素值通过一个 Java List 对象提供，下面是完成这一操作的 JSP 代码片断：</p> 
+<p><br /> <a name="list3"><strong>清单 3. jsTest.jsp：未对 JavaScript 特殊字符进行处理</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;%@ page language=&quot;java&quot; contentType=&quot;text/html; charset=utf-8&quot;%&gt;
+&lt;jsp:directive.page import=&quot;java.util.*&quot;/&gt;
+&lt;%
+  List textList = new ArrayList();
+  textList.add(&quot;\&quot;;alert();j=\&quot;&quot;);
+%&gt;
+&lt;script&gt;
+  var txtList = new Array();
+   &lt;% for ( int i = 0 ; i &lt; textList.size() ; i++) { %&gt;
+     txtList[&lt;%=i%&gt;] = &quot;&lt;%=textList.get(i)%&gt;&quot;; 
+  ① 未对可能包含特殊 JavaScript 字符的变量进行处理
+   &lt;% } %&gt;
+&lt;/script&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>当客户端调用这个 JSP 页面后，将得到以下的 HTML 输出页面：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;script&gt;
+  var txtList = new Array();
+   txtList[0] = &quot;&quot;<span class="boldcode">;alert();j=</span>&quot;&quot;; ① 本来是希望接受一个字符串，结果被植入了一段JavaScript代码
+&lt;/script&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>由于包含 JavaScript 特殊字符的 Java 变量直接合并到 JavaScript 代码中，我们本来期望 ① 处所示部分是一个普通的字符串，但结果变成了一段 JavaScript 代码，网页将弹出一个 alert 窗口。想像一下如果粗体部分的字符串是“&quot;;while(true)alert();j=&quot;”时会产生什么后果呢？</p> 
+<p>因此，如果网页中的 JavaScript 代码需要通过拼接 Java 变量动态产生时，一般需要对变量的内容进行转义处理，可以通过 Spring 的 JavaScriptUtils 完成这件工作。下面，我们使用 JavaScriptUtils 对以上代码进行改造：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;%@ page language=&quot;java&quot; contentType=&quot;text/html; charset=utf-8&quot;%&gt;
+&lt;jsp:directive.page import=&quot;java.util.*&quot;/&gt;
+&lt;jsp:directive.page import=&quot;org.springframework.web.util.JavaScriptUtils&quot;/&gt;
+&lt;%
+  List textList = new ArrayList();
+  textList.add(&quot;\&quot;;alert();j=\&quot;&quot;);
+%&gt;
+&lt;script&gt;
+   var txtList = new Array();
+   &lt;% for ( int i = 0 ; i &lt; textList.size() ; i++) { %&gt;
+   ① 在输出动态内容前事先进行转义处理
+   txtList[&lt;%=i%&gt;] = &quot;&lt;%=JavaScriptUtils.javaScriptEscape(&quot;&quot;+textList.get(i))%&gt;&quot;;
+   &lt;% } %&gt;
+&lt;/script&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>通过转义处理后，这个 JSP 页面输出的结果网页的 JavaScript 代码就不会产生问题了：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;script&gt;
+   var txtList = new Array();
+   txtList[0] = &quot;<span class="boldcode">\&quot;;alert();j=\&quot;</span>&quot;;
+   ① 粗体部分仅是一个普通的字符串，而非一段 JavaScript 的语句了
+&lt;/script&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N10142"><span class="smalltitle">SQL特殊字符转义</span></a></p> 
+<p>应该说，您即使没有处理 HTML 或 JavaScript 的特殊字符，也不会带来灾难性的后果，但是如果不在动态构造 SQL 语句时对变量中特殊字符进行处理，将可能导致程序漏洞、数据盗取、数据破坏等严重的安全问题。网络中有大量讲解 SQL 注入的文章，感兴趣的读者可以搜索相关的资料深入研究。</p> 
+<p>虽然 SQL 注入的后果很严重，但是只要对动态构造的 SQL 语句的变量进行特殊字符转义处理，就可以避免这一问题的发生了。来看一个存在安全漏洞的经典例子：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SELECT COUNT(userId) 
+FROM t_user 
+WHERE userName='&quot;+userName+&quot;' AND password ='&quot;+password+&quot;';</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>以上 SQL 语句根据返回的结果数判断用户提供的登录信息是否正确，如果 userName 变量不经过特殊字符转义处理就直接合并到 SQL 语句中，黑客就可以通过将 userName 设置为 “1' or '1'='1”绕过用户名/密码的检查直接进入系统了。</p> 
+<p>所以除非必要，一般建议通过 PreparedStatement 参数绑定的方式构造动态 SQL 语句，因为这种方式可以避免 SQL 注入的潜在安全问题。但是往往很难在应用中完全避免通过拼接字符串构造动态 SQL 语句的方式。为了防止他人使用特殊 SQL 字符破坏 SQL 的语句结构或植入恶意操作，必须在变量拼接到 SQL 语句之前对其中的特殊字符进行转义处理。Spring 并没有提供相应的工具类，您可以通过 jakarta commons lang 通用类包中（spring/lib/jakarta-commons/commons-lang.jar）的 StringEscapeUtils 完成这一工作：</p> 
+<p><br /> <a name="list4"><strong>清单 4. SqlEscapeExample</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">package com.baobaotao.escape;
+import org.apache.commons.lang.StringEscapeUtils;
+public class SqlEscapeExample {
+    public static void main(String[] args) {
+        String userName = &quot;1' or '1'='1&quot;;
+        String password = &quot;123456&quot;;
+        userName = StringEscapeUtils.escapeSql(userName);
+        password = StringEscapeUtils.escapeSql(password);
+        String sql = &quot;SELECT COUNT(userId) FROM t_user WHERE userName='&quot;
+            + userName + &quot;' AND password ='&quot; + password + &quot;'&quot;;
+        System.out.println(sql);
+    }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>事实上，StringEscapeUtils 不但提供了 SQL 特殊字符转义处理的功能，还提供了 HTML、XML、JavaScript、Java 特殊字符的转义和还原的方法。如果您不介意引入 jakarta commons lang 类包，我们更推荐您使用 StringEscapeUtils 工具类完成特殊字符转义处理的工作。</p> 
+<p><a name="N10163"><span class="atitle">方法入参检测工具类</span></a></p> 
+<p>Web 应用在接受表单提交的数据后都需要对其进行合法性检查，如果表单数据不合法，请求将被驳回。类似的，当我们在编写类的方法时，也常常需要对方法入参进行合法性检查，如果入参不符合要求，方法将通过抛出异常的方式拒绝后续处理。举一个例子：有一个根据文件名获取输入流的方法：InputStream getData(String file)，为了使方法能够成功执行，必须保证 file 入参不能为 null 或空白字符，否则根本无须进行后继的处理。这时方法的编写者通常会在方法体的最前面编写一段对入参进行检测的代码，如下所示：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public InputStream getData(String file) {
+    if (file == null || file.length() == 0|| file.replaceAll(&quot;\\s&quot;, &quot;&quot;).length() == 0) {
+        throw new IllegalArgumentException(&quot;file入参不是有效的文件地址&quot;);
+    }
+…
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>类似以上检测方法入参的代码是非常常见，但是在每个方法中都使用手工编写检测逻辑的方式并不是一个好主意。阅读 Spring 源码，您会发现 Spring 采用一个 org.springframework.util.Assert 通用类完成这一任务。</p> 
+<p>Assert 翻译为中文为“断言”，使用过 JUnit 的读者都熟知这个概念，它断定某一个实际的运行值和预期想一样，否则就抛出异常。Spring 对方法入参的检测借用了这个概念，其提供的 Assert 类拥有众多按规则对方法入参进行断言的方法，可以满足大部分方法入参检测的要求。这些断言方法在入参不满足要求时就会抛出 IllegalArgumentException。下面，我们来认识一下 Assert 类中的常用断言方法：</p> 
+<p> </p>
+<table class="data-table-1 FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <th>断言方法</th> 
+   <th>说明</th> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">notNull(Object object)</font></code></td> 
+   <td>当 object 不为 null 时抛出异常，notNull(Object object, String message) 方法允许您通过 message 定制异常信息。和 notNull() 方法断言规则相反的方法是 isNull(Object object)/isNull(Object object, String message)，它要求入参一定是 null；</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">isTrue(boolean expression) / isTrue(boolean expression, String message)</font></code></td> 
+   <td>当 expression 不为 true 抛出异常；</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">notEmpty(Collection collection) / notEmpty(Collection collection, String message)</font></code></td> 
+   <td>当集合未包含元素时抛出异常。notEmpty(Map map) / notEmpty(Map map, String message) 和 notEmpty(Object[] array, String message) / notEmpty(Object[] array, String message) 分别对 Map 和 Object[] 类型的入参进行判断；</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">hasLength(String text) / hasLength(String text, String message)</font></code></td> 
+   <td>当 text 为 null 或长度为 0 时抛出异常；</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">hasText(String text) / hasText(String text, String message)</font></code></td> 
+   <td>text 不能为 null 且必须至少包含一个非空格的字符，否则抛出异常；</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">isInstanceOf(Class clazz, Object obj) / isInstanceOf(Class type, Object obj, String message)</font></code></td> 
+   <td>如果 obj 不能被正确造型为 clazz 指定的类将抛出异常；</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="NSimsun">isAssignable(Class superType, Class subType) / isAssignable(Class superType, Class subType, String message)</font></code></td> 
+   <td>subType 必须可以按类型匹配于 superType，否则将抛出异常；</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>使用 Assert 断言类可以简化方法入参检测的代码，如 InputStream getData(String file) 在应用 Assert 断言类后，其代码可以简化为以下的形式：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">public InputStream getData(String file){
+    Assert.hasText(file,&quot;file入参不是有效的文件地址&quot;); 
+    ① 使用 Spring 断言类进行方法入参检测
+…
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>可见使用 Spring 的 Assert 替代自编码实现的入参检测逻辑后，方法的简洁性得到了不少的提高。Assert 不依赖于 Spring 容器，您可以大胆地在自己的应用中使用这个工具类。</p> 
+<p><a name="N101ED"><span class="atitle">小结</span></a></p> 
+<p>本文介绍了一些常用的 Spring 工具类，其中大部分 Spring 工具类不但可以在基于 Spring 的应用中使用，还可以在其它的应用中使用。</p> 
+<p>对于 Web 应用来说，由于有很多关联的脚本代码，如果这些代码通过拼接字符串的方式动态产生，就需要对动态内容中特殊的字符进行转义处理，否则就有可能产生意想不到的后果。Spring 为此提供了 HtmlUtils 和 JavaScriptUtils 工具类，只要将动态内容在拼接之前使用工具类进行转义处理，就可以避免类似问题的发生了。如果您不介意引入一个第三方类包，那么 jakarta commons lang 通用类包中的 StringEscapeUtils 工具类可能更加适合，因为它提供了更加全面的转义功能。</p> 
+<p>最后我们还介绍了 Spring 的 Assert 工具类，Assert 工具类是通用性很强的工具类，它使用面向对象的方式解决方法入参检测的问题，您可以在自己的应用中使用 Assert 对方法入参进行检查。</p> 
+<p><br /> <br /> </p> 
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+<p><strong>学习</strong></p> 
+<ul> 
+ <li>阅读本文的 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-utils1/">第 1 部分</a>：介绍了与文件资源操作和 Web 相关的工具类。</li> 
+ <li><a href="http://www.ibm.com/developerworks/cn/java/wa-spring1/">Spring 系列：Spring 框架简介</a>：优秀的 Spring 框架入门系列，了解 Spring 框架的基本概念。</li> 
+ <li><a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-lob/index.html">Spring 让 LOB 数据操作变得简单易行</a>：讲解了在 Spring 中处理 LOB 数据的原理和方法。</li> 
+</ul> 
+<p><br /> <strong>获得产品和技术</strong></p> 
+<ul> 
+ <li><a href="http://www.springframework.org/download">Springframework 网站</a>：下载 Spring 框架。</li> 
+</ul> 
+<p><br /> <br /> </p> 
+<p><a name="author"><span class="atitle">关于作者</span></a></p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td colspan="3"><img src="image/Spring 的优秀工具类盘点，第 2 .c.gif" width="100%" height="5" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+  </tr> 
+  <tr valign="top" align="left"> 
+   <td> <p><img alt="陈雄华照片" align="left" src="image/Spring 的优秀工具类盘点，第 2 .chenxh.jpg" valign="top" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-spring-utils2/chenxh.jpg</p></p> </td> 
+   <td><img src="image/Spring 的优秀工具类盘点，第 2 .c.gif" width="4" height="5" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td width="100%"> <p>陈雄华，2002 年毕业于厦门大学计算机与信息工程学院，获硕士学位。是宝宝淘科技有限公司的创始人之一（<a href="http://www.baobaotao.com/" target="_blank">http://www.baobaotao.com</a>），这是一个服务于全国母婴用户的综合性网站，作者负责网站整体框架设计以及核心代码开发的工作。技术开发之余，常将经验所得行诸于文字，作者是国内多个著名技术网站的专栏作者，在各大技术网站、报刊杂志发表过数十篇技术文章，广受读者好评。于 2005 年出版《精通 JBuilder 2005》，于2007年出版《精通 Spring 2.x--企业应用开发详解》，其新作《EXT 2.x开发详解――AJAX和Web页面布局王者至尊》即将出版。</p> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-utils2/">http://www.ibm.com/developerworks/cn/java/j-lo-spring-utils2/</a></p></div></body></html>

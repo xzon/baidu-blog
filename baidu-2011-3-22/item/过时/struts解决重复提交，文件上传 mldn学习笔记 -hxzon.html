@@ -1,0 +1,95 @@
+<html><head><title><div class="tit">
+  struts解决重复提交，文件上传 mldn学习笔记 -hxzon
+</div></title></head><body><div id='tit'>struts解决重复提交，文件上传 mldn学习笔记 -hxzon</div><div id='cate'>过时</div><div id='date'>2008年08月23日 星期六 08:44 P.M.</div><div id='page'>108</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/41b9652799029d05908f9de0.html'>http://hi.baidu.com/hxzon/blog/item/41b9652799029d05908f9de0.html</a><div id='cnt'><div>
+ struts解决重复提交，文件上传 mldn学习笔记 -hxzon
+</div> 
+<div> 
+</div> 
+<div>
+ 问题：提交后，当用户浏览器后退，再按提交，或刷新等，会重复提交
+</div> 
+<div> 
+</div> 
+<div>
+ 加过一个页面，AdvToken.htm，点击链接（firstAction）进去真正的输入页面。
+</div> 
+<div> 
+</div> 
+<div>
+ public class FirstAction extends Action {
+</div> 
+<div> 
+</div> 
+<div>
+ public ActionForward execute(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp; // 设置了一个指令牌
+ <br /> &nbsp;&nbsp; this.saveToken(request) ;
+ <br /> &nbsp;&nbsp; return mapping.findForward(&quot;insert&quot;);
+ <br /> }
+ <br /> }
+ <br /> 在firstAction中设置了一个令牌，而在真正的action中，检查这个令牌。
+ <br /> public class NoteAction extends Action {
+</div> 
+<div> 
+</div> 
+<div>
+ public ActionForward execute(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp; NoteForm noteForm = (NoteForm) form;// TODO Auto-generated method stub
+ <br /> &nbsp;&nbsp; // 判断此Token是否有效
+ <br /> &nbsp;&nbsp; if (this.isTokenValid(request)) {
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;标题：&quot; + noteForm.getTitle());
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;作者：&quot; + noteForm.getAuthor());
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;内容：&quot; + noteForm.getContent());
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;--------------------------------------&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; // 取消设置的token
+ <br /> &nbsp;&nbsp;&nbsp; this.resetToken(request) ;
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; else
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; // 认为传递的数据属于重复提交
+ <br /> &nbsp;&nbsp;&nbsp; ActionMessages errors = new ActionMessages() ;
+ <br /> &nbsp;&nbsp;&nbsp; errors.add(&quot;token&quot;,new ActionMessage(&quot;token&quot;)) ;
+ <br /> &nbsp;&nbsp;&nbsp; this.saveErrors(request, errors) ;
+ <br /> &nbsp;&nbsp;&nbsp; return mapping.getInputForward() ;
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return null;
+ <br /> }
+ <br /> }
+ <br /> ===========================================
+ <br /> 上传 自己编写IO流
+ <br /> &nbsp;&nbsp;&nbsp; &lt;html:form action=&quot;upload.do&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; 文件的名称：&lt;html:text property=&quot;name&quot;&gt;&lt;/html:text&gt;&lt;br&gt;
+ <br /> &nbsp;&nbsp;&nbsp; 选择上传的文件：&lt;html:file property=&quot;pic&quot;&gt;&lt;/html:file&gt;&lt;br&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;html:submit value=&quot;上传&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/html:form&gt;
+ <br /> -------------
+ <br /> public class UploadAction extends Action {
+</div> 
+<div> 
+</div> 
+<div>
+ public ActionForward execute(ActionMapping mapping, ActionForm form,
+ <br /> &nbsp;&nbsp;&nbsp; HttpServletRequest request, HttpServletResponse response) {
+ <br /> &nbsp;&nbsp; UploadForm uploadForm = (UploadForm) form;
+ <br /> &nbsp;&nbsp; // 在编写IO流的时候必须有一个明确的绝对路径
+ <br /> &nbsp;&nbsp; // 可是对于WEB程序而言，绝对路径不是固定的
+ <br /> &nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; String uploadPath = this.getServlet().getServletContext().getRealPath(&quot;/&quot;)+&quot;upload\\&quot;+uploadForm.getName()+&quot;.&quot;+(uploadForm.getPic().getFileName().split(&quot;\\.&quot;)[1]) ;
+ <br /> &nbsp;&nbsp; System.out.println(&quot;** &quot;+uploadPath) ;
+ <br /> &nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp; OutputStream out = new FileOutputStream(new File(uploadPath)) ;
+ <br /> &nbsp;&nbsp;&nbsp; FormFile ff = uploadForm.getPic() ;
+ <br /> &nbsp;&nbsp;&nbsp; byte b[] = ff.getFileData() ;
+ <br /> &nbsp;&nbsp;&nbsp; out.write(b) ;
+ <br /> &nbsp;&nbsp;&nbsp; out.close() ;
+ <br /> &nbsp;&nbsp; } catch (FileNotFoundException e) {
+ <br /> &nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp; } catch (IOException e) {
+ <br /> &nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return null;
+ <br /> }
+ <br /> }
+</div></div></body></html>

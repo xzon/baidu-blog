@@ -1,0 +1,36 @@
+<html><head><title><div class="tit">
+  《Modern C++ Design》Loki库源码读解随想
+</div></title></head><body><div id='tit'>《Modern C++ Design》Loki库源码读解随想</div><div id='cate'>无分类</div><div id='date'>2008年04月22日 星期二 11:24 A.M.</div><div id='page'>140</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/e39e329b687e78b0c9eaf491.html'>http://hi.baidu.com/hxzon/blog/item/e39e329b687e78b0c9eaf491.html</a><div id='cnt'>《Modern C++ Design》Loki库源码读解随想
+<br /> 大牛Andrei Alexandrescu的《Modern C++ Design》讨论的是C++语言的最前沿研究：generative programming。本书中译版估计得要半年以后才能出来，所以只能靠其所附源码来窥测generative programming了。
+<br /> 目前，我刚将源码读解了约一半，等全部读完，我会将我的读解注释放出来的。现在，现谈一下我的感想。
+<br /> 先扯得远一点。C++有两个巨大优点：和C兼容，自由；有两个巨大缺点：和C兼容，复杂。C++极其复杂，很难掌握，而这正是“自由”的代价。C++语言是个多编程风格的语言，它同时支持过程化、基于对象、面向对象、泛型、生成性这5种编程思想，具有极其强大的表达能力，可以方便地将各种设计转化为实现。
+<br /> generic Programming的思想精髓是基于接口编程（相对于OOP，连多态所需的基类都不要了），它的技术出发点是选择子，核心技术是：类型推导、类型萃取、特化/偏特化，其成果是STL库：一组通用容器和一组操作于通用容器上的通用算法。
+<br /> generative programming的思想精髓是基于策略编程（编译器根据策略自动生成所需代码，由于具有更高的抽象性，所以代码复用度也更高），在Loki库的实现中，目前只使用了递归策略，它的技术出发点是Typelist，核心技术是：类型推导、类型萃取、特化/偏特化、多重继承、类型间去耦合，其成果是Loki库：对设计模式的封装。
+<br /> Typelist是一种对类型本身进行存储和管理的技巧，它的源码已经贴过了，我也作了注解，此处不再谈论。
+<br /> 这是多重继承在COM之后的又一大型运用。多重继承极易发生菱型缺陷，所以Loki库使用了类型间去耦合技术来避免：
+<br /> template &lt;typename T&gt;
+<br /> struct Type2Type
+<br /> {
+<br /> typedef T OriginalType;
+<br /> };
+<br /> 经过这样一层转换后，原类型T间的各种转换关系（尤其是继承/派生关系）已不复存在，菱型缺陷不会再发生了。
+<br /> Loki库的具体实现相当讲究技巧，设计它非常困难（难度远大于STL库，和Boost库有得一拼啊）。但使用它却非常容易，而且便利显著。由于Loki库提供了对设计模式的封装，所以极大量地丰富了C++语言的表达能力，使的你的设计更容易地转化为实现。
+<br /> 目前，Loki库只提供了对厂模式和visitor模式的封装，它还处于发展初期。
+<br /> 我以visitor模式为例，讲解Loki库提供的便利。
+<br /> Visitor模式有四种实现方式：1一串RTTI的类型判断；2二次调度（double dispatch）；3建立类型与处理函数的对应表；4非循环visitor（Acyclic Visitor）。在《More Effective C++》 Item 31中讨论了前3种实现（虽然它的例子本身不太算visitor模式的）。第四种方式在《使用设计模式改善程序结构》（二）（http://www-900.ibm.com/developerWorks/cn/java/l-dpstruct/part2/index.shtml）中有详细讲解。
+<br /> 
+<a class="bbs" target="_blank" href="http://www.wangchao.net.cn/bbsdetail_25407.html"> 
+ <div>
+  <img border="0" name="image0" src="image/《Modern C++ Design》L.14522_1.jpg" />
+  <p class="origImg">http://www.csdn.net/develop/article/images/14522_1.jpg</p>
+ </div> </a>
+<br /> 原型图
+<br /> 以这张原型图而言，用户需要自己实现大量的代码，而且，由于使用多重继承技术，在具体Host类间有继承关系时，它一定会发生问题。
+<br /> 
+<a class="bbs" target="_blank" href="http://www.wangchao.net.cn/bbsdetail_25407.html"> 
+ <div>
+  <img border="0" name="image1" src="image/《Modern C++ Design》L.14522_2.jpg" />
+  <p class="origImg">http://www.csdn.net/develop/article/images/14522_2.jpg</p>
+ </div> </a>Loki库实现图
+<br /> 使用Loki库，用户实现visitor模式时只需：让Host类从BaseVisitable继承，并在所有派生类中加上DEFINE_VISITABLE()宏，让所有Visitor类从BaseVisitor类和VisitorImpl类进行二重继承（并且可以只提供对自己感兴趣的Host类的处理函数，不感兴趣的不提供处理函数）。用户的工作量非常小、非常简单，设计人员可以不用为实现而分心了。
+<br /> 更重要的是，由于采用了类型间去耦合技术，多个Host之间存在继承关系时，不会发生问题（其具体实现较复杂，于是我在UML图上作了模糊处理，没有展示出来，留在以后Loki库源码读解时讲述）。</div></body></html>

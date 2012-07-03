@@ -1,0 +1,78 @@
+<html><head><title><div class="tit">
+  简单的事件处理模型
+</div></title></head><body><div id='tit'>简单的事件处理模型</div><div id='cate'>细节</div><div id='date'>2008年04月06日 星期日 06:09 P.M.</div><div id='page'>146</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/66e1d71359a97f065baf536c.html'>http://hi.baidu.com/hxzon/blog/item/66e1d71359a97f065baf536c.html</a><div id='cnt'><h4 style="margin-bottom: 0px">简单的事件处理模型</h4> 
+<p>给我一个初用java的朋友说一下关于事件处理的模型，现在也给大家分享一下：</p> 
+<p style="text-align: center" align="center"><span>简单事件模型</span></p> 
+<h1><span>基本模型部分</span></h1> 
+<h2><span>基本对象</span><span>(</span><span>类</span><span>)</span></h2> 
+<p style="text-indent: -18pt"><span>1.<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span>事件</span><span>:</span><span>可能包括很多某个事件所有的属性，比如一封件到邮箱里可能包括收到的时间，发送人，发送时间等</span></p> 
+<p style="text-indent: -18pt"><span>2.<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span>事件侦听器</span><span>:</span><span>也可以认为是事件处理器，好象在</span><span>java</span><span>里面都是叫</span><span>listener</span><span>，反正就是这个东西，如果你想对某个事件进行自己的处理，那么你就实现这个侦听器</span><span>(listener</span><span>是一个接口</span><span>)</span><span>，事件处理的方法里将会前面所述</span><span>1(</span><span>事件</span><span>)</span><span>，作为参数传入到处理方法里面</span></p> 
+<p style="text-indent: -18pt"><span>3.<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span>事件管理器：管理诸多的侦听器，它里面有个私有链表或者集合，在这个集合里放着很多的侦听器。如果某个如</span><span>2</span><span>所述的侦听器要想响应事件，就必须把自己注册到事件管理器里面，也就是要把自己加入到管理器里面的那个存放着很多侦听器的集合里去</span></p> 
+<h2><span>基本对象类图</span></h2> 
+<p style="text-indent: 21pt"><span>针对上面所说的基本对象在工程中的几个类图如下：</span></p> 
+<p style="text-indent: 21pt"><span>图1<br /> </span></p> 
+<p style="text-indent: 21pt"><span>其中</span><span>:BaseDelegateMgr</span><span>对应事件处理器</span></p> 
+<p style="text-indent: 21pt"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>BaseListener</span><span>对应侦听器</span></p> 
+<p style="text-indent: 21pt"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>BaseEvent</span><span>对应事件</span></p> 
+<p style="text-indent: 21pt"><span>可能在实际的应用中，需要一套自己的类，所以在图上它们都打算以父类的形式出现前面加上了前缀</span><span>Base</span><span>，其中</span><span>BaseDelegateMgr</span><span>被写为抽象类，有三个最基本的协作被抽象出来，注册侦听器</span><span>addListener(BaseListener listener); removeListener(BaseListener listener); onFire(BaseEvent event)</span><span>事件产生后处理事件，<span style="color: blue">这个方法的实现为逐个调用个每个侦器的</span></span><span style="color: blue">onPerform(BaseEvent event)</span><span style="color: blue">的接口方法</span><span>(</span><span>如果你已经想到这个蓝色的部分，那就理解了整个事件处理最精要的部分了</span><span>)</span><span>，或者先看下去。后面会详说</span><span>(</span><span>注释</span><span>3)</span><span>这部分的。</span></p> 
+<p style="text-indent: 21pt"><span>因为这个抽象类在实际使用中必须实现它才可能使用，所以对它做了一个</span><span>default</span><span>的实现。即</span><span>DefaultDelegateMgr</span><span>，这样如果实际应用中不想实现</span><span>BaseDelegateMgr</span><span>的话，可以直接使用</span><span>DefaultDelegateMgr</span><span>。</span></p> 
+<p style="text-indent: 21pt"><span>Delegate</span><span>是</span><span>Dot Net</span><span>里面的所谓“委托”，总觉得</span><span>Dot Net</span><span>是很好的东西，它的模型比这优雅得多。沿用它的名字，叫做</span><span>DelegateMgr</span><span>委托管理器，其意思就是那些侦听器都委托这个管理器，当事件发生时让管理器通知它，同时它也会响应这个事件。那怕是什么都不做。下面把</span><span>DefaultDelegateMgr</span><span>的代码贴下来，说一下是怎么实现的。</span> </p>
+<table style="border-right: medium none; border-top: medium none; background: rgb(217,217,217) 0% 50%; border-left: medium none; border-bottom: medium none; border-collapse: collapse" cellspacing="0" cellpadding="0" bgcolor="#d9d9d9" border="1"> 
+ <tbody> 
+  <tr> 
+   <td style="border-right: windowtext 0.5pt solid; border-top: windowtext 0.5pt solid; border-left: windowtext 0.5pt solid; width: 426.1pt; border-bottom: windowtext 0.5pt solid" valign="top" width="568"> <p><span>public class DefaultDelegateMgr extends BaseDelegateMgr {</span></p> <p><span>private <a><font color="#4563b9">Map </font></a></span><a href="http://dustcloud.spaces.live.com/blog/PersonalSpace.aspx?_c11_BlogPart_blogpart=blogentry&amp;_c=BlogPart&amp;_c02_owner=1&amp;frompart=myspace#_msocom_1"><font color="#4563b9">[y1]</font></a><span><span style="display: none"><span> </span></span></span><span>delegateLink = new LinkedHashMap();</span></p> <p> </p> <p><span>public DefaultDelegateMgr(){}</span></p> <p> </p> <p><span>public void addListener(BaseListener listener){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span><a><font color="#4563b9">synchronized</font></a></span><a href="http://dustcloud.spaces.live.com/blog/PersonalSpace.aspx?_c11_BlogPart_blogpart=blogentry&amp;_c=BlogPart&amp;_c02_owner=1&amp;frompart=myspace#_msocom_2"><font color="#4563b9">[y2]</font></a><span><span style="display: none"><span> </span></span></span><span>(delegateLink){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>if(!delegateLink.containsKey(listener.getListenerKey())){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>delegateLink.put(listener.getListenerKey(),listener);</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>}</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>}</span></p> <p><span>}</span></p> <p> </p> <p><span>public void removeListener(BaseListener listener){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>synchronized(delegateLink){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>if(delegateLink.containsKey(listener.getListenerKey())){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>delegateLink.remove(listener.getListenerKey());</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>}</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>}</span></p> <p><span>}</span></p> <p> </p> <p><span>public void onFire(BaseEvent event){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>if(!delegateLink.isEmpty()){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Set keys = delegateLink.keySet();</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><a><font color="#4563b9">for</font></a></span><a href="http://dustcloud.spaces.live.com/blog/PersonalSpace.aspx?_c11_BlogPart_blogpart=blogentry&amp;_c=BlogPart&amp;_c02_owner=1&amp;frompart=myspace#_msocom_3"><font color="#4563b9">[y3]</font></a><span><span style="display: none"><span> </span></span></span><span>(Iterator iter = keys.iterator();iter.hasNext();){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>((BaseListener)delegateLink.get(iter.next())).onPerform(event);</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>}</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>}</span></p> <p><span>}</span></p> <p><span>}</span></p> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<div>
+ <hr align="left" width="33%" size="1" /> 
+ <div> 
+  <div> 
+   <p><span><span><span><a href="http://dustcloud.spaces.live.com/blog/PersonalSpace.aspx?_c11_BlogPart_blogpart=blogentry&amp;_c=BlogPart&amp;_c02_owner=1&amp;frompart=myspace#_msoanchor_1"><font color="#4563b9">[y1]</font></a></span></span></span><span>Map</span><span>是</span><span>linkedHashMap</span><span>的父类，是类似一个</span><span>hashtable</span><span>的数据结构。</span><span>linkedHashMap</span><span>唯一不同的是它是类似链表的，即在集合中的元素的顺序是可以重现的，这个集合用来存放注册的侦听器</span><span>(listener)</span></p> 
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <p><span><span><span><a href="http://dustcloud.spaces.live.com/blog/PersonalSpace.aspx?_c11_BlogPart_blogpart=blogentry&amp;_c=BlogPart&amp;_c02_owner=1&amp;frompart=myspace#_msoanchor_2"><font color="#4563b9">[y2]</font></a></span></span></span><span>synchronized</span><span>一个简单的同步的用法，即谁持有</span><span>delegateLink</span><span>就做</span><span>”{…}”</span><span>块里操作，没有持有只能等待，当程序脱离到</span><span>”{..}”</span><span>外时就会释放对</span><span>delegateLink</span><span>的持有。这样做的意义是，保证集合里的数据的准确性，一致性。</span></p> 
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <p><span><span><span><a href="http://dustcloud.spaces.live.com/blog/PersonalSpace.aspx?_c11_BlogPart_blogpart=blogentry&amp;_c=BlogPart&amp;_c02_owner=1&amp;frompart=myspace#_msoanchor_3"><font color="#4563b9">[y3]</font></a></span></span></span><span>遍历集合里的每个一个侦听器，逐个调用它们的</span><span>onPerform(baseevent event)</span><span>的接口方法，这个地方是多态，不用说了吧。</span><span>BaseListener</span><span>是一个接口，只会它的实现（即子类）被注册到集合，这里就用</span><span>BaseListener</span><span>父类引用它的子类，并调用子类</span><span>onPerform</span><span>的实现。</span></p> 
+  </div> 
+ </div> 
+</div> 
+<h1><span>应用部分</span></h1> 
+<p><span>类图：</span> 图2</p> 
+<p><span>应用部分模拟发短消息。有三个类：</span></p> 
+<p><span>MsgEvent</span><span>短消息事件，有两个属性</span><span>1.</span><span>电话号码</span><span>,2</span><span>。消息内容</span><span style="color: blue">(</span><span style="color: blue">它继承于</span><span style="color: blue">BaseEvent</span><span>)</span></p> 
+<p><span>MsgListener</span><span>短消息侦听器。比如我的手机号码</span><span>13312345678</span><span>,</span><span>它的作用是如果有消息发到这个手机就打印出这个消息。</span><span style="color: blue">(</span><span style="color: blue">它实现了</span><span style="color: blue">BaseListener)</span></p> 
+<p><span>App</span><span>即是测试的主程序。</span></p> 
+<p> </p> 
+<p><span>测试详解：</span> </p>
+<table style="border-right: medium none; border-top: medium none; background: rgb(217,217,217) 0% 50%; border-left: medium none; border-bottom: medium none; border-collapse: collapse" cellspacing="0" cellpadding="0" bgcolor="#d9d9d9" border="1"> 
+ <tbody> 
+  <tr> 
+   <td style="border-right: windowtext 0.5pt solid; border-top: windowtext 0.5pt solid; border-left: windowtext 0.5pt solid; width: 426.1pt; border-bottom: windowtext 0.5pt solid" valign="top" width="568"> <p><span>public static void main(String[] args){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>MsgListener msgListener = new MsgListener(&quot;MSG_KEY&quot;); <span style="color: blue">//1</span></span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>DefaultDelegateMgr defaultMgr = new DefaultDelegateMgr();<span style="color: blue">//2</span></span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span></span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>defaultMgr.addListener(msgListener);<span style="color: blue">//3</span></span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span></span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>MsgEvent event = new MsgEvent(new App(),&quot;13312345678&quot;,&quot;</span><span>埋头前进！</span><span>&quot;);<span style="color: blue">//4</span></span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>defaultMgr.onFire(event);<span style="color: blue">//5</span></span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>MsgEvent event1 = new MsgEvent(new App(),&quot;123456789&quot;,&quot;123456789</span><span>的短信息内容</span><span>&quot;);<span style="color: blue">//6</span></span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>defaultMgr.onFire(event1);<span style="color: blue">//7</span></span></p> <p><span>}</span></p> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><span>１．构造一个</span><span>MsgListener</span><span>，这个</span><span>listener</span><span>只侦听发送到手机</span><span>13311571075</span><span>的消息。其接口方法</span><span>onPerform</span><span>如下：</span> </p>
+<table style="border-right: medium none; border-top: medium none; background: rgb(217,217,217) 0% 50%; border-left: medium none; border-bottom: medium none; border-collapse: collapse" cellspacing="0" cellpadding="0" bgcolor="#d9d9d9" border="1"> 
+ <tbody> 
+  <tr> 
+   <td style="border-right: windowtext 0.5pt solid; border-top: windowtext 0.5pt solid; border-left: windowtext 0.5pt solid; width: 426.1pt; border-bottom: windowtext 0.5pt solid" valign="top" width="568"> <p><span>public void onPerform(BaseEvent event) {</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>if(event instanceof MsgEvent){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>MsgEvent e = (MsgEvent)event;</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>if(&quot;13312345678&quot;.equals(e.getNumber())){</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>System.out.println(&quot;</span><span>你有新的短消息：</span><span>&quot;+&quot;\t msg:&quot;+e.getMsg());</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>System.out.println(&quot;</span><span>发送程序为</span><span>:&quot;+e.getSource());</span></p> <p><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>}</span></p> <p><span><span>&nbsp;&nbsp;&nbsp; </span>}</span></p> <p><span>}</span></p> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p> </p> 
+<p><span>2.</span><span>构造一个缺省的委托管理器</span></p> 
+<p><span>3.</span><span>把</span><span>msgListener</span><span>加到事件委托链上</span></p> 
+<p style="text-indent: -18pt"><span>1.<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span>构造一个短消息事件</span></p> 
+<p style="text-indent: -18pt"><span>2.<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span>在事件委托管理器上触发响应事件</span><span>,</span><span>这一步的调用图示如下：</span></p> 
+<p><span>调用图示：<br /> 图3<br /> </span></p> 
+<p><span>在</span><span>delegateLink</span><span>这个集合里可以放多</span><span>listener</span><span>，调用时将逐个调用它们的接口方法</span><span>onPerfrom</span><span>方法</span><span>.</span></p> 
+<p style="text-indent: -18pt"><span>1.<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span>7,</span><span>重复４，５</span></p> 
+<p><span>调用结果：发出两条消息，因为</span><span>MsgListener</span><span>只处理发给</span><span>13312345678</span><span>的消息，所以程序只打印了一条消息。</span></p> 
+<p>图4</p> 
+<p><span style="font-size: 10.5pt">如果你安装了</span><span style="font-size: 10.5pt">jdk</span><span style="font-size: 10.5pt">并且设置了</span><span style="font-size: 10.5pt">JAVA_HOME/CLASSPATH/PATH</span><span style="font-size: 10.5pt">环境变量，可直接在</span><span style="font-size: 10.5pt">bin</span><span style="font-size: 10.5pt">目录下执行</span><span style="font-size: 10.5pt">java test.App</span><span style="font-size: 10.5pt">，</span><span style="font-size: 10.5pt">(</span><span style="font-size: 10.5pt">如要安装</span><span style="font-size: 10.5pt">jdk</span><span style="font-size: 10.5pt">，安装完后设</span><span style="font-size: 10.5pt">JAVA_HOME</span><span style="font-size: 10.5pt">为你的安装目录；</span><span style="font-size: 10.5pt">CLASSPATH</span><span style="font-size: 10.5pt">为</span><span style="font-size: 10.5pt">.;%JAVA_HOME%\lib\dt.jar;%JAVA_HOME%\lib\tools.jar</span><span style="font-size: 10.5pt">；在</span><span style="font-size: 10.5pt">path</span><span style="font-size: 10.5pt">里加一个</span><span style="font-size: 10.5pt">%JAVA_HOME%\bin;</span><span style="font-size: 10.5pt">即完成</span><span style="font-size: 10.5pt">java</span><span style="font-size: 10.5pt">运行环境的配置。</span><span style="font-size: 10.5pt">)<br /> 图5<br /> </span></p></div></body></html>

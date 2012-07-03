@@ -1,0 +1,233 @@
+<html><head><title><div class="tit">
+  ActiveJDBC == ActiveRecord for Java
+</div></title></head><body><div id='tit'>ActiveJDBC == ActiveRecord for Java</div><div id='cate'>j&middot;后端</div><div id='date'>2010年08月31日 星期二 11:39 A.M.</div><div id='page'>8</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/670528dd33d45dd78d1029b5.html'>http://hi.baidu.com/hxzon/blog/item/670528dd33d45dd78d1029b5.html</a><div id='cnt'><p>ActiveJDBC == ActiveRecord for Java<br /> By Igor Polevoy<br /> August 2010</p> 
+<p><a href="http://code.google.com/p/activejdbc/">http://code.google.com/p/activejdbc/</a></p> 
+<p>Who the heck is Igor Polevoy? and why should we trust him?<br /> • Developer like you<br /> • Architect<br /> • Teach Java/Rails at DePaul IPD<br /> • Battle-beaten on IT projects<br /> • Currently coding away at Productive Edge</p> 
+<p>..but why?<br /> • Hibernate<br /> • JDO<br /> • JPA<br /> • iBatis<br /> • Castor<br /> • Torque<br /> • JPersist<br /> • …20 more??</p> 
+<p>Dissatisfaction<br /> • Hibernate: very powerful, but complicated, hard to setup, people have theories how it works, feels like a straight jacket, hard to learn<br /> • JPA – different configuration on every platform, not as feature reach as Hibernate, feels like a black box. <br /> • Most of all: getters/setters<br /> • Not OO!</p> 
+<p>ActiveRecord just feels right<br /> • DHH is a great API designer<br /> • AR simple to use, yet provides a level of sophistication<br /> • Does not try to solve every problem under sun, but covers 80% of what you need; you can get your work done faster…much faster!<br /> • Complicated DB schemas ==usually== wrong design</p> 
+<p>Who are parents of invention?<br /> If necessity is a mother<br /> then…<br /> laziness is its father!</p> 
+<p>ActiveJDBC Design principles<br /> • Should infer metadata from DB<br /> • Should be very easy to work with<br /> • Should reduce amount of code to a minimum<br /> • No configuration, just conventions<br /> • Conventions are overridable in code<br /> • No need to learn another language<br /> • No need to learn another QL &shy; SQL is sufficient<br /> • Code must be lightweight and intuitive, should read like English<br /> • No sessions, no &quot;attaching, re&shy;attaching&quot;<br /> • No persistence managers.<br /> • No classes outside your own models.<br /> • Models are lightweight, no transient fields<br /> • No proxying. What you write is what you get (WYWIWYG :))<br /> • Should have the least possible resistance to startup a project<br /> • No useless getters and setters (they just pollute code). You can still write them if you like.<br /> • No DAOs and DTOs &shy; this is mostly junk code anyway</p> 
+<p>ActiveJDBC is thin<br /> • The main design principle:<br /> – thin!!!<br /> – 4 – 5 methods on stack traces<br /> • Fast: simple non-scientific performance test: read 50K records from DB:<br /> – 2 times slower than JDBC<br /> – 40% times faster than Hibernate<br /> – no cache enabled<br /> • No dependencies...almost<br /> – Slf4j<br /> – OSCache (only if needed)<br /> • Size ~ 100k jar</p> 
+<p>Surrogate PKs<br /> • Same as ActiveRecord<br /> • Easy with MySQL, PostgreSQL<br /> • Harder with Oracle (but doable, more SQL, see website)</p> 
+<h3>Writing Models (Entities)</h3> 
+<p><br /> Fully functional model:<br /> public class Person extends Model {}<br /> •Maps to table PEOPLE<br /> •Know all necessary details about this table from database<br /> •Immediately ready for CRUD operations</p> 
+<h3>Select</h3> 
+<p><br /> List&lt;Person&gt; johns = <br /> Person.where(“last_name =‘John’”);<br /> //iterate:<br /> for(Person p: people){<br /> log(p);<br /> }</p> 
+<h3>Select with associations</h3> 
+<p><br /> class Address extends Model{}<br /> //table ADDRESSES has column person_id<br /> Person p = Person.findFirst(“ssn = ?”,”123-34-5678”);<br /> List&lt;Address&gt; addresses = p.getAll(Address.class);<br /> Same API exactly for One to Many, Many to Many and Polymorphic associations!</p> 
+<h3>Select with Fluent Interfaces</h3> 
+<p><br /> List&lt;Person&gt; people = Person.where(“age &gt; 21”) .limit(40).offset(20).orderBy(&quot;age asc&quot;);</p> 
+<h3>Create new data</h3> 
+<p><br /> Person p = new Person();<br /> p.set(&quot;first_name&quot;, &quot;John&quot;);<br /> p.set(&quot;last_name&quot;, &quot;Doe&quot;);<br /> p.set(&quot;dob&quot;, &quot;1935-12-06&quot;);<br /> p.saveIt();</p> 
+<h3>Create shortcuts (method chaining)</h3> 
+<p><br /> Person p = new Person();<br /> p.set(&quot;name&quot;, &quot;John&quot;)&nbsp;&nbsp;&nbsp; .set(&quot;last_name&quot;,&quot;Doe&quot;)&nbsp;&nbsp;&nbsp; .set(&quot;dob&quot;, &quot;1935-12-06&quot;)&nbsp;&nbsp;&nbsp; .saveIt();</p> 
+<h3>Create class shortcut</h3> 
+<p><br /> Person.createIt(&quot;first_name&quot;, &quot;Sam&quot;, &quot;last_name&quot;, &quot;Margulis&quot;, &quot;dob&quot;, &quot;2001-01-07&quot;);<br /> Arguments: name, value, name1, value1, etc., reads like English</p> 
+<h3>Validations</h3> 
+<p><br /> public class Person extends Model {<br /> static{<br /> validatePresenceOf(&quot;first_name&quot;,&quot;last_name&quot;;<br /> }&nbsp;&nbsp;&nbsp; <br /> }</p> 
+<h3>Validation, fluent interfaces style</h3> 
+<p><br /> public class Percentage extends Model {<br /> static{<br /> validateNumericalityOf(&quot;total&quot;)<br /> .allowNull(true)<br /> .greaterThan(0)<br /> .lessThan(100)<br /> .onlyInteger()<br /> .message(&quot;incorrect 'total'&quot;);<br /> }<br /> }</p> 
+<p>save() and saveit()<br /> • Same as save and save! in ActiveRecord</p> 
+<h3>One to Many</h3> 
+<p><br /> User:<br /> public class User extends Model {}<br /> Address:<br /> public class Address extends Model {}<br /> List&lt;Address&gt; addresses = user.getAll(Address.class);<br /> • Condition: table ADDRESSES needs to have&nbsp;&nbsp; column user_id</p> 
+<h3>Many to many</h3> 
+<p><br /> Model for table DOCTORS:<br /> public class Doctor extends Model {}<br /> Model for table PATIENTS:<br /> public class Patient extends Model {}<br /> List&lt;Patient&gt; patients = doctor.getAll(Patient.class);<br /> or:<br /> List&lt;Doctor&gt; doctors = patient.getAll(Doctor.class);<br /> • Condition: have table DOCTORS_PATIENTS with columns doctor_id, patient_id</p> 
+<h3>Adding/removing associated</h3> 
+<p><br /> entries <br /> Adding:<br /> user.add(address);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //one to many<br /> doctor.add(patient);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //many to many<br /> article.add(tag);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //polymorphic<br /> Removing:<br /> user.remove(address);&nbsp;&nbsp;&nbsp;&nbsp; //one to many<br /> doctor.remove(patient);&nbsp;&nbsp; //many to many<br /> article.remove(tag);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //polymorphic</p> 
+<h3>Auto-generated fields</h3> 
+<p><br /> • created_at – set at creation time<br /> • updated_at – set at update time, as well as batch updates<br /> • id (can override name, value generated by DB)</p> 
+<h3>Caching</h3> 
+<p><br /> @Cached<br /> public class Library extends Model {}<br /> Supports efficient clustering (courtesy OSCache)</p> 
+<h3>Life-cycle callbacks</h3> 
+<p><br /> void beforeSave();<br /> void afterSave();<br /> void beforeCreate();<br /> void afterCreate();<br /> void beforeDelete();<br /> void afterDelete();<br /> void beforeValidation();<br /> void afterValidation();</p> 
+<h3>Callback example</h3> 
+<p><br /> public class User extends Model{<br /> public void beforeSave(){<br /> set(&quot;password&quot; encryptPassword());<br /> }&nbsp;&nbsp; <br /> private String encryptPassword(){<br /> //do what it takes<br /> return encrypted;<br /> }<br /> }</p> 
+<h3>Lazy/Eager</h3> 
+<p><br /> ActiveJDBC is lazy by default. If you need to load eager, use include(): <br /> List&lt;User&gt; users = &nbsp;&nbsp; User.findAll().orderBy(&quot;id&quot;)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .include(Address.class);<br /> Addresses are loaded eagerly.<br /> Include works for:<br /> •One to many children<br /> •One to many parents<br /> •Many to many</p> 
+<h3>Logging</h3> 
+<p><br /> • Uses SFL4J – hookup a log system de jur<br /> • By default will not log anything<br /> • Will log everything at INFO level:<br /> java &shy;Dactivejdbc.log <br /> com.acme.YourProgram<br /> • Will log whatever matches regexp:<br /> &shy;Dactivejdbc.log=your&shy;reg&shy;exp<br /> • Can change matching expressionat run time</p> 
+<p>==============================</p> 
+<p> </p> 
+<pre>package activejdbc.examples.simple;<br /><br />import activejdbc.Model;<br /><br />public class Employee extends Model {}</pre> 
+<p>------------------------------------</p> 
+<pre>package activejdbc.examples.simple;<br /><br />import activejdbc.Base;<br /><br />public class SimpleExample {<br />    public static void main(String[] args) {<br />        Base.open(&quot;com.mysql.jdbc.Driver&quot;, &quot;jdbc:mysql://localhost/test&quot;, &quot;root&quot;, &quot;p@ssw0rd&quot;);<br /><br />        createEmployee();<br />        System.out.println(&quot;=========&gt; Created employee:&quot;);<br />        selectEmployee();<br />        updateEmployee();<br />        System.out.println(&quot;=========&gt; Updated employee:&quot;);<br />        selectAllEmployees();<br />        deleteEmployee();<br />        System.out.println(&quot;=========&gt; Deleted employee:&quot;);<br />        selectAllEmployees();<br />        createEmployee();<br />        System.out.println(&quot;=========&gt; Created employee:&quot;);<br />        selectEmployee();<br />        deleteAllEmployees();<br />        System.out.println(&quot;=========&gt; Deleted all employees:&quot;);<br />        selectAllEmployees();<br /><br />        Base.close();<br />    }<br /><br />    private static void createEmployee() {<br />        Employee e = new Employee();<br />        e.set(&quot;first_name&quot;, &quot;John&quot;);<br />        e.set(&quot;last_name&quot;, &quot;Doe&quot;);<br />        e.saveIt();<br />    }<br /><br />    private static void selectEmployee() {<br />        Employee e = Employee.findFirst(&quot;first_name = ?&quot;, &quot;John&quot;);<br />        System.out.println(e);<br />    }<br /><br />    private static void updateEmployee() {<br />        Employee e = Employee.findFirst(&quot;first_name = ?&quot;, &quot;John&quot;);<br />        e.set(&quot;last_name&quot;, &quot;Steinbeck&quot;).saveIt();<br />    }<br /><br />    private static void deleteEmployee() {<br />        Employee e = Employee.findFirst(&quot;first_name = ?&quot;, &quot;John&quot;);<br />        e.delete();<br />    }<br /><br />    private static void deleteAllEmployees() {<br />            Employee.deleteAll();<br />    }<br /><br />    private static void selectAllEmployees() {<br />            System.out.println(&quot;Employees list: &quot; + Employee.findAll());<br />    }<br />}</pre> 
+<p>---------------------------------</p> 
+<pre>package activejdbc.examples.simple;<br /><br />import activejdbc.Base;<br /><br />import java.sql.SQLException;<br /><br />/**<br /> * @author Igor Polevoy<br /> */<br />public class InsertAll {<br />    public static void main(String[] args) throws SQLException {<br />        Base.open(&quot;com.mysql.jdbc.Driver&quot;, &quot;jdbc:mysql://localhost/test&quot;, &quot;root&quot;, &quot;p@ssw0rd&quot;);<br />        Base.connection().setAutoCommit(false);<br /><br />        long start = System.currentTimeMillis();<br />        int deleted = Employee.deleteAll();<br />        System.out.println(&quot;Deleted &quot; + deleted  + &quot; in &quot; + (System.currentTimeMillis() - start) + &quot; milliseconds&quot;);<br /><br />        start = System.currentTimeMillis();<br />        for(int i = 0; i &lt; 50000; i++){<br />            new Employee().set(&quot;name&quot;, &quot;name: &quot; + i).saveIt();<br />        }<br />        Base.connection().commit();<br />        System.out.println(&quot;Done in &quot; + (System.currentTimeMillis() - start) + &quot; milliseconds&quot;);<br />        Base.close();<br />    }<br />}</pre> 
+<p>=========================</p> 
+<p>AutogeneratedFields </p> 
+<div>
+ What column values are generated by ActiveJDBC
+</div> 
+<ul> 
+ <li>Introduction</li> 
+ <li>created_at</li> 
+ <li>updated_at</li> 
+ <li>Example: updated_at, created_at</li> 
+</ul> 
+<h1><a name="Introduction">Introduction</a></h1> 
+<p>Like ActiveRecord, ActiveJDBC will enter special values into columns that are named according to conventions.</p> 
+<h1><a name="created_at">created_at</a></h1> 
+<p>If a table that a model represents has this column (and the column type is one that corresponds to java.sql.Timestamp), then a model will enter value into this column only once when a new record is created. Successive updates of even new model instances that represent this specific record will not touch data in this column, hence your application logic can rely in this value.</p> 
+<h1><a name="updated_at">updated_at</a></h1> 
+<p>This column will be updated each time there an update to an existing record via ActiveJDBC Model API.</p> 
+<h1><a name="Example:_updated_at,_created_at">Example: updated_at, created_at</a></h1> 
+<p>Let's say we have an empty table PEOPLE:</p> 
+<pre>+----+------------+-----------+-----------------+-----------------+<br />| id | first_name | last_name | created_at      | updated_at      |<br />+----+------------+-----------+-----------------+-----------------+</pre> 
+<p>A model will look like this:</p> 
+<pre>public class Person{}</pre> 
+<p>Let's add some records:</p> 
+<pre>Person p = new Person();<br />p.set(&quot;first_name&quot;, &quot;John&quot;, &quot;last_name&quot;, &quot;Smith&quot;);<br />p.saveIt();</pre> 
+<p>At this point, we will have the following record in the DB:</p> 
+<pre>+----+------------+-----------+---------------------+----------------------+<br />| id | first_name | last_name | created_at          | updated_at           |<br />+----+------------+-----------+---------------------+----------------------+<br />| 1  | John       | Smith     | 2010-08-12 10:36:02 | 2010-08-12 10:36:02  |<br />+----+------------+-----------+---------------------+----------------------+</pre> 
+<p>As you can see, the dates are the same for created_at and updated_at.</p> 
+<p>Then, within the same program or another, we will do the following:</p> 
+<pre>Person john = Person.findById(1);<br />p.set(&quot;first_name&quot;, &quot;John&quot;, &quot;last_name&quot;, &quot;Smithe&quot;);<br />p.saveIt();</pre> 
+<p>We corrected the last name from &quot;Smith&quot; to &quot;Smithe&quot;. After this operation, the same record will look like this:</p> 
+<pre>+----+------------+-----------+---------------------+----------------------+<br />| id | first_name | last_name | created_at          | updated_at           |<br />+----+------------+-----------+---------------------+----------------------+<br />| 1  | John       | Smith     | 2010-08-12 10:36:02 | 2010-08-13 12:45:22  |<br />+----+------------+-----------+---------------------+----------------------+</pre> 
+<p>The updated_at column reflects when this record was last updated.</p> 
+<p>===========================</p> 
+<p>Transactions </p> 
+<div>
+ How to use transactions with ActiveJDBC
+</div> 
+<ul> 
+ <li>Introduction</li> 
+ <li>Basic flow of DB program</li> 
+ <li>Simple ActiveJDBC Example</li> 
+ <li>Transaction related APIs</li> 
+ <li>Transacted ActiveJDBC Example</li> 
+ <li>Transactions with JNDI</li> 
+</ul> 
+<h1><a name="Introduction">Introduction</a></h1> 
+<p>The goal of AciveJDBC from the ground up was to be a very thin veneer on top of JDBC. As such, the attention was given to simplify the DB access API, but at the same time not take control away from a developer.</p> 
+<h1><a name="Basic_flow_of_DB_program">Basic flow of DB program</a></h1> 
+<p>In any DB - backed program, you would:</p> 
+<pre>1. Open connection<br />2. Do stuff<br />3. Close connection</pre> 
+<p>Usually in Java there is an explicit connection or a manager object (EntityManager in JPA, SessionManager in Hibernate, etc.). Such an object is absent in ActiveJDBC.</p> 
+<h1><a name="Simple_ActiveJDBC_Example">Simple ActiveJDBC Example</a></h1> 
+<p>Here is an example of the most basic of the ActiveJDBC applicaitons:</p> 
+<pre>public static void main(String[] args) {<br />   Base.open(&quot;com.mysql.jdbc.Driver&quot;, &quot;jdbc:mysql://localhost/test&quot;, &quot;the_user&quot;, &quot;the_password&quot;);<br /><br />   Employee e = new Employee();<br />   e.set(&quot;first_name&quot;, &quot;John&quot;);<br />   e.set(&quot;last_name&quot;, &quot;Doe&quot;);<br />   e.saveIt();<br /><br />   Base.close();<br />}</pre> 
+<p>The call Base.open() opens a connection and attaches it to the current thread. All subsequent methods of all models reuse this connection. The call Base.close() closes connection and removes it from the current thread.</p> 
+<h1><a name="Transaction_related_APIs">Transaction related APIs</a></h1> 
+<p>...so far so good, not to transactions. ActiveJDBC does provide a couple of transaction related convenience calls:</p> 
+<pre>Base.commitTransaction();</pre> 
+<p>and</p> 
+<pre>Base.rollbackTransaction();</pre> 
+<p>Both of these methods call java.sql.Connection.commit() and java.sql.Connection.rollback() appropriately, wrapping exceptions and logging events at INFO level.</p> 
+<p>As you can see, ActiveJDBC is not trying to do much here, just trying to not get in the way.</p> 
+<p>In cases where you need a finer control, you can get a current connection and perform pure JDBC operations on it:</p> 
+<pre>java.sql.Connection con = Base.connection();<br />con.setAutocommit(false);<br />...//or:<br />Base.connection().setAutocommit(false);</pre> 
+<h1><a name="Transacted_ActiveJDBC_Example">Transacted ActiveJDBC Example</a></h1> 
+<p>This means that a simple program using transactions will look like this:</p> 
+<pre>public static void main(String[] args) {<br />   try{<br />      Base.open(&quot;com.mysql.jdbc.Driver&quot;, &quot;jdbc:mysql://localhost/test&quot;, &quot;the_user&quot;, &quot;the_password&quot;);<br /><br />      Base.connection().setAutocommit(false);<br />      Employee e = new Employee();<br />      e.set(&quot;first_name&quot;, &quot;John&quot;);<br />      e.set(&quot;last_name&quot;, &quot;Doe&quot;);<br />      e.saveIt();<br />      Base.commitTransaction();<br />   catch(Exception e){<br />      Base.rollbackTransaction();<br />   }finally{<br />      Base.close();<br />   }<br />}</pre> 
+<h1><a name="Transactions_with_JNDI">Transactions with JNDI</a></h1> 
+<p>Usually though, a connection is requested from a pool of a container, and transaction configuration is already provided by container configuration. In these cases, the usage is the same (almost), but you have to be aware that that some calls might not succeed, or you might have unexpected side effects by the driver. For example, if you request a connection from a pool, the transaction might start then, and when you call:</p> 
+<pre>Base.connection.setAutocommit(true/false);</pre> 
+<p>, you might accidentally commit a transaction in progress (...or driver will ignore your call and do nothing).</p> 
+<p>ActiveJDBC does not add anything special here to what J2EE and JDBC already provide.</p> 
+<p>Here is an example of ActiveJDBC used in a MDB:</p> 
+<pre><br />public void onMessage(Message m){<br />   Base.open(&quot;myConnectionJNDIName&quot;);<br />   TextMessage tm = (TextMessage)m;<br />   String content = tm.getText();<br />   String name = tm.getStringProperty(&quot;name&quot;);<br />   try{<br />      Article.create(&quot;name&quot;, name, &quot;content&quot;, content).saveIt();<br />   }<br />   catch(Exception e){<br />     ctx.setRollbackOnly(); // == this will send the message back into queue<br />   }<br />   finally{<br />      Base.close();//always close connection<br />   }<br />}</pre> 
+<p>In the example above, the container will manage transactions. It will roll back both: the JDBC, as well as JMS transactions.</p> 
+<p>=======================</p> 
+<p>RecordSelection </p> 
+<div>
+ shows how to select records
+</div> 
+<ul> 
+ <li>Create table</li> 
+ <li>Write Model</li> 
+ <li>Simple Search</li> 
+ <li>Parametrized search</li> 
+ <li>Processing large result sets</li> 
+ <li>Finding one record</li> 
+ <li>Finding all records</li> 
+ <li>Create and save</li> 
+ <li>Metadata used to check valid attributes</li> 
+ <li>Lookup and save</li> 
+ <li>Get by id</li> 
+ <li>Count all records</li> 
+ <li>Conditional count</li> 
+ <li>Use raw SQL</li> 
+</ul> 
+<h1><a name="Create_table">Create table</a></h1> 
+<p>This is SQL for the DB table (for MySQL)</p> 
+<pre>CREATE TABLE people (<br />   id  int(11) DEFAULT NULL auto_increment PRIMARY KEY, <br />   name VARCHAR(56), <br />   last_name VARCHAR(56), <br />   dob DATE, <br />   graduation_date DATE, <br />   created_at DATETIME, <br />   updated_at DATETIME<br />   );</pre> 
+<h1><a name="Write_Model">Write Model</a></h1> 
+<p>Simple models are written in one line of code. No need for setters or getters.</p> 
+<pre>public class Person extends Model {}</pre> 
+<p>ActiveJDBC models feel similar to Map interface (although they do not implement it). In order to access a model attributes, you usually use built-in setters and getters:</p> 
+<pre>person.get(&quot;first_name&quot;);<br />...<br />person.set(&quot;first_name&quot;, &quot;John&quot;);</pre> 
+<h1><a name="Simple_Search">Simple Search</a></h1> 
+<pre>List&lt;Person&gt; list = Person.where(&quot;name = 'John'&quot;);</pre> 
+<p>This will search a table PEOPLE. The framework will generate a SQL similar to this one:</p> 
+<pre>SELECT * FROM PEOPLE WHERE name = 'John'</pre> 
+<p>As you can see, the framework generates the query from SELECT to the WHERE. The only part that the developer is required to provide is the actual criteria. This is just plain SQL, albeit only a portion.</p> 
+<h1><a name="Parametrized_search">Parametrized search</a></h1> 
+<pre>List&lt;Person&gt; list = Person.where(&quot;name = ?&quot;, &quot;John&quot;);</pre> 
+<p>In this case, the value &quot;John&quot; will be substituted for a question mark. The number of question marks and substitute values is flexible, but must be the same.</p> 
+<h1><a name="Processing_large_result_sets">Processing large result sets</a></h1> 
+<p>In all previous results, the entire result set was loaded into memory. This approach is fine in case of relatively small results, but might prove a performance bottleneck for very large data sets. The approach below is somewhat reminiscent of SAX approach, where a super large data set from a DB is read, and for every one record found, it produces a callback. Within that callback, you perform whatever operation that makes sense for the application. The advantage of this approach is not needing to allocate a ton of memory. This is usually a preferred method for batch processes.</p> 
+<pre>        Person.find(&quot;name='John'&quot;, new ModelListener&lt;Person&gt;() {<br />            public void onModel(Person person) {<br />                System.out.println(&quot;Found person: &quot; + person);<br />            }<br />        });</pre> 
+<h1><a name="Finding_one_record">Finding one record</a></h1> 
+<p>Finding just one record can be achieved with findFirst method. As name suggests, even if the query can result in multiple records, only the first one is returned.</p> 
+<pre>Person person = Person.findFirst(&quot;id = 2&quot;);<br />//parametrized:<br />person = Person.findFirst(&quot;id = ?&quot;, 2);<br />...</pre> 
+<h1><a name="Finding_all_records">Finding all records</a></h1> 
+<p>This is a method or returning all records from a table, use carefully as this will load them all into memory (when you start processing the result, not when this method is called)</p> 
+<pre>List&lt;Person&gt; list = Person.findAll();<br />for(Person p: list){   //&lt;==== this line of code will initiate the actual query to DB<br />   System.out.println(p);<br />}</pre> 
+<h1><a name="Create_and_save">Create and save</a></h1> 
+<p>There are many (more concise) methods of creation of models, this is being the most simple and self-explanatory:</p> 
+<pre>        Person p = new Person();<br />        p.set(&quot;name&quot;, &quot;Marilyn&quot;);<br />        p.set(&quot;last_name&quot;, &quot;Monroe&quot;);<br />        p.set(&quot;dob&quot;, &quot;1935-12-06&quot;);<br />        p.saveIt();<br /><br />        System.out.println(p.getId());// &lt;== this will print an ID assigned by DB.</pre> 
+<h1><a name="Metadata_used_to_check_valid_attributes">Metadata used to check valid attributes</a></h1> 
+<p>If you look at the SQL at the top of this page, you will see that the table backing up the model doe snot have a column &quot;name1&quot;. Since the framework will interrogate the DB at the startup and retrieve all metadata information for each table, it will know which model has which attributes. As such, setting a wrong attribute will generate a runtime exception.</p> 
+<pre>        Person p = new Person();<br />        p.set(&quot;name1&quot;, &quot;Igor&quot;); //&lt;=== this will throw exception    </pre> 
+<p>Here is an example exception (generated from code snippet above):</p> 
+<pre>java.lang.IllegalArgumentException: Attribute: <br />'name1' is not defined in model: 'class activejdbc.test_models.Person',<br /> available attributes: [id, updated_at, graduation_date, dob,<br /> name, last_name, created_at]<br />...</pre> 
+<p>As you can see, the message is very descriptive.</p> 
+<h1><a name="Lookup_and_save">Lookup and save</a></h1> 
+<p>Putting it together, it is trivial to look up data from DB, modify it, and then save.</p> 
+<pre>        List&lt;Person&gt; list = Person.find(&quot;id = 1&quot;);<br />        Person p = list.get(0);<br />        p.set(&quot;name&quot;, &quot;Igor&quot;);<br />        p.saveIt();</pre> 
+<h1><a name="Get_by_id">Get by id</a></h1> 
+<p>This is self-explanatory. If you know the ID, it is easy to get the model that represents this record.</p> 
+<pre>Person p = Person.findById(1);</pre> 
+<h1><a name="Count_all_records">Count all records</a></h1> 
+<p>Counting all records is as simple as calling the &quot;count()&quot; method</p> 
+<pre>long personCount = Person.count();</pre> 
+<h1><a name="Conditional_count">Conditional count</a></h1> 
+<p>Counting some records is equally easy, all you have to do is to provide criteria.</p> 
+<pre>long johnCount = Person.count(&quot;name = ? &quot;, &quot;John&quot;);</pre> 
+<h1><a name="Use_raw_SQL">Use raw SQL</a></h1> 
+<p>In case, a query is really complicated, you can always resort to raw SQL like this:</p> 
+<pre>List&lt;Book&gt; books = Book.findBySQL(&quot;select books.*, address from books, libraries where books.lib_id = libraries.id order by address&quot;);</pre> 
+<p>The only requirement to this method is that your select statement should select all columns from a table that this model represents. Since model knows which attributes belong to it, it will pluck them from the result set, and you will have a normal list of models (Book in this case) that are initialized from your query.</p> 
+<p> =========================</p> 
+<h1><a name="Paginating_for_the_web">Paginating for the web</a></h1> 
+<p>Although <tt>limit</tt>, <tt>offset</tt> and <tt>orderBy</tt> themselves are quite simple and powerful methods, ActiveJDBC also provides a convenience class called <tt>Paginator</tt> especially designed for web applications:</p> 
+<pre class="prettyprint"><span class="typ">Paginator</span><span class="pln"> p </span><span class="pun">=</span><span class="pln"> </span><span class="kwd">new</span><span class="pln"> </span><span class="typ">Paginator</span><span class="pun">(</span><span class="typ">Page</span><span class="pun">.</span><span class="kwd">class</span><span class="pun">,</span><span class="pln"> </span><span class="lit">10</span><span class="pun">,</span><span class="pln"> </span><span class="str">&quot;description like ?&quot;</span><span class="pun">,</span><span class="pln"> </span><span class="str">&quot;%Java%&quot;</span><span class="pun">).</span><span class="pln">orderBy</span><span class="pun">(</span><span class="str">&quot;created_at desc&quot;</span><span class="pun">);</span><span class="pln"><br /></span><span class="typ">List</span><span class="pun">&lt;</span><span class="typ">Page</span><span class="pun">&gt;</span><span class="pln"> items </span><span class="pun">=</span><span class="pln"> p</span><span class="pun">.</span><span class="pln">getPage</span><span class="pun">(</span><span class="lit">1</span><span class="pun">);</span><span class="pln"><br /></span><span class="typ">List</span><span class="pun">&lt;</span><span class="typ">Page</span><span class="pun">&gt;</span><span class="pln"> items </span><span class="pun">=</span><span class="pln"> p</span><span class="pun">.</span><span class="pln">getPage</span><span class="pun">(</span><span class="lit">2</span><span class="pun">);</span></pre> 
+<p>The instances of this class are super lightweight and usually attached to a session. An instance of this class can be queried for a current page displayed:</p> 
+<pre class="prettyprint"><span class="kwd">int</span><span class="pln"> currentPage </span><span class="pun">=</span><span class="pln"> paginator</span><span class="pun">.</span><span class="pln">getCurrentPage</span><span class="pun">();</span></pre> 
+<p>and for page count like this:</p> 
+<pre class="prettyprint"><span class="kwd">int</span><span class="pln"> pageCount </span><span class="pun">=</span><span class="pln"> paginator</span><span class="pun">.</span><span class="pln">getPageCount</span><span class="pun">();</span></pre> 
+<p>Using this class in a context of a web application makes it trivial to build paging through resultsets on web pages.</p> 
+<p> =====================</p> 
+<h1><a name="How_to_get_children">How to get children</a></h1> 
+<p>Nothing can be simpler:</p> 
+<pre class="prettyprint"><span class="typ">List</span><span class="pun">&lt;</span><span class="typ">Address</span><span class="pun">&gt;</span><span class="pln"> addresses </span><span class="pun">=</span><span class="pln"> user</span><span class="pun">.</span><span class="pln">getAll</span><span class="pun">(</span><span class="typ">Address</span><span class="pun">.</span><span class="kwd">class</span><span class="pun">);</span></pre> 
+<p>Here the Address.class needs to be passed in because a model User might have many other relationships with models other than Address.class.</p> 
+<h1><a name="How_to_get_Parent">How to get Parent</a></h1> 
+<pre class="prettyprint"><span class="typ">User</span><span class="pln"> user </span><span class="pun">=</span><span class="pln"> address</span><span class="pun">.</span><span class="pln">parent</span><span class="pun">(</span><span class="typ">User</span><span class="pun">.</span><span class="kwd">class</span><span class="pun">);</span></pre> 
+<p>Here, we have to pass a <tt>User.class</tt> to indicate which parent type we want. This is because a model could have multiple parents (belong to more than one parent)</p> 
+<h1><a name="Deleting_Parent">Deleting Parent</a></h1> 
+<p>A simple way to delete a parent is:</p> 
+<pre class="prettyprint"><span class="typ">User</span><span class="pln"> u </span><span class="pun">=</span><span class="pln"> address</span><span class="pun">.</span><span class="pln">parent</span><span class="pun">(</span><span class="typ">User</span><span class="pun">.</span><span class="kwd">class</span><span class="pun">);</span><span class="pln"><br /><br />u</span><span class="pun">.</span><span class="kwd">delete</span><span class="pun">();</span></pre> 
+<p>If you have a referential integrity in your DB and table ADDRESSES has records associated with this user, then you will get an exception from DB. If you do not have child records, this user will be deleted. If you have records in the ADDRESSES table and no referential integrity constraint, the user will be deleted and you will have orphan records in the ADDRESSES table. In order to delete a user and all it's child records, execute this method:</p> 
+<pre class="prettyprint"><span class="pln">u</span><span class="pun">.</span><span class="pln">deleteCascade</span><span class="pun">();</span></pre> 
+<p>This method will walk over all parent/child relationships and delete all user and all child records associated with it</p> 
+<h1><a name="Override_Conventions">Override Conventions</a></h1> 
+<p>In cases where a surrogate foreign key is already present and has a name that does not follow the ActiveJDBC conventions, you could easily override it like this:</p> 
+<pre class="prettyprint"><span class="lit">@BelongsTo</span><span class="pun">(</span><span class="pln">parent </span><span class="pun">=</span><span class="pln"> </span><span class="typ">User</span><span class="pun">.</span><span class="kwd">class</span><span class="pun">,</span><span class="pln"> foreignKeyName </span><span class="pun">=</span><span class="pln"> </span><span class="str">&quot;usr_id&quot;</span><span class="pun">)</span><span class="pln"><br /></span><span class="kwd">public</span><span class="pln"> </span><span class="kwd">class</span><span class="pln"> </span><span class="typ">Address</span><span class="pln"> </span><span class="kwd">extends</span><span class="pln"> </span><span class="typ">Model</span><span class="pln"> </span><span class="pun">{}</span></pre> 
+<p>The @BelongsTo annotation will ensure that API on both ends will work. ActiveJDBC does not have annotation @HasMany, since I believe this would be redundant.</p> 
+<h1><a name="Foreign_Key">Foreign Key</a></h1> 
+<p>The Foreign Key in the ADDRESSES table does not have to be a real Foreign Key constraint. ActiveJDBC(much like ActiveRecord) does not check for it's presence. As long as there is a column named according to this convention, ActiveJDBC assumes that there is a relationship. It does not hurt to have the actual constraint in the DB if you are using other means of accessing data.</p> 
+<h1><a name="Conclusion">Conclusion</a></h1> 
+<p>ActibeJDBC makes it very easy to setup associations. If you work with a new schema, you just need to follow conventions (by including a logical foreign key into a child table). In cases when you already have an existing schema, ActiveJDBC allows to override conventions with simple annotations</p></div></body></html>

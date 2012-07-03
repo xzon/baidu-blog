@@ -1,0 +1,133 @@
+<html><head><title><div class="tit">
+  使用 Java Native Interface 的最佳实践
+</div></title></head><body><div id='tit'>使用 Java Native Interface 的最佳实践</div><div id='cate'>j&middot;基础</div><div id='date'>2009年09月01日 星期二 03:55 P.M.</div><div id='page'>33</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/66c4dbc478f869c239db49b2.html'>http://hi.baidu.com/hxzon/blog/item/66c4dbc478f869c239db49b2.html</a><div id='cnt'><div> 
+ <p> </p> 
+ <h1 fckxhtmljob="1">使用 Java Native Interface 的最佳实践</h1> 
+ <p fckxhtmljob="1">避免最常见的 10 大 JNI 编程错误的技巧和工具</p> 
+ <p fckxhtmljob="1"><a target="_blank" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html">http://www.i<wbr />bm.com/devel<wbr />operworks/cn<wbr />/java/j-jni/<wbr />index.html</a></p> 
+ <p fckxhtmljob="1">级别： 中级</p> 
+ <p fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#author">Michael Dawson</a>, 高级软件开发人员, IBM<br fckxhtmljob="1" /> <a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#author">Graeme Johnson</a>, J9 虚拟机开发经理, IBM<br fckxhtmljob="1" /> <a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#author">Andrew Low</a>, STSM，J9 虚拟机, IBM</p> 
+ <p fckxhtmljob="1">2009 年 7 月 27 日</p> 
+ <blockquote fckxhtmljob="1">
+  Java 本机接口（Java Native Interface，JNI）是一个标准的 Java API，它支持将 Java 代码与使用其他编程语言编写的代码相集成。如果您希望利用已有的代码资源，那么可以使用 JNI 作为您工具包中的关键组件 —— 比如在面向服务架构（SOA）和基于云的系统中。但是，如果在使用时未注意某些事项，则 JNI 会迅速导致应用程序性能低下且不稳定。本文将确定 10 大 JNI 编程缺陷，提供避免这些缺陷的最佳实践，并介绍可用于实现这些实践的工具。 
+ </blockquote> 
+ <p fckxhtmljob="1">本文介绍 JNI 用户最常遇到的 10 大编码和设计错误。其目标是帮助您认识到并避免它们，以便您可以编写安全、高效、性能出众的 JNI 代码。本文还将介绍一些用于在新代码或已有代码中查找这些问题的工具和技巧，并展示如何有效地应用它们。</p> 
+ <p fckxhtmljob="1">JNI 编程缺陷可以分为两类：</p> 
+ <ul fckxhtmljob="1"> 
+  <li fckxhtmljob="1">性能：代码能执行所设计的功能，但运行缓慢或者以某种形式拖慢整个程序。</li> 
+  <li fckxhtmljob="1">正确性：代码有时能正常运行，但不能可靠地提供所需的功能；最坏的情况是造成程序崩溃或挂起。</li> 
+ </ul> 
+ <p fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" name="N100F5">性能缺陷</a></p> 
+ <p fckxhtmljob="1">程序员在使用 JNI 时的 5 大性能缺陷如下：</p> 
+ <ul fckxhtmljob="1"> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#notc">不缓存方法 ID、字段 ID 和类</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#triggering">触发数组副本</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#reaching">回访（Reaching back）而不是传递参数</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#choosing">错误认定本机代码与 Java 代码之间的界限</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#using">使用大量本地引用，而未通知 JVM</a></li> 
+ </ul> 
+ <p fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" name="N102F3">正确性缺陷</a></p> 
+ <p fckxhtmljob="1">5 大 JNI 正确性缺陷包括：</p> 
+ <ul fckxhtmljob="1"> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#wrong">使用错误的 JNIEnv </a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#exceptions">未检测异常</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#return">未检测返回值</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#xxx">未正确使用数组方法</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#global">未正确使用全局引用</a></li> 
+ </ul> 
+ <p fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" name="N104D7">避免常见缺陷</a></p> 
+ <p fckxhtmljob="1">假设您编写了一些新 JNI 代码，或者继承了别处的某些 JVI 代码，如何才能确保避免了常见缺陷，或者在继承代码中发现它们？表 1 提供了一些确定这些常见缺陷的技巧：</p> 
+ <p fckxhtmljob="1"><br fckxhtmljob="1" /> <a target="_blank" fckxhtmljob="1" name="pitfalls">表 1. 确定 JNI 编程缺陷的清单</a><br fckxhtmljob="1" /> </p>
+ <table cellspacing="0" cellpadding="1" summary="Checklist for identifying JNI programming pitfalls" border="1" fckxhtmljob="1" sizcache="2" sizset="89"> 
+  <tbody fckxhtmljob="1" sizcache="1" sizset="89"> 
+   <tr fckxhtmljob="1"> 
+    <th scope="col" fckxhtmljob="1"> </th> 
+    <th scope="col" fckxhtmljob="1">未缓存</th> 
+    <th scope="col" fckxhtmljob="1">触发数组副本</th> 
+    <th scope="col" fckxhtmljob="1">错误界限</th> 
+    <th scope="col" fckxhtmljob="1">过多回访</th> 
+    <th scope="col" fckxhtmljob="1">使用大量本地引用</th> 
+    <th scope="col" fckxhtmljob="1">使用错误的 JNIEnv</th> 
+    <th scope="col" fckxhtmljob="1">未检测异常</th> 
+    <th scope="col" fckxhtmljob="1">未检测返回值</th> 
+    <th scope="col" fckxhtmljob="1">未正确使用数组</th> 
+    <th scope="col" fckxhtmljob="1">未正确使用全局引用</th> 
+   </tr> 
+   <tr fckxhtmljob="1"> 
+    <td fckxhtmljob="1">规范验证</td> 
+    <td fckxhtmljob="1"><br /> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1"> </td> 
+   </tr> 
+   <tr fckxhtmljob="1"> 
+    <td fckxhtmljob="1">方法跟踪</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+   </tr> 
+   <tr fckxhtmljob="1"> 
+    <td fckxhtmljob="1">转储</td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1">X</td> 
+   </tr> 
+   <tr fckxhtmljob="1"> 
+    <td fckxhtmljob="1">-verbose:jni</td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+    <td fckxhtmljob="1"> </td> 
+   </tr> 
+   <tr fckxhtmljob="1"> 
+    <td fckxhtmljob="1">代码审查</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+    <td fckxhtmljob="1">X</td> 
+   </tr> 
+  </tbody> 
+ </table>  
+ <p fckxhtmljob="1">您可以在开发周期的早期确定许多常见缺陷，方法如下：</p> 
+ <ul fckxhtmljob="1"> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#validation">根据规范验证新代码</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#trace">分析方法跟踪</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#verbose">使用 -verbose:jni 选项</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#dumps">生成转储</a></li> 
+  <li fckxhtmljob="1"><a target="_blank" fckxhtmljob="1" cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-jni/index.html#reviews">执行代码审查</a></li> 
+ </ul> 
+ <p fckxhtmljob="1"> </p> 
+ <p> </p> 
+</div></div></body></html>

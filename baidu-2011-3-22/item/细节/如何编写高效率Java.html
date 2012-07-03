@@ -1,0 +1,139 @@
+<html><head><title><div class="tit">
+  如何编写高效率Java
+</div></title></head><body><div id='tit'>如何编写高效率Java</div><div id='cate'>细节</div><div id='date'>2008年04月03日 星期四 04:04 P.M.</div><div id='page'>148</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/024013cea842213db700c825.html'>http://hi.baidu.com/hxzon/blog/item/024013cea842213db700c825.html</a><div id='cnt'><p>如何编写高效率Java</p> 
+<div>
+ <strong><font size="4">规则1 用时间频度来确定异常情况</font></strong>
+</div> 
+<div>
+ 异常Exception的捕捉是会增加额外开销的。所以尽量避免过多的异常捕捉。越是经常调用的代码，越是要较少或者避免try…catch..finally。
+</div> 
+<div>
+ <strong>细节1</strong>、左边的代码效率比右边的高（在for外捕获异常效率比每个循环开销小）
+</div> 
+<p> </p>
+<table cellspacing="0" cellpadding="0" border="1"> 
+ <tbody> 
+  <tr> 
+   <td valign="top" width="284"> 
+    <div>
+     try{
+    </div> 
+    <div>
+     for(){}
+    </div> 
+    <div>
+     }
+    </div> 
+    <div>
+     catch(Exception e){
+    </div> 
+    <div> 
+    </div> 
+    <div>
+     }
+    </div> </td> 
+   <td valign="top" width="284"> 
+    <div>
+     for(){
+    </div> 
+    <div>
+     try{
+    </div> 
+    <div>
+     }
+    </div> 
+    <div>
+     catch(Exception e){
+    </div> 
+    <div> 
+    </div> 
+    <div>
+     }
+    </div> 
+    <div>
+     }
+    </div> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<div>
+ <strong>细节2</strong>、finally中的return或者抛出的异常会产生complete abrupt结束。
+ <br /> try{
+</div> 
+<div>
+ throw new Exception(&quot;Hello&quot;);
+</div> 
+<div>
+ }
+</div> 
+<div>
+ finally{
+</div> 
+<div>
+ return 0; //此举使得Hello这个异常不会被上层看到。因为finally这里把异常抛弃，而返回0了。
+</div> 
+<div>
+ }
+</div> 
+<p> </p> 
+<h3><font size="5">规则</font><font face="Times New Roman">2</font> 用不需查异常<font face="Times New Roman">RuntimeException</font>及其子类来强化方法使用的约定</h3> 
+<p><font size="3">比如不希望被使用的方法，但不得不从父类集成，可以使用该方式。</font></p> 
+<h3><font size="5">规则</font><font face="Times New Roman">3</font> 用<font face="Times New Roman">Error</font>的子类表示系统级的异常和程序不用处理的异常</h3> 
+<p><font size="3">这样程序中不用显式捕获了。</font></p> 
+<h3><font size="5">规则</font><font face="Times New Roman">4</font> 用不从<font face="Times New Roman">RuntimeException</font>集成的子类来表示需查异常</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">5</font> 反之，用从<font face="Times New Roman">RuntimeException</font>集成的子类来表示不需查异常</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">6</font> 用链式异常保留原始异常的信息</h3> 
+<p><font size="3"></font><font face="Times New Roman">e.printStackTrace</font>的信息通过继承保留，便于跟踪程序调用层次。</p> 
+<p> </p> 
+<h2>代码风格部分：</h2> 
+<h3><font size="5">规则</font><font face="Times New Roman">7</font> 将类的属性按种类分块</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">8</font> 将方法的实现代码按功能分类</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">9</font> 适度的使用对齐</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">10</font> 控制代码的长度</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">11</font> 尽可能不<font face="Times New Roman">import</font></h3> 
+<p><font size="3">因为容易使得读代码的人难以定位</font></p> 
+<h3><font size="5">规则</font><font face="Times New Roman">12</font> 尽量减少同名的类</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">13</font> 用包名体现类的层次</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">15</font> 用<font face="Times New Roman">StringBuffer/StringBuilder(from 5.0)</font>代替迭代使用的<font face="Times New Roman">String</font></h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">16</font> 手工清除短期对象的引用</h3> 
+<p><font size="3">比如在循环中使用的临时对象，如果不用了，在每个循环后面赋值</font><font face="Times New Roman">null</font>。</p> 
+<p><font face="Times New Roman" size="3">while(true){</font></p> 
+<p><font size="3"></font><font face="Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Vector x = new Vector();</font></p> 
+<p><font size="3"></font><font face="Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ….</font></p> 
+<p><font size="3"></font><font face="Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x = null;</font></p> 
+<p><font face="Times New Roman" size="3">}</font></p> 
+<h3><font size="5">规则</font><font face="Times New Roman">17</font> 长期引用容易引起内存泄漏</h3> 
+<p><font size="3"></font><font face="Times New Roman">ObjectOutputStream</font>会保留所有已序列化的对象的引用，以免被重复序列化，所以每次<font face="Times New Roman">new</font>的对象都不会被垃圾收集，这时候需要手动处理：</p> 
+<p><font face="Times New Roman" size="3">Object xx = new XXX();</font></p> 
+<p><font face="Times New Roman" size="3">ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream());</font></p> 
+<p><font face="Times New Roman" size="3">out.write(xx);</font></p> 
+<p><font face="Times New Roman" size="3">out.flush();</font></p> 
+<p><font size="3"></font><font face="Times New Roman">out.reset();//</font>此处释放引用从而不会泄漏。</p> 
+<p> </p> 
+<h3><font size="5">规则</font><font face="Times New Roman">18</font> 用接口代替抽象类</h3> 
+<p><font size="3">继承用于继承父类的方法。组合用于数据的组合。</font></p> 
+<h3><font size="5">规则</font><font face="Times New Roman">19</font> 不要同时使用重载<font face="Times New Roman">(overload)</font>和覆盖<font face="Times New Roman">(override)</font></h3> 
+<p><font size="3"></font><font face="Times New Roman">overload</font>在编译时起作用，<font face="Times New Roman">override</font>在运行时起作用。</p> 
+<h3><font size="5">规则</font><font face="Times New Roman">20</font> 正确使用继承表示分类关系</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">21</font> 用组合来表示包含关系</h3> 
+<p><font size="3">组合（组成和聚合</font><font face="Times New Roman">composition and aggregation</font>）<font face="Times New Roman">UML</font>都用聚合来表示。</p> 
+<h3><font size="5">规则</font><font face="Times New Roman">22</font> 避免方法的副作用</h3> 
+<p><font size="3">设计不可变类，动作只修改状态不返回状态。查询反之。</font></p> 
+<h3><font size="5">规则</font><font face="Times New Roman">23</font> 首善之举是重构</h3> 
+<p><font size="3">不是</font><font face="Times New Roman">copy</font>。</p> 
+<h3><font size="5">规则</font><font face="Times New Roman">24</font> 选择合适的体系结构</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">25</font> 通过<font face="Times New Roman">Iterator</font>，使用<font face="Times New Roman">for</font>或<font face="Times New Roman">while</font>循环访问集合元素</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">26</font> 使用不可变类作为<font face="Times New Roman">Set</font>或者<font face="Times New Roman">Map</font>的<font face="Times New Roman">key</font>。</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">27</font> 不要与集合的实现南辕北辙</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">28</font> 谨慎的使用集合的<font face="Times New Roman">clone</font>方法</h3> 
+<p><font size="3">（默认都是浅层复制，深层复制只能自己实现或者是不可变类）</font></p> 
+<h3><font size="5">规则</font><font face="Times New Roman">29</font> 掌握集合的惯用法</h3> 
+<p><font size="3"></font><font face="Times New Roman">1</font>、排序，使用<font face="Times New Roman">Collections.sort()</font>或者有序的集合。</p> 
+<p><font size="3"></font><font face="Times New Roman">2</font>、<font face="Times New Roman">Collections.nCopies</font>生成一个<font face="Times New Roman">n</font>个元素的不可变集合。帮助初始化</p> 
+<h3><font size="5">规则</font><font face="Times New Roman">30</font> 建议定义完整的性能调整过程</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">31</font> 建议改善<font face="Times New Roman">java</font>运行环境</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">32</font> 建议减少创建对象</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">33</font> 建议减少循环体的代码</h3> 
+<p><font size="3">函数的调用，数组的操作，不要使用函数调用作为循环结束的判断标志</font></p> 
+<h3><font size="5">规则</font><font face="Times New Roman">34</font> 减少<font face="Times New Roman">IO</font>操作时间</h3> 
+<h3><font size="5">规则</font><font face="Times New Roman">35</font> 正确使用<font face="Times New Roman">JDBC</font>编程接口</h3></div></body></html>

@@ -1,0 +1,209 @@
+<html><head><title><div class="tit">
+  jakarta commons-dbcp简介
+</div></title></head><body><div id='tit'>jakarta commons-dbcp简介</div><div id='cate'>j&middot;后端</div><div id='date'>2008年07月31日 星期四 08:58 P.M.</div><div id='page'>114</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/ff31053b388de5ec15cecb8d.html'>http://hi.baidu.com/hxzon/blog/item/ff31053b388de5ec15cecb8d.html</a><div id='cnt'><div>
+ jakarta commons-dbcp简介
+</div> 
+<div> 
+</div> 
+<div>
+ 1.DBCP简介
+ <br /> 网络程序的设计，很多都涉及到和关系型数据库的交互操作，一般的操作方式都是使用的时候创建到数据库的连
+ <br /> 接，然后进行各种操作，这种简单的操作方式带来的问题便是数据库的频繁的打开和关闭，以及Transtion的执
+ <br /> 行，这是一种很耗费时间和资源的操作。于是数据库缓冲池DBCP就出现了，这个包是从pool包发展出来的。
+</div> 
+<div> 
+</div> 
+<div>
+ 2.DBCP实现的基本流程
+ <br /> &nbsp;&nbsp; 1.创建enericObjectPool实例
+ <br /> &nbsp;&nbsp; GenericObjectPool pool = new GenericObjectPool(null);
+ <br /> &nbsp;&nbsp; 2.创建PoolableConnectionFactory
+ <br /> &nbsp;&nbsp; DriverManagerConnectionFactory cf =
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; new DriverManagerConnectionFactory(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &quot;jdbc:mysql://host/db&quot;, &quot;username&quot;, &quot;password&quot;); 
+ <br /> PoolableConnectionFactory pcf =
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; new PoolableConnectionFactory(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; CF, pool, null, &quot;SELECT * FROM mysql.db&quot;, false, true);
+ <br /> &nbsp;&nbsp; 3.创建和注册PoolingDriver
+ <br /> &nbsp;&nbsp; new PoolingDriver().registerPool(&quot;myPool&quot;, pool);
+ <br /> &nbsp;&nbsp; 到此为止,数据库缓冲池就创建完毕了.
+</div> 
+<div> 
+</div> 
+<div>
+ 3.DataSource的实现过程
+ <br /> DataSource在众多的jsp容器和应用程序中都已经实现，在容器或者应用服务器启动的时候，他会读取相关的
+ <br /> 配置文件，自动完成DataSource的创建工作，我们一般只需要在服务器的配置文件中指定就可以了，这里贴出
+ <br /> 实现的过程，便于大家理解它内部的实现机制，便于编程参考。
+ <br /> import javax.sql.DataSource;
+ <br /> import java.sql.Connection;
+ <br /> import java.sql.Statement;
+ <br /> import java.sql.ResultSet;
+ <br /> import java.sql.SQLException;
+ <br /> import org.apache.commons.dbcp.BasicDataSource;
+ <br /> public class BasicDataSourceExample {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp; public static void main(String[] args) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 创建BasicDataSource
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;Setting up data source.&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DataSource dataSource = setupDataSource(args[0]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;Done.&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ //创建JDBC数据源
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Connection conn = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Statement stmt = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ResultSet rset = null;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;Creating connection.&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conn = dataSource.getConnection();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;Creating statement.&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; stmt = conn.createStatement();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;Executing statement.&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rset = stmt.executeQuery(args[1]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;Results:&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int numcols = rset.getMetaData().getColumnCount();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(rset.next()) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int i=1;i&lt;=numcols;i++) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.print(&quot;\t&quot; + rset.getString(i));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch(SQLException e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } finally {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try { rset.close(); } catch(Exception e) { }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try { stmt.close(); } catch(Exception e) { }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try { conn.close(); } catch(Exception e) { }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //创建数据源
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; public static DataSource setupDataSource(String connectURI) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BasicDataSource ds = new BasicDataSource();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ds.setDriverClassName(&quot;oracle.jdbc.driver.OracleDriver&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ds.setUsername(&quot;scott&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ds.setPassword(&quot;tiger&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ds.setUrl(connectURI);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ds;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //提示数据源状态
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; public static void printDataSourceStats(DataSource ds) throws SQLException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BasicDataSource bds = (BasicDataSource) ds;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;NumActive: &quot; + bds.getNumActive());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;NumIdle: &quot; + bds.getNumIdle());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //关闭数据源
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; public static void shutdownDataSource(DataSource ds) throws SQLException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BasicDataSource bds = (BasicDataSource) ds;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bds.close();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 例子比较简单，不再多说了~
+</div> 
+<div> 
+</div> 
+<div>
+ 4.tomcat中DBCP的配置
+ <br /> 这里是以Mysql作为数据库进行说明。
+ <br /> 使用DBCP，在 server.xml 中需要设置相关的连接及 dbcp 的参数值. 
+ <br /> &lt;Context path=&quot;/MysqlTest&quot; docBase=&quot;MysqlTest&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; debug=&quot;5&quot; reloadable=&quot;true&quot; crossContext=&quot;true&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;Logger className=&quot;org.apache.catalina.logger.FileLogger&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; prefix=&quot;localhost_MysqlTest_log.&quot; suffix=&quot;.txt&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timestamp=&quot;true&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;Resource name=&quot;jdbc/TestDB&quot;&nbsp;&nbsp; auth=&quot;Container&quot; type=&quot;javax.sql.DataSource&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;ResourceParams name=&quot;jdbc/TestDB&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;name&gt;factory&lt;/name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;org.apache.commons.dbcp.BasicDataSourceFactory&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;name&gt;maxActive&lt;/name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;100&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;name&gt;maxIdle&lt;/name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;30&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;name&gt;maxWait&lt;/name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;10000&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;name&gt;username&lt;/name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;root&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;name&gt;password&lt;/name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;admin&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;name&gt;driverClassName&lt;/name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;org.gjt.mm.mysql.Driver&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;name&gt;url&lt;/name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;value&gt;jdbc:mysql://localhost:3306/javatest?autoReconnect=true&lt;/value&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/parameter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/ResourceParams&gt;
+ <br /> &lt;/Context&gt;
+ <br /> 我们可以看到他使用的 dbcp factory 就是 org.apache.commons.dbcp.BasicDataSourceFactory
+</div> 
+<div> 
+</div> 
+<div>
+ 5.参数说明
+ <br /> *dataSource:要连接的 datasource (通常我们不会定义在 server.xml) 
+ <br /> *defaultAutoCommit:对于事务是否 autoCommit, 默认值为 true 
+ <br /> *defaultReadOnly:对于数据库是否只能读取, 默认值为 false 
+ <br /> *driverClassName:连接数据库所用的 JDBC Driver Class, 
+ <br /> *maxActive:最大连接数据库连接数,设 0 为没有限制 
+ <br /> *maxIdle:最大等待连接中的数量,设 0 为没有限制 
+ <br /> *maxWait:最大等待秒数, 单位为 ms, 超过时间会?出错误信息 
+ <br /> *password:登陆数据库所用的密码 
+ <br /> *url:连接数据库的 URL 
+ <br /> *username:登陆数据库所用的帐号 
+ <br /> *validationQuery:验证连接是否成功, SQL SELECT 指令至少要返回一行 
+ <br /> *removeAbandoned:是否自我中断, 默认是 false 
+ <br /> *removeAbandonedTimeout:几秒后会自我中断, removeAbandoned 必须为 true 
+ <br /> *logAbandoned:是否记录中断事件, 默认为 false
+</div> 
+<div> 
+</div> 
+<div>
+ 6.总结
+ <br /> DBCP一般应用在数据库的使用非常频繁的情况下使用，它可以处理大量的数据库的连接请求，不失为做大型站
+ <br /> 点的首选数据库配置
+</div> 
+<div> 
+</div> 
+<div>
+ 7.参考资料
+ <br /> *jakarta commons
+ <br /> 
+ <a href="http://jakarta.apache.org/commons/">http://jakarta.apache.org/commons/</a> 
+ <br /> *jakarta commons-dbcp
+ <br /> 
+ <a href="http://jakarta.apache.org/commons/dbcp">http://jakarta.apache.org/commons/dbcp</a> 
+ <br /> *jakarta commons-dbcp api
+ <br /> 
+ <a href="http://jakarta.apache.org/commons/dbcp/apidocs/index.html">http://jakarta.apache.org/commons/dbcp/apidocs/index.html</a> 
+ <br /> *CVS资料
+ <br /> 
+ <a href="http://cvs.apache.org/viewcvs.cgi/jakarta-commons/dbcp/doc/">http://cvs.apache.org/viewcvs.cgi/jakarta-commons/dbcp/doc/</a>
+</div></div></body></html>

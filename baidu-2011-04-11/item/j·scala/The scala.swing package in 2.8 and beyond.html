@@ -1,0 +1,85 @@
+<html><head><title>The scala.swing package in 2.8 and beyond</title></head><body><div id='tit'>The scala.swing package in 2.8 and beyond</div><div id='cate'>j&middot;scala</div><div id='date'>2011年04月08日 星期五 00:11 A.M.</div><div id='page'>0</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/ea95be0eba8ea3f237d12247.html'>http://hi.baidu.com/hxzon/blog/item/ea95be0eba8ea3f237d12247.html</a><div id='cnt'><p> The scala.swing package in 2.8 and beyond </p>
+<div>
+ <p>http://ingomaier.blogspot.com/2010/11/scalaswing-package-in-28-and-beyond.html </p>
+ <p>Scala.swing is a Scala wrapper library for Java Swing and select AWT classes. For interoperability reasons, our wrappers are transparent in the sense that clients can get the underlying Java Swing component (the <i>peer</i>) of every wrapper. As a consequence, wrappers must not rely on additional state unless it is kept in sync with the peer's state.</p>
+ <br />Scala's swing API has undergone a few changes since Scala 2.7. Besides the obvious bugfixes, we added more wrappers, a more comprehensive component caching mechanism, and revised the window base hierarchy. I'll go into details of the most important changes in 2.8 below, assuming you are familiar with Java Swing and the basics of scala.swing.
+ <br />
+ <br />Window hierarchyThis is how the Java AWT/Swing window hierarchy looks like:
+ <div>
+  <br />
+  <div style="text-align: center;">
+   <span><img class="blogimg" small="0" src="image/The scala.swing pack.39b5b8093eefdc736a60fbea.jpg" border="0" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/39b5b8093eefdc736a60fbea.jpg</p></span>
+   <br />
+  </div>
+  <br />
+  <br />While AWT's Frame and Dialog share the common base class Window, the Swing extensions have no subclass relationship or extend a common interface even though they share common functionality not present in AWT. In an attempt to straighten things up a little, we redesigned the window base hierarchy in scala.swing which now looks as follows:
+  <br />
+  <br />
+  <span><img class="blogimg" small="0" src="image/The scala.swing pack.0356c5ce1971d65493457eea.jpg" border="0" /><p class="origImg">http://hiphotos.baidu.com/hxzon/pic/item/0356c5ce1971d65493457eea.jpg</p></span>
+  <br />
+  <br />I've put the corresponding peer type next to each class. Note the Mixin trait, which extracts common functionality of the Swing window classes. As of now, it contains the following methods:
+  <br />
+  <br />def getJMenuBar: JMenuBar
+  <br />def setJMenuBar(b: JMenuBar)
+  <br />def setUndecorated(b: Boolean)
+  <br />def setTitle(s: String)
+  <br />def getTitle: String
+  <br />def setResizable(b: Boolean)
+  <br />def isResizable: Boolean
+  <br />
+  <br />This design lets us factor common wrapper code into class RichWindow.
+  <br />
+  <br />DialogsThe Dialog companion object in 2.8 wraps message utilities from javax.swing.JOptionPane. Together with 
+  <a href="http://www.artima.com/scalazine/articles/named_and_default_parameters_in_scala.html">named and default arguments</a>, dialog code becomes much more readable. Consider the following snippet from the 
+  <a href="http://download.oracle.com/javase/tutorial/uiswing/components/dialog.html">Java Swing tutorials</a> which opens a multiple choice dialog:
+  <br />
+  <br />val options = Array[Object](&quot;Yes, please&quot;, &quot;No, thanks&quot;, &quot;No eggs, no ham!&quot;) 
+  <br />JOptionPane.showOptionDialog(parent,
+  <br /> &quot;Would you like some green eggs to go with that ham?&quot;,
+  <br /> &quot;A Silly Question&quot;,
+  <br /> JOptionPane.YES_NO_CANCEL_OPTION,
+  <br /> JOptionPane.QUESTION_MESSAGE,
+  <br /> null,
+  <br /> options,
+  <br /> options(2))
+  <br />It is a little tedious to remember the order and the meaning of those arguments. In particular, what is the title and what is the question message above? What is the parameter we set to null? In scala.swing, you can now write
+  <br />
+  <br />Dialog.showOptions(parent,
+  <br /> message = &quot;Would you like some green eggs to go with that ham?&quot;,
+  <br /> title = &quot;A Silly Question&quot;,
+  <br /> messageType = Dialog.Message.Question,
+  <br /> optionType = Dialog.Options.YesNoCancel,
+  <br /> entries = Seq(&quot;Yes, please&quot;, &quot;No, thanks&quot;, &quot;No eggs, no ham!&quot;),
+  <br /> initial = 2)
+  <br />
+  <br />Now it's clear what's the title and what's the message. The null argument (which specifies the icon BTW) does not appear since the icon parameter is set to null by default. Note that named arguments are not only more descriptive but their order at call site is also arbitrary .
+  <br />
+  <br />EventsScala swing components publish key events now. As usual, the event classes are a straightforward adaption of the Java classes and can all be found in package scala.swing.event. Another important feature we were missing in 2.7 was the possibility to consume input events. Fortunately, that has been fixed now. Moreover, ticket 
+  <a href="http://lampsvn.epfl.ch/trac/scala/ticket/1442">#1442</a> taught us that some Swing components behave differently depending on whether certain listeners are installed or not. Therefore, scala.swing publishers install their Swing/AWT listeners lazily now. This means we install Java listeners only when a scala.swing reaction is added to the corresponding publisher and uninstall listeners when the reaction is removed. Consequently, we are little more efficient but more importantly avoid to spuriously trigger side-effects that Swing relies on in the first place (this is one of the few places where we actually do save additional state - the reactions - and by not rigorously synchronizing the wrapper's with the peer's state we got what we paid for).
+  <br />
+  <br />Wrapper cachesThe following is a change under the hood which most users won't notice but for those who are interested, here are a few details.
+  <br />
+  <br />As I said earlier, we can get the peer of every wrapper. The other way works as well. Every peer is associated with a wrapper if scala.swing created one already and as long as it hasn't been reclaimed by the garbage collector. This backward association is established by a wrapper cache. So why do we cache wrappers in the first place? Note that duplicate wrappers for the same Java Swing component are not a problem for equality, since scala.swing.UIElements are instances of scala.Proxy and hence redirect equals and hashCode to their peer. The main reason we do cache components is that we don't have control over every creation site. Consider a scroll panel for an example. It internally creates a set of scroll bars that clients can obtain a handle to. In contrast to wrappers created by user code, we have no control over the creation of those components. Since we don't want to create a new wrapper every time the client obtains a handle, we store them in a cache of weak references (we might wanna use soft references in the future). Because of subtyping, there can be wrappers of different types for the same Java Swing component. Right now, we create wrappers based on the static type of a Java Swing component, which in some situations is not very useful. We might change that to a more dynamic approach in the future, that's why the caching API is still subject to change.
+  <br />
+  <br />Scala 2.9 and beyondThe big news of this post is that we are opening up the development process for scala.swing. We are now using git for a distributed collaboration model. You can find the main repository on 
+  <a href="http://github.com/ingoem/scala-swing">http://github.com/ingoem/scala-swing</a>. The 
+  <span style="font-style:italic;">master</span> branch is a two-way mirror of SVN trunk. The 
+  <i>incub</i> branch contains work in progress and welcomes your contributions. Once certain features in 
+  <span style="font-style:italic;">incub</span> reach a stable state, we will promote them to the master branch and hence to SVN trunk which means they will eventually become part of the next Scala release. If you want to become a contributor, just go ahead and fork. We already have two new wrappers thanks to the excellent work of 
+  <a href="http://github.com/asflierl">Andreas Flierl</a> and 
+  <a href="http://github.com/kenbot/scala-swing">Ken Scambler</a>!
+  <br />
+ </div>
+</div>
+<div>
+ <span> Posted by <span>Ingo Maier</span></span>
+ <span> at <a href="http://ingomaier.blogspot.com/2010/11/scalaswing-package-in-28-and-beyond.html">9:38 AM</a></span>
+ <span></span>
+ <span></span>
+ <span></span>
+ <span></span>
+ <span></span>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p></div></body></html>

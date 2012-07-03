@@ -1,0 +1,150 @@
+<html><head><title>C语言中static关键字的常见用法及举例 2007-07-27 21:23:54</title></head><body><div id='tit'>C语言中static关键字的常见用法及举例 2007-07-27 21:23:54</div><div id='cate'>c&middot;基础</div><div id='date'>2007年11月13日 星期二 12:50 P.M.</div><div id='page'>203</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/045618171c811c024a90a7d6.html'>http://hi.baidu.com/hxzon/blog/item/045618171c811c024a90a7d6.html</a><div id='cnt'><div> 
+ <div class="middleSize"> 
+  <div> 
+   <div>
+    <a href="http://blog.csdn.net/rockyqiu2002/archive/2004/09/13/102611.aspx"><font color="#333333">C语言中static关键字的常见用法及举例</font></a>
+   </div> 
+   <div> 
+    <p>C语言中提供了存储说明符auto，register，extern，static说明的四种存储类别。四种存储类别说明符有两种存储期：自动存储期和静态存储期。其中auto和register对应自动存储期。具有自动存储期的变量在进入声明该变量的程序块是被建立，它在该程序块活动时存在，退出该程序块时撤销。</p> 
+    <p>关键字extern和static用来说明具有静态存储期的变量和函数。用static声明的局部变量只能被定义该变量的函数所识别，但是不同于自动变量的是，static变量在其函数被调用退出后，仍保留其值。下次函数被调用时，可以访问最近一次被修改后的值。static变量的声明方法如下：</p> 
+    <p>static&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int&nbsp;&nbsp;&nbsp; si = 1;</p> 
+    <p>由于static的以上特性，可以实现一些特定的功能。下面说明常见的两种用途。</p> 
+    <p><strong>1．</strong> <strong>统计函数被调用的次数</strong></p> 
+    <p>声明函数的一个局部变量，并设为static类型，作为一个计数器，这样函数每次被调用的时候就可以进行计数。这是统计函数被调用次数的最好的办法，因为这个变量是和函数息息相关的，而函数可能在多个不同的地方被调用，所以从调用者的角度来统计比较困难。测试代码如下：</p> 
+    <p>/*--------------------------------------------------------------------------------</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s_fun.c</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; to count the number of a function's being called, use static var.</p> 
+    <p>*/</p> 
+    <p> </p> 
+    <p>#include &lt;stdio.h&gt;</p> 
+    <p> </p> 
+    <p>int fun_1(int);</p> 
+    <p> </p> 
+    <p>int main()</p> 
+    <p>{</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (i = 1; i &lt;= 5; i++)</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fun_1(i);</p> 
+    <p> </p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 0;</p> 
+    <p>}</p> 
+    <p> </p> 
+    <p>int fun_1(int x)</p> 
+    <p>{</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; static count = 0;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; count++;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;I have been called %d times.\n&quot;, count);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 2*x;</p> 
+    <p>}</p> 
+    <p>输出结果为：</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; I have been called 1 times.</p> 
+    <p>I have been called 2 times.</p> 
+    <p>I have been called 3 times.</p> 
+    <p>I have been called 4 times.</p> 
+    <p>I have been called 5 times.</p> 
+    <p> </p> 
+    <p><strong>2．</strong> <strong>减少局部数组建立和赋值的开销</strong></p> 
+    <p>变量的建立和赋值是需要一定的处理器开销的，特别是数组等含有较多元素的存储类型。在一些含有较多的变量并且被经常调用的函数中，可以将一些数组声明为static类型，以减少建立或者初始化这些变量的开销。示例代码如下：</p> 
+    <p>/*--------------------------------------------------------------</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; array_1.c</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; to test static array</p> 
+    <p>*/</p> 
+    <p> </p> 
+    <p>#include &lt;stdio.h&gt;</p> 
+    <p>#include &lt;time.h&gt;</p> 
+    <p>#include &lt;string.h&gt;</p> 
+    <p> </p> 
+    <p>#define ARRAY_SIZE 10000</p> 
+    <p>#define CALL_TIMES&nbsp;&nbsp; 30000</p> 
+    <p> </p> 
+    <p>int fun_1();</p> 
+    <p>int fun_2();</p> 
+    <p> </p> 
+    <p>int main()</p> 
+    <p>{</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; char string2[10], *string3;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; time_t&nbsp;&nbsp;&nbsp;&nbsp; t;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; time(&amp;t);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; string3 = ctime(&amp;t);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;time 1: %s&quot;, string3);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (i = 1; i &lt;= CALL_TIMES; i++)</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fun_1();</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; time(&amp;t);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; string3 = ctime(&amp;t);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;time 2: %s&quot;, string3);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (i = 1; i &lt;= CALL_TIMES; i++)</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fun_2();</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; time(&amp;t);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; string3 = ctime(&amp;t);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; printf(&quot;time 3: %s&quot;, string3);</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 0;</p> 
+    <p>}</p> 
+    <p> </p> 
+    <p>int fun_1()</p> 
+    <p>{</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int a[ARRAY_SIZE], b[ARRAY_SIZE];</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i, t;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( i = 0; i &lt; ARRAY_SIZE; i++)</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a[i] = i;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b[i] = ARRAY_SIZE - i;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( i = 0; i &lt; ARRAY_SIZE; i++)</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t = a[i];</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a[i] = b[i];</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b[i] = t;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 0;</p> 
+    <p>}</p> 
+    <p> </p> 
+    <p> </p> 
+    <p>int fun_2()</p> 
+    <p>{</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; static int a[ARRAY_SIZE], b[ARRAY_SIZE];</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i, t;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( i = 0; i &lt; ARRAY_SIZE; i++)</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a[i] = i;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b[i] = ARRAY_SIZE - i;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( i = 0; i &lt; ARRAY_SIZE; i++)</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t = a[i];</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a[i] = b[i];</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b[i] = t;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p> 
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 0;</p> 
+    <p>}</p> 
+    <p>经过多次运行后，典型的几次结果如下：</p> 
+    <p> </p> 
+    <p><strong>实验环境</strong>：</p> 
+    <p>PC：Intel C 2.4D, 256M DDR333, 80G 7200RPM</p> 
+    <p>OS：win XP professional, SP2</p> 
+    <p>Compiler： TC 2.0</p> 
+    <p> </p> 
+    <p><strong>Reference</strong><strong>：</strong></p> 
+    <p>1．H. M. Deitel, P. J. Deitel, C How To Program. 1994, Prentice Hall. 2002, China Mechine Press.</p> 
+   </div> 
+  </div> 
+ </div> 
+</div></div></body></html>

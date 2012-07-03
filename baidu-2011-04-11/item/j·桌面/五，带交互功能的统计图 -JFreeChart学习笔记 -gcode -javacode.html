@@ -1,0 +1,234 @@
+<html><head><title>五，带交互功能的统计图 -JFreeChart学习笔记 -gcode -javacode</title></head><body><div id='tit'>五，带交互功能的统计图 -JFreeChart学习笔记 -gcode -javacode</div><div id='cate'>j&middot;桌面</div><div id='date'>2008年10月19日 星期日 05:34 P.M.</div><div id='page'>89</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/abf3232d756fc232349bf793.html'>http://hi.baidu.com/hxzon/blog/item/abf3232d756fc232349bf793.html</a><div id='cnt'><div> 
+ <p>五，带交互功能的统计图 -JFreeChart学习笔记 -gcode -javacode</p> 
+ <p>XxxToolTipGenerator悬浮提示<br /> XxxURLGenerator超链接<br /> ChartRendererInfo图表相关信息</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ ======================
+ <br /> 一，web.xml--
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+ <br /> &lt;web-app id=&quot;jsf&quot; version=&quot;2.4&quot; 
+ <br /> xmlns=&quot;http://java.sun.com/xml/ns/j2ee&quot; 
+ <br /> xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; 
+ <br /> xsi:schemaLocation=&quot;http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;servlet&gt; 
+ <br /> &nbsp;&nbsp; &lt;servlet-name&gt;DisplayChart&lt;/servlet-name&gt; 
+ <br /> &nbsp;&nbsp; &lt;servlet-class&gt;org.jfree.chart.servlet.DisplayChart&lt;/servlet-class&gt; 
+ <br /> &lt;/servlet&gt; 
+ <br /> &lt;servlet-mapping&gt; 
+ <br /> &nbsp;&nbsp; &lt;servlet-name&gt;DisplayChart&lt;/servlet-name&gt; 
+ <br /> &nbsp;&nbsp; &lt;url-pattern&gt;/DisplayChart&lt;/url-pattern&gt; 
+ <br /> &lt;/servlet-mapping&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;/web-app&gt;
+ <br /> ----------------------
+ <br /> 二，a.jsp--
+ <br /> ServletUtilities与ChartUtilities功能相似，但前者将图片输出到服务器临时目录，
+ <br /> 并且系统自动生成图片文件名。需配置DisplayChart servlet。
+ <br /> 当鼠标移动到饼图某一部分时，可看到URL信息，由URLGenerator指定。
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;%@ page contentType=&quot;text/html;charset=GBK&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.data.general.DefaultPieDataset&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.*&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.plot.*&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.servlet.ServletUtilities&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.urls.StandardPieURLGenerator&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.entity.StandardEntityCollection&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;java.io.*,java.awt.*&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.labels.*&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.title.*&quot;%&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;% 
+ <br /> DefaultPieDataset data = new DefaultPieDataset();
+ <br /> data.setValue(&quot;Spring2.0宝典&quot;,47000);
+ <br /> data.setValue(&quot;轻量级J2EE企业应用实战&quot;,38000);
+ <br /> data.setValue(&quot;基于J2EE的Ajax宝典&quot;,31000);
+ <br /> data.setValue(&quot;JavaScript权威指南&quot;,29000);
+ <br /> data.setValue(&quot;Ajax In Action&quot;,25000);
+</div> 
+<div> 
+</div> 
+<div>
+ //创建3D饼图的Plot对象
+ <br /> PiePlot3D plot = new PiePlot3D(data); 
+ <br /> plot.setLabelFont(new Font(&quot;隶书&quot;, Font.BOLD, 16)); 
+ <br /> JFreeChart chart = new JFreeChart(&quot;&quot;,JFreeChart.DEFAULT_TITLE_FONT, plot, true); 
+ <br /> chart.setTitle(new TextTitle(&quot;图书销量统计图&quot;, new Font(&quot;黑体&quot;, Font.ITALIC , 22)));
+ <br /> //获取统计图表的图例对象
+ <br /> LegendTitle legend = chart.getLegend(0);
+ <br /> //修改图例的字体
+ <br /> legend.setItemFont(new Font(&quot;宋体&quot;, Font.BOLD, 13));
+ <br /> //生成饼图各部分的提示，当鼠标悬停时显示实际统计值。
+ <br /> plot.setToolTipGenerator(new StandardPieToolTipGenerator()); 
+ <br /> //设定热点链接
+ <br /> plot.setURLGenerator(new StandardPieURLGenerator(&quot;b.jsp&quot;)); 
+ <br /> StandardEntityCollection entityCollection = new StandardEntityCollection(); 
+ <br /> //生成RenderingInfo实例
+ <br /> ChartRenderingInfo info = new ChartRenderingInfo(entityCollection); 
+ <br /> //将页面输出流out包装成一个PrintWriter实例
+ <br /> PrintWriter pw = new PrintWriter(out); 
+ <br /> //在Web服务器的临时目录生成一张图片，720是图片长度，450是图片高度 
+ <br /> String filename = ServletUtilities.saveChartAsPNG(chart, 720, 450, info, null); 
+ <br /> //将图表的热点信息在HTML页面中输出，pw代表页面的输出流,map0是定义热点的Map标签ID
+ <br /> //info参数就是图片的热点信息
+ <br /> ChartUtilities.writeImageMap(pw, &quot;map0&quot;, info, false); 
+ <br /> %&gt;
+ <br /> &lt;HTML&gt; 
+ <br /> &lt;HEAD&gt; 
+ <br /> &lt;META http-equiv=Content-Type content=&quot;text/html; charset=GBK&quot;&gt; 
+ <br /> &lt;TITLE&gt;图书销量饼图&lt;/TITLE&gt; 
+ <br /> &lt;/HEAD&gt; 
+ <br /> &lt;BODY&gt; 
+ <br /> &lt;div ALIGN=&quot;CENTER&quot;&gt; 
+ <br /> &lt;img src=&quot;DisplayChart?filename=&lt;%=filename%&gt;&quot; width=&quot;720&quot; height=&quot;450&quot; usemap=&quot;#map0&quot;&gt; 
+ <br /> &lt;/div&gt; 
+ <br /> &lt;/BODY&gt; 
+ <br /> &lt;/HTML&gt;
+ <br /> ----------------------------
+ <br /> 三，b.jsp--
+ <br /> 读取参数生成不同的统计图。
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;%@ page contentType=&quot;text/html;charset=GBK&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.ChartFactory, org.jfree.chart.JFreeChart, org.jfree.chart.plot.PlotOrientation&quot; %&gt;
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.servlet.ServletUtilities,org.jfree.data.category.*&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.title.*&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.plot.*&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;org.jfree.chart.axis.*&quot;%&gt; 
+ <br /> &lt;%@ page import=&quot;java.awt.*&quot;%&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;% 
+ <br /> CategoryDataset dataset; 
+ <br /> //String category = request.getParameter(&quot;category&quot;); 
+ <br /> //category = new String(category.getBytes(&quot;GBK&quot;), &quot;UTF-8&quot;);
+ <br /> //System.out.println(category);
+ <br /> String queryString = request.getQueryString(); 
+ <br /> queryString = java.net.URLDecoder.decode(queryString , &quot;UTF-8&quot;);
+ <br /> System.out.println(queryString);
+</div> 
+<div> 
+</div> 
+<div>
+ String category = null;
+ <br /> for(String param : queryString.split(&quot;&amp;&quot;))
+ <br /> {
+ <br /> String[] nameValue = param.split(&quot;=&quot;);
+ <br /> category = nameValue[0].equals(&quot;category&quot;) ? nameValue[1] : category;
+ <br /> }
+ <br /> String subTitle = &quot;&quot;;
+ <br /> if(category.equals(&quot;Spring2.0宝典&quot;) || category.equals(&quot;轻量级J2EE企业应用实战&quot;)||category.equals(&quot;基于J2EE的Ajax宝典&quot;)) 
+ <br /> { 
+ <br /> dataset = leeGetDataSet(); 
+ <br /> subTitle=&quot;作者李刚的&quot;;
+ <br /> } 
+ <br /> else 
+ <br /> { 
+ <br /> dataset = getDataSet(); 
+ <br /> subTitle=&quot;其他&quot;;
+ <br /> } 
+ <br /> String title = subTitle + &quot;图书的销售情况&quot;; 
+ <br /> JFreeChart chart = ChartFactory.createBarChart3D(
+ <br /> title, 
+ <br /> &quot;月份&quot;, 
+ <br /> &quot;销量&quot;, 
+ <br /> dataset, 
+ <br /> PlotOrientation.VERTICAL, 
+ <br /> true, 
+ <br /> false, 
+ <br /> false
+ <br /> ); 
+ <br /> //重新设置图标标题，改变字体
+ <br /> chart.setTitle(new TextTitle(&quot;图书销量统计图&quot;, new Font(&quot;黑体&quot;, Font.ITALIC , 22))); 
+ <br /> //取得统计图标的第一个图例
+ <br /> LegendTitle legend = chart.getLegend(0);
+ <br /> //修改图例的字体
+ <br /> legend.setItemFont(new Font(&quot;宋体&quot;, Font.BOLD, 14)); 
+ <br /> CategoryPlot plot = (CategoryPlot)chart.getPlot();
+ <br /> //取得横轴
+ <br /> CategoryAxis categoryAxis = plot.getDomainAxis();
+ <br /> //设置横轴显示标签的字体
+ <br /> categoryAxis.setLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 22));
+ <br /> //分类标签以45度角倾斜
+ <br /> categoryAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+ <br /> categoryAxis.setTickLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 18));
+ <br /> //取得纵轴
+ <br /> NumberAxis numberAxis = (NumberAxis)plot.getRangeAxis();
+ <br /> //设置纵轴显示标签的字体
+ <br /> numberAxis.setLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 22));
+ <br /> String filename = ServletUtilities.saveChartAsPNG(chart, 650, 390, null, session); 
+ <br /> %&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;%! 
+ <br /> private static CategoryDataset leeGetDataSet() 
+ <br /> { 
+ <br /> DefaultCategoryDataset dataset = new DefaultCategoryDataset(); 
+ <br /> dataset.addValue(3000, &quot;Spring2.0宝典&quot;, &quot;06年10月&quot;);
+ <br /> dataset.addValue(2800, &quot;Spring2.0宝典&quot;, &quot;06年11月&quot;);
+ <br /> dataset.addValue(2100, &quot;Spring2.0宝典&quot;, &quot;06年12月&quot;);
+ <br /> dataset.addValue(3200, &quot;Spring2.0宝典&quot;, &quot;07年01月&quot;);
+ <br /> dataset.addValue(2800, &quot;轻量级J2EE企业应用实战&quot;, &quot;07年01月&quot;); 
+ <br /> dataset.addValue(2680, &quot;基于Ajax的开发宝典&quot;, &quot;07年01月&quot;); 
+ <br /> dataset.addValue(2690, &quot;Spring2.0宝典&quot;, &quot;07年02月&quot;);
+ <br /> dataset.addValue(1830, &quot;轻量级J2EE企业应用实战&quot;, &quot;07年02月&quot;); 
+ <br /> dataset.addValue(3490, &quot;基于Ajax的开发宝典&quot;, &quot;07年02月&quot;);
+ <br /> dataset.addValue(1890, &quot;Spring2.0宝典&quot;, &quot;07年03月&quot;);
+ <br /> dataset.addValue(2640, &quot;轻量级J2EE企业应用实战&quot;, &quot;07年03月&quot;); 
+ <br /> dataset.addValue(3180, &quot;基于Ajax的开发宝典&quot;, &quot;07年03月&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ return dataset; 
+ <br /> } 
+ <br /> private static CategoryDataset getDataSet() 
+ <br /> { 
+ <br /> DefaultCategoryDataset dataset = new DefaultCategoryDataset(); 
+ <br /> dataset.addValue(3500, &quot;JavaScript权威指南&quot;, &quot;06年10月&quot;);
+ <br /> dataset.addValue(4200, &quot;Ajax In Action&quot;, &quot;06年10月&quot;); 
+ <br /> dataset.addValue(3800, &quot;JavaScript权威指南&quot;, &quot;06年11月&quot;);
+ <br /> dataset.addValue(2300, &quot;Ajax In Action&quot;, &quot;06年11月&quot;); 
+ <br /> dataset.addValue(2590, &quot;JavaScript权威指南&quot;, &quot;06年12月&quot;);
+ <br /> dataset.addValue(1590, &quot;Ajax In Action&quot;, &quot;06年12月&quot;); 
+ <br /> dataset.addValue(3180, &quot;JavaScript权威指南&quot;, &quot;07年01月&quot;);
+ <br /> dataset.addValue(1200, &quot;Ajax In Action&quot;, &quot;07年01月&quot;); 
+ <br /> dataset.addValue(3140, &quot;JavaScript权威指南&quot;, &quot;07年02月&quot;);
+ <br /> dataset.addValue(940, &quot;Ajax In Action&quot;, &quot;07年02月&quot;); 
+ <br /> return dataset; 
+ <br /> } 
+ <br /> %&gt;
+ <br /> &lt;HTML&gt; 
+ <br /> &lt;HEAD&gt; 
+ <br /> &lt;META http-equiv=Content-Type content=&quot;text/html; charset=GBK&quot;&gt; 
+ <br /> &lt;TITLE&gt;&lt;%=title%&gt;&lt;/TITLE&gt; 
+ <br /> &lt;/HEAD&gt; 
+ <br /> &lt;body&gt;
+ <br /> &lt;div ALIGN=&quot;CENTER&quot;&gt; 
+ <br /> &lt;img src=&quot;DisplayChart?filename=&lt;%=filename%&gt;&quot; 
+ <br /> width=&quot;650&quot; height=&quot;390&quot; border=&quot;0&quot;/&gt; 
+ <br /> &lt;/div&gt;
+ <br /> &lt;/body&gt; 
+ <br /> &lt;/html&gt; 
+ <br /> ===========================================
+</div></div></body></html>

@@ -1,0 +1,225 @@
+<html><head><title>Painting in AWT and Swing （续）</title></head><body><div id='tit'>Painting in AWT and Swing （续）</div><div id='cate'>j&middot;swing</div><div id='date'>2009年09月04日 星期五 04:03 P.M.</div><div id='page'>32</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/9c8617dfda4e651a62279833.html'>http://hi.baidu.com/hxzon/blog/item/9c8617dfda4e651a62279833.html</a><div id='cnt'><h1>Painting in AWT and Swing （续）</h1> 
+<h3>Good Painting Code Is the Key to App Performance</h3> 
+<h2><a name="swing"></a>Painting in Swing</h2> 
+<p>Swing starts with AWT's basic painting model and extends it further in order to maximize performance and improve extensibility. Like AWT, Swing supports the paint callback and the use of repaint() to trigger updates. Additionally, Swing provides built-in support for double-buffering as well as changes to support Swing's additional structure (like borders and the UI delegate). And finally, Swing provides the RepaintManager API for those programs who want to customize the paint mechanism further.</p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img border="0" src="image/Painting in AWT and .a.gif" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="db"></a>Double Buffering Support</h3> 
+<p>One of the most notable features of Swing is that it builds support for double-buffering right into the toolkit. It does the by providing a &quot;doubleBuffered&quot; property on javax.swing.JComponent:</p> 
+<pre>public boolean isDoubleBuffered()
+    public void setDoubleBuffered(boolean o)</pre>
+<p>Swing's double buffer mechanism uses a single offscreen buffer per containment hierarchy (usually per top-level window) where double-buffering has been enabled. And although this property can be set on a per-component basis, the result of setting it on a particular container will have the effect of causing all lightweight components underneath that container to be rendered into the offscreen buffer, regardless of their individual &quot;doubleBuffered&quot; property values.</p> 
+<p>By default, this property is set to true for all Swing components. But the setting that really matters is on JRootPane, because that setting effectively turns on double-buffering for everything underneath the top-level Swing component. For the most part, Swing programs don't need to do anything special to deal with double-buffering, except to decide whether it should be on or off (and for smooth GUI rendering, you'll want it on!). Swing ensures that the appropriate type of Graphics object (offscreen image Graphics for double-buffering, regular Graphics otherwise) is passed to the component's paint callback, so all the component needs to do is draw with it. This mechanism is explained in greater detail later in this article, in the section on <a href="http://java.sun.com/products/jfc/tsc/articles/painting/#paint_process">Paint Processing</a>.</p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img border="0" src="image/Painting in AWT and .a.gif" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="props"></a>Additional Paint Properties</h3> 
+<p>Swing introduces a couple of additional properties on JComponent in order to improve the efficiency of the internal paint algorithms. These properties were introduced in order to deal with the following two issues, which can make painting lightweight components an expensive operation:</p> 
+<ul> 
+ <li>Transparency: If a lightweight component is painted, it's possible that the component will not paint all of its associated bits if partially or totally transparent; this means that whenever it is repainted, whatever lies underneath it must be repainted first. This requires the system to walk up the containment hierarchy to find the first underlying heavyweight ancestor from which to begin the back-to-front paint operation. <p> </p> </li> 
+ <li>Overlapping components: If a lightweight component is painted, its possible that some other lightweight component partially overlaps it; this means that whenever the original lightweight component is painted, any components which overlap the original component (where the clip rectangle intersects with the overlapping area) the overlapping component must also be partially repainted. This requires the system to traverse much of the containment hierarchy, checking for overlapping components on each paint operation.</li> 
+</ul> 
+<h4>Opacity</h4> 
+<p>To improve performance in the common case of opaque components, Swing adds a read-write opaque property to javax.swing.JComponent:</p> 
+<pre>public boolean isOpaque()
+    public void setOpaque(boolean o)</pre>
+<p><br /> The settings are:</p> 
+<ul> 
+ <li>true: The component agrees to paint all of the bits contained within its rectangular bounds.</li> 
+ <li>false: The component makes no guarantees about painting all the bits within its rectangular bounds.</li> 
+</ul> 
+<p><a name="opacity_definition"></a>The opaque property allows Swing's paint system to detect whether a repaint request on a particular component will require the additional repainting of underlying ancestors or not. The default value of the opaque property for each standard Swing component is set by the current look and feel UI object. The value is true for most components.</p> 
+<p>One of the most common mistakes component implementations make is that they allow the opaque property to default to true, yet they do not completely render the area defined by their bounds, the result is occasional screen garbage in the unrendered areas. When a component is designed, careful thought should be given to its handling of the opaque property, both to ensure that transparency is used wisely, since it costs more at paint time, and that the contract with the paint system is honored.</p> 
+<p>The meaning of the opaque property is often misunderstood. Sometimes it is taken to mean, &quot;Make the component's background transparent.&quot; However, this is not Swing's strict interpretation of opacity. Some components, such as a pushbutton, may set the opaque property to false in order to give the component a non-rectangular shape, or to leave room around the component for transient visuals, such as a focus indicator. In these cases, the component is not opaque, but a major portion of its background is still filled in.</p> 
+<p>As defined <a href="http://java.sun.com/products/jfc/tsc/articles/painting/#opacity_definition">previously</a>, the opaque property is primarily a contract with the repaint system. If a component also uses the opaque property to define how transparency is applied to a component's visuals, then this use of the property should be documented. (It may be preferable for some components to define additional properties to control the visual aspects of how transparency is applied. For example, javax.swing.AbstractButton provides the ContentAreaFilled property for this purpose.)</p> 
+<p>Another issue worth noting is how opacity relates to a Swing component's border property. The area rendered by a Border object set on a component is still considered to be part of that component's geometry. This means that if a component is opaque, it is still responsible for filling the area occupied by the border. (The border then just layers its rendering on top of the opaque component).</p> 
+<p>If you want a component to allow the underlying component to show through its border area -- that is, if the border supports transparency via isBorderOpaque() returning false -- then the component must define itself to be non-opaque and ensure it leaves the border area unpainted.</p> 
+<h4>&quot;Optimized&quot; Drawing</h4> 
+<p>The overlapping component issue is more tricky. Even if none of a component's immediate siblings overlaps the component, it's always possible that a non-ancestor relative (such as a &quot;cousin&quot; or &quot;aunt&quot;) could overlap it. In such a case the repainting of a single component within a complex hierarchy could require a lot of treewalking to ensure 'correct' painting occurs. To reduce unnecessary traversal, Swing adds a read-only isOptimizedDrawingEnabled property to javax.swing.JComponent:</p> 
+<pre>public boolean isOptimizedDrawingEnabled()</pre>
+<p>The settings are:</p> 
+<ul> 
+ <li>true: The component indicates that none of its immediate children overlap.</li> 
+ <li>false: The component makes no guarantees about whether or not its immediate children overlap</li> 
+</ul> 
+<p>By checking the isOptimizedDrawingEnabled property, Swing can quickly narrow its search for overlapping components at repaint time.</p> 
+<p>Since the isOptimizedDrawingEnabled property is read-only, so the only way components can change the default value is to subclass and override this method to return the desired value. All standard Swing components return true for this property, except for JLayeredPane, JDesktopPane, and JViewPort.</p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img border="0" src="image/Painting in AWT and .a.gif" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="callbacks"></a>The Paint Methods</h3> 
+<p>The rules that apply to AWT's lightweight components also apply to Swing components -- for instance, paint() gets called when it's time to render -- except that Swing further factors the paint() call into three separate methods, which are invoked in the following order:</p> 
+<pre>protected void paintComponent(Graphics g)
+    protected void paintBorder(Graphics g)
+    protected void paintChildren(Graphics g)</pre>
+<p>Swing programs should override paintComponent() instead of overriding paint(). Although the API allows it, there is generally no reason to override paintBorder() or paintComponents() (and if you do, make sure you know what you're doing!). This factoring makes it easier for programs to override only the portion of the painting which they need to extend. For example, this solves the AWT problem mentioned previously where a failure to invoke super.paint() prevented any lightweight children from appearing.</p> 
+<p>The <a href="http://java.sun.com/products/jfc/tsc/articles/painting/src/SwingPaintDemo.java">SwingPaintDemo</a> sample program demonstrates the simple use of Swing's paintComponent() callback.</p> 
+<h4>Painting and the UI Delegate</h4> 
+<p>Most of the standard Swing components have their look and feel implemented by separate look-and-feel objects (called &quot;UI delegates&quot;) for Swing's Pluggable look and feel feature. This means that most or all of the painting for the standard components is delegated to the UI delegate and this occurs in the following way:</p> 
+<ol> 
+ <li>paint() invokes paintComponent() .</li> 
+ <li>If the ui property is non-null, paintComponent() invokes ui.update().</li> 
+ <li>If the component's opaque property is true, ui.udpate() fills the component's background with the background color and invokes ui.paint().</li> 
+ <li>ui.paint() renders the content of the component.</li> 
+</ol> 
+<p>This means that subclasses of Swing components which have a UI delegate (vs. direct subclasses of JComponent), should invoke super.paintComponent() within their paintComponent override:</p> 
+<p> </p>
+<table cellspacing="0" cellpadding="10" border="0"> 
+ <tbody> 
+  <tr> 
+   <td> <pre>public class MyPanel extends JPanel {
+        protected void paintComponent(Graphics g) {
+     // Let UI delegate paint first 
+     // (including background filling, if I'm opaque)
+     super.paintComponent(g); 
+     // paint my contents next....
+        }
+    }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>If for some reason the component extension does not want to allow the UI delegate to paint (if, for example, it is completely replacing the component's visuals), it may skip calling super.paintComponent(), but it must be responsible for filling in its own background if the opaque property is true, as discussed in the section on the opaque property.</p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img border="0" src="image/Painting in AWT and .a.gif" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="paint_process"></a>Paint Processing</h3> 
+<p>Swing processes &quot;repaint&quot; requests in a slightly different way from the AWT, although the final result for the application programmer is essentially the same -- paint() is invoked. Swing doesthis to support its RepaintManager API (discussed later), as well as to improve paint performance. In Swing, painting can follow two paths, as described below:</p> 
+<p>(A) The paint request originates on the first heavyweight ancestor (usually JFrame, JDialog, JWindow, or JApplet):</p> 
+<ol> 
+ <li>the event dispatching thread invokes paint() on that ancestor <p> </p> </li> 
+ <li>The default implementation of Container.paint() recursively calls paint() on any lightweight descendents <p> </p> </li> 
+ <li>When the first Swing component is reached, the default implementation of JComponent.paint() does the following: 
+  <ol> 
+   <li>if the component's doubleBuffered property is true and double-buffering is enabled on the component's RepaintManager, will convert the Graphics object to an appropriate offscreen graphics.</li> 
+   <li>invokes paintComponent() (passing in offscreen graphics if doubled-buffered)</li> 
+   <li>invokes paintBorder() (passing in offscreen graphics if doubled-buffered)</li> 
+   <li>invokes paintChildren() (passing in offscreen graphics if doubled-buffered), which uses the clip and the opaque and optimizedDrawingEnabled properties to determine exactly which descendents to recursively invoke paint() on.</li> 
+   <li>if the component's doubleBuffered property is true and double-buffering is enabled on the component's RepaintManager, copies the offscreen image to the component using the original on-screen Graphics object.</li> 
+  </ol> <p>Note: the JComponent.paint() steps #1 and #5 are skipped in the recursive calls to paint() (from paintChildren(), described in step#4) because all the lightweight components within a Swing window hierarchy will share the same offscreen image for double-buffering.</p> </li> 
+</ol> 
+<p>(B) The paint request originates from a call to repaint() on an extension of javax.swing.JComponent:</p> 
+<ol> 
+ <li>JComponent.repaint() registers an asynchronous repaint request to the component's RepaintManager, which uses invokeLater() to queue a Runnable to later process the request on the event dispatching thread. <p> </p> </li> 
+ <li>The runnable executes on the event dispatching thread and causes the component's RepaintManager to invoke paintImmediately() on the component, which does the following:<br /> <br /> 
+  <ol> 
+   <li>uses the clip rectangle and the opaque and optimizedDrawingEnabled properties to determine the 'root' component from which the paint operation must begin (to deal with transparency and potentially overlapping components).</li> 
+   <li>if the root component's doubleBuffered property is true, and double-buffering is enabled on the root's RepaintManager, will convert the Graphics object to an appropriate offscreen graphics.</li> 
+   <li>invokes paint() on the root component (which executes (A)'s JComponent.paint() steps #2-4 above), causing everything under the root which intersects with the clip rectangle to be painted.</li> 
+   <li>if the root component's doubleBuffered property is true and double-buffering is enabled on the root's RepaintManager, copies the offscreen image to the component using the original on-screen Graphics object.</li> 
+  </ol> <p>NOTE: if multiple calls to repaint() occur on a component or any of its Swing ancestors before the repaint request is processed, those multiple requests may be collapsed into a single call back to paintImmediately() on the topmost Swing component on which repaint() was invoked. For example, if a JTabbedPane contains a JTable and both issue calls to repaint() before any pending repaint requests on that hierarchy are processed, the result will be a single call to paintImmediately() on the JTabbedPane, which will cause paint() to be executed on both components.</p> </li> 
+</ol> 
+<p>This means that for Swing components, update() is never invoked.</p> 
+<p>Although repaint() results in a call to paintImmediately(), it is not considered the paint &quot;callback&quot;, and client paint code should not be placed inside of a paintImmediately(). In fact, there is no common reason to override paintImmediately() at all.</p> 
+<h4>Synchronous Painting</h4> 
+<p>As described in the previous section, paintImmediately() acts as the entry point for telling a single Swing component to paint itself, making sure that all the required painting occurs appropriately. This method may also be used for making synchronous paint requests, as its name implies, which is sometimes required by components which need to ensure their visual appearance 'keeps up' in real time with their internal state (e.g. this is true for the JScrollPane during a scroll operation).</p> 
+<p>Programs should not invoke this method directly unless there is a valid need for real-time painting. This is because the asynchronous repaint() will cause multiple overlapping requests to be collapsed efficiently, whereas direct calls to paintImmediately() will not. Additionally, the rule for invoking this method is that it must be invoked from the event dispatching thread; it's not an api designed for multi-threading your paint code!. For more details on Swing's single-threaded model, see the archived article <a href="http://java.sun.com/products/jfc/tsc/articles/threads/threads1.html">&quot;Threads and Swing.&quot;</a></p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img border="0" src="image/Painting in AWT and .a.gif" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="mgr"></a>The RepaintManager</h3> 
+<p>The purpose of Swing's RepaintManager class is to maximize the efficiency of repaint processing on a Swing containment hierarchy, and also to implement Swing's 'revalidation' mechanism (the latter will be a subject for a separate article). It implements the repaint mechanism by intercepting all repaint requests on Swing components (so they are no longer processed by the AWT) and maintaining its own state on what needs to be updated (known as &quot;dirty regions&quot;). Finally, it uses invokeLater() to process the pending requests on the event dispatching thread, as described in the section on &quot;Repaint Processing&quot; (option B).</p> 
+<p>For most programs, the RepaintManager can be viewed as part of Swing's internal system and can virtually be ignored. However, its API provides programs the option of gaining finer control over certain aspects of painting.</p> 
+<p> </p> 
+<h4>The &quot;Current&quot; RepaintManager</h4> 
+<p>The RepaintManager is designed to be dynamically plugged, although by default there is a single instance. The following static methods allow programs to get and set the &quot;current&quot; RepaintManager:</p> 
+<pre>public static RepaintManager currentManager(Component c)
+    public static RepaintManager currentManager(JComponent c)
+    public static void 
+         setCurrentManager(RepaintManager aRepaintManager)</pre>
+<h4>Replacing The &quot;Current&quot; RepaintManager</h4> 
+<p>A program would extend and replace the RepaintManager globally by doing the following:</p> 
+<pre>RepaintManager.setCurrentManager(new MyRepaintManager());</pre>
+<p>You can also see <a href="http://java.sun.com/products/jfc/tsc/articles/painting/src/RepaintManagerDemo.java">RepaintManagerDemo</a> for a simple running example of installing a RepaintManager which prints out information about what is being repainted.</p> 
+<p>A more interesting reason for extending and replacing the RepaintManager would be to change how it processes repaint requests. Currently the internal state used by the default implementation to track dirty regions is package private and therefore not accessible by subclasses. However, programs may implement their own mechanisms for tracking dirty regions and for collapsing requests by overriding the following methods:</p> 
+<pre>public synchronized void 
+      addDirtyRegion(JComponent c, int x, int y, int w, int h) 
+    public Rectangle getDirtyRegion(JComponent aComponent)
+    public void markCompletelyDirty(JComponent aComponent) 
+    public void markCompletelyClean(JComponent aComponent) {</pre>
+<p>The addDirtyRegion() method is the one which is invoked when repaint() is called on a Swing component, and thus can be hooked to catch all repaint requests. If a program overrides this method (and does not call super.addDirtyRegion()) then it becomes its responsibility to use invokeLater() to place a Runnable on the EventQueue which will invoke paintImmediately() on an appropriate component (translation: not for the faint of heart).</p> 
+<h4>Global Control Over Double-Buffering</h4> 
+<p>The RepaintManager provides an API for globally enabling and disabling double-buffering:</p> 
+<pre>public void setDoubleBufferingEnabled(boolean aFlag)
+    public boolean isDoubleBufferingEnabled()</pre>
+<p>This property is checked inside of JComponent during the processing of a paint operation in order to determine whether to use the offscreen buffer for rendering. This property defaults to true, but programs wishing to globally disable double-buffering for all Swing components can do the following:</p> 
+<pre>RepaintManager.currentManager(mycomponent).
+                  setDoubleBufferingEnabled(false);</pre>
+<p>Note: since Swing's default implementation instantiates a single RepaintManager instance, the mycomponent argument is irrelevant.</p> 
+<p> </p> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img border="0" src="image/Painting in AWT and .a.gif" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h3><a name="swing_summary"></a>Swing Painting Guidelines</h3> 
+<p>Swing programs should understand these guidelines when writing paint code:</p> 
+<ol> 
+ <li>For Swing components, paint() is always invoked as a result of both system-triggered and app-triggered paint requests;update() is never invoked on Swing components. <p> </p> </li> 
+ <li>Programs may trigger a future call to paint() by invoking repaint(), but shouldn't call paint() directly. <p> </p> </li> 
+ <li>On components with complex output, repaint() should be invoked with arguments which define only the rectangle that needs updating, rather than the no-arg version, which causes the entire component to be repainted. <p> </p> </li> 
+ <li>Swing's implementation of paint() factors the call into 3 separate callbacks: 
+  <ol> 
+   <li>paintComponent()</li> 
+   <li>paintBorder()</li> 
+   <li>paintChildren()</li> 
+  </ol> Extensions of Swing components which wish to implement their own paint code should place this code within the scope of the paintComponent() method (not within paint()). <p> </p> </li> 
+ <li>Swing introduces two properties to maximize painting efficiency: 
+  <ul> 
+   <li>opaque: will the component paint all its bits or not?</li> 
+   <li>optimizedDrawingEnabled: may any of this component's children overlap?</li> 
+  </ul> <p> </p> </li> 
+ <li>If a Swing component's opaque property is set to true, then it is agreeing to paint all of the bits contained within its bounds (this includes clearing it's own background within paintComponent()), otherwise screen garbage may result.</li> 
+ <li> <p>Setting either the opaque or optimizedDrawingEnabled properties to false on a component will cause more processing on each paint operation, therefore we recommend judicious use of both transparency and overlapping components.</p> </li> 
+ <li> <p>Extensions of Swing components which have UI delegates (including JPanel), should typically invoke super.paintComponent() within their own paintComponent() implementation. Since the UI delegate will take responsibility for clearing the background on opaque components, this will take care of #5.</p> </li> 
+ <li> <p>Swing supports built-in double-buffering via the JComponent doubleBuffered property, and it defaults to true for all Swing components, however setting it to true on a Swing container has the general effect of turning it on for all lightweight descendents of that container, regardless of their individual property settings.</p> </li> 
+ <li> <p>It is strongly recommended that double-buffering be enabled for all Swing components.</p> </li> 
+ <li> <p>Components which render complex output should make smart use of the clip rectangle to narrow the drawing operations to those which intersect with the clip area.</p> </li> 
+</ol> 
+<div> 
+ <table cellspacing="0" cellpadding="0" border="0"> 
+  <tbody> 
+   <tr> 
+    <td><img border="0" src="image/Painting in AWT and .a.gif" /><p class="origImg">http://java.sun.com/im/a.gif</p></td> 
+   </tr> 
+  </tbody> 
+ </table> 
+</div> 
+<h2><a name="the_summary"></a>Summary</h2> 
+<p>Both the AWT and Swing provide APIs to make it easy for programs to render content to the screen correctly. Although we recommend that developers use Swing for most GUI needs, it is useful to understand AWT's paint mechanism because Swing's is built on top of it.</p> 
+<p>To get the best performance from these APIs, application programs must also take responsibility for writing programs which use the guidelines outlined in this document.</p> 
+<p><a href="http://java.sun.com/products/jfc/tsc/articles/painting/">http://java.sun.com/products/jfc/tsc/articles/painting/</a></p></div></body></html>

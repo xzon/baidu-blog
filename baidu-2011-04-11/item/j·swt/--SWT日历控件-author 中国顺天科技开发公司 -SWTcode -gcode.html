@@ -1,0 +1,451 @@
+<html><head><title>//SWT日历控件-author 中国顺天科技开发公司 -SWTcode -gcode</title></head><body><div id='tit'>//SWT日历控件-author 中国顺天科技开发公司 -SWTcode -gcode</div><div id='cate'>j&middot;swt</div><div id='date'>2008年03月29日 星期六 02:16 A.M.</div><div id='page'>148</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/779b5a60dacfb9db8cb10d73.html'>http://hi.baidu.com/hxzon/blog/item/779b5a60dacfb9db8cb10d73.html</a><div id='cnt'><div> 
+ <p>//SWT日历控件-author 中国顺天科技开发公司 -SWTcode -gcode<br />//复用代码</p> 
+ <p>package swt.jface.demo;</p> 
+</div> 
+<div> 
+</div> 
+<div>
+ import java.text.SimpleDateFormat;
+ <br /> import java.util.Calendar;
+ <br /> import java.util.Date;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.eclipse.swt.SWT;
+ <br /> import org.eclipse.swt.custom.CLabel;
+ <br /> import org.eclipse.swt.events.SelectionAdapter;
+ <br /> import org.eclipse.swt.events.SelectionEvent;
+ <br /> import org.eclipse.swt.layout.FillLayout;
+ <br /> import org.eclipse.swt.layout.GridData;
+ <br /> import org.eclipse.swt.layout.GridLayout;
+ <br /> import org.eclipse.swt.widgets.Button;
+ <br /> import org.eclipse.swt.widgets.Dialog;
+ <br /> import org.eclipse.swt.widgets.Display;
+ <br /> import org.eclipse.swt.widgets.Shell;
+ <br /> import org.eclipse.swt.graphics.Color;
+ <br /> import org.eclipse.swt.events.MouseListener;
+ <br /> import org.eclipse.swt.events.MouseEvent;
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * SWT日历控件
+ <br /> * @author 中国顺天科技开发公司 E-mail:chinasts@gmail.com
+ <br /> * @version 1.00
+ <br /> */
+ <br /> public class STCalendar extends Dialog implements MouseListener {
+ <br /> private Display display = null;
+ <br /> // 当前的日期
+ <br /> private Date nowDate = null;
+ <br /> // 用户选择的日期
+ <br /> private String selectedDate = null;
+ <br /> private Shell shell = null;
+</div> 
+<div> 
+</div> 
+<div>
+ private GridLayout gridLayout = null;
+ <br /> private GridData gridData = null;
+ <br /> // 星期标签
+ <br /> private CLabel sunday = null;
+ <br /> private CLabel monday = null;
+ <br /> private CLabel tuesday = null;
+ <br /> private CLabel wednesday = null;
+ <br /> private CLabel thursday = null;
+ <br /> private CLabel friday = null;
+ <br /> private CLabel saturday = null;
+ <br /> // 切换按钮
+ <br /> private Button yearUp = null;
+ <br /> private Button yearNext = null;
+ <br /> private Button monthUp = null;
+ <br /> private Button monthNext = null;
+</div> 
+<div> 
+</div> 
+<div>
+ private CLabel nowLabel = null;
+ <br /> private CLabel[] days = new CLabel[42];
+</div> 
+<div> 
+</div> 
+<div>
+ public STCalendar(Shell parent, int style) {
+ <br /> super(parent, style);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public STCalendar(Shell parent) {
+ <br /> this(parent, 0);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * 获取某年某月的最后一天
+ <br /> * @param year 年
+ <br /> * @param month 月
+ <br /> * @return 最后一天
+ <br /> */
+ <br /> private int getLastDayOfMonth(int year, int month) {
+ <br /> if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8
+ <br /> || month == 10 || month == 12) {
+ <br /> return 31;
+ <br /> }
+ <br /> if (month == 4 || month == 6 || month == 9 || month == 11) {
+ <br /> return 30;
+ <br /> }
+ <br /> if (month == 2) {
+ <br /> if (isLeapYear(year)) {
+ <br /> return 29;
+ <br /> } else {
+ <br /> return 28;
+ <br /> }
+ <br /> }
+ <br /> return 0;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * 是否闰年
+ <br /> * @param year 年
+ <br /> * @return 
+ <br /> */
+ <br /> public boolean isLeapYear(int year) {
+ <br /> return (year % 4 == 0 &amp;&amp; year % 100 != 0) || (year % 400 == 0);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ private void moveTo(int type, int value) {
+ <br /> Calendar now = Calendar.getInstance(); 
+ <br /> now.setTime(nowDate); 
+ <br /> now.add(type, value); 
+ <br /> nowDate = new Date(now.getTimeInMillis()); 
+ <br /> SimpleDateFormat formatter = new SimpleDateFormat(&quot;yyyy-MM&quot;);
+ <br /> nowLabel.setText(formatter.format(nowDate)); 
+ <br /> setDayForDisplay(now);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ private void setDayForDisplay(Calendar now) {
+ <br /> int currentDay = now.get(Calendar.DATE);
+ <br /> now.add(Calendar.DAY_OF_MONTH, -(now.get(Calendar.DATE) - 1)); 
+ <br /> int startIndex = now.get(Calendar.DAY_OF_WEEK) - 1; 
+ <br /> int year = now.get(Calendar.YEAR); 
+ <br /> int month = now.get(Calendar.MONTH) + 1; 
+ <br /> int lastDay = this.getLastDayOfMonth(year, month); 
+ <br /> int endIndex = startIndex + lastDay - 1; 
+ <br /> int startday = 1;
+ <br /> for (int i = 0; i &lt; 42; i++) {
+ <br /> Color temp = days[i].getBackground();
+ <br /> if (temp.equals(display.getSystemColor(SWT.COLOR_BLUE))) {
+ <br /> days[i].setBackground(display.getSystemColor(SWT.COLOR_WHITE));
+ <br /> }
+ <br /> }
+ <br /> for (int i = 0; i &lt; 42; i++) {
+ <br /> if (i &gt;= startIndex &amp;&amp; i &lt;= endIndex) {
+ <br /> days[i].setText(&quot;&quot; + startday);
+ <br /> if (startday == currentDay) {
+ <br /> days[i].setBackground(display
+ <br /> .getSystemColor(SWT.COLOR_BLUE)); 
+ <br /> }
+ <br /> startday++;
+ <br /> } else {
+ <br /> days[i].setText(&quot;&quot;);
+ <br /> }
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void previousYear() {
+ <br /> moveTo(Calendar.YEAR, -1);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void nextYear() {
+ <br /> moveTo(Calendar.YEAR, 1);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void nextMonth() {
+ <br /> moveTo(Calendar.MONTH, 1);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void previousMonth() {
+ <br /> moveTo(Calendar.MONTH, -1);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseDoubleClick(MouseEvent e) {
+ <br /> CLabel day = (CLabel) e.getSource();
+ <br /> if (!day.getText().equals(&quot;&quot;)) {
+ <br /> this.selectedDate = nowLabel.getText() + &quot;-&quot; + day.getText();
+ <br /> this.shell.close();
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseDown(MouseEvent e) {
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void mouseUp(MouseEvent e) {
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * 返回用户选择的年月日信息
+ <br /> * @return
+ <br /> */
+ <br /> public Object open() {
+ <br /> Shell parent = getParent();
+ <br /> display = Display.getDefault();
+ <br /> shell = new Shell(parent, SWT.TITLE | SWT.PRIMARY_MODAL);
+ <br /> shell.setText(&quot;顺天科技 version 1.00&quot;);
+ <br /> shell.setSize(230, 220);
+</div> 
+<div> 
+</div> 
+<div>
+ gridLayout = new GridLayout();
+ <br /> gridLayout.numColumns = 7;
+ <br /> shell.setLayout(gridLayout);
+</div> 
+<div> 
+</div> 
+<div>
+ gridData = new GridData(GridData.FILL_HORIZONTAL);
+ <br /> yearUp = new Button(shell, SWT.PUSH | SWT.FLAT);
+ <br /> yearUp.setText(&quot;&lt;&quot;);
+ <br /> yearUp.setLayoutData(gridData);
+ <br /> yearUp.addSelectionListener(new SelectionAdapter() {
+ <br /> public void widgetSelected(SelectionEvent e) {
+ <br /> previousYear();
+ <br /> }
+ <br /> });
+</div> 
+<div> 
+</div> 
+<div>
+ gridData = new GridData(GridData.FILL_HORIZONTAL);
+ <br /> monthUp = new Button(shell, SWT.PUSH | SWT.FLAT);
+ <br /> monthUp.setText(&quot;&lt;&lt;&quot;);
+ <br /> monthUp.setLayoutData(gridData);
+ <br /> monthUp.addSelectionListener(new SelectionAdapter() {
+ <br /> public void widgetSelected(SelectionEvent e) {
+ <br /> previousMonth();
+ <br /> }
+ <br /> });
+</div> 
+<div> 
+</div> 
+<div>
+ nowLabel = new CLabel(shell, SWT.CENTER | SWT.SHADOW_OUT);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL);
+ <br /> gridData.horizontalSpan = 3;
+ <br /> nowLabel.setLayoutData(gridData);
+ <br /> SimpleDateFormat formatter = new SimpleDateFormat(&quot;yyyy-MM&quot;);
+ <br /> nowLabel.setText(formatter.format(new Date()));
+</div> 
+<div> 
+</div> 
+<div>
+ gridData = new GridData(GridData.FILL_HORIZONTAL);
+ <br /> monthNext = new Button(shell, SWT.PUSH | SWT.FLAT);
+ <br /> monthNext.setText(&quot;&gt;&gt;&quot;);
+ <br /> monthNext.setLayoutData(gridData);
+ <br /> monthNext.addSelectionListener(new SelectionAdapter() {
+ <br /> public void widgetSelected(SelectionEvent e) {
+ <br /> nextMonth();
+ <br /> }
+ <br /> });
+</div> 
+<div> 
+</div> 
+<div>
+ gridData = new GridData(GridData.FILL_HORIZONTAL);
+ <br /> yearNext = new Button(shell, SWT.PUSH | SWT.FLAT);
+ <br /> yearNext.setText(&quot;&gt;&quot;);
+ <br /> yearNext.setLayoutData(gridData);
+ <br /> yearNext.addSelectionListener(new SelectionAdapter() {
+ <br /> public void widgetSelected(SelectionEvent e) {
+ <br /> nextYear();
+ <br /> }
+ <br /> });
+</div> 
+<div> 
+</div> 
+<div>
+ sunday = new CLabel(shell, SWT.CENTER | SWT.SHADOW_OUT);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL
+ <br /> | GridData.FILL_VERTICAL);
+ <br /> gridData.widthHint = 70;
+ <br /> gridData.heightHint = 20;
+ <br /> sunday.setLayoutData(gridData);
+ <br /> sunday.setText(&quot;日&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ monday = new CLabel(shell, SWT.CENTER | SWT.SHADOW_OUT);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL
+ <br /> | GridData.FILL_VERTICAL);
+ <br /> gridData.widthHint = 70;
+ <br /> gridData.heightHint = 20;
+ <br /> monday.setLayoutData(gridData);
+ <br /> monday.setText(&quot;一&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ tuesday = new CLabel(shell, SWT.CENTER | SWT.SHADOW_OUT);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL
+ <br /> | GridData.FILL_VERTICAL);
+ <br /> gridData.widthHint = 70;
+ <br /> gridData.heightHint = 20;
+ <br /> tuesday.setLayoutData(gridData);
+ <br /> tuesday.setText(&quot;二&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ wednesday = new CLabel(shell, SWT.CENTER | SWT.SHADOW_OUT);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL
+ <br /> | GridData.FILL_VERTICAL);
+ <br /> gridData.widthHint = 70;
+ <br /> gridData.heightHint = 20;
+ <br /> wednesday.setLayoutData(gridData);
+ <br /> wednesday.setText(&quot;三&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ thursday = new CLabel(shell, SWT.CENTER | SWT.SHADOW_OUT);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL
+ <br /> | GridData.FILL_VERTICAL);
+ <br /> gridData.widthHint = 70;
+ <br /> gridData.heightHint = 20;
+ <br /> thursday.setLayoutData(gridData);
+ <br /> thursday.setText(&quot;四&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ friday = new CLabel(shell, SWT.CENTER | SWT.SHADOW_OUT);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL
+ <br /> | GridData.FILL_VERTICAL);
+ <br /> gridData.widthHint = 70;
+ <br /> gridData.heightHint = 20;
+ <br /> friday.setLayoutData(gridData);
+ <br /> friday.setText(&quot;五&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ saturday = new CLabel(shell, SWT.CENTER | SWT.SHADOW_OUT);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL
+ <br /> | GridData.FILL_VERTICAL);
+ <br /> gridData.widthHint = 70;
+ <br /> gridData.heightHint = 20;
+ <br /> saturday.setLayoutData(gridData);
+ <br /> saturday.setText(&quot;六&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ for (int i = 0; i &lt; 42; i++) {
+ <br /> days[i] = new CLabel(shell, SWT.FLAT | SWT.CENTER);
+ <br /> gridData = new GridData(GridData.FILL_HORIZONTAL
+ <br /> | GridData.FILL_VERTICAL);
+ <br /> days[i].setLayoutData(gridData);
+ <br /> days[i].setBackground(display.getSystemColor(SWT.COLOR_WHITE));
+ <br /> days[i].addMouseListener(this);
+ <br /> days[i].setToolTipText(&quot;双击返回.&quot;);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ Calendar now = Calendar.getInstance(); 
+ <br /> nowDate = new Date(now.getTimeInMillis());
+ <br /> setDayForDisplay(now);
+</div> 
+<div> 
+</div> 
+<div>
+ shell.open();
+ <br /> Display display = parent.getDisplay();
+ <br /> while (!shell.isDisposed()) {
+ <br /> if (!display.readAndDispatch()) {
+ <br /> display.sleep();
+ <br /> }
+ <br /> }
+ <br /> return selectedDate;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * @param args
+ <br /> */
+ <br /> public static void main(String[] args) {
+ <br /> Display display = new Display();
+ <br /> final Shell shell = new Shell(display);
+ <br /> shell.setText(&quot;顺天科技日历&quot;);
+ <br /> FillLayout fl = new FillLayout();
+ <br /> shell.setLayout(fl);
+</div> 
+<div> 
+</div> 
+<div>
+ Button open = new Button(shell, SWT.PUSH); 
+ <br /> open.setText(&quot;日历&quot;);
+ <br /> open.addSelectionListener(new SelectionAdapter() {
+ <br /> public void widgetSelected(SelectionEvent e) {
+ <br /> STCalendar stc = new STCalendar(shell);
+ <br /> // 输出用户选择的年月日信息
+ <br /> System.out.println(stc.open());
+ <br /> }
+ <br /> });
+ <br /> shell.pack();
+ <br /> shell.open();
+ <br /> while (!shell.isDisposed()) {
+ <br /> if (!display.readAndDispatch()) {
+ <br /> display.sleep();
+ <br /> }
+ <br /> }
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

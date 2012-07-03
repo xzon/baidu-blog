@@ -1,0 +1,124 @@
+<html><head><title>org.apache.commons.mail</title></head><body><div id='tit'>org.apache.commons.mail</div><div id='cate'>j&middot;通用</div><div id='date'>2008年10月28日 星期二 11:26 P.M.</div><div id='page'>88</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3650a9513f7f4a898d543037.html'>http://hi.baidu.com/hxzon/blog/item/3650a9513f7f4a898d543037.html</a><div id='cnt'><p> </p> 
+<p>org.apache.commons.mail</p> 
+<div class="section"> 
+ <h2><a name="A_simple_text_email"></a>A simple text email</h2> 
+ <p>Our first example will create a basic email message to &quot;John Doe&quot; and send it through your local mail server.</p> 
+ <div class="source"> 
+  <pre>import org.apache.commons.mail.SimpleEmail;
+...
+
+  SimpleEmail email = new SimpleEmail();
+  email.setHostName(&quot;mail.myserver.com&quot;);
+  email.addTo(&quot;jdoe@somewhere.org&quot;, &quot;John Doe&quot;);
+  email.setFrom(&quot;me@apache.org&quot;, &quot;Me&quot;);
+  email.setSubject(&quot;Test message&quot;);
+  email.setMsg(&quot;This is a simple test of commons-email&quot;);
+  email.send();</pre> 
+ </div> 
+ <p>The call to setHostName(&quot;mail.myserver.com&quot;) sets the address of the outgoing SMTP server that will be used to send the message. If this is not set, the system property &quot;mail.host&quot; will be used.</p> 
+</div> 
+<div class="section"> 
+ <h2><a name="Sending_emails_with_attachments"></a>Sending emails with attachments</h2> 
+ <p>To add attachments to an email, you will need to use the MultiPartEmail class. This class works just like SimpleEmail except that it adds several overloaded attach() methods to add attachments to the email. You can add an unlimited number of attachments either inline or attached. The attachments will be MIME encoded.</p> 
+ <p>The simpliest way to add the attachments is by using the EmailAttachment class to reference your attachments.</p> 
+ <p>In the following example, we will create an attachment for a picture. We will then attach the picture to the email and send it.</p> 
+ <div class="source"> 
+  <pre>import org.apache.commons.mail.*;
+...
+
+  // Create the attachment
+  EmailAttachment attachment = new EmailAttachment();
+  attachment.setPath(&quot;mypictures/john.jpg&quot;);
+  attachment.setDisposition(EmailAttachment.ATTACHMENT);
+  attachment.setDescription(&quot;Picture of John&quot;);
+  attachment.setName(&quot;John&quot;);
+
+  // Create the email message
+  MultiPartEmail email = new MultiPartEmail();
+  email.setHostName(&quot;mail.myserver.com&quot;);
+  email.addTo(&quot;jdoe@somewhere.org&quot;, &quot;John Doe&quot;);
+  email.setFrom(&quot;me@apache.org&quot;, &quot;Me&quot;);
+  email.setSubject(&quot;The picture&quot;);
+  email.setMsg(&quot;Here is the picture you wanted&quot;);
+
+  // add the attachment
+  email.attach(attachment);
+
+  // send the email
+  email.send();</pre> 
+ </div> 
+ <p>You can also use EmailAttachment to reference any valid URL for files that you do not have locally. When the message is sent, the file will be downloaded and attached to the message automatically.</p> 
+ <p>The next example shows how we could have sent the apache logo to John instead.</p> 
+ <div class="source"> 
+  <pre>import org.apache.commons.mail.*;
+...
+
+  // Create the attachment
+  EmailAttachment attachment = new EmailAttachment();
+  attachment.setURL(new URL(&quot;http://www.apache.org/images/asf_logo_wide.gif&quot;));
+  attachment.setDisposition(EmailAttachment.ATTACHMENT);
+  attachment.setDescription(&quot;Apache logo&quot;);
+  attachment.setName(&quot;Apache logo&quot;);
+
+  // Create the email message
+  MultiPartEmail email = new MultiPartEmail();
+  email.setHostName(&quot;mail.myserver.com&quot;);
+  email.addTo(&quot;jdoe@somewhere.org&quot;, &quot;John Doe&quot;);
+  email.setFrom(&quot;me@apache.org&quot;, &quot;Me&quot;);
+  email.setSubject(&quot;The logo&quot;);
+  email.setMsg(&quot;Here is Apache's logo&quot;);
+  
+  // add the attachment
+  email.attach(attachment);
+
+  // send the email
+  email.send();</pre> 
+ </div> 
+</div> 
+<div class="section"> 
+ <h2><a name="Sending_HTML_formatted_email"></a>Sending HTML formatted email</h2> 
+ <p>Sending HTML formatted email is accomplished by using the HtmlEmail class. This class works exactly like the MultiPartEmail class with additional methods to set the html content, alternative text content if the reciepient does not support HTML email, and add inline images.</p> 
+ <p>In this example, we will send an email message with formatted HTML content with an inline image.</p> 
+ <div class="source"> 
+  <pre>import org.apache.commons.mail.HtmlEmail;
+...
+
+  // Create the email message
+  HtmlEmail email = new HtmlEmail();
+  email.setHostName(&quot;mail.myserver.com&quot;);
+  email.addTo(&quot;jdoe@somewhere.org&quot;, &quot;John Doe&quot;);
+  email.setFrom(&quot;me@apache.org&quot;, &quot;Me&quot;);
+  email.setSubject(&quot;Test email with inline image&quot;);
+  
+  // embed the image and get the content id
+  URL url = new URL(&quot;http://www.apache.org/images/asf_logo_wide.gif&quot;);
+  String cid = email.embed(url, &quot;Apache logo&quot;);
+  
+  // set the html message
+  email.setHtmlMsg(&quot;&lt;html&gt;The apache logo - &lt;img src=\&quot;cid:&quot;+cid+&quot;\&quot;&gt;&lt;/html&gt;&quot;);
+
+  // set the alternative message
+  email.setTextMsg(&quot;Your email client does not support HTML messages&quot;);
+
+  // send the email
+  email.send();</pre> 
+ </div> 
+ <p>First, notice that the call to embed() returns a String. This String is a randomly generated identifier that must be used to reference the image in the image tag.</p> 
+ <p>Next, there was no call to setMsg() in this example. The method is still available in HtmlEmail but it should not be used if you will be using inline images. Instead, the setHtmlMsg() and setTextMsg() methods were used.</p> 
+</div> 
+<div class="section"> 
+ <h2><a name="Debugging"></a>Debugging</h2> 
+ <p>The JavaMail API supports a debugging option that will can be very useful if you run into problems. You can activate debugging on any of the mail classes by calling setDebug(true). The debugging output will be written to <code><font face="新宋体">System.out</font></code>.</p> 
+</div> 
+<div class="section"> 
+ <h2><a name="Authentication"></a>Authentication</h2> 
+ <p>If you need to authenticate to your SMTP server, you can call the <code><font face="新宋体">setAuthentication(userName,password)</font></code> method before sending your email. This will create an instance of <code><font face="新宋体">DefaultAuthenticator</font></code> which will be used by the JavaMail API when the email is sent. Your server must support RFC2554 in order for this to work.</p> 
+ <p>You can perform a more complex authentication method such as displaying a dialog box to the user by creating a subclass of the <code><font face="新宋体">javax.mail.Authenticator</font></code> object. You will need to override the <code><font face="新宋体">getPasswordAuthentication()</font></code> method where you will handle collecting the user's information. To make use of your new <code><font face="新宋体">Authenticator</font></code> class, use the <code><font face="新宋体">Email.setAuthenticator</font></code> method.</p> 
+</div> 
+<div class="section"> 
+ <h2><a name="Handling_Bounced_Messages"></a>Handling Bounced Messages</h2> 
+ <p>Normally, messages which cannot be delivered to a recipient are returned to the sender (specified with the <code><font face="新宋体">from</font></code> property). However, in some cases, you'll want these to be sent to a different address. To do this, simply call the <code><font face="新宋体">setBounceAddress(emailAddressString)</font></code> method before sending your email.</p> 
+ <p>Technical notes: When SMTP servers cannot deliver mail, they do not pay any attention to the contents of the message to determine where the error notification should be sent. Rather, they refer to the SMTP &quot;envelope sender&quot; value. JavaMail sets this value according to the value of the <code><font face="新宋体">mail.smtp.from</font></code> property on the JavaMail <code><font face="新宋体">Session</font></code>. (Commons Email initializes the JavaMail <code><font face="新宋体">Session</font></code> using <code><font face="新宋体">System.getProperties()</font></code>) If this property has not been set, then JavaMail uses the &quot;from&quot; address. If your email bean has the <code><font face="新宋体">bounceAddress</font></code> property set, then Commons Email uses it to set the value of <code><font face="新宋体">mail.smtp.from</font></code> when the <code><font face="新宋体">Session</font></code> is initialized, overriding any other value which might have been set.</p> 
+ <p><em>Note: </em>This is the only way to control the handling of bounced email. Specifically, the &quot;Errors-to:&quot; SMTP header is deprecated and cannot be trusted to control how a bounced message will be handled. Also note that it is considered bad practice to send email with an untrusted &quot;from&quot; address unless you also set the bounce address. If your application allows users to enter an address which is used as the &quot;from&quot; address on an email, you should be sure to set the bounce address to a known good address.</p> 
+ <p> </p> 
+</div></div></body></html>

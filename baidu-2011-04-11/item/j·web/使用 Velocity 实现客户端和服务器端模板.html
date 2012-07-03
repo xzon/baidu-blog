@@ -1,0 +1,410 @@
+<html><head><title>使用 Velocity 实现客户端和服务器端模板</title></head><body><div id='tit'>使用 Velocity 实现客户端和服务器端模板</div><div id='cate'>j&middot;web</div><div id='date'>2008年10月09日 星期四 07:40 P.M.</div><div id='page'>92</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/73a47decb1b5e2d72e2e2160.html'>http://hi.baidu.com/hxzon/blog/item/73a47decb1b5e2d72e2e2160.html</a><div id='cnt'><h1>使用 Velocity 实现客户端和服务器端模板</h1> 
+<p>灵活的模板引擎为 JSP 技术提供一种没有遗产负担的选择</p> 
+<p><img class="display-img" width="1" height="6" src="image/使用 Velocity 实现客户端和服务.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></p> 
+<p>级别： 初级</p> 
+<p><a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-velocity/#author"><font color="#996699">Sing Li</font></a> (<a cmimpressionsent="1" href="mailto:westmakaha@yahoo.com?subject=使用 Velocity 实现客户端和服务器端模板&amp;cc=westmakaha@yahoo.com"><font color="#5c81a7">westmakaha@yahoo.com</font></a>), 作家, Wrox Press</p> 
+<p>2004 年 3 月 13 日</p> 
+<blockquote>
+ Velocity 是一种通用的、开放源代码的模板解决方案，可以在报告生成/数据转换应用程序中独立使用，也可以在 MVC 模型框架中作为视图组件。本文中，Sing Li 介绍了 Velocity，并说明如何将其模板处理功能集成到客户端独立应用程序、服务器端 Web 应用程序或者 Web 服务中。
+</blockquote> 
+<p>在 HTML 或者 XML 这样的标准表示或交换格式中，文本性数据的操作和转换是一种频繁而且通常非常单调的活动，每个开发人员都会遇到。模板引擎可以改善这个过程，它在模板中保留输出中的静态部分，而动态生成和安排变化的部分。Velocity 是一种高度实用的、开放源代码的模板引擎，可以方便地集成到其他客户端或服务器端应用程序中。</p> 
+<p>对于服务器端应用程序，如果与兼容 Servlet 2.3+ 的 Web 层容器集成，Velocity 为 JSP 技术提供了一种可行的替代方案，可以强制实施表示逻辑与应用程序业务逻辑的清晰划分。事实上，Velocity 支持的模板语言非常简单，形成的模板也十分清晰，Web 站点设计人员和样式开发人员可以学习和维护这些模板。</p> 
+<p>本文中将考察 Velocity 的简单模板语言、创建一些模板并将其用于独立的客户应用程序。然后我们将把这个模板引擎集成到 Struts MVC 框架中作为视图组件。</p> 
+<p><a name="1"><span class="atitle">基本模板引擎操作</span></a> (hxzon摘抄）<br /> #set( $treeList = [&quot;pine&quot;, &quot;oak&quot;, &quot;maple&quot;, &quot;redwood&quot;])<br /> $treeList.get(n)<br /> 关于占位符替换的一点说明：Velocity 把任何不能识别的引用作为普通文本打印<br /> 注意变量名前面的“!”表示这是静态引用符号<br /> #foreach $name in $treeList<br /> &lt;tr&gt;&lt;td&gt;<br /> &nbsp;&nbsp;&nbsp;&nbsp; $name is a big tree!<br /> &lt;/td&gt;&lt;/tr&gt;<br /> #end<br /> --------------<br /> Velocity 中的宏</p> 
+<p>Velocity 的一个主要特性是能够很容易地定义宏，称为 Velocimacros。宏使您能够很容易地封装和重用模板脚本。默认情况下，宏保存在 VM_global_library.vm 文件中。比如，考虑清单 10 中名为 #showTree() 的 Velocimacro：</p> 
+<p><br /> 清单 10. 定义 Velocimacro<br /> #macro (showTree)<br /> &nbsp;&nbsp;&nbsp; #if ($treeList )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #foreach ($e in $treeList )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; $e <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #end<br /> &nbsp;&nbsp;&nbsp; #end<br /> #end</p> 
+<p><br /> 您可以调用 #showTree() Velocimacro 并使用它打印 $treeList ArrayList ―― 如果这个列表已经定义的话。调用的语法很简单，即 #showTree() 。</p> 
+<p>参数化宏也是可能的。比如，我们可以修改 #showTree() 宏使其用于任何列表，如清单 11 所示：</p> 
+<p><br /> 清单 11. 带参数的 Velocimacro<br /> #macro (showList $val)<br /> &nbsp;&nbsp;&nbsp; #if ($val )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #foreach ($e in $val )<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; $e<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #end<br /> &nbsp;&nbsp;&nbsp; #end<br /> #end</p> 
+<p><br /> 要使用清单 11 中的宏调用 $treeList ，我们可以使用 #showList($treeList) 。这两种情况的输出都一样，如清单 12 所示：</p> 
+<p><br /> 清单 12. Velocimacro 的合并输出<br /> &nbsp;&nbsp;&nbsp;&nbsp; pine<br /> &nbsp;&nbsp;&nbsp;&nbsp; oak<br /> &nbsp;&nbsp;&nbsp;&nbsp; maple<br /> &nbsp;&nbsp;&nbsp;&nbsp; redwood</p> 
+<p><br /> 其他有趣的 VTL 细节</p> 
+<p>单行注释或者行尾注释从 ## 开始，多行注释则放在 #* 和 *# 之间。</p> 
+<p>在处理字符串数据时，可以使用双引号或单引号分隔。但是使用双引号允许在分隔的字符串 内部对 Velocity 引用、指示符甚至 Velocimacros 求值。 <br /> ===========================================</p> 
+<p><a name="2"><span class="atitle">Velocity 上下文</span></a></p> 
+<p>您可以把 Velocity 中的上下文看作是导入 Java 对象，以便在 Velocity 模板内部访问的一种方法。这种导入必须在 Java 编码中明确地完成。和 JSP 代码或者 JavaScript 不同，不存在“自然的”或“原生方式”使 Velocity 访问任何 Java 对象。只有明确导入的 Java 对象才能在 Velocity 模板中使用。</p> 
+<p>通过创建 <code><font face="新宋体">org.apache.velocity.context.Context</font></code> 类的实例可以获得 Velocity 上下文。然后可以使用上下文的 <code><font face="新宋体">put( <em>key</em>, <em>value</em>) </font></code>方法，把将要导入供模板使用的对象附加到上下文中。key 是一个字符串名，将在模板中作为可用的引用出现。在产品环境中，图形或者 Web 设计人员可能负责创建和维护模板，而 Java 开发人员提供可以在模板中访问的对象集。在这种情况下，设计人员和开发人员应就对象集合及其可用的属性达成一致并互相协作。在 Velocity 上下文中附加的属性将作为主要的接口机制。</p> 
+<p><a name="N10273"><span class="smalltitle"><strong><font size="3">在模板中访问上下文属性</font></strong></span></a></p> 
+<p>看一看一个独立解析器中包含的示例代码（请参阅 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-velocity/#resources"><font color="#996699">参考资料</font></a>）。可以在 <code><font face="新宋体">\code\src</font></code> 目录下找到。比如，在 <code><font face="新宋体">com.ibm.dvworks.velocity.VelocityParser</font></code> 类中，我们已经创建并向 Velocity 上下文中添加了两个属性，如清单 13 所示：</p> 
+<p><br /> <a name="list13"><strong>清单 13. 在 VelocityParser 类中创建一个 Velocity 实例</strong></a></p> 
+<pre>public static void main(String[] args)&nbsp;&nbsp;&nbsp;  {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  VelocityParser velInstance = new VelocityParser(args[0]);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  velInstance.addToContext(  &quot;treeFarm&quot;, <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new String [] { &quot;redwood&quot;, &quot;maple&quot;, &quot;oak&quot;, &quot;pine&quot; });<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  velInstance.addToContext( &quot;title&quot;, &quot;A Tree Farm&quot;);<br />velInstance.addToContext( &quot;date&quot;, new java.util.Date());<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  velInstance.addToContext(&quot;fmtr&quot;, <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new org.apache.velocity.app.tools.VelocityFormatter(<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  velInstance.getCurrentContext()));<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  velInstance.processTemplate();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br />&nbsp;&nbsp;&nbsp;  }</pre> 
+<p>属性 <code><font face="新宋体">treeFarm</font></code> 是一个关于树名的 <code><font face="新宋体">ArrayList</font></code> 。 <code><font face="新宋体">title</font></code> 属性是一个标量字符串。一旦附加到上下文中并在合并过程中传递，这些属性在 Velocity 模板中立刻就变得没有用了。清单 14 中的模板使用了这两个属性。您可以在 <code><font face="新宋体">\code\app\treectx.vm</font></code> 中找到这个例子。</p> 
+<p><br /> <a name="list14"><strong>清单 14. 使用 $treeFarm 上下文属性引用</strong></a></p> 
+<pre class="displaycode">&lt;table&gt;
+&lt;tr&gt;&lt;td&gt;$title&lt;/td&gt;&lt;/tr&gt;
+#foreach $name in $treeFarm
+&lt;tr&gt;&lt;td&gt;
+     $name is a big tree!
+&lt;/td&gt;&lt;/tr&gt;
+#end
+&lt;/table&gt;</pre> 
+<p>合并后的输出如清单 15 所示：</p> 
+<p><br /> <a name="list15"><strong>清单 15. 模板的合并输出</strong></a></p> 
+<pre class="displaycode">&lt;table&gt;
+&lt;tr&gt;&lt;td&gt;A Tree Farm&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+     redwood is a big tree!
+&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+     maple is a big tree!
+&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+     oak is a big tree!
+&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+     pine is a big tree!
+&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;</pre> 
+<p>要注意，使用 <code><font face="新宋体">$treeFarm</font></code> 上下文属性引用的方法和前面分析的 <code><font face="新宋体">$treeList</font></code> 变量引用一致。</p> 
+<p><a name="N102C7"><span class="smalltitle"><strong><font size="3">初始化模板引擎</font></strong></span></a></p> 
+<p>分析 <code><font face="新宋体">VelocityParser</font></code> 类中列出的 <code><font face="新宋体">main()</font></code> 方法（参见清单 13）。 <code><font face="新宋体">VelocityParser</font></code> 构造函数创建解析器并加载模板，然后增加模板引擎要使用的属性，最后调用 <code><font face="新宋体">processTemplate()</font></code> 合并数据和模板。我们将按照顺序依次分析这些方法。</p> 
+<p>您可以在 <code><font face="新宋体">org.apache.velocity.app.Velocity</font></code> 类中使用静态方法初始化 Velocity 并加载一个模板文件。要使用的方法分别为 <code><font face="新宋体">init()</font></code> 和 <code><font face="新宋体">getTemplate()</font></code> 。对 <code><font face="新宋体">init()</font></code> 方法的调用出现在 <code><font face="新宋体">VelocityParser</font></code> 类的构造函数中，如清单 16 所示：</p> 
+<p><br /> <a name="list16"><strong>清单 16. 在 VelocityParser 类的构造函数中初始化模板引擎</strong></a></p> 
+<pre class="displaycode">public VelocityParser(String templateFile)  {
+        try {
+            Velocity.init(&quot;velocity.properties&quot;);
+            mainTemplate = Velocity.getTemplate(templateFile);
+         }
+         catch( Exception ex ) {
+                System.out.println(&quot;Error processing template file: &quot; + templateFile );
+          }
+      }</pre> 
+<p>在清单 16 中，对 <code><font face="新宋体">init()</font></code> 的调用创建了一个 Velocity 引擎实例。如果应用程序需要创建和管理多个 Velocity 模板引擎实例，则应使用 <code><font face="新宋体">org.apache.velocity.app.VelocityEngine</font></code> 类。</p> 
+<p><a name="N1030C"><span class="smalltitle"><strong><font size="3">上下文链</font></strong></span></a></p> 
+<p>只要调用 <code><font face="新宋体">org.apache.velocity.VelocityContext</font></code> 类的普通构造函数就可以创建直接可用的 Velocity 上下文。</p> 
+<p>Velocity 上下文可以 <em>进行链接</em>（包装在另一个上下文内部）。如果需要在模板中控制特定对象引用的可见性和可用性，这样做非常有用。</p> 
+<p>Velocity 将在对象引用的所有链接上下文中搜索属性。如果遇到重复的名称，则使用最外层的属性，而内部的同名属性永远不会被访问。</p> 
+<p>为了链接 Velocity 上下文，要链接的上下文应该作为参数传递给一个新上下文的构造函数。清单 17 中 <code><font face="新宋体">VelocityParser</font></code> 类的重载方法 <code><font face="新宋体">addToContext()</font></code> 说明了这一点：</p> 
+<p><br /> <a name="list17"><strong>清单 17. 使用 addToContext() 方法增加上下文属性或者上下文链接</strong></a></p> 
+<pre class="displaycode">public void addToContext(String key, Object value) {
+          if (mainContext == null)
+              mainContext = new VelocityContext();
+           mainContext.put(key, value);
+     }
+      public void addToContext(VelocityContext chainCtx) {
+          mainContext = new VelocityContext(chainCtx);
+      }</pre> 
+<p>在 <code><font face="新宋体">processTemplate()</font></code> 方法中，调用模板的 <code><font face="新宋体">merge()</font></code> 方法结合上下文信息和模板生成输出流，如清单 18 所示：</p> 
+<p><br /> <a name="list18"><strong>清单 18. 在 processTemplate() 方法中合并模板</strong></a></p> 
+<span class="atitle"> <pre class="displaycode">public void processTemplate() {
+         try {
+            BufferedWriter writer = writer = new BufferedWriter(
+                new OutputStreamWriter(System.out));
+            if ( mainTemplate != null)
+                mainTemplate.merge(mainContext, writer);
+            writer.flush();
+            writer.close();
+        }
+        catch( Exception ex )    {
+           ex.printStackTrace();
+        }
+    }</pre> </span> 
+<p><a name="3"><span class="atitle">Velocity 作为独立的解析器</span></a></p> 
+<p>要编译上述示例独立解析器，请使用安装目录下 <code><font face="新宋体">\code\app</font></code> 中的 <code><font face="新宋体">compile.bat</font></code> 文件。要试验该解析器，请使用 <code><font face="新宋体">process.bat</font></code> 批处理文件，其中包括：</p> 
+<pre class="displaycode">set VEL_HOME=\jdk1.4\vel14rc1
+java -classpath ..\classes;%VEL_HOME%\velocity-dep-1.4-rc1.jar 
+com.ibm.dvworks.velocity.VelocityParser %1 %2 %3</pre> 
+<p>注意，必须同时在 <code><font face="新宋体">compile.bat</font></code> 和 <code><font face="新宋体">process.bat</font></code> 中把环境变量 <code><font face="新宋体">VEL_HOME</font></code> 设置成安装 Velocity 的目录。在 Velocity 发行包中包含两类不同的 JAR 文件： <code><font face="新宋体">velocity-dep---?.jar</font></code> （其中的 <em>--?</em> 是版本号信息）和 <code><font face="新宋体">velocity---?.jar</font></code> 。 <code><font face="新宋体">velocity-dep---?.jar</font></code> 文件包括所有的外部依赖（Jakarta common-collections、Avalon Logkit 和 ORO 正则表达式库），可以直接使用。如果您的 classpath 中已经有一些这样的库，您可能希望使用 <code><font face="新宋体">velocity---?.jar</font></code> 文件来代替。如果这些 JAR 组成都不能满足您的需要，可以很容易地按照需要的方式重新建立 Velocity。Velocity 发行包中包括一个 ant 脚本，可以为不同的应用场景建立 7 种不同的 JAR 配置。</p> 
+<p>为了便于上手，Velocity 预设了一些默认配置属性，对于多数应用而言，这都是合理的和可以接受的。这就避免了开发人员从一开始就忙于复杂的配置选项，让他们能马上体验到这种模板引擎。</p> 
+<p><a name="4"><span class="atitle">服务器上的 Velocity 与 JSP 技术</span></a></p> 
+<p>在服务器端可以使用 Velocity 处理模板和生成的动态内容（HTML、XML等）。这和 JSP 技术的目标非常接近。但是，JSP 模型可以毫无阻碍地访问底层的 Servlet API 和 Java 编程语言。事实上，为了避免访问这些固有的特性，您在编码中必须严格约束（只是使用 EL、标签库和类似的特性）。它基本上是一种在很大程度上开放的访问模型。</p> 
+<p>拿 Velocity 与之比较。作为一种完全自包含的模板引擎和脚本解释器，Velocity 拥有完全封闭的模型。任何针对系统和/或 Java 编程语言的访问都必须明确地启用。默认情况，Velocity 模板中不能访问 Java 编程语言的任何方面。这种封闭的模型使 Velocity 能够提供分离的模板表示层，与任何应用程序业务逻辑或者数据管理代码清晰地划分开。</p> 
+<p>现在让我们把这种模板引擎与 Tomcat 5 的最新版本集成在一起，看一看 Velocity 在服务器端的应用。</p> 
+<p><a name="5"><span class="atitle">与 Tomcat 5 一起部署 Velocity</span></a></p> 
+<p>Velocity 发行包带有一个 <code><font face="新宋体">org.apache.velocity.servletVelocityServlet</font></code> 库类，扩展它可以很快地创建一个模板处理 servlet。作为独立的客户机应用程序测试的任何模板都可以使用 <code><font face="新宋体">VelocityServlet</font></code> 部署在服务器上。把独立的 Velocity 模板转移到 Web 应用程序中相对比较简单。只需要以下几个步骤：</p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+ <tbody> 
+  <tr> 
+   <td width="10"><img width="10" height="1" src="image/使用 Velocity 实现客户端和服务.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td> 
+    <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#eeeeee"><a name="sidebar2"><strong>Velocity 中的工具</strong></a><br /> <p>工具是在模板中可以通过 Velocity 上下文使用的实用 Java 对象。虽然可以手工把这些对象附加到上下文中，但 <code><font face="新宋体">VelocityViewServlet</font></code> 工具箱管理器可通过更加灵活和结构化的方式完成。在模板中一般是通过调用工具的方法来使用它们。 <code><font face="新宋体">VelocityViewServlet</font></code> 与 <code><font face="新宋体">VelocityStruts</font></code> 都提供了非常有价值的经过测试的工具，在作为一种视图技术部署 Velocity 时极其有用。</p> </td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<ol> 
+ <li>从 <code><font face="新宋体">org.apache.velocity.servlet.VelocityServlet</font></code> 类派生一个 Servlet 类。</li> 
+ <li>重写并实现其中的一个 <code><font face="新宋体">handleRequest()</font></code> 方法。</li> 
+ <li>在 <code><font face="新宋体">handleRequest()</font></code> 的实现中，添加希望在模板中作为上下文属性使用的数据或工具（请参阅侧栏 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-velocity/#sidebar2"><font color="#996699">Velocity 中的工具</font></a>）。</li> 
+ <li>在 <code><font face="新宋体">handleRequest()</font></code> 的实现中，从文件或资源（如 JAR 文件）中取得模板并返回它。</li> 
+</ol> 
+<p>在示例代码包中， <code><font face="新宋体">com.ibm.dvworks.velocity.VelTestServlet</font></code> 就是按照上述步骤创建的一个 servlet。您可以查看 <code><font face="新宋体">webapps\vservlet\WEB-INF\src</font></code> 目录下的代码。如果改变了这些代码，一定要使用 compile.bat 批处理文件重新编译它。</p> 
+<p>部署描述符（web.xml 文件）定义了该 servlet 并把它映射到 <code><font face="新宋体">/vServlet</font></code> URL 模式中，如清单 19 所示：</p> 
+<p><br /> <a name="list19"><strong>清单 19. 自定义基于 Velocity 的 servlet 的 Tomcat 部署描述符</strong></a></p> 
+<pre class="displaycode">&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+&lt;!DOCTYPE web-app
+     PUBLIC &quot;-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN&quot;
+    &quot;http://java.sun.com/dtd/web-app_2_3.dtd&quot;&gt;
+&lt;web-app&gt;
+ &lt;servlet&gt;
+    &lt;servlet-name&gt;vServlet&lt;/servlet-name&gt;
+    &lt;servlet-class&gt;com.ibm.dvworks.velocity.VelTestServlet&lt;/servlet-class&gt;
+ &lt;/servlet&gt;
+ &lt;servlet-mapping&gt;
+    &lt;servlet-name&gt;vServlet&lt;/servlet-name&gt;
+    &lt;url-pattern&gt;/vServlet&lt;/url-pattern&gt;
+  &lt;/servlet-mapping&gt;
+&lt;/web-app&gt;</pre> 
+<p>加载并处理的模板放在 <code><font face="新宋体">webapps\vServlet</font></code> 目录中。在这个例子中，模板文件称为 <code><font face="新宋体">variables.vm</font></code> 。测试之前一定要保证 <code><font face="新宋体">velocity-dep---?.jar</font></code> 文件已经放在 <code><font face="新宋体">webapps\vServlet\WEB-INF\lib</font></code> 目录下，然后启动 Tomcat 5 并访问 <code><font face="新宋体">http://localhost:8080/vservlet/Servlet</font></code> URL。</p> 
+<p><a name="N10418"><span class="smalltitle"><strong><font size="3">部署 VelocityViewServlet</font></strong></span></a></p> 
+<p>要把模板功能扩展到 Web 应用程序中，应该使用 Velocity 工具集中的 <code><font face="新宋体">VelocityViewServlet</font></code> 。Velocity 工具是 Velocity 的一个子项目（请参阅 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-velocity/#resources"><font color="#996699">参考资料</font></a> 找到这个 URL 并下载最新的版本）。该 Servlet 为 Velocity 用作一种视图层技术提供了更复杂的支持，既可以与 JSP 技术联合使用也可以代替后者。使用 <code><font face="新宋体">VelocityViewServlet</font></code> 可以减少许多冗余代码，因为它提供了：</p> 
+<ul> 
+ <li>对请求对象和属性、会话对象和属性以及 servlet 上下文和属性的直接模板访问</li> 
+ <li>正式的、可外部配置的“工具箱”，可以增加在模板中使用的自定义工具（这里讲的工具只是具有公共方法的已编译的类）</li> 
+ <li>一个通用的、经过测试的、随时可用的工具库</li> 
+</ul> 
+<p>要把 <code><font face="新宋体">VelocityViewServlet</font></code> 集成到 Web 应用程序中，可以看一看示例 velview Web 应用程序（在 <code><font face="新宋体">webapps\velview</font></code> 目录中）。该应用程序包括本文中所讨论的那些模板。此外，它还显示了请求、会话以及 servlet 上下文对象的属性。集成的步骤如下：</p> 
+<p>首先要保证 <code><font face="新宋体">velocity-tools-view.jar</font></code> 文件在应用程序的 <code><font face="新宋体">lib</font></code> 目录中。当然，这个 velocity JAR 文件也应该在那儿。</p> 
+<p>在部署描述符 web.xml 文件中，包括 <code><font face="新宋体">VelocityViewServlet</font></code> 。初始化参数是一个工具箱描述 XML 文件。该 servlet 映射为处理所有扩展名为 .vm 的文件，如清单 20 所示：</p> 
+<p><br /> <a name="list20"><strong>清单 20. VelocityViewServlet 的 Tomcat 部署描述符（web.xml）</strong></a></p> 
+<pre class="displaycode">&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+&lt;!DOCTYPE web-app
+     PUBLIC &quot;-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN&quot;
+    &quot;http://java.sun.com/dtd/web-app_2_3.dtd&quot;&gt;
+&lt;web-app&gt;
+  &lt;servlet&gt;
+    &lt;servlet-name&gt;velocityView&lt;/servlet-name&gt;
+    &lt;servlet-class&gt;org.apache.velocity.tools.view.servlet.VelocityViewServlet&lt;/servlet-class&gt;
+    &lt;init-param&gt;
+      &lt;param-name&gt;org.apache.velocity.toolbox&lt;/param-name&gt;
+      &lt;param-value&gt;/WEB-INF/toolbox.xml&lt;/param-value&gt;
+    &lt;/init-param&gt;
+  &lt;/servlet&gt;
+  &lt;servlet-mapping&gt;
+    &lt;servlet-name&gt;velocityView&lt;/servlet-name&gt;
+    &lt;url-pattern&gt;*.vm&lt;/url-pattern&gt;
+  &lt;/servlet-mapping&gt;
+&lt;/web-app&gt;</pre> 
+<p>该例子的工具箱描述符（toolbox.xml）文件中，包含了两个来自 Velocity 工具库的通用工具可以在模板 <code><font face="新宋体">DateTool</font></code> 和 <code><font face="新宋体">MathTool</font></code> 中访问。这两个工具使我们能够格式化日期和时间信息，并在模板中执行浮点运算，如清单 21 所示：</p> 
+<p><br /> <a name="list21"><strong>清单 21. 包括 DateTool 和 MathTool 的工具箱描述符</strong></a></p> 
+<pre class="displaycode">&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;toolbox&gt;
+  &lt;tool&gt;
+   &lt;key&gt;date&lt;/key&gt;
+   &lt;scope&gt;application&lt;/scope&gt;
+   &lt;class&gt;org.apache.velocity.tools.generic.DateTool&lt;/class&gt;
+ &lt;/tool&gt;
+&lt;tool&gt;
+  &lt;key&gt;math&lt;/key&gt;
+  &lt;scope&gt;application&lt;/scope&gt;
+  &lt;class&gt;org.apache.velocity.tools.generic.MathTool&lt;/class&gt;
+&lt;/tool&gt;
+...</pre> 
+<p>在 <code><font face="新宋体">VelocityViewServlet</font></code> 中有一组常用的标准工具，如表 1 所示：</p> 
+<p><a><span class="smalltitle"><strong><font size="3">表 1. VelocityViewServlet 中的标准工具</font></strong></span></a></p> 
+<p> </p>
+<table border="1" width="600"> 
+ <tbody> 
+  <tr> 
+   <td width="200"><strong>工具名</strong></td> 
+   <td><strong>描述</strong></td> 
+  </tr> 
+  <tr> 
+   <td valign="top"><code><font face="新宋体">LinkTool</font></code></td> 
+   <td align="left">处理 URI。该工具经常会用到，如果在模板中创建可点击的链接就要用到该工具，可以生成依赖于上下文的 URI 部分。</td> 
+  </tr> 
+  <tr> 
+   <td valign="top"><code><font face="新宋体">CookieTool</font></code></td> 
+   <td>使模板能够创建或访问浏览器缓冲的 cookie。</td> 
+  </tr> 
+  <tr> 
+   <td valign="top"><code><font face="新宋体">ParameterParser</font></code></td> 
+   <td>简化后面收到的请求参数的解析。</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>还有两个高度专门化的、不那么常用的工具，如表 2 所示：</p> 
+<p><a><span class="smalltitle"><strong><font size="3">表 2. 专门的 VelocityViewServlet 工具</font></strong></span></a></p> 
+<p> </p>
+<table border="1" width="600"> 
+ <tbody> 
+  <tr> 
+   <td width="200"><strong>工具名</strong></td> 
+   <td><strong>描述</strong></td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">ViewRenderTool</font></code></td> 
+   <td>使模板能够解析包含 VTL 的字符串。</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">AbstractSearchTool</font></code></td> 
+   <td>提供了一种骨架工具（必须使用自定义的 Java 代码来扩展），以便实现在线搜索和搜索结果分页。</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>您可以使用 <code><font face="新宋体">http://localhost:8080/velview/variables.vm</font></code> URL 测试 velview 应用程序。您应该打开模板源代码看一看所用的 Velocity 引擎、 <code><font face="新宋体">LinkTool</font></code> 和 <code><font face="新宋体">CookieTool</font></code> 。</p> 
+<p> </p> 
+<p><a name="6"><span class="atitle">与 Struts 框架的互操作</span></a></p> 
+<p>Struts 是一种构造基于 MVC 模型的框架的流行 Web 应用程序。Struts 默认的视图组件技术是 JSP 技术。但是，可以很容易把 Velocity 集成进来作为视图组件。图 1 说明了 Velocity 的这种具体应用：</p> 
+<p><br /> <a name="fig1"><strong>图 1. Velocity 与 Struts MVC 框架集成 </strong></a><br /> <img width="572" height="423" src="image/使用 Velocity 实现客户端和服务.fig1.gif" /><p class="origImg">http://www-128.ibm.com/developerworks/cn/java/j-velocity/fig1.gif</p></p> 
+<p>重要的是要看到，在这种结合中 Velocity 并没有代替 JSP 技术。相反，JSP 技术和 Velocity 模板可以协同工作。集成 Velocity 需要配置 <code><font face="新宋体">VelocityViewServlet</font></code> 以便处理 .vm 模板，就像 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-velocity/#velviewserv"><font color="#996699">部署 VelocityViewServlet</font></a> 部分所讲的那样。这意味着.jsp 文件将继续由容器（即 Tomcat 5 中的 Jasper）处理，而任何 .vm 模板则传递给 Velocity。</p> 
+<p>Velocity Tools 子项目中的 <code><font face="新宋体">VelocityStruts</font></code> 组件（请参阅 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-velocity/#resources"><font color="#996699">参考资料</font></a>）包含集成 Velocity 与 Struts 的所有功能。 <code><font face="新宋体">VelocityStruts</font></code> 提供了一组专用的 Velocity 工具，用于访问 Struts 专有的资源和 Velocity 模板中的信息。表 3 列出了最常用的工具：</p> 
+<p><a><span class="smalltitle"><strong><font size="3">表 3. 用于 VelocityStruts 集成的工具</font></strong></span></a></p> 
+<p> </p>
+<table border="1" width="600"> 
+ <tbody> 
+  <tr> 
+   <td><strong>工具名</strong></td> 
+   <td><strong>描述</strong></td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">StrutsLinkTool</font></code></td> 
+   <td>针对 Struts 的 LinkTool 专用版本，提供了 <code><font face="新宋体">setAction()</font></code> 和 <code><font face="新宋体">setForward()</font></code> 访问预先配置的活动映射。</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">FormTool</font></code></td> 
+   <td>访问 Struts 的表单 beans。</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">ErrorsTool</font></code></td> 
+   <td>处理 Struts 错误消息，包括对国际化的支持。</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">MessageTool</font></code></td> 
+   <td>提供对 Struts 国际化支持的访问，尤为特别的是依赖于语言的消息资源。</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>还有一组工具专用于 Struts 1.1 中的新特性，如表 4 所示：</p> 
+<p><a><span class="smalltitle"><strong><font size="3">表 4. 专用的 Struts 1.1 访问工具</font></strong></span></a></p> 
+<p> </p>
+<table border="1" width="600"> 
+ <tbody> 
+  <tr> 
+   <td><strong>工具名</strong></td> 
+   <td><strong>描述</strong></td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">SecureLinkTool</font></code></td> 
+   <td>用于 Struts 1.1 的安全链接（SSL）扩展。</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">ActionMessagesTool</font></code></td> 
+   <td>提供对 Struts 1.1 新对象 <code><font face="新宋体">ActionMessages</font></code> 的访问。</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">TilesTool</font></code></td> 
+   <td>提供对 Struts 1.1 Tiles 扩展支持的访问。</td> 
+  </tr> 
+  <tr> 
+   <td><code><font face="新宋体">ValidatorTool</font></code></td> 
+   <td>提供对 Struts 1.1 Validator 扩展的访问，生成代码验证表单输入字段。</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在 <code><font face="新宋体">webapps\struts-example</font></code> 目录中可以找到一个例子，使用 Struts 而非 JSP 技术创建 Struts 页面。本例中我们使用 Struts 取代了实例 Web 应用程序所发布的第一个标题页，您可以试着改变其他的页面。下面列出了操作的步骤。</p> 
+<ol> 
+ <li>把 Velocity 库复制到 Struts 示例应用程序下的 <code><font face="新宋体">WEB-INF\lib</font></code> 目录中。要使用 Tomcat 5（5.0.16 是撰写本文时的最新版本）和 Struts 1.1，需要把以下 JAR 文件复制到 <code><font face="新宋体">webapps\struts-example\WEB-INF\lib</font></code> 目录中： 
+  <ul> 
+   <li>velocity-tools-1.1-beta1.jar</li> 
+   <li>velocity-1.4-rc1.jar</li> 
+  </ul> </li> 
+ <li>然后在 Struts 配置文件（ <code><font face="新宋体">WEB-INF\struts-config.xml</font></code> ），把 Struts 动作映射设置为转向 index.vm 文件而不是 index.jsp 文件，如清单 22 所示： <br /> <strong>清单 22. 把 Struts 动作转向 index.vm</strong> <br /> 
+  <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+   <tbody> 
+    <tr> 
+     <td class="code-outline"> <pre class="displaycode">&lt;action    path=&quot;/logoff&quot;
+               type=&quot;org.apache.struts.webapp.example.LogoffAction&quot;&gt;
+      &lt;forward name=&quot;success&quot;              path=&quot;/index.vm&quot;/&gt;
+    &lt;/action&gt;</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> </li> 
+ <li>在部署描述符 <code><font face="新宋体">WEB-INF\web.xml</font></code> 文件中配置 <code><font face="新宋体">VelocityViewServlet</font></code> 处理 <code><font face="新宋体">.vm</font></code> 文件。同样把欢迎文件设为 index.vm 而非 index.jsp，如清单 23 所示： <br /> <strong>清单 23. 改变 struts 示例 Web 应用程序的部署描述符</strong> <br /> 
+  <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+   <tbody> 
+    <tr> 
+     <td class="code-outline"> <pre class="displaycode">&lt;!-- Action Servlet Configuration --&gt;
+  &lt;servlet&gt;
+    &lt;servlet-name&gt;action&lt;/servlet-name&gt;
+    &lt;servlet-class&gt;org.apache.struts.action.ActionServlet&lt;/servlet-class&gt;
+    &lt;init-param&gt;
+      &lt;param-name&gt;config&lt;/param-name&gt;
+      &lt;param-value&gt;/WEB-INF/struts-config.xml, 
+      /WEB-INF/struts-config-registration.xml&lt;/param-value&gt;
+    &lt;/init-param&gt;
+    &lt;load-on-startup&gt;1&lt;/load-on-startup&gt;
+  &lt;/servlet&gt;
+ &lt;servlet&gt;
+    &lt;servlet-name&gt;velocity&lt;/servlet-name&gt;
+    &lt;servlet-class&gt;org.apache.velocity.tools.view.servlet.VelocityViewServlet
+    &lt;/servlet-class&gt;
+    &lt;init-param&gt;
+      &lt;param-name&gt;org.apache.velocity.toolbox&lt;/param-name&gt;
+      &lt;param-value&gt;/WEB-INF/toolbox.xml&lt;/param-value&gt;
+   &lt;/init-param&gt;
+    &lt;init-param&gt;
+      &lt;param-name&gt;org.apache.velocity.properties&lt;/param-name&gt;
+      &lt;param-value&gt;/WEB-INF/velocity.properties&lt;/param-value&gt;
+   &lt;/init-param&gt;
+  &lt;/servlet&gt;
+  &lt;!-- Action Servlet Mapping --&gt;
+  &lt;servlet-mapping&gt;
+    &lt;servlet-name&gt;action&lt;/servlet-name&gt;
+    &lt;url-pattern&gt;*.do&lt;/url-pattern&gt;
+  &lt;/servlet-mapping&gt;
+  &lt;servlet-mapping&gt;
+    &lt;servlet-name&gt;velocity&lt;/servlet-name&gt;
+    &lt;url-pattern&gt;*.vm&lt;/url-pattern&gt;
+  &lt;/servlet-mapping&gt;
+  &lt;!-- The Welcome File List --&gt;
+  &lt;welcome-file-list&gt;
+    &lt;welcome-file&gt;index.vm&lt;/welcome-file&gt;
+  &lt;/welcome-file-list&gt;</pre> </td> 
+    </tr> 
+   </tbody> 
+  </table> </li> 
+ <li>最后，把 toolbox.xml 和 velocity.properties 文件从本文的源代码下载中（请参阅 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-velocity/#resources"><font color="#996699">参考资料</font></a>）移动到 <code><font face="新宋体">WEB-INF</font></code> 目录下。</li> 
+</ol> 
+<p> </p> 
+<p>新的 index.vm 文件如清单 24 所示，可以把它与原来的 index.jsp 文件比较。</p> 
+<p><br /> <a name="list24"><strong>清单 24. 通过使用 index.vm Velocity 模板与 Struts 互操作</strong></a></p> 
+<pre class="displaycode">&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;$msg.get(&quot;index.title&quot;)&lt;/title&gt;
+&lt;/head&gt;
+&lt;body bgcolor=&quot;white&quot;&gt;
+#if ( !$application.database)
+  &lt;font color=&quot;red&quot;&gt;
+    ERROR:  User database not loaded -- check servlet container logs
+    for error messages.
+  &lt;/font&gt;
+  &lt;hr&gt;
+#end
+&lt;h3&gt;$msg.get(&quot;index.heading&quot;)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;a href=&quot;$link.setURI(&quot;editRegistration.do&quot;).addQueryData(&quot;action&quot;,&quot;Create&quot;)&quot;&gt;
+$msg.get(&quot;index.registration&quot;)
+&lt;/a&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;a href=&quot;$link.setURI(&quot;logon.jsp&quot;)&quot;&gt;
+$msg.get(&quot;index.logon&quot;)
+&lt;/a&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&amp;nbsp;&lt;/p&gt;
+&lt;a href=&quot;$link.setURI(&quot;tour.do&quot;)&quot;&gt;
+&lt;font size=&quot;-1&quot;&gt;$msg.get(&quot;index.tour&quot;)&lt;/font&gt;
+&lt;/a&gt;
+&lt;p&gt;&amp;nbsp;&lt;/p&gt;
+&lt;img src=&quot;$link.setURI(&quot;powered-by-logo.gif&quot;)&quot; alt=&quot;Powered by Velocity&quot;/&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre> 
+<p>在 index.vm 中，整个模板都使用 <code><font face="新宋体">$msg</font></code> 内的消息工具访问 Struts 的地域有关的国际化资源。通过对包含国际化字符串的资源包的本地化更改，这种方法避免了模板中的多数硬编码字符串。</p> 
+<p>您可以使用 VTL 的条件指示符 <code><font face="新宋体">#if</font></code> 直接检查在 servlet 上下文中是否存在数据库属性。 <code><font face="新宋体">$application</font></code> 引用可用于访问 servlet 上下文中的任何属性（ <code><font face="新宋体">$request</font></code> 、 <code><font face="新宋体">$response</font></code> 和 <code><font face="新宋体">$session</font></code> 也可用于访问其他 Servlet API 对象的属性）。</p> 
+<p><code><font face="新宋体">LinkTool</font></code> 的 <code><font face="新宋体">setURI()</font></code> 方法用于生成服务器端到 Struts 动作和“Powered by Velocity”标志图片的 URI 链接。注意，这里使用 <code><font face="新宋体">LinkTool</font></code> 的 <code><font face="新宋体">addQueryData()</font></code> 方法向结果 URI 种增加附加的动作信息。</p> 
+<p>要测试该 Velocity 页面，您可以启动 Tomcat 5 并访问 <code><font face="新宋体">http://localhost:8080/struts-example/</font></code> URL。注意它的结果与原来的 JSP 版本完全一致。</p> 
+<p><a name="7"><span class="atitle">结束语</span></a></p> 
+<p>Velocity 模板处理程序可以直接集成到 Java 语言应用程序中，立即提供报告生成或者模板处理的功能。</p> 
+<p>将模板引擎扩展到 Web 应用程序，可以使用 <code><font face="新宋体">VelocityServlet</font></code> 处理动态生成 HTML 输出的 Velocity 模板。Velocity 工具项目对使用 <code><font face="新宋体">VelocityViewServlet</font></code> 组件化 Web 层应用程序开发提供了更多的支持。 <code><font face="新宋体">VelocityViewServlet</font></code> 以模板为基础为基于 Web 的 UI 构造提供了方便的视图层。</p> 
+<p>在使用 MVC 模型框架设计复杂的 Web 应用程序时，Velocity 作为一种视图/模板化技术——以 <code><font face="新宋体">VelocityViewServlet</font></code> 的形式——可以很方便地插入到框架中。对于流行的 Jakarta Struts MVC 框架，Velocity 可以与基于 JSP 的视图技术协作，也可以和选择的任何模型技术进行交互。</p> 
+<p>下载本文的 <a cmimpressionsent="1" href="http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/j-velocity-code.zip"><font color="#5c81a7">源代码</font></a>。 <br /> <a cmimpressionsent="1" href="http://jakarta.apache.org/turbine/index.html"><font color="#5c81a7">Turbine</font></a>是一种从头开始设计的开放源代码 MVC 框架，可以很好地使用 Velocity 作为视图组件技术。</p> 
+<p><a href="http://www-128.ibm.com/developerworks/cn/java/j-velocity/">http://www-128.ibm.com/developerworks/cn/java/j-velocity/</a></p></div></body></html>

@@ -1,0 +1,399 @@
+<html><head><title>一个完整的TableViewer实例 -JFacecode</title></head><body><div id='tit'>一个完整的TableViewer实例 -JFacecode</div><div id='cate'>j&middot;swt</div><div id='date'>2008年04月01日 星期二 09:39 A.M.</div><div id='page'>145</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/82fe0f23317fb94a925807bf.html'>http://hi.baidu.com/hxzon/blog/item/82fe0f23317fb94a925807bf.html</a><div id='cnt'><div> 
+ <div> 
+  <h3>一个完整的TableViewer实例 -JFacecode</h3> 
+  <p>文/陈刚 from <a href="http://www.chengang.com.cn/">www.chengang.com.cn</a></p> 
+  <h5>一、前言</h5> 
+  <p> 在《Eclipse从入门到精通》一书中，TableViewer的例子还是被相对简化了的，今天（2005年8月30日）在开发中正好涉及到这方面，于是将代码提取出来，帖在这里以供读者参考。 </p> 
+  <h5>二、实例说明</h5> 
+  <p>实例的示例图如下：</p> 
+  <p>例图说明：<br /> （1）提供一个表格，表格有两列。第一列是一个文本框，可直接编辑。第二列是一个下拉框。<br /> （2）实现“删除”按钮的功能，但“新增、修改”按钮功能未实现<br /> （3）当点击“OK”按钮时，则界面上的数据情况打印出来。如下图。</p> 
+  <p>其他说明：<br /> （1） 本文的数据涉及到Log4j，读者需要了解一些Log4j的Level类的知识。Log4j的文档，网上一搜一大把，本文就省略不说了。<br /> （2）因为要用到log4j，所以需要log4j的jar包加入到引用库中。（操作方法参考书的P261）</p> 
+  <h5><br /> 三、程序实现</h5> 
+  <p>第一步：构造数据模型。经过对界面的数据进行分析后，创建一个数据类，代码如下：</p> 
+  <div> 
+   <pre>import java.util.ArrayList;
+import java.util.List;
+public class LogMonitorSet {
+    private String name;
+    private boolean selected;
+    private int logLevel;
+    private List loggers = new ArrayList(1);
+    public List getLoggers() {
+        return loggers;
+    }
+    public void setLoggers(List loggers) {
+        this.loggers = loggers;
+    }
+    public void addLogger(String logger) {
+        this.loggers.add(logger);
+    }
+    public void removeLogger(String logger) {
+        this.loggers.remove(logger);
+    }
+    public int getLogLevel() {
+        return logLevel;
+    }
+    public void setLogLevel(int logLevel) {
+        this.logLevel = logLevel;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public boolean getSelection() {
+        return selected;
+    }
+    public void setSelection(boolean selected) {
+        this.selected = selected;
+    }
+}</pre> 
+  </div> 
+  <p>说明：<br /> （1）name相对于表格中的“集合名称”<br /> （2）selected相对于表格中的Check框<br /> （3）logLevel相对于表格中的“日志级别”<br /> （4）loggers这个属性是为以后用的，本文读者不必管它。</p> 
+  <div> 
+  </div> 
+  <div> 
+  </div> 
+  <p>第二步：实例主界面程序</p> 
+  <div> 
+   <pre>import java.util.ArrayList;
+import java.util.List;
+import org.apache.log4j.Level;
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.viewers.CellEditor;
+import org.eclipse.jface.viewers.CheckStateChangedEvent;
+import org.eclipse.jface.viewers.CheckboxTableViewer;
+import org.eclipse.jface.viewers.ColumnWeightData;
+import org.eclipse.jface.viewers.ComboBoxCellEditor;
+import org.eclipse.jface.viewers.ICellModifier;
+import org.eclipse.jface.viewers.ICheckStateListener;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.TableLayout;
+import org.eclipse.jface.viewers.TableViewer;
+import org.eclipse.jface.viewers.TextCellEditor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.layout.RowLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
+/**
+ * @author ChenGang
+ */
+public class LogMonitorDialog extends Dialog {
+    private TableViewer tv;
+    private CheckboxTableViewer ctv;
+    private String[] levelStrArray = LogHelper.getLevelShowStrings();
+    public LogMonitorDialog(Shell parentShell) {
+        super(parentShell);
+    }
+    protected Control createDialogArea(Composite parent) {
+        Composite topComp = new Composite(parent, SWT.NONE);
+        topComp.setLayoutData(new GridData(GridData.FILL_BOTH)); //加此一句张开面板
+        topComp.setLayout(new GridLayout());
+        {
+            tv = new TableViewer(topComp, SWT.CHECK | SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION);
+            tv.setUseHashlookup(true);
+            ctv = new CheckboxTableViewer(tv.getTable());
+            Table table = tv.getTable();
+            table.setHeaderVisible(true); //显示表头
+            table.setLinesVisible(true); //显示表格线
+            GridData gridData = new GridData(GridData.FILL_HORIZONTAL);
+            gridData.heightHint = 100;
+            table.setLayoutData(gridData);
+            TableLayout tLayout = new TableLayout(); //专用于表格的布局
+            table.setLayout(tLayout);
+            //建立TableViewer中的列
+            tLayout.addColumnData(new ColumnWeightData(40));
+            new TableColumn(table, SWT.NONE).setText(&quot;集合名称&quot;);
+            tLayout.addColumnData(new ColumnWeightData(40));
+            new TableColumn(table, SWT.NONE).setText(&quot;日志级别&quot;);
+            {
+                tv.setColumnProperties(new String[] { &quot;name&quot;, &quot;level&quot; });//定义每一列的别名
+                CellEditor[] cellEditors = new CellEditor[2];
+                cellEditors[0] = new TextCellEditor(table);
+                cellEditors[1] = new ComboBoxCellEditor(table, levelStrArray, SWT.READ_ONLY);
+                tv.setCellEditors(cellEditors);
+            }
+            tv.setContentProvider(new DefaultContentProvider());
+            tv.setLabelProvider(new MyLabelProvider(ctv));
+            tv.setCellModifier(new MyCellModifier());
+            tv.setInput(getInputData());
+            ctv.addCheckStateListener(new ICheckStateListener() {
+                public void checkStateChanged(CheckStateChangedEvent event) {
+                    LogMonitorSet o = (LogMonitorSet) event.getElement();
+                    o.setSelection(event.getChecked());
+                }
+            });
+        }
+        {
+            Composite comp = new Composite(topComp, SWT.NONE);
+            comp.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+            comp.setLayout(new RowLayout());
+            Button addButton = new Button(comp, SWT.PUSH);
+            addButton.setText(&quot;　　新增　　&quot;);
+            addButton.addSelectionListener(new SelectionAdapter() {
+                public void widgetSelected(SelectionEvent e) {
+                //TODO
+                }
+            });
+            Button editButton = new Button(comp, SWT.PUSH);
+            editButton.setText(&quot;　　修改　　&quot;);
+            editButton.addSelectionListener(new SelectionAdapter() {
+                public void widgetSelected(SelectionEvent e) {
+                //TODO
+                }
+            });
+            Button removeButton = new Button(comp, SWT.PUSH);
+            removeButton.setText(&quot;　　删除　　&quot;);
+            removeButton.addSelectionListener(new SelectionAdapter() {
+                public void widgetSelected(SelectionEvent e) {
+                    IStructuredSelection selection = (IStructuredSelection) tv.getSelection();
+                    LogMonitorSet m = (LogMonitorSet) ((selection).getFirstElement());
+                    if (m != null) {
+                        //先预先移动到下一行
+                        Table table = tv.getTable();
+                        int i = table.getSelectionIndex(); //取得当前所选行的序号，如没有则返回-1
+                        table.setSelection(i + 1); //当前选择行移下一行
+                        //删除
+                        tv.remove(m);//从界面上删除
+                        ((List) tv.getInput()).remove(m); //从数据模型中删除
+                    }
+                }
+            });
+        }
+        return topComp;
+    }
+    private List getInputData() {
+        //Test code
+        List list = new ArrayList(3);
+        {
+            LogMonitorSet lms = new LogMonitorSet();
+            lms.setSelection(false);
+            lms.setName(&quot;aaaaa&quot;);
+            lms.setLogLevel(Level.INFO_INT);
+            list.add(lms);
+        }
+        {
+            LogMonitorSet lms = new LogMonitorSet();
+            lms.setSelection(true);
+            lms.setName(&quot;bbbb&quot;);
+            lms.setLogLevel(Level.DEBUG_INT);
+            list.add(lms);
+        }
+        {
+            LogMonitorSet lms = new LogMonitorSet();
+            lms.setSelection(false);
+            lms.setName(&quot;cccc&quot;);
+            lms.setLogLevel(Level.ERROR_INT);
+            lms.addLogger(&quot;com.wxxr.jboss&quot;);
+            lms.addLogger(&quot;com.wxxr.sms&quot;);
+            list.add(lms);
+        }
+        return list;
+        //        return Collections.EMPTY_LIST;
+    }
+    public LogMonitorSet[] getDialogData() {
+        List list = (List) tv.getInput();
+        LogMonitorSet[] array = new LogMonitorSet[list.size()];
+        list.toArray(array);
+        return array;
+    }
+    /**
+     * 标签器
+     */
+    private final static class MyLabelProvider extends TableLabelProviderAdapter {
+        private CheckboxTableViewer ctv;
+        public MyLabelProvider(CheckboxTableViewer ctv) {
+            this.ctv = ctv;
+        }
+        public String getColumnText(Object element, int col) {
+            LogMonitorSet o = (LogMonitorSet) element;
+            if (col == 0) {
+                ctv.setChecked(o, o.getSelection());
+                return o.getName();
+            }
+            if (col == 1) {
+                return LogHelper.getLevelShowString(o.getLogLevel());
+            }
+            return &quot;&quot;;
+        }
+    }
+    /**
+     * 修改方法类
+     */
+    private class MyCellModifier implements ICellModifier {
+        /**
+         * 是否可以修改此单元格。这里设置了任一单元格都可以修改。
+         * @param element 表格记录对象
+         * @param property 列的别名
+         */
+        public boolean canModify(Object element, String property) {
+            return true;
+        }
+        /**
+         * 由此方法决定，当单击单元格出现CellEditor时应该显示什么值。
+         */
+        public Object getValue(Object element, String property) {
+            LogMonitorSet o = (LogMonitorSet) element;
+            if (property.equals(&quot;name&quot;)) {
+                return o.getName();
+            }
+            if (property.equals(&quot;level&quot;)) {
+                int index = LogHelper.getLevelIndex(o.getLogLevel());
+                return new Integer(index);
+            }
+            return &quot;&quot;;
+        }
+        /**
+         * 从CellEditor取值得此单元格的值。
+         * @param value 修改的新值
+         */
+        public void modify(Object element, String property, Object value) {
+            TableItem tableItem = (TableItem) element;
+            LogMonitorSet o = (LogMonitorSet) tableItem.getData();
+            if (property.equals(&quot;name&quot;)) {
+                String newValue = (String) value;
+                if (!o.getName().equals(newValue)) {
+                    o.setName(newValue);
+                    tv.update(o, null);//或 tv.refresh(); 确认并更新修改
+                }
+            }
+            if (property.equals(&quot;level&quot;)) {
+                Integer newValue = (Integer) value;
+                String levelStr = levelStrArray[newValue.intValue()];
+                int levelInt = LogHelper.getLevelInt(levelStr);
+                if (o.getLogLevel() != levelInt) {
+                    o.setLogLevel(levelInt);
+                    tv.update(o, null);//或 tv.refresh(); 确认并更新修改
+                }
+            }
+        }
+    }
+}</pre> 
+  </div> 
+  <p>上面的类用到的一些类的代码如下：</p> 
+  <div> 
+   <pre>import org.eclipse.jface.viewers.ILabelProviderListener;
+import org.eclipse.jface.viewers.ITableLabelProvider;
+import org.eclipse.swt.graphics.Image;
+/**
+ * 标签器的适配器，提供一些不常用方法的空实现，以助简化代码
+ * @author ChenGang
+ * @version 1.0 2004-5-8
+ */
+public abstract class TableLabelProviderAdapter implements ITableLabelProvider {
+    public Image getColumnImage(Object arg0, int arg1) {
+        return null;
+    }
+    public boolean isLabelProperty(Object arg0, String arg1) {
+        return false;
+    }
+    public void addListener(ILabelProviderListener arg0) {}
+    public void removeListener(ILabelProviderListener arg0) {}
+    public void dispose() {}
+}</pre> 
+  </div> 
+  <p> </p> 
+  <div> 
+   <pre>import java.util.List;
+import org.eclipse.jface.viewers.IStructuredContentProvider;
+import org.eclipse.jface.viewers.Viewer;
+/**
+ * 一个默认实现的内容器
+ * @author ChenGang
+ * @version 1.0, 2004-5-14
+ */
+public class DefaultContentProvider implements IStructuredContentProvider {
+    public Object[] getElements(Object element) {
+        if (element instanceof List)
+            return ((List) element).toArray();
+        if (element instanceof Object[])
+            return (Object[]) element;
+        return new Object[0];
+    }
+    public void dispose() {}
+    public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {}
+}</pre> 
+  </div> 
+  <p> </p> 
+  <div> 
+   <pre>import org.apache.log4j.Level;
+public class LogHelper {
+    public static final int NONE = -1;
+    private LogHelper() {}
+    public static String getLevelShowString(Level level) {
+        //        return AdminConsolePlugin.getResourceString(level.toString());
+        return level.toString() + &quot;（中文）&quot;;
+    }
+    public static String getLevelShowString(int levelInt) {
+        Level level = Level.toLevel(levelInt);
+        return getLevelShowString(level);
+    }
+    public static String[] getLevelShowStrings() {
+        String[] strs = new String[5];
+        strs[0] = getLevelShowString(Level.DEBUG);
+        strs[1] = getLevelShowString(Level.INFO);
+        strs[2] = getLevelShowString(Level.WARN);
+        strs[3] = getLevelShowString(Level.ERROR);
+        strs[4] = getLevelShowString(Level.FATAL);
+        return strs;
+    }
+    private static Level[] getLevels() {
+        Level[] levels = new Level[5];
+        levels[0] = Level.DEBUG;
+        levels[1] = Level.INFO;
+        levels[2] = Level.WARN;
+        levels[3] = Level.ERROR;
+        levels[4] = Level.FATAL;
+        return levels;
+    }
+    public static int getLevelInt(String levelShowString) {
+        String[] strs = getLevelShowStrings();
+        Level[] levels = getLevels();
+        for (int i = 0; i &lt; strs.length; i++) {
+            if (strs[i].equals(levelShowString)) {
+                return levels[i].toInt();
+            }
+        }
+        return NONE;
+    }
+    public static int getLevelIndex(int levelInt) {
+        Level[] levels = getLevels();
+        for (int i = 0; i &lt; levels.length; i++) {
+            if (levels[i].toInt() == levelInt) {
+                return i;
+            }
+        }
+        return NONE;
+    }
+}</pre> 
+  </div> 
+  <p>最后是入口程序，把这个程序当成SWT程序运行。</p> 
+  <div> 
+   <pre>import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.swt.widgets.Shell;
+public class TestLogMonitorDialog {
+    public static void main(String[] args) {
+        Shell shell = new Shell();
+        LogMonitorDialog d = new LogMonitorDialog(shell);
+        if (d.open() == IDialogConstants.OK_ID) {
+            LogMonitorSet[] lms = d.getDialogData();
+            for (int i = 0; i &lt; lms.length; i++) {
+                LogMonitorSet o = lms[i];
+                System.out.println(o.getSelection() + &quot;__&quot; + o.getName() + &quot;__&quot; + LogHelper.getLevelShowString(o.getLogLevel()));
+            }
+        }
+    }
+}</pre> 
+  </div> 
+ </div> 
+</div></div></body></html>

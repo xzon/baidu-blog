@@ -1,0 +1,262 @@
+<html><head><title>有关注册表API函数</title></head><body><div id='tit'>有关注册表API函数</div><div id='cate'>c&middot;基础</div><div id='date'>2008年02月25日 星期一 11:05 P.M.</div><div id='page'>168</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/2cbb96ef503939ebcf1b3eca.html'>http://hi.baidu.com/hxzon/blog/item/2cbb96ef503939ebcf1b3eca.html</a><div id='cnt'><div>
+ 有关注册表API函数
+</div> 
+<div> 
+</div> 
+<div>
+ 注册表的操作，API为我们提供了大约25个函数。他提供了对注册表的读取，写入，删除，以及打开注册表及键值时所有函数，并且可以达到对注册表的备份，连接和对远端注册表进行查看等等。注册表对整个系统十分重要，你在进行操作时，一定要先考虑清楚。这些函数有： 
+ <br /> RegCloseKey RegConnectRegistry RegCreateKey RegCreateKeyEx RegDeleteKey RegDeleteVale&nbsp;&nbsp; 
+ <br /> RegEnumKey RegFlushKey RegGetKeySecurity（此函数，98不适用） RegLoadKey 
+ <br /> RegNotifyChangeKeyValue（98不适用） RegOpenKey RegOpenKeyEx RegQueryInfoKey RegQueryValue 
+ <br /> RegQueryValueEx RegReplaceKey RegRestoreKey（98不适用） RegSaveKey RegSetKeySecurity（98不适用）&nbsp;&nbsp; RegSetValue RegSetValueEx RegUnLoadKey 
+ <br /> 我们对经常使用的几个函数进行介绍。 
+ <br /> 1&middot;RegClose() 
+ <br /> 原形：LONG RegCloseKey( 
+ <br /> HKEY hKey // 释放已经打开的注册表句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值:不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：关闭指定的主册表键，释放句柄。当对一个或多个键或值操作完成以后，需要关闭其键来进行保存操作结果。关闭一个键后，句柄变为非法，以使其不可再次被使用。为系统重新使用而释放句柄。 
+ <br /> 例子 
+ <br /> BOOL bRet = TRUE; 
+ <br /> if( m_hKey == NULL ) 
+ <br /> return( FALSE ); 
+ <br /> bRet = ( ::RegCloseKey( m_hKey ) == ERROR_SUCCESS ); 
+ <br /> m_hKey = NULL; 
+ <br /> return( bRet );
+</div> 
+<div> 
+</div> 
+<div>
+ 2&middot;RegCreateKeyEx()和RegCreateKey() 
+ <br /> 原形：LONG RegCreateKeyEx( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 主键名称 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpSubKey,&nbsp;&nbsp;&nbsp;&nbsp; // 子键名称或路径 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD Reserved,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 保留，为0 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPTSTR lpClass,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 没弄懂，我设为空也差不多 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD dwOptions,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* 对你建立的键的一些选项，可以是这些值：REG_OPTION_NON_VOLATILE，REG_OPTION_VOLATILE，REG_OPTION_BACKUP_RESTORE第一个是默认的了。一般用第一个就可以了。*/ 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; REGSAM samDesired,&nbsp;&nbsp;&nbsp; // 设置你对你建立的这个键的访问权限 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPSECURITY_ATTRIBUTES lpSecurityAttributes, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //不太明白 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PHKEY phkResult,&nbsp;&nbsp;&nbsp;&nbsp; // 指向你建的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpdwDisposition //用来查看是打开一个已经有的键，还是新建了键 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> RegCreateKey()函数简单了不少，请自己看了。 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS. 
+ <br /> 解释：打开指定的键或子键。如果要打开的键不存在的话，本函数会试图建立它。当在创建或打开注册表的键时，需要指定访问权限，而这些访问权限需要到一级。默认的权限是KEY_ALL_ACCESS权限。还有KEY_CREATE_LINK创建字符链权限,KEY_CREATE_SUB_KEY创建子键权限,KEY_EXECUTE读取键权限，KEY_NOTIFY获得修改键通知的权限，KEY_QUERY_VALUE查询键值的权限，KEY_SET_VALUE设置数据值的权限。注意不能在根一级建键，在注册表的根一级仅可有预定义的键。具体使用，请查看联机手册。 
+ <br /> 例子: 
+ <br /> &nbsp;&nbsp; HKEY m_hkey; 
+ <br /> &nbsp;&nbsp; DWORD dwDisposition; 
+ <br /> &nbsp;&nbsp; long ret0=(::RegCreateKeyEx 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (HKEY_CURRENT_USER,&quot;REGD\\&quot;,0,NULL, 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; REG_OPTION_NON_VOLATILE,KEY_ALL_ACCESS,NULL,&amp;m_hkey,&amp;dwDisposition)); 
+ <br /> &nbsp;&nbsp; if(ret0!=ERROR_SUCCESS) //如果无法打开hKEY，则终止程序的执行 
+ <br /> &nbsp;&nbsp; { 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MessageBox(&quot;错误: 无法打开有关的hKEY!&quot;); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return; 
+ <br /> &nbsp;&nbsp; } 
+ <br /> &nbsp;&nbsp; if(dwDisposition==REG_OPENED_EXISTING_KEY) 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MessageBox(&quot;打开了一个已经存在的键&quot;); 
+ <br /> &nbsp;&nbsp; else 
+ <br /> &nbsp;&nbsp; { 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; if(dwDisposition==REG_CREATED_NEW_KEY) 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MessageBox(&quot;建立一个新键&quot;); 
+ <br /> &nbsp;&nbsp; } 
+ <br /> &nbsp;&nbsp; RegClosekey(m_hkey);
+</div> 
+<div> 
+</div> 
+<div>
+ 3&middot;RegOpenKey()和RegOpenKeyEx() 
+ <br /> 原形：LONG RegOpenKeyEx( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp; // 要打开主键名 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpSubKey, // 子键或路径 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD ulOptions, // 保留，为0 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; REGSAM samDesired, // 操作权限标志 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PHKEY phkResult // 指向你打开键的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值:不成功返回非0，成功返回ERROR_SUCCESS. 
+ <br /> 解释：该函数负责打开指定的键或子键，如果不存在他不建立。其他和RegCreateKeyEx()和RegCreateKey()基本相同。
+</div> 
+<div> 
+</div> 
+<div>
+ 4&middot;RegDeleteKey() 
+ <br /> 原形：LONG RegDeleteKey( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp; // 已打开的键的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpSubKey // 要删除的子键或路径，传如&quot;&quot;将删除key本身 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 该函数用来删除注册表中的一个键值的。在用此函数时需要注意98与NT的差异。在NT中在删除一个键之前，要求必须删除所有子键，需要从下向上递归删除所有子键，而WINDOWS98没有他那么复杂，只要删除键及其所有子键就可以啦。
+</div> 
+<div> 
+</div> 
+<div>
+ 5&middot;RegQueryValue()和RegQueryValueEx() 
+ <br /> 原形：LONG RegQueryValueEx( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 已打开的键的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPTSTR lpValueName, // 要查询值的名称，传如&quot;&quot;为查询键下的默认值 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpReserved, // 保留，为0 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpType,&nbsp;&nbsp; // 查询的类型 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPBYTE lpData,&nbsp;&nbsp;&nbsp; // 数据存放的地址 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbData&nbsp;&nbsp; // 数据长度+1 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：读取某子键下特定名称的值。 
+ <br /> 例子 
+ <br /> &nbsp;&nbsp; CString m_strQ;//用来存放查询来的字符串值 
+ <br /> &nbsp;&nbsp; DWORD m_dwCount;//记录字符串的长度+1（包括NULL字符） 
+ <br /> &nbsp;&nbsp; ::RegQueryValueEx(m_hkey,&quot;&quot;,0,NULL,NULL,&amp;m_dwCount);//先查询出字节空间&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp; ret1=(::RegQueryValueEx 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (m_hkey,&quot;&quot;,0,NULL,(unsigned char *)m_strQ.GetBuffer(m_dwCount),&amp;m_kk)); 
+ <br /> &nbsp;&nbsp; m_strQ.ReleaseBuffer(); 
+ <br /> &nbsp;&nbsp; MessageBox(m_strQ);
+</div> 
+<div> 
+</div> 
+<div>
+ 6&middot;RegSetValue()和RegSetValueEX() 
+ <br /> 原形：LONG RegSetValueEx( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 已打开的键的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpValueName, // 要查询值的名称，传如&quot;&quot;为查询键下的默认值 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD Reserved,&nbsp;&nbsp; // 保留 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD dwType,&nbsp;&nbsp;&nbsp; // 变量的类型 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CONST BYTE *lpData, // 变量数据的地址 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD cbData&nbsp;&nbsp;&nbsp;&nbsp; // 变量的长度 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：设置某子键下特定名称的值。
+</div> 
+<div> 
+</div> 
+<div>
+ 7&middot;RegEnumValue() 
+ <br /> 原形：LONG RegEnumValue( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 要查询的已打开的键的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD dwIndex,&nbsp;&nbsp;&nbsp;&nbsp; // 读取名称的索引号 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPTSTR lpValueName,&nbsp;&nbsp; // 返回所读取的名称 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbValueName, // 返回读取名称的长度，不含chr(0) 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpReserved,&nbsp;&nbsp; // 保留，为0 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpType,&nbsp;&nbsp;&nbsp;&nbsp; // 返回所读取的数据类型 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPBYTE lpData,&nbsp;&nbsp;&nbsp;&nbsp; // 返回所读取的数据 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbData&nbsp;&nbsp;&nbsp; // 返回所读取的数据长度 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：列出某Key的所有名称的值，变化索引即可遍历整个键下的名称和数据。
+</div> 
+<div> 
+</div> 
+<div>
+ 8&middot;RegDeleteValue() 
+ <br /> 原形：LONG RegDeleteValue( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 要删除的键的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpValueName // 要删除的名称 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：删除某Key的某一名称
+</div> 
+<div> 
+</div> 
+<div>
+ 9&middot;RegEnumKey()和RegEnumKeyEx() 
+ <br /> 原形：LONG RegEnumKeyEx( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp; // 要列举的键的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD dwIndex,&nbsp;&nbsp; // 索引 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPTSTR lpName,&nbsp;&nbsp; // 子键的名称 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbName, // 子键名称的长度 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpReserved, // 保留 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPTSTR lpClass,&nbsp;&nbsp; // address of buffer for class string 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbClass, // address for size of class buffer 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PFILETIME lpftLastWriteTime 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // address for time key last written to 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 返回注册表键及其子键的详细信息。
+</div> 
+<div> 
+</div> 
+<div>
+ 10&middot;RegQueryInfoKey() 
+ <br /> 原形：LONG RegQueryInfoKey( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 已打开的键的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPTSTR lpClass,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 类型名称，仅使用于NT。若不使用则传入Null 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbClass,&nbsp;&nbsp;&nbsp; // 类型名称的长度 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpReserved,&nbsp;&nbsp;&nbsp; // 保留 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcSubKeys,&nbsp;&nbsp;&nbsp; // 返回子键的数目&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbMaxSubKeyLen, // 返回最长的子键长度&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbMaxClassLen, // 返回最长的类长度 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcValues,&nbsp;&nbsp;&nbsp; // 返回值的数目&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbMaxValueNameLen, // 返回最长的值项名称的长度 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbMaxValueLen, // 返回最长的值的长度 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPDWORD lpcbSecurityDescriptor, //返回安全描述，仅适用于 NT 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PFILETIME lpftLastWriteTime // 返回键最后被写入的时间，仅适用于 NT 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：返回注册表键的信息，包括类名、子键数量、最长子键名、值的数量、最长值数据、安全描述符的长度以及上一次写入的时间等。
+</div> 
+<div> 
+</div> 
+<div>
+ 11&middot;RegLoadKey() 
+ <br /> 原形：LONG RegLoadKey( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp; // 打开的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpSubKey, //子键的路径&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpFile // 要写入注册表信息的文件 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：从指定的文件恢复注册表键的子键信息到注册表。
+</div> 
+<div> 
+</div> 
+<div>
+ 12&middot;RegReplaceKey() 
+ <br /> 原形：LONG RegReplaceKey( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp; // handle to open key 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpSubKey, // address of name of subkey 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpNewFile, // 在替换前生成新的备份文件 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpOldFile // 需要覆盖上注册表的文件 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：从指定的文件恢复注册表键的子键信息到注册表并替换原有的值，并生成新的备份文件
+</div> 
+<div> 
+</div> 
+<div>
+ 13&middot; RegSaveKey() 
+ <br /> LONG RegSaveKey( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp; // 要保存的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpFile, // 保存子键的文件 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; LPSECURITY_ATTRIBUTES lpSecurityAttributes&nbsp;&nbsp;&nbsp; //不太懂&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：保存键及其子键信息到指定的文件。
+</div> 
+<div> 
+</div> 
+<div>
+ 14&middot; RegConnectRegistry() 
+ <br /> 原形：LONG RegConnectRegistry( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LPTSTR lpMachineName, //远程计算机的名称 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp; // 预先注册的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PHKEY phkResult // 远程计算机上的句柄 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 解释：连接到远程系统的注册表。
+</div> 
+<div> 
+</div> 
+<div>
+ 15&middot;RegNotifyChangeKeyValue() 
+ <br /> 当修改指定的注册表对象时提供通知。
+</div> 
+<div> 
+</div> 
+<div>
+ 16&middot; RegUnloadKey() 
+ <br /> LONG RegUnLoadKey( 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; HKEY hKey,&nbsp;&nbsp;&nbsp;&nbsp; // handle to open key 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; LPCTSTR lpSubKey // address of name of subkey to unload 
+ <br /> &nbsp;&nbsp;&nbsp; ); 
+ <br /> 返回值：不成功返回非0，成功返回ERROR_SUCCESS 
+ <br /> 删除注册表键及其所有的子键。
+</div></div></body></html>

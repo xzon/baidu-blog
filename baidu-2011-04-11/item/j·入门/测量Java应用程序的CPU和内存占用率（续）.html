@@ -1,0 +1,645 @@
+<html><head><title>测量Java应用程序的CPU和内存占用率（续）</title></head><body><div id='tit'>测量Java应用程序的CPU和内存占用率（续）</div><div id='cate'>j&middot;入门</div><div id='date'>2008年02月26日 星期二 00:22 A.M.</div><div id='page'>168</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/98e9fdf24c0a0c17b07ec5af.html'>http://hi.baidu.com/hxzon/blog/item/98e9fdf24c0a0c17b07ec5af.html</a><div id='cnt'><table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="4" width="95%"> 
+ <p> </p>
+ <tbody> 
+  <tr> 
+   <td class="textblack"><strong>测量Java应用程序的CPU和内存占用率</strong></td> 
+  </tr> 
+  <tr> 
+   <td class="textblack">作者： Peter V. Mikhalenko <br /> 2006-05-29 14:46:01</td> 
+  </tr> 
+  <tr> 
+   <td class="textgray"> <p><br /> </p>
+    <form>
+     <select style="width: 300px" name="Split_Page"> <option value="/2006/0529/237122.shtml">第1页：测量Java应用程序的CPU和内存占用率</option> <option selected="selected">第2页:测量Java应用程序的CPU和内存占用率</option> </select>
+     <br /> 
+     <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="right"> 
+      <tbody> 
+       <tr> 
+        <td align="center"><img src="image/测量Java应用程序的CPU和内存占用率.advertisement_e1.gif" /><p class="origImg">http://www.builder.com.cn/images/advertisement_e1.gif</p></td> 
+       </tr> 
+       <tr> 
+        <td><a target="_top" href="http://ad.cn.doubleclick.net/click;h=v8/3671/0/0/%2a/w;44306;0-0;0;6694709;31-1/1;0/0/0;;~sscs=%3f"><img border="0" alt="Click here to find out more!" src="image/测量Java应用程序的CPU和内存占用率.817-grey.gif" /><p class="origImg">http://m1.cn.2mdn.net/viewad/817-grey.gif</p></a></td> 
+       </tr> 
+      </tbody> 
+     </table>  
+     <p>JNI里有两个特殊的函数——<em>JNI_OnLoad</em>和<em>JNI_OnUnload</em>，它们分别在加载和卸载库的时候被调用。<em>JNI_OnLoad</em>在调用其他任何方法之前被执行，而且能够很方便地用于初始化在这一进程的生命周期中没有发生变化的变量，并用于协调JNI规范的版本。</p> 
+     <p>在默认情况下，库会测量它自己的进程的参数，但是通过调用<em>systemInformation.setPid()</em>方法它可以从Java应用程序被重载。<em>s_PID</em> C变量用来保存PID，而<em>s_currentProcess</em>用来保存进程句柄（用于Windows的是<em>HANDLE</em>类型，而用于Solaris的是<em>int</em>类型）。为了读取的一些参数，应该首先打开进程句柄，我们需要在库关闭使用的时候停止同一个进程句柄（通常它在JVM因为相同的原因而关闭的时候发生）。</p> 
+     <p>这就是<em>JNI_OnUnload()</em>函数起作用的地方。但是，JVM的一些实现事实上没有调用<em>JNI_OnUnload()</em>，还有发生句柄会永远打开的危险。为了降低这种可能性，我们应该在Java应用程序里加入一个明确调用<em>detachProcess()</em> C函数的关闭挂钩。下面就是我们加入关闭挂钩的方法：</p> 
+     <p>if (pid!=-1) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int result = SystemInformation.setPid(pid);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (result!=0) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hasPid = true;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Create shutdown hook for proper process detach<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Runtime.getRuntime().addShutdownHook(new Thread() {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void run() {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SystemInformation.detachProcess();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</p> 
+     <p>通过调用WinAPI里的<em>GetSystemInfo()</em>，我们还可以获得关于中央处理器的一些信息。只要它是CPU的占用率根据这个值来调节，测量进程最重要的值就是处理器的个数（<em>s_numberOfProcessors</em>）。<em>SystemInformation.getSysInfo()</em>的Win32实现相当麻烦，因为在各个版本的Windows里，关于操作系统的版本、补丁、服务包以及相关硬件等信息被以不同的方式保存。所以需要读者来分析相关的源代码和代码中的注释。下面就是Windows XP上代码输出的示例：</p> 
+     <p>System.out.println(&quot;SysInfo: ”+SystemInformation.getSysInfo()):<br /> <br /> SysInfo: WinXP Professional Service Pack 1 (Build 2600),<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; on DBMOSWS2132 (Intel(R) Xeon(TM) CPU 1.70GHz)</p> 
+     <p>And the same code on Solaris will give:</p> 
+     <p>SysInfo: SunOS 5.8 sxav-dev Generic_108528-29 sun4u sparc <br /> &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; SUNW,Ultra-Enterprise Sun_Microsystems</p> 
+     <p>为了获得CPU上进程所占用的总时间，我们使用了WinAPI的函数<em>GetProcessTimes</em>。其他的函数实现都非常简单，直接调用WinAPI，所以没有什么必要讨论它们。<strong>列表</strong><strong>D</strong>里是用于Windows版本的GCC的<em>make.bat</em>文件，用来帮助读者创建相关的.dll库。</p> 
+     <p><strong>列表D</strong></p> gcc -D_JNI_IMPLEMENTATION_ -Wl,--kill-at -IC:/jdk1.3.1_12/include -IC:/jdk1.3.1_12/include/win32 -shared C:/cpu_profile/src/native/com_vladium_utils_SystemInformation.c -o C:/cpu_profile/dll/silib.dll C:/MinGW/lib/libpsapi.a 
+     <p>这个库的Solaris实现见<strong>列表</strong><strong>E</strong>和<strong>列表</strong><strong>F</strong>。这两个都是C语言文件，应该被编译到一个共享库（<em>.so</em>）里。用于编译共享库的帮助器<em>make.sh</em>见<strong>列表</strong><strong>G</strong>。所有基于Solaris系统的调用被移到列表F里，这使得列表E就是一个JNI的简单包装程序。Solaris实现要比Win32实现更加复杂，要求更多的临时数据结构、内核和进程表。列出的代码里有更多的注释。</p> 
+     <p><strong>列表E</strong></p> 
+     <pre>/* ------------------------------------------------------------------------- */
+/*
+ * An implementation of JNI methods in com.vladium.utils.SystemInformation
+ * class. 
+ * This is a ported version from Win32 to Solaris.
+ *
+ * For simplicity, this implementaion assumes JNI 1.2+ and omits error handling.
+ *
+ * Port from Win32 by Peter V. Mikhalenko (C) 2004, Deutsche Bank [peter@mikhalenko.ru]
+ * Original source (C) 2002, Vladimir Roubtsov [vlad@trilogy.com]
+ */
+/* ------------------------------------------------------------------------- */
+
+#include 
+      <unistd h=""></unistd>
+
+#include &quot;com_vladium_utils_SystemInformation.h&quot;
+
+// Helper Solaris8-dependent external routines
+extern int sol_getCPUs();
+extern int sol_getFreeMem();
+extern int sol_getMaxMem();
+extern long int sol_getProcessCPUTime(int pid,int nproc);
+extern double sol_getProcessCPUPercentage(int pid);
+extern long sol_getMemoryUsage(int pid);
+extern long sol_getMemoryResident(int pid);
+extern char* sol_getSysInfo();
+extern void initKVM();
+
+static jint s_PID;
+static int s_numberOfProcessors;
+static int externalCPUmon;
+static int alreadyDetached;
+
+/* ------------------------------------------------------------------------- */
+
+/* ......................................................................... */
+
+/*
+ * This method was added in JNI 1.2. It is executed once before any other
+ * methods are called and is ostensibly for negotiating JNI spec versions, but
+ * can also be conveniently used for initializing variables that will not
+ * change throughout the lifetime of this process.
+ */
+JNIEXPORT jint JNICALL
+JNI_OnLoad (JavaVM * vm, void * reserved)
+{
+    s_PID = _getpid ();
+    externalCPUmon = 0;
+    alreadyDetached = 0;
+
+    /* use kstat to update all processor information */
+    s_numberOfProcessors = sol_getCPUs();
+    initKVM();
+
+    return JNI_VERSION_1_2;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getCPUs
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_vladium_utils_SystemInformation_getCPUs (JNIEnv * env, jclass cls)
+{
+    return (jint)s_numberOfProcessors;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getSysInfo
+ * Signature: ()S
+ */
+JNIEXPORT jstring JNICALL
+Java_com_vladium_utils_SystemInformation_getSysInfo (JNIEnv * env, jclass cls)
+{
+    char * buf = sol_getSysInfo();
+    jstring retval = (*env)-&gt;NewStringUTF(env,buf);
+    free(buf);
+    return retval;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessID
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_vladium_utils_SystemInformation_getProcessID (JNIEnv * env, jclass cls)
+{
+    return s_PID;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    setPid
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_vladium_utils_SystemInformation_setPid (JNIEnv * env, jclass cls, jint pid)
+{
+    s_PID = pid;
+    externalCPUmon = 1;
+    printf(&quot;[CPUmon] Attached to process.
+&quot;);
+    fflush(stdout);
+    return 0;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    detachProcess
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_vladium_utils_SystemInformation_detachProcess (JNIEnv * env, jclass cls)
+{
+    if (externalCPUmon &amp;&amp; !alreadyDetached) {
+     alreadyDetached = 1;
+     printf(&quot;[CPUmon] Detached from process.
+&quot;);
+     fflush(stdout);
+    }
+    return 0;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessCPUTime
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getProcessCPUTime (JNIEnv * env, jclass cls)
+{
+ return (jlong)sol_getProcessCPUTime((int)s_PID,s_numberOfProcessors);
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getMaxMem
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getMaxMem (JNIEnv * env, jclass cls)
+{
+ return (jlong)sol_getMaxMem();
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getFreeMem
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getFreeMem (JNIEnv * env, jclass cls)
+{
+ return (jlong)sol_getFreeMem();
+}
+/* ......................................................................... */
+
+/* define min elapsed time (in units of 10E-7 sec): */
+#define MIN_ELAPSED_TIME (10000)
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessCPUUsage
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL
+Java_com_vladium_utils_SystemInformation_getProcessCPUUsage (JNIEnv * env, jclass cls)
+{
+ return 0.0;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessCPUPercentage
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL
+Java_com_vladium_utils_SystemInformation_getProcessCPUPercentage (JNIEnv * env, jclass cls)
+{
+        return (jdouble)sol_getProcessCPUPercentage((int)s_PID);
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getMemoryUsage
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getMemoryUsage (JNIEnv * env, jclass cls)
+{
+ return (jlong)sol_getMemoryUsage((int)s_PID);
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getMemoryResident
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getMemoryResident (JNIEnv * env, jclass cls)
+{
+ return (jlong)sol_getMemoryResident((int)s_PID);
+}
+
+#undef MIN_ELAPSED_TIME
+
+/* ------------------------------------------------------------------------- */
+/* end of file */</pre> 
+     <p><strong>列表F</strong></p> 
+     <pre>/* ------------------------------------------------------------------------- */
+/*
+ * Solaris-dependent system routines and kernel calls
+ * Used for getting memory and CPU consumption statistics
+ *
+ * Author: Peter V. Mikhalenko (C) 2004, Deutsche Bank [peter@mikhalenko.ru]
+ */
+/* ------------------------------------------------------------------------- */
+
+#include 
+      <kstat h=""></kstat>
+# ifndef KSTAT_DATA_UINT32
+#  define ui32 ul
+# endif
+#include 
+      <nlist h=""></nlist>
+#include 
+      <kvm h=""></kvm>
+#include 
+      <stdio h=""></stdio>
+#include 
+      <errno h=""></errno>
+#include 
+      <fcntl h=""></fcntl>
+#include 
+      <sys></sys>
+#include 
+      <sys></sys>
+#include 
+      <sys></sys>
+
+#define _STRUCTURED_PROC 1
+#include 
+      <sys></sys>
+#define prpsinfo psinfo
+#define pr_fill pr_nlwp
+/* These require an ANSI C compiler &quot;Reisser cpp&quot; doesn't like this */
+#define pr_state pr_lwp.pr_state
+#define pr_oldpri pr_lwp.pr_oldpri
+#define pr_nice pr_lwp.pr_nice
+#define pr_pri pr_lwp.pr_pri
+#define pr_onpro pr_lwp.pr_onpro
+#define ZOMBIE(p) ((p)-&gt;pr_nlwp == 0)
+#define SIZE_K(p) ((p)-&gt;pr_size)
+#define RSS_K(p) ((p)-&gt;pr_rssize)
+#define PROCFS &quot;/proc&quot;
+
+/* definitions for indices in the nlist array */
+#define X_V    0
+#define X_MPID    1
+#define X_ANONINFO   2
+#define X_MAXMEM   3
+#define X_SWAPFS_MINFREE  4
+#define X_FREEMEM   5
+#define X_AVAILRMEM   6
+#define X_AVENRUN   7
+#define X_CPU    8
+#define X_NPROC    9
+#define X_NCPUS      10
+
+static struct nlist nlst[] =
+{
+  ,   /* 0 */ /* replaced by dynamic allocation */
+  ,   /* 1 */
+#if OSREV &gt;= 56
+  /* this structure really has some extra fields, but the first three match */
+  ,  /* 2 */
+#else
+  ,   /* 2 */
+#endif
+  ,   /* 3 */ /* use sysconf */
+  ,  /* 4 */ /* used only w/ USE_ANONINFO */
+  ,   /* 5 */ /* available from kstat &gt;= 2.5 */
+  ,  /* 6 */ /* available from kstat &gt;= 2.5 */
+  ,   /* 7 */ /* available from kstat */
+  ,   /* 8 */ /* available from kstat */
+  ,   /* 9 */ /* available from kstat */
+  ,   /* 10 */ /* available from kstat */
+  
+};
+
+static kstat_ctl_t *kc = NULL;
+static kstat_t **cpu_ks;
+static cpu_stat_t *cpu_stat;
+static int ncpus;
+kvm_t *kd;
+static unsigned long freemem_offset;
+static unsigned long maxmem_offset;
+static unsigned long freemem = -1L;
+static unsigned long maxmem = -1L;
+
+/* pagetok function is really a pointer to an appropriate function */
+static int pageshift;
+static int (*p_pagetok) ();
+#define pagetok(size) ((*p_pagetok)(size))
+
+int pagetok_none(int size) {
+    return(size);
+}
+
+int pagetok_left(int size) {
+    return(size &lt;&lt; pageshift);
+}
+
+int pagetok_right(int size) {
+    return(size &gt;&gt; pageshift);
+}
+
+#define UPDKCID(nk,ok) 
+if (nk == -1) { 
+  perror(&quot;kstat_read &quot;); 
+  exit(1); 
+} 
+if (nk != ok)
+  goto kcid_changed;
+
+void initKVM() {
+    int i;
+
+    /* perform the kvm_open - suppress error here */
+    kd = kvm_open (NULL, NULL, NULL, O_RDONLY, NULL);
+
+    /* calculate pageshift value */
+    i = sysconf(_SC_PAGESIZE);
+    pageshift = 0;
+    while ((i &gt;&gt;= 1) &gt; 0)
+    {
+ pageshift++;
+    }
+
+    /* calculate an amount to shift to K values */
+    /* remember that log base 2 of 1024 is 10 (i.e.: 2^10 = 1024) */
+    pageshift -= 10;
+
+    /* now determine which pageshift function is appropriate for the 
+       result (have to because x &lt;&lt; y is undefined for y &lt; 0) */
+    if (pageshift &gt; 0)
+    {
+ /* this is the most likely */
+ p_pagetok = pagetok_left;
+    }
+    else if (pageshift == 0)
+    {
+ p_pagetok = pagetok_none;
+    }
+    else
+    {
+ p_pagetok = pagetok_right;
+ pageshift = -pageshift;
+    }
+}
+
+#define SI_LEN 512
+#define BUFSIZE 256
+
+char * sol_getSysInfo() {
+ char * retbuf = (char*)malloc(SI_LEN);
+ int curend = 0;
+ int maxl = SI_LEN;
+ *retbuf=0;
+ char * buf = (char*)malloc(BUFSIZE);
+ long res = sysinfo(SI_SYSNAME,buf,BUFSIZE);
+ if (res&gt;0 &amp;&amp; res&lt;=maxl) {
+  strcat(retbuf,buf);
+  curend=res-1;
+  maxl=SI_LEN-curend;
+ }
+ if (curend0 &amp;&amp; res&lt;=maxl) {
+  strcat(retbuf,buf);
+  curend+=res-1;
+  maxl=SI_LEN-curend;
+ }
+ if (curend0 &amp;&amp; res&lt;=maxl) {
+  strcat(retbuf,buf);
+  curend+=res-1;
+  maxl=SI_LEN-curend;
+ }
+ if (curend0 &amp;&amp; res&lt;=maxl) {
+                strcat(retbuf,buf);
+                curend+=res-1;
+                maxl=SI_LEN-curend;
+        }
+        if (curend0 &amp;&amp; res&lt;=maxl) {
+                strcat(retbuf,buf);
+                curend+=res-1;
+                maxl=SI_LEN-curend;
+        }
+        if (curend0 &amp;&amp; res&lt;=maxl) {
+                strcat(retbuf,buf);
+                curend+=res-1;
+                maxl=SI_LEN-curend;
+        }
+        if (curend0 &amp;&amp; res&lt;=maxl) {
+                strcat(retbuf,buf);
+                curend+=res-1;
+                maxl=SI_LEN-curend;
+        }
+        if (curend0 &amp;&amp; res&lt;=maxl) {
+                strcat(retbuf,buf);
+                curend+=res-1;
+                maxl=SI_LEN-curend;
+        }
+        if (curendvalue.ui32 &gt; ncpus) {
+     ncpus = kn-&gt;value.ui32;
+     cpu_ks = (kstat_t **) realloc (cpu_ks, ncpus * sizeof (kstat_t *));
+     cpu_stat = (cpu_stat_t *) realloc (cpu_stat,
+   ncpus * sizeof (cpu_stat_t));
+ }
+
+ for (ks = kc-&gt;kc_chain; ks; 
+      ks = ks-&gt;ks_next)
+ {
+     if (strncmp(ks-&gt;ks_name, &quot;cpu_stat&quot;, 8) == 0)
+     {
+  nkcid = kstat_read(kc, ks, NULL);
+  /* if kcid changed, pointer might be invalid */
+  UPDKCID(nkcid, kcid);
+
+  cpu_ks[ncpu] = ks;
+  ncpu++;
+  if (ncpu &gt; ncpus)
+  {
+      fprintf(stderr, &quot;kstat finds too many cpus: should be %d
+&quot;,
+       ncpus);
+      exit(1);
+  }
+     }
+ }
+ /* note that ncpu could be less than ncpus, but that's okay */
+ changed = 0;
+    }
+
+    /* return the number of cpus found */
+    ncpus=ncpu;
+    return ncpu;
+}
+
+unsigned long sol_getMaxMem() {
+ maxmem = pagetok(sysconf(_SC_PHYS_PAGES));
+ return maxmem;
+}
+
+unsigned long sol_getFreeMem() {
+ kstat_t *ks;
+ kstat_named_t *kn;
+ ks = kstat_lookup(kc, &quot;unix&quot;, 0, &quot;system_pages&quot;);
+ if (kstat_read(kc, ks, 0) == -1) {
+     perror(&quot;kstat_read&quot;);
+     exit(1);
+ }
+ if (kd != NULL) {        /* always get freemem from kvm if we can*/
+          (void) getkval (freemem_offset, (int *) (&amp;freemem), sizeof (freemem), &quot;freemem&quot;);
+ } else {
+   kn = kstat_data_lookup(ks, &quot;freemem&quot;);
+   if (kn)
+     freemem = kn-&gt;value.ul;
+ }
+        return (unsigned long)pagetok(freemem);
+}
+
+// Returns the number of milliseconds (not nanoseconds and seconds) elapsed on processor
+// since process start. The returned value is adjusted for the number of processors in the system.
+long int sol_getProcessCPUTime(int pid,int nproc) {
+ struct prpsinfo currproc;
+ int fd;
+       char buf[30];
+ long int retval=0;
+ snprintf(buf, sizeof(buf), &quot;%s/%d/psinfo&quot;, PROCFS, pid);
+ if ((fd = open (buf, O_RDONLY)) &lt; 0) {
+  return 0L;
+ }
+ if (read(fd, &amp;currproc, sizeof(psinfo_t)) != sizeof(psinfo_t)) {
+    (void)close(fd);
+  return 0L;
+ }
+ (void)close(fd);
+ retval = (currproc.pr_time.tv_sec * 1000 + currproc.pr_time.tv_nsec / 1000000) / nproc;
+ return retval;
+}
+
+// Returns percentage CPU by pid
+// In Solaris 8 it is contained in procfs
+double sol_getProcessCPUPercentage(int pid) {
+ struct prpsinfo currproc;
+        int fd;
+        char buf[30];
+        double retval=0.0;
+        snprintf(buf, sizeof(buf), &quot;%s/%d/psinfo&quot;, PROCFS, pid);
+        if ((fd = open (buf, O_RDONLY)) &lt; 0) {
+                return 0;
+        }
+        if (read(fd, &amp;currproc, sizeof(psinfo_t)) != sizeof(psinfo_t)) {
+                (void)close(fd);
+                return 0;
+        }
+        (void)close(fd);
+        retval = ((double)currproc.pr_pctcpu)/0x8000*100;
+        return retval;
+}
+
+// Returns current space allocated for the process, in bytes. Those pages may or may not be in memory.
+long sol_getMemoryUsage(int pid) {
+ struct prpsinfo currproc;
+        int fd;
+        char buf[30];
+        double retval=0.0;
+        snprintf(buf, sizeof(buf), &quot;%s/%d/psinfo&quot;, PROCFS, pid);
+        if ((fd = open (buf, O_RDONLY)) &lt; 0) {
+                return 0;
+        }
+        if (read(fd, &amp;currproc, sizeof(psinfo_t)) != sizeof(psinfo_t)) {
+                (void)close(fd);
+                return 0;
+        }
+        (void)close(fd);
+        retval = currproc.pr_size;
+        return retval;
+}
+
+// Returns current process space being resident in memory.
+long sol_getMemoryResident(int pid) {
+ struct prpsinfo currproc;
+        int fd;
+        char buf[30];
+        double retval=0.0;
+        snprintf(buf, sizeof(buf), &quot;%s/%d/psinfo&quot;, PROCFS, pid);
+        if ((fd = open (buf, O_RDONLY)) &lt; 0) {
+                return 0;
+        }
+        if (read(fd, &amp;currproc, sizeof(psinfo_t)) != sizeof(psinfo_t)) {
+                (void)close(fd);
+                return 0;
+        }
+        (void)close(fd);
+        retval = currproc.pr_rssize;
+        return retval;
+}
+
+/*
+ *  getkval(offset, ptr, size, refstr) - get a value out of the kernel.
+ * &quot;offset&quot; is the byte offset into the kernel for the desired value,
+ *   &quot;ptr&quot; points to a buffer into which the value is retrieved,
+ *   &quot;size&quot; is the size of the buffer (and the object to retrieve),
+ *   &quot;refstr&quot; is a reference string used when printing error meessages,
+ *     if &quot;refstr&quot; starts with a '!', then a failure on read will not
+ *       be fatal (this may seem like a silly way to do things, but I
+ *       really didn't want the overhead of another argument).
+ *
+ */
+int
+getkval (unsigned long offset,
+  int *ptr,
+  int size,
+  char *refstr)
+{
+  if (kvm_read (kd, offset, (char *) ptr, size) != size)
+    {
+      if (*refstr == '!')
+ {
+   return (0);
+ }
+      else
+ {
+   fprintf (stderr, &quot;top: kvm_read for %s: %s
+&quot;, refstr, strerror(errno));
+   exit(23);
+ }
+    }
+  return (1);
+}</pre> 
+     <p><strong>列表G</strong></p> 
+     <pre>#!/bin/sh
+gcc -G -lkvm -lkstat com_vladium_utils_SystemInformation.c -o libsilib.so solaris-extern.c
+# com_vladium_utils_SystemInformation.c is in Listing-E
+# solaris-extern.c is in Listing-F</pre> 
+     <p>在本文里，我已告诉你如何编程测量Java进程的内存和CPU占用率。当然用户可以通过查看Windows任务管理器或者<em>ps</em>的输出来达到相同的目的，但是重要的一点是，用户现在能够进行任何长期运行和／或自动的软件性能测试，这对于开发一个分布式或者可伸缩的，或者实时的性能关键的应用程序十分重要。加入获取系统软件和硬件信息的能力对于开发人员同样十分有用。这个库可以在Win32和Solaris平台上实现。但是，把它移植到其他UNIX平台上应该也不是问题，比如Linux。</p> 
+     <p>责任编辑：<a class="content" target="_blank" href="mailto:builder@zdnet.com.cn">张琎</a></p> 
+     <p><a href="http://builder.com.com/5100-6370_14-6067049.html?tag=search">查看本文的国际来源</a></p> 
+     <p> </p> 
+    </form></td> 
+  </tr> 
+ </tbody>  
+</table> 
+<strong>声明：<br /> </strong>Builder.com.cn（原ZDNet China应用开发频道）原创文章版权所有，未经许可严禁转载，且不构成投资建议。</div></body></html>

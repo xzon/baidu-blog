@@ -1,0 +1,107 @@
+<html><head><title>关于QT4 暂时发现的QT4和QT3的区别</title></head><body><div id='tit'>关于QT4 暂时发现的QT4和QT3的区别</div><div id='cate'>c&middot;库</div><div id='date'>2009年04月10日 星期五 07:42 P.M.</div><div id='page'>57</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/db925543c2b6d1199313c693.html'>http://hi.baidu.com/hxzon/blog/item/db925543c2b6d1199313c693.html</a><div id='cnt'><p><font color="#295200" size="5"><strong>关于QT4 </strong></font><font color="#000000" size="3">暂时发现的QT4和QT3的区别</font></p> 
+<div style="margin: 15px">
+ 为了即将到来的就业问题，目前正在努力学习QT。
+ <br /> 
+ <br /> 我买了一本QT3的书《C++ GUI QT3编程》，感觉是相当不错的一本书，不过我的系统上装的是QT4，遇到了不少麻烦。一开始以为3和4没多大区别，但是按照书上的例子去实践的时候发现居然变化如此之大，目前看了书上的前2章，发现基本上每个例子都需要修改才能在QT4里使用，下面总结一下暂时发现的QT4和QT3的区别。
+ <br /> 
+ <br /> 
+ <span style="color: rgb(255,1,2)">一些类和函数的变化：</span> 
+ <br /> 1） QHBox这种类没有了，都需要改用QHBoxLayout来布局。就是先new一个QWidget出来，然后用这个Widget的setLayout方法来加入Layout。
+ <br /> 2） QApplication的setMainWidget方法没有了，不需要手动设置主窗口部件，似乎自动就设置好了。
+ <br /> 3） QWidget中的setCaption()方法改成了setWindowTitle()。
+ <br /> 4） QDialog的构造函数有变化，不再有QDialog(QWidget *, const char*)这种形式的构造函数了。
+ <br /> 5） QLineEdit类的isOn()方法改成了isChecked()。
+ <br /> 
+ <br /> 
+ <span style="color: rgb(255,1,2)">Qt4 Designer的变化：</span> 
+ <br /> 这个Designer的变化是非常的大，主要是取消了自定义signal/slot以及编辑代码的功能，而且如何使用Designer设计出的界面来编译程序的方法也有变化。
+ <br /> 
+ <br /> 界面的设计和以前区别不大，添加各种Widget就行了，然后在connection编辑器中设置signal/slot，不过需要注意的是，QT4 Designer的connection编辑器不能自定义slot，需要手工编写connection，具体做法后面给出。
+ <br /> 
+ <br /> 下面结合书上第2章的那个Go to Cell的例子来说一下如何编译程序。
+ <br /> 首先设计界面，按照书上弄就行了，设计完了的窗体大概是这样的： 
+ <br /> 
+ <div align="center">
+  <img border="0" src="image/关于QT4 暂时发现的QT4和QT3的区.070730152115.jpg" />
+  <p class="origImg">http://blogimg.chinaunix.net/blog/upfile/070730152115.jpg</p>
+ </div> 这个是运行时的样子，设计的时候需要把各个部件之间的连接都做好，然后保存起来，这时在保存的目录下会生成一个gotocelldialog.ui文件。然后在控制台下： 
+ <br /> qmake -project
+ <br /> qmake
+ <br /> make
+ <br /> 这里只会生成一个ui_gotocelldialog.h文件，而不会编译成功的，所以从这里开始就和qt3不太一样了。
+ <br /> 首先，你要自己动手写gotocelldialog.h和gotocelldialog.cpp，也就是说GoToCellDialog这个类是需要自己实现的，uic不能自动生成了。
+ <br /> 实现GoToCellDialog采用的是C++中多重继承的方式，GoToCellDialog是派生类，基类是QDialog和uic在ui_gotocelldialog.h中自动生成的Ui::GoToCellDialog。Ui是一个namespace，在ui_gotocelldialog最后面声明。
+ <br /> 
+ <br /> 
+ <span style="color: rgb(0,1,255)">gotocelldialog.h代码：</span> 
+ <br /> #ifndef GOTOCELLDIALOG_H
+ <br /> #define GOTOCELLDIALOG_H
+ <br /> 
+ <br /> #include &lt;qdialog.h&gt;
+ <br /> 
+ <span style="color: rgb(255,1,2)">#include &quot;ui_gotocelldialog.h&quot; //需要从这个文件里的Ui::GoToDialog</span>
+ <br /> 
+ <br /> 
+ <span style="color: rgb(255,1,2)">class GoToCellDialog : public QDialog, public Ui::GoToCellDialog //多重继承</span>
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Q_OBJECT
+ <br /> public:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GoToCellDialog(QWidget *parent = 0);
+ <br /> public slots:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <span style="color: rgb(255,1,2)">void enableOKButton(); //这里是自定义的slot，在Designer中无法直接定义了</span>
+ <br /> };
+ <br /> #endif
+ <br /> 
+ <br /> gotocelldialog.h是GoToCellDialog类的声明，这个类是我们需要直接使用的，在这里要手动添加自定义的signal/slot。然后再写一个gotocelldialog.cpp，实现GoToCellDialog类中的各个成员函数。
+ <br /> 
+ <br /> 
+ <span style="color: rgb(0,1,255)">gotocelldialog.cpp代码：</span>
+ <br /> #include &lt;qvalidator.h&gt;
+ <br /> 
+ <span style="color: rgb(255,1,2)">#include &quot;gotocelldialog.h&quot; //类声明的头文件，需要自己动手写</span>
+ <br /> 
+ <br /> 
+ <br /> GoToCellDialog::GoToCellDialog(QWidget *parent)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : QDialog(parent)
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <span style="color: rgb(255,1,2)">setupUi(this); //这个非常重要，在构造函数中用这个函数来实现界面，<br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; //</span>
+ <span style="color: rgb(255,1,2)">没有这个函数的话界面就不会被显示出来</span>
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QRegExp regExp(&quot;[A-Za-z][1-9][0-9]{0,2}&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lineEdit-&gt;setValidator(new QRegExpValidator(regExp, this));
+ <br /> 
+ <br /> 
+ <span style="color: rgb(255,1,2)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; connect(lineEdit, SIGNAL(textChanged(const QString&amp;)),</span>
+ <br style="color: rgb(255,1,2)" /> 
+ <span style="color: rgb(255,1,2)">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this, SLOT(enableOKButton()));&nbsp;&nbsp;&nbsp;&nbsp; //对于自定义的signal/slot，要手动加上连接</span>
+ <br /> 
+ <br /> }
+ <br /> 
+ <br /> void GoToCellDialog::enableOKButton()
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; okButton-&gt;setEnabled(lineEdit-&gt;hasAcceptableInput());
+ <br /> }
+ <br /> 
+ <br /> 这样，在项目的目录下就会生成以下文件： 
+ <br /> gotocelldialog.ui&nbsp;&nbsp; //设计界面后，自动生成的xml文件
+ <br /> gotocelldialog.h&nbsp;&nbsp; //手写
+ <br /> gotocelldialog.cpp //手写
+ <br /> 
+ <br /> 执行qmake,make之后还会生成一个ui_gotocelldialog.h，以及GoToCell.pro的工程文件，下面编写一个main.cpp生成一个QApplication对象就可以编译执行程序了。
+ <br /> 
+ <br /> 总结一下： 
+ <br /> 假设项目里面有一个类tc。Qt4的Designer会生成一个tc.ui文件，然后需要用户手写出tc.h和tc.cpp以实现tc类（实现这两个文件需要根据后来生成的ui_c.h文件），在tc.h和tc.cpp中用户可以加入自定义的signali/slot的声明和实现。然后qmake -project来生成.pro工程文件，qmake生成Makefile，最后使用make编译。make的时候会Qt会根据tc.ui生成ui_tc.h文件，这个文件里含有tc类的基类Ui::tc，而真正的tc类则是通过多重继承实现的。
+ <br /> 当然，如果不使用Qt Designer而是直接写代码做界面的话就没有这么麻烦，编译方法和Qt3大致相同。
+ <br /> 
+ <br /> 另外，清理电脑风扇之后用KDE感觉非常的流畅，256MB内存基本没有卡的时候，秀一张我目前KDE的桌面，嘿嘿
+ <br /> 
+ <div align="center">
+  <img border="0" width="500" src="image/关于QT4 暂时发现的QT4和QT3的区.070730155559.jpg" />
+  <p class="origImg">http://blogimg.chinaunix.net/blog/upfile/070730155559.jpg</p>
+ </div> 
+ <br /> 
+ <br /> 
+ <a href="http://blog.chinaunix.net/u/19186/showart_350070.html">http://blog.chinaunix.net/u/19186/showart_350070.html</a>
+</div></div></body></html>

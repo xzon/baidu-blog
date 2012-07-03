@@ -1,0 +1,108 @@
+<html><head><title>//TableExample.java-SWTcode-hxzon</title></head><body><div id='tit'>//TableExample.java-SWTcode-hxzon</div><div id='cate'>j&middot;swt</div><div id='date'>2008年03月31日 星期一 10:30 A.M.</div><div id='page'>146</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/3d8e6d6099396a40ebf8f8de.html'>http://hi.baidu.com/hxzon/blog/item/3d8e6d6099396a40ebf8f8de.html</a><div id='cnt'><div>
+ //TableExample.java-SWTcode-hxzon
+</div> 
+<div> 
+</div> 
+<div>
+ import org.eclipse.swt.*;
+ <br /> import org.eclipse.swt.custom.*;
+ <br /> import org.eclipse.swt.graphics.*;
+ <br /> import org.eclipse.swt.layout.*;
+ <br /> import org.eclipse.swt.widgets.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class TableExample{
+ <br /> public void run(){
+ <br /> &nbsp;&nbsp; Display display=new Display();
+ <br /> &nbsp;&nbsp; Shell shell=new Shell(display);
+ <br /> &nbsp;&nbsp; shell.setText(&quot;table example&quot;);
+ <br /> &nbsp;&nbsp; shell.setLayout(new FillLayout());
+ <br /> &nbsp;&nbsp; //创建一个带边框的表格，支持多选
+ <br /> &nbsp;&nbsp; final Table table=new Table(shell,SWT.BORDER|SWT.MULTI);
+ <br /> &nbsp;&nbsp; table.setLinesVisible(true);
+ <br /> &nbsp;&nbsp; for(int i=0;i&lt;3;i++){//创建列
+ <br /> &nbsp;&nbsp;&nbsp; TableColumn column=new TableColumn(table,SWT.NONE);
+ <br /> &nbsp;&nbsp;&nbsp; column.setWidth(100);
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; for(int i=0;i&lt;3;i++){//创建表格项
+ <br /> &nbsp;&nbsp;&nbsp; TableItem item=new TableItem(table,SWT.NONE);
+ <br /> &nbsp;&nbsp;&nbsp; item.setText(new String[] {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &quot;&quot;+i,&quot;&quot;+i,&quot;&quot;+i
+ <br /> &nbsp;&nbsp;&nbsp; });
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; //创建表格编辑器
+ <br /> &nbsp;&nbsp; final TableEditor editor=new TableEditor(table);
+ <br /> &nbsp;&nbsp; editor.horizontalAlignment=SWT.LEFT;
+ <br /> &nbsp;&nbsp; editor.grabHorizontal=true;
+ <br /> &nbsp;&nbsp; //表格监听鼠标事件
+ <br /> &nbsp;&nbsp; table.addListener(SWT.MouseDown,new Listener(){
+ <br /> &nbsp;&nbsp;&nbsp; public void handleEvent(Event event){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //获得表格大小和位置
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; Rectangle clientArea=table.getClientArea();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; //鼠标按下的点坐标
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; Point point=new Point(event.x,event.y);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; int index=table.getTopIndex();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; while(index&lt;table.getItemCount()){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; boolean visible=false;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final TableItem item=table.getItem(index);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int i=0;i&lt;table.getColumnCount();i++){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Rectangle rectangle=item.getBounds(i);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //如果鼠标按下点坐落在区域内
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(rectangle.contains(point)){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final int column=i;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final Text text=new Text(table,SWT.NONE);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Listener textListener=new Listener(){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void handleEvent(final Event event){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch(event.type){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case SWT.FocusOut:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; item.setText(column,text.getText());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; text.dispose();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case SWT.Traverse:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch(event.detail){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case SWT.TRAVERSE_RETURN:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; item.setText(column,text.getText());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case SWT.TRAVERSE_ESCAPE:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; text.dispose();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; event.doit=false;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }//end switch
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }//end handleEvent
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; };//end Listener
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; text.addListener(SWT.FocusOut,textListener);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; text.addListener(SWT.Traverse,textListener);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; editor.setEditor(text,item,i);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; text.setText(item.getText(i));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; text.selectAll();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; text.setFocus();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }//end if
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(!visible &amp;&amp; rectangle.intersects(clientArea)){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; visible=true;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }//end for
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(!visible) return;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; index++;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; }//end while
+ <br /> &nbsp;&nbsp;&nbsp; }//handleEvent
+ <br /> &nbsp;&nbsp; });//end new Listener
+ <br /> &nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; shell.pack();
+ <br /> &nbsp;&nbsp; shell.open();
+ <br /> &nbsp;&nbsp; while(!shell.isDisposed()){
+ <br /> &nbsp;&nbsp;&nbsp; if(!display.readAndDispatch())
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; display.sleep();
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; display.dispose();
+ <br /> }//end run
+ <br /> 
+ <br /> public static void main(String[] args){
+ <br /> &nbsp;&nbsp; new TableExample().run();
+ <br /> }
+ <br /> }
+</div></div></body></html>

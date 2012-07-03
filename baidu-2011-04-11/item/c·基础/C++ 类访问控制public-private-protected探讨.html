@@ -1,0 +1,282 @@
+<html><head><title>C++ 类访问控制public/private/protected探讨</title></head><body><div id='tit'>C++ 类访问控制public/private/protected探讨</div><div id='cate'>c&middot;基础</div><div id='date'>2007年12月16日 星期日 02:35 A.M.</div><div id='page'>185</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/81472873df0b451f8601b0ea.html'>http://hi.baidu.com/hxzon/blog/item/81472873df0b451f8601b0ea.html</a><div id='cnt'><p><a href="http://www.cnblogs.com/chio/archive/2007/06/11/779408.html">C++ 类访问控制public/private/protected探讨</a></p> 
+<p>摘要：本文是从饮水思源BBS C/C++版上一篇帖子引发的思考。当时看到帖子，突然觉得平时见惯了的，在这里似乎变得陌生了，究竟访问控制符怎样起作用，怎样使用，该怎样理解，本文试图给出讨论。<br /> <br /> 原帖如下</p> 
+<div twffan="done">
+ 1 #include &lt;IOSTREAM&gt;
+ <br /> 2 using namespace std;
+ <br /> 3 
+ <br /> 4 class A{
+ <br /> 5 public:
+ <br /> 6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; A(int i_,int j_)
+ <br /> 7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> 8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; i=i_;
+ <br /> 9&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; j=j_;
+ <br /> 10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> 11&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; void disp(A &amp;a)
+ <br /> 12&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
+ <br /> 13&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cout&lt;&lt;a.i&lt;&lt;endl&lt;&lt;a.j&lt;&lt;endl;
+ <br /> 14&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> 15 
+ <br /> 16 private:
+ <br /> 17&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int i;
+ <br /> 18 protected:
+ <br /> 19&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int j;
+ <br /> 20 };
+ <br /> 21 
+ <br /> 22 int main(int argc, char* argv[])
+ <br /> 23 {
+ <br /> 24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; A a(123,456);
+ <br /> 25&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; A b(789,543);
+ <br /> 26&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a.disp(b);
+ <br /> 27&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; b.disp(a);
+ <br /> 28 
+ <br /> 29&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 0;
+ <br /> 30 }
+</div> 
+<p> </p> 
+<div twffan="done"> 
+</div> 
+<p>初看起来，倒是会产生疑问。为什么会这样，是否有bug？<br /> 仔细考究起来，我们其实可以这样看待类和对象：<br /> 类是将数据成员和进行于其上的一系列操作(成员函数)封装在一起,注意：成员函数可以操作数据成员（可以称类中的数据成员为泛数据成员）！<br /> 对象是类的实例化，怎样理解实例化？其实每一个实例对象都只是对其中的数据成员初始化，内存映像中每个对象仅仅保留属于自己的那份数据成员副本。而成员函数对于整个类而言却是共享的，即一个类只保留一份成员函数。<br /> 那么每个对象怎样和这些可以认为是“分离”的成员函数发生联系，即成员函数如何操作对象的数据成员？记住this指针，无论对象通过(.)操作或者(-&gt;)操作调用成员函数，编译时刻，编译器都会将这种调用转换成我们常见的全局函数的形式，并且多出一个参数(一般这个参数放在第一个)，然后将this指针传入这个参数。于是就完成了对象与成员函数的绑定(或联系).<br /> 实例化后就得到同一个类的多个不同的对象，既然成员函数共享的，那么成员函数就可以操作对象的数据成员。<br /> 问题是现在有多个对象，成员函数需要知道操作的是哪个对象的数据成员？<br /> 比如有对象obj1和obj2，都属于A类，A类有public成员函数foo()<br /> 如果obj1调用该函数，编译时会给foo函数传入this指针，obj1,foo中操作obj1自身的成员就不用任何修饰，直接访问，因为其中的数据成员自动根据this指针找到。<br /> 如果obj1调用该函数，同样可以访问同类的其他对象的数据成员！那么你需要做的是让foo函数知道是同类对象中哪个对象的数据成员，一个解决办法是传入同类其他对象的指针或引用，那么就可以操作同类其他对象的数据成员。<br /> foo(A &amp;obj)<br /> 这样定义，然后调用：<br /> obj1.foo(obj2)<br /> 就可以在obj1访问obj2的数据成员，而无论这些数据成员是private还是protected</p> 
+<p>搬出C++ Object Model,可以画出各个对象的内存map就可以更清晰的看出:<br /> <br /> <br /> 总结：C++的访问修饰符的作用是以类为单位，而不是以对象为单位。<br /> <br /> 通俗的讲，同类的对象间可以“互相访问”对方的数据成员，只不过访问途径不是直接访问.<br /> 步骤是：通过一个对象调用其public成员函数，此成员函数可以访问到自己的或者同类其他对象的public/private/protected数据成员和成员函数(类的所有对象共用)，而且还需要指明是哪个对象的数据成员(调用函数的对象自己的成员不用指明，因为有this指针；其他对象的数据成员可以通过引用或指针间接指明)<br /> <br /> C++中public,protected,private访问小结<br /> 第一:private,public,protected方法的访问范围.（public继承下）<br /> private: 只能由该类中的函数、其友元函数访问,不能被任何其他访问，该类的对象也不能访问. <br /> protected: 可以被该类中的函数、子类的函数、以及其友元函数访问,但不能被该类的对象访问 <br /> public: 可以被该类中的函数、子类的函数、其友元函数访问,也可以由该类的对象访问<br /> 注：友元函数包括两种：设为友元的全局函数，设为友元类中的成员函数<br /> <br /> 第二:类的继承后方法属性变化: <br /> 使用private继承,父类的所有方法在子类中变为private; <br /> 使用protected继承,父类的protected和public方法在子类中变为protected,private方法不变; <br /> 使用public继承,父类中的方法属性不发生改变; <br /> </p>
+<table style="width: 320px; border-collapse: collapse" border="1" cellspacing="0" cellpadding="3"> 
+ <tbody> 
+  <tr> 
+   <td> </td> 
+   <td>public:</td> 
+   <td>protected:</td> 
+   <td>private:</td> 
+  </tr> 
+  <tr> 
+   <td>public继承</td> 
+   <td>public</td> 
+   <td>protected</td> 
+   <td>---</td> 
+  </tr> 
+  <tr> 
+   <td>protected继承</td> 
+   <td style="background-color: yellow">protected</td> 
+   <td>protected</td> 
+   <td>---</td> 
+  </tr> 
+  <tr> 
+   <td style="width: 96px; height: 26px">private继承</td> 
+   <td style="background-color: yellow">private</td> 
+   <td style="background-color: yellow">private</td> 
+   <td>---</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> protected继承和private继承能降低访问权限
+<br /> 
+<br /> 再次提到：可以提供访问行为的主语为“函数”。
+<br /> 类体内的访问没有访问限制一说，即private函数可以访问public/protected/private成员函数或数据成员，同理，protected函数，public函数也可以任意访问该类体中定义的成员
+<br /> public继承下，基类中的public和protected成员继承为该子类的public和protected成员（成员函数或数据成员），然后访问仍然按类内的无限制访问
+<br /> 
+<br /> 
+<br /> 
+<table style="width: 720px; border-collapse: collapse" border="1" cellspacing="0" cellpadding="3"> 
+ <tbody> 
+  <tr> 
+   <td> <p>对于类域范围内，成员函数访问无所谓访问限制。<br /> 对于继承情况下的基类private成员，在派生类中仍然继承了下来，只不过它不能直接访问, 即使在类里也不行, 更不用说是类对象了。<br /> 可以通过下列例子看到：</p> 
+    <div style="border-bottom: #cccccc 1px solid; border-left: #cccccc 1px solid; padding-bottom: 4px; background-color: #eeeeee; padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; word-break: break-all; border-top: #cccccc 1px solid; border-right: #cccccc 1px solid; padding-top: 4px" class="CODE">
+     <span style="color: #008080">1</span> 
+     <span style="color: #000000">#include </span>
+     <span style="color: #000000">&lt;</span>
+     <span style="color: #000000">iostream</span>
+     <span style="color: #000000">&gt;</span>
+     <span style="color: #000000"><br /> </span>
+     <span style="color: #008080">2</span> 
+     <span style="color: #0000ff">using</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #0000ff">namespace</span>
+     <span style="color: #000000"> std;<br /> </span>
+     <span style="color: #008080">3</span> 
+     <span style="color: #000000"><br /> </span>
+     <span style="color: #008080">4</span> 
+     <span style="color: #0000ff">class</span>
+     <span style="color: #000000"> C{<br /> </span>
+     <span style="color: #008080">5</span> 
+     <span style="color: #0000ff">public</span>
+     <span style="color: #000000">:<br /> </span>
+     <span style="color: #008080">6</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp; C(</span>
+     <span style="color: #0000ff">int</span>
+     <span style="color: #000000"> val) : m_c(val) {}<br /> </span>
+     <span style="color: #008080">7</span> 
+     <span style="color: #0000ff">private</span>
+     <span style="color: #000000">:<br /> </span>
+     <span style="color: #008080">8</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+     <span style="color: #0000ff">int</span>
+     <span style="color: #000000"> m_c;<br /> </span>
+     <span style="color: #008080">9</span> 
+     <span style="color: #000000">};<br /> </span>
+     <span style="color: #008080">10</span> 
+     <span style="color: #000000"><br /> </span>
+     <span style="color: #008080">11</span> 
+     <span style="color: #0000ff">class</span>
+     <span style="color: #000000"> D: </span>
+     <span style="color: #0000ff">public</span>
+     <span style="color: #000000"> C{<br /> </span>
+     <span style="color: #008080">12</span> 
+     <span style="color: #0000ff">public</span>
+     <span style="color: #000000">:<br /> </span>
+     <span style="color: #008080">13</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp; D(</span>
+     <span style="color: #0000ff">int</span>
+     <span style="color: #000000"> val1, </span>
+     <span style="color: #0000ff">int</span>
+     <span style="color: #000000"> val2) : C(val1), m_d(val2) {}<br /> </span>
+     <span style="color: #008080">14</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+     <span style="color: #0000ff">int</span>
+     <span style="color: #000000"> m_d;<br /> </span>
+     <span style="color: #008080">15</span> 
+     <span style="color: #000000">};<br /> </span>
+     <span style="color: #008080">16</span> 
+     <span style="color: #000000"><br /> </span>
+     <span style="color: #008080">17</span> 
+     <span style="color: #0000ff">int</span>
+     <span style="color: #000000"> main()<br /> </span>
+     <span style="color: #008080">18</span> 
+     <span style="color: #000000">{<br /> </span>
+     <span style="color: #008080">19</span> 
+     <span style="color: #000000"><br /> </span>
+     <span style="color: #008080">20</span> 
+     <span style="color: #000000"><br /> </span>
+     <span style="color: #008080">21</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp; cout </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #0000ff">sizeof</span>
+     <span style="color: #000000">(C) </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&quot;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&quot;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #0000ff">sizeof</span>
+     <span style="color: #000000">(D) </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> endl; </span>
+     <span style="color: #008000">//</span>
+     <span style="color: #008000"> 4&nbsp;&nbsp; 8</span>
+     <span style="color: #008000"><br /> </span>
+     <span style="color: #008080">22</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp; D obj(</span>
+     <span style="color: #000000">2</span>
+     <span style="color: #000000">, </span>
+     <span style="color: #000000">25</span>
+     <span style="color: #000000">);<br /> </span>
+     <span style="color: #008080">23</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp; cout </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&amp;</span>
+     <span style="color: #000000">obj </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&quot;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&quot;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&amp;</span>
+     <span style="color: #000000">obj.m_d </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> endl; </span>
+     <span style="color: #008000">//</span>
+     <span style="color: #008000">0x0012FF78&nbsp;&nbsp;&nbsp; 0X0012FF7C<br /> </span>
+     <span style="color: #008080">24</span> 
+     <span style="color: #008000">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+     <span style="color: #008000">//</span>
+     <span style="color: #008000">cout &lt;&lt; obj.m_c; </span>
+     <span style="color: #008000">//</span>
+     <span style="color: #008000">error, 不能访问</span>
+     <span style="color: #008000"><br /> </span>
+     <span style="color: #008080">25</span> 
+     <span style="color: #000000"><br /> </span>
+     <span style="color: #008080">26</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp; D </span>
+     <span style="color: #000000">*</span>
+     <span style="color: #000000">ptr </span>
+     <span style="color: #000000">=</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&amp;</span>
+     <span style="color: #000000">obj;<br /> </span>
+     <span style="color: #008080">27</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+     <span style="color: #0000ff">int</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">*</span>
+     <span style="color: #000000">iptr </span>
+     <span style="color: #000000">=</span>
+     <span style="color: #000000"> (</span>
+     <span style="color: #0000ff">int</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">*</span>
+     <span style="color: #000000">)ptr;<br /> </span>
+     <span style="color: #008080">28</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp; cout </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">*</span>
+     <span style="color: #000000">iptr </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&quot;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&quot;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">*</span>
+     <span style="color: #000000">(iptr</span>
+     <span style="color: #000000">+</span>
+     <span style="color: #000000">1</span>
+     <span style="color: #000000">) </span>
+     <span style="color: #000000">&lt;&lt;</span>
+     <span style="color: #000000"> endl;</span>
+     <span style="color: #008000">//</span>
+     <span style="color: #008000">2&nbsp;&nbsp; 25</span>
+     <span style="color: #008000"><br /> </span>
+     <span style="color: #008080">29</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;<br /> </span>
+     <span style="color: #008080">30</span> 
+     <span style="color: #000000">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+     <span style="color: #0000ff">return</span>
+     <span style="color: #000000"> </span>
+     <span style="color: #000000">0</span>
+     <span style="color: #000000">;<br /> </span>
+     <span style="color: #008080">31</span> 
+     <span style="color: #000000">}<br /> </span>
+     <span style="color: #008080">32</span> 
+     <span style="color: #000000"><br /> </span>
+     <span style="color: #008080">33</span>
+    </div> <p><br /> 同样，加入虚函数，可以看到VC编译器将vptr放置在数据区的最开头</p> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 下面摘自博客园的一篇，相当精辟的理解： 
+<hr /> 
+<p> </p> 
+<p> </p> 
+<p>下面这个问题摘自<a href="http://community.csdn.net/Expert/topic/5132/5132192.xml?temp=.9453852"><font color="#000080">论坛的一个帖子</font></a>：</p> 
+<p>已知3个类O、P和Q，类O中定义了一个私有方法F1、一个公有方法F2和一个受保护的方法F3：类P和类Q是类O的派生类，其继承方式如下所示： <br /> class P : protected O {…}; <br /> class Q : public O {…};<br /> 关于方法F1的描述中正确的是___(34)___；关于方法F2韵描述中正确的是___(35)___；关于方法F3的描述中正确的是___(36)___。 <br /> (34)<br /> A．方法F1无法被访问 <br /> B．只有在类O内才能访问方法F1 <br /> C．只有在类P内才能访问方法F1 <br /> D．只有在类Q内才能访问方法F1 <br /> (35)<br /> A．类O、P和Q的对象都可以访问方法F2 <br /> B．类P和Q的对象都可以访问方法F2 <br /> C．类0和Q的对象都可以访问方法F2<br /> D．只有在类P内才能访问方法F2 <br /> (36)A．类0、P和Q的对象都可以访问方法F3 <br /> B．类0、P和Q的对象都不可以访问方法F3 <br /> C．类0和Q的对象都可以访问方法F3 <br /> D．类P和Q的对象都可以访问方法F3。</p> 
+<p>有甚么办法可以简单地记住这许多的规则？ 下文告诉你一个根本不需要记的办法。</p> 
+<p>顾名思义，private/public/protected 分别表示 私有/公开/保护，它们是一组用于<u>访问权限</u>控制的关键字。那么首先，需要澄清的一个关键点是，是<u>要控制谁访问谁的权限</u>？这个访问的主语（施事）是谁？宾语（受事）是谁？</p> 
+<p>我们经常听到这样的说法：</p> 
+<p>1）一个类<strong><u>友元</u></strong>可以访问该类的任何<u><strong>成员</strong></u>（包括成员变量及成员方法，下同）。<br /> 2）private<strong><u>成员</u></strong>只有该类自身可以访问，protected<strong><u>成员</u></strong>只有该类及其派生类可以访问，public<strong><u>成员</u></strong>所有的人都可以访问。</p> 
+<p>宾语（受事）是谁这一点很明确，是类的<strong><u>成员</u></strong>（包括成员变量及成员方法）。<strong>主语（施事）是谁？这是让大家发生混淆的关键点。也是这个说法中含糊不清的地方。</strong></p> 
+<p>想清楚一点，其实<strong>主语（施事）</strong>指的是一个<u><strong>函数</strong></u>，而不是<strong><u>类</u></strong>（当然更不是变量）。private/public/protected要控制的是<u>一个函数（施事）</u>对一个<u>类的成员（包括成员变量及成员方法）</u>的访问权限。因此比较完整的说法是：</p> 
+<p>1）一个类<strong><u>友元（包含友元函数或者友元类的所有成员函数）</u></strong>可以访问该类的任何<u><strong>成员</strong></u>（包括成员变量及成员方法）。</p> 
+<p>2）除去友元外，private<strong><u>成员</u></strong>只有<u>该类自身的成员函数</u>可以访问，protected<strong><u>成员</u></strong>只有该类的成员函数及其派生类的成员函数可以访问，public<u><strong>成员</strong></u>则所有的函数都可以访问。</p> 
+<p>也就是说，当我们说一个类可以访问XXX，其实暗指<u>这个类的成员函数</u>可以访问XXX。了解了这一点，外加一条显而易见的规则，上面的问题就不难回答了。这条规则是：</p> 
+<p>3）派生类在继承时可削弱成员的访问权限（通过protected/private修饰）。例如上面的例子class P : protected O {…}; 那么某个函数通过类P访问O中成员时，该函数对类O中的public成员只有protected权限。</p> 
+<p>补充：有一种技术叫Member Spy（类成员间谍），通过该技术派生类可将基类的protected成员修改为public权限。这种技术用到了using关键字。举例如下：</p> 
+<p>class A<br /> {<br /> protected:<br /> int m_data;<br /> };</p> 
+<p>class SpyA : public A<br /> {<br /> public:<br /> using A::m_data;<br /> };<br /> <br /> void TestSpy(A* pA)<br /> {<br /> SpyA* pSpyA = static_cast&lt;SpyA*&gt;(pA); <br /> // 强制转换A为SpyA，这要求SpyA没有成员变量且没有重载A中的虚函数。<br /> // 现在你可以通过pSpyA访问m_data了。例如：int data = pSpyA-&gt;m_data;<br /> }</p> 
+<p>由于这种技术用到了强制类型转换，当谨慎使用。</p></div></body></html>

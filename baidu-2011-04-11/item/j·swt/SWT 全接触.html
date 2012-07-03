@@ -1,0 +1,125 @@
+<html><head><title>SWT 全接触</title></head><body><div id='tit'>SWT 全接触</div><div id='cate'>j&middot;swt</div><div id='date'>2008年03月29日 星期六 01:15 A.M.</div><div id='page'>148</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5a25a6ec8aa1b6392797916f.html'>http://hi.baidu.com/hxzon/blog/item/5a25a6ec8aa1b6392797916f.html</a><div id='cnt'><h1>SWT 全接触</h1> 
+<p>级别： 初级</p> 
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/opensource/os-swt/#author"><span style="color: rgb(92, 129, 167);">薛 笛</span></a> (<a cmimpressionsent="1" href="mailto:jxuedi@gmail.com?subject=SWT%20%E5%85%A8%E6%8E%A5%E8%A7%A6"><span style="color: rgb(92, 129, 167);">jxuedi@gmail.com</span></a>), 研究生，黑龙江大学信息技术研究所</p> 
+<p>2006 年 9 月 28 日</p> 
+<blockquote>
+ Java 世界的人似乎一直都对 Java 的桌面应用程序十分不满，从 AWT 到 SWING，从默认的 Theme到第三方的产品，不是太难看（AWT）就是在某些平台有 BUG（SWING，Quaqua--一个Windows平台下的仿Mac的主题包），再不就是对中文支持不好（某些第三方 LookAndFeel）。于是，如果想要获得和本机平台一致的用户界面和比较稳定的性能，SWT就成了一个不可忽视的选择。SWT 是一个独立于平台的，可以脱离 Eclipse 框架单独使用的图形组件，用JNI技术提供与本机系统同样的用户界面组件的观感，较好的运行效率，稳定的平台表现。
+</blockquote> 
+<p>当然，虽然这个专题名叫&quot;全接触&quot;，但毕竟不可能面面俱到，在一篇文章中兼收并蓄SWT的全部内容也不现实。但不管怎么说，我都将尽力展示SWT的使用细节，希望能为那些对SWT感兴趣的人提供一些帮助。</p> 
+<p><a name="N10045"><span class="atitle">1．SWT简介</span></a></p> 
+<p>SWT-&quot;Standard Widget Toolkit&quot;，它是一个Java平台下开放源码的Native GUI组件库，也是Eclipse平台的UI组件之一。从功能上来说，SWT与AWT/SWING是基本等价的。SWT以方便有效的方式提供了便携式的（即Write Once，Run Away）带有本地操作系统观感的UI组件：</p> 
+<br /> 
+<img src="image/SWT 全接触.html.image002.jpg" border="0" height="100" width="572" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image002.jpg</p> 
+<br /> 
+<p>由于widget系统的固有复杂性以及平台之间微妙的差异，即使在理想情况下，能够达到工业标准的跨平台的widget类库也是很难编写和维护的。最早的AWT组件现在被认为是样貌丑陋的，而且存在很多问题；SWING组件虽然也是缺点多多，但是随着JDK版本的不断升高，它仍在不断进行着改进。我认为，SWT在功能上与AWT/SWING不相伯仲，但是组件更为丰富，平台表现稳定，BUG也相对较少。如果你的应用程序真的需要在多个平台上运行，需要更为美观的界面，又不那么依赖于其他基于AWT/SWING的图形库，那么SWT或许是一个比AWT/SWING更好的选择。</p> 
+<br /> 
+<p><a name="N10062"><span class="atitle">2． SWT起步</span></a></p> 
+<p><a name="N10068"><span class="smalltitle"><strong><span style="font-size: 16px;">2.1 SWT的HelloWorld</span></strong></span></a></p> 
+<p>一如介绍其他程序的起始，我们都需要来一个HelloWorld来帮助我们入门，SWT的HelloWorld如下：</p> 
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import org.eclipse.swt.widgets.*;
+public class HelloWorld 
+{
+    public static void main(String[] args) 
+    {
+        Display display = new Display();
+  Shell shell = new Shell(display);
+  shell.setText(&quot;Hello World&quot;);
+  shell.setSize(200, 100);
+  shell.open();
+  while (!shell.isDisposed()) 
+{
+      if (!display.readAndDispatch()) 
+   display.sleep ();
+  }
+  display.dispose ();
+     }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>运行这个程序就会得到如下结果：</p> 
+<br /> 
+<img src="image/SWT 全接触.html.image006.jpg" border="0" height="105" width="209" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image006.jpg</p> 
+<br /> 
+<p>下面我讲逐一介绍这个程序所包含的内容。</p> 
+<ul> 
+ <li>Display<br /> 这是一个顶层容器组件，类似于Container或Component的功能，它主要负责与底层的窗口系统之间的连接。在具体含义上，它代表&quot;屏幕&quot;。<br /> 一个Display可以包含多个Shell（也是容器组件，下面会介绍到）。<br /> 通常情况下，一个应用程序只含一个Display，即Display通常是一个单例组件（Singleton）。</li> 
+ <li>Shell<br /> 它表示位于&quot;屏幕&quot;上面的&quot;窗口&quot;，是Composite组件和Control组件构成的组件树的根。<br /> 在我们的HelloWorld程序中，我们可以设置标题（setText()），设置大小（setSize()），然后通过open()方法来显示这个窗口。怎么样，感觉很像JFrame吧？其实功能上差不多。</li> 
+ <li>Composite<br /> 可以包含其它Composite和Control的容器</li> 
+ <li>Control<br /> 这是一个重量级（HeavyWeight）系统对象。像按钮（Button），标签（Label），表格，工具栏和树形结构这些组件都是Control的子类，Conposite和Shell也不例外。</li> 
+</ul> 
+<p><strong>2.1.1 消息循环</strong></p> 
+<p>我们可以看到，上面的代码中有这样的语句：</p> 
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">while (!shell.isDisposed()) 
+{
+    if (!display.readAndDispatch()) 
+  display.sleep ();
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>如果你像我一样是由Java语言起步的，那么你会对这个消息循环的代码感到比较陌生，毕竟在SWING中我们主要利用事件驱动模型而不这样利用类似于Windows程序设计中的消息循环的方法来处理事件。但是这段代码意义还算简单明了，就是反复的读取和分派（dispatch）事件，并在没有事件的时候把控制权还给CPU。</p> 
+<p><strong>2.1.2 资源的释放</strong></p> 
+<p>最后一条语句是display.dispose ();，这告诉我们操作系统的资源是由程序员显示释放的。资源的释放遵循以下两条规则：</p> 
+<p>1. 如果你创建了某个资源，那么你就有责任释放它。</p> 
+<p>2. 释放父组件资源的同时也释放了其子组件的资源。</p> 
+<p><strong>2.1.3 标准构造函数</strong></p> 
+<p>窗口组件被创建的时候必须伴随一个他的上层组件，例如，我要建立一个按钮就可以采用如下方法：Button button = new Button(shell, SWT.PUSH);</p> 
+<p>其中，Button的父组件Shell是必不可少的，这样就限定了我们生成组件的顺序。</p> 
+<p>第二个参数被称为&quot;Style Bit&quot;，表示了这个组件的显示特性，每种特性占一位，如下例所示：</p> 
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Text test=new Text(group, SWT.SINGLE|SWT.BORDER);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>这条代码生成了一个单一的，有边框的文本框。这显然又与习惯了JavaBeans模型，总是用setXXX()来设置属性的我们不太适应--毕竟是IBM的东西啊，秉承了其产品不易上手的传统。</p> 
+<p><strong>2.1.4 错误与异常</strong></p> 
+<br /> 
+<img src="image/SWT 全接触.html.image008.jpg" border="0" height="192" width="304" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image008.jpg</p> 
+<br /> 
+<p>SWTError指的是不能修复的错误，以及一些操作系统错误。</p> 
+<p>SWTException指的是一些可恢复的错误以及无效的线程访问之类的错误。</p> 
+<p>IllegalArgumentException指可修复的错误或参数为null之类的错误。</p> 
+<p><strong>2.1.5 Item</strong></p> 
+<p>Item类是一个轻量级的系统对象，总是作为基本的单位元素与其他一些类配合使用。比如Tree中的元素即为TreeItem，Table的单位元素则是TableItem，而MenuItem就是Menu的基本单位元素了。</p> 
+<p><strong>2.1.6 SWT的类阶层体系结构</strong></p> 
+<br /> 
+<img src="image/SWT 全接触.html.image010.jpg" border="0" height="306" width="572" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image010.jpg</p> 
+<br /> 
+<p>最后让我们来整体认识一下整个SWT窗口组件的层次结构，如下所示：以上的部分给我们以整体的认识，即一个SWT引用程序应该怎么创建，其基本的运行规则和相关类的体系结构。我想我就不用再对每一个控件的API或使用方面费唇舌了，熟悉这些东西是体力劳动，而网上有很多例子可供参考。下面一节我将详细介绍有关SWT布局的相关知识。</p> 
+<p><a name="N10124"><span class="smalltitle"><strong><span style="font-size: 16px;">2.2 SWT的布局管理</span></strong></span></a></p> 
+<p>相信对于组件的布局（Layout）大家都不会太陌生，它的存在就是提供给我们一种可以在组件位置移动或更改大小时重新绘制组件的机制。设置组件的布局我们可以采用Composite.setLayout()方法来实现。</p> 
+<p>每种布局都有其相应的数据（Layout Data），可以通过Control.setLayoutData()方法来进行关联。以下是一些布局类及其显示效果:</p> 
+<ul> 
+ <li>FillLayout:让所有子组件等大小的&quot;填满&quot;整个面板空间。<br /> FillLayout是最简单的一个布局类，它将所有窗口组件放置到一行或一列中，并强制他们的大小也相等。FillLayout不能外覆（wrap），也不能定制边框和距离。很显然这样的限制让这个布局类最适合作类似于计算器面板的布局，或者为Taskbar和Toolbar上面的按钮作布局使用。<br /> <img src="image/SWT 全接触.html.image012.jpg" border="0" height="109" width="209" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image012.jpg</p></li> 
+ <li>RowLayout：类似于AWT中的FlowLayout，让所有组件按行排列，一行排不下就放到下一行。<br /> RowLayout比FillLayout用得更广泛一些，原因很简单，就是RowLayout支持FillLayout所部支持的功能，例如能够外覆，能够修改边框和间距等等。另外，每一个位于RowLayout中的窗口组件都可以通过设定一个RowData类来指定其在RowLayout中的宽度和高度。<br /> <img src="image/SWT 全接触.html.image014.jpg" border="0" height="140" width="228" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image014.jpg</p></li> 
+ <li>GridLayout： GridLayout是3个标准布局类中最有用的，但同时也是最复杂的--没办法，强大的功能必定伴随着一定程度的复杂性。通过GridLayout，一个Composite的子窗口组件被放置在一个网格（Grid）之中。GridLayout有很多配置字段，并且和RowLayout一样，每一个布局于其中的窗口组件都可以有一个与之相关联的布局数据类，称为GridData。GridLayout的强大功能是通过对于每一个窗口组件的GridData的灵活控制来实现的。<br /> 鉴于GridLayout的复杂性（原本我就怀疑它根本就不是为手工书写代码而设计的），我并不建议各位直接手动书写GridData，最好借助可视化的工具（如VI）来帮助我们完成用GridLayout进行的界面设计。这样我们只需要书写少量控制代码，就可以获得复杂的界面布局了。<br /> <img src="image/SWT 全接触.html.image016.jpg" border="0" height="157" width="299" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image016.jpg</p></li> 
+ <li>FormLayout:如图所示<br /> <img src="image/SWT 全接触.html.image018.jpg" border="0" height="180" width="173" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image018.jpg</p></li> 
+ <li>StackLayout:几乎完全等同于CardLayout的功能。<br /> <img src="image/SWT 全接触.html.image020.jpg" border="0" height="58" width="515" /><p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image020.jpg</p></li> 
+</ul> 
+<p>在SWT中，位置和大小的变化并非自动发生的。应用程序既可以在Composite子类的构造函数中指定初始位置和大小，也可以在一个改变窗口大小的监听器中用布局类来定位和改变Composite子类的大小。</p> 
+<p>下面的一幅图包含了我们将要讨论的有关布局的大部分细节。一个Composite类的可显示区域分为三个部分，分别是Location，clientArea和trim。Composite的大小就是clientArea和trim的区域之和。一个布局类（Layout）的主要功能就是管理Composite子组件的大小和位置。通过布局类，我们可以管理子组件之间的距离-即间距（Spaceing），子组件与布局边缘之间的距离-即边距（margin）。布局的大小同时也是Composite的clientArea的大小。</p> 
+<br /> 
+<img src="image/SWT 全接触.html.image022.jpg" border="0" height="275" width="505" />
+<p class="origImg">http://www.ibm.com/developerworks/cn/opensource/os-swt/images/image022.jpg</p> 
+<br /> 
+<p>至此，关于SWT的基础部分就告一段落，希望能够给大家以一个对于SWT的总体认识。下面的部分将主要介绍SWT的弱项-绘图。JGraph的一个作者就表达了对SWT/JFace/Draw2D的不满，认为SWT在执行效率上并没有什么改善，而且缺乏一些有用的API实现。话虽如此，但SWT的基本绘图功能还是不错的，如果有足够的时间和耐心的话还是可以绘出想要的图形的。下面就让我们看看SWT如何绘制2D和3D图形。</p> 
+<p> </p></div></body></html>

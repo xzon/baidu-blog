@@ -1,0 +1,333 @@
+<html><head><title>//hit testing by drawing the default caret wherever the user clicks on the TextLayout</title></head><body><div id='tit'>//hit testing by drawing the default caret wherever the user clicks on the TextLayout</div><div id='cate'>j&middot;swing</div><div id='date'>2009年08月28日 星期五 02:49 P.M.</div><div id='page'>34</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/62ab4a081505c09c0a7b82dc.html'>http://hi.baidu.com/hxzon/blog/item/62ab4a081505c09c0a7b82dc.html</a><div id='cnt'><div>
+ //hit testing by drawing the default caret wherever the user clicks on the TextLayout
+ <br /> //http://java.sun.com/docs/books/tutorial/2d/index.html
+ <br /> //http://java.sun.com/docs/books/tutorial/2d/advanced/index.html
+ <br /> //http://java.sun.com/docs/books/tutorial/reallybigindex.html
+ <br /> /*
+ <br /> * Copyright (c) 1995 - 2008 Sun Microsystems, Inc. All rights reserved.
+ <br /> *
+ <br /> * Redistribution and use in source and binary forms, with or without
+ <br /> * modification, are permitted provided that the following conditions
+ <br /> * are met:
+ <br /> *
+ <br /> *&nbsp;&nbsp; - Redistributions of source code must retain the above copyright
+ <br /> *&nbsp;&nbsp;&nbsp;&nbsp; notice, this list of conditions and the following disclaimer.
+ <br /> *
+ <br /> *&nbsp;&nbsp; - Redistributions in binary form must reproduce the above copyright
+ <br /> *&nbsp;&nbsp;&nbsp;&nbsp; notice, this list of conditions and the following disclaimer in the
+ <br /> *&nbsp;&nbsp;&nbsp;&nbsp; documentation and/or other materials provided with the distribution.
+ <br /> *
+ <br /> *&nbsp;&nbsp; - Neither the name of Sun Microsystems nor the names of its
+ <br /> *&nbsp;&nbsp;&nbsp;&nbsp; contributors may be used to endorse or promote products derived
+ <br /> *&nbsp;&nbsp;&nbsp;&nbsp; from this software without specific prior written permission.
+ <br /> *
+ <br /> * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS
+ <br /> * IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ <br /> * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ <br /> * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ <br /> * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ <br /> * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ <br /> * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ <br /> * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ <br /> * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ <br /> * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ <br /> * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ <br /> */
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> import javax.swing.*;
+ <br /> import java.awt.*;
+ <br /> import java.awt.font.FontRenderContext;
+ <br /> import java.awt.font.TextHitInfo;
+ <br /> import java.awt.font.TextLayout;
+ <br /> import java.awt.geom.Point2D;
+ <br /> import java.awt.event.MouseAdapter;
+ <br /> import java.awt.event.MouseEvent;
+ <br /> import java.awt.event.WindowAdapter;
+ <br /> import java.awt.event.WindowEvent;
+ <br /> import java.text.AttributedCharacterIterator;
+ <br /> import java.text.AttributedCharacterIterator;
+ <br /> import java.text.AttributedString;
+ <br /> import java.awt.font.TextAttribute;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> import java.util.Hashtable;
+ <br /> import java.util.Enumeration;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> /**
+ <br /> * This class demonstrates how to hit-test a TextLayout. Hit-testing
+ <br /> * is the mapping of a graphical location to a character position within
+ <br /> * text.
+ <br /> *
+ <br /> * This class constructs a TextLayout from an AttributedCharacterIterator
+ <br /> * and displays the TextLayout. When the mouse is clicked inside this
+ <br /> * Component, the mouse position is mapped to a character position, and the
+ <br /> * carets for this character position are displayed.
+ <br /> */
+ <br /> public class HitTestSample extends JApplet {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // Colors to use for the strong and weak carets.
+ <br /> &nbsp;&nbsp;&nbsp; private static final Color STRONG_CARET_COLOR = Color.red;
+ <br /> &nbsp;&nbsp;&nbsp; private static final Color WEAK_CARET_COLOR = Color.black;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // The TextLayout to draw and hit-test.
+ <br /> &nbsp;&nbsp;&nbsp; private TextLayout textLayout;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // The insertion index of the most recent mouse click.
+ <br /> &nbsp;&nbsp;&nbsp; private int insertionIndex;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private static final FontRenderContext DEFAULT_FRC =
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new FontRenderContext(null, false, false);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private static final Hashtable map = new Hashtable();
+ <br /> &nbsp;&nbsp;&nbsp; static {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; map.put(TextAttribute.SIZE, new Float(18.0));
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; // text to use in samples:
+ <br /> &nbsp;&nbsp;&nbsp; private static AttributedString helloWorld = 
+ <br /> &nbsp;&nbsp; new AttributedString(&quot;Hello World&quot;, map);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Dimension preferredSize = new Dimension(400, 250);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; HitPane hitPane;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void init() {
+ <br /> 
+ <br /> AttributedCharacterIterator text = helloWorld.getIterator();
+ <br /> buildUI(getContentPane(), text);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void buildUI(Container container, AttributedCharacterIterator text){
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Create a new TextLayout from the given text.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textLayout = new TextLayout(text, DEFAULT_FRC);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Initilize insertionIndex.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; insertionIndex = 0;
+</div> 
+<div> 
+</div> 
+<div>
+ hitPane = new HitPane();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; container.add(hitPane, BorderLayout.CENTER);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hitPane.addMouseListener(new HitTestMouseListener());
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public Dimension getPreferredSize() {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return preferredSize;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * Compute a location within this Component for textLayout's origin,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * such that textLayout is centered horizontally and vertically.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; *
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * Note that this location is unknown to textLayout; it is used only
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * by this Component for positioning.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; private Point2D computeLayoutOrigin() {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Dimension size = getPreferredSize();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Point2D.Float origin = new Point2D.Float();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; origin.x = (float) (size.width - textLayout.getAdvance()) / 2;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; origin.y = (float) (size.height - textLayout.getDescent() + textLayout.getAscent()) / 2;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return origin;
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; class HitPane extends JPanel {
+ <br /> 
+ <br /> public void HitPane() {}
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * Draw textLayout and the carets corresponding to the most recent
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * mouse click (if any).
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public void paintComponent(Graphics g) {
+ <br /> &nbsp;&nbsp; super.paintComponent(g);
+ <br /> &nbsp;&nbsp; setBackground(Color.white);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Graphics2D graphics2D = (Graphics2D) g;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Point2D origin = computeLayoutOrigin();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Since the caret Shapes are relative to the origin 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // of textLayout, we'll translate the graphics so that 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // the origin of the graphics is where we want textLayout
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // to appear.
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; graphics2D.translate(origin.getX(), origin.getY());
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Draw textLayout.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; textLayout.draw(graphics2D, 0, 0);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Retrieve caret Shapes for insertionIndex.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Shape[] carets = textLayout.getCaretShapes(insertionIndex);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Draw the carets. carets[0] is the strong caret, and
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // is never null. carets[1], if it is not null, is the
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // weak caret.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; graphics2D.setColor(STRONG_CARET_COLOR);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; graphics2D.draw(carets[0]);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (carets[1] != null) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; graphics2D.setColor(WEAK_CARET_COLOR);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; graphics2D.draw(carets[1]);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private class HitTestMouseListener extends MouseAdapter {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Compute the character position of the mouse click.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void mouseClicked(MouseEvent e) {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Point2D origin = computeLayoutOrigin();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Compute the mouse click location relative to
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // textLayout's origin.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; float clickX = (float) (e.getX() - origin.getX());
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; float clickY = (float) (e.getY() - origin.getY());
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Get the character position of the mouse click.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TextHitInfo currentHit = textLayout.hitTestChar(clickX, clickY);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; insertionIndex = currentHit.getInsertionIndex();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Repaint the Component so the new caret(s) will be displayed.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hitPane.repaint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public static void main(String[] args) {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JFrame sampleFrame = new JFrame(&quot;HitTestSample&quot;);
+ <br /> AttributedCharacterIterator text = helloWorld.getIterator();
+ <br /> final HitTestSample controller = new HitTestSample();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; controller.buildUI(sampleFrame.getContentPane(), text);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sampleFrame.addWindowListener(new WindowAdapter(){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void windowClosing(WindowEvent e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.exit(0);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sampleFrame.setSize(new Dimension(400, 250));&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sampleFrame.setVisible(true);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> //hxzon -gcode
+ <br /> //Java2D 绘制光标
+</div></div></body></html>

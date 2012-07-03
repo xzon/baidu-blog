@@ -1,0 +1,508 @@
+<html><head><title>Five cool things you can do with Play framework</title></head><body><div id='tit'>Five cool things you can do with Play framework</div><div id='cate'>j&middot;web</div><div id='date'>2010年07月20日 星期二 12:04 P.M.</div><div id='page'>12</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/72ab4c906b75d280a877a44b.html'>http://hi.baidu.com/hxzon/blog/item/72ab4c906b75d280a877a44b.html</a><div id='cnt'><p>Five cool things you can do with Play framework</p> 
+<p><a href="http://www.playframework.org/documentation/1.0.3/controllers">http://www.playframework.org/documentation/1.0.3/controllers</a></p> 
+<p>===========================================</p> 
+<h1>Five cool things you can do with Play</h1> 
+<p>Five examples to show the philosophy behind the Play framework.</p> 
+<h2><a>Bind an HTTP parameter to a Java method parameter</a></h2> 
+<p>Retrieving HTTP parameters from Java code is really simple with Play. Just declare method parameters with the same names as the HTTP parameters.</p> 
+<p>For example, with this request:</p> 
+<pre><code>/articles/archive?date=08/01/08&amp;page=2
+</code></pre> 
+<p>You can retrieve the <strong>date</strong> and <strong>page</strong> parameters by declaring them as Java method parameters:</p> 
+<pre><code>public static void archive(Date date, Integer page) {
+    List&lt;Article&gt; articles = Articles.fromArchive(date, page);
+    render(articles);
+}
+</code></pre> 
+<p>Play will use the method parameter’s static type, to translate the HTTP value into a Java object.</p> 
+<p>Smart binding also works <strong>with any class.</strong></p> 
+<pre><code>public class Person {
+    public String name;
+    public Integer age;
+}
+</code></pre> 
+<p>A simplistic controller action to add a person may look like this:</p> 
+<pre><code>public static void add(Person p) {
+    p.save();
+}
+</code></pre> 
+<p>The HTML form defines fields with composite names:</p> 
+<pre><code>&lt;form action=&quot;/Directory/add&quot; method=&quot;POST&quot;&gt;
+    Name: &lt;input type=&quot;text&quot; name=&quot;p.name&quot; /&gt;
+    Age: &lt;input type=&quot;text&quot; name=&quot;p.age&quot; /&gt;
+&lt;/form&gt;
+</code></pre> 
+<h2><a>Redirect to an action by calling the corresponding Java method</a></h2> 
+<p>There is no equivalent to the Java Servlet <strong>forward</strong> command with Play. But redirecting to another action is really simple. Just call the corresponding Java method and Play will generate the correct HTTP ‘Redirect’ response.</p> 
+<pre><code>public static void show(Long id) {
+    Article article = Article.findById(id);
+    render(article);
+}
+ 
+public static void edit(Long id, String title) {
+    Article article = Article.findById(id);
+    article.title = title;
+    article.save();
+    show(id);
+}
+</code></pre> 
+<p>Note how at the end of the edit action, we redirect to the show action.</p> 
+<p>In any template you can use the equivalent syntax to generate the link:</p> 
+<pre><code>&lt;a href=&quot;@{Article.show(article.id)}&quot;&gt;${article.title}&lt;/a&gt;
+</code></pre> 
+<p>That will generate the following HTML:</p> 
+<pre><code>&lt;a href=&quot;/articles/15&quot;&gt;My new article&lt;/a&gt;
+</code></pre> 
+<h2><a>Don’t Repeat Yourself when passing Java objects to templates</a></h2> 
+<p>In most Java frameworks, in order to pass Java objects to the template system you need to write something like:</p> 
+<pre><code>Article article = Article.findById(id);
+User user = User.getConnected();
+Map&lt;String, Object&gt; model = new HashMap&lt;String,Object&gt;();
+model.put(&quot;article&quot;, article);
+model.put(&quot;user&quot;, user);
+render(model);
+</code></pre> 
+<p>With Play, you can just write:</p> 
+<pre><code>Article article = Article.findById(id);
+User user = User.getConnected();
+render(article, user);
+</code></pre> 
+<p>And retrieve objects from their Java local name in the template. That saves a lot of useless lines of code…</p> 
+<h2><a>JPA on steroids</a></h2> 
+<p>JPA is surely the best object-relational mapping (ORM) API available for Java. If you know it you will be amazed how much simpler it becomes with Play. With nothing to configure, Play will automatically start the JPA Entity Manager using Hibernate and magically synchronize it when code is reloaded.</p> 
+<p>Moreover, if you use the provided <strong>play.db.jpa.Model</strong> superclass it will help to make your code prettier. Take a look:</p> 
+<pre><code>public void messages(int page) {
+    User connectedUser = User.find(&quot;byEmail&quot;, connected());
+    List&lt;Message&gt; messages = Message.find(
+        &quot;user = ? and read = false order by date desc&quot;,
+        connectedUser
+    ).from(page * 10).fetch(10);
+    render(connectedUser, messages);
+}
+</code></pre> 
+<h2><a>Straightforward file upload management</a></h2> 
+<p>File upload management is very simple with Play.</p> 
+<p>The HTML form:</p> 
+<pre><code>&lt;form action=&quot;@{Article.uploadPhoto()}&quot; method=&quot;POST&quot; enctype=&quot;multipart/form-data&quot;&gt;
+    &lt;input type=&quot;text&quot; name=&quot;title&quot; /&gt;
+    &lt;input type=&quot;file&quot; id=&quot;photo&quot; name=&quot;photo&quot; /&gt;
+    &lt;input type=&quot;submit&quot; value=&quot;Send it...&quot; /&gt;
+&lt;/form&gt;
+</code></pre> 
+<p>And the Java code:</p> 
+<pre><code>public static void uploadPhoto(String title, File photo) {
+   ...
+}
+</code></pre> 
+<p>How could it be easier?</p> 
+<p>========================================</p> 
+<h1>Controllers</h1> 
+<p>Business logic is managed in the domain model layer. As a client (typically a web browser) cannot directly invoke this code, the functionality of a domain object is exposed as resources represented by URIs.</p> 
+<p>A client uses the uniform API provided by the HTTP protocol to manipulate these resources, and by implication the underlying business logic. However, this mapping of resources to domain objects is not a bijection: the granularity can be expressed at different levels, some resources may be virtuals, for some resources aliases may be defined…</p> 
+<p>This is precisely the role played by the Controller layer: providing a <strong>glue</strong> between the domain model objects and transport layer events. As the Model layer, controllers are written in pure Java, making it easy to access or modify Model objects. Like the HTTP interface, Controllers are procedural and Request/Response oriented.</p> 
+<p>The Controller layer reduces the <strong>impedance mismatch</strong> between HTTP and the Domain Model.</p> 
+<p class="note"><strong>Note</strong><br /> <br /> There are different architectural models with different strategies. Some protocols give you direct access to the domain model objects. This is typically what EJB or Corba protocols do. In these cases, the architectural style used is RPC (Remote Procedure Call). These communication styles are hardly compatible with web architecture.<br /> <br /> Some technologies like SOAP try to give access to the model object domain through the Web. However, SOAP is just another RPC-style protocol, in this case using HTTP as a transport protocol. It is not an application protocol.</p> 
+<p>The web’s principles are not fundamentally object-oriented. So a layer is needed to adapt HTTP to your favorite language.</p> 
+<h2><a name="overview">A controller overview</a></h2> 
+<p>A Controller is a Java class, hosted by the <strong>controllers</strong> package, and subclassing <strong>play.mvc.Controller</strong>.</p> 
+<p>This is a Controller:</p> 
+<pre><code>package controllers;
+ 
+import models.Client;
+import play.mvc.Controller;
+ 
+public class Clients extends Controller {
+ 
+    public static void show(Long id) {
+        Client client = Client.findById(id);
+        render(client);
+    }
+ 
+    public static void delete(Long id) {
+        Client client = Client.findById(id);
+        client.delete();
+    }
+ 
+}
+</code></pre> 
+<p>Each public, static method in a Controller is called an action. The signature for an action method is always:</p> 
+<pre><code>public static void action_name(params...);
+</code></pre> 
+<p>You can define parameters in the action method signature. These parameters will be automatically resolved by the framework from the corresponding HTTP parameters.</p> 
+<p>Usually, an action method doesn’t include a return statement. The method exit is done by the invocation of a <strong>result</strong> method. In this example, <strong>render(…)</strong> is a result method that executes and displays a template.</p> 
+<h2><a name="params">Retrieving HTTP parameters</a></h2> 
+<p>An HTTP request contains data. This data can be extracted from:</p> 
+<ul> 
+ <li>The URI path: in <strong>/clients/1541</strong>, 1541 is dynamic part of the URI Pattern.</li> 
+ <li>The Query String: <strong>/clients?id=1541.</strong></li> 
+ <li>The request body: if the request was sent from an HTML form, the request body contains the form data encoded as <strong>x-www-urlform-encoded</strong>.</li> 
+</ul> 
+<p>In all cases, Play extracts this data and builds a Map&lt;String, String[]&gt; which contains all the HTTP parameters. The key is the parameter name. The parameter name is derived from:</p> 
+<ul> 
+ <li>The name of the dynamic part of the URI (as specified in the route)</li> 
+ <li>The name portion of a name-value pair taken from the Query String</li> 
+ <li>The contents of a x-www-urlform-encoded body.</li> 
+</ul> 
+<h3>Using the params map</h3> 
+<p>The <strong>params</strong> object is available to any Controller class (it is defined in the <strong>play.mvc.Controller</strong> super class). This object contains all the HTTP parameters found for the current request.</p> 
+<p>For example:</p> 
+<pre><code>public static void show() {
+    String id = params.get(&quot;id&quot;);
+    String[] names = params.getAll(&quot;names&quot;);
+}
+</code></pre> 
+<p>You can also ask Play to do the type conversion for you:</p> 
+<pre><code>public static void show() {
+    Long id = params.get(&quot;id&quot;, Long.class);
+}
+</code></pre> 
+<p>But wait, there are better ways to do this :)</p> 
+<h3>From the action method signature</h3> 
+<p>You can retrieve HTTP parameters directly from the action method signature. The Java parameter’s name must be the same as the HTTP parameter’s.</p> 
+<p>For example, in this request:</p> 
+<pre><code>/clients?id=1451
+</code></pre> 
+<p>An action method can retrieve the <strong>id</strong> parameter value by declaring an <strong>id</strong> parameter in its signature:</p> 
+<pre><code>public static void show(String id) {
+    System.out.println(id); 
+}
+</code></pre> 
+<p>You can use other Java types than String. In this case the framework will try to cast the parameter value to the correct Java type:</p> 
+<pre><code>public static void show(Long id) {
+    System.out.println(id);  
+}
+</code></pre> 
+<p>If the parameter is multivalued, you can declare an Array argument:</p> 
+<pre><code>public static void show(Long[] id) {
+    for(String anId : id) {
+        System.out.println(id); 
+    }
+}
+</code></pre> 
+<p>or even a collection type:</p> 
+<pre><code>public static void show(List&lt;Long&gt; id) {
+    for(String anId : id) {
+        System.out.println(id); 
+    }
+}
+</code></pre> 
+<p class="note"><strong>Exceptions</strong><br /> <br /> If the HTTP parameter corresponding to the action method argument is not found, the corresponding method argument is set to its default value (typically null for objects and 0 for primitive numeric types). If a value is found but can’t be properly cast to the required Java type, an error is added to the validation error collection and the default value is used.</p> 
+<h2><a name="binding">Advanced HTTP to Java binding</a></h2> 
+<h3>Simple types</h3> 
+<p>All the native and common Java type are automatically bound:</p> 
+<p><strong>int</strong>, <strong>long</strong>, <strong>boolean</strong>, <strong>char</strong>, <strong>byte</strong>, <strong>float</strong>, <strong>double</strong>, <strong>Integer</strong>, <strong>Long</strong>, <strong>Boolean</strong>, <strong>Char</strong>, <strong>String</strong>, <strong>Float</strong>, <strong>Double</strong>.</p> 
+<p>Note that if the parameter is missing in the HTTP Request, or if automatic conversion fails, Object type will be set to null and native types will be set to their default value.</p> 
+<h3>Date</h3> 
+<p>A date object can be automatically bound if the date’s string representation matches one of the following patterns:</p> 
+<ul> 
+ <li>yyyy-MM-dd’T’hh:mm:ss’Z' // ISO8601 + timezone</li> 
+ <li>yyyy-MM-dd’T’hh:mm:ss&quot; // ISO8601</li> 
+ <li>yyyy-MM-dd</li> 
+ <li>yyyyMMdd’T’hhmmss</li> 
+ <li>yyyyMMddhhmmss</li> 
+ <li>dd'/‘MM’/'yyyy</li> 
+ <li>dd-MM-yyyy</li> 
+ <li>ddMMyyyy</li> 
+ <li>MMddyy</li> 
+ <li>MM-dd-yy</li> 
+ <li>MM'/‘dd’/'yy</li> 
+</ul> 
+<p>For example:</p> 
+<pre><code>archives?from=21/12/1980
+</code></pre> 
+<pre><code>public static void articlesSince(Date from) {
+    List&lt;Article&gt; articles = Article.findBy(&quot;date &gt;= ?&quot;, from);
+    render(articles);
+}
+</code></pre> 
+<h3>Files</h3> 
+<p>File upload is easy with Play. Use a <strong>multipart/form-data</strong> encoded request to post files to the server, and then use the <strong>java.io.File</strong> type to retrieve the file object:</p> 
+<pre><code>public static void create(String comment, File attachment) {
+    String s3Key = S3.post(attachment);
+    Document doc = new Document(comment, s3Key);
+    doc.save();
+    show(doc.id);
+}
+</code></pre> 
+<p>The created file has the same name as the original file. It’s stored in a temporary directory and deleted at the end of the request. So you have to copy it in a safe directory or it will be lost.</p> 
+<h3>Arrays or collections of supported types</h3> 
+<p>All supported types can be retrieved as an Array or a collection of objects:</p> 
+<pre><code>public static void show(Long[] id) {
+    ...
+}
+</code></pre> 
+<p>or:</p> 
+<pre><code>public static void show(List&lt;Long&gt; id) {
+    ...
+}
+</code></pre> 
+<p>or:</p> 
+<pre><code>public static void show(Set&lt;Long&gt; id) {
+    ...
+}
+</code></pre> 
+<h3>POJO object binding</h3> 
+<p>Play also automatically binds any of your model classes using the same simple naming convention rules.</p> 
+<pre><code>public static void create(Client client ) {
+    client.save();
+    show(client);
+}
+</code></pre> 
+<p>A query string to create a client using this action would look like:</p> 
+<pre><code>?client.name=Zenexity&amp;client.email=contact@zenexity.fr
+</code></pre> 
+<p>Play creates a Client instance and resolves HTTP parameters name to properties on the Client object. Unresolved parameters are safely ignored. Types mismatches are also safely ignored.</p> 
+<p>Parameter binding is done recursively, which means you can address complete object graphs:</p> 
+<pre><code>?client.name=Zenexity
+&amp;client.address.street=64+rue+taitbout
+&amp;client.address.zip=75009
+&amp;client.address.country=France
+</code></pre> 
+<p>In order to update a list of model objects, use array notation and reference the object’s ID. For example imagine the Client model has a list of Customer models declared as <strong>List
+  <customer></customer> customers</strong>. To update the list of Customers you would provide a query string like the following:</p> 
+<pre><code>?client.customers[0].id=123
+&amp;client.customers[1].id=456
+&amp;client.customers[2].id=789
+</code></pre> 
+<h2><a>JPA object binding</a></h2> 
+<p>You can automatically bind a JPA object using the HTTP to Java binding.</p> 
+<p>You can provide the <strong>user.id</strong> field yourself in the HTTP parameters. When Play find the <strong>id</strong> field, it loads the matching instance from the database before editing it. The other parameters provided by the HTTP request are then applied. So you can save it directly.</p> 
+<pre><code>public static void save(User user) {
+    user.save(); // ok with 1.0.1
+}
+</code></pre> 
+<h2><a name="result">Result types</a></h2> 
+<p>An action method has to generate an HTTP response. The easiest way to do this is to emit a Result object. When a Result object is emitted, the normal execution flow is interrupted and the method returns.</p> 
+<p>For example:</p> 
+<pre><code>public static void show(Long id) {
+    Client client = Client.findById(id);
+    render(client);
+    System.out.println(&quot;This message will never be displayed !&quot;);
+}
+</code></pre> 
+<p>The <strong>render(…)</strong> method emits a Result object and stops further method execution.</p> 
+<h3>Return some textual content</h3> 
+<p>The <strong>renderText(…)</strong> method emits a simple Result event which writes some text directly to the underlying HTTP Response.</p> 
+<p>Example:</p> 
+<pre><code>public static void countUnreadMessages() {
+    Integer unreadMessages = MessagesBox.countUnreadMessages();
+    renderText(unreadMessages);
+}
+</code></pre> 
+<p>You can format the text message using the Java standard formatting syntax:</p> 
+<pre><code>public static void countUnreadMessages() {
+    Integer unreadMessages = MessagesBox.countUnreadMessages();
+    renderText(&quot;There are %s unread messages&quot;, unreadMessages);
+}
+</code></pre> 
+<h3>Execute a template</h3> 
+<p>If the generated content is complex, you should use a template to generate the response content.</p> 
+<pre><code>public class Clients extends Controller {
+ 
+    public static void index() {
+        render();    
+    }
+ 
+}
+</code></pre> 
+<p>A template name is automatically deduced from the Play conventions. The default template path is resolved using the Controller and action names.</p> 
+<p>In this example the invoked template is:</p> 
+<pre><code>app/views/Clients/index.html
+</code></pre> 
+<h4>Add data to the template scope</h4> 
+<p>Often the template needs data. You can add these data to the template scope using the <strong>renderArgs</strong> object:</p> 
+<pre><code>public class Clients extends Controller {
+ 
+    public static void show(Long id) {
+        Client client = Client.findById(id);
+        renderArgs.put(&quot;client&quot;, client);
+        render();    
+    }
+ 
+}
+</code></pre> 
+<p>During template execution, the <strong>client</strong> variable will be defined.</p> 
+<p>For example:</p> 
+<pre><code>&lt;h1&gt;Client ${client.name}&lt;/h1&gt;
+</code></pre> 
+<h4>A simpler way to add data to the template scope</h4> 
+<p>You can pass data directly to the template using <strong>render(…)</strong> method arguments:</p> 
+<pre><code>public static void show(Long id) {
+    Client client = Client.findById(id);
+    render(client);    
+}
+</code></pre> 
+<p>In this case, the variables accessible by the template have the same name as the local Java variables.</p> 
+<p>You can pass more than one variable:</p> 
+<pre><code>public static void show(Long id) {
+    Client client = Client.findById(id);
+    render(id, client);    
+}
+</code></pre> 
+<p class="note"><strong>Important!</strong><br /> <br /> You can only pass <strong>local variables</strong> in this way.</p> 
+<h4>Specify another template</h4> 
+<p>If you don’t want to use the default template, you can specify your own template file during the <strong>render(…)</strong> call. Just pass it as the render method’s first parameter:</p> 
+<p>Example:</p> 
+<pre><code>public static void show(Long id) {
+    Client client = Client.findById(id);
+    render(&quot;Clients/showClient.html&quot;, id, client);    
+}
+</code></pre> 
+<h3>Redirect to another URL</h3> 
+<p>The <strong>redirect(…)</strong> method emits a Redirect event that in turn generates an HTTP Redirect response.</p> 
+<pre><code>public static void index() {
+    redirect(&quot;http://www.zenexity.fr&quot;);
+}
+</code></pre> 
+<h3>Action chaining</h3> 
+<p>There is no equivalent to the Servlet API <strong>forward</strong>. An HTTP request can only invoke one action. If you need to invoke another action, you have to redirect the browser to the URL able to invoke that action. In this way, the browser URL is always consistent with the executed action, and the <strong>Back/Forward/Refresh</strong> management is much easier.</p> 
+<p>You can send a Redirect response to any action, simply by invoking the action method in a Java way. The Java call is intercepted by the framework and the correct HTTP Redirect is generated.</p> 
+<p>For example:</p> 
+<pre><code>public class Clients extends Controller {
+ 
+    public static void show(Long id) {
+        Client client = Client.findById(id);
+        render(client);
+    }
+ 
+    public static void create(String name) {
+        Client client = new Client(name);
+        client.save();
+        show(client.id);
+    }
+ 
+}
+</code></pre> 
+<p>With these routes:</p> 
+<pre><code>GET    /clients/{id}            Clients.show
+POST   /clients                 Clients.create 
+</code></pre> 
+<ul> 
+ <li>The browser sends a POST to the <strong>/clients</strong> URL.</li> 
+ <li>The Router invokes the <strong>Clients</strong> controller’s <strong>create</strong> action.</li> 
+ <li>The action method call the <strong>show</strong> action method directly.</li> 
+ <li>The Java call is intercepted and the Router reverse route generation creates the URL needed to invoke Clients.show with an id parameter.</li> 
+ <li>The HTTP Response is <strong>302 Location:/clients/3132</strong>.</li> 
+ <li>The browser then issues <strong>GET /clients/3132</strong>.</li> 
+ <li>…</li> 
+</ul> 
+<h2><a name="interceptions">Interceptions</a></h2> 
+<p>A controller can define interception methods. Interceptors are invoked for all actions of the controller class and its descendants. It’s a useful way to define treatments that are common to all actions: verifying that a user is authenticated, loading request-scope information…</p> 
+<p>These methods have to be <strong>static</strong> but not <strong>public</strong>. You have to annotate these methods with a valid interception marker.</p> 
+<h3>@Before</h3> 
+<p>Methods annotated with the <strong>@Before</strong> annotation are executed before each action call for this Controller.</p> 
+<p>So, to create a security check:</p> 
+<pre><code>public class Admin extends Application {
+ 
+    @Before
+    static void checkAuthentification() {
+        if(session.get(&quot;user&quot;) == null) login();
+    }
+ 
+    public static void index() {
+        List&lt;User&gt; users = User.findAll();
+        render(users);
+    }
+ 
+    ...
+ 
+}
+</code></pre> 
+<p>If you don’t want the @Before method to intercept all action calls, you can specify a list of actions to exclude:</p> 
+<pre><code>public class Admin extends Application {
+ 
+    @Before(unless=&quot;login&quot;)
+    static void checkAuthentification() {
+        if(session.get(&quot;user&quot;) == null) login();
+    }
+ 
+    public static void index() {
+        List&lt;User&gt; users = User.findAll();
+        render(users);
+    }
+ 
+    ...
+ 
+}
+</code></pre> 
+<h3>@After</h3> 
+<p>Methods annotated with the <strong>@After</strong> annotation are executed after each action call for this Controller.</p> 
+<pre><code>public class Admin extends Application {
+ 
+    @After
+    static void log() {
+        Logger.info(&quot;Action executed ...&quot;);
+    }
+ 
+    public static void index() {
+        List&lt;User&gt; users = User.findAll();
+        render(users);
+    }
+ 
+    ...
+ 
+}
+</code></pre> 
+<h3>@Finally</h3> 
+<p>Methods annotated with the <strong>@Finally</strong> annotation are executed after each action result is applied from for this Controller.</p> 
+<pre><code>public class Admin extends Application {
+ 
+    @Finally
+    static void log() {
+        Logger.info(&quot;Response contains : &quot; + response.out);
+    }
+ 
+    public static void index() {
+        List&lt;User&gt; users = User.findAll();
+        render(users);
+    }
+ 
+    ...
+ 
+}
+</code></pre> 
+<h3>Controller hierarchy</h3> 
+<p>If a Controller class is a subclass of another Controller class, interceptions are applied to the full Controller hierarchy.</p> 
+<h3>Adding more interceptors using the @With annotation</h3> 
+<p>Because Java does not allow multiple inheritance, it can be very limiting to rely on the Controller hierarchy to apply interceptors. But you can define some interceptors in a totally different class, and link them with any controller using the <strong>@With</strong> annotation.</p> 
+<p>Example:</p> 
+<pre><code>public class Secure extends Controller {
+    
+    @Before
+    static void checkAuthenticated() {
+        if(!session.containsKey(&quot;user&quot;)) {
+            unAuthorized();
+        }
+    }
+}    
+</code></pre> 
+<p>And on another Controller:</p> 
+<pre><code>@With(Secure.class)
+public class Admin extends Application {
+    
+    ...
+     
+}
+</code></pre> 
+<h2><a name="session">Session and Flash scope</a></h2> 
+<p>If you have to keep data across multiple HTTP Requests, you can save them in the Session or the Flash scope. Data stored in the Session are available during the whole user session, and data stored in the flash scope are available to the next request only.</p> 
+<p>It’s important to understand that Session and Flash data are not stored in the server but are added to each subsequent HTTP Request, using the Cookie mechanism. So the data size is very limited (up to 4Ko) and you can only store String values.</p> 
+<p>Of course, cookies are signed with a secret key so the client can’t modify the cookie data (or it will be invalidated). The Play session is not aimed to be used as a cache. If you need to cache some data related to a specific session, you can use the Play built-in cache mechanism and use the <strong>session.getId()</strong> key to keep them related to a specific user session.</p> 
+<p>Example:</p> 
+<pre><code>public static void index() {
+    List messages = Cache.get(session.getId() + &quot;-messages&quot;, List.class);
+    if(messages == null) {
+        // Cache miss
+        messages = Message.findByUser(session.get(&quot;user&quot;));
+        Cache.set(session.getId() + &quot;-messages&quot;, messages, &quot;30mn&quot;);
+    }
+    render(messages);
+}
+</code></pre> 
+<p>The cache has different semantics than the classic Servlet HTTP session object. You can’t assume that these objects will be always in the cache. So it forces you to handle the cache miss cases, and keeps your application fully stateless.</p> 
+<p class="note"><strong>Continuing the discussion</strong><br /> <br /> The next important layer of the MVC model is the View layer, for which Play provides an efficient <a href="http://www.playframework.org/documentation/1.0.3/templates">templating system</a>.</p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

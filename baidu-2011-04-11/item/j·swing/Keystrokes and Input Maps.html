@@ -1,0 +1,444 @@
+<html><head><title>Keystrokes and Input Maps</title></head><body><div id='tit'>Keystrokes and Input Maps</div><div id='cate'>j&middot;swing</div><div id='date'>2009年10月25日 星期日 12:48 P.M.</div><div id='page'>26</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b35af13611350a3b0b55a9c8.html'>http://hi.baidu.com/hxzon/blog/item/b35af13611350a3b0b55a9c8.html</a><div id='cnt'><div> 
+ <p><strong>Keystrokes and Input Maps</strong></p> 
+ <h3>e858. Creating a KeyStroke and Binding It to an Action</h3> 
+ <p>This example creates a number of keystrokes and adds them to the input map of a component. When a keystroke is added to an input map, an action name must be supplied. This action is invoked when the keystroke is pressed while the component has the focus.</p> 
+ <pre>// Create some keystrokes and bind them all to the same action
+    <em>component</em>.getInputMap().put(KeyStroke.getKeyStroke(<em>&quot;F2&quot;</em>), <em>&quot;actionName&quot;</em>);
+    <em>component</em>.getInputMap().put(KeyStroke.getKeyStroke(<em>&quot;control A&quot;</em>), <em>&quot;actionName&quot;</em>);
+    <em>component</em>.getInputMap().put(KeyStroke.getKeyStroke(<em>&quot;shift F2&quot;</em>), <em>&quot;actionName&quot;</em>);
+    <em>component</em>.getInputMap().put(KeyStroke.getKeyStroke(<em>'('</em>), <em>&quot;actionName&quot;</em>);
+    <em>component</em>.getInputMap().put(KeyStroke.getKeyStroke(<em>&quot;button3 F&quot;</em>), <em>&quot;actionName&quot;</em>);
+    <em>component</em>.getInputMap().put(KeyStroke.getKeyStroke(<em>&quot;typed x&quot;</em>), <em>&quot;actionName&quot;</em>);
+    <em>component</em>.getInputMap().put(KeyStroke.getKeyStroke(<em>&quot;released DELETE&quot;</em>), <em>&quot;actionName&quot;</em>);
+    <em>component</em>.getInputMap().put(KeyStroke.getKeyStroke(<em>&quot;shift UP&quot;</em>), <em>&quot;actionName&quot;</em>);
+    
+    // Add the action to the component
+    <em>component</em>.getActionMap().put(<em>&quot;actionName&quot;</em>,
+        new AbstractAction(<em>&quot;actionName&quot;</em>) {
+            public void actionPerformed(ActionEvent evt) {
+                <em>process</em>(evt);
+            }
+        }
+    );</pre>
+ <h3>e859. Converting a KeyStroke to a String</h3> 
+ <p>The <code><span style=";;font-family:新宋体;">KeyStroke.toString()</span></code> method does not return a string that can be parsed by <code><span style=";;font-family:新宋体;">KeyStroke.getKeyStroke()</span></code>. The method <code><span style=";;font-family:新宋体;">keyStroke2String()</span></code> in this example returns a string that is parseable by <code><span style=";;font-family:新宋体;">KeyStroke.getKeyStroke()</span></code>. However, there is one keystroke that cannot be represented as a string that can be parsed back to a keystroke - - a typed space character. In order to bind an action to a typed space character, <code><span style=";;font-family:新宋体;">KeyStroke.getKeyStroke(new Character(' '), 0)</span></code> needs to be called.</p> 
+ <pre>public static String keyStroke2String(KeyStroke key) {
+        StringBuffer s = new StringBuffer(50);
+        int m = key.getModifiers();
+    
+        if ((m &amp; (InputEvent.SHIFT_DOWN_MASK|InputEvent.SHIFT_MASK)) != 0) {
+            s.append(&quot;shift &quot;);
+        }
+        if ((m &amp; (InputEvent.CTRL_DOWN_MASK|InputEvent.CTRL_MASK)) != 0) {
+            s.append(&quot;ctrl &quot;);
+        }
+        if ((m &amp; (InputEvent.META_DOWN_MASK|InputEvent.META_MASK)) != 0) {
+            s.append(&quot;meta &quot;);
+        }
+        if ((m &amp; (InputEvent.ALT_DOWN_MASK|InputEvent.ALT_MASK)) != 0) {
+            s.append(&quot;alt &quot;);
+        }
+        if ((m &amp; (InputEvent.BUTTON1_DOWN_MASK|InputEvent.BUTTON1_MASK)) != 0) {
+            s.append(&quot;button1 &quot;);
+        }
+        if ((m &amp; (InputEvent.BUTTON2_DOWN_MASK|InputEvent.BUTTON2_MASK)) != 0) {
+            s.append(&quot;button2 &quot;);
+        }
+        if ((m &amp; (InputEvent.BUTTON3_DOWN_MASK|InputEvent.BUTTON3_MASK)) != 0) {
+            s.append(&quot;button3 &quot;);
+        }
+    
+        switch (key.getKeyEventType()) {
+        case KeyEvent.KEY_TYPED:
+            s.append(&quot;typed &quot;);
+            s.append(key.getKeyChar() + &quot; &quot;);
+            break;
+        case KeyEvent.KEY_PRESSED:
+            s.append(&quot;pressed &quot;);
+            s.append(getKeyText(key.getKeyCode()) + &quot; &quot;);
+            break;
+        case KeyEvent.KEY_RELEASED:
+            s.append(&quot;released &quot;);
+            s.append(getKeyText(key.getKeyCode()) + &quot; &quot;);
+            break;
+        default:
+            s.append(&quot;unknown-event-type &quot;);
+            break;
+        }
+    
+        return s.toString();
+    }
+    
+    public static String getKeyText(int keyCode) {
+        if (keyCode &gt;= KeyEvent.VK_0 &amp;&amp; keyCode &lt;= KeyEvent.VK_9 ||
+            keyCode &gt;= KeyEvent.VK_A &amp;&amp; keyCode &lt;= KeyEvent.VK_Z) {
+            return String.valueOf((char)keyCode);
+        }
+    
+        switch(keyCode) {
+          case KeyEvent.VK_COMMA: return &quot;COMMA&quot;;
+          case KeyEvent.VK_PERIOD: return &quot;PERIOD&quot;;
+          case KeyEvent.VK_SLASH: return &quot;SLASH&quot;;
+          case KeyEvent.VK_SEMICOLON: return &quot;SEMICOLON&quot;;
+          case KeyEvent.VK_EQUALS: return &quot;EQUALS&quot;;
+          case KeyEvent.VK_OPEN_BRACKET: return &quot;OPEN_BRACKET&quot;;
+          case KeyEvent.VK_BACK_SLASH: return &quot;BACK_SLASH&quot;;
+          case KeyEvent.VK_CLOSE_BRACKET: return &quot;CLOSE_BRACKET&quot;;
+    
+          case KeyEvent.VK_ENTER: return &quot;ENTER&quot;;
+          case KeyEvent.VK_BACK_SPACE: return &quot;BACK_SPACE&quot;;
+          case KeyEvent.VK_TAB: return &quot;TAB&quot;;
+          case KeyEvent.VK_CANCEL: return &quot;CANCEL&quot;;
+          case KeyEvent.VK_CLEAR: return &quot;CLEAR&quot;;
+          case KeyEvent.VK_SHIFT: return &quot;SHIFT&quot;;
+          case KeyEvent.VK_CONTROL: return &quot;CONTROL&quot;;
+          case KeyEvent.VK_ALT: return &quot;ALT&quot;;
+          case KeyEvent.VK_PAUSE: return &quot;PAUSE&quot;;
+          case KeyEvent.VK_CAPS_LOCK: return &quot;CAPS_LOCK&quot;;
+          case KeyEvent.VK_ESCAPE: return &quot;ESCAPE&quot;;
+          case KeyEvent.VK_SPACE: return &quot;SPACE&quot;;
+          case KeyEvent.VK_PAGE_UP: return &quot;PAGE_UP&quot;;
+          case KeyEvent.VK_PAGE_DOWN: return &quot;PAGE_DOWN&quot;;
+          case KeyEvent.VK_END: return &quot;END&quot;;
+          case KeyEvent.VK_HOME: return &quot;HOME&quot;;
+          case KeyEvent.VK_LEFT: return &quot;LEFT&quot;;
+          case KeyEvent.VK_UP: return &quot;UP&quot;;
+          case KeyEvent.VK_RIGHT: return &quot;RIGHT&quot;;
+          case KeyEvent.VK_DOWN: return &quot;DOWN&quot;;
+    
+          // numpad numeric keys handled below
+          case KeyEvent.VK_MULTIPLY: return &quot;MULTIPLY&quot;;
+          case KeyEvent.VK_ADD: return &quot;ADD&quot;;
+          case KeyEvent.VK_SEPARATOR: return &quot;SEPARATOR&quot;;
+          case KeyEvent.VK_SUBTRACT: return &quot;SUBTRACT&quot;;
+          case KeyEvent.VK_DECIMAL: return &quot;DECIMAL&quot;;
+          case KeyEvent.VK_DIVIDE: return &quot;DIVIDE&quot;;
+          case KeyEvent.VK_DELETE: return &quot;DELETE&quot;;
+          case KeyEvent.VK_NUM_LOCK: return &quot;NUM_LOCK&quot;;
+          case KeyEvent.VK_SCROLL_LOCK: return &quot;SCROLL_LOCK&quot;;
+    
+          case KeyEvent.VK_F1: return &quot;F1&quot;;
+          case KeyEvent.VK_F2: return &quot;F2&quot;;
+          case KeyEvent.VK_F3: return &quot;F3&quot;;
+          case KeyEvent.VK_F4: return &quot;F4&quot;;
+          case KeyEvent.VK_F5: return &quot;F5&quot;;
+          case KeyEvent.VK_F6: return &quot;F6&quot;;
+          case KeyEvent.VK_F7: return &quot;F7&quot;;
+          case KeyEvent.VK_F8: return &quot;F8&quot;;
+          case KeyEvent.VK_F9: return &quot;F9&quot;;
+          case KeyEvent.VK_F10: return &quot;F10&quot;;
+          case KeyEvent.VK_F11: return &quot;F11&quot;;
+          case KeyEvent.VK_F12: return &quot;F12&quot;;
+          case KeyEvent.VK_F13: return &quot;F13&quot;;
+          case KeyEvent.VK_F14: return &quot;F14&quot;;
+          case KeyEvent.VK_F15: return &quot;F15&quot;;
+          case KeyEvent.VK_F16: return &quot;F16&quot;;
+          case KeyEvent.VK_F17: return &quot;F17&quot;;
+          case KeyEvent.VK_F18: return &quot;F18&quot;;
+          case KeyEvent.VK_F19: return &quot;F19&quot;;
+          case KeyEvent.VK_F20: return &quot;F20&quot;;
+          case KeyEvent.VK_F21: return &quot;F21&quot;;
+          case KeyEvent.VK_F22: return &quot;F22&quot;;
+          case KeyEvent.VK_F23: return &quot;F23&quot;;
+          case KeyEvent.VK_F24: return &quot;F24&quot;;
+    
+          case KeyEvent.VK_PRINTSCREEN: return &quot;PRINTSCREEN&quot;;
+          case KeyEvent.VK_INSERT: return &quot;INSERT&quot;;
+          case KeyEvent.VK_HELP: return &quot;HELP&quot;;
+          case KeyEvent.VK_META: return &quot;META&quot;;
+          case KeyEvent.VK_BACK_QUOTE: return &quot;BACK_QUOTE&quot;;
+          case KeyEvent.VK_QUOTE: return &quot;QUOTE&quot;;
+    
+          case KeyEvent.VK_KP_UP: return &quot;KP_UP&quot;;
+          case KeyEvent.VK_KP_DOWN: return &quot;KP_DOWN&quot;;
+          case KeyEvent.VK_KP_LEFT: return &quot;KP_LEFT&quot;;
+          case KeyEvent.VK_KP_RIGHT: return &quot;KP_RIGHT&quot;;
+    
+          case KeyEvent.VK_DEAD_GRAVE: return &quot;DEAD_GRAVE&quot;;
+          case KeyEvent.VK_DEAD_ACUTE: return &quot;DEAD_ACUTE&quot;;
+          case KeyEvent.VK_DEAD_CIRCUMFLEX: return &quot;DEAD_CIRCUMFLEX&quot;;
+          case KeyEvent.VK_DEAD_TILDE: return &quot;DEAD_TILDE&quot;;
+          case KeyEvent.VK_DEAD_MACRON: return &quot;DEAD_MACRON&quot;;
+          case KeyEvent.VK_DEAD_BREVE: return &quot;DEAD_BREVE&quot;;
+          case KeyEvent.VK_DEAD_ABOVEDOT: return &quot;DEAD_ABOVEDOT&quot;;
+          case KeyEvent.VK_DEAD_DIAERESIS: return &quot;DEAD_DIAERESIS&quot;;
+          case KeyEvent.VK_DEAD_ABOVERING: return &quot;DEAD_ABOVERING&quot;;
+          case KeyEvent.VK_DEAD_DOUBLEACUTE: return &quot;DEAD_DOUBLEACUTE&quot;;
+          case KeyEvent.VK_DEAD_CARON: return &quot;DEAD_CARON&quot;;
+          case KeyEvent.VK_DEAD_CEDILLA: return &quot;DEAD_CEDILLA&quot;;
+          case KeyEvent.VK_DEAD_OGONEK: return &quot;DEAD_OGONEK&quot;;
+          case KeyEvent.VK_DEAD_IOTA: return &quot;DEAD_IOTA&quot;;
+          case KeyEvent.VK_DEAD_VOICED_SOUND: return &quot;DEAD_VOICED_SOUND&quot;;
+          case KeyEvent.VK_DEAD_SEMIVOICED_SOUND: return &quot;DEAD_SEMIVOICED_SOUND&quot;;
+    
+          case KeyEvent.VK_AMPERSAND: return &quot;AMPERSAND&quot;;
+          case KeyEvent.VK_ASTERISK: return &quot;ASTERISK&quot;;
+          case KeyEvent.VK_QUOTEDBL: return &quot;QUOTEDBL&quot;;
+          case KeyEvent.VK_LESS: return &quot;LESS&quot;;
+          case KeyEvent.VK_GREATER: return &quot;GREATER&quot;;
+          case KeyEvent.VK_BRACELEFT: return &quot;BRACELEFT&quot;;
+          case KeyEvent.VK_BRACERIGHT: return &quot;BRACERIGHT&quot;;
+          case KeyEvent.VK_AT: return &quot;AT&quot;;
+          case KeyEvent.VK_COLON: return &quot;COLON&quot;;
+          case KeyEvent.VK_CIRCUMFLEX: return &quot;CIRCUMFLEX&quot;;
+          case KeyEvent.VK_DOLLAR: return &quot;DOLLAR&quot;;
+          case KeyEvent.VK_EURO_SIGN: return &quot;EURO_SIGN&quot;;
+          case KeyEvent.VK_EXCLAMATION_MARK: return &quot;EXCLAMATION_MARK&quot;;
+          case KeyEvent.VK_INVERTED_EXCLAMATION_MARK:
+                   return &quot;INVERTED_EXCLAMATION_MARK&quot;;
+          case KeyEvent.VK_LEFT_PARENTHESIS: return &quot;LEFT_PARENTHESIS&quot;;
+          case KeyEvent.VK_NUMBER_SIGN: return &quot;NUMBER_SIGN&quot;;
+          case KeyEvent.VK_MINUS: return &quot;MINUS&quot;;
+          case KeyEvent.VK_PLUS: return &quot;PLUS&quot;;
+          case KeyEvent.VK_RIGHT_PARENTHESIS: return &quot;RIGHT_PARENTHESIS&quot;;
+          case KeyEvent.VK_UNDERSCORE: return &quot;UNDERSCORE&quot;;
+    
+          case KeyEvent.VK_FINAL: return &quot;FINAL&quot;;
+          case KeyEvent.VK_CONVERT: return &quot;CONVERT&quot;;
+          case KeyEvent.VK_NONCONVERT: return &quot;NONCONVERT&quot;;
+          case KeyEvent.VK_ACCEPT: return &quot;ACCEPT&quot;;
+          case KeyEvent.VK_MODECHANGE: return &quot;MODECHANGE&quot;;
+          case KeyEvent.VK_KANA: return &quot;KANA&quot;;
+          case KeyEvent.VK_KANJI: return &quot;KANJI&quot;;
+          case KeyEvent.VK_ALPHANUMERIC: return &quot;ALPHANUMERIC&quot;;
+          case KeyEvent.VK_KATAKANA: return &quot;KATAKANA&quot;;
+          case KeyEvent.VK_HIRAGANA: return &quot;HIRAGANA&quot;;
+          case KeyEvent.VK_FULL_WIDTH: return &quot;FULL_WIDTH&quot;;
+          case KeyEvent.VK_HALF_WIDTH: return &quot;HALF_WIDTH&quot;;
+          case KeyEvent.VK_ROMAN_CHARACTERS: return &quot;ROMAN_CHARACTERS&quot;;
+          case KeyEvent.VK_ALL_CANDIDATES: return &quot;ALL_CANDIDATES&quot;;
+          case KeyEvent.VK_PREVIOUS_CANDIDATE: return &quot;PREVIOUS_CANDIDATE&quot;;
+          case KeyEvent.VK_CODE_INPUT: return &quot;CODE_INPUT&quot;;
+          case KeyEvent.VK_JAPANESE_KATAKANA: return &quot;JAPANESE_KATAKANA&quot;;
+          case KeyEvent.VK_JAPANESE_HIRAGANA: return &quot;JAPANESE_HIRAGANA&quot;;
+          case KeyEvent.VK_JAPANESE_ROMAN: return &quot;JAPANESE_ROMAN&quot;;
+          case KeyEvent.VK_KANA_LOCK: return &quot;KANA_LOCK&quot;;
+          case KeyEvent.VK_INPUT_METHOD_ON_OFF: return &quot;INPUT_METHOD_ON_OFF&quot;;
+    
+          case KeyEvent.VK_AGAIN: return &quot;AGAIN&quot;;
+          case KeyEvent.VK_UNDO: return &quot;UNDO&quot;;
+          case KeyEvent.VK_COPY: return &quot;COPY&quot;;
+          case KeyEvent.VK_PASTE: return &quot;PASTE&quot;;
+          case KeyEvent.VK_CUT: return &quot;CUT&quot;;
+          case KeyEvent.VK_FIND: return &quot;FIND&quot;;
+          case KeyEvent.VK_PROPS: return &quot;PROPS&quot;;
+          case KeyEvent.VK_STOP: return &quot;STOP&quot;;
+    
+          case KeyEvent.VK_COMPOSE: return &quot;COMPOSE&quot;;
+          case KeyEvent.VK_ALT_GRAPH: return &quot;ALT_GRAPH&quot;;
+        }
+    
+        if (keyCode &gt;= KeyEvent.VK_NUMPAD0 &amp;&amp; keyCode &lt;= KeyEvent.VK_NUMPAD9) {
+            char c = (char)(keyCode - KeyEvent.VK_NUMPAD0 + '0');
+            return &quot;NUMPAD&quot;+c;
+        }
+    
+        return &quot;unknown(0x&quot; + Integer.toString(keyCode, 16) + &quot;)&quot;;
+    }</pre>
+ <h3>e860. Listing the Key Bindings in a Component</h3> 
+ <p>This example demonstrates how to list all the key bindings in a component. Text components have an additional set of key bindings called a keymap. See <a class="eglink" href="http://www.exampledepot.com/egs/javax.swing.text/ListTextKeys.html"><strong>e1005</strong> Listing the Key Bindings in a JTextComponent Keymap</a> for an example on how to list those key bindings.</p> 
+ <pre>// List keystrokes in the WHEN_FOCUSED input map of the component
+    InputMap map = component.getInputMap(JComponent.WHEN_FOCUSED);
+    list(map, map.keys());
+    // List keystrokes in the component and in all parent input maps
+    list(map, map.allKeys());
+    
+    // List keystrokes in the WHEN_ANCESTOR_OF_FOCUSED_COMPONENT input map of the component
+    map = component.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+    list(map, map.keys());
+    // List keystrokes in all related input maps
+    list(map, map.allKeys());
+    
+    // List keystrokes in the WHEN_IN_FOCUSED_WINDOW input map of the component
+    map = component.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    list(map, map.keys());
+    // List keystrokes in all related input maps
+    list(map, map.allKeys());
+    
+    public static void list(InputMap map, KeyStroke[] keys) {
+        if (keys == null) {
+            return;
+        }
+        for (int i=0; i&lt;keys.length; i++) {
+            // This method is defined in <a class="eglink" href="http://www.exampledepot.com/egs/javax.swing/Key2Str.html"><strong>e859</strong> Converting a KeyStroke to a String</a>
+            String keystrokeStr = <em> </em>keyStroke2String(keys[i]);
+    
+            // Get the action name bound to this keystroke
+            while (map.get(keys[i]) == null) {
+                map = map.getParent();
+            }
+            if (map.get(keys[i]) instanceof String) {
+                String actionName = (String)map.get(keys[i]);
+            } else {
+                Action action = (Action)map.get(keys[i]);
+            }
+        }
+    }</pre>
+ <h3>e861. Sharing an InputMap or an ActionMap Between Two Components</h3> 
+ <p>By sharing an <code><span style=";;font-family:新宋体;">InputMap</span></code> or <code><span style=";;font-family:新宋体;">ActionMap</span></code>, any change to the shared <code><span style=";;font-family:新宋体;">InputMap</span></code> or <code><span style=";;font-family:新宋体;">ActionMap</span></code> will affect all components sharing the <code><span style=";;font-family:新宋体;">InputMap</span></code> or <code><span style=";;font-family:新宋体;">ActionMap</span></code>. <code><span style=";;font-family:新宋体;">WHEN_FOCUSED</span></code> and <code><span style=";;font-family:新宋体;">WHEN_ANCESTOR_OF_FOCUSED_COMPONENT</span></code> types of <code><span style=";;font-family:新宋体;">InputMap</span></code>s can be shared. <code><span style=";;font-family:新宋体;">WHEN_IN_FOCUSED_WINDOW</span></code> <code><span style=";;font-family:新宋体;">InputMap</span></code>s cannot be shared.</p> 
+ <pre>// Get an InputMap from the desired type of component and initialize it
+    InputMap im = new JTextArea().getInputMap(JComponent.<em>WHEN_FOCUSED</em>);
+    im.put(KeyStroke.getKeyStroke(<em>&quot;F2&quot;</em>), <em>&quot;actionName&quot;</em>);
+    
+    // Get an ActionMap from the desired type of component and initialize it
+    ActionMap am =  new JTextArea().getActionMap();
+    am.put(<em>&quot;actionName&quot;</em>,
+        new AbstractAction(<em>&quot;actionName&quot;</em>) {
+            public void actionPerformed(ActionEvent evt) {
+                <em>process</em>((JTextComponent)evt.getSource());
+            }
+        }
+    );
+    
+    // Use the shared InputMap and ActionMap
+    <em>component1</em>.setInputMap(JComponent.<em>WHEN_FOCUSED</em>, im);
+    <em>component2</em>.setInputMap(JComponent.<em>WHEN_FOCUSED</em>, im);
+    
+    <em>component1</em>.setActionMap(am);
+    <em>component2</em>.setActionMap(am);
+    
+    // Now, any change to the shared InputMap or ActionMap will affect both component1 and component2
+    im.put(KeyStroke.getKeyStroke(<em>&quot;F3&quot;</em>), <em>&quot;actionName2&quot;</em>);
+    am.put(<em>&quot;actionName2&quot;</em>,
+        new AbstractAction(<em>&quot;actionName2&quot;</em>) {
+            public void actionPerformed(ActionEvent evt) {
+                <em>process</em>((JTextComponent)evt.getSource());
+            }
+        }
+    );</pre>
+ <h3>e862. Finding a Key Binding in a Component</h3> 
+ <p>This example searches all of a component's inputmaps and keymaps (if the component is a text component) for a particular keystroke.</p> 
+ <pre>FindResult r = find(KeyStroke.getKeyStroke(<em>&quot;ctrl pressed C&quot;</em>), <em>component</em>);
+    r = find(KeyStroke.getKeyStroke(<em>&quot;ctrl released C&quot;</em>), <em>component</em>);
+    r = find(KeyStroke.getKeyStroke(<em>&quot;C&quot;</em>), <em>component</em>);
+    r = find(KeyStroke.getKeyStroke(<em>&quot;typed C&quot;</em>), <em>component</em>);
+    r = find(KeyStroke.getKeyStroke(<em>new Character('\u0002')</em>, 0), <em>component</em>);
+    
+    // The results of a find are returned in a FindResult object
+    static class FindResult {
+        // Non-null if the keystroke is in an inputmap
+        InputMap inputMap;
+    
+        // Non-null if the keystroke is in an keymap or default action
+        Keymap keymap;
+    
+        // Non-null if the keystroke is in a default action
+        // The keymap field holds the keymap containing the default action
+        Action defaultAction;
+    
+        // If true, the keystroke is in the component's inputMap or keymap
+        // and not in one of the inputMap's or keymap's parent.
+        boolean isLocal;
+    
+        public String toString() {
+            StringBuffer b = new StringBuffer();
+    
+            b.append(&quot;inputmap=&quot;+inputMap+&quot;,keymap=&quot;+keymap
+                     +&quot;,defaultAction=&quot;+defaultAction+&quot;,isLocal=&quot;+isLocal);
+            return b.toString();
+        }
+    }
+    
+    // Returns null if not found
+    public static FindResult find(KeyStroke k, JComponent c) {
+        FindResult result;
+    
+        result = find(k, c.getInputMap(JComponent.WHEN_FOCUSED));
+        if (result != null) {
+            return result;
+        }
+        result = find(k, c.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT));
+        if (result != null) {
+            return result;
+        }
+        result = find(k, c.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW));
+        if (result != null) {
+            return result;
+        }
+    
+    
+        // Check keymaps
+        if (c instanceof JTextComponent) {
+            JTextComponent tc = (JTextComponent)c;
+            result = new FindResult();
+    
+            // Check local keymap
+            Keymap kmap = tc.getKeymap();
+            if (kmap.isLocallyDefined(k)) {
+                result.keymap = kmap;
+                result.isLocal = true;
+                return result;
+            }
+    
+            // Check parent keymaps
+            kmap = kmap.getResolveParent();
+            while (kmap != null) {
+                if (kmap.isLocallyDefined(k)) {
+                    result.keymap = kmap;
+                    return result;
+                }
+                kmap = kmap.getResolveParent();
+            }
+    
+            // Look for default action
+            if (k.getKeyEventType() == KeyEvent.KEY_TYPED) {
+                // Check local keymap
+                kmap = tc.getKeymap();
+                if (kmap.getDefaultAction() != null) {
+                    result.keymap = kmap;
+                    result.defaultAction = kmap.getDefaultAction();
+                    result.isLocal = true;
+                    return result;
+                }
+    
+                // Check parent keymaps
+                kmap = kmap.getResolveParent();
+                while (kmap != null) {
+                    if (kmap.getDefaultAction() != null) {
+                        result.keymap = kmap;
+                        result.defaultAction = kmap.getDefaultAction();
+                        return result;
+                    }
+                    kmap = kmap.getResolveParent();
+                }
+            }
+        }
+        return null;
+    }
+    
+    public static FindResult find(KeyStroke k, InputMap map) {
+        // Check local inputmap
+        KeyStroke[] keys = map.keys();
+        for (int i=0; keys != null &amp;&amp; i&lt;keys.length; i++) {
+            if (k.equals(keys[i])) {
+                FindResult result = new FindResult();
+                result.inputMap = map;
+                result.isLocal = true;
+                return result;
+            }
+        }
+    
+        // Check parent inputmap
+        map = map.getParent();
+        while (map != null) {
+            keys = map.keys();
+            for (int i=0; keys != null &amp;&amp; i&lt;keys.length; i++) {
+                if (k.equals(keys[i])) {
+                    FindResult result = new FindResult();
+                    result.inputMap = map;
+                    return result;
+                }
+            }
+            map = map.getParent();
+        }
+        return null;
+    }</pre>
+ <h3>e863. Adding an InputMap to a Component</h3> 
+ <pre>InputMap inputMap = new InputMap();
+    
+    // Add a KeyStroke
+    inputMap.put(KeyStroke.getKeyStroke(<em>&quot;F2&quot;</em>), <em>&quot;actionName&quot;</em>);
+    
+    inputMap.setParent(<em>component</em>.getInputMap(JComponent.WHEN_FOCUSED));
+    <em>component</em>.setInputMap(JComponent.WHEN_FOCUSED, inputMap);</pre>
+</div></div></body></html>

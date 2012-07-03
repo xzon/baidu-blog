@@ -1,0 +1,37 @@
+<html><head><title>Hack 87. Create an Inverse Black-and-White Theme</title></head><body><div id='tit'>Hack 87. Create an Inverse Black-and-White Theme</div><div id='cate'>j&middot;swing</div><div id='date'>2010年06月11日 星期五 10:49 A.M.</div><div id='page'>13</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/f12def504849dd511138c27f.html'>http://hi.baidu.com/hxzon/blog/item/f12def504849dd511138c27f.html</a><div id='cnt'><h3 class="docSection1Title">Hack 87. Create an Inverse Black-and-White Theme</h3> 
+<p> </p> 
+<p>swing hacks chm</p> 
+<p>laf LookAndFeel MetalLookAndFeel MetalTheme 黑白主题 hxzon</p> 
+<p>-------------------------------------------------------------------</p> 
+<p class="docText"><span class="docEmphBold">Create a custom black-and-white theme for monochrome LCD displays using a few simple UIManager calls</span>.</p> 
+<p class="docText">The <tt><span style=";;font-family:NSimsun;">UIManager</span></tt> lets you set simple resources for color, fonts, and padding, but you may have noticed that if you want to theme all of the components, you need to set properties on each one. Since Swing has over 300 Look and Feel properties, this could become a problem. Fortunately, there is another way to make global changes without <a name="idx-CHP-11-1505"></a>creating an entire custom L&amp;F. <a name="idx-CHP-11-1506"></a>Metal, the standard cross-platform L&amp;F that comes with Swing, can use themes. This hack demonstrates how to create a Metal theme that forces the components to use only black and white.</p> 
+<p class="docText">Swing lets you switch between different Look and Feels. You can use a native Look and Feel (such as the one that comes with Mac OS X) or a thirdparty Look and Feel if you have them installed. Swing also comes with a standard L&amp;F called Metal. Metal is built into the JRE and is always available, making it the ideal L&amp;F to customize.</p> 
+<p class="docText">Like all L&amp;Fs, Metal has many, many classes that you can subclass to make changes. However, it also comes with an interface called <tt><a name="idx-CHP-11-1507"></a><span style=";;font-family:NSimsun;">MetalTheme</span></tt>. If you implement <tt><span style=";;font-family:NSimsun;">MetalTheme</span></tt>, then you can customize most of Metal without digging into the details. Most of the colors in Metal can be set, in fact, with just six values. Metal makes it even easier by providing a default implementation called, unsurprisingly, <tt><a name="idx-CHP-11-1508"></a><span style=";;font-family:NSimsun;">DefaultMetalTheme</span></tt> that you can use as a starting point.</p> 
+<a name="swinghacks-CHP-11-SECT-10.1"></a> 
+<h4 class="docSection2Title">11.10.1. A Black-and-White Theme</h4> 
+<a name="idx-CHP-11-1509"></a> 
+<p class="docText">A Metal theme is defined by a series of colors and fonts. The most important ones are the three primary and three secondary colors. These define the standard set of colors used for every widget on screen. Certain components have additional colors, like the text selection, but almost everything is based on these six. Example 11-9 is a theme that uses only white and black. It is useful for embedded devices that can't afford the hardware or memory requirements of a color display.</p> 
+<a name="swinghacks-CHP-11-EXAMPLE-9"></a> 
+<h5 class="docExampleTitle">Example 11-9. A black-and-white Metal theme</h5> 
+<pre>import javax.swing.plaf.metal.*; import javax.swing.plaf.ColorUIResource;<br />public class <a name="idx-CHP-11-1510"></a>InverseTheme extends DefaultMetalTheme {<br /> protected ColorUIResource getPrimary1() {<br />  return new ColorUIResource(255,255,255);<br /> }<br /> protected ColorUIResource getPrimary2() {<br />  return new ColorUIResource(0,0,0);<br /> }<br /> protected ColorUIResource getPrimary3() {<br />  return new ColorUIResource(255,255,255);<br /> }<br /><br /> // component borders<br /> protected ColorUIResource getSecondary1() {<br />  return new ColorUIResource(0,0,0);<br /> }<br /> // selected components (button down state)<br /> protected ColorUIResource getSecondary2() {<br />  return new ColorUIResource(0,0,0);<br /> }<br /> // component backgrounds<br /> protected ColorUIResource getSecondary3( ) {<br />  return new ColorUIResource(255,255,255);<br />}</pre>
+<br /> 
+<p class="docText">Two of the primary colors are all white, and the third is black. The three secondary colors are just the reverse: two black and one white. This introduces extra contrast. Each color controls a different part of the component. The <tt><span style=";;font-family:NSimsun;">MetalTheme</span></tt> documentation is very sparse, so the only way to know what a particular color will do is to try it. Without the theme, the screen will look like Figure 11-17.</p> 
+<p class="docText">With the <tt><span style=";;font-family:NSimsun;">InverseTheme</span></tt> installed, the window will look like Figure 11-18.</p> 
+<p class="docText">Setting the six colors gets us most of the way, but there are still some problems. In particular, the label is hidden and the text field looks wrong when you select it. To correct these, you'll need to set three more colors:</p> 
+<pre>//for label text<br /> public ColorUIResource getSystemTextColor() {<br />  return new ColorUIResource(0,0,0);<br /> }<br /> // background of selected text<br /> public ColorUIResource getTextHighlightColor() {<br />  return new ColorUIResource(0,0,0);<br /> }<br /> // foreground of selected text<br /> public ColorUIResource getHighlightedTextColor() {<br />  return new ColorUIResource(255,255,255);<br /> }</pre>
+<br /> 
+<p class="docText">The <tt><span style=";;font-family:NSimsun;">SystemTextColor</span></tt> is used for labels and titled borders, so you have to set this to black as well. The highlighted text, as well as the background of the highlight, are controlled by the <tt><span style=";;font-family:NSimsun;">HighlightedTextColor</span></tt> and <tt><span style=";;font-family:NSimsun;">TextHighlightColor</span></tt>, respectively (confusing, I know).</p> 
+<p class="docText">The only remaining problem is the menus. They have their own set of properties, which you can also set:</p> 
+<pre>public ColorUIResource getMenuBackground() {<br />  return new ColorUIResource(255,255,255);<br /> }<br /> public ColorUIResource getMenuForeground() {<br />  return new ColorUIResource(0,0,0);<br /> }<br /> public ColorUIResource getMenuSelectedBackground() {<br />  return new ColorUIResource(0,0,0);<br /> }<br /> public ColorUIResource getMenuSelectedForeground() {<br />  return new ColorUIResource(255,255,255);<br /> }</pre>
+<br /> 
+<p class="docText">With all of the colors set, you are ready to load up the theme. All you have to do is call <tt><span style=";;font-family:NSimsun;">MetalLookAndFeel.setCurrentTheme</span></tt>() before you create any Swing components.</p> 
+<pre>public static void main(String[] args) {<br />  MetalLookAndFeel.setCurrentTheme(new InverseTheme());<br />  //.. set up Swing components now<br /> }</pre>
+<br /> 
+<p class="docText">If you set it as the first line of the <tt><span style=";;font-family:NSimsun;">main</span></tt>() method in the demonstration program from the previous hack, you will see your themed window as in Figure 11-19.</p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

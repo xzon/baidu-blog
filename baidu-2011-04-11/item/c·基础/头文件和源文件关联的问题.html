@@ -1,0 +1,55 @@
+<html><head><title>头文件和源文件关联的问题</title></head><body><div id='tit'>头文件和源文件关联的问题</div><div id='cate'>c&middot;基础</div><div id='date'>2007年12月16日 星期日 08:27 A.M.</div><div id='page'>185</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/a88d64d0980b668ca0ec9cd3.html'>http://hi.baidu.com/hxzon/blog/item/a88d64d0980b668ca0ec9cd3.html</a><div id='cnt'><p><u><font color="#800080">头文件和源文件关联的问题</font></u>&nbsp;&nbsp;</p> 
+<div>
+ <font size="2"><span>&nbsp;&nbsp; </span>(对标题的解释：标题中的“源文件”是狭义的概念。小弟只是为了区分，把.h文件称为“头文件“，把.cpp文件称为“源文件“。)</font>
+</div> 
+<div>
+ <font size="2"><span>&nbsp;&nbsp;&nbsp; </span></font>
+ <font size="2">今天有个同事来问我#include &lt;xxx.h&gt;和#inlcude “xxx.h”的区别（关于这个问题，网上已经说滥了，而且林锐博士的《高质量C++/C编程指南》也作了说明）。从这个问题，偶引申出好几个问题，不得已，又去往上”狗狗”了（惭愧的很啊，每次都只能去”狗狗”…&gt;_&lt;…），现将我引申出的问题和解答总结一下，供大家学习或指正。</font>
+</div> 
+<div>
+ &lt;!--[if !supportLists]--&gt;
+ <font size="2"><span>一、</span>源文件如何根据#include来关联头文件？</font>&lt;!--[endif]--&gt;
+</div> 
+<div>
+ <font size="2">1，系统自带的头文件用尖括号括起来，这样编译器会在系统文件目录下查找。</font>
+</div> 
+<div>
+ <font size="2">#include &lt;xxx.h&gt;</font>
+</div> 
+<div>
+ <font size="2">2，用户自定义的文件用双引号括起来，编译器首先会在用户目录下查找，然后在到C++安装目录（比如VC中可以指定和修改库文件查找路径，Unix和Linux中可以通过环境变量来设定）中查找，最后在系统文件中查找。</font>
+</div> 
+<div>
+ <font size="2">#include “xxx.h”</font>
+</div> 
+<div>
+ &lt;!--[if !supportLists]--&gt;
+ <font size="2"><span>二、</span>头文件如何来关联源文件？</font>&lt;!--[endif]--&gt;
+</div> 
+<div>
+ <font size="2"><span>&nbsp;&nbsp;&nbsp; </span></font>
+ <font size="2">这个问题实际上是说，已知头文件“a.h”声明了一系列函数，“b.cpp”中实现了这些函数，那么如果我想在“c.cpp”中使用“a.h”中声明的这些在“b.cpp”中实现的函数，通常都是在“c.cpp”中使用#include “a.h”,那么c.cpp是怎样找到b.cpp中的实现呢？<span><br /> </span></font>
+ <font size="2"><span>&nbsp;&nbsp;&nbsp; </span></font>
+ <font size="2">其实.cpp和.h文件名称没有任何直接关系，很多编译器都可以接受其他扩展名。比如偶现在看到偶们公司的源代码，.cpp文件由.cc文件替代了。</font>
+</div> 
+<div>
+ <font size="2"><span>&nbsp;&nbsp;&nbsp; </span></font>
+ <font size="2">在Turbo C中，采用命令行方式进行编译，命令行参数为文件的名称，默认的是.cpp和.h，但是也可以自定义为.xxx等等。</font>
+</div> 
+<div>
+ <font size="2"><span>&nbsp;&nbsp;&nbsp; </span></font>
+ <font size="2"><span>谭浩强老师的《C程序设计》一书中提到，编译器预处理时，要对#include命令进行“文件包含处理”：将file2.c的全部内容复制到#include “file2.c”处。这也正说明了，为什么很多编译器并不care到底这个文件的后缀名是什么----因为#include预处理就是完成了一个“复制并插入代码”的工作。</span></font>
+</div> 
+<div>
+ <font size="2"><span>&nbsp;&nbsp;&nbsp; </span></font>
+ <font size="2">编译的时候，并不会去找b.cpp文件中的函数实现，只有在link的时候才进行这个工作。我们在b.cpp或c.cpp中用#include “a.h”实际上是引入相关声明，使得编译可以通过，程序并不关心实现是在哪里，是怎么实现的。源文件编译后成生了目标文件（.o或.obj文件），目标文件中，这些函数和变量就视作一个个符号。在link的时候，需要在makefile里面说明需要连接哪个.o或.obj文件（在这里是b.cpp生成的.o或.obj文件），此时，连接器会去这个.o或.obj文件中找在b.cpp中实现的函数，再把他们build到makefile中指定的那个可以执行文件中。</font>
+</div> 
+<div>
+ <font size="2"><span>&nbsp;&nbsp;&nbsp; </span></font>
+ <font size="2">在Unix下，甚至可以不在源文件中包括头文件，只需要在makefile中指名即可（不过这样大大降低了程序可读性，是个不好的习惯哦^_^）。在VC中，一帮情况下不需要自己写makefile，只需要将需要的文件都包括在project中，VC会自动帮你把makefile写好。</font>
+</div> 
+<div>
+ <font size="2"><span>&nbsp;&nbsp;&nbsp; </span></font>
+ <font size="2">通常，编译器会在每个.o或.obj文件中都去找一下所需要的符号，而不是只在某个文件中找或者说找到一个就不找了。因此，如果在几个不同文件中实现了同一个函数，或者定义了同一个全局变量，链接的时候就会提示“redefined”。</font>
+</div> 
+<p>Trackback: http://tb.blog.csdn.net/TrackBack.aspx?PostId=1808068</p></div></body></html>

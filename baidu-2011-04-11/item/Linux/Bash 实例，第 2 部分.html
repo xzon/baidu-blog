@@ -1,0 +1,379 @@
+<html><head><title>Bash 实例，第 2 部分</title></head><body><div id='tit'>Bash 实例，第 2 部分</div><div id='cate'>Linux</div><div id='date'>2010年05月25日 星期二 03:56 P.M.</div><div id='page'>14</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/1b080af4e14d10e37709d7fc.html'>http://hi.baidu.com/hxzon/blog/item/1b080af4e14d10e37709d7fc.html</a><div id='cnt'><h1>Bash 实例，第 2 部分</h1> 
+<p><em>更多的 bash 基本编程</em></p> 
+<p>http://www.ibm.com/developerworks/cn/linux/shell/bash/bash-2/index.html</p> 
+<p>级别： 初级</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/linux/shell/bash/bash-2/index.html#author">Daniel Robbins</a> (<a href="mailto:drobbins@gentoo.org?subject=Bash%20%E5%AE%9E%E4%BE%8B%EF%BC%8C%E7%AC%AC%202%20%E9%83%A8%E5%88%86&amp;cc=drobbins@gentoo.org">drobbins@gentoo.org</a>), 总裁兼 CEO, Gentoo Technologies, Inc.</p> 
+<p>2000 年 4 月 01 日</p> 
+<blockquote>
+ 在前一篇 bash 的介绍性文章中，Daniel Robbins 为您讲解了脚本语言的一些基本元素和使用 bash 的原因。在本文（即第二部分）中，Daniel 继续前一篇的内容，并讲解条件 (if-then) 语句、循环和更多的 bash 基本结构。
+</blockquote> 
+<p>我们先看一下处理命令行自变量的简单技巧，然后再看看 bash 基本编程结构。</p> 
+<p><a name="N10051"><span class="atitle">接收自变量</span></a></p> 
+<p>在 <a href="http://www.ibm.com/software/developerworks/library/bash.html">介绍性文章</a> 中的样本程序中，我们使用环境变量 &quot;$1&quot; 来引用第一个命令行自变量。类似地，可以使用 &quot;$2&quot;、&quot;$3&quot; 等来引用传递给脚本的第二和第三个自变量。这里有一个例子：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">#!/usr/bin/env bash<br /> <br /> echo name of script is $0<br /> echo first argument is $1<br /> echo second argument is $2<br /> echo seventeenth argument is $17<br /> echo number of arguments is $#</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>除以下两个细节之外，此例无需说明。第一，&quot;$0&quot; 将扩展成从命令行调用的脚本名称，&quot;$#&quot; 将扩展成传递给脚本的自变量数目。试验以上脚本，通过传递不同类型的命令行自变量来了解其工作原理。</p> 
+<p>有时需要一次引用 <em>所有</em> 命令行自变量。针对这种用途，bash 实现了变量 &quot;$@&quot;，它扩展成所有用空格分开的命令行参数。在本文稍后的 &quot;for&quot; 循环部分中，您将看到使用该变量的例子。</p> 
+<p><a name="N1006B"><span class="atitle">Bash 编程结构</span></a></p> 
+<p>如果您曾用过如 C、Pascal、Python 或 Perl 那样的过程语言编程，则一定熟悉 &quot;if&quot; 语句和 &quot;for&quot; 循环那样的标准编程结构。对于这些标准结构的大多数，Bash 有自己的版本。在下几节中，将介绍几种 bash 结构，并演示这些结构和您已经熟悉的其它编程语言中结构的差异。如果以前编程不多，也不必担心。我提供了足够的信息和示例，使您可以跟上本文的进度。</p> 
+<p><a name="N10074"><span class="atitle">方便的条件语句</span></a></p> 
+<p>如果您曾用 C 编写过与文件相关的代码，则应该知道：要比较特定文件是否比另一个文件新需要大量工作。那是因为 C 没有任何内置语法来进行这种比较，必须使用两个 stat() 调用和两个 stat 结构来进行手工比较。相反，bash 内置了标准文件比较运算符，因此，确定“/tmp/myfile 是否可读”与查看“$myvar 是否大于 4”一样容易。</p> 
+<p>下表列出最常用的 bash 比较运算符。同时还有如何正确使用每一选项的示例。示例要跟在 &quot;if&quot; 之后。例如：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">if [ -z &quot;$myvar&quot; ]<br />then <br />    echo &quot;myvar is not defined&quot;<br />fi</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p> </p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="3"> 
+ <tbody> 
+  <tr valign="top" bgcolor="#0033cc"> 
+   <td><strong>运算符</strong></td> 
+   <td><strong>描述</strong></td> 
+   <td><strong>示例</strong></td> 
+  </tr> 
+  <tr valign="top" bgcolor="#888888"> 
+   <td colspan="3"><strong>文件比较运算符 </strong></td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-e <em>filename</em></td> 
+   <td>如果 <em>filename</em>存在，则为真</td> 
+   <td>[ -e /var/log/syslog ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-d <em>filename</em></td> 
+   <td>如果 <em>filename</em>为目录，则为真</td> 
+   <td>[ -d /tmp/mydir ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-f <em>filename</em></td> 
+   <td>如果 <em>filename</em>为常规文件，则为真</td> 
+   <td>[ -f /usr/bin/grep ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-L <em>filename</em></td> 
+   <td>如果 <em>filename</em>为符号链接，则为真</td> 
+   <td>[ -L /usr/bin/grep ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-r <em>filename</em></td> 
+   <td>如果 <em>filename</em>可读，则为真</td> 
+   <td>[ -r /var/log/syslog ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-w <em>filename</em></td> 
+   <td>如果 <em>filename</em>可写，则为真</td> 
+   <td>[ -w /var/mytmp.txt ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-x <em>filename</em></td> 
+   <td>如果 <em>filename</em>可执行，则为真</td> 
+   <td>[ -L /usr/bin/grep ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>filename1</em>-nt <em>filename2</em></td> 
+   <td>如果 <em>filename1</em>比 <em>filename2</em>新，则为真</td> 
+   <td>[ /tmp/install/etc/services -nt /etc/services ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>filename1</em>-ot <em>filename2</em></td> 
+   <td>如果 <em>filename1</em>比 <em>filename2</em>旧，则为真</td> 
+   <td>[ /boot/bzImage -ot arch/i386/boot/bzImage ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#888888"> 
+   <td colspan="3"><strong>字符串比较运算符 </strong>（请注意引号的使用，这是防止空格扰乱代码的好方法）</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-z <em>string</em></td> 
+   <td>如果 <em>string</em>长度为零，则为真</td> 
+   <td>[ -z &quot;$myvar&quot; ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td>-n <em>string</em></td> 
+   <td>如果 <em>string</em>长度非零，则为真</td> 
+   <td>[ -n &quot;$myvar&quot; ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>string1</em>= <em>string2</em></td> 
+   <td>如果 <em>string1</em>与 <em>string2</em>相同，则为真</td> 
+   <td>[ &quot;$myvar&quot; = &quot;one two three&quot; ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>string1</em>!= <em>string2</em></td> 
+   <td>如果 <em>string1</em>与 <em>string2</em>不同，则为真</td> 
+   <td>[ &quot;$myvar&quot; != &quot;one two three&quot; ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#888888"> 
+   <td colspan="3"><strong>算术比较运算符 </strong></td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>num1</em>-eq <em>num2</em></td> 
+   <td>等于</td> 
+   <td>[ 3 -eq $mynum ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>num1</em>-ne <em>num2</em></td> 
+   <td>不等于</td> 
+   <td>[ 3 -ne $mynum ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>num1</em>-lt <em>num2</em></td> 
+   <td>小于</td> 
+   <td>[ 3 -lt $mynum ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>num1</em>-le <em>num2</em></td> 
+   <td>小于或等于</td> 
+   <td>[ 3 -le $mynum ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>num1</em>-gt <em>num2</em></td> 
+   <td>大于</td> 
+   <td>[ 3 -gt $mynum ]</td> 
+  </tr> 
+  <tr valign="top" bgcolor="#eeeeee"> 
+   <td><em>num1</em>-ge <em>num2</em></td> 
+   <td>大于或等于</td> 
+   <td>[ 3 -ge $mynum ]</td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p>有时，有几种不同方法来进行特定比较。例如，以下两个代码段的功能相同：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">if [ &quot;$myvar&quot; -eq 3 ]<br />then <br />     echo &quot;myvar equals 3&quot;<br />fi<br /> <br /> <br /> if [ &quot;$myvar&quot; = &quot;3&quot; ]<br />then <br />     echo &quot;myvar equals 3&quot;<br />fi</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>上面两个比较执行相同的功能，但是第一个使用算术比较运算符，而第二个使用字符串比较运算符。</p> 
+<p><a name="N10271"><span class="atitle">字符串比较说明</span></a></p> 
+<p>大多数时候，虽然可以不使用括起字符串和字符串变量的双引号，但这并不是好主意。为什么呢？因为如果环境变量中恰巧有一个空格或制表键，bash 将无法分辨，从而无法正常工作。这里有一个错误的比较示例：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">if [ $myvar = &quot;foo bar oni&quot; ]<br />then <br />     echo &quot;yes&quot;<br />fi</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>在上例中，如果 myvar 等于 &quot;foo&quot;，则代码将按预想工作，不进行打印。但是，如果 myvar 等于 &quot;foo bar oni&quot;，则代码将因以下错误失败：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">[: too many arguments</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>在这种情况下，&quot;$myvar&quot;（等于 &quot;foo bar oni&quot;）中的空格迷惑了 bash。bash 扩展 &quot;$myvar&quot; 之后，代码如下：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">[ foo bar oni = &quot;foo bar oni&quot; ]</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>因为环境变量没放在双引号中，所以 bash 认为方括号中的自变量过多。可以用双引号将字符串自变量括起来消除该问题。请记住，如果养成将所有字符串自变量用双引号括起的习惯，将除去很多类似的编程错误。&quot;foo bar oni&quot; 比较 <em>应该</em>写成：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">if [ &quot;$myvar&quot; = &quot;foo bar oni&quot; ]<br />then <br />     echo &quot;yes&quot;<br />fi</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+ <tbody> 
+  <tr> 
+   <td width="10"><img width="10" height="1" src="image/Bash 实例，第 2 部分.html.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td> 
+    <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#eeeeee"><a name="N10298"><strong>更多引用细节</strong></a><br /> <p>如果要扩展环境变量，则必须将它们用 <em>双引号</em>、而不是单引号括起。单引号 <em>禁用</em> 变量（和历史）扩展。</p> </td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p>以上代码将按预想工作，而不会有任何令人不快的意外出现。</p> 
+<p> </p> 
+<p><a name="N102AB"><span class="atitle">循环结构：&quot;for&quot;</span></a></p> 
+<p>好了，已经讲了条件语句，下面该探索 bash 循环结构了。我们将从标准的 &quot;for&quot; 循环开始。这里有一个简单的例子：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br /> #!/usr/bin/env bash<br /> <br /> for x in one two three four<br /> do<br />     echo number $x<br /> done<br /> <br /> <br />        输出：<br /> <br /> number one<br /> number two <br /> number three <br /> number four</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>发生了什么？&quot;for&quot; 循环中的 &quot;for x&quot; 部分定义了一个名为 &quot;$x&quot; 的新环境变量（也称为循环控制变量），它的值被依次设置为 &quot;one&quot;、&quot;two&quot;、&quot;three&quot; 和 &quot;four&quot;。每一次赋值之后，执行一次循环体（&quot;do&quot; 和 &quot;done&quot; 之间的代码）。在循环体内，象其它环境变量一样，使用标准的变量扩展语法来引用循环控制变量 &quot;$x&quot;。还要注意，&quot;for&quot; 循环总是接收 &quot;in&quot; 语句之后的某种类型的字列表。在本例中，指定了四个英语单词，但是字列表也可以引用磁盘上的文件，甚至文件通配符。看看下面的例子，该例演示如何使用标准 shell 通配符：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">#!/usr/bin/env bash<br /> <br /> for myfile in /etc/r*<br /> do<br />     if [ -d &quot;$myfile&quot; ] <br />then <br />       echo &quot;$myfile (dir)&quot;<br />else<br />       echo &quot;$myfile&quot;<br />fi<br /> done<br /> <br /> <br />        输出：<br /> <br /> /etc/rc.d (dir)<br /> /etc/resolv.conf<br /> /etc/resolv.conf~<br /> /etc/rpc</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>以上代码列出在 /etc 中每个以 &quot;r&quot; 开头的文件。要做到这点，bash 在执行循环之前首先取得通配符 /etc/r*，然后扩展它，用字符串 /etc/rc.d /etc/resolv.conf /etc/resolv.conf~ /etc/rpc 替换。一旦进入循环，根据 myfile 是否为目录，&quot;-d&quot; 条件运算符用来执行两个不同操作。如果是目录，则将 &quot;(dir)&quot; 附加到输出行。</p> 
+<p>还可以在字列表中使用多个通配符、甚至是环境变量：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br /> for x in /etc/r--? /var/lo* /home/drobbins/mystuff/* /tmp/${MYPATH}/*<br /> do<br />     cp $x /mnt/mydir<br /> done</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>Bash 将在所有正确位置上执行通配符和环境变量扩展，并可能创建一个非常长的字列表。</p> 
+<p>虽然所有通配符扩展示例使用了 <em>绝对</em>路径，但也可以使用相对路径，如下所示：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br /> for x in ../* mystuff/*<br /> do<br />     echo $x is a silly file<br /> done</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>在上例中，bash 相对于当前工作目录执行通配符扩展，就象在命令行中使用相对路径一样。研究一下通配符扩展。您将注意到，如果在通配符中使用绝对路径，bash 将通配符扩展成一个绝对路径列表。否则，bash 将在后面的字列表中使用相对路径。如果只引用当前工作目录中的文件（例如，如果输入 &quot;for x in *&quot;），则产生的文件列表将没有路径信息的前缀。请记住，可以使用 &quot;basename&quot; 可执行程序来除去前面的路径信息，如下所示：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br /> for x in /var/log/*<br /> do<br />     echo `basename $x` is a file living in /var/log<br /> done</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>当然，在脚本的命令行自变量上执行循环通常很方便。这里有一个如何使用本文开始提到的 &quot;$@&quot; 变量的例子：</p> 
+<pre class="displaycode"><br /> #!/usr/bin/env bash<br /> <br /> for thing in &quot;$@&quot;<br /> do<br />     echo you typed ${thing}.<br /> done<br /> <br /> <br />        输出：<br /> <br /> $ allargs hello there you silly<br /> you typed hello.<br /> you typed there.<br /> you typed you.<br /> you typed silly.</pre> 
+<p><a name="N102F0"><span class="atitle">Shell 算术</span></a></p> 
+<p>在学习另一类型的循环结构之前，最好先熟悉如何执行 shell 算术。是的，确实如此：可以使用 shell 结构来执行简单的整数运算。只需将特定的算术表达式用 &quot;$((&quot; 和 &quot;))&quot; 括起，bash 就可以计算表达式。这里有一些例子：</p> 
+<pre class="displaycode">$ echo $(( 100 / 3 ))<br /> 33<br /> $ myvar=&quot;56&quot;<br /> $ echo $(( $myvar + 12 ))<br /> 68<br /> $ echo $(( $myvar - $myvar ))<br />0 $ myvar=$(( $myvar + 1 ))<br />$ echo $myvar<br /> 57</pre> 
+<p><a name="N102FD"><span class="atitle">更多的循环结构：&quot;while&quot; 和 &quot;until&quot;</span></a></p> 
+<p>只要特定条件为真，&quot;while&quot; 语句就会执行，其格式如下：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">while [ condition ]<br /> do<br />     statements<br /> done</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>通常使用 &quot;While&quot; 语句来循环一定次数，比如，下例将循环 10 次：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">myvar=0<br /> while [ $myvar -ne 10 ]<br /> do<br />     echo $myvar<br />     myvar=$(( $myvar + 1 ))<br /> done</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>可以看到，上例使用了算术表达式来使条件最终为假，并导致循环终止。</p> 
+<p>&quot;Until&quot; 语句提供了与 &quot;while&quot; 语句相反的功能：只要特定条件为 <em>假</em> ，它们就重复。下面是一个与前面的 &quot;while&quot; 循环具有同等功能的 &quot;until&quot; 循环：</p> 
+<pre class="displaycode">myvar=0<br /> until [ $myvar -eq 10 ]<br /> do<br />     echo $myvar<br />     myvar=$(( $myvar + 1 ))<br /> done</pre> 
+<p><a name="N1031E"><span class="atitle">Case 语句</span></a></p> 
+<p>Case 语句是另一种便利的条件结构。这里有一个示例片段：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br /> case &quot;${x##*.}&quot; in<br />      gz)<br />            gzunpack ${SROOT}/${x}<br />            ;;<br />      bz2)<br />            bz2unpack ${SROOT}/${x}<br />            ;;<br />      *)<br />            echo &quot;Archive format not recognized.&quot;<br />            exit<br />            ;;<br /> esac</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>在上例中，bash 首先扩展 &quot;${x##*.}&quot;。在代码中，&quot;$x&quot; 是文件的名称，&quot;${x##.*}&quot; 除去文件中最后句点后文本之外的所有文本。然后，bash 将产生的字符串与 &quot;)&quot; 左边列出的值做比较。在本例中，&quot;${x##.*}&quot; 先与 &quot;gz&quot; 比较，然后是 &quot;bz2&quot;，最后是 &quot;*&quot;。如果 &quot;${x##.*}&quot; 与这些字符串或模式中的任何一个匹配，则执行紧接 &quot;)&quot; 之后的行，直到 &quot;;;&quot; 为止，然后 bash 继续执行结束符 &quot;esac&quot; 之后的行。如果不匹配任何模式或字符串，则不执行任何代码行，在这个特殊的代码片段中，至少要执行一个代码块，因为任何不与 &quot;gz&quot; 或 &quot;bz2&quot; 匹配的字符串都将与 &quot;*&quot; 模式匹配。</p> 
+<p><a name="N1032E"><span class="atitle">函数与名称空间</span></a></p> 
+<p>在 bash 中，甚至可以定义与其它过程语言（如 Pascal 和 C）类似的函数。在 bash 中，函数甚至可以使用与脚本接收命令行自变量类似的方式来接收自变量。让我们看一下样本函数定义，然后再从那里继续：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br /> tarview() {<br />     echo -n &quot;Displaying contents of $1 &quot;<br />     if [ ${1##*.} = tar ]<br />then <br />         echo &quot;(uncompressed tar)&quot;<br />         tar tvf $1<br />     elif [ ${1##*.} = gz ]<br />then <br />         echo &quot;(gzip-compressed tar)&quot;<br />         tar tzvf $1<br />     elif [ ${1##*.} = bz2 ]<br />then <br />         echo &quot;(bzip2-compressed tar)&quot;<br />         cat $1 | bzip2 -d | tar tvf -<br />fi<br /> }</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+ <tbody> 
+  <tr> 
+   <td width="10"><img width="10" height="1" src="image/Bash 实例，第 2 部分.html.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td> 
+    <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#eeeeee"><a name="N1033D"><strong>另一种情况</strong></a><br /> <p>可以使用 &quot;case&quot; 语句来编写上面的代码。您知道如何编写吗？</p> </td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p>我们在上面定义了一个名为 &quot;tarview&quot; 的函数，它接收一个自变量，即某种类型的 tar 文件。在执行该函数时，它确定自变量是哪种 tar 文件类型（未压缩的、gzip 压缩的或 bzip2 压缩的），打印一行信息性消息，然后显示 tar 文件的内容。应该如下调用上面的函数（在输入、粘贴或找到该函数后，从脚本或命令行调用它）：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">$ tarview shorten.tar.gz<br /> Displaying contents of shorten.tar.gz (gzip-compressed tar)<br /> drwxr-xr-x ajr/abbot         0 1999-02-27 16:17 shorten-2.3a/<br /> -rw-r--r-- ajr/abbot      1143 1997-09-04 04:06 shorten-2.3a/Makefile<br /> -rw-r--r-- ajr/abbot      1199 1996-02-04 12:24 shorten-2.3a/INSTALL<br /> -rw-r--r-- ajr/abbot       839 1996-05-29 00:19 shorten-2.3a/LICENSE<br /> ....</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+ <tbody> 
+  <tr> 
+   <td width="10"><img width="10" height="1" src="image/Bash 实例，第 2 部分.html.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td> 
+    <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td bgcolor="#eeeeee"><a name="N10350"><strong>交互地使用它们</strong></a><br /> <p>别忘了，可以将函数（如上面的函数）放在 ~/.bashrc 或 ~/.bash_profile 中，以便在 bash 中随时使用它们。</p> </td> 
+      </tr> 
+     </tbody> 
+    </table> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<p>如您所见，可以使用与引用命令行自变量同样的机制来在函数定义内部引用自变量。另外，将把 &quot;$#&quot; 宏扩展成包含自变量的数目。唯一可能不完全相同的是变量 &quot;$0&quot;，它将扩展成字符串 &quot;bash&quot;（如果从 shell 交互运行函数）或调用函数的脚本名称。</p> 
+<p> </p> 
+<p><a name="N1035D"><span class="atitle">名称空间</span></a></p> 
+<p>经常需要在函数中创建环境变量。虽然有可能，但是还有一个技术细节应该了解。在大多数编译语言（如 C）中，当在函数内部创建变量时，变量被放置在单独的局部名称空间中。因此，如果在 C 中定义一个名为 myfunction 的函数，并在该函数中定义一个名为 &quot;x&quot; 的自变量，则任何名为 &quot;x&quot; 的全局变量（函数之外的变量）将不受它的印象，从而消除了负作用。</p> 
+<p>在 C 中是这样，但在 bash 中却不是。在 bash 中，每当在函数内部创建环境变量，就将其添加到 <em>全局</em>名称空间。这意味着，该变量将重写函数之外的全局变量，并在函数退出之后继续存在：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">#!/usr/bin/env bash<br /> <br /> myvar=&quot;hello&quot;<br /> <br /> myfunc() {<br /> <br />     myvar=&quot;one two three&quot;<br />     for x in $myvar<br />     do<br />         echo $x<br />     done<br /> }<br /> <br /> myfunc<br /> <br /> echo $myvar $x</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>运行此脚本时，它将输出 &quot;one two three three&quot;，这显示了在函数中定义的 &quot;$myvar&quot; 如何影响全局变量 &quot;$myvar&quot;，以及循环控制变量 &quot;$x&quot; 如何在函数退出之后继续存在（如果 &quot;$x&quot; 全局变量存在，也将受到影响）。</p> 
+<p>在这个简单的例子中，很容易找到该错误，并通过使用其它变量名来改正错误。但这不是正确的方法，解决此问题的最好方法是通过使用 &quot;local&quot; 命令，在一开始就预防影响全局变量的可能性。当使用 &quot;local&quot; 在函数内部创建变量时，将把它们放在 <em>局部</em>名称空间中，并且不会影响任何全局变量。这里演示了如何实现上述代码，以便不重写全局变量：</p> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode"><br /> #!/usr/bin/env bash<br /> <br /> myvar=&quot;hello&quot;<br /> <br /> myfunc() {<br />     local x<br />     local myvar=&quot;one two three&quot;<br />     for x in $myvar<br />     do<br />         echo $x<br />     done<br /> }<br /> <br /> myfunc<br /> <br /> echo $myvar $x</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>此函数将输出 &quot;hello&quot; -- 不重写全局变量 &quot;$myvar&quot;，&quot;$x&quot; 在 myfunc 之外不继续存在。在函数的第一行，我们创建了以后要使用的局部变量 x，而在第二个例子 (local myvar=&quot;one two three&quot;&quot;) 中，我们创建了局部变量 myvar， <em>同时</em> 为其赋值。在将循环控制变量定义为局部变量时，使用第一种形式很方便，因为不允许说：&quot;for local x in $myvar&quot;。此函数不影响任何全局变量，鼓励您用这种方式设计所有的函数。只有在明确希望要修改全局变量时，才 <em>不</em>应该使用 &quot;local&quot;。</p> 
+<p><a name="N10386"><span class="atitle">结束语</span></a></p> 
+<p>我们已经学习了最基本的 bash 功能，现在要看一下如何基于 bash 开发整个应用程序。下一部分正要讲到。再见！</p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

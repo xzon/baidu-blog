@@ -1,0 +1,310 @@
+<html><head><title>Tomcat中用web.xml控制Web应用详解！（续）</title></head><body><div id='tit'>Tomcat中用web.xml控制Web应用详解！（续）</div><div id='cate'>j&middot;入门</div><div id='date'>2008年03月04日 星期二 01:28 A.M.</div><div id='page'>162</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/84e026a480fea7f39152eee9.html'>http://hi.baidu.com/hxzon/blog/item/84e026a480fea7f39152eee9.html</a><div id='cnt'><div>
+ Tomcat中用web.xml控制Web应用详解！（续）
+</div> 
+<div> 
+</div> 
+<div>
+ 8 指定处理错误的页面
+</div> 
+<div> 
+</div> 
+<div>
+ 现在我了解到，你在开发servlet和JSP页面时从不会犯错误，而且你的所有页面是那样的清晰，一般的程序员都不会被它们的搞糊涂。但是，是人总会犯错误的，用户可能会提供不合规定的参数，使用不正确的URL或者不能提供必需的表单字段值。除此之外，其它开发人员可能不那么细心，他们应该有些工具来克服自己的不足。
+ <br /> error-page元素就是用来克服这些问题的。它有两个可能的子元素，分别是：error-code和exception- type。第一个子元素error-code指出在给定的HTTP错误代码出现时使用的URL。第二个子元素excpetion-type指出在出现某个给定的Java异常但未捕捉到时使用的URL。error-code和exception-type都利用location元素指出相应的URL。此 URL必须以/开始。location所指出的位置处的页面可通过查找HttpServletRequest对象的两个专门的属性来访问关于错误的信息，这两个属性分别是：javax.servlet.error.status_code和javax.servlet.error.message。
+ <br /> 可回忆一下，在web.xml内以正确的次序声明web-app的子元素很重要。这里只要记住，error-page出现在web.xml文件的末尾附近，servlet、servlet-name和welcome-file-list之后即可。
+</div> 
+<div> 
+</div> 
+<div>
+ 8.1 error-code元素
+ <br /> 为了更好地了解error-code元素的值，可考虑一下如果不正确地输入文件名，大多数站点会作出什么反映。这样做一般会出现一个404错误信息，它表示不能找到该文件，但几乎没提供更多有用的信息。另一方面，可以试一下在
+ <a href="http://www.microsoft.com/">www.microsoft.com</a>、
+ <a href="http://www.ibm.com/">www.ibm.com</a> 处或者特别是在
+ <a href="http://www.bea.com/">www.bea.com</a> 处输出未知的文件名。这是会得出有用的消息，这些消息提供可选择的位置，以便查找感兴趣的页面。提供这样有用的错误页面对于Web应用来说是很有价值得。事实上rm-error-page子元素）。由form-login-page给出的HTML表单必须具有一个j_security_check的 ACTION属性、一个名为j_username的用户名文本字段以及一个名为j_password的口令字段。
+ <br /> 例如，程序清单5-19指示服务器使用基于表单的验证。Web应用的顶层目录中的一个名为login.jsp的页面将收集用户名和口令，并且失败的登陆将由相同目录中名为login-error.jsp的页面报告。
+</div> 
+<div> 
+</div> 
+<div>
+ 程序清单5-19 web.xml（说明login-config的摘录）
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+ <br /> &lt;!DOCTYPE web-app
+ <br /> PUBLIC &quot;-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN&quot;
+ <br /> &quot;
+ <a href="http://java.sun.com/dtd/web-app_2_3.dtd">http://java.sun.com/dtd/web-app_2_3.dtd</a>&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;web-app&gt;
+ <br /> &lt;!-- ... --&gt;
+ <br /> &lt;security-constraint&gt; ... &lt;/security-constraint&gt;
+ <br /> &lt;login-config&gt;
+ <br /> &lt;auth-method&gt; FORM &lt;/auth-method&gt;
+ <br /> &lt;form-login-config&gt;
+ <br /> &lt;form-login-page&gt;/login.jsp&lt;/form-login-page&gt;
+ <br /> &lt;form-error-page&gt;/login-error.jsp&lt;/form-error-page&gt;
+ <br /> &lt;/form-login-config&gt;
+ <br /> &lt;/login-config&gt;
+ <br /> &lt;!-- ... --&gt;
+ <br /> &lt;/web-app&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 9.2 限制对Web资源的访问
+ <br /> 现在，可以指示服务器使用何种验证方法了。&quot;了不起，&quot;你说道，&quot;除非我能指定一个来收到保护的 URL，否则没有多大用处。&quot;没错。指出这些URL并说明他们应该得到何种保护正是security-constriaint元素的用途。此元素在 web.xml中应该出现在login-config的紧前面。它包含是个可能的子元素，分别是：web-resource-collection、 auth-constraint、user-data-constraint和display-name。下面各小节对它们进行介绍。
+ <br /> l web-resource-collection
+ <br /> 此元素确定应该保护的资源。所有security-constraint元素都必须包含至少一个web-resource-collection项。此元素由一个给出任意标识名称的web-resource-name元素、一个确定应该保护的URL的url-pattern元素、一个指出此保护所适用的 HTTP命令（GET、POST等，缺省为所有方法）的http-method元素和一个提供资料的可选description元素组成。例如，下面的 Web-resource-collection项（在security-constratint元素内）指出Web应用的proprietary目录中所有文档应该受到保护。
+ <br /> &lt;security-constraint&gt;
+ <br /> &lt;web-resource-coolection&gt;
+ <br /> &lt;web-resource-name&gt;Proprietary&lt;/web-resource-name&gt;
+ <br /> &lt;url-pattern&gt;/propritary/*&lt;/url-pattern&gt;
+ <br /> &lt;/web-resource-coolection&gt;
+ <br /> &lt;!-- ... --&gt;
+ <br /> &lt;/security-constraint&gt;
+ <br /> 重要的是应该注意到，url-pattern仅适用于直接访问这些资源的客户机。特别是，它不适合于通过MVC体系结构利用 RequestDispatcher来访问的页面，或者不适合于利用类似jsp:forward的手段来访问的页面。这种不匀称如果利用得当的话很有好处。例如，servlet可利用MVC体系结构查找数据，把它放到bean中，发送请求到从bean中提取数据的JSP页面并显示它。我们希望保证决不直接访问受保护的JSP页面，而只是通过建立该页面将使用的bean的servlet来访问它。url-pattern和auth-contraint元素可通过声明不允许任何用户直接访问JSP页面来提供这种保证。但是，这种不匀称的行为可能让开发人员放松警惕，使他们偶然对应受保护的资源提供不受限制的访问。 
+ <br /> l auth-constraint
+ <br /> 尽管web-resource-collention元素质出了哪些URL应该受到保护，但是auth-constraint元素却指出哪些用户应该具有受保护资源的访问权。此元素应该包含一个或多个标识具有访问权限的用户类别role- name元素，以及包含（可选）一个描述角色的description元素。例如，下面web.xml中的security-constraint元素部门规定只有指定为Administrator或Big Kahuna（或两者）的用户具有指定资源的访问权。
+ <br /> &lt;security-constraint&gt;
+ <br /> &lt;web-resource-coolection&gt; ... &lt;/web-resource-coolection&gt;
+ <br /> &lt;auth-constraint&gt;
+ <br /> &lt;role-name&gt;administrator&lt;/role-name&gt;
+ <br /> &lt;role-name&gt;kahuna&lt;/role-name&gt;
+ <br /> &lt;/auth-constraint&gt;
+ <br /> &lt;/security-constraint&gt;
+ <br /> 重要的是认识到，到此为止，这个过程的可移植部分结束了。服务器怎样确定哪些用户处于任何角色以及它怎样存放用户的口令，完全有赖于具体的系统。
+ <br /> 例如，Tomcat使用install_dir/conf/tomcat-users.xml将用户名与角色名和口令相关联，正如下面例子中所示，它指出用户joe（口令bigshot）和jane（口令enaj）属于administrator和kahuna角色。
+ <br /> &lt;tomcat-users&gt;
+ <br /> &lt;user name=&quot;joe&quot; password=&quot;bigshot&quot; roles=&quot;administrator,kahuna&quot; /&gt;
+ <br /> &lt;user name=&quot;jane&quot; password=&quot;enaj&quot; roles=&quot;kahuna&quot; /&gt;
+ <br /> &lt;/tomcat-users&gt;
+ <br /> l user-data-constraint
+ <br /> 这个可选的元素指出在访问相关资源时使用任何传输层保护。它必须包含一个transport-guarantee子元素（合法值为NONE、 INTEGRAL或CONFIDENTIAL），并且可选地包含一个description元素。transport-guarantee为NONE值将对所用的通讯协议不加限制。INTEGRAL值表示数据必须以一种防止截取它的人阅读它的方式传送。虽然原理上（并且在未来的HTTP版本中），在 INTEGRAL和CONFIDENTIAL之间可能会有差别，但在当前实践中，他们都只是简单地要求用SSL。例如，下面指示服务器只允许对相关资源做 HTTPS连接：
+ <br /> &lt;security-constraint&gt;
+ <br /> &lt;!-- ... --&gt;
+ <br /> &lt;user-data-constraint&gt;
+ <br /> &lt;transport-guarantee&gt;CONFIDENTIAL&lt;/transport-guarantee&gt;
+ <br /> &lt;/user-data-constraint&gt;
+ <br /> &lt;/security-constraint&gt;
+ <br /> l display-name
+ <br /> security-constraint的这个很少使用的子元素给予可能由GUI工具使用的安全约束项一个名称。
+ <br /> 9.3 分配角色名
+ <br /> 迄今为止，讨论已经集中到完全由容器（服务器）处理的安全问题之上了。但servlet以及JSP页面也能够处理它们自己的安全问题。
+ <br /> 例如，容器可能允许用户从bigwig或bigcheese角色访问一个显示主管人员额外紧贴的页面，但只允许bigwig用户修改此页面的参数。完成这种更细致的控制的一种常见方法是调用HttpServletRequset的isUserInRole方法，并据此修改访问。
+ <br /> Servlet的 security-role-ref子元素提供出现在服务器专用口令文件中的安全角色名的一个别名。例如，假如编写了一个调用 request.isUserInRole（&quot;boss&quot;）的servlet，但后来该servlet被用在了一个其口令文件调用角色manager而不是boss的服务器中。下面的程序段使该servlet能够使用这两个名称中的任何一个。
+ <br /> &lt;servlet&gt;
+ <br /> &lt;!-- ... --&gt;
+ <br /> &lt;security-role-ref&gt;
+ <br /> &lt;role-name&gt;boss&lt;/role-name&gt; &lt;!-- New alias --&gt;
+ <br /> &lt;role-link&gt;manager&lt;/role-link&gt; &lt;!-- Real name --&gt;
+ <br /> &lt;/security-role-ref&gt;
+ <br /> &lt;/servlet&gt;
+ <br /> 也可以在web-app内利用security-role元素提供将出现在role-name元素中的所有安全角色的一个全局列表。分别地生命角色使高级IDE容易处理安全信息。
+</div> 
+<div> 
+</div> 
+<div>
+ 10 控制会话超时
+</div> 
+<div> 
+</div> 
+<div>
+ 如果某个会话在一定的时间内未被访问，服务器可把它扔掉以节约内存。可利用HttpSession的setMaxInactiveInterval方法直接设置个别会话对象的超时值。如果不采用这种方法，则缺省的超时值由具体的服务器决定。但可利用session-config和session- timeout元素来给出一个适用于所有服务器的明确的超时值。超时值的单位为分钟，因此，下面的例子设置缺省会话超时值为三个小时（180分钟）。
+ <br /> &lt;session-config&gt;
+ <br /> &lt;session-timeout&gt;180&lt;/session-timeout&gt;
+ <br /> &lt;/session-config&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ 11 Web应用的文档化
+</div> 
+<div> 
+</div> 
+<div>
+ 越来越多的开发环境开始提供servlet和JSP的直接支持。例子有Borland Jbuilder Enterprise Edition、Macromedia UltraDev、Allaire JRun Studio（写此文时，已被Macromedia收购）以及IBM VisuaAge for Java等。
+ <br /> 大量的web.xml元素不仅是为服务器设计的，而且还是为可视开发环境设计的。它们包括icon、display-name和discription等。
+ <br /> 可回忆一下，在web.xml内以适当地次序声明web-app子元素很重要。不过，这里只要记住icon、display-name和description是web.xml的web-app元素内的前三个合法元素即可。
+ <br /> l icon
+ <br /> icon元素指出GUI工具可用来代表Web应用的一个和两个图像文件。可利用small-icon元素指定一幅16 x 16的GIF或JPEG图像，用large-icon元素指定一幅32 x 32的图像。下面举一个例子： 
+ <br /> &lt;icon&gt;
+ <br /> &lt;small-icon&gt;/images/small-book.gif&lt;/small-icon&gt;
+ <br /> &lt;large-icon&gt;/images/tome.jpg&lt;/large-icon&gt;
+ <br /> &lt;/icon&gt;
+ <br /> l display-name
+ <br /> display-name元素提供GUI工具可能会用来标记此Web应用的一个名称。下面是个例子。
+ <br /> &lt;display-name&gt;Rare Books&lt;/display-name&gt;
+ <br /> l description
+ <br /> description元素提供解释性文本，如下所示：
+ <br /> &lt;description&gt;
+ <br /> This Web application represents the store developed for
+ <br /> rare-books.com, an online bookstore specializing in rare
+ <br /> and limited-edition books.
+ <br /> &lt;/description&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ 12 关联文件与MIME类型
+</div> 
+<div> 
+</div> 
+<div>
+ 服务器一般都具有一种让Web站点管理员将文件扩展名与媒体相关联的方法。例如，将会自动给予名为mom.jpg的文件一个image/jpeg的MIME 类型。但是，假如你的Web应用具有几个不寻常的文件，你希望保证它们在发送到客户机时分配为某种MIME类型。mime-mapping元素（具有 extension和mime-type子元素）可提供这种保证。例如，下面的代码指示服务器将application/x-fubar的MIME类型分配给所有以.foo结尾的文件。
+ <br /> &lt;mime-mapping&gt;
+ <br /> &lt;extension&gt;foo&lt;/extension&gt;
+ <br /> &lt;mime-type&gt;application/x-fubar&lt;/mime-type&gt;
+ <br /> &lt;/mime-mapping&gt;
+ <br /> 或许，你的Web应用希望重载（override）标准的映射。例如，下面的代码将告诉服务器在发送到客户机时指定.ps文件作为纯文本（text/plain）而不是作为PostScript（application/postscript）。
+ <br /> &lt;mime-mapping&gt;
+ <br /> &lt;extension&gt;ps&lt;/extension&gt;
+ <br /> &lt;mime-type&gt;application/postscript&lt;/mime-type&gt;
+ <br /> &lt;/mime-mapping&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 13 定位TLD
+</div> 
+<div> 
+</div> 
+<div>
+ JSP taglib元素具有一个必要的uri属性，它给出一个TLD（Tag Library Descriptor）文件相对于Web应用的根的位置。TLD文件的实际名称在发布新的标签库版本时可能会改变，但我们希望避免更改所有现有JSP页面。此外，可能还希望使用保持taglib元素的简练性的一个简短的uri。这就是部署描述符文件的taglib元素派用场的所在了。Taglib包含两个子元素：taglib-uri和taglib-location。taglib-uri元素应该与用于JSP taglib元素的uri属性的东西相匹配。Taglib-location元素给出TLD文件的实际位置。例如，假如你将文件chart-tags- 1.3beta.tld放在WebApp/WEB-INF/tlds中。现在，假如web.xml在web-app元素内包含下列内容。
+ <br /> &lt;taglib&gt;
+ <br /> &lt;taglib-uri&gt;/charts.tld&lt;/taglib-uri&gt;
+ <br /> &lt;taglib-location&gt;
+ <br /> /WEB-INF/tlds/chart-tags-1.3beta.tld
+ <br /> &lt;/taglib-location&gt;
+ <br /> &lt;/taglib&gt;
+ <br /> 给出这个说明后，JSP页面可通过下面的简化形式使用标签库。
+ <br /> &lt;%@ taglib uri=&quot;/charts.tld&quot; prefix=&quot;somePrefix&quot; %&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ 14 指定应用事件监听程序
+</div> 
+<div> 
+</div> 
+<div>
+ 应用事件监听器程序是建立或修改servlet环境或会话对象时通知的类。它们是servlet规范的版本2.3中的新内容。这里只简单地说明用来向Web应用注册一个监听程序的web.xml的用法。
+ <br /> 注册一个监听程序涉及在web.xml的web-app元素内放置一个listener元素。在listener元素内，listener-class元素列出监听程序的完整的限定类名，如下所示：
+ <br /> &lt;listener&gt;
+ <br /> &lt;listener-class&gt;package.ListenerClass&lt;/listener-class&gt;
+ <br /> &lt;/listener&gt;
+ <br /> 虽然listener元素的结构很简单，但请不要忘记，必须正确地给出web-app元素内的子元素的次序。listener元素位于所有的servlet 元素之前以及所有filter-mapping元素之后。此外，因为应用生存期监听程序是serlvet规范的2.3版本中的新内容，所以必须使用 web.xml DTD的2.3版本，而不是2.2版本。
+ <br /> 例如，程序清单5-20给出一个名为ContextReporter的简单的监听程序，只要Web应用的Servlet-Context建立（如装载Web应用）或消除（如服务器关闭）时，它就在标准输出上显示一条消息。程序清单5-21给出此监听程序注册所需要的web.xml文件的一部分。
+</div> 
+<div> 
+</div> 
+<div>
+ 程序清单5-20 ContextReporterjava
+ <br /> package moreservlets;
+</div> 
+<div> 
+</div> 
+<div>
+ import javax.servlet.*;
+ <br /> import java.util.*;
+</div> 
+<div> 
+</div> 
+<div>
+ /** Simple listener that prints a report on the standard output 
+ <br /> * when the ServletContext is created or destroyed.
+ <br /> * &lt;P&gt;
+ <br /> * Taken from More Servlets and JavaServer Pages
+ <br /> * from Prentice Hall and Sun Microsystems Press,
+ <br /> * 
+ <a href="http://www.moreservlets.com/">http://www.moreservlets.com/</a>.
+ <br /> * &copy; 2002 Marty Hall; may be freely used or adapted.
+ <br /> */
+</div> 
+<div> 
+</div> 
+<div>
+ public class ContextReporter implements ServletContextListener {
+ <br /> public void contextInitialized(ServletContextEvent event) {
+ <br /> System.out.println(&quot;Context created on &quot; +
+ <br /> new Date() + &quot;.&quot;);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void contextDestroyed(ServletContextEvent event) {
+ <br /> System.out.println(&quot;Context destroyed on &quot; +
+ <br /> new Date() + &quot;.&quot;);
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 程序清单5-21 web.xml（声明一个监听程序的摘录）
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+ <br /> &lt;!DOCTYPE web-app
+ <br /> PUBLIC &quot;-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN&quot;
+ <br /> &quot;
+ <a href="http://java.sun.com/dtd/web-app_2_3.dtd">http://java.sun.com/dtd/web-app_2_3.dtd</a>&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;web-app&gt;
+ <br /> &lt;!-- ... --&gt;
+ <br /> &lt;filter-mapping&gt; … &lt;/filter-mapping&gt;
+ <br /> &lt;listener&gt;
+ <br /> &lt;listener-class&gt;package.ListenerClass&lt;/listener-class&gt;
+ <br /> &lt;/listener&gt;
+ <br /> &lt;servlet&gt; ... &lt;/servlet&gt;
+ <br /> &lt;!-- ... --&gt;
+ <br /> &lt;/web-app&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 15 J2EE元素
+</div> 
+<div> 
+</div> 
+<div>
+ 本节描述用作J2EE环境组成部分的Web应用的web.xml元素。这里将提供一个简明的介绍，详细内容可以参阅
+ <a href="http://java.sun.com/j2ee/j2ee-1_3-fr-spec.pdf">http://java.sun.com/j2ee/j2ee-1_3-fr-spec.pdf</a>的Java 2 Plantform Enterprise Edition版本1.3规范的第5章。
+ <br /> l distributable
+ <br /> distributable 元素指出，Web应用是以这样的方式编程的：即，支持集群的服务器可安全地在多个服务器上分布Web应用。例如，一个可分布的应用必须只使用 Serializable对象作为其HttpSession对象的属性，而且必须避免用实例变量（字段）来实现持续性。distributable元素直接出现在discription元素之后，并且不包含子元素或数据，它只是一个如下的标志。
+ <br /> &lt;distributable /&gt;
+ <br /> l resource-env-ref
+ <br /> resource -env-ref元素声明一个与某个资源有关的管理对象。此元素由一个可选的description元素、一个resource-env-ref- name元素（一个相对于java:comp/env环境的JNDI名）以及一个resource-env-type元素（指定资源类型的完全限定的类），如下所示：
+ <br /> &lt;resource-env-ref&gt;
+ <br /> &lt;resource-env-ref-name&gt;
+ <br /> jms/StockQueue
+ <br /> &lt;/resource-env-ref-name&gt;
+ <br /> &lt;resource-env-ref-type&gt;
+ <br /> javax.jms.Queue
+ <br /> &lt;/resource-env-ref-type&gt;
+ <br /> &lt;/resource-env-ref&gt;
+ <br /> l env-entry
+ <br /> env -entry元素声明Web应用的环境项。它由一个可选的description元素、一个env-entry-name元素（一个相对于java: comp/env环境JNDI名）、一个env-entry-value元素（项值）以及一个env-entry-type元素（java.lang程序包中一个类型的完全限定类名，java.lang.Boolean、java.lang.String等）组成。下面是一个例子：
+ <br /> &lt;env-entry&gt;
+ <br /> &lt;env-entry-name&gt;minAmout&lt;/env-entry-name&gt;
+ <br /> &lt;env-entry-value&gt;100.00&lt;/env-entry-value&gt;
+ <br /> &lt;env-entry-type&gt;minAmout&lt;/env-entry-type&gt;
+ <br /> &lt;/env-entry&gt;
+ <br /> l ejb-ref
+ <br /> ejb -ref元素声明对一个EJB的主目录的应用。它由一个可选的description元素、一个ejb-ref-name元素（相对于java: comp/env的EJB应用）、一个ejb-ref-type元素（bean的类型，Entity或Session）、一个home元素（bean的主目录接口的完全限定名）、一个remote元素（bean的远程接口的完全限定名）以及一个可选的ejb-link元素（当前bean链接的另一个 bean的名称）组成。
+ <br /> l ejb-local-ref
+ <br /> ejb-local-ref元素声明一个EJB的本地主目录的引用。除了用local-home代替home外，此元素具有与ejb-ref元素相同的属性并以相同的方式使用
+</div> 
+<div> 
+</div> 
+<div>
+ Trackback: 
+ <a href="http://tb.blog.csdn.net/TrackBack.aspx?PostId=658898">http://tb.blog.csdn.net/TrackBack.aspx?PostId=658898</a>
+</div> 
+<div> 
+</div> 
+<div>
+ <a href="http://blog.csdn.net/jamyy2000/archive/2006/04/11/658898.aspx">http://blog.csdn.net/jamyy2000/archive/2006/04/11/658898.aspx</a>
+</div></div></body></html>

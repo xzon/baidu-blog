@@ -1,0 +1,48 @@
+<html><head><title>MSVC and MinGW DLL Interlinking FAQ</title></head><body><div id='tit'>MSVC and MinGW DLL Interlinking FAQ</div><div id='cate'>c&middot;基础</div><div id='date'>2009年08月27日 星期四 06:20 P.M.</div><div id='page'>34</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/9de49458d5b969d79d820400.html'>http://hi.baidu.com/hxzon/blog/item/9de49458d5b969d79d820400.html</a><div id='cnt'><p>MSVC and MinGW DLL Interlinking FAQ</p> 
+<p><a href="http://wyw.dcweb.cn/dllfaq.htm">http://wyw.dcweb.cn/dllfaq.htm</a><br /> <a href="http://www.geocities.com/yongweiwu/index.htm">http://www.geocities.com/yongweiwu/index.htm</a><br /> <br /> <font size="6">Q.</font> How can an MSVC program call an MinGW DLL, and vice versa?<img width="0" height="0" src="image/MSVC and MinGW DLL I.counter.asp-name=dllfaq" /><p class="origImg">http://wyw.dcweb.cn/counter.asp?name=dllfaq</p></p> 
+<p><font size="+3">A.</font> Assume we have a testdll.h, testdll.c, and testmain.c. In the first case, we will compile testdll.c with MinGW, and let the MSVC-compiled testmain call it. You should use</p> 
+<blockquote>
+ <tt><font face="新宋体">gcc -shared -o testdll.dll testdll.c \</font></tt> 
+ <br /> 
+ <tt><font face="新宋体">&nbsp;&nbsp;&nbsp; -Wl,--output-def,testdll.def,--out-implib,libtestdll.a</font></tt>
+</blockquote> 
+<p>to produce the DLL and DEF files. MSVC cannot use the MinGW library, but since you have already the DEF file you may easily produce one by the Microsoft <tt><font face="新宋体">LIB</font></tt> tool:</p> 
+<blockquote>
+ <tt><font face="新宋体">lib /machine:i386 /def:testdll.def</font></tt>
+</blockquote> 
+<p>Once you have testdll.lib, it is trivial to produce the executable with MSVC:</p> 
+<blockquote>
+ <tt><font face="新宋体">cl testmain.c testdll.lib</font></tt>
+</blockquote> 
+<p>Now for MinGW programs calling an MSVC DLL. We have two methods. One way is to specify the LIB files directly on the command line <em>after</em> the main program (in newer MinGW versions; MinGW GCC 2.95.2 is reported not to work). For example, after</p> 
+<blockquote>
+ <tt><font face="新宋体">cl /LD testdll.c</font></tt>
+</blockquote> 
+<p>use</p> 
+<blockquote>
+ <tt><font face="新宋体">gcc -o testmain testmain.c testdll.lib</font></tt>
+</blockquote> 
+<p>The other way is to produce the .a files for GCC. For <tt><font face="新宋体">__cdecl</font></tt> functions (in most cases), it is simple: you only need to apply the <tt><font face="新宋体">reimp</font></tt> tool (the original site is unavailable now, but you may download <a href="http://wyw.dcweb.cn/reimp_new.zip">here</a> a version enhanced by Jos&eacute; Fonseca):</p> 
+<blockquote>
+ <tt><font face="新宋体">reimp testdll.lib</font></tt> 
+ <br /> 
+ <tt><font face="新宋体">gcc -o testmain testmain.c -L. -ltestdll</font></tt>
+</blockquote> 
+<p>However, the above method does not work with <tt><font face="新宋体">__stdcall</font></tt> functions. For MSVC will prefix an underscore to <tt><font face="新宋体">__stdcall</font></tt> functions while MinGW will not. The right way is to produce the DEF file using the <tt><font face="新宋体">pexports</font></tt> tool (downloadable <a href="http://wyw.dcweb.cn/download.asp?path=&amp;file=pexports-0.43.zip">here</a> if not found elsewhere) and filter off the first underscore by <tt><font face="新宋体">sed</font></tt>:</p> 
+<blockquote>
+ <tt><font face="新宋体">pexports testdll.dll | sed &quot;s/^_//&quot; &gt; testdll.def</font></tt>
+</blockquote> 
+<p>Then, when using <tt><font face="新宋体">dlltool</font></tt> to produce the import library, add `<tt><font face="新宋体">-U</font></tt>' to the command line:</p> 
+<blockquote>
+ <tt><font face="新宋体">dlltool -U -d testdll.def -l libtestdll.a</font></tt>
+</blockquote> 
+<p>And now, you can proceed in the usual way:</p> 
+<blockquote>
+ <tt><font face="新宋体">gcc -o testmain testmain.c -L. -ltestdll</font></tt>
+</blockquote> 
+<p>Hooray, we got it. And that is the end of this FAQ.</p> 
+<p>2001-12-21, written by Wu Yongwei <br /> 2004-7-29, last revised by Wu Yongwei</p> 
+<center> 
+ <p><a rel="license" href="http://creativecommons.org/licenses/by-sa/2.5/"><img style="border-right-width: 0px; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" src="image/MSVC and MinGW DLL I.88x31.png" /><p class="origImg">http://i.creativecommons.org/l/by-sa/2.5/88x31.png</p></a><br /> This <span rel="dc:type" href="http://purl.org/dc/dcmitype/Text">work</span> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/2.5/">Creative Commons Attribution-Share Alike 2.5 Licence</a>.</p> 
+ <p><a href="http://wyw.dcweb.cn/index.htm">Return to Main</a></p> 
+</center></div></body></html>

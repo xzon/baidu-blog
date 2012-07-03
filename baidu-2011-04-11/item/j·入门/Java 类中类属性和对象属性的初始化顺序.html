@@ -1,0 +1,105 @@
+<html><head><title>Java 类中类属性和对象属性的初始化顺序</title></head><body><div id='tit'>Java 类中类属性和对象属性的初始化顺序</div><div id='cate'>j&middot;入门</div><div id='date'>2008年05月11日 星期日 11:37 P.M.</div><div id='page'>133</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/7d57546612f55d21aa184cf7.html'>http://hi.baidu.com/hxzon/blog/item/7d57546612f55d21aa184cf7.html</a><div id='cnt'><div>
+ Java 类中类属性和对象属性的初始化顺序
+</div> 
+<div> 
+</div> 
+<div>
+ 边城狂人 
+ <br /> Java 类中类属性 (static 变量) 和对象属性 (非 static 变量) 的初始化顺序可以用如下程序测试：
+ <br /> /**
+ <br /> * @(#) Test.java
+ <br /> * @author fancy
+ <br /> */
+ <br /> 
+ <br /> public class Test {
+ <br /> 
+ <br /> static String a = &quot;string-a&quot;;
+ <br /> static String b;
+ <br /> 
+ <br /> String c = &quot;stirng-c&quot;;
+ <br /> String d;
+ <br /> 
+ <br /> static {
+ <br /> printStatic(&quot;before static&quot;);
+ <br /> b = &quot;string-b&quot;;
+ <br /> printStatic(&quot;after static&quot;);
+ <br /> }
+ <br /> 
+ <br /> public static void printStatic(String title) {
+ <br /> System.out.println(&quot;---------&quot; + title + &quot;---------&quot;);
+ <br /> System.out.println(&quot;a = \&quot;&quot; + a + &quot;\&quot;&quot;);
+ <br /> System.out.println(&quot;b = \&quot;&quot; + b + &quot;\&quot;&quot;);
+ <br /> }
+ <br /> 
+ <br /> public Test() {
+ <br /> print(&quot;before constructor&quot;);
+ <br /> d = &quot;string-d&quot;;
+ <br /> print(&quot;after constructor&quot;);
+ <br /> }
+ <br /> 
+ <br /> public void print(String title) {
+ <br /> System.out.println(&quot;---------&quot; + title + &quot;---------&quot;);
+ <br /> System.out.println(&quot;a = \&quot;&quot; + a + &quot;\&quot;&quot;);
+ <br /> System.out.println(&quot;b = \&quot;&quot; + b + &quot;\&quot;&quot;);
+ <br /> System.out.println(&quot;c = \&quot;&quot; + c + &quot;\&quot;&quot;);
+ <br /> System.out.println(&quot;d = \&quot;&quot; + d + &quot;\&quot;&quot;);
+ <br /> }
+ <br /> 
+ <br /> public static void main(String[] args) {
+ <br /> new Test();
+ <br /> }
+ <br /> 
+ <br /> }
+ <br /> 首先，我把 main() 方法注释掉，运行结果如下：
+ <br /> ---------before static---------
+ <br /> a = &quot;string-a&quot;
+ <br /> b = &quot;null&quot;
+ <br /> ---------after static---------
+ <br /> a = &quot;string-a&quot;
+ <br /> b = &quot;string-b&quot;
+ <br /> java.lang.NoSuchMethodError: main
+ <br /> Exception in thread &quot;main&quot; 
+ <br /> Process completed.
+ <br /> 然后，取消对 main() 方法的注释，运行结果如下：
+ <br /> ---------before static---------
+ <br /> a = &quot;string-a&quot;
+ <br /> b = &quot;null&quot;
+ <br /> ---------after static---------
+ <br /> a = &quot;string-a&quot;
+ <br /> b = &quot;string-b&quot;
+ <br /> ---------before constructor---------
+ <br /> a = &quot;string-a&quot;
+ <br /> b = &quot;string-b&quot;
+ <br /> c = &quot;stirng-c&quot;
+ <br /> d = &quot;null&quot;
+ <br /> ---------after constructor---------
+ <br /> a = &quot;string-a&quot;
+ <br /> b = &quot;string-b&quot;
+ <br /> c = &quot;stirng-c&quot;
+ <br /> d = &quot;string-d&quot;
+ <br /> 由此可以看出 Java 类属性和对象属性的初始化顺序如下：
+ <br /> ① 类属性 (静态变量) 定义时的初始化，如上例的 static String a = &quot;string-a&quot;;
+ <br /> ② static 块中的初始化代码，如上例 static {} 中的 b = &quot;string-b&quot;;
+ <br /> ③ 对象属性 (非静态变量) 定义时的初始化，如上例的 String c = &quot;stirng-c&quot;;
+ <br /> ④ 构造方法 (函数) 中的初始化代码，如上例构造方法中的 d = &quot;string-d&quot;;
+ <br /> 在此过程中 ② 和 ③ 的顺序无所确定，因为在静态块中无法打印出非静态变量。同样是因为这个原因，知道他们的顺序对我们写程序也毫无帮助。再因为类成员 (静态成员) 是在第一次使用到类的时候就进行了相应的初始化，而对象成员 (非静态成员) 则需要生成类实例 (即对象) 时才能初始化，所以我把 ③ 排在了 ② 的后面。再申明一次，它们究竟谁先谁后，从代码上是不能确定的，恐怕需要去研究一下 JVM (Java 虚拟机) 的执行过程才行。
+ <br /> 以下是一些回帖的讨论：
+ <br /> 我对狂人教程&quot;对象成员 (非静态成员) 则需要生成类实例 (即对象) 时才能初始化&quot;有些看法！例如你在例程中定义的两个对象成员变量String c = &quot;stirng-c&quot;;
+ <br /> String d;我认为当程序执行这个Test类的时候,成员变量(不包括构造函数)和类成员变量一样，都要装载到内存。这样对象成员变量就可以被构造函数所调用。但是究竟静态变量和非静态变量哪个先执行可以看在代码中的先后顺序，但是这对于编写代码来说并没有多大的用处！
+ <br /> --小猪努努
+ <br /> static 
+ <br /> {
+ <br /> printStatic(&quot;before static&quot;);
+ <br /> b = &quot;string-b&quot;; 
+ <br /> printStatic(&quot;after static&quot;);
+ <br /> }在類別第一次使用而載入時執行，且只執行一次。。。。。
+ <br /> --caterpillar
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

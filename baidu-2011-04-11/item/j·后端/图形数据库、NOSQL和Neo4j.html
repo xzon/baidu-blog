@@ -1,0 +1,167 @@
+<html><head><title>图形数据库、NOSQL和Neo4j</title></head><body><div id='tit'>图形数据库、NOSQL和Neo4j</div><div id='cate'>j&middot;后端</div><div id='date'>2010年11月12日 星期五 04:33 P.M.</div><div id='page'>5</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/ff0258df0e8c9f034954039c.html'>http://hi.baidu.com/hxzon/blog/item/ff0258df0e8c9f034954039c.html</a><div id='cnt'><h1>图形数据库、NOSQL和Neo4j</h1> 
+<p>hxzon：查询需自定义实现，对比sql的声明式表达显得很不方便。</p> 
+<p>作者 <strong><a class="editorlink" href="http://www.infoq.com/cn/author/Peter-Neubauer">Peter Neubauer</a> </strong>译者<strong><a class="editorlink" href="http://www.infoq.com/cn/author/%E8%83%A1%E9%94%AE"> 胡键</a> </strong>发布于 2010年9月8日 上午12时0分</p> 
+<p>http://www.infoq.com/cn/articles/graph-nosql-neo4j</p> 
+<h2>简介</h2> 
+<p>在<a href="http://en.wikipedia.org/wiki/Data_model">众多不同的数据模型</a>里，关系数据模型自80年代就处于统治地位，而且有不少实现，如<a href="http://www.oracle.com/index.html">Oracle</a>、<a href="http://www.mysql.com/">MySQL</a>和<a href="http://www.microsoft.com/sqlserver/2008/en/us/">MSSQL</a>，它们也被称为关系数据库管理系统（RDBMS）。然而，最近随着关系数据库使用案例的不断增加，一些问题也暴露了出来，这主要是因为两个原因：<a href="http://www.scribd.com/doc/2670985/SQL-Antipatterns">数据建模中的一些缺陷和问题</a>，以及在大数据量和多服务器之上进行水平伸缩的限制。两个趋势让这些问题引起了全球软件社区的重视：</p> 
+<ol> 
+ <li>用户、系统和传感器产生的数据量呈<a href="http://www.internetnews.com/stats/article.php/3663641">指数增长</a>，其增长速度因大部分数据量集中在象Amazon、Google和其他云服务这样的分布式系统上而进一步加快。</li> 
+ <li>数据内部依赖和复杂度的增加，这一问题因互联网、Web2.0、社交网络，以及对大量不同系统的数据源开放和标准化的访问而加剧。</li> 
+</ol> 
+<p>在应对这些趋势时，关系数据库产生了更多的问题。这导致大量解决这些问题某些特定方面的不同技术的出现，它们可以与现有RDBMS相互配合或代替它们 - 亦被称为<a href="http://codemonkeyism.com/nosql-polyglott-persistence/">混合持久化（Polyglot Persistence）</a>。数据库替代品并不是新鲜事物，它们已经以<a href="http://en.wikipedia.org/wiki/List_of_object_database_management_systems">对象数据库（OODBMS）</a>、层次数据库（如LDAP）等形式存在很长时间了。但是，过去几年间，出现了大量新项目，它们被统称为NOSQL数据库（NOSQL-databases）</p> 
+<p>本文旨在介绍图形数据库（Graph Database）在NOSQL运动里的地位，第二部分则是对Neo4j（一种基于Java的图形数据库）的简介。</p> 
+<h2>NOSQL环境</h2> 
+<p><a href="http://nosql-databases.org/">NOSQL</a>（Not Only SQL，不限于SQL）是一类范围非常广泛的持久化解决方案，它们不遵循关系数据库模型，也不使用SQL作为查询语言。</p> 
+<p>简单地讲，NOSQL数据库可以按照它们的数据模型分成4类：</p> 
+<ol> 
+ <li>键-值存储库（Key-Value-stores）</li> 
+ <li>BigTable实现（BigTable-implementations）</li> 
+ <li>文档库（Document-stores）</li> 
+ <li><strong>图形数据库（Graph Database）</strong></li> 
+</ol> 
+<p>就<a href="http://project-voldemort.com/">Voldemort</a>或<a href="http://1978th.net/tokyocabinet/">Tokyo Cabinet</a>这类键/值系统而言，最小的建模单元是键-值对。对BigTable的克隆品来讲，最小建模单元则是包含不同个数属性的元组，至于象<a href="http://couchdb.apache.org/">CouchDB</a>和<a href="http://www.mongodb.org/display/DOCS/Home">MongoDB</a>这样的文档库，最小单元是文档。图形数据库则干脆把整个数据集建模成一个大型稠密的网络结构。</p> 
+<p>在此，让我们深入检阅NOSQL数据库的两个有意思的方面：伸缩性和复杂度。<strong><br /> </strong></p> 
+<h3>1. 伸缩性</h3> 
+<h4>CAP: ACID vs. BASE</h4> 
+<p>为了保证数据完整性，大多数经典数据库系统都是以事务为基础的。这全方位保证了数据管理中数据的一致性。这些事务特性也被称为<a href="http://en.wikipedia.org/wiki/ACID"><strong>ACID</strong></a>（<strong>A</strong>代表原子性、<strong>C</strong>表示一致性、<strong>I</strong>是隔离性、<strong>D</strong>则为持久性）。然而，ACID兼容系统的向外扩展已经表现为一个问题。在分布式系统中，高可用性不同方面之间产生的冲突没有完全得到解决 - 亦称<a href="http://www.julianbrowne.com/article/viewer/brewers-cap-theorem"><strong>CAP</strong></a>法则：</p> 
+<ul> 
+ <li>强<strong>一致性（C）</strong>：所有客户端看到的数据是同一个版本，即使是数据集发生了更新 - 如利用<a href="http://en.wikipedia.org/wiki/Two-phase_commit">两阶段提交</a>协议（<a href="http://en.wikipedia.org/wiki/X/Open_XA">XA</a>事务），和ACID，</li> 
+ <li>高<strong>可用性（A）</strong>：所有客户端总能找到所请求数据的至少一个版本，即使集群中某些机器已经宕机，</li> 
+ <li><strong>分区容忍性（P）</strong>：整个系统保持自己的特征，即使是被部署到不同服务器上的时候，这对客户端来讲是透明的。</li> 
+</ul> 
+<p>CAP法则假定向外扩展的3个不同方面中只有两个可以同时完全实现。</p> 
+<p class="image-wide"><img src="image/图形数据库、NOSQL和Neo4j.ht.n-image1.jpg" /><p class="origImg">http://www.infoq.com/resource/articles/graph-nosql-neo4j/zh/resources/n-image1.jpg</p></p> 
+<p>为了能处理大型分布式系统，让我们深入了解所采用的不同CAP特征。</p> 
+<p>很多NOSQL数据库首先已经放宽了对于<strong>一致性（C）</strong>的要求，以期得到更好的<strong>可用性（A）</strong>和<strong>分区容忍性（P）</strong>。这产生了被称为<a href="http://www.michaelnygard.com/blog/2007/11/architecting_for_latency.html"><strong>BASE</strong></a>（<strong>基本（B）可用性（A）</strong>、<strong>软状态（S）</strong>、<strong>最终一致性（E）</strong>）的系统。它们没有经典意义上的事务，并且在数据模型上引入了约束，以支持更好的分区模式（如<a href="http://www.allthingsdistributed.com/2007/10/amazons_dynamo.html">Dynamo</a>系统等）。关于CAP、ACID和BASE的更深入讨论可以在<a href="http://www.julianbrowne.com/article/viewer/brewers-cap-theorem">这篇介绍</a>里找到。</p> 
+<h3>2. 复杂度</h3> 
+<p class="image-wide"><img src="image/图形数据库、NOSQL和Neo4j.ht.n-image2.jpg" /><p class="origImg">http://www.infoq.com/resource/articles/graph-nosql-neo4j/zh/resources/n-image2.jpg</p></p> 
+<p><strong><a href="http://www.visualcomplexity.com/vc/project_details.cfm?id=122&amp;index=14&amp;domain=Biology">蛋白质同源网络（Protein Homology Network）</a>，感谢<a href="http://www.visualcomplexity.com/vc/project_details.cfm?id=122&amp;index=122&amp;domain=">Alex Adai</a>：细胞和分子生物学院 - 德州大学</strong></p> 
+<p>数据和系统的互联性增加产生了一种无法用简单明了或领域无关（domain-independent）方式进行伸缩和自动分区的稠密数据集，甚至连<a href="http://highscalability.com/blog/2010/1/11/have-we-reached-the-end-of-scaling.html">Todd Hoff</a>也提到了这一问题。关于大型复杂数据集的可视化内容可以访问<a href="http://www.visualcomplexity.com/vc/">可视化复杂度（Visual Complexity）</a>。</p> 
+<h4>关系模型</h4> 
+<p>在把关系数据模型扔进故纸堆之前，我们不应该忘记关系数据库系统成功的一个原因是遵照E.F. Codd的想法，关系数据模型<a href="http://en.wikipedia.org/wiki/Database_normalization">通过规范化的手段</a>原则上能够建模任何数据结构且没有信息冗余和丢失。建模完成之后，就可以使用SQL以一种非常强大的方式插入、修改和查询数据。甚至有些数据库，为了插入速度或针对不同使用情况（如OLTP、OLAP、Web应用或报表）的多维查询（星形模式），对模式实现了优化。</p> 
+<p>这只是理论。然而在实践中，RDBM遇到了前面提到的CAP问题的限制，以及由高性能查询实现而产生的问题：联结大量表、深度嵌套的SQL查询。其他问题包括伸缩性、随时间的模式演变，树形结构的建模，半结构化数据，层级和网络等。</p> 
+<p>关系模型也很难适应当前软件开发的方法，如面向对象和动态语言，这被称为<a href="http://en.wikipedia.org/wiki/Object-relational_impedance_mismatch">对象-关系阻抗失配</a>。由此，象Java的<a href="http://www.hibernate.org/">Hibernate</a>这样的ORM层被开发了出来，而且被应用到这种混合环境里。它们固然简化了把对象模型映射到关系数据模型的任务，但是没有优化查询的性能。尤其是半结构化数据往往被建模成具有许多列的大型表，其中很多行的许多列是空的（稀疏表），这导致了拙劣的性能。甚至作为替代方法，把这些结构建模成大量的联结表，也有问题。因为RDBMS中的联结是一种非常昂贵的集合操作。</p> 
+<h4>图形是关系规范化的一种替代技术</h4> 
+<p>看看领域模型在数据结构上的方案，有两个主流学派 - RDBMS采用的关系方法和<a href="http://en.wikipedia.org/wiki/Graph_theory">图 - 即网络结构</a>，如语义网用到的。</p> 
+<p>尽管图结构在理论上甚至可以用RDBMS规范化，但由于关系数据库的实现特点，对于象文件树这样的递归结构和象社交图这样的网络结构有严重的查询性能影响。网络关系上的每次操作都会导致RDBMS上的一次&quot;联结&quot;操作，以两个表的主键集合间的集合操作来实现 ，这种操作不仅缓慢并且无法随着这些表中元组数量的增加而伸缩。</p> 
+<p class="image-wide"><img src="image/图形数据库、NOSQL和Neo4j.ht.n-image3.jpg" /><p class="origImg">http://www.infoq.com/resource/articles/graph-nosql-neo4j/zh/resources/n-image3.jpg</p></p> 
+<p><strong>属性图形（Property Graph）的基本术语</strong></p> 
+<p>在图的领域，并没有一套被广泛接受的术语，存在着<a href="http://en.wikipedia.org/wiki/Graph_%28mathematics%29">很多不同类型的图模型</a>。但是，有人致力于创建一种<a href="http://wiki.github.com/tinkerpop/blueprints/property-graph-model">属性图形模型（Property Graph Model）</a>，以期统一大多数不同的图实现。按照该模型，属性图里信息的建模使用3种构造单元：</p> 
+<ul> 
+ <li><strong>节点</strong>（即顶点）</li> 
+ <li><strong>关系</strong>（即边） - 具有方向和类型（标记和标向）</li> 
+ <li>节点和关系上面的<strong>属性</strong>（即特性）</li> 
+</ul> 
+<p>更特殊的是，这个模型是一个被标记和标向的属性多重图（multigraph）。被标记的图每条边都有一个标签，它被用来作为那条边的类型。有向图允许边有一个固定的方向，从末或源节点到首或目标节点。属性图允许每个节点和边有一组可变的属性列表，其中的属性是关联某个名字的值，简化了图形结构。多重图允许两个节点之间存在多条边。这意味着两个节点可以由不同边连接多次，即使两条边有相同的尾、头和标记。</p> 
+<p>下图显示了一个被标记的小型属性图。</p> 
+<p class="image-wide"><img src="image/图形数据库、NOSQL和Neo4j.ht.n-image4.jpg" /><p class="origImg">http://www.infoq.com/resource/articles/graph-nosql-neo4j/zh/resources/n-image4.jpg</p></p> 
+<p><strong><a href="http://www.tinkerpop.com/">TinkerPop</a>有关的小型人员图</strong></p> 
+<p>图论的巨大用途被得到了认可，它跟不同领域的很多问题都有关联。最常用的图论算法包括各种类型的<a href="http://en.wikipedia.org/wiki/Geodesy#Geodetic_problems">最短路径计算</a>、<a href="http://en.wikipedia.org/wiki/Geodesy#Geodetic_problems">测地线（Geodesic Path）</a>、集中度测量（如PageRank、特征向量集中度、亲密度、关系度、HITS等）。然而，在很多情况下，这些算法的应用仅限制于研究，因为实际中没有任何可用于产品环境下的高性能图形数据库实现。幸运的是，近些年情况有所改观。有几个项目已经被开发出来，而且目标直指24/7的产品环境：</p> 
+<ul> 
+ <li><a href="http://www.neo4j.org/">Neo4j</a> - 开源的Java属性图形模型</li> 
+ <li><a href="http://www.franz.com/agraph/allegrograph/">AllegroGraph</a>，闭源，RDF-QuadStore</li> 
+ <li><a href="http://www.sones.com/">Sones</a> - 闭源，关注于.NET</li> 
+ <li><a href="http://www.openlinksw.com/">Virtuoso</a> - 闭源，关注于RDF</li> 
+ <li><a href="http://www.kobrix.com/hgdb.jsp">HyergraphDB</a> - 开源的Java超图模型</li> 
+ <li>Others like <a href="http://infogrid.org/">InfoGrid</a>、Filament、<a href="http://github.com/twitter/flockdb">FlockDB</a>等。</li> 
+</ul> 
+<p>下图展示了在复杂度和伸缩性方面背景下的主要NOSQL分类的位置。</p> 
+<p class="image-wide"><img src="image/图形数据库、NOSQL和Neo4j.ht.n-image5.jpg" /><p class="origImg">http://www.infoq.com/resource/articles/graph-nosql-neo4j/zh/resources/n-image5.jpg</p></p> 
+<p>关于“规模扩展和复杂度扩展的比较”的更多内容，请阅读<a href="http://blogs.neotechnology.com/emil/2009/11/nosql-scaling-to-size-and-scaling-to-complexity.html">Emil Eifrem的博文</a>。</p> 
+<h2>Neo4j - 基于Java的图形数据库</h2> 
+<p><a href="http://www.neo4j.org/">Neo4j</a>是一个用Java实现、完全兼容ACID的图形数据库。数据以一种针对图形网络进行过优化的格式保存在磁盘上。Neo4j的内核是一种极快的图形引擎，具有数据库产品期望的所有特性，如恢复、两阶段提交、符合XA 等。自2003年起，Neo4j就已经被作为24/7的产品使用。该项目刚刚发布了<a href="http://blog.neo4j.org/2010/02/top-10-ways-to-get-to-know-neo4j.html">1.0版</a> - 关于伸缩性和社区测试的一个主要里程碑。通过联机备份实现的高可用性和主从复制目前处于测试阶段，预计在下一版本中发布。Neo4j既可作为无需任何管理开销的内嵌数据库使用；也可以作为单独的服务器使用，在这种使用场景下，它提供了广泛使用的<a href="http://wiki.neo4j.org/content/Getting_Started_REST">REST</a>接口，能够方便地集成到基于<a href="http://github.com/onewheelgood/Neo4J-REST-PHP-API-client">PHP</a>、.NET和JavaScript的环境里。但本文的重点主要在于讨论Neo4j的直接使用。</p> 
+<p>开发者可以通过<a href="http://api.neo4j.org/current/">Java-API</a>直接与图形模型交互，这个API暴露了非常灵活的数据结构。至于象<a href="http://github.com/andreasronge/neo4j">JRuby/Ruby</a>、<a href="http://github.com/ept/neo4j-scala-template">Scala</a>、<a href="http://components.neo4j.org/neo4j.py/">Python</a>、<a href="http://github.com/JulianMorrison/neo4j-clojure">Clojure</a>等其他语言，社区也贡献了优秀的绑定库。Neo4j的典型数据特征：</p> 
+<ul> 
+ <li>数据结构不是必须的，甚至可以完全没有，这可以简化模式变更和延迟数据迁移。</li> 
+ <li>可以方便建模常见的复杂领域数据集，如<a href="http://wiki.neo4j.org/content/ACL">CMS里的访问控制</a>可被建模成细粒度的访问控制表，<a href="http://code.google.com/p/jo4neo/">类对象数据库的用例</a>、<a href="http://en.wikipedia.org/wiki/Triplestore">TripleStores</a>以及<a href="http://blog.neo4j.org/2009/12/holiday-fun-with-neo4j.html">其他例子</a>。</li> 
+ <li>典型使用的领域如<a href="http://en.wikipedia.org/wiki/Semantic_Web">语义网和RDF</a>、<a href="http://en.wikipedia.org/wiki/Linked_Data">LinkedData</a>、<a href="http://resources.esri.com/help/9.3/arcgisengine/dotnet/e084da94-d4f7-4da7-86ed-7df684ff2144.htm">GIS</a>、<a href="http://code.google.com/p/pygr/">基因分析</a>、<a href="http://blog.neo4j.org/2009/09/social-networks-in-database-using-graph.html">社交网络数据建模</a>、<a href="http://wiki.github.com/tinkerpop/gremlin/linkeddata-sail#recommendation">深度推荐算法</a>以及<a href="http://wiki.neo4j.org/content/Neo4j_In_The_Wild">其他领域</a>。</li> 
+</ul> 
+<p>甚至“传统”RDBMS应用往往也会包含一些具有挑战性、非常适合用图来处理的数据集，如文件夹结构、产品配置、产品组装和分类、媒体元数据、金融领域的语义交易和欺诈检测等。</p> 
+<p>围绕内核，Neo4j提供了一组可选的<a href="http://components.neo4j.org/">组件</a>。其中有支持通过<a href="http://components.neo4j.org/neo4j-meta-model/">元模型</a>构造图形结构、<a href="http://www.openrdf.org/doc/sesame2/system/ch05.html">SAIL</a> - 一种SparQL兼容的RDF TripleStore<a href="http://components.neo4j.org/neo4j-rdf-sail/">实现</a>或一组公共<a href="http://components.neo4j.org/neo4j-graph-algo/">图形算法</a>的实现。</p> 
+<p>要是你想将Neo4j作为单独的服务器运行，还可以找到<a href="http://wiki.neo4j.org/content/Getting_Started_REST">REST</a>包装器。这非常适合使用<a href="http://en.wikipedia.org/wiki/LAMP_%28software_bundle%29">LAMP</a>软件搭建的架构。通过<a href="http://memcached.org/">memcached</a>、e-tag和基于<a href="http://httpd.apache.org/">Apache</a>的缓存和Web层，REST甚至简化了大规模读负荷的伸缩。</p> 
+<h3>高性能？</h3> 
+<p>要给出确切的性能基准数据很难，因为它们跟底层的硬件、使用的数据集和其他因素关联很大。自适应规模的Neo4j无需任何额外的工作便可以处理包含数十亿节点、关系和属性的图。它的读性能可以很轻松地实现每毫秒（大约每秒1-2百万遍历步骤）遍历2000关系，这完全是事务性的，每个线程都有热缓存。使用最短路径计算，Neo4j在处理包含数千个节点的小型图时，甚至比MySQL快1000倍，随着图规模的增加，差距也越来越大。</p> 
+<p>这其中的原因在于，在Neo4j里，<strong>图遍历执行的速度是常数</strong>，跟图的规模大小无关。<strong>不象在RDBMS里常见的联结操作那样，这里不涉及降低性能的集合操作</strong>。Neo4j以一种延迟风格遍历图 - 节点和关系只有在结果迭代器需要访问它们的时候才会被遍历并返回，对于大规模深度遍历而言，这极大地提高了性能。</p> 
+<p>写速度跟文件系统的查找时间和硬件有很大关系。Ext3文件系统和SSD磁盘是不错的组合，这会导致每秒大约100,000写事务操作。</p> 
+<h3>示例 - 黑客帝国</h3> 
+<h4>图</h4> 
+<p>前面已经说过，社交网络只是代表了图形数据库应用的冰山一角，但用它们来作为例子可以让人很容易理解。为了阐述Neo4j的基本功能，下面这个小型图来自<a href="http://uk.imdb.com/title/tt0133093/">黑客帝国</a>这部电影。该图是用Neo4j的<a href="http://wiki.neo4j.org/content/Neoclipse_Guide">Neoclipse</a>产生的，该插件基于<a href="http://wiki.eclipse.org/index.php/Rich_Client_Platform">Eclipse RCP</a>：</p> 
+<p class="image-wide"><img src="image/图形数据库、NOSQL和Neo4j.ht.n-image7.jpg" /><p class="origImg">http://www.infoq.com/resource/articles/graph-nosql-neo4j/zh/resources/n-image7.jpg</p></p> 
+<p>这个图链接到一个已知的引用节点（id=0），这是为了方便的从一个已知起点找到条路进入这个网络。这个节点不是必须的，但实践证明它非常有用。</p> 
+<p>Java的实现看上去大概是这个样子：</p> 
+<p>在“target/neo”目录创建一个新的图形数据库</p> 
+<pre>EmbeddedGraphDatabase graphdb = new EmbeddedGraphDatabase(&quot;target/neo&quot;);</pre> 
+<p>关系类型可以动态创建：</p> 
+<pre>RelationshipType KNOWS = DynamicRelationshipType.withName(&quot;KNOWS&quot;);</pre> 
+<p>或通过类型安全的Java Enum：</p> 
+<pre>enum Relationships implements RelationshipType { KNOWS, INLOVE, HAS_CODED, MATRIX }</pre> 
+<p>现在，创建2个节点，给每个节点加上“name”属性。接着，把两个节点用一个“KNOWS”关系联系起来：</p> 
+<pre>Node neo = graphdb.createNode();<br />node.setProperty(&quot;name&quot;, &quot;Neo&quot;);<br />Node morpheus = graphdb.createNode();<br />morpheus.setProperty(&quot;name&quot;, &quot;Morpheus&quot;);<br />neo.createRelationshipTo(morpheus, KNOWS);</pre> 
+<p>任何修改图或需要数据隔离级别的操作要包在事务中，这样可以利用内置的回滚和恢复功能：</p> 
+<pre>Transaction tx = graphdb.beginTx();<br />try {<br /> Node neo = graphdb.createNode();<br /> ...<br /> tx.success();<br />} catch (Exception e) {<br /> tx.failure();<br />} finally {<br /> tx.finish();<br />}</pre> 
+<p>创建“黑客帝国”图的完整代码：</p> 
+<pre>graphdb = new EmbeddedGraphDatabase(&quot;target/neo4j&quot;);<br />index = new LuceneIndexService(graphdb);<br />Transaction tx = graphdb.beginTx();<br />try {<br /> Node root = graphdb.getReferenceNode();<br /> // we connect Neo with the root node, to gain an entry point to the graph<br /> // not neccessary but practical.<br /> neo = createAndConnectNode(&quot;Neo&quot;, root, MATRIX);<br /> Node morpheus = createAndConnectNode(&quot;Morpheus&quot;, neo, KNOWS);<br /> Node cypher = createAndConnectNode(&quot;Cypher&quot;, morpheus, KNOWS);<br /> Node trinity = createAndConnectNode(&quot;Trinity&quot;, morpheus, KNOWS);<br /> Node agentSmith = createAndConnectNode(&quot;Agent Smith&quot;, cypher, KNOWS);<br /> architect = createAndConnectNode(&quot;The Architect&quot;, agentSmith, HAS_CODED);<br /> // Trinity loves Neo. But he doesn't know.<br /> trinity.createRelationshipTo(neo, LOVES);<br /> tx.success();<br />} catch (Exception e) {<br /> tx.failure();<br />} finally {<br /> tx.finish();<br />}</pre> 
+<p>以及创建节点和关系的成员函数</p> 
+<pre>private Node createAndConnectNode(String name, Node otherNode,<br />RelationshipType relationshipType) {<br />    Node node = graphdb.createNode();<br />    node.setProperty(&quot;name&quot;, name);<br />    node.createRelationshipTo(otherNode, relationshipType);<br />    index.index(node, &quot;name&quot;, name);<br />    return node;<br />}</pre> 
+<h3>谁是Neo的朋友？</h3> 
+<p>Neo4j的API有一组面向<a href="http://java.sun.com/j2se/1.4.2/docs/api/java/util/Collection.html">Java集合</a>的方法可轻易地完成查询。这里，只消看看“Neo”节点的关系便足以找出他的朋友：</p> 
+<pre>for (Relationship rel : neo.getRelationships(KNOWS)) {<br />    Node friend = rel.getOtherNode(neo);<br />    System.out.println(friend.getProperty(&quot;name&quot;));<br />}<br />returns &quot;Morpheus&quot; as the only friend.</pre> 
+<p>但是，Neo4j的真正威力源自<a href="http://api.neo4j.org/current/">Traverser-API</a>的使用，它可以完成非常复杂的遍历描述和过滤器。它由Traverser和ReturnableEvaluator组成，前者计算 StopEvaluator来获知何时停止，后者则用于在结果中包含哪些节点。此外，你还可以指定要遍历关系的类型和方向。Traverser实现了 Java的<a href="http://java.sun.com/j2se/1.4.2/docs/api/java/util/Iterator.html">Iterator</a>接口，负责延迟加载和遍历整个图，在节点被首次要求访问（如for{...}循环）时进行。它还内置了一些常用的Evaluator和缺省值：</p> 
+<pre>Traverser friends = neo.traverse(Order.BREADTH_FIRST,<br />StopEvaluator.DEPTH_ONE,<br />ReturnableEvaluator.ALL_BUT_START_NODE, KNOWS, Direction.BOTH);<br />for (Node friend : friends) {<br />    System.out.println(friend.getProperty(&quot;name&quot;));<br />}</pre> 
+<p>我们在继续访问更深一级的节点之前首先从起点访问处于同一深度的所有节点（Order.BREADTH_FIRST），在深度为1的一次遍历后停止（StopEvaluator.DEPTH_ONE），然后返回除了起点（&quot;Neo&quot;）之外的所有节点（ReturnableEvaluator.ALL_BUT_START_NODE）。我们在两个方向只遍历类型为KNOWS的关系。这个遍历器再次返回 Morpheus是Neo仅有的直接朋友。</p> 
+<h3>朋友的朋友？</h3> 
+<p>为了调查谁是Neo朋友的朋友，KNOWS网络需要再进行深度为2的步骤，由Neo开始，返回Trinity和Cypher。实际编程中，这可以通过调整我们的Traverser的StopEvaluator，限制遍历深度为2来实现：</p> 
+<pre>StopEvaluator twoSteps = new StopEvaluator() {<br />    @Override<br />    public boolean isStopNode(TraversalPosition position) {<br />        return position.depth() == 2;<br />    }<br />};</pre> 
+<p>还要定制ReturnableEvaluator，只返回在深度2找到的节点：</p> 
+<pre>ReturnableEvaluator nodesAtDepthTwo = new ReturnableEvaluator() {<br />    @Override<br />    public boolean isReturnableNode(TraversalPosition position) {<br />        return position.depth() == 2;<br />    }<br />};</pre> 
+<p>现在“朋友的朋友”遍历器就成了：</p> 
+<pre>Traverser friendsOfFriends = neo.traverse(Order.BREADTH_FIRST,<br /><br />    twoSteps, nodesAtDepthTwo, KNOWS, Direction.BOTH);<br />for (Node friend : friendsOfFriends) {<br />    System.out.println(friend.getProperty(&quot;name&quot;));<br />}</pre> 
+<p>它的结果是Cypher和Trinity。</p> 
+<h3>谁在恋爱？</h3> 
+<p>另一个有趣的问题是，这个图上是否有人正在热恋，比方说从架构师（Architect）开始。</p> 
+<p>这次，整个图需要沿着由架构师（假定他的节点ID是已知的，但要到很晚才知道）开始的任何关系开始检查，返回拥有向外LOVE关系的节点。一个定制的ReturnableEvaluator可以完成这件事：</p> 
+<pre>ReturnableEvaluator findLove = new ReturnableEvaluator() {<br />@Override<br />    public boolean isReturnableNode(TraversalPosition position) {<br />        return position.currentNode().hasRelationship(LOVES, Direction.OUTGOING);<br />    }<br />};</pre> 
+<p>为了遍历所有关系，需要知道整个图的所有关系类型：</p> 
+<pre>List&lt;Object&gt; types = new ArrayList&lt;Object&gt;();<br />// we have to consider all relationship types of the whole graph<br />// (in both directions)<br />for(RelationshipType type : graphdb.getRelationshipTypes()) {<br />    types.add(type);<br />    types.add(Direction.BOTH);<br />}<br />//let's go!<br />Traverser inLove = architect.traverse(Order.BREADTH_FIRST,<br />StopEvaluator.END_OF_GRAPH, findLove, types.toArray());<br />for (Node lover : inLove) {<br />    System.out.println(lover.getProperty(&quot;name&quot;));<br />}</pre> 
+<p>上述代码的返回结果只有一个节点：Trinity，因为我们只返回拥有向外LOVE关系的节点。</p> 
+<h3>给图建立索引</h3> 
+<p>尽管沿着所有关系的遍历操作是Neo4j的亮点之一，但也需要在整个图之上进行面向集合的操作。所有节点属性的全文检索就是一个典型的例子。为了不重新发明轮子，Neo4j在这里使用了外部索引系统。针对常见的基于文本的搜索，Neo4j已经跟<a href="http://lucene.apache.org/">Lucene</a>和<a href="http://solr.apache.org/">Solr</a>进行了深度集成，在Lucene/Solr里增加了给具有事务语义的任意节点属性创建索引的功能。</p> 
+<p>在黑客帝国的例子里，如给“name”属性创建索引：</p> 
+<pre>GraphDatabaseService graphDb = // a GraphDatabaseService instance<br /><br />IndexService index = new LuceneIndexService( graphDb );<br /><br />//create a new node and index the &quot;name&quot; property<br />Node neo = graphDb.createNode();<br />neo.setProperty( &quot;name&quot;, &quot;Neo&quot; );<br />index.index( neo, &quot;name&quot;, neo.getProperty( &quot;name&quot; ) );<br /><br />//search for the first node with &quot;name=Neo&quot;<br />Node node = index.getSingleNode( &quot;name&quot;, &quot;Neo&quot; );</pre> 
+<p>Lucene是图的外部索引的一个例子。但是，作为一个快速图形引擎，有大量的策略来构建图本身内部的索引结构，针对特殊数据集和领域缩短遍历模式。例如，有针对一维数据的<a href="http://components.neo4j.org/neo4j-index/">timeline</a>和B树，给二维数据（在空间和GIS社区非常普遍）建立索引的RTrees和<a href="http://en.wikipedia.org/wiki/Quadtree">QuadTrees</a>等。另一个常见的有用模式是将重要的子图直接连接到根节点，以创建重要开始节点的快捷路径。</p> 
+<h3>Java太麻烦了。拜托，有没有简短点的？</h3> 
+<p>Neo4j甚至还提供了一组优秀的语言绑定来简化图结构操作。这个例子使用了优秀的<a href="http://github.com/andreasronge/neo4j">Neo4j-JRuby-绑定</a>，它极大地减少了整个代码量：</p> 
+<p>先安装neo4j gem</p> 
+<pre>&gt;gem install neo4j</pre> 
+<p>这时，整个黑客帝国的图和前面提到的查询，用JRuby代码编写就成了这个样子：</p> 
+<pre>require &quot;rubygems&quot;<br /><br />require &quot;neo4j&quot;<br /><br />class Person<br />  include Neo4j::NodeMixin<br /><br />  #the properties on the nodes<br />  property :name<br /><br /><br />  #the relationship types<br />  has_n :friends<br /><br />  # Lucene index for some properties<br />  index :name<br />end<br /><br /><br />#the players<br /><br />neo       = Person.new :name =&gt; 'Neo'<br />morpheus  = Person.new :name =&gt; 'Morpheus'<br />trinity   = Person.new :name =&gt; 'Trinity'<br />cypher    = Person.new :name =&gt; 'Cypher'<br />smith     = Person.new :name =&gt; 'Agent Smith'<br />architect = Person.new :name =&gt; 'Architect'<br /><br />#the connections<br /><br />cypher.friends &lt;&lt; morpheus<br />cypher.friends &lt;&lt; smith<br />neo.friends &lt;&lt; morpheus<br />morpheus.friends &lt;&lt; trinity<br />trinity.rels.outgoing(:loves) &lt;&lt; neo<br /><br />architect.rels.outgoing(:has_coded) &lt;&lt; smith<br /><br /><br />#Neos friends<br /><br />neo.friends.each { |n| puts n }<br /><br /><br />#Neos friends-of-friends<br /><br />neo.friends.depth(2).each { |n| puts n }<br /><br /><br />#Who is in love?<br />architect.traverse.both(:friends, :has_coded, :loves).depth(:all).filter do<br />  outgoing(:loves).to_a.size &gt; 0<br />end.each do |n|<br /> puts 'In love: ' + n.name<br />end</pre> 
+<h3>图编程语言 - Gremlin</h3> 
+<p class="image-wide"><img src="image/图形数据库、NOSQL和Neo4j.ht.n-image8.jpg" /><p class="origImg">http://www.infoq.com/resource/articles/graph-nosql-neo4j/zh/resources/n-image8.jpg</p></p> 
+<p>直到最近，还没有任何查询语言涉及大型的图领域和图相关项目。在语义网/RDF领域，有<a href="http://en.wikipedia.org/wiki/SPARQL">SPARQL</a>，受SQL启发的查询语言，专注于描述用来匹配元组集合的样本图。但是，大量的图并不兼容RDF，而且采用不同或更侧重于更实用的方式进行数据建模，象本文中的黑客帝国例子，以及其他领域特定的数据集。其他查询语言都是面向JSON的，如<a href="http://mql.freebaseapps.com/ch01.html">MQL</a>，一种用于<a href="http://www.freebase.com/">Freebase</a>的查询语言。这些语言只工作于它们自己定义的数据模型，完全不支持或只非常有限地支持深度图算法和启发式分析方法，而这又是当今大型图里不可或缺的内容。</p> 
+<p>至于针对各种图数据模型（如RDF）的更复杂有趣的查询，<a href="http://gremlin.tinkerpop.com/">Gremlin</a> - 一种面向<a href="http://en.wikipedia.org/wiki/XPath">XPath</a>，图灵完备的图形编程语言 - 正由<a href="http://www.tinkerpop.com/">TinkerPop</a>团队开发，主要由<a href="http://markorodriguez.com/">Marko A. Rodriguez</a>推动。借助引入<a href="http://wiki.github.com/tinkerpop/blueprints/property-graph-model">属性图模型</a>，它创造了一个针对现有大多数模型的超集，以及最小的公共操作集合。此外，它允许连接其他图形框架（如<a href="http://wiki.github.com/tinkerpop/gremlin/working-with-jung-algorithms">Gremlin</a>使用<a href="http://jung.sourceforge.net/">JUNG</a>），同时支持在不同的图实现上都能表达图的遍历。已支持的一组实现包括，从简单的如内存中的<a href="http://wiki.github.com/tinkerpop/gremlin/tinkergraph">TinkerGraph</a>，到其他通过针对<a href="http://franz.com/">AllegroGraph</a>、<a href="http://wiki.github.com/tinkerpop/gremlin/memorystore-and-nativestore-sail">Sesame</a>和<a href="http://wiki.github.com/tinkerpop/gremlin/linkeddata-sail">ThinkerPop LinkedData SAIL</a>（最开始由<a href="http://fortytwo.net/Home.html">Josh Shinavier</a>为<a href="http://ripple.fortytwo.net/">Ripple</a>编程语言开发）的RDF-SAIL适配器，一直到Neo4j。</p> 
+<p>Gremlin的语法建立在<a href="http://en.wikipedia.org/wiki/XPath">XPath</a>基础之上，这是为了可以简单地表达整个图的深度路径描述。很多简单的例子几乎就像普通的XPath。</p> 
+<p>在<a href="http://wiki.github.com/tinkerpop/gremlin/getting-started">安装Gremlin</a>或<a href="http://try.neo4j.org/">在线试用</a>之后，黑客帝国例子里的图的Gremlin会话大致是：</p> 
+<pre>peterneubauer$ ~/code/gremlin/gremlin.sh<br /><br /><br />         \,,,/<br />         (o o)<br />-----oOOo-(_)-oOOo-----<br />gremlin&gt; #open a new neo4j graph as the default graph ($_g)<br />gremlin&gt; $_g := neo4j:open('tmp/matrix')<br />==&gt;neo4jgraph[tmp/matrix]<br />gremlin&gt; #the vertices<br />gremlin&gt; $neo := g:add-v(g:map('name','Neo'))<br />==&gt;v[1]<br />gremlin&gt; $morpheus := g:add-v(g:map('name','Morpheus'))<br />==&gt;v[2]<br />gremlin&gt; $trinity := g:add-v(g:map('name','Trinity'))<br />==&gt;v[3]<br />gremlin&gt; $cypher := g:add-v(g:map('name','Cypher'))<br />==&gt;v[4]<br />gremlin&gt; $smith := g:add-v(g:map('name','Agent Smith'))<br />==&gt;v[5]<br />gremlin&gt; $architect := g:add-v(g:map('name','The Architect'))<br />==&gt;v[6]<br />gremlin&gt; #the edges<br />gremlin&gt; g:list($cypher,$neo,$trinity)[g:add-e($morpheus,'KNOWS',.)]<br />==&gt;v[4]<br />==&gt;v[1]<br />==&gt;v[3]<br />gremlin&gt; g:add-e($cypher,'KNOWS',$smith)<br />==&gt;e[3][4-KNOWS-&gt;5]<br />gremlin&gt; g:add-e($trinity,'LOVES',$neo)<br />==&gt;e[4][3-LOVES-&gt;1]<br />gremlin&gt; g:add-e($architect,'HAS_CODED',$smith)<br />==&gt;e[5][6-HAS_CODED-&gt;5]<br />gremlin&gt; #go to Neo as the current root ($_) via a full-text index search<br />gremlin&gt; $_ := g:key('name','Neo')<br />==&gt;v[1]<br />gremlin&gt; #is this Neo?<br />gremlin&gt; ./@name<br />==&gt;Neo<br />gremlin&gt; #what links to here and from here?<br />gremlin&gt; ./bothE<br />==&gt;e[0][1-KNOWS-&gt;2]<br />==&gt;e[4][3-LOVES-&gt;1]<br />gremlin&gt; #only take the KNOWS-edges<br />gremlin&gt; ./bothE[@label='KNOWS']<br />==&gt;e[0][1-KNOWS-&gt;2]<br />gremlin&gt; #Neo's friend's names<br />gremlin&gt; ./bothE[@label='KNOWS']/inV/@name<br />==&gt;Morpheus<br />gremlin&gt;<br /><br />gremlin&gt; #Neo's Friends of friends, 2 steps<br />gremlin&gt; repeat 2<br />               $_ := ./outE[@label='KNOWS']/inV<br />           end<br />==&gt;v[4]<br />==&gt;v[3]<br />gremlin&gt; #What are their names?<br />gremlin&gt; ./@name<br />==&gt;Cypher<br />==&gt;Trinity<br />gremlin&gt; #every node in the whole graph with an outgoing LOVES edge<br />gremlin&gt; $_g/V/outE[@label='LOVES']/../@name<br />==&gt;Trinity</pre> 
+<h3>深度图算法 - 关系的价值</h3> 
+<p>鉴于Gremlin的能力，黑客帝国的例子显得相当幼稚。更有趣的是开发和测试大型图上的算法。象<a href="http://en.wikipedia.org/wiki/Centrality#Eigenvector_centrality">特征向量集中度</a>和Dijkstra这类穷举算法并不会扩展到这些图上，因为它们需要了解网络里的每个顶点。对于针对这些问题的如<a href="http://portal.acm.org/citation.cfm?id=1412103">基于语法的随机访问器</a>和<a href="http://en.wikipedia.org/wiki/Spreading_activation">扩散激活</a>（<a href="http://markorodriguez.com/">Marko Rodriguez</a>和<a href="http://arxiv.org/abs/0803.4355">这里</a>有更深入的解释）这类概念，启发式方法更合适。<a href="http://wiki.github.com/tinkerpop/gremlin/pagerank">Google PageRank算法</a>就是启发式的，而且可以用Gremlin建模，代码如下（<a href="http://en.wikipedia.org/wiki/Grateful_Dead">Greatful Dead</a>的歌曲、演唱会和相册图的一个例子，图从<a href="http://github.com/tinkerpop/gremlin/blob/master/data/graph-example-2.xml">这里</a>装入，2500个循环，每次重复能量损失15%）：</p> 
+<p class="image-wide"><img src="image/图形数据库、NOSQL和Neo4j.ht.n-image9.jpg" /><p class="origImg">http://www.infoq.com/resource/articles/graph-nosql-neo4j/zh/resources/n-image9.jpg</p></p> 
+<pre>$_g := tg:open()<br /><br />g:load('data/graph-example-2.xml')<br /><br />$m := g:map()<br /><br />$_ := g:key('type', 'song')[g:rand-nat()]<br /><br />repeat 2500<br /><br />  $_ := ./outE[@label='followed_by'][g:rand-nat()]/inV<br /><br />  if count($_) &gt; 0<br /><br />    g:op-value('+',$m,$_[1]/@name, 1.0)<br /><br />  end<br /><br />  if g:rand-real() &gt; 0.85 or count($_) = 0<br /><br />    $_ := g:key('type', 'song')[g:rand-nat()]<br /><br />  end<br /><br />end<br /><br />g:sort($m,'value',true())</pre> 
+<p>它返回如下的歌曲权重列表：</p> 
+<pre>==&gt;DRUMS=44.0<br />==&gt;PLAYING IN THE BAND=38.0<br />==&gt;ME AND MY UNCLE=32.0<br />==&gt;TRUCKING=31.0<br />==&gt;CUMBERLAND BLUES=29.0<br />==&gt;PROMISED LAND=29.0<br />==&gt;THE MUSIC NEVER STOPPED=29.0<br />==&gt;CASSIDY=26.0<br />==&gt;DARK STAR=26.0<br />==&gt;NOT FADE AWAY=26.0<br />==&gt;CHINA CAT SUNFLOWER=25.0<br />==&gt;JACK STRAW=25.0<br />==&gt;TOUCH OF GREY=24.0<br />==&gt;BEAT IT ON DOWN THE LINE=23.0<br />==&gt;BERTHA=23.0</pre> 
+<p>其底层图的另一个有趣的例子是LinkedData图，在互联网上可在线了解：<a href="http://wiki.github.com/tinkerpop/gremlin/linkeddata-sail#recommendation">LinkedData和DBPedia的音乐推荐算法</a>。</p> 
+<h2>总结</h2> 
+<p>就像RDBMS和其他持久化解决方案一样，图不是解决所有问题的银弹。数据才是最重要的东西，它是关键，然后是查询类型、要处理的操作结构，以及什么需求要考虑伸缩性和CAP。</p> 
+<p>将采用NOSQL数据库的高伸缩性方面作为使用非关系解决方案的唯一考量往往是不必要的，而且也不符合预期。使用Neo4j和当今的硬件，大多数情况下，完全可以在单实例里容纳整个领域模型和查询数十亿领域对象。</p> 
+<p>如果那还不够，总是有办法引入针对领域优化过的数据分区概念，无需引入文档或键/值系统的硬数据建模限制。最终导致的结果是一个文档模型、或领域特定的“对象数据库”还是其他模型则取决于领域上下文和应用场景。</p> 
+<p>本文的代码可以从<a href="https://svn.neo4j.org/laboratory/users/peter/matrix/">这里</a>下载。</p> 
+<p>我要感谢<a href="http://jexp.de/index.php?n=Main.Projects">Michael Hunger</a>和<a href="http://markorodriguez.com/">Marko Rodriguez</a>给我提供了优秀的反馈和有帮助的建议。</p> 
+<p><strong>作者简介</strong></p> 
+<p>Peter Neubauer是Neo Technology的COO，他同时还是几个基于Java和图开源项目的合伙创办人，如<a href="http://www.neo4j.org/">Neo4j</a>、<a href="http://gremlin.tinkerpop.com/">Gremlin</a>、<a href="http://www.linkedprocess.org/">LinkedProcess</a>、<a href="http://www.ops4j.org/">OPS4J</a>、<a href="http://www.qi4j.org/">Qi4j</a>。你可以通过<a href="mailto:peter@neotechnology.com">peter@neotechnology.com.</a>联系到Peter。</p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

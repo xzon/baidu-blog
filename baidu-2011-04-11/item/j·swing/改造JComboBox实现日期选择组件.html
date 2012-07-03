@@ -1,0 +1,51 @@
+<html><head><title>改造JComboBox实现日期选择组件</title></head><body><div id='tit'>改造JComboBox实现日期选择组件</div><div id='cate'>j&middot;swing</div><div id='date'>2009年11月18日 星期三 05:59 P.M.</div><div id='page'>24</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6fa54dfb8878126e024f562e.html'>http://hi.baidu.com/hxzon/blog/item/6fa54dfb8878126e024f562e.html</a><div id='cnt'><p>改造JComboBox实现日期选择组件</p> 
+<p>在Swing标准组件中JComboBox是最有空间表现力的一个组件了。如果将下拉框的内容换成其他内容就可以实现自定义的选择组件了。这种组件能表现和编辑复杂类型的数据，通常通过JComboBox编辑器或者下拉框都可以实现编辑。</p> 
+<div>
+ &nbsp;&nbsp;&nbsp; 这两天试着改造JComboBox以便实现日期选择组件。日期选择组件是复杂应用中经常用到的组件。它是这类组件的典型代表。在改造过程中遇到一个大问题：下拉框为了实现失去焦点而取消消失，需要下拉框继承JPopupMenu。实际上缺省的JComboBox下拉框也是继承JPopupMenu的。当然可以使用从PopupFactory获得的Popup来实现下拉框，但是这些窗口和MenuSelectionManager并没有任何关联，因此在焦点消失或者点击屏幕其他位置时无法自动关闭窗口。但是JPopupMenu作为浮动窗口也有一个问题，就是它上面不能再放置弹出窗口是继承自JPopupMenu的组件，比如JComboBox。而日期选择中，月份的选择通常使用JComboBox实现。
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 为什么JPopupMenu上面不能放JComboBox组件呢？原因是JComboBox的下拉框也是继承自JPopupMenu的。MenuSelectionManager这个菜单管理器集中管理着当前打开的任何菜单，包括JComboBox拉开下拉框。理论上MenuSelectionManager是一个单项选择器，即同时只允许一个选择路径出现，比如当前屏幕只能有一个菜单路径，如果激活另一个弹出窗口，任何不是该弹出窗口的子菜单都将被自动关闭。由于JComboBox的下拉框实际上就是一个JPopupMenu，因此它弹出式，任何其他已经弹出的JPopupMenu窗口就要自动关闭，因此缺省的JComboBox不能放在JPopupMenu上。由于要实现的日期选择组件的弹出窗口也是JPopupMenu，因此就不能放置在这个日期选择组件上。
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 其实MenuSelectionManager可以允许多个弹出JPopupMenu窗口出现在屏幕上，前提是这些菜单之间是父子菜单的关系。比如选择多级菜单的子菜单时，父菜单并不会关闭。这是因为子菜单和父菜单一直上溯到根菜单都是一条选择路径上的。经过这个启迪，我发现可以改造JComboBox的弹出窗口，让它弹出时（setVisible)，成为父JPopupMenu的子菜单，然后使用MenuSelectionManager.setSelectionPath来设置当前的菜单选择路径，这样父弹出窗口就不会因为JComboBox弹出下拉框而自动关闭，造成界面不一致。
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 为了实现这个日期选择器，除了要解决上面的问题，还要写一个日期选择面板。这并没有花费太多的时间，大部分时间是在消耗在解决上面弹出窗口的问题上了，花了我两天的闲暇时间来追踪问题和解决问题。
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 下面是实现的日期选择组件的演示截图：
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+ <div forimg="1">
+  <img class="blogimg" border="0" src="image/改造JComboBox实现日期选择组件..936a11f34c50c9dd0b46e072.jpg" small="0" />
+  <p class="origImg">http://hiphotos.baidu.com/wangmeng617/pic/item/936a11f34c50c9dd0b46e072.jpg</p>
+ </div> &nbsp;&nbsp;&nbsp; 这个日期选择器同前面的风格一样，里面的日期面板在改变当前月份时可以具有滑动和淡入淡出效果。演示程序上面的有几个设置，选择animation effect可以看到这个效果：
+</div> 
+<div>
+ <a href="http://hiphotos.baidu.com/wangmeng617/pic/item/91ab26c784a44acad0006070.jpg" target="_blank"><img style="width: 280px; height: 253px" class="blogimg" border="0" src="image/改造JComboBox实现日期选择组件..91ab26c784a44acad0006070.jpg" width="319" height="231" small="1" /><p class="origImg">http://hiphotos.baidu.com/wangmeng617/abpic/item/91ab26c784a44acad0006070.jpg</p></a>
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 另外，由于这儿的弹出窗口也是PopupFactory获取的，因此使用前面几篇文章提供的自定义工厂类，可以改变弹出窗口的动画效果。
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; 
+ <a href="http://blogs.sun.com/Swing/resource/date_picker.zip"><span style=";color:#333333;;">演示源代码下载</span></a>。
+</div> 
+<div class="invisible">
+ 文章引用自： 
+ <a href="http://blog.sina.com.cn/swingjava">WilliamChen</a>
+ <br /> 
+ <a href="http://hi.baidu.com/wangmeng617/blog/item/4020b034293eb8b1d1a2d343.html">http://hi.baidu.com/wangmeng617/blog/item/4020b034293eb8b1d1a2d343.html</a>
+</div></div></body></html>

@@ -1,0 +1,35 @@
+<html><head><title>JAVA用户自定义事件监听完整例子</title></head><body><div id='tit'>JAVA用户自定义事件监听完整例子</div><div id='cate'>j&middot;入门</div><div id='date'>2007年12月12日 星期三 03:44 P.M.</div><div id='page'>188</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/bda34d366eddc3dea2cc2b45.html'>http://hi.baidu.com/hxzon/blog/item/bda34d366eddc3dea2cc2b45.html</a><div id='cnt'><h2>JAVA用户自定义事件监听完整例子</h2> 
+<div class="entry-body nerr"> 
+ <p>JAVA用户自定义事件监听完整例子- ---sunfruit</p> 
+ <p>&nbsp;&nbsp;&nbsp; 很多介绍用户自定义事件都没有例子，或是例子不全，下面写了一个完整的例子，并写入了注释以便参考，完整的实例源代码如下：</p> 
+ <p>package demo;</p> 
+ <p>import java.util.EventObject;</p> 
+ <p>/**<br /> * Title: 事件处理类，继承了事件基类<br /> * Description: <br /> * Copyright: Copyright (c) 2005<br /> * Company: cuijiang<br /> * @author not attributable<br /> * @version 1.0<br /> */<br /> public class DemoEvent extends EventObject<br /> {<br /> private Object obj;<br /> private String sName;<br /> public DemoEvent(Object source,String sName) {<br /> &nbsp;&nbsp;&nbsp; super(source);<br /> &nbsp;&nbsp;&nbsp; obj = source;<br /> &nbsp;&nbsp;&nbsp; this.sName=sName;<br /> }<br /> public Object getSource()<br /> {<br /> &nbsp;&nbsp;&nbsp; return obj;<br /> }<br /> public void say()<br /> {<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;这个是 say 方法...&quot;);<br /> }</p> 
+ <p>public String getName()<br /> {<br /> &nbsp;&nbsp;&nbsp; return sName;<br /> }<br /> }</p> 
+ <p><br /> package demo;</p> 
+ <p>import java.util.EventListener;</p> 
+ <p>/**<br /> * Title: 监听器接口<br /> * Description: <br /> * Copyright: Copyright (c) 2005<br /> * Company: cuijiang<br /> * @author not attributable<br /> * @version 1.0<br /> */<br /> public interface DemoListener extends EventListener{<br /> public void demoEvent(DemoEvent dm);<br /> }</p> 
+ <p> </p> 
+ <p>package demo;<br /> import java.util.*;</p> 
+ <p>/**<br /> * Title: 使用事件的类<br /> * Description: 该类实现了监听器的添加和监听器方法的执行，并且实现了由于属性的改变而执行事件<br /> * Description: 在添加、删除、执行监听器的时候都要注意同步问题<br /> * Copyright: Copyright (c) 2005<br /> * Company: cuijiang<br /> * @author not attributable<br /> * @version 1.0<br /> */<br /> public class DemoSource{<br /> private Vector repository = new Vector();<br /> private DemoListener dl;<br /> private String sName=&quot;&quot;;</p> 
+ <p>public DemoSource()<br /> {<br /> }</p> 
+ <p>//注册监听器，如果这里没有使用Vector而是使用ArrayList那么要注意同步问题<br /> public void addDemoListener(DemoListener dl)<br /> {<br /> &nbsp;&nbsp;&nbsp; repository.addElement(dl);//这步要注意同步问题<br /> }</p> 
+ <p>//如果这里没有使用Vector而是使用ArrayList那么要注意同步问题<br /> public void notifyDemoEvent(DemoEvent event) {<br /> &nbsp;&nbsp;&nbsp; Enumeration enum = repository.elements();//这步要注意同步问题<br /> &nbsp;&nbsp;&nbsp; while(enum.hasMoreElements())<br /> &nbsp;&nbsp;&nbsp; {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dl = (DemoListener)enum.nextElement();<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dl.demoEvent(event);<br /> &nbsp;&nbsp;&nbsp; }<br /> }</p> 
+ <p>//删除监听器，如果这里没有使用Vector而是使用ArrayList那么要注意同步问题<br /> public void removeDemoListener(DemoListener dl)<br /> {<br /> &nbsp;&nbsp;&nbsp; repository.remove(dl);//这步要注意同步问题<br /> }</p> 
+ <p>/**<br /> &nbsp;&nbsp; * 设置属性<br /> &nbsp;&nbsp; * @param str1 String<br /> &nbsp;&nbsp; */<br /> public void setName(String str1)<br /> {<br /> &nbsp;&nbsp;&nbsp; boolean bool=false;<br /> &nbsp;&nbsp;&nbsp; if(str1==null &amp;&amp; sName!=null) bool=true;<br /> &nbsp;&nbsp;&nbsp; else if(str1!=null &amp;&amp; sName==null) bool=true;<br /> &nbsp;&nbsp;&nbsp; else if(!sName.equals(str1)) bool=true;</p> 
+ <p>&nbsp;&nbsp;&nbsp; this.sName=str1;</p> 
+ <p>&nbsp;&nbsp;&nbsp; //如果改变则执行事件<br /> &nbsp;&nbsp;&nbsp; if(bool) notifyDemoEvent(new DemoEvent(this,sName));<br /> }</p> 
+ <p>public String getName()<br /> {<br /> &nbsp;&nbsp;&nbsp; return sName;<br /> }<br /> }</p> 
+ <p> </p> 
+ <p>package demo;</p> 
+ <p>import java.lang.Thread;</p> 
+ <p>/**<br /> * Title: 测试类<br /> * Description: 测试了由于改变属性而引起的事件发生<br /> * Copyright: Copyright (c) 2005<br /> * Company: cuijiang<br /> * @author not attributable<br /> * @version 1.0<br /> */<br /> public class TestDemo<br /> &nbsp;&nbsp;&nbsp; implements DemoListener {<br /> private DemoSource ds;</p> 
+ <p>public TestDemo()<br /> {<br /> &nbsp;&nbsp;&nbsp; ds=new DemoSource();<br /> &nbsp;&nbsp;&nbsp; ds.addDemoListener(this);<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;添加监听器完毕&quot;);<br /> &nbsp;&nbsp;&nbsp; try {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Thread.sleep(3000);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //改变属性,触发事件<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ds.setName(&quot;改变属性,触发事件&quot;);<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; catch (InterruptedException ex) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ex.printStackTrace();<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p>&nbsp;&nbsp;&nbsp; ds.addDemoListener(this);<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;添加监听器完毕2&quot;);<br /> &nbsp;&nbsp;&nbsp; try {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Thread.sleep(3000);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //改变属性,触发事件<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ds.setName(&quot;改变属性,触发事件2&quot;);<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; catch (InterruptedException ex) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ex.printStackTrace();<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p>&nbsp;&nbsp;&nbsp; ds.removeDemoListener(this);<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;添加监听器完毕3&quot;);<br /> &nbsp;&nbsp;&nbsp; try {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Thread.sleep(3000);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //改变属性,触发事件<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ds.setName(&quot;改变属性,触发事件3&quot;);<br /> &nbsp;&nbsp;&nbsp; }<br /> &nbsp;&nbsp;&nbsp; catch (InterruptedException ex) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ex.printStackTrace();<br /> &nbsp;&nbsp;&nbsp; }</p> 
+ <p><br /> }</p> 
+ <p>public static void main(String args[])<br /> {</p> 
+ <p>&nbsp;&nbsp;&nbsp; new TestDemo();<br /> }</p> 
+ <p>/**<br /> &nbsp;&nbsp; * demoEvent<br /> &nbsp;&nbsp; *<br /> &nbsp;&nbsp; * @param dm DemoEvent<br /> &nbsp;&nbsp; * @todo Implement this test.DemoListener method<br /> &nbsp;&nbsp; */<br /> public void demoEvent(DemoEvent dm) {<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;事件处理方法&quot;);<br /> &nbsp;&nbsp;&nbsp; System.out.println(dm.getName());<br /> &nbsp;&nbsp;&nbsp; dm.say();<br /> }<br /> }</p> 
+</div> 
+<p>你可以通过这个链接引用该篇文章:http://aforgeter.bokee.com/tb.b?diaryId=13587215</p></div></body></html>

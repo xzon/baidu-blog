@@ -1,0 +1,40 @@
+<html><head><title>serialVersionUID</title></head><body><div id='tit'>serialVersionUID</div><div id='cate'>j&middot;入门</div><div id='date'>2008年11月09日 星期日 09:37 A.M.</div><div id='page'>86</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6f687b1e278919f31ad57620.html'>http://hi.baidu.com/hxzon/blog/item/6f687b1e278919f31ad57620.html</a><div id='cnt'>serialVersionUID作用：
+<br /> 序列化时为了保持版本的兼容性，即在版本升级时反序列化仍保持对象的唯一性。
+<br /> 
+<br /> 你可以随便写一个，在Eclipse中它替你生成一个，有两种生成方式：
+<br /> 一个是默认的1L，比如：private static final long serialVersionUID = 1L;
+<br /> 一个是根据类名、接口名、成员方法及属性等来生成一个64位的哈希字段，比如：private static final long serialVersionUID = -8940196742313994740L;之类的。
+<br /> Eclipse提示The serializable class XXX does not declare a static final serialVersionUID field of type long
+<br /> 那是Eclipse提供这个提示功能给你吧.
+<br /> 你点它warning的icon两下Eclipse就会自动给定.
+<br /> 如果你不喜欢,可以把它关掉,
+<br /> windows -&gt; preferences -&gt; compiler -&gt; Error/Warnings
+<br /> -&gt; Potential Programming problems
+<br /> 将Serializable class without serialVersionUID的warning改成ignore.
+<br /> 
+<br /> 其实如果你没有考虑到兼容性问题时,那就把它关掉吧.
+<br /> 其实有这个功能是好的.
+<br /> 只要任何类别实作了Serializable这个介面,
+<br /> 如果没有加入serialVersionUID,Eclipse都会给你warning提示,
+<br /> 这个serialVersionUID为了让该类别Serializable後兼容.
+<br /> 
+<br /> 考虑一下,如果今天你的类Serialized存到硬碟里,
+<br /> 可是後来你却更改了类别的field(增加或减少或改名).
+<br /> 当你Deserialize时,就会出现Exception.这样就会做成不兼容性的问题.
+<br /> 
+<br /> 但当serialVersionUID相同时,它就会将不一样的field以type的预设值Deserialize.
+<br /> 这个可以避开不兼容性的问题.
+<br /> 
+<br /> 异常状态：
+<br /> The serializable class XXX does not declare a static final serialVersionUID field of type long
+<br /> ---------------------------------------------
+<br /> 前两天升级了Eclipse到3.1版本，在老版本的IDE环境中写的程序在Problems中会出来好多类似的警告。当采用程序的自动修复时，采用默认方式，Eclipse会加上：private static final long serialVersionUID = 1L; 其实这个问题倒也不影响程序的运行，但是我看到Problems里面有警告就不舒服，同时也说明我们写的代码还是不规范。不怕，我们有互联网查查是怎么回事，具体的原因还就是和序列化中的这个serialVersionUID有关。 serialVersionUID 用来表明类的不同版本间的兼容性。如果你修改了此类, 要修改此值。否则以前用老版本的类序列化的类恢复时会出错。 在JDK中，可以利用JDK的bin目录下的serialver.exe工具产生这个serialVersionUID，对于Test.class，执行命令：serialver Test。 为了在反序列化时，确保类版本的兼容性，最好在每个要序列化的类中加入private static final long serialVersionUID这个属性，具体数值自己定义。这样，即使某个类在与之对应的对象已经序列化出去后做了修改，该对象依然可以被正确反序列化。否则，如果不显式定义该属性，这个属性值将由JVM根据类的相关信息计算，而修改后的类的计算结果与修改前的类的计算结果往往不同，从而造成对象的反序列化因为类版本不兼容而失败。 不显式定义这个属性值的另一个坏处是，不利于程序在不同的JVM之间的移植。因为不同的编译器实现该属性值的计算策略可能不同，从而造成虽然类没有改变，但是因为JVM不同，出现因类版本不兼容而无法正确反序列化的现象出现。 当我们的系统不太经常需要序列化类时，可以去掉这些警告，做如下设置：Window--&gt;Preferences--&gt;Java，将 serializable class without serialVersionUID的设置由warning改为Ignore。然后Eclipse会重新编译程序，那些警告信息也就消失了。 最后的建议是，如果我们开发大量需要序列化的类的时候，我们最好还是还原为原来的设置。这样可以保证系统的性能和健壮。
+<br /> --------------------------------------------------
+<br /> serialVersionUID 用来表明类的不同版本间的兼容性
+<br /> 
+<br /> 简单来说，Java的序列化机制是通过在运行时判断类的serialVersionUID来验证版本一致性的。在进行反序列化时，JVM会把传来的字节流中的serialVersionUID与本地相应实体（类）的serialVersionUID进行比较，如果相同就认为是一致的，可以进行反序列化，否则就会出现序列化版本不一致的异常。
+<br /> 
+<br /> 当实现java.io.Serializable接口的实体（类）没有显式地定义一个名为serialVersionUID，类型为long的变量时，Java序列化机制会根据编译的class自动生成一个serialVersionUID作序列化版本比较用，这种情况下，只有同一次编译生成的 class才会生成相同的serialVersionUID 。
+<br /> 
+<br /> 如果我们不希望通过编译来强制划分软件版本，即实现序列化接口的实体能够兼容先前版本，未作更改的类，就需要显式地定义一个名为serialVersionUID，类型为long的变量，不修改这个变量值的序列化实体都可以相互进行串行化和反串行化。
+<br /> ----------------------------</div></body></html>

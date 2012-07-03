@@ -1,0 +1,267 @@
+<html><head><title>Swing 模型过滤</title></head><body><div id='tit'>Swing 模型过滤</div><div id='cate'>j&middot;swing</div><div id='date'>2008年04月06日 星期日 04:53 P.M.</div><div id='page'>142</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/19b108f40af2506addc474b2.html'>http://hi.baidu.com/hxzon/blog/item/19b108f40af2506addc474b2.html</a><div id='cnt'><h1>Swing 模型过滤</h1> 
+<p>使用过滤器对象重新解释数据模型和状态模型</p> 
+<p>级别： 初级</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-filters/#author" cmimpressionsent="1"><span style="COLOR: #5c81a7">Mitch Goldstein</span></a> (<a href="mailto:mdgoldstein@hotmail.com?subject=Swing 模型过滤&amp;cc=mdgoldstein@hotmail.com" cmimpressionsent="1"><span style="COLOR: #5c81a7">mdgoldstein@hotmail.com</span></a>), 副总裁/首席战略家, Ketherware 公司</p> 
+<p>2001 年 2 月 01 日</p> 
+<blockquote>
+ 本文讨论模型过滤技术。您可将这一技术用于 Swing 组件集，这样即可在不改变底层数据的条件下提供模型数据的不同视图。过滤器可以改变数据元素的外在内容，将数据排除在视图之外、将外部元素包含进数据集中、或者以不同的顺序呈现元素。过滤器既可应用于数据模型，也可应用于状态模型。您还可以叠用过滤器，以将它们的效果组合起来。
+</blockquote> 
+<p><a name="1"><span class="atitle">简介</span></a></p> 
+<p>模型过滤是这样一种技术，它在 Swing 组件体系结构中提供附加的功能与灵活性。</p> 
+<p>Swing 体系结构的重要创新之一在于采用了模型/视图/控制器 (MVC) 原理，这样就可将组件的不同角色分离开。当一种体系结构具备 MVC 分离特性时，即可对组件的数据与状态作不同的解释。这允许程序员在组件及其模型之间插入过滤器对象。模型过滤可以在模型内修改数据的表示，还也可以改变模型所封装数据的外在数目和顺序。</p> 
+<p>模型过滤器的另外两种重要特性是：</p> 
+<ul> 
+ <li>模型过滤操作不会改变底层的模型数据。这使得多个组件可以共享一组数据，而且每个组件都可能以不同的方式解释这组数据。</li> 
+ <li>过滤器可以叠用，这样就可以依次用几个不同的过滤器对象来解释模型数据。</li>
+</ul> 
+<p><strong>已定义的代理</strong> <br />为了最大限度地利用 Java 平台对面向对象的支持，可以简单地认为组件由若干对象构成。这些对象可以由一个通用术语 ― <em>代理</em> ― 来描述。代理是实现一个公共 Java 接口并与某个特定组件相关联的对象。代理实现的接口定义代理在 MVC 体系结构中充当的角色。</p> 
+<p>对于刚刚接触 Swing 的程序员而言，代理的概念似乎有些难以理解，但是，它们也是 AWT 组件的一种共同特征。例如，如果想更改 <code><span style="FONT-FAMILY: NSimsun">java.awt.Label</span></code> 组件上的字体，只需创建或获取 java.awt.Font 类的一个实例，并且调用 <code><span style="FONT-FAMILY: NSimsun">getFont()</span></code> 使该实例与组件相关联。Font 对象的内部运作细节可能很有趣，但是组件只要有 Font 类型对象的一个引用即可适当地显示自己。甚至像标签前景颜色这种简单概念也是通过代理实现的；java.awt.Color 类提供一种适合作组件前景颜色的对象。作为一般规则，值为非基本数据类型的各种组件属性都可看作是代理。</p> 
+<p>Swing 中的 MVC 实现就是这些概念的体现。对象不仅用于表示组件的属性值，也用于表示组件行为的诸多方面。这种方案相当灵活，足以支持 Swing 的可插接外观 (PLAF) 功能的实现，该功能使应用程序既可模拟本地平台的外观，也可用一种与平台无关的方案显示组件。PLAF 既可使应用程序看起来就像 Microsoft Windows、 Mac OS 和 X/Motif 等平台的本地应用程序一样，也可使应用程序具有一种中立的外观，称为 &quot;Java&quot; LAF 或 &quot;Metal&quot; LAF。</p> 
+<p>PLAF 功能与组件的外观密切相关。本文主要讨论这一体系结构的模型部分，它与组件的外观的无关。</p> 
+<p><a name="2"><span class="atitle">作为一种模型（或类似一种模型）</span></a></p> 
+<p>每种支持数据与状态的 Swing 组件都有一种与之相关的模型接口。无论接口感兴趣的是封装于该模型的数据还是状态，它都会包含允许组件以编程方式查询模型内容的若干方法。</p> 
+<p>每个模型接口都提供两类方法：一类方法提供对数据与状态的访问，而另一类方法允许组件或者其他对象注册或取消注册事件监听程序。监听程序的类型及其提供的事件对象都由这些方法定义。</p> 
+<p>Swing 模型接口可以有不同类型的类实现。在许多情况下，为模型提供的是一种抽象实现；除了为了触发模型所表示的各种事件方法而提供的 protected 方法之外，这通常是一种不完全的正则实现。所有模型都有一个缺省实现，并且是一个具体类。</p> 
+<p><strong>既好又简单 ― ListModel 接口</strong> <br />在开始讨论过滤之前，对典型的模型接口作一回顾不失为明智之举。</p> 
+<p>ListModel 接口代表 JList 组件中的数据。这是三种集合模型中最简单的一种。（另外两种分别是 JTree 和 JTable。） ListModel 有两个方法用于检索列表中的元素个数以及各个元素，另外还有两个方法用于维护感兴趣的监听程序列表，以便监听列表模型的变化。</p> 
+<p><br /><a name="N10099"><strong>ListModel 的简化源代码</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><pre class="displaycode">package javax.swing;
+import javax.swing.event.ListDataListener;
+public interface ListModel
+{
+ int getSize();
+ Object getElementAt(int index);
+ void addListDataListener(ListDataListener listener);
+ void removeListDataListener(ListDataListener listener);
+}</pre></td>
+  </tr>
+ </tbody>
+</table> 
+<p>在 ListModel 接口中， <code><span style="FONT-FAMILY: NSimsun">getSize()</span></code> 与 <code><span style="FONT-FAMILY: NSimsun">getElementAt()</span></code> 方法用于遍历模型中的元素，而其他两个方法用于建立与感兴趣的监听程序之间的关联，以便监听模型的变化。</p> 
+<p>ListDataListener 接口支持三个方法，当模型监听到其底层数据发生变化时就会调用这三个方法。这三个方法是 <code><span style="FONT-FAMILY: NSimsun">intervalAdded()</span></code> 、 <code><span style="FONT-FAMILY: NSimsun">intervalRemoved()</span></code> 和 <code><span style="FONT-FAMILY: NSimsun">contentsChanged()</span></code> ，每个方法都接受单个 ListDataEvent 作为参数。根据模型所发生变化的复杂程度之不同，模型实现可以使用其中的任一个方法来描述这些变化。通常， <code><span style="FONT-FAMILY: NSimsun">intervalAdded()</span></code> 和 <code><span style="FONT-FAMILY: NSimsun">intervalRemoved()</span></code> 用于描述变化的时间间隔；当变化过于复杂，无法作为一个闭合间隔进行描述时，就会用到 <code><span style="FONT-FAMILY: NSimsun">contentsChanged()</span></code> 。</p> 
+<p>为了理解模型过滤如何运作，请记住这一点：JList 组件只对 ListModel API 的实现感兴趣。该组件并不关心数据驻留何处以及数据是如何组织的。无论该模型是一个缺省类、抽象类的扩展，还是 ListModel 接口的一种直接实现，都不影响 JList 组件的行为。</p> 
+<p><a name="3"><span class="atitle">过滤的基本知识</span></a></p> 
+<p>模型过滤的基本概念利用了 Swing 组件对模型类的底层实现缺乏了解这一事实。下图说明了这种典型的关系：</p> 
+<p><br /><img alt="ListModel 关系" src="image/Swing 模型过滤.html.unfiltered.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-filters/unfiltered.gif</p></p> 
+<p>模型过滤器是实现了模型接口、但并不真正包含数据的类。模型过滤器在组件与其模型之间进行协调。模型过滤器可以重新解释模型所提供的信息，并且可以更改所提供的数据元素个数、数据的顺序以及数据本身。</p> 
+<p><br /><img alt="使用模型过滤器的 ListModel " src="image/Swing 模型过滤.html.filtered.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-filters/filtered.gif</p></p> 
+<p>在本例中，过滤器类是将一个现有模型类作为其数据源来实例化的。在模型过滤器的一般实现中，对 API 方法的调用将委托给源模型。</p> 
+<p>由于此 API 是统一实现的，因此完全可以在组件与其模型之间“叠放”多个过滤器。注意，每个过滤层都要求每个 API 调用穿过一个附加的间接层；如果过滤层过于复杂，则很可能造成性能瓶颈。</p> 
+<p><strong>基本过滤器</strong> <br />下面显示的抽象类是作用于 JList 组件之上的模型过滤器的基类。其唯一的构造函数要求，模型过滤器的每个实例都要引用某个底层的模型数据。该数据既可以是另一个模型过滤器，也可以不是；在这两种情况下，过滤器的行为是相同的。</p> 
+<p><br /><a name="N100FE"><strong>模型过滤器基类</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><pre class="displaycode">package com.ketherware.models;
+import javax.swing.*;
+public abstract class AbstractListModelFilter extends AbstractListModel
+{
+ // 用来保存被过滤模型的引用
+ protected ListModel delegate;
+ // 构造函数 ― 接受单个参数，其中包含被过滤模型的引用
+ public AbstractListModelFilter(ListModel delegate)
+    {
+  this.delegate = delegate;
+    }
+ public ListModel getDelegate()
+    {
+  return this.delegate;
+    }
+ public int getSize()
+    {
+  // 委托给过滤器目标
+  return delegate.getSize();
+    }
+ public Object getElementAt(int index)
+    {
+  // 委托给过滤器目标
+  return delegate.getElementAt(index);
+    }
+ public void addListDataListener(ListDataListener listener)
+    {
+  // 委托给过滤器目标
+  delegate.addListDataListener(listener);
+    }
+ public void removeListDataListener(ListDataListener listener)
+    {
+  // 委托给过滤器目标
+ 
+delegate.removeListDataListener(listener);
+    }
+}</pre></td>
+  </tr>
+ </tbody>
+</table> 
+<p>该类相当于一种“空”过滤器，它不更改任何底层数据。因此，它没有什么特别的意义。ListModel 过滤器类的实际实现将覆盖该抽象类的方法，以便以不同的方式呈现底层数据。</p> 
+<p>您可以通过实现过滤器来改变底层数据事件的特性。为了使对模型过滤器的讨论更易于理解，本文的示例都只针对不可变的数据模型，即不触发任何模型事件的类。</p> 
+<p>缺省模型适合于要求不高的一般应用。但是，您应该了解这些缺省类都是为通用目的而设计的，因此，在对性能有严格要求的情况下，它们通常表现不佳。同样，许多常用的模型都是作为可变模型来实现的，即，模型的数据可随时间变化。当已知数据为静态数据时，这些额外的行为可能是多余的。因此，您可能想另外构建模型类，去掉由事件传播所导致的额外开销。</p> 
+<p><strong>不可变模型</strong> <br />在许多情况下，根据模型的底层数据是否可变对模型进行分类很有用。在数据不会变化的情况下，可以实现不可变的数据模型，这种模型不实现用于监听数据变化的监听程序。Swing 模型接口的缺省实现假定数据是可变的。</p> 
+<p>不可变模型的创建过程相当简单。您可以创建一个具体类，该类可提供模型接口，但为与事件相关的活动所提供的所有方法都不执行任何操作。根据模型要作为一般模型使用，还是作为专用模型使用，您既可将此不可变模型实现为一个抽象类，也可将其实现为一个具体类。</p> 
+<p>下面的示例是一个不可变的列表模型，我设计它时希望它非常通用，并且允许将支持 java.util.List 集合接口的任何对象用作数据源。返回的数据是一个笼统的 Object 类型；如何显示对象留待 JList 及其相关绘制程序解释。</p> 
+<p><br /><a name="N1011F"><strong>不可变模型的示例</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><pre class="displaycode">package com.ketherware.models;
+import java.util.*;
+import javax.swing.*;
+public abstract class ImmutableListModelFilter extends AbstractListModel
+{
+ // 用来保存被过滤模型的引用
+protected List collection;
+ // 构造函数 ― 接受单个参数，其中包含被过滤模型的引用
+ public AbstractListModelFilter(List collection)
+    {
+  this.collection = collection;
+    }
+ public List getCollection()
+    {
+  return this.collection;
+    }
+ public int getSize()
+    {
+  // 委托给集合
+  return collection.size();
+    }
+ public Object getElementAt(int index)
+    {
+  // 委托给过滤器目标
+  return collection.get(index);
+    }
+ public void addListDataListener(ListDataListener listener)
+    {
+  // 覆盖为‘空操作’
+    }
+ public void removeListDataListener(ListDataListener listener)
+    {
+  // 覆盖为‘空操作’
+    }
+}</pre></td>
+  </tr>
+ </tbody>
+</table> 
+<p>下面将讨论四种类型的过滤器：替换、排序、排除和包含。</p> 
+<p><a name="4"><span class="atitle">替换过滤器</span></a></p> 
+<p><em>替换</em>过滤的目的在于，重新解释模型数据，并且通过改变返回的对象元素来表示它。这种类型的过滤器不改变数据元素的顺序，它既不删除数据，也不创建额外的数据。</p> 
+<p>下面是一个替换过滤器的示例，它为底层模型中的每个数据项添加一个数字索引。唯一的变化是覆盖了单个方法。</p> 
+<p><br /><a name="N1013B"><strong>替换过滤器的示例</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><pre class="displaycode">package com.ketherware.models;
+import javax.swing.*;
+public abstract class IndexingListModelFilter extends AbstractListModelFilter
+{
+ public Object getElementAt(int index)
+    {
+    // 委托给过滤器目标
+    String element = delegate.getElementAt(index).toString();
+    return Integer.toString(index) + ? ?+ element;
+    }
+}</pre></td>
+  </tr>
+ </tbody>
+</table> 
+<p>在许多情况下，在绘制程序中引入补充的特性可能更合适，比如填加一个行索引。您可以提供一个过滤器，它通过与绘制程序交互来提供额外的图形表示。使用过滤器代替绘制程序的优点在于，可用一个组件显示经过索引的数据，而无须与绘制程序相关联。</p> 
+<p>替换过滤器通常不覆盖 <code><span style="FONT-FAMILY: NSimsun">getSize()</span></code> ，而且不改变所返回元素的顺序。</p> 
+<p><a name="5"><span class="atitle">排序过滤器</span></a></p> 
+<p><em>排序</em>过滤器代表了另一层面的复杂性。它们不改变所表示元素的个数，在这一点上与替换过滤器类似。排序过滤器改变模型中经过索引的元素顺序。其基本技术在于，创建模型元素的一种替代索引，用于代替实际的顺序。</p> 
+<p>排序过滤器的一种常见类型是分类过滤器，它基于某个明确的排序顺序重新索引数据。下面的示例按字母顺序排列任一个 ListModel 实现的内容。</p> 
+<p><br /><a name="N1015E"><strong>排序过滤器的示例</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"><pre class="displaycode">package com.ketherware.models;
+import java.util.*;
+import javax.swing.*;
+public abstract class AlphaSortingListModelFilter extends
+                    AbstractListModel
+{
+ // 已排序的索引数组
+ protected ArrayList sortedIndex;
+ public AlphaSortingListModelFilter(ListModel delegate)
+    {
+    this.delegate = delegate;
+    resort();
+    }
+ // 该算法称为“插入排序”，适合于处理元素个数少于几百个的数据。
+ // 它是一种“无堆栈”排序。
+ protected synchronized void resort()
+    {
+    sortedIndex = new ArrayList();
+    nextElement: 
+    for (int x=0; x &lt; delegate.getSize(); x++)
+        {
+            for (int y=0; y &lt; x; y++)
+            {
+                String current =
+                    delegate.getElementAt(x).toString();
+                int compareIndex =
+                    ((Integer) sortedIndex.get(y)).intValue();
+                String compare =
+                    sortedIndex.get(compareIndex).toString();
+                if (current.compareTo(compare) &lt; 0)
+                {
+                    sortedList.add(new Integer(x), y);
+                    continue nextElement;
+                }
+            }
+            sortedList.add(new Integer(x));
+        }
+    }
+    public Object getElementAt(int index)
+    {
+        // 委托给过滤器目标，但使用已排序的索引
+        return delegate.getElementAt(sortedIndex[index]);
+    }
+}</pre></td>
+  </tr>
+ </tbody>
+</table> 
+<p>可以将一种排序过滤器用于 JTable 组件，以便对表数据执行面向列的排序；这种过滤器的代码类似于上面的示例。通过修改 JTable 的表头和表的模型组件，该过滤器可以得到进一步的增强。</p> 
+<p>请注意，上面的示例只对不可变列表模型有效。如果数据在动态变化，为了修改在事件被触发时由 ListDataEvent 对象传递的索引，必须提供一些附加支持。这将显著增加过滤器的复杂性，我将它的实现作为一个练习留给读者。</p> 
+<p>排序过滤器的主要特征在于，他们不增加或者减少模型的可见元素个数，因此， <code><span style="FONT-FAMILY: NSimsun">getSize()</span></code> 将委托给被过滤的模型。他们通常将不改变数据元素，而只是按照某种替代顺序解释数据的索引。</p> 
+<p><a name="6"><span class="atitle">排除过滤器</span></a></p> 
+<p>最后两种类型的过滤器非常相似，但是，拥有完全不同的目的。排除过滤器与包含过滤器都允许对模型的数据元素进行限制或者补充额外的元素。</p> 
+<p><em>排除</em>过滤器使模型中的某些元素看似不存在。在只有单一数据源可用、并且实现方案只要求显示数据的一个子集的情况下，这些过滤器相当有效。</p> 
+<p>关于典型的排除过滤器的示例，请参考 <a href="http://www.ibm.com/developerworks/cn/java/j-filters/TerritoryListModelFilter.java" cmimpressionsent="1"><span style="COLOR: #5c81a7">TerritoryListModelFilter.java</span></a>。该示例给出了一个销售区域列表，其中每个区域都与一个销售人员相关联。当选定一个销售人员的姓名时，过滤器只显示与该销售人员相关联的那些区域。</p> 
+<p><br /><img alt="排除过滤器的输出" src="image/Swing 模型过滤.html.exclusion.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-filters/exclusion.gif</p></p> 
+<p>这个示例的优点非常明显：如果不进行过滤，则每次选定一个不同的销售人员都需要重新加载数据模型，或者在高速缓存中保存大量的模型实例。过滤器甚至允许两个不同的组件用两种不同的解释方案查看同一个基本模型。</p> 
+<p><a name="7"><span class="atitle">包含过滤器</span></a></p> 
+<p><em>包含</em>过滤器尽管不像排除过滤器那样广泛适用，但它们可用来向模型中添加信息。由于这种类型的过滤器可用于进行总计或者小计，这些过滤器的最佳用途是报表应用程序。</p> 
+<p>执行总计操作的过滤器创建一个虚拟元素，并将其显示在列表模型的尾部。为了实现这一功能，过滤器将模型大小的值加 1，并将对除最后一个元素之外的所有元素的请求发送至代理。 <a href="http://www.ibm.com/developerworks/cn/java/j-filters/SalesTotalListModelFilter.java" cmimpressionsent="1"><span style="COLOR: #5c81a7">SalesTotalListModelFilter.java</span></a> 中的示例假定列表数据是不可变的；过滤器将列表数据事件忽略。这里再一次用到前一个示例中的 TerritoryListModel。</p> 
+<p><br /><img alt="包含过滤器的输出" src="image/Swing 模型过滤.html.inclusion.gif" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-filters/inclusion.gif</p></p> 
+<p><a name="8"><span class="atitle">小结</span></a></p> 
+<p>这些示例已经显示了模型过滤的某些应用。过滤是一种应用相当广泛的概念，远远不止本文这些相对比较简单的应用。当您开始实现过滤器时，请记住下列几点：</p> 
+<ul> 
+ <li>过滤可以向不同组件提供不同的视图，并且可以减少应用程序必须支持的完整模型实例的个数。</li> 
+ <li>过滤可以应用于 Swing 支持的其他模型，包括选择模型。</li> 
+ <li>您可以为处理可变模型或者动态模型构造非常复杂的过滤方案。为了实现这一点，可以用一个过滤器来处理由该代理模型传递的事件。</li> 
+ <li>您可以无限地嵌套（或叠用）过滤器，但是，当每次修改或者查询模型时，每个过滤层都会增加一些额外的处理负担。</li>
+</ul> 
+<p></p> 
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+<ul> 
+ <li><a href="http://www.ibm.com/developerworks/library/j-jtable/?S_TACT=105AGX52&amp;S_CMP=cn-a-j" cmimpressionsent="1"><span style="COLOR: #5c81a7">&quot;Rendering cells in Swing's JTable component&quot;</span></a>，摘自 <em>Professional Java Programming</em> ，说明 JTable 如何处理其单元格的绘制（或显示），并说明 JTable 如何支持对单元格的值进行编辑。除了说明随 Swing 一同提供的绘制程序和编辑器的行为之外，该文还讨论了如何创建您自己的实现。</li> 
+ <li>Mitch Goldstein 所著的 <a href="http://www.amazon.com/exec/obidos/ASIN/0521664896/qid%3D980367560/104-7279323-5285554" cmimpressionsent="1"><span style="COLOR: #5c81a7">Hardcore JFC -- Conquering the Swing Architecture</span></a> 是关于 Swing 体系结构的一个优秀资源。</li>
+</ul> 
+<p></p> 
+<p><a name="author"><span class="atitle">关于作者</span></a></p> 
+<p> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td colspan="3"><img src="image/Swing 模型过滤.html.c.gif" width="100%" height="5" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td>
+  </tr> 
+  <tr valign="top" align="left"> 
+   <td> <p><img align="left" src="image/Swing 模型过滤.html.mitch.jpg" width="64" height="75" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-filters/mitch.jpg</p></p></td> 
+   <td><img src="image/Swing 模型过滤.html.c.gif" width="4" height="5" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+   <td width="100%"> <p>Mitch Goldstein 是一位咨询专家、演讲家、作家和讲师，擅长使用 Java 语言与 Swing 组件体系结构进行应用设计与开发。Mitch 是 <em>Hardcore JFC - Conquering the Swing Architecture</em> 一书的作者。他关于各种 Java 程序设计主题的发言都深受欢迎。可以通过 <a href="mailto:mdgoldstein@hotmail.com?cc=mdgoldstein@hotmail.com" cmimpressionsent="1"><span style="COLOR: #5c81a7">mdgoldstein@hotmail.com</span></a> 与 Mitch 联系。</p></td>
+  </tr>
+ </tbody>
+</table>
+<br />
+<a href="http://www.ibm.com/developerworks/cn/java/j-filters/">http://www.ibm.com/developerworks/cn/java/j-filters/</a></div></body></html>

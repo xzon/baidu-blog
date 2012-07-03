@@ -1,0 +1,29 @@
+<html><head><title>jsp作用域</title></head><body><div id='tit'>jsp作用域</div><div id='cate'>j&middot;入门</div><div id='date'>2008年08月09日 星期六 04:38 P.M.</div><div id='page'>110</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6aeeab343a26f6b1d1a2d331.html'>http://hi.baidu.com/hxzon/blog/item/6aeeab343a26f6b1d1a2d331.html</a><div id='cnt'><p>jsp作用域</p> 
+<p>从显示的结果来看，我们可以直观的得出结论：</p> 
+<div class="orderedlist"> 
+ <ol type="1"> 
+  <li> <p>page里的变量没法从index.jsp传递到test.jsp。只要页面跳转了，它们就不见了。</p> </li> 
+  <li> <p>request里的变量可以跨越forward前后的两页。但是只要刷新页面，它们就重新计算了。</p> </li> 
+  <li> <p>session和application里的变量一直在累加，开始还看不出区别，只要关闭浏览器，再次重启浏览器访问这页，session里的变量就重新计算了。</p> </li> 
+  <li> <p>application里的变量一直在累加，除非你重启tomcat，否则它会一直变大。</p> <p>而作用域规定的是变量的有效期限。</p> 
+   <ol type="1"> 
+    <li> <p>如果把变量放到pageContext里，就说明它的作用域是page，它的有效范围只在当前jsp页面里。</p> <p>从把变量放到pageContext开始，到jsp页面结束，你都可以使用这个变量。</p> </li> 
+    <li> <p>如果把变量放到request里，就说明它的作用域是request，它的有效范围是当前请求周期。</p> <p>所谓请求周期，就是指从http请求发起，到服务器处理结束，返回响应的整个过程。在这个过程中可能使用forward的方式跳转了多个jsp页面，在这些页面里你都可以使用这个变量。</p> </li> 
+    <li> <p>如果把变量放到session里，就说明它的作用域是session，它的有效范围是当前会话。</p> <p>所谓当前会话，就是指从用户打开浏览器开始，到用户关闭浏览器这中间的过程。这个过程可能包含多个请求响应。也就是说，只要用户不关浏览器，服务器就有办法知道这些请求是一个人发起的，整个过程被称为一个会话（session），而放到会话中的变量，就可以在当前会话的所有请求里使用。</p> </li> 
+    <li> <p>如果把变量放到application里，就说明它的作用域是application，它的有效范围是整个应用。</p> <p>整个应用是指从应用启动，到应用结束。我们没有说“从服务器启动，到服务器关闭”，是因为一个服务器可能部署多个应用，当然你关闭了服务器，就会把上面所有的应用都关闭了。</p> <p>application作用域里的变量，它们的存活时间是最长的，如果不进行手工删除，它们就一直可以使用。</p> <p>与上述三个不同的是，application里的变量可以被所有用户共用。如果用户甲的操作修改了application中的变量，用户乙访问时得到的是修改后的值。这在其他scope中都是不会发生的，page, request, session都是完全隔离的，无论如何修改都不会影响其他人的数据。</p> <p> </p> <p>我们使用public Object getAttribute(String name)获得变量值，使用public void setAttribute(String name, Object value)将变量值保存到对应作用域中。举个pageContext的例子就是：</p> <pre class="programlisting"><span class="hl-comment" xmlns="http://www.w3.org/TR/xhtml1/transitional">// page</span>
+Integer countPage = (Integer) pageContext.getAttribute(<span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;countPage&quot;</span>);
+<span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">if</span> (countPage == null) {
+    pageContext.setAttribute(<span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;countPage&quot;</span>, 1);
+} <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">else</span> {
+    pageContext.setAttribute(<span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;countPage&quot;</span>, countPage + 1);
+}</pre> <p>这里先从pageContext中取出名为countPage的整数，因为返回的都是java.lang.Object类型，所以需要强制转换成我们需要的整形。这里取得的变量如果不存在就会返回null，通过判断countPage == null来辨别变量是否存在，如果不存在就设置为1，如果存在就进行累加，最后使用setAttribute()方法将修改后的变量值放入pageContext。</p> <p>将其中的pageContext换成request, session, application就可以操作其他三个作用域中的变量。</p> <p>在显示这些变量值的时候，我们没有写&lt;%=pageContext.getAttribute(&quot;countPage&quot;)%&gt;而是使用了${countPage}的形式，这种${}的形式叫做el表达式，是jsp-2.0规范的一部分，tomcat里正好可以使用。</p> <p>使用el有以下几个好处：</p> 
+     <div class="orderedlist"> 
+      <ol type="1"> 
+       <li> <p>代码量小，并且不需要使用尖括号。</p> </li> 
+       <li> <p>支持从pageContext, request, session, application中取值，它会自动检查四个作用域，不需要特别指定。</p> </li> 
+       <li> <p>如果变量不存在，会输出空字符串&quot;&quot;，而不是null，省去了手工判断的工作。</p> <p> </p> <p> </p> </li> 
+      </ol> 
+     </div> </li> 
+   </ol> </li> 
+ </ol> 
+</div></div></body></html>

@@ -1,0 +1,546 @@
+<html><head><title>Chapter 13. 安全 -seam满江红</title></head><body><div id='tit'>Chapter 13. 安全 -seam满江红</div><div id='cate'>j&middot;后端</div><div id='date'>2009年03月09日 星期一 12:29 P.M.</div><div id='page'>63</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/4a613fdb4847446ed1164e09.html'>http://hi.baidu.com/hxzon/blog/item/4a613fdb4847446ed1164e09.html</a><div id='cnt'><h2>Chapter 13. 安全 -seam满江红</h2> 
+<p>Seam Security API是个可选的Seam特性，它为保护您的Seam项目中的领域和页面资源提供验证和授权特性。</p> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e7100"></a>13.1. 概述</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>Seam Security提供两种不同的操作模式：</p> 
+ <div> 
+  <ul type="disc"> 
+   <li> <p>简化模式 - 这个模式支持验证服务和简单的基于角色的安全性检查。</p> </li> 
+   <li> <p>高级模式 - 这个模式支持简化模式的所有特性，还利用JBoss Rules提供基于规则的安全性检查。</p> </li> 
+  </ul> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7118"></a>13.1.1. 哪种模式更适合我的应用程序呢？</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>这完全取决于应用程序的需求。 如果你的安全性需求不高，例如，如果只希望对登录的用户或者属于某个特定角色的用户限制某些页面和动作，那么简化模式可能就足够了。 这个模式的好处在于它是一种更简化的配置，要包括的库明显更少，占用的内存空间（memory footprint）也更小。</p> 
+  <p>另一方面，如果应用程序需要根据上下文或者复杂的业务规则进行安全性检查，那就需要高级模式提供的特性了。</p> 
+ </div> 
+</div> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e7125"></a>13.2. 需求</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>如果使用Seam Security的高级模式特性，下列jar文件就要配置成 application.xml 中的模块。 如果你正在简化模式下使用Seam Security，则 不 需要这些了：</p> 
+ <div> 
+  <ul type="disc"> 
+   <li> <p>drools-compiler-4.0.0.MR2.jar</p> </li> 
+   <li> <p>drools-core-4.0.0.MR2.jar</p> </li> 
+   <li> <p>janino-2.5.7.jar</p> </li> 
+   <li> <p>antlr-runtime-3.0.jar</p> </li> 
+   <li> <p>mvel14-1.2beta16.jar</p> </li> 
+  </ul> 
+ </div> 
+ <p>对于基于Web的安全性来说，jboss-seam-ui.jar 也必须包括在应用程序的war文件中。</p> 
+</div> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e7157"></a>13.3. 取消安全</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>在某些场景下，可能需要取消Seam Security，例如在单元测试的过程中。 可以通过调用静态方法 Identity.setSecurityEnabled(false) 来取消安全检查。 这样一来，就可以阻止执行如下的任何安全检查：</p> 
+ <div> 
+  <ul type="disc"> 
+   <li> <p>Entity Security</p> </li> 
+   <li> <p>Hibernate Security Interceptor</p> </li> 
+   <li> <p>Seam Security Interceptor</p> </li> 
+   <li> <p>Page restrictions</p> </li> 
+  </ul> 
+ </div> 
+</div> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e7178"></a>13.4. 验证</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>Seam Security提供的验证特性建立在JAAS（Java Authentication和Authorization Service）之上，给处理用户验证提供稳健的、非常容易配置的API。 然而，对于并不复杂的验证需求，Seam提供了一种更加简化的验证方法，隐藏了JAAS的复杂性。</p> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7183"></a>13.4.1. 配置</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>简化的验证方法使用一种内置的JAAS登录模块：SeamLoginModule，把验证委托给你项目中的一个Seam组件。 这个登录模块已经在Seam内部配置为默认的应用策略的一部分，因此不需要任何额外的配置文件。它允许你利用你自己的应用程序提供的实体类编写验证方法。 配置这个简化的验证形式需要在 components.xml 中配置 identity 组件。</p> 
+  <pre>&lt;components xmlns=&quot;http://jboss.com/products/seam/components&quot;<br />            xmlns:core=&quot;http://jboss.com/products/seam/core&quot;<br />            xmlns:security=&quot;http://jboss.com/products/seam/security&quot;<br />            xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;<br />            xsi:schemaLocation=<br />                &quot;http://jboss.com/products/seam/components http://jboss.com/products/seam/components-2.0.xsd<br />                 http://jboss.com/products/seam/security http://jboss.com/products/seam/security-2.0.xsd&quot;&gt;<br /><br />    &lt;security:identity authenticate-method=&quot;#{authenticator.authenticate}&quot;/&gt;<br /><br />&lt;/components&gt;</pre> 
+  <p>如果你希望使用高级的安全性特性，如基于规则的许可检查，你所要做的就是把Drools（JBoss Rules）jars包含在你的classpath中，并添加一些额外的配置，后面会讲到。</p> 
+  <p>EL表达式 #{authenticator.authenticate} 是一种方法绑定，表示 authenticator 组件的 authenticate 方法将用来验证该用户。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7212"></a>13.4.2. 编写验证方法</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>在 components.xml 中给 identity 指定的 authenticate-method 属性，规定了哪种方法将被SeamLoginModule用来验证用户。 这个方法没有参数，并将要返回一个布尔值，表示验证是否成功。用户的用户名和密码可以分别地通过 Identity.instance().getUsername() 和 Identity.instance().getPassword() 获取，用户所属的任何角色都应该利用 Identity.instance().addRole() 分配。 下面是JavaBean组件内部一个验证方法的完整实例：</p> 
+  <pre>@Name(&quot;authenticator&quot;)<br />public class Authenticator {<br />   @In EntityManager entityManager;<br /><br />   public boolean authenticate() {<br />      try<br />      {<br />         User user = (User) entityManager.createQuery(<br />            &quot;from User where username = :username and password = :password&quot;)<br />            .setParameter(&quot;username&quot;, Identity.instance().getUsername())<br />            .setParameter(&quot;password&quot;, Identity.instance().getPassword())<br />            .getSingleResult();<br /><br />         if (user.getRoles() != null)<br />         {<br />            for (UserRole mr : user.getRoles())<br />               Identity.instance().addRole(mr.getName());<br />         }<br /><br />         return true;<br />      }<br />      catch (NoResultException ex)<br />      {<br />         return false;<br />      }<br /><br />   }<br /><br />}</pre> 
+  <p>在上面的例子中，User 和 UserRole 都是应用程序指定的实体Bean。 roles 参数以用户所属的角色填充，它应该添加到 Set 作为文字型字符串值，如“admin”、“user”。 在这个例子中，如果没有找到用户记录，并抛出一个 NoResultException，验证方法就返回false，表示验证失败。</p> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h4><a name="d0e7254"></a>13.4.2.1. Identity.addRole()</h4> 
+     </div> 
+    </div> 
+   </div> 
+   <p>Identity.addRole() 方法表现的不同取决于当前会话是否已经验证过了。 如果会话没有验证过，那么 addRole() 就 只能 在验证的过程中被调用。 当被调用到这里时，角色名称被放进一个预验证角色的临时列表中。 一当验证成功，预验证角色就变成“真实的”角色了，并且调用 Identity.hasRole() 就可以返回true了。 下面的序列图展示了预验证角色列表作为第一类对象，以更清楚地表明它如何适应在整个验证过程。</p> 
+   <div>
+    <img src="image/Chapter 13. 安全 -seam.security-addrole.png" />
+    <p class="origImg">http://www.redsaga.com/opendoc/Seam2.0/html/images/security-addrole.png</p>
+   </div> 
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7276"></a>13.4.3. 编写登录表单</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>Identity 组件提供 username 和 password 属性，适合最常见的验证场景。 这些属性可以直接绑定到登录表单上的用户名和密码字段。一旦设置了这些属性，调用 identity.login() 方法就可以验证使用所提供的证书的用户。 下面是一个简单的登录表单的例子：</p> 
+  <pre>&lt;div&gt;<br />    &lt;h:outputLabel for=&quot;name&quot; value=&quot;Username&quot;/&gt;<br />    &lt;h:inputText id=&quot;name&quot; value=&quot;#{identity.username}&quot;/&gt;<br />&lt;/div&gt;<br /><br />&lt;div&gt;<br />    &lt;h:outputLabel for=&quot;password&quot; value=&quot;Password&quot;/&gt;<br />    &lt;h:inputSecret id=&quot;password&quot; value=&quot;#{identity.password}&quot;/&gt;<br />&lt;/div&gt;<br /><br />&lt;div&gt;<br />    &lt;h:commandButton value=&quot;Login&quot; action=&quot;#{identity.login}&quot;/&gt;<br />&lt;/div&gt;</pre> 
+  <p>类似地，注销用户通过调用 #{identity.logout} 来完成。调用这个动作将清除当前被验证用户的安全性状态。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7300"></a>13.4.4. 简化配置 - 概述</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>因此归结起来，配置验证有三个简单的步骤：</p> 
+  <div> 
+   <ul type="disc"> 
+    <li> <p>在 components.xml 中配置一种验证方法。</p> </li> 
+    <li> <p>编写一种验证方法。</p> </li> 
+    <li> <p>编写一个登录表单，以便用户可以验证。</p> </li> 
+   </ul> 
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7318"></a>13.4.5. 处理安全异常</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>为了防止用户随安全错误而收到默认的错误页面，建议 pages.xml 配置为把安全错误重定向到一个更“漂亮”的页面。由Security API抛出的两种主要的异常类型是：</p> 
+  <div> 
+   <ul type="disc"> 
+    <li> <p>NotLoggedInException - 如果用户试图在没有登录的情况下访问一个受限的动作或者页面，就会抛出这个异常。</p> </li> 
+    <li> <p>AuthorizationException - 只有当用户已经登录，并且试图访问他们没有必要权限的受限动作或者页面时，才会抛出这个异常。</p> </li> 
+   </ul> 
+  </div> 
+  <p>在 NotLoggedInException 抛出的情况下，建议把用户限制到一个登录页面或者注册页面，以便登录。 对于 AuthorizationException，把用户重定向到一个错误页面可能更合适。 以下是 pages.xml 文件的一个例子，它把这两种安全异常都处理了：</p> 
+  <pre>&lt;pages&gt;<br /><br />    ...<br /><br />    &lt;exception class=&quot;org.jboss.seam.security.NotLoggedInException&quot;&gt;<br />        &lt;redirect view-id=&quot;/login.xhtml&quot;&gt;<br />            &lt;message&gt;You must be logged in to perform this action 你必须登录执行这个动作&lt;/message&gt;<br />        &lt;/redirect&gt;<br />    &lt;/exception&gt;<br /><br />    &lt;exception class=&quot;org.jboss.seam.security.AuthorizationException&quot;&gt;<br />        &lt;end-conversation/&gt;<br />        &lt;redirect view-id=&quot;/security_error.xhtml&quot;&gt;<br />            &lt;message&gt;You do not have the necessary security privileges to perform this action.你没有执行这个动作的必要权限。&lt;/message&gt;<br />        &lt;/redirect&gt;<br />    &lt;/exception&gt;<br /><br />&lt;/pages&gt;</pre> 
+  <p>大多数Web应用程序需要更复杂的登录重定向处理，因此Seam包含了处理这个问题的一些特殊功能。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7354"></a>13.4.6. 登录重定向</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>当未被验证的用户试图访问某个特定的视图（或者通配符id）时，可以让Seam把用户重定向到一个登录页面：</p> 
+  <pre>&lt;pages login-view-id=&quot;/login.xhtml&quot;&gt;<br /><br />    &lt;page view-id=&quot;/members/*&quot; login-required=&quot;true&quot;/&gt;<br /><br />    ...<br /><br />&lt;/pages&gt;</pre> 
+  <p>（这个不像上述的异常处理器那么简洁，但是可能要结合起来使用。）</p> 
+  <p>用户登录以后，我们要自动返回到原来的地方（网址），以便可以重试要求登录之后才能进行的操作。 如果把下列事件监听器添加到 components.xml，如果用户在没有登录的情况下去访问受限的页面，那么页面信息就会被记录下来。 用户登录之后，就会被重定向到刚才的受限页面，并且把原来的请求参数也一起传过去。</p> 
+  <pre>&lt;event type=&quot;org.jboss.seam.notLoggedIn&quot;&gt;<br />    &lt;action execute=&quot;#{redirect.captureCurrentView}&quot;/&gt;<br />&lt;/event&gt;<br /><br />&lt;event type=&quot;org.jboss.seam.postAuthenticate&quot;&gt;<br />    &lt;action execute=&quot;#{redirect.returnToCapturedView}&quot;/&gt;<br />&lt;/event&gt;</pre> 
+  <p>注意登录重定向被实现为一种对话范围的机制，因此不要在 authenticate() 方法中终止对话。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7375"></a>13.4.7. HTTP验证</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>虽然不建议使用，除非绝对必要，Seam提供HTTP Basic或HTTP Digest（RFC 2617 ）方法的验证。 为使用表单的验证方式，authentication-filter 组件必须能够在components.xml中激活：</p> 
+  <pre>&lt;web:authentication-filter url-pattern=&quot;*.seam&quot; auth-type=&quot;basic&quot;/&gt;</pre> 
+  <p>为了激活Basic验证的过滤器，设置 auth-type 为 basic 或者对于Digest验证 ，设置 auth-type 为 digest。 如果是使用Digest验证，key 和 realm 也必须进行设置：</p> 
+  <pre>&lt;web:authentication-filter url-pattern=&quot;*.seam&quot; auth-type=&quot;digest&quot; key=&quot;AA3JK34aSDlkj&quot; realm=&quot;My App&quot;/&gt;</pre> 
+  <p>key 可以是任何字符串值。 realm 就是进行用户验证时所用的验证Realm的名称。</p> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h4><a name="d0e7415"></a>13.4.7.1. 编写Digest验证者</h4> 
+     </div> 
+    </div> 
+   </div> 
+   <p>如果是使用Digest认证，你的鉴定者类需要继承抽象类 org.jboss.seam.security.digest.digestauthenticator ，并使用 validatePassword() 方法，以根据Digest的要求来验证用户的纯文本密码。下面是一个例子：</p> 
+   <pre>public boolean authenticate()<br />   {<br />      try<br />      {<br />         User user = (User) entityManager.createQuery(<br />            &quot;from User where username = :username&quot;)<br />            .setParameter(&quot;username&quot;, identity.getUsername())<br />            .getSingleResult();<br /><br />         return validatePassword(user.getPassword());<br />      }<br />      catch (NoResultException ex)<br />      {<br />         return false;<br />      }<br />   }</pre> 
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7428"></a>13.4.8. 高级验证特性</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>本节探讨Security API提供的部分高级特性，用来满足更复杂的安全需求。</p> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h4><a name="d0e7433"></a>13.4.8.1. 使用容器的JAAS配置</h4> 
+     </div> 
+    </div> 
+   </div> 
+   <p>如果你宁可不用Seam Security API提供的简化的JAAS配置，可以委托给默认的系统JAAS配置，该配置是在 components.xml 中提供的一个 jaasConfigName。 例如，如果你正在使用JBoss AS，并希望使用 其它 策略（使用JBoss AS提供的 UsersRolesLoginModule 登录模块），那么 components.xml 中的项看起来就像这样：</p> 
+   <pre>&lt;security:identity authenticate-method=&quot;#{authenticator.authenticate}&quot;<br />                      jaas-config-name=&quot;other&quot;/&gt;</pre> 
+  </div> 
+ </div> 
+</div> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e7455"></a>13.5. 错误消息</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>Security API给各种安全相关的事件生成许多默认的展现消息。下表列出了可以用来覆盖这些消息的Key，它们在 message.properties 资源文件中指定。为了禁止消息，只要在资源文件里给相应的Key赋予空值就行了。</p> 
+ <div>
+  <a name="d0e7463"></a> 
+  <p>Table 13.1. 安全消息Key</p> 
+  <table border="1" summary="安全消息Key"> 
+   <colgroup>
+    <col />
+    <col />
+   </colgroup> 
+   <tbody> 
+    <tr> 
+     <td> <p>org.jboss.seam.loginSuccessful</p> </td> 
+     <td> <p>这个消息在用户通过Security API成功登录时生成。</p> </td> 
+    </tr> 
+    <tr> 
+     <td> <p>org.jboss.seam.loginFailed</p> </td> 
+     <td> <p>这个消息在登录过程失败时生成。失败是由于用户提供了错误的用户名或者密码，或者由于其他问题造成的。</p> </td> 
+    </tr> 
+    <tr> 
+     <td> <p>org.jboss.seam.NotLoggedIn</p> </td> 
+     <td> <p>这个消息在用户试图执行一个动作，或者访问一个需要安全检查的页面，并且用户目前未被验证时生成。</p> </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+ </div> 
+</div> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e7500"></a>13.6. 授权</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>Seam Security API提供了大量授权特性，用来保护对组件、组件方法和页面的访问。本节阐述这每一种授权特性。 要注意的一件重要的事是，如果你希望使用任何高级特性（如基于规则的许可），那么你的 components.xml 文件就必须配置成支持该特性 - 请见前面的配置小节。</p> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7508"></a>13.6.1. 核心概念</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>Seam Security API提供的每种授权机制，都构建在用户被授与了角色和／或许可的概念之上。 角色是用户的一个 群组，或者一种 类型，该用户可能已经被授与某种特权，用来在应用程序内部执行一个或者更多的特定操作。 许可是执行单个指定动作的一种（有时是一次性的）特权。 只用许可而不用其它任何东西来构建应用程序是完全可能的，然而角色在授与用户群组特权时更灵活方便。</p> 
+  <p>角色很简单，只由一个名称组成，如“admin”、“user”、“customer”等等。许可由一个名称和一个动作组成，在这个文档中以 name:action 的形式表示，例如 customer:delete，或者 customer:insert。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7530"></a>13.6.2. 保护组件</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>我们从检验授权的最简单的形式开始：组件安全，从 @Restrict 注解开始。</p> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h4><a name="d0e7538"></a>13.6.2.1. @Restrict注解</h4> 
+     </div> 
+    </div> 
+   </div> 
+   <p>Seam组件可以利用 @Restrict 注解在方法或者类级上得到保护。 如果方法和声明它的类都通过 @Restrict 注解，方法限制将优先（类限制是不起作用）。 如果方法调用在安全检查中失败，那么根据对 Identity.checkRestriction() 的约定就会抛出一个异常（请见行内限制）。 组件类自身上的 @Restrict 相当于把 @Restrict 添加到了它的每一个方法上。</p> 
+   <p>空的 @Restrict 意味着 componentName:methodName 的一个许可检查。以下面的组件方法为例：</p> 
+   <pre>@Name(&quot;account&quot;)<br />public class AccountAction {<br />    @Restrict public void delete() {<br />      ...<br />    }<br />}</pre> 
+   <p>在这个例子中，调用 delete() 方法需要的隐含许可是 account:delete。 还有一种方式，就是写 @Restrict(&quot;#{s:hasPermission('account','delete',null)}&quot;)。 现在来看另一个例子：</p> 
+   <pre>@Restrict @Name(&quot;account&quot;)<br />public class AccountAction {<br />    public void insert() {<br />      ...<br />    }<br />    @Restrict(&quot;#{s:hasRole('admin')}&quot;)<br />    public void delete() {<br />      ...<br />    }<br />}</pre> 
+   <p>这一次，组件类本身通过 @Restrict 注解。这意味着任何没有覆盖 @Restrict 注解的方法都需要一个隐式的许可检查。在这个例子中，insert() 方法需要 account:insert 的一个许可，而 delete() 方法则要求用户必须是 admin 角色的一员。</p> 
+   <p>在进一步探讨之前，先看看在前面的例子中见过的 #{s:hasRole()} 表达式。 s:hasRole 和 s:hasPermission 都是EL方法，它们委托给 Identity 类相应的具名方法。 这些函数可以在所有Security API的任何EL表达式中使用。</p> 
+   <p>作为一个EL表达式，@Restrict 注解的值可以引用Seam上下文中存在的任何对象。 这在给特定的对象实例执行许可检查时极为有用。看看这个例子：</p> 
+   <pre>@Name(&quot;account&quot;)<br />public class AccountAction {<br />    @In Account selectedAccount;<br />    @Restrict(&quot;#{s:hasPermission('account','modify',selectedAccount)}&quot;)<br />    public void modify() {<br />        selectedAccount.modify();<br />    }<br />}</pre> 
+   <p>这个例子中最值得关注的东西是，对在 hasPermission() 函数调用中见到的 selectedAccount 的引用。 这个变量的值将从Seam上下文内部查找，并传递到 Identity 中的 hasPermission() 方法， 在这个例子中，它随后可以确定用户是否具有修改指定 Account 对象所需的许可。</p> 
+  </div> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h4><a name="d0e7639"></a>13.6.2.2. 行内限制</h4> 
+     </div> 
+    </div> 
+   </div> 
+   <p>有时候，可能希望在代码中执行安全检查，而不用 @Restrict 注解。在这种情况下，只要用 Identity.checkRestriction() 来计算安全表达式，像这样：</p> 
+   <pre>public void deleteCustomer() {<br />    Identity.instance().checkRestriction(&quot;#{s:hasPermission('customer','delete',selectedCustomer)}&quot;);<br />}</pre> 
+   <p>如果指定的表达式没有取值为 true，或者</p> 
+   <div> 
+    <ul type="disc"> 
+     <li> <p>如果用户没有登录，就抛出 NotLoggedInException 异常，或者</p> </li> 
+     <li> <p>如果用户登录了，就抛出 AuthorizationException 异常。</p> </li> 
+    </ul> 
+   </div> 
+   <p>直接在Java代码中调用 hasRole() 和 hasPermission() 方法也是可能的：</p> 
+   <pre>if (!Identity.instance().hasRole(&quot;admin&quot;))<br />     throw new AuthorizationException(&quot;Must be admin to perform this action&quot;);<br /><br />if (!Identity.instance().hasPermission(&quot;customer&quot;, &quot;create&quot;, null))<br />     throw new AuthorizationException(&quot;You may not create new customers&quot;);</pre> 
+  </div> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7680"></a>13.6.3. 用户界面中的安全</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>设计优良的用户界面的一种表现是，不会向用户展现他们没有必要的权限进行使用的选项。Seam Security允许条件性的渲染： 1）一个页面的几个部分，或者2）独立的控制，根据用户的权限，使用与用给组件安全的完全相同的EL表达式。</p> 
+  <p>我们来看看界面安全的一些例子。首先，我们假设有一个登录表单，它应该只在用户还没有登录的情况下才被渲染。 我们可以利用 identity.isLoggedIn() 属性像这样编写：</p> 
+  <pre>&lt;h:form class=&quot;loginForm&quot; rendered=&quot;#{not identity.loggedIn}&quot;&gt;</pre> 
+  <p>如果用户没有登录，登录表单就渲染 - 目前为止这还是非常直白易懂。 现在假设页面上有一个菜单，包含一些应该只对 manager 角色中的用户可用的操作。下面是一种编写方式：</p> 
+  <pre>&lt;h:outputLink action=&quot;#{reports.listManagerReports}&quot; rendered=&quot;#{s:hasRole('manager')}&quot;&gt;<br />    Manager Reports<br />&lt;/h:outputLink&gt;</pre> 
+  <p>这也很容易理解。如果用户不是 manager 角色的一员，那么outputLink就不渲染。 rendered 属性本身一般来说可以用在控制，或者周围的 &lt;s:div&gt; 或者 &lt;s:span&gt; 控制上。</p> 
+  <p>现在探讨一些更复杂的东西。我们假设你在页面上有一个 h:dataTable 控制，该页面罗列了可能希望或者不希望根据用户的权限，对其渲染动作链接的记录。 s:hasPermission EL函数允许我们传进一个对象参数，它可以用来确定用户是否具有对该对象的必要许可。 下面展现了带有受保护的链接的dataTable可能是什么样子：</p> 
+  <pre>&lt;h:dataTable value=&quot;#{clients}&quot; var=&quot;cl&quot;&gt;<br />    &lt;h:column&gt;<br />        &lt;f:facet name=&quot;header&quot;&gt;Name&lt;/f:facet&gt;<br />        #{cl.name}<br />    &lt;/h:column&gt;<br />    &lt;h:column&gt;<br />        &lt;f:facet name=&quot;header&quot;&gt;City&lt;/f:facet&gt;<br />        #{cl.city}<br />    &lt;/h:column&gt;<br />    &lt;h:column&gt;<br />        &lt;f:facet name=&quot;header&quot;&gt;Action&lt;/f:facet&gt;<br />        &lt;s:link value=&quot;Modify Client&quot; action=&quot;#{clientAction.modify}&quot;<br />                rendered=&quot;#{s:hasPermission('client','modify',cl)&quot;/&gt;<br />        &lt;s:link value=&quot;Delete Client&quot; action=&quot;#{clientAction.delete}&quot;<br />                rendered=&quot;#{s:hasPermission('client','delete',cl)&quot;/&gt;<br />    &lt;/h:column&gt;<br />&lt;/h:dataTable&gt;</pre> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7723"></a>13.6.4. 保护页面</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>页面安全要求应用程序使用 pages.xml 文件，但是配置极为简单。 只要在你希望保护的 page 元素内部包括一个 &lt;restrict/&gt; 元素。 如果没有通过 restrict 元素指定明确的限制，当网页通过non-faces（GET）的请求被访问时， /viewId.xhtml:render 隐含的许可将被检查， 并且当网页上任何的JSF postback（表单提交）都需要 /viewId.xhtml:restore 许可。 否则，特定的约束将作为一个标准的安全表达式进行取值。下面有几个例子：</p> 
+  <pre>&lt;page view-id=&quot;/settings.xhtml&quot;&gt;<br />    &lt;restrict/&gt;<br />&lt;/page&gt;</pre> 
+  <p>本页面已经隐含了 /settings.xhtml:render 所需的non-faces请求的许可， 并隐含了 /settings.xhtml:restore 所需的faces请求的许可。</p> 
+  <pre>&lt;page view-id=&quot;/reports.xhtml&quot;&gt;<br />    &lt;restrict&gt;#{s:hasRole('admin')}&lt;/restrict&gt;<br />&lt;/page&gt;</pre> 
+  <p>这个页面的faces和non-faces请求，都需要用户是 admin 角色的一个成员。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7763"></a>13.6.5. 保护实体</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>Seam Security也使得对实体的读取、插入、更新和删除动作应用安全限制成为可能。</p> 
+  <p>为了保护一个实体类的所有动作，在类自身上添加一个 @Restrict 注解：</p> 
+  <pre>@Entity<br />@Name(&quot;customer&quot;)<br />@Restrict<br />public class Customer {<br />  ...<br />}</pre> 
+  <p>如果没有在 @Restrict 注解中指定任何表达式，执行的默认安全检查就是 entityName:action 的许可检查， 在这里，entityName 是实体的Seam组件名（或者如果指定了@Name，则是完全匹配的类名），并且 action 可以是 read、insert、update 或者 delete。</p> 
+  <p>也可能通过把@Restrict注解放在相关的实体生命周期的方法上（被注解如下），而只限制某些动作：</p> 
+  <div> 
+   <ul type="disc"> 
+    <li> <p>@PostLoad - 在实体实例从数据库中加载之后调用。用这个方法配置一个 read 许可。</p> </li> 
+    <li> <p>@PrePersist - 在插入实体的一个新实例之前调用。用这个方法配置一个 insert 许可。</p> </li> 
+    <li> <p>@PreUpdate - 在实体更新之前调用。用这个方法配置一个 update 许可。</p> </li> 
+    <li> <p>@PreRemove - 在实体删除之前调用。用这个方法配置一个delete许可。</p> </li> 
+   </ul> 
+  </div> 
+  <p>这里有一个例子，说明实体方法如何配置成给任何 insert 操作执行安全检查。 请注意不需要方法去做任何事情，有关安全的唯一重要的东西是它如何被注解：</p> 
+  <pre>@PrePersist @Restrict<br />  public void prePersist() {}</pre> 
+  <p>这里还有一个例子，说明实体许可规则检查被验证的用户是否被允许（从seamspace例子中）插入新的 MemberBlog 记录。 正在进行安全检查的实体，被自动断言到工作内存中（在这个例子中是 MemberBlog）：</p> 
+  <pre>rule InsertMemberBlog<br />  no-loop<br />  activation-group &quot;permissions&quot;<br />when<br />  check: PermissionCheck(name == &quot;memberBlog&quot;, action == &quot;insert&quot;, granted == false)<br />  Principal(principalName : name)<br />  MemberBlog(member : member -&gt; (member.getUsername().equals(principalName)))<br />then<br />  check.grant();<br />end;</pre> 
+  <p>这个规则将授与许可 memberBlog:insert，如果当前被验证的用户（由 Principal fact表明）有着与正在为其创建Blog项的一样的成员。 可以在 Principal fact（和其它地方）中见到的“name : name”结构是一个变量绑定 - 它把 Principal的 name 属性绑定到一个具名 name 的变量上。 变量绑定允许值在其它地方被引用，例如下面的行把成员的用户名与 Principal 名称进行比较。 想了解更多细节，请参考JBoss Rules文档。</p> 
+  <p>最后，需要安装一个监听器类，把Seam Security与你的JPA提供者整合起来。</p> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h4><a name="d0e7888"></a>13.6.5.1. 使用JPA的实体安全</h4> 
+     </div> 
+    </div> 
+   </div> 
+   <p>对EJB3实体Bean的安全检查通过一个 EntityListener 执行来完成的。 你可以利用下列 META-INF/orm.xml 文件安装这个监听器：</p> 
+   <pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;<br />&lt;entity-mappings xmlns=&quot;http://java.sun.com/xml/ns/persistence/orm&quot;<br />                 xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;<br />                 xsi:schemaLocation=&quot;http://java.sun.com/xml/ns/persistence/orm http://java.sun.com/xml/ns/persistence/orm_1_0.xsd&quot;<br />                 version=&quot;1.0&quot;&gt;<br /><br />    &lt;persistence-unit-metadata&gt;<br />        &lt;persistence-unit-defaults&gt;<br />            &lt;entity-listeners&gt;<br />                &lt;entity-listener class=&quot;org.jboss.seam.security.EntitySecurityListener&quot;/&gt;<br />            &lt;/entity-listeners&gt;<br />        &lt;/persistence-unit-defaults&gt;<br />    &lt;/persistence-unit-metadata&gt;<br /><br />&lt;/entity-mappings&gt;</pre> 
+  </div> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h4><a name="d0e7901"></a>13.6.5.2. 使用Hibernate的实体安全</h4> 
+     </div> 
+    </div> 
+   </div> 
+   <p>如果你正在使用一个经由Seam配置的Hibernate SessionFactory，使用实体安全就不需要做任何特别的事情。</p> 
+  </div> 
+ </div> 
+</div> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e7909"></a>13.7. 编写安全规则</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>迄今为止，我们已经提到了许多许可，但是没有提及许可事实上如何定义或者授与。 本节将对此进行阐述，解释许可检查如何进行，以及如何给一个Seam应用程序实现许可检查。</p> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7914"></a>13.7.1. 许可概述</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>Security API如何知道用户是否具有对一个特定客户的 customer:modify 许可？ Seam Security提供一种新奇的方法，根据JBoss Rules确定用户许可。 使用规则引擎的两个好处在于：1）它是每个用户许可背后的业务逻辑的一个集中位置， 2）速度 - JBoss Rules使用非常有效的算法，用来给涉及多个条件的大量复杂规则取值。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7922"></a>13.7.2. 配置规则文件</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>Seam Security希望找到一个称作 securityRules 的 RuleBase 组件，Seam Security用它来给许可检查取值。 这在 components.xml 中配置如下：</p> 
+  <pre>&lt;components xmlns=&quot;http://jboss.com/products/seam/components&quot;<br />            xmlns:core=&quot;http://jboss.com/products/seam/core&quot;<br />            xmlns:security=&quot;http://jboss.com/products/seam/security&quot;<br />            xmlns:drools=&quot;http://jboss.com/products/seam/drools&quot;<br />            xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;<br />            xsi:schemaLocation=<br />                &quot;http://jboss.com/products/seam/core http://jboss.com/products/seam/core-2.0.xsd<br />                 http://jboss.com/products/seam/components http://jboss.com/products/seam/components-2.0.xsd<br />                 http://jboss.com/products/seam/drools http://jboss.com/products/seam/drools-2.0.xsd&quot;<br />                 http://jboss.com/products/seam/security http://jboss.com/products/seam/security-2.0.xsd&quot;&gt;<br /><br />   &lt;drools:rule-base name=&quot;securityRules&quot;&gt;<br />       &lt;drools:rule-files&gt;<br />           &lt;value&gt;/META-INF/security.drl&lt;/value&gt;<br />       &lt;/drools:rule-files&gt;<br />   &lt;/drools:rule-base&gt;<br /><br />&lt;/components&gt;</pre> 
+  <p>一旦配置了 RuleBase 组件，就可以编写安全规则了。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e7943"></a>13.7.3. 创建安全规则文件</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>对于这个步骤，要在应用程序的jar文件的 /META-INF 目录中创建一个名为 security.drl 的文件。 事实上，这个文件可以命名为你喜欢的任何名字，并存在于任何位置，只要它在 components.xml 中进行了适当的配置。</p> 
+  <p>那么安全规则文件应该包含什么呢？目前，至少浏览一下JBoss Rules文档可能是个好主意，但是这里介绍的是一个极为简单的例子：</p> 
+  <pre>package MyApplicationPermissions;<br /><br />import org.jboss.seam.security.PermissionCheck;<br />import org.jboss.seam.security.Role;<br /><br />rule CanUserDeleteCustomers<br />when<br />  c: PermissionCheck(name == &quot;customer&quot;, action == &quot;delete&quot;)<br />  Role(name == &quot;admin&quot;)<br />then<br />  c.grant();<br />end;</pre> 
+  <p>我们来分解一下。我们见到的第一个东西是包声明。包在JBoss Rules中基本上是一个规则的集合。 包名可以是你喜欢的任何名称 － 它不影响规则基础范围之外的任何其它东西。</p> 
+  <p>然后，我们可能注意到二个对 PermissionCheck 和 Role 类的导入语句。 这些导入通知规则引擎我们将在规则中引用这些类。</p> 
+  <p>最后是规则的代码。包中的每一个规则都应该有一个唯一的名称（一般描述规则的目的）。 在这个例子中，我们的规则称作 CanUserDeleteCustomers，用来检查用户是否被允许删除一个客户记录。</p> 
+  <p>看看规则定义的主体，可以发现两个独特的部分。规则有称为LHS(左手边）和RHS（右手边）的东西。 LHS由规则的条件部分组成，如必须满足规则以便触发的一系列条件。 LHS由 when 部分表示。RHS是结果，或者是规则的动作部分，该规则只在满足LHS的所有条件时才触发。 RHS由 then 部分组成。规则的末端用 end; 线表示。</p> 
+  <p>如果看看规则的LHS，就可见到那里列出了两个条件。我们先来检验第一个条件：</p> 
+  <pre>c: PermissionCheck(name == &quot;customer&quot;, action == &quot;delete&quot;)</pre> 
+  <p>说得通俗些，这个条件声明工作内存中必须存在一个 PermissionCheck 对象，它具有与&quot;customer&quot;相当的 name 属性，以及与&quot;delete&quot;相当的 action 属性。 什么是工作内存？它是个会话范围的对象，包含规则引擎进行有关许可检查决策时所需的上下文信息。 每次调用 hasPermission() 方法时，一个临时的 PermissionCheck 对象或者 Fact 就被断言到工作内存中。 这个 PermissionCheck 正好对应于正被检查的许可，因此，例如如果调用 hasPermission(&quot;account&quot;, &quot;create&quot;, null)，那么带有相当于&quot;account&quot;的 name 和相当于&quot;create&quot;的 action 的 PermissionCheck 对象，就将在许可检查持续期间被断言到工作内存。</p> 
+  <p>工作内存中还有什么其它的东西？ 除了在许可检查期间断言的短期临时fact被插入之外，工作内存中还有一些长期的对象，在用户验证的整个持续期间都保留在那。 这些包括作为验证过程一部分而创建的任何 java.security.Principal 对象， 还包括用户所属角色中的每一个角色的 org.jboss.seam.security.Role。 通过调用 ((RuleBasedIdentity) RuleBasedIdentity.instance()).getSecurityContext().insert()， 也可能断言额外的长期fact到工作内存中，把对象当作参数传递。</p> 
+  <p>回到我们的简单例子上来，也会注意到我们LHS的第一行加上了 c: 的前缀。 这是个变量绑定，用来指回到符合条件的对象。移到LHS的第二行，会看到：</p> 
+  <pre>Role(name == &quot;admin&quot;)</pre> 
+  <p>这个条件只声明工作内存中必须有 Role 对象带有&quot;admin&quot;的 name。 如前所述，用户角色被作为长期fact断言到工作内存中。 因此，把两个条件放在一起，这个规则基本上等于在说： “如果你检查 customer:delete 许可，并且用户是 admin 角色的一员时，我将会触发。”</p> 
+  <p>那么规则触发的结果会怎样？我们来看看规则的RHS：</p> 
+  <pre>c.grant()</pre> 
+  <p>RHS由Java代码组成，在这个例子中是调用 c 对象的 grant() 方法， 如前面提到过的，它是个对 PermissionCheck 对象的变量绑定。 除了 PermissionCheck 对象的 name 和 action 属性之外， 也有一个 granted 属性，它的初始值设置为 false。 在 PermissionCheck 上调用 grant() 方法， 设置 granted 属性为 true，这意味着许可检查成功了，允许用户执行许可检查预定的任何动作。</p> 
+  <div> 
+   <div> 
+    <div> 
+     <div> 
+      <h4><a name="d0e8100"></a>13.7.3.1. 通配符许可检查</h4> 
+     </div> 
+    </div> 
+   </div> 
+   <p>通过在规则中给 PermissionCheck 删除 action 约束， 可能实现通配符许可检查（对一个指定的许可名称允许所有动作），像这样：</p> 
+   <pre>rule CanDoAnythingToCustomersIfYouAreAnAdmin<br />when<br />  c: PermissionCheck(name == &quot;customer&quot;)<br />  Role(name == &quot;admin&quot;)<br />then<br />  c.grant();<br />end;</pre> 
+   <p>这个规则允许带有 admin 角色的用户对任何 customer 许可检查执行任何操作。</p> 
+  </div> 
+ </div> 
+</div> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e8121"></a>13.8. SSL安全</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>Seam包括对通过HTTPS协议提供敏感的页面的基本支持。 这很容易通过在 pages.xml 中给页面指定 scheme 而配置。 下列例子说明视图 /login.xhtml 如何配置为使用HTTPS：</p> 
+ <pre>&lt;page view-id=&quot;/login.xhtml&quot; scheme=&quot;https&quot;&gt;</pre> 
+ <p>这个配置自动扩展为 s:link 和 s:button JSF控制，它（在指定 view 时）还将渲染使用了正确协议的链接。在前一个例子的基础上，下列链接将使用HTTPS协议，因为 /login.xhtml 配置为使用HTTPS：</p> 
+ <pre>&lt;s:link view=&quot;/login.xhtml&quot; value=&quot;Login&quot;/&gt;</pre> 
+ <p>使用 错误 协议时，直接浏览视图将导致重定向到与使用 正确 协议一样的视图。 例如，浏览一个让 scheme=&quot;https&quot; 使用HTTP的页面时，将重定向到与使用HTTPS一样的页面。</p> 
+ <p>也可能给所有页面配置一个 默认的scheme。这事实上相当重要，就像你可能只希望给一些页面使用HTTPS一样。 如果没有指定默认的scheme，那么默认的行为就是继续使用当前的scheme。 这意味着一旦你通过HTTPS进入了一个页面，HTTPS就将持续使用，即使你导航到了另一个非HTTPS的页面（糟糕的事！）。 因此强烈建议包括一个默认的 scheme，通过在默认的 &quot;*&quot; 视图上配置它：</p> 
+ <pre>&lt;page view-id=&quot;*&quot; scheme=&quot;http&quot; /&gt;</pre> 
+ <p>当然，如果你的应用程序中 没有 任何页面使用HTTPS，那就不需要指定默认的scheme。</p> 
+ <p>你可以配置Seam来自动地在每次scheme改变时使当前的HTTP会话失效。只要在 components.xml 文件中加入这一行：</p> 
+ <pre>&lt;core:servlet-session invalidate-on-scheme-change=&quot;true&quot;/&gt;</pre> 
+ <p>这个选项可以让你的系统减少被嗅探到Session ID或者因为页面从使用HTTPS转到HTTP时导致敏感数据的泄露。</p> 
+</div> 
+<div> 
+ <div> 
+  <div> 
+   <div> 
+    <h2><a name="d0e8191"></a>13.9. 实现Captcha测试</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>虽然严格来说它不是Security API的一部分，但是它在某些环境下（例如新用户注册，发布到一个公共的blog或者论坛）， 可以用来实现Captcha（Completely Automated Public Turing test to tell Computers and Humans Apart），以防止自动的机器人与应用程序进行交互。 Seam提供与JCaptcha的无缝整合，是产生Captcha challenge的一个极好的库。如果你希望在应用程序中使用Captcha特性，就要把来自Seam lib目录的jcaptcha-* jar文件包括在项目中，并在 application.xml 中把它注册为一个Java模块。</p> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e8220"></a>13.9.1. 配置Captcha Servlet</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>为了建立并运行起来，需要配置Seam Resource Servlet，这将给你的页面提供Captcha challenge映射。这在 web.xml 中需要下列项：</p> 
+  <pre>&lt;servlet&gt;<br />    &lt;servlet-name&gt;Seam Resource Servlet&lt;/servlet-name&gt;<br />    &lt;servlet-class&gt;org.jboss.seam.servlet.SeamResourceServlet&lt;/servlet-class&gt;<br />&lt;/servlet&gt;<br /><br />&lt;servlet-mapping&gt;<br />    &lt;servlet-name&gt;Seam Resource Servlet&lt;/servlet-name&gt;<br />    &lt;url-pattern&gt;/seam/resource/*&lt;/url-pattern&gt;<br />&lt;/servlet-mapping&gt;</pre> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e8230"></a>13.9.2. 添加Captcha到页面</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>添加一个Captcha challenge到页面极为容易。 Seam提供一个page-scoped组件，captcha，它提供它所需要的一切，包括内置的captcha校验。这里有个例子：</p> 
+  <pre>&lt;div&gt;<br />    &lt;h:graphicImage value=&quot;/seam/resource/captcha?#{captcha.id}&quot;/&gt;<br />&lt;/div&gt;<br /><br />&lt;div&gt;<br />    &lt;h:outputLabel for=&quot;verifyCaptcha&quot;&gt;Enter the above letters&lt;/h:outputLabel&gt;<br />    &lt;h:inputText id=&quot;verifyCaptcha&quot; value=&quot;#{captcha.response}&quot; required=&quot;true&quot;&gt;<br />      &lt;s:validate /&gt;<br />    &lt;/h:inputText&gt;<br />    &lt;div class=&quot;validationError&quot;&gt;&lt;h:message for=&quot;verifyCaptcha&quot;/&gt;&lt;/div&gt;<br />&lt;/div&gt;<br /><br />&lt;div&gt;<br />    &lt;h:commandButton action=&quot;#{register.next}&quot; value=&quot;Register&quot;/&gt;<br />&lt;/div&gt;</pre> 
+  <p>这就是关于它的所有信息。graphicImage 控制显示Captcha challenge，inputText 接收用户的响应。 当表单被提交时这个响应会根据Captcha被自动地校验。</p> 
+ </div> 
+ <div> 
+  <div> 
+   <div> 
+    <div> 
+     <h3><a name="d0e8248"></a>13.9.3. 定制Captcha图片</h3> 
+    </div> 
+   </div> 
+  </div> 
+  <p>Captcha图片本身可以通过 ImageCaptchaService 和默认的（DefaultManageableImageCaptchaService）进行定制。 要配置不同的 ImageCaptchaService，在 components.xml 文件中添加以下条目：</p> 
+  <pre>&lt;component name=&quot;org.jboss.seam.captcha.captchaImage&quot; service=&quot;#{customCaptcha.service}&quot;/&gt;</pre> 
+  <p>service 属性指明 ImageCaptchaService 实例用来生成Captcha图片。 更多关于配置一个 ImageCaptchaService 的信息，请参见JCaptcha文档。 这里有一个定制图片生成器的例子（可以在seamspace例子里找到）：</p> 
+  <pre>@Name(&quot;customCaptcha&quot;)<br />public class CustomCaptcha<br />{<br />   public ImageCaptchaService getService()<br />   {<br />      BasicGimpyEngine customCaptcha = new BasicGimpyEngine();<br />      GimpyFactory factory = new GimpyFactory(<br />            new RandomWordGenerator(&quot;ABCDEFGHIJKLMNOPQRSTUVWXYZ23456789&quot;),<br />            new ComposedWordToImage(new RandomFontGenerator(new Integer(15),<br />                  new Integer(15)), new UniColorBackgroundGenerator(new Integer(150),<br />                        new Integer(30)), new RandomTextPaster(new Integer(4),<br />                              new Integer(7), Color.BLACK)));<br />      GimpyFactory[] factories = {factory};<br />      customCaptcha.setFactories(factories);<br /><br />      return new DefaultManageableImageCaptchaService(<br />                   new FastHashMapCaptchaStore(),<br />                   customCaptcha,<br />                   180,<br />                   120000,<br />                   75000);<br />   }<br />}</pre> 
+ </div> 
+</div> 
+<p> </p></div></body></html>

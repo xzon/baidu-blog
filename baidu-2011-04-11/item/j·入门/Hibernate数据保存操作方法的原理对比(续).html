@@ -1,0 +1,513 @@
+<html><head><title>Hibernate数据保存操作方法的原理对比(续)</title></head><body><div id='tit'>Hibernate数据保存操作方法的原理对比(续)</div><div id='cate'>j&middot;入门</div><div id='date'>2008年08月15日 星期五 04:56 P.M.</div><div id='page'>108</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/1d22d23f3225f0c47c1e7106.html'>http://hi.baidu.com/hxzon/blog/item/1d22d23f3225f0c47c1e7106.html</a><div id='cnt'><div>
+ Hibernate数据保存操作方法的原理对比(续)
+</div> 
+<div> 
+</div> 
+<div>
+ 那么update方法到底执行了哪些步骤呢？它会按照下面的步骤进行操作：
+</div> 
+<div> 
+</div> 
+<div>
+ 引用
+</div> 
+<div> 
+</div> 
+<div>
+ 控制台查看Hibernate生成的sql语句如下： 
+ <br /> Hibernate: select user0_.id as id0_0_, user0_.logon_name as logon2_0_0_, user0_.nick_name as nick3_0_0_, user0_.password as password0_0_ from logon_user user0_ where user0_.id=? 
+ <br /> Hibernate: update logon_user set logon_name=?, nick_name=?, password=? where id=?
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 一、首先会在缓存中寻找需要更新的实体对象，如果找到就立刻返回，从这里我们可以看出如果对一个已经处于persistent的实体对象执行update()方法，将不会产生任何作用。 
+ <br /> 二、然后当提交事务进行缓存清理时，将会通过脏数据检查，确定变化的属性，然后生成update SQL语句完成数据的更新。 
+ <br /> 这里有一个问题我们要强调一下，那就是只要通过update()方法将一个游离对象与session相关联，那么不论这个游离的实体对象的属性是否发生改变，都会执行update SQL语句。 
+ <br /> 如下面的代码：
+</div> 
+<div> 
+</div> 
+<div>
+ Java代码 
+ <br /> Transaction tx=session.beginTransaction();&nbsp;&nbsp; 
+ <br /> session.update(customer);&nbsp;&nbsp; 
+ <br /> tx.commit();&nbsp;&nbsp; 
+ <br /> session.close(); 
+ <br /> Transaction tx=session.beginTransaction();
+ <br /> session.update(customer);
+ <br /> tx.commit();
+ <br /> session.close();
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 在这段代码中并没有修改customer对象的任何属性值，但是也会执行一个update SQL语句，如果你希望在没有改变实体对象属性值的情况下不去执行update SQL语句，那么你要开启实体对象元素的”select-before-update”属性，将其设置为”true”,这个属性默认为”false”。 
+ <br /> 如下进行配置： 
+ <br /> 如果启用了这个属性配置，那么在清理session缓存之前，会首先执行类似如下的一条SQL语句： 
+ <br /> Select * from logon_user where id='1'; 
+ <br /> 查询处所有的customer实体在数据库中对应的属性值，然后逐条与缓存中属性值进行比较，如果发生了改变，那么将会生成update操作进行数据更新，如果没有发生改变那么将不会进行update操作。 
+ <br /> 要跟据实际需求情况来决定是否开启这个选项，如果实体对象的属性不会经常发生改变，那么就应该开启这个选项，以免执行多余的update操作。如果实体对象的属性会经常发生改变，那么就没必要开启这个选项，以免在执行update操作前再执行多余的select语句。
+</div> 
+<div> 
+</div> 
+<div>
+ 注意事项： 
+ <br /> 1.当执行对一个游离实体对象执行session.update()操作时，如果在数据库中不存在这个实体对应的纪录，那么这个操作将会抛出异常。 
+ <br /> 2.当执行session.update()方法将一个游离对象与session关联时，如果此时在缓存中已经存在了与该实体对象具有相同OID的持久化对象，那么这个方法会抛出异常。 
+ <br /> 如下面代码：
+</div> 
+<div> 
+</div> 
+<div>
+ Java代码 
+ <br /> Customer customer1=new Customer(&quot;刘备&quot;,25);&nbsp;&nbsp; 
+ <br /> Session session1=sf.openSession();&nbsp;&nbsp; 
+ <br /> Transaction tx=session1.beginTransaction();&nbsp;&nbsp; 
+ <br /> //保存后customer对象处于持久化状态&nbsp;&nbsp; 
+ <br /> session.save(customer1);&nbsp;&nbsp; 
+ <br /> //清空缓存后customer对象处于游离状态&nbsp;&nbsp; 
+ <br /> session.flush();&nbsp;&nbsp; 
+ <br /> tx.commit();&nbsp;&nbsp; 
+ <br /> session1.close();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> Session session2=sf.openSession();&nbsp;&nbsp; 
+ <br /> Transaction tx2=session2.beginTransaction();&nbsp;&nbsp; 
+ <br /> Customer othercustomer=(Customer)session2.load(Customer.class,&quot;1&quot;);&nbsp;&nbsp; 
+ <br /> //通过调用update()方法将游离状态的customer1对象，再次转化成持久化状态&nbsp;&nbsp; 
+ <br /> session2.update(customer1)&nbsp;&nbsp; 
+ <br /> tx2.commit();&nbsp;&nbsp; 
+ <br /> session2.close(); 
+ <br /> Customer customer1=new Customer(&quot;刘备&quot;,25);
+ <br /> Session session1=sf.openSession();
+ <br /> Transaction tx=session1.beginTransaction();
+ <br /> //保存后customer对象处于持久化状态
+ <br /> session.save(customer1);
+ <br /> //清空缓存后customer对象处于游离状态
+ <br /> session.flush();
+ <br /> tx.commit();
+ <br /> session1.close();
+ <br /> 
+ <br /> Session session2=sf.openSession();
+ <br /> Transaction tx2=session2.beginTransaction();
+ <br /> Customer othercustomer=(Customer)session2.load(Customer.class,&quot;1&quot;);
+ <br /> //通过调用update()方法将游离状态的customer1对象，再次转化成持久化状态
+ <br /> session2.update(customer1)
+ <br /> tx2.commit();
+ <br /> session2.close();
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 当再次将游离对象customer1与session2关联时，此时因为load()操作，在缓存已经加载了一个和customer1具有相同OID的othercustomer对象，此时由于Hibernate缓存的对象缓存机制不允许把OID相同的对象缓存，所以会抛出异常。
+</div> 
+<div> 
+</div> 
+<div>
+ 引用
+</div> 
+<div> 
+</div> 
+<div>
+ load方法 
+ <br /> public void load(Object object, 
+ <br /> Serializable id) 
+ <br /> throws HibernateException
+</div> 
+<div> 
+</div> 
+<div>
+ Read the persistent state associated with the given identifier into the given transient instance. 
+ <br /> 读取和给定的主键标示符关联的持久化状态到给定的自由状态的实例对象。 
+ <br /> Parameters: 
+ <br /> object - an &quot;empty&quot; instance of the persistent class 
+ <br /> id - a valid identifier of an existing persistent instance of the class 
+ <br /> object - 一个持久化类的空对象 
+ <br /> id - 一个已经存在的持久化实例对象的有效的主键标示符 
+ <br /> Throws: 
+ <br /> HibernateException
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 引用
+</div> 
+<div> 
+</div> 
+<div>
+ get和load方法的区别？ 
+ <br /> get和load方式是根据id取得一个记录 
+ <br /> 下边详细说一下get和load的不同，因为有些时候为了对比也会把find加进来。
+</div> 
+<div> 
+</div> 
+<div>
+ 1.从返回结果上对比： 
+ <br /> load方式检索不到的话会抛出org.hibernate.ObjectNotFoundException异常 
+ <br /> get方法检索不到的话会返回null
+</div> 
+<div> 
+</div> 
+<div>
+ 2.从检索执行机制上对比： 
+ <br /> get方法和find方法都是直接从数据库中检索 
+ <br /> 而load方法的执行则比较复杂 
+ <br /> ■ 首先查找session的persistent Context中是否有缓存，如果有则直接返回 
+ <br /> ■ 如果没有则判断是否是lazy，如果不是直接访问数据库检索，查到记录返回，查不到抛出异常 
+ <br /> ■ 如果是lazy则需要建立代理对象，对象的initialized属性为false，target属性为null 
+ <br /> ■ 在访问获得的代理对象的属性时,检索数据库，如果找到记录则把该记录的对象复制到代理对象的target上，并将initialized=true，如果找不到就抛出异常 。
+</div> 
+<div> 
+</div> 
+<div>
+ 3.根本区别说明 
+ <br /> ■ 如果你使用load方法，hibernate认为该id对应的对象（数据库记录）在数据库中是一定存在的，所以它可以放心的使用，它可以放心的使用代理来延迟加载该对象。在用到对象中的其他属性数据时才查询数据库，但是万一数据库中不存在该记录，那没办法，只能抛异常。所说的load方法抛异常是指在使用该对象的数据时，数据库中不存在该数据时抛异常，而不是在创建这个对象时(注意：这就是由于“延迟加载”在作怪)。
+</div> 
+<div> 
+</div> 
+<div>
+ 由于session中的缓存对于hibernate来说是个相当廉价的资源，所以在load时会先查一下session缓存看看该id对应的对象是否存在，不存在则创建代理。所以如果你知道该id在数据库中一定有对应记录存在就可以使用load方法来实现延迟加载。
+</div> 
+<div> 
+</div> 
+<div>
+ ■ 对于get方法，hibernate会确认一下该id对应的数据是否存在，首先在session缓存中查找，然后在二级缓存中查找，还没有就查数据库，数据库中没有就返回null。
+</div> 
+<div> 
+</div> 
+<div>
+ 对于load和get方法返回类型：虽然好多书中都这么说：“get()永远只返回实体类”，但实际上这是不正确的，get方法如果在session缓存中找到了该id对应的对象，如果刚好该对象前面是被代理过的，如被load方法使用过，或者被其他关联对象延迟加载过，那么返回的还是原先的代理对象，而不是实体类对象，如果该代理对象还没有加载实体数据（就是id以外的其他属性数据），那么它会查询二级缓存或者数据库来加载数据，但是返回的还是代理对象，只不过已经加载了实体数据。
+</div> 
+<div> 
+</div> 
+<div>
+ get方法首先查询session缓存，没有的话查询二级缓存，最后查询数据库；反而load方法创建时首先查询session缓存，没有就创建代理，实际使用数据时才查询二级缓存和数据库。
+</div> 
+<div> 
+</div> 
+<div>
+ 4.简单总结
+</div> 
+<div> 
+</div> 
+<div>
+ 总之对于get和load的根本区别，一句话，hibernate对于load方法认为该数据在数据库中一定存在，可以放心的使用代理来延迟加载，如果在使用过程中发现了问题，只能抛异常；而对于get方法，hibernate一定要获取到真实的数据，否则返回null。
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 引用
+</div> 
+<div> 
+</div> 
+<div>
+ saveOrUpdate方法
+</div> 
+<div> 
+</div> 
+<div>
+ public void saveOrUpdate(Object object) 
+ <br /> throws HibernateException 
+ <br /> Either save(Object) or update(Object) the given instance, depending upon resolution of the unsaved-value checks (see the manual for discussion of unsaved-value checking). 
+ <br /> This operation cascades to associated instances if the association is mapped with cascade=&quot;save-update&quot;. 
+ <br /> 可能对给定的实例对象执行save或者update方法，如果关联关系映射配置了cascade=&quot;save-update&quot;属性，update操作对关联对象级联操作。
+</div> 
+<div> 
+</div> 
+<div>
+ Parameters: 
+ <br /> object - a transient or detached instance containing new or updated state 
+ <br /> object - 包含新的或者已更新状态的自由态或者是游离态的 
+ <br /> 对象实例 
+ <br /> Throws: 
+ <br /> HibernateException 
+ <br /> See Also: 
+ <br /> save(Object), update(Object)
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ Hibernate3.2中saveOrUpdate()方法实现的源代码：
+</div> 
+<div> 
+</div> 
+<div>
+ 引用
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> Java代码 
+ <br /> /** 
+ <br /> * Concrete implementation of a Session, and also the central, organizing component 
+ <br /> * of Hibernate's internal implementation. As such, this class exposes two interfaces; 
+ <br /> * Session itself, to the application, and SessionImplementor, to other components 
+ <br /> * of Hibernate. This class is not threadsafe. 
+ <br /> * 
+ <br /> * @author Gavin King 
+ <br /> */ 
+ <br /> public final class SessionImpl extends AbstractSessionImpl&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; implements EventSource, org.hibernate.classic.Session, JDBCContext.Context {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; // saveOrUpdate() operations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public void saveOrUpdate(Object object) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; saveOrUpdate(null, object);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; public void saveOrUpdate(String entityName, Object obj) throws HibernateException {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fireSaveOrUpdate( new SaveOrUpdateEvent(entityName, obj, this) );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; private void fireSaveOrUpdate(SaveOrUpdateEvent event) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; errorIfClosed();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; checkTransactionSynchStatus();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SaveOrUpdateEventListener[] saveOrUpdateEventListener = listeners.getSaveOrUpdateEventListeners();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( int i = 0; i &lt; saveOrUpdateEventListener.length; i++ ) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; saveOrUpdateEventListener[i].onSaveOrUpdate(event);&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码&nbsp;&nbsp; 
+ <br /> } 
+ <br /> /**
+ <br /> * Concrete implementation of a Session, and also the central, organizing component
+ <br /> * of Hibernate's internal implementation. As such, this class exposes two interfaces;
+ <br /> * Session itself, to the application, and SessionImplementor, to other components
+ <br /> * of Hibernate. This class is not threadsafe.
+ <br /> *
+ <br /> * @author Gavin King
+ <br /> */
+ <br /> public final class SessionImpl extends AbstractSessionImpl 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; implements EventSource, org.hibernate.classic.Session, JDBCContext.Context {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码
+ <br /> &nbsp;&nbsp;&nbsp; // saveOrUpdate() operations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void saveOrUpdate(Object object) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; saveOrUpdate(null, object);
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public void saveOrUpdate(String entityName, Object obj) throws HibernateException {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fireSaveOrUpdate( new SaveOrUpdateEvent(entityName, obj, this) );
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private void fireSaveOrUpdate(SaveOrUpdateEvent event) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; errorIfClosed();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; checkTransactionSynchStatus();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SaveOrUpdateEventListener[] saveOrUpdateEventListener = listeners.getSaveOrUpdateEventListeners();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for ( int i = 0; i &lt; saveOrUpdateEventListener.length; i++ ) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; saveOrUpdateEventListener[i].onSaveOrUpdate(event);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //省略部分代码
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 查看onSaveOrUpdate(event)方法的定义：
+</div> 
+<div> 
+</div> 
+<div>
+ Java代码 
+ <br /> public class DefaultSaveOrUpdateEventListener extends AbstractSaveEventListener implements SaveOrUpdateEventListener {&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; private static final Log log = LogFactory.getLog( DefaultSaveOrUpdateEventListener.class );&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; /** 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * Handle the given update event. 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param event The update event to be handled. 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */ 
+ <br /> &nbsp;&nbsp;&nbsp; public void onSaveOrUpdate(SaveOrUpdateEvent event) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final SessionImplementor source = event.getSession();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final Object object = event.getObject();&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final Serializable requestedId = event.getRequestedId();&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( requestedId != null ) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //assign the requested id to the proxy, *before*&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //reassociating the proxy&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( object instanceof HibernateProxy ) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ( ( HibernateProxy ) object ).getHibernateLazyInitializer().setIdentifier( requestedId );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( reassociateIfUninitializedProxy( object, source ) ) {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; log.trace( &quot;reassociated uninitialized proxy&quot; );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // an uninitialized proxy, noop, don't even need to&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // return an id, since it is never a save()&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else {&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //initialize properties of the event:&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final Object entity = source.getPersistenceContext().unproxyAndReassociate( object );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; event.setEntity( entity );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; event.setEntry( source.getPersistenceContext().getEntry( entity ) );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //return the id in the event object&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; event.setResultId( performSaveOrUpdate( event ) );&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> 
+ <br /> &nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; // 省略部分代码... ...&nbsp;&nbsp; 
+ <br /> } 
+ <br /> public class DefaultSaveOrUpdateEventListener extends AbstractSaveEventListener implements SaveOrUpdateEventListener {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; private static final Log log = LogFactory.getLog( DefaultSaveOrUpdateEventListener.class );
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * Handle the given update event.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; *
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; * @param event The update event to be handled.
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp; public void onSaveOrUpdate(SaveOrUpdateEvent event) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final SessionImplementor source = event.getSession();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final Object object = event.getObject();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final Serializable requestedId = event.getRequestedId();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( requestedId != null ) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //assign the requested id to the proxy, *before* 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //reassociating the proxy
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( object instanceof HibernateProxy ) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ( ( HibernateProxy ) object ).getHibernateLazyInitializer().setIdentifier( requestedId );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( reassociateIfUninitializedProxy( object, source ) ) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; log.trace( &quot;reassociated uninitialized proxy&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // an uninitialized proxy, noop, don't even need to 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // return an id, since it is never a save()
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //initialize properties of the event:
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; final Object entity = source.getPersistenceContext().unproxyAndReassociate( object );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; event.setEntity( entity );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; event.setEntry( source.getPersistenceContext().getEntry( entity ) );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //return the id in the event object
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; event.setResultId( performSaveOrUpdate( event ) );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; // 省略部分代码... ...
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 这个方法包含了save()方法和update()方法的特点，如果传入该方法的是一个游离对象，那么这个方法就会执行update操作，如果传入该方法的是一个自由对象，那么这个方法就会执行insert操作。 
+ <br /> 这个方法幕后的工作原理如下： 
+ <br /> 1.首先在缓存寻找，如果找到待保存的操作就直接返回。 
+ <br /> 2.如果实体实现了拦截方法，那么就执行isUnsaved()方法，判断实体对象状态。 
+ <br /> 3.如果实体处于自由状态就执行save(),如果实体处于游离状态那么就执行update()。
+</div> 
+<div> 
+</div> 
+<div>
+ 这里存在一个问题，那就是Hibernate是怎样判断一个实体是处于游离态还是临时状态的？ 
+ <br /> 如果实体满足下面的一个条件，就认为这个实体处于临时状态。 
+ <br /> Java对象的OID值为null。 
+ <br /> 1.如果Java对象具有version属性（可以了解并发加锁部分）且为null。 
+ <br /> 2.如果实体的设置了属性unsaved-value，而且OID值与unsaved-value值相等。 
+ <br /> 3.如果实体的version属性设置了unsaved-value，并且version属性的值与unsaved-value值相等。 
+ <br /> 4.如果实体实现了Interceptor,而且Interceptor.isUnsaved()方法返回true。 
+ <br /> 满足这些条件中的一个，这个实体就被认为是临时对象。
+</div> 
+<div> 
+</div> 
+<div>
+ Session.delete()方法: 
+ <br /> delete()方法用于从数据库中删除一个或一批实体所对应的数据，如果传入的对象是持久化对象，那么当清理缓存时，就会执行delete操作。 
+ <br /> 如果传入的是游离对象，那么首先会使该对象与session相关联，然后当清理缓存时，再执行delete操作。
+</div> 
+<div> 
+</div> 
+<div>
+ 看如下代码：
+</div> 
+<div> 
+</div> 
+<div>
+ Java代码 
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> Session session=sessionFactory().openSession();&nbsp;&nbsp; 
+ <br /> Transaction tx=session.beginTransaction();&nbsp;&nbsp; 
+ <br /> //加载持久态对象&nbsp;&nbsp; 
+ <br /> Customer customer=(Customer)session.load(Customer.class,”1”);&nbsp;&nbsp; 
+ <br /> //计划执行一条delete语句&nbsp;&nbsp; 
+ <br /> session.delete(customer);&nbsp;&nbsp; 
+ <br /> //清理缓存，执行一条delete语句&nbsp;&nbsp; 
+ <br /> tx.commit();&nbsp;&nbsp; 
+ <br /> //关闭session,这时将会把customer对象从缓存中删除&nbsp;&nbsp; 
+ <br /> session.close(); 
+ <br /> 
+ <br /> Session session=sessionFactory().openSession();
+ <br /> Transaction tx=session.beginTransaction();
+ <br /> //加载持久态对象
+ <br /> Customer customer=(Customer)session.load(Customer.class,”1”);
+ <br /> //计划执行一条delete语句
+ <br /> session.delete(customer);
+ <br /> //清理缓存，执行一条delete语句
+ <br /> tx.commit();
+ <br /> //关闭session,这时将会把customer对象从缓存中删除
+ <br /> session.close();
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 如果上面的代码中的customer对象是一个游离对象，那么当执行session.delete()方法时，会首先将游离的customer对象与session相关联(转换为持久态)，然后再清理缓存时，再执行delete操作。 
+ <br /> 如果你想一次删除多条数据，那么可以采用一个重载的delete()方法：delete(&quot;from Customer c where c.id &gt; '8'&quot;);这个方法可以删除符合条件的所有数据。
+</div></div></body></html>

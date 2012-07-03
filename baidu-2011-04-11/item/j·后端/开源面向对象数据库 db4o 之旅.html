@@ -1,0 +1,771 @@
+<html><head><title>开源面向对象数据库 db4o 之旅</title></head><body><div id='tit'>开源面向对象数据库 db4o 之旅</div><div id='cate'>j&middot;后端</div><div id='date'>2010年09月10日 星期五 01:06 P.M.</div><div id='page'>8</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c1ecf41f815d546df724e469.html'>http://hi.baidu.com/hxzon/blog/item/c1ecf41f815d546df724e469.html</a><div id='cnt'><div> 
+ <h1>开源面向对象数据库 db4o 之旅</h1> 
+ <p> </p> 
+ <p>hxzon：查询需自定义实现，对比sql的声明式表达显得很不方便。</p> 
+ <p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/">http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/</a></p> 
+ <p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o2/">http://www.ibm.com/developerworks/cn/java/j-lo-db4o2/</a></p> 
+ <p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/">http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/</a></p> 
+ <h1>开源面向对象数据库 db4o 之旅，第 2 部分: db4o 查询方式</h1> 
+ <p>级别： 中级</p> 
+ <p><a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#author">Rosen Jiang</a> (<a href="mailto:rosener_722@hotmail.com?subject=db4o%20%E6%9F%A5%E8%AF%A2%E6%96%B9%E5%BC%8F">rosener_722@hotmail.com</a>), 软件工程师, db4o 和 OO 的忠实 fans<br /> <a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#author">Chris</a> (<a href="mailto:chris@Matrix.org.cn?subject=db4o%20%E6%9F%A5%E8%AF%A2%E6%96%B9%E5%BC%8F">chris@Matrix.org.cn</a>), Matrix 创办者, Matrix<br /> <a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#author">张 黄瞩</a> (<a href="mailto:zhanghuangzhu@gmail.com?subject=db4o%20%E6%9F%A5%E8%AF%A2%E6%96%B9%E5%BC%8F">zhanghuangzhu@gmail.com</a>), 软件工程师, 热爱开源软件</p> 
+ <p>2006 年 11 月 20 日</p> 
+ <blockquote>
+  这篇文章是 
+  <a href="http://www.ibm.com/developerworks/cn/java/j-db4o/">db4o 之旅</a> 系列文章的第二篇，介绍了面向对象数据库 db4o 的安装、启动以及三种查询语言，并对三种查询语言做了比较。
+ </blockquote> 
+ <p><a name="N1007A">前言</a></p> 
+ <p>在 <a href="http://www.ibm.com/developerworks/cn/java/j-db4o/">db4o 之旅</a> 系列文章的第一部分：<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o1/">初识 db4o</a> 中，作者介绍了 db4o 的历史和现状，应用领域，以及和 ORM 等的比较。在这篇文章中，作者将会介绍 db4o 的安装、启动以及三种不同的查询方式：QBE（Query by Example）、SODA（Simple Object Database Access） 以及 NQ（Native Queries），并分别通过这三种不同的途径实现了两个关联对象的查询。本文还示范了开发中最经常用到的几个典型功能的 db4o 实现。</p> 
+ <p><a name="N1008D">下载和安装 db4o</a></p> 
+ <p>db4o 所有最新的版本都可以直接在官方网站上下载，进入 db4o 的<a target="_blank" href="http://www.db4o.com/community">下载页面</a>，我们可以看到最新的 for Java 稳定版本是 5.5，包括 JAR、源代码、入门文档、API 等内容的完整的打包文件只有 6 MB，db4o 还有一个对象数据库管理工具 ObjectManager，目前版本是 1.8（请在参考资源中<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#resources">下载</a>）。</p> 
+ <p>接着在 Eclipse 中新建 Java 项目，把 db4o 对象数据库引擎包 db4o-5.5-java5.jar 导入进项目。由于 db4o 支持多种版本的 JDK，除了 for JDK 5.0 的 db4o-5.5-java5.jar 外，还有 for JDK 1.1、1.2-1.4 的 JAR 包，以适应多种环境。与 Hibernate、iBATIS SQL Maps 相比，db4o 更加自然，无需过多地引用第三方支持库。</p> 
+ <p><a name="N100A3">开启数据库</a></p> 
+ <p>db4o 怎样进行对象持久化呢？通过浏览目录可以发现，与传统的 RDBMS 一样，db4o 也有自己的数据库文件, 在 db4o 中数据库文件的后缀名是“*.yap”。让我们先来了解一下 db4o 对象数据库引擎的主要包结构：</p> 
+ <ul> 
+  <li>com.db4o <br /> com.db4o 包含了使用 db4o 时最经常用到的功能。两个最重要的接口是 com.db4o.Db4o 和 com.db4o.ObjectContainer。com.db4o.Db4o 工厂是运行 db4o 的起点，这个类中的静态方法可以开启数据库文件、启动服务器或连接一个已经存在的服务器，还可以在开启数据库之前进行 db4o 环境配置。com.db4o.ObjectContainer 接口很重要，开发过程中 99% 的时间都会用到它，ObjectContainer 可在单用户模式下作为数据库实例，也可作为 db4o 服务器的客户端。每个 ObjectContainer 实例都有自己的事务。所有的操作都有事务保证。当打开 ObjectContainer，就已经进入事务了，commit() 或 rollback() 时，下一个事务立即启动。每个 ObjectContainer 实例维护它自己所管理的已存储和已实例化对象，在需要 ObjectContainer 的时候，它会一直保持开启状态，一旦关闭，内存中数据库所引用的对象将被丢弃。</li> 
+  <li>com.db4o.ext <br /> 你也许想知道为什么在 ObjectContainer 中只能看见很少的方法，原因如下：db4o 接口提供了两个途径，分别在 com.db4o 和 com.db4o.ext 包中。这样做首先是为了让开发者能快速上手；其次为了让其他产品能更容易的复制基本的 db4o 接口；开发者从这一点上也能看出 db4o 是相当轻量级的。每个 com.db4o.ObjectContainer 对象也是 com.db4o.ext.ExtObjectContainer 对象。可以转换成 ExtObjectContainer 获得更多高级特性。</li> 
+  <li>com.db4o.config <br /> com.db4o.config 包含了所有配置 db4o 所需的类。</li> 
+  <li>com.db4o.query <br /> com.db4o.query 包包含了构造“原生查询, NQ（Native Queries）”所需的 Predicate 类。NQ 是 db4o 最主要的查询接口。</li> 
+ </ul> 
+ <p>db4o 提供两种运行模式，分别是本地模式和服务器模式。本地模式是指直接在程序里打开 db4o 数据库文件进行操作：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>而服务器模式则是客户端通过 IP 地址、端口以及授权口令来访问服务器：</p> 服务器端： 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>ObjectServer server=Db4o.openServer(&quot;auto.yap&quot;,1212);
+server.grantAccess(&quot;admin&quot;,&quot;123456&quot;);</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 客户端： 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>ObjectContainer db=Db4o.openClient(&quot;192.168.0.10&quot;,1212,&quot;admin&quot;,&quot;123456&quot;);</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>两种方式都可以得到 ObjectContainer 实例，就目前 Java EE 应用环境来看，服务器模式更有现实意义；而本地模式更适合于嵌入式应用。为了简化演示，本文在下面的例子都将采用本地模式。</p> 
+ <p>在下面的例子里，我们都会用到下面两个对象： People 和 AutoInfo 对象。</p> 
+ <p>People 对象<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#code1">清单1</a>：</p> 
+ <br /> 
+ <a name="code1">清单1. People 对象</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package bo;
+
+public class People {
+
+ private java.lang.Integer _id;
+ private java.lang.String _name;
+ private java.lang.String _address;
+ private java.util.List&lt;AutoInfo&gt; _autoInfoList;
+
+ public java.lang.Integer getId() {
+  return _id;
+ }
+
+ public void setId(java.lang.Integer _id) {
+  this._id = _id;
+ }
+
+ public java.lang.String getName() {
+  return _name;
+ }
+
+ public void setName(java.lang.String _name) {
+  this._name = _name;
+ }
+
+ public java.lang.String getAddress() {
+  return _address;
+ }
+
+ public void setAddress(java.lang.String _address) {
+  this._address = _address;
+ }
+
+ public java.util.List&lt;AutoInfo&gt; getAutoInfoList() {
+  return this._autoInfoList;
+ }
+
+ public void addAutoInfo(AutoInfo _autoInfoList) {
+  if (null == this._autoInfoList)
+   this._autoInfoList = new java.util.ArrayList&lt;AutoInfo&gt;();
+  this._autoInfoList.add(_autoInfoList);
+ }
+
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>AutoInfo 对象<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#code2">清单2</a>：</p> 
+ <br /> 
+ <a name="code2">清单2. AutoInfo 对象</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package bo;
+
+public class AutoInfo{
+
+ private java.lang.Integer _id;
+ private java.lang.String _licensePlate;
+ private bo.People _ownerNo;
+
+ public java.lang.Integer getId () {
+  return _id;
+ }
+
+ public void setId (java.lang.Integer _id) {
+  this._id = _id;
+ }
+
+ public java.lang.String getLicensePlate () {
+  return _licensePlate;
+ }
+
+ public void setLicensePlate (java.lang.String _licensePlate) {
+  this._licensePlate = _licensePlate;
+ }
+
+ public bo.People getOwnerNo () {
+  return this._ownerNo;
+ }
+
+ public void setOwnerNo (bo.People _ownerNo) {
+  this._ownerNo = _ownerNo;
+ }
+
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>利用 set 方法把新对象存入 ObjectContainer，而对 ObjectContainer 中已有对象进行 set 操作则是更新该对象。db4o 保存数据库很简单，下面就是一个段完整的保存对象的代码：</p> 
+ <p>AutoInfo 对象<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#code3">清单3</a>：</p> 
+ <br /> 
+ <a name="code3">清单3</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import bo.AutoInfo;
+import bo.People;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   //构造 People 对象
+   People peo = new People(); 
+   peo.setId(1);
+   peo.setAddress(&quot;成都市&quot;);
+   peo.setName(&quot;张三&quot;);
+   //构造 AutoInfo 对象
+   AutoInfo ai = new AutoInfo();
+   ai.setId(1);
+   ai.setLicensePlate(&quot;川A00000&quot;);
+   //设置 People 和 AutoInfo 的关系
+   ai.setOwnerNo(peo);
+   peo.addAutoInfo(ai);
+   //保存对象
+   db.set(peo);
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>当我们运行上述代码，db4o 会自动创建“auto.yap”文件。让我们来看看到底保存成功没有，打开 ObjectManager 工具，<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#fig1">如图 1 </a>所示。</p> 
+ <br /> 
+ <a name="fig1">图1. 对象数据库管理工具</a>
+ <br /> 
+ <img alt="图1. 对象数据库管理工具" src="image/开源面向对象数据库 db4o 之旅.ht.1.jpg" />
+ <p class="origImg">https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/figures/1.jpg</p> 
+ <br /> 
+ <p>“File”－&gt;“Open File”－&gt;选择刚才我们保存的“auto.yap”文件（“auto.yap”文件可在项目的根目录下找到），最新的 ObjectManager 1.8 版本为我们提供了“Read Only”方式读取数据库文件，避免 ObjectManager 占用数据库文件所导致的程序异常。</p> 
+ <p>打开之后，<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#fig2">如图 2 </a>所示，刚才存贮的 People 对象已经在数据库中了，并且还可以很直观的看到 AutoInfo 对象也放入了 ArrayList 中。这种可视化的对象关系有利于我们对数据的理解，是传统 RDBMS 无法比拟的。有些开发者会说 ObjectManager 工具略显简单，这点我想随着 db4o 的不断发展会加入更多的特性。在这个工具中，我们意外的发现了 Java 集合对象的踪影，db4o 把与 ArrayList 有直接关系的所有接口和父类都保存了，这样显得更直观。</p> 
+ <p>在此，我保留了 _id 属性，这是因为通常在 Java EE 环境中，DAO 第一次不是把整个对象都返回到表现层，而是只返回了“标题”、“发布时间”这些信息（并隐式的返回id），接着 DAO 与数据库断开；要查看详情（比如文章内容）就需要进行 findById 操作，这时 DAO 要再次与数据库交互，只有唯一标识符才能正确地找到对象。这种懒加载方式也是很多书籍所推荐的。</p> 
+ <p>回到本文的范例程序中，这个 _id 属性可由人工编码实现的“序列”进行赋值，当然 db4o 也提供了内部标识符 Internal IDs，<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#fig2">如图 2 </a>中的 id=1669；以及 UUIDs。</p> 
+ <br /> 
+ <a name="fig2">图2. 对象结构</a>
+ <br /> 
+ <img alt="图2. 对象结构" src="image/开源面向对象数据库 db4o 之旅.ht.2.jpg" />
+ <p class="origImg">https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/figures/2.jpg</p> 
+ <p><a name="N10156">查询数据库</a></p> 
+ <p>和 RDBMS 一样，db4o 也有自己的查询语言，分别是 QBE（Query by Example）、NQ（Native Queries）、SODA（Simple Object Database Access），db4o 更推荐使用 NQ 进行查询。NQ 方式提供了非常强大的查询功能，支持原生语言，也就意味着你可以使用 Java 来判断该对象是否符合条件，这是其他数据库查询语言无法比拟的。在某些情况下， db4o 核心会将 NQ 翻译成 SODA 以获得更高的性能。下面详细介绍一下这三种查询语言。</p> 
+ <p><a name="N10160">QBE（Query by Example）</a></p> 
+ <p>QBE 规范可在<a href="http://www.cs.wisc.edu/~dbbook/openAccess/thirdEdition/qbe.pdf">这里下载</a>。QBE 最初由 IBM 提出，同时业界也有许多和 QBE 兼容的接口，包括著名的 Paradox。有些系统，比如微软的 Access，它的基于表单的查询也是受到了部分 QBE 思想的启发。在 db4o 中，用户可借用 QBE 快速上手，可以很容易适应 db4o 存取数据的方式。</p> 
+ <p>当利用 QBE 为 db4o 提供模板（example）对象时，db4o 将返回所有和非默认值字段匹配的全部对象。内部是通过反射所有的字段和构造查询表达式（所有非默认值字段结合”AND”表达式）来实现。</p> 
+ <p>例如，利用 QBE 查找到车牌号为“川A00000”的车主姓名，这是一个级联查询。<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#code4">清单4</a>：</p> 
+ <br /> 
+ <a name="code4">清单4</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import java.util.List;
+
+import bo.AutoInfo;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   //构造模板对象
+   AutoInfo ai = new AutoInfo();
+   ai.setLicensePlate(&quot;川A00000&quot;);
+   //查询对象
+   List&lt;AutoInfo&gt; list = db.get(ai);
+      for(int x = 0; x &lt; list.size(); x++){
+       System.out.println(&quot;车主姓名：&quot;+list.get(x).getOwnerNo().getName());
+   }
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>但是 QBE 也有明显的限制：db4o 必须反射模板（example）对象的所有成员；无法执行更进一步的查询表达式（例如 AND、OR、NOT 等等）；不能约束 0（整型）、””（空字符串）或者 null（对象），因为这些都被认为是不受约束的。要绕过这些限制，db4o 提供了 NQ（Native Queries）。</p> 
+ <p><a name="N10185">SODA（Simple Object Database Access）</a></p> 
+ <p>SODA ，简单对象数据库访问，请查看<a href="http://sodaquery.sourceforge.net/">官方站点</a>，其中一位主要维护者是 Carl Rosenberger，Carl 正是 db4o 首席架构师。</p> 
+ <p>SODA 就是一种与数据库通讯的对象 API。最终的目标是实现类型安全、对象复用、最小的字符串使用、与编程语言无关等特性。SODA 是 db4o 最底层的查询 API，目前 SODA 中使用字符串来定义字段，这样将不能实现类型安全也无法在编译时检查代码，而且写起来较麻烦，当然要达到设计目标这个阶段是必须的。大部分情况下 NQ（Native Queries）是很好的查询接口，不过遇到动态生成查询的时候 SODA 就大有作为了。</p> 
+ <p>通过 SODA 查找到车牌号为“川A00000”的车主姓名。<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#code5">清单5</a>：</p> 
+ <br /> 
+ <a name="code5">清单5</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import java.util.List;
+
+import bo.AutoInfo;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+import com.db4o.query.Query;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   //构造查询对象
+   Query query=db.query();
+   //设置被约束实例
+   query.constrain(AutoInfo.class);
+   //设置被约束实例的字段和约束条件
+   query.descend(&quot;_licensePlate&quot;).constrain(&quot;川A00000&quot;);
+   //查询对象
+   List&lt;AutoInfo&gt; list = query.execute();
+      for(int x = 0; x &lt; list.size(); x++){
+       System.out.println(&quot;车主姓名：&quot;+list.get(x).getOwnerNo().getName());
+   }
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>通过 API，发现 Query 实例增加了 sortBy 按字段排序方法和 orderAscending正序、orderDescending 倒序排列方法，SODA 比 QBE 更进了一步。</p> 
+ <p><a name="N101AA">NQ（Native Queries）</a></p> 
+ <p>精彩总是在最后出场，NQ 才是 db4o 查询方式中最精彩的地方！有没有想过用你熟悉的的编程语言进行数据库查询呢？要是这样，你的查询代码将是 100% 的类型安全、100% 的编译时检查以及 100% 的可重构，很奇妙吧？NQ 可以做到这些。</p> 
+ <p>有两篇论文专门讲解了 NQ 的基本概念和设计思路，分别是 <a href="http://www.db4o.com/china/Native%20Queries%20Whitepaper%28Chinese%29.pdf">《Cook/Rosenberger，持久对象原生数据库查询语言》</a> 和 《Cook/Rai，Safe Query Objects: Statically Typed Objects as Remotely Executable Queries》。作为结果集的一部分，NQ 表达式必须返回 true 值来标记特定实例。如果可能的话 db4o 将尝试优化 NQ 表达式，并依赖索引来运行表达式。</p> 
+ <p>通过 NQ 查找到车牌号为“川A00000”的车主姓名。<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#code6">清单6</a>：</p> 
+ <br /> 
+ <a name="code6">清单6</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import java.util.List;
+
+import bo.AutoInfo;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+import com.db4o.query.Predicate;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   List &lt;AutoInfo&gt; list = db.query(new Predicate&lt;AutoInfo&gt;() {
+    public boolean match(AutoInfo ai) {
+        //这样才是类型安全的
+           return ai.getLicensePlate().equals(&quot;川A00000&quot;);
+       }
+   });
+      for(int x = 0; x &lt; list.size(); x++){
+       System.out.println(list.get(x).getOwnerNo().getName());
+   }
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>必须指出 NQ 的一个的问题是：在内部，db4o 设法把 NQ 转换成 SODA。但并不是所有的查询表达式都可以成功转换。有些查询表达式的流向图（flowgraph）非常难于分析。这种情况下，db4o 将不得不实例化一些持久对象来真实地运行 NQ 表达式。</p> 
+ <p>正在开发中的 NQ 查询优化器就可以化解这个障碍，它将分析 NQ 表达式的每个部分，以确保最少量的实例化对象，以此提高性能。当然，优化器的不是灵丹妙药，关键还需要自己多优化代码。</p> 
+ <p>开发 Java EE 项目经常会用到分页，怎样用 NQ 实现呢？向数据库写入六条记录。<a href="https://www.ibm.com/developerworks/cn/java/j-lo-db4o2/#code7">清单7</a>：</p> 
+ <br /> 
+ <a name="code7">清单7</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import java.util.List;
+
+import bo.AutoInfo;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+import com.db4o.query.Predicate;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   List&lt;AutoInfo&gt; list = db.query(new Predicate&lt;AutoInfo&gt;() {
+    public boolean match(AutoInfo ai) {
+           return true;
+       }
+   });
+   //记录总数
+   Integer count = list.size();
+   //每页两条，分三页
+      for(int x = 0; x &lt; 3; x++){
+       System.out.println(&quot;第&quot;+x+&quot;页：&quot;+list.get(x*2).getLicensePlate());
+       System.out.println(&quot;第&quot;+x+&quot;页：&quot;+list.get(x*2+1).getLicensePlate());
+   }
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>我们发现，在进行 NQ 查询时并没有加入任何条件（无条件返回 true），是不是相当于遍历了整个数据库？db4o 的设计者早就想到了这个问题，当 db.query() 执行完毕返回 list 实例的时候，db4o 只是与数据库同步取出内部 IDs 而已，并没有把所有的 AutoInfo 对象全部取出，只有在 list.get(x*2).getLicensePlate() 之后才会去根据 IDs 取出记录。所以不必担心性能问题。</p> 
+ <p><a name="N101E6">结论</a></p> 
+ <p>db4o 为开发者提供了多种查询方式，这些方式都很灵活。要引起大家注意的是：灵活在带来便利的同时也对开发者自身素质提出了更高的要求，（比如排序，既可以用 SODA 也可以用 Java 集合对象实现）在开发过程中一定要形成某种统一的开发模式，这样 db4o 才能最高效能地为我所用。</p> 
+ <h1>开源面向对象数据库 db4o 之旅，第 3 部分: 深入db4o</h1> 
+ <p><a name="N1007A">前言</a></p> 
+ <p>在开源面向对象数据库 <a href="http://www.ibm.com/developerworks/cn/java/j-db4o/">db4o 之旅</a> 系列文章的第 1 部分：<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/">初识 db4o</a> 中，作者介绍了 db4o 的历史和现状，应用领域，以及和 ORM 等的比较； 在第 2 部分：<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o2/">db4o 查询方式</a>中, 作者介绍了 db4o 的三种不同的查询方式：QBE、SODA 以及 Native Queries，并分别通过这三种不同的途径实现了两个关联对象的查询。</p> 
+ <p>前面我们已经介绍了如何在 db4o 中查询以及添加对象，在本文中我们将会向您介绍在 db4o 中如何对对象进行更新以及删除操作。</p> 
+ <p><a name="N10094">更新数据</a></p> 
+ <p>场景一</p> 
+ <p>我们来设想这样的场景：一位名叫“张三”的人买了车，并上好了牌照（如本系列第二部分之代码），而他基本信息的地址并不详细，只写了“成都市”，在一次主管部门检查此人信息的时候，发现了这个问题，并立即着手修改。</p> 
+ <p>在 db4o 中，我们这样来实现对这个用户信息的修改（<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#code1">清单1</a>）：</p> 
+ <br /> 
+ <a name="code1">清单1. 修改地址</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import bo.People;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+import com.db4o.ObjectSet;
+import com.db4o.query.Predicate;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   ObjectSet&lt;People&gt; result = db.query(new Predicate&lt;People&gt;() {
+       public boolean match(People people) {
+           return people.getName().equals(&quot;张三&quot;);
+       }
+   });
+   People people = result.next();
+   //修改地址
+   people.setAddress(&quot;成都市金牛区xxx号&quot;);
+   db.set(people);
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>修改数据是如此的简单，通过 NQ 查询出 People 对象，接着修改其地址，最后保存即可。现在我们来看看修改是否成功, 打开 ObjectManager ，如<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#fig1">图 1</a> 所示，我们可以看到数据库里的用户数据已经更新了。</p> 
+ <br /> 
+ <a name="fig1">图1. 修改地址</a>
+ <br /> 
+ <img border="0" alt="图1. 修改地址" src="image/开源面向对象数据库 db4o 之旅.ht.1.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/figures/1.jpg</p> 
+ <br /> 
+ <p>与本系列文章第二部分不同的是，我们利用 ObjectSet&lt;People&gt; result 来获取返回结果，而不是 List&lt;People&gt; list。查阅 ObjectSet 的 API 我们发现 ObjectSet 实际上继承了 java.util.List 和 java.util.Iterator。为什么要继承两个接口？这是由于 db4o 为了方便开发者而有意这样设计的，db4o 的设计目标就是轻量级，这样的继承方式为 ObjectSet 提供了多种特性，而无需开发者在多个集合接口之间转换。</p> 
+ <p>场景二</p> 
+ <p>让我们考虑下面这个场景:<br /> 由于工作原因，“张三”要离开省会去其他城市发展，他的汽车也要在那里使用，为了方便，他还是决定重新更换为本地牌照。</p> 
+ <p>这次我们几乎和场景一采用同样的代码，但结果却不同（<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#code2">清单2</a>）：</p> 
+ <br /> 
+ <a name="code2">清单2. 修改地址和车牌（不成功）</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import bo.People;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+import com.db4o.ObjectSet;
+import com.db4o.query.Predicate;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   ObjectSet&lt;People&gt; result = db.query(new Predicate&lt;People&gt;() {
+       public boolean match(People people) {
+           return people.getName().equals(&quot;张三&quot;);
+       }
+   });
+   People people = result.next();
+   //修改地址
+   people.setAddress(&quot;绵阳市xx区xxx号&quot;);
+   //修改车牌号
+   people.getAutoInfoList().get(0).setLicensePlate(&quot;川B00000&quot;);
+   db.set(people);
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>想必应该保存成功了吧，只是多加入了设置车牌的代码。打开 ObjectManager，如<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#fig2">图 2</a> 所示。很奇怪，地址保存成功了，而车牌却根本没变化。</p> 
+ <br /> 
+ <a name="fig2">图2. 修改地址和车牌（不成功）</a>
+ <br /> 
+ <img border="0" alt="图2. 修改地址和车牌(不成功)" src="image/开源面向对象数据库 db4o 之旅.ht.2.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/figures/2.jpg</p> 
+ <br /> 
+ <p>其实这也是 db4o 的有意安排。设想一个复杂对象有很多成员，并且这些成员又有自己的成员。当更新该对象，db4o 将不得不更新其所有的关联对象、关联对象的关联对象，等等。这将引起严重的性能惩罚，而且在大部分的情况下是没有必要这样的。</p> 
+ <p>db4o 引入了“更新深度(update depth)”这一概念来控制被更新的对象成员树深度。默认的更新深度是 1，这就意味着只有基本类型和 String 类型的成员变量可以被更新，而修改对象成员将得不到任何反映，例如本例中修改 People 对象的 _autoInfoList 成员。</p> 
+ <p>为了能更新成员对象，ob4o 提供了 cascadeOnUpdate() 方法，该方法必须在每次开启数据库之前设置<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#code3">清单3</a>：</p> 
+ <br /> 
+ <a name="code3">清单3. 修改地址和车牌（成功）</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import bo.People;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+import com.db4o.ObjectSet;
+import com.db4o.query.Predicate;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+        //级联设置
+  Db4o.configure().objectClass(&quot;bo.People&quot;)
+        .cascadeOnUpdate(true);
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   ObjectSet&lt;People&gt; result = db.query(new Predicate&lt;People&gt;() {
+       public boolean match(People people) {
+           return people.getName().equals(&quot;张三&quot;);
+       }
+   });
+   People people = result.next();
+   //修改地址
+   people.setAddress(&quot;绵阳市xx区xxx号&quot;);
+   //修改车牌号
+   people.getAutoInfoList().get(0).setLicensePlate(&quot;川B00000&quot;);
+   db.set(people);
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>这下终于如愿以偿，如<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#fig3">图 3</a> 所示。其实 db4o 为开发者想得很周到，关键是如何用好这些特性。</p> 
+ <br /> 
+ <a name="fig3">图3. 修改地址和车牌（成功）</a>
+ <br /> 
+ <img border="0" alt="图3. 修改地址和车牌(成功)" src="image/开源面向对象数据库 db4o 之旅.ht.3.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/figures/3.jpg</p> 
+ <p><a name="N1012A">删除数据</a></p> 
+ <p>场景三</p> 
+ <p>“张三”换了工作后，事业发展很快，准备把车卖了换新的，于是他去交管部门办理移交手续，删除关联的车辆信息<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#code4">清单4</a>：</p> 
+ <br /> 
+ <a name="code4">清单4. 删除车辆</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import bo.AutoInfo;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+import com.db4o.ObjectSet;
+import com.db4o.query.Predicate;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   ObjectSet&lt;AutoInfo&gt; result = db.query(new Predicate&lt;AutoInfo&gt;() {
+       public boolean match(AutoInfo ai) {
+        //匹配姓名和车牌号
+           return ai.getLicensePlate().equals(&quot;川B00000&quot;) 
+               &amp;&amp; ai.getOwnerNo().getName().equals(&quot;张三&quot;);
+       }
+   });
+   AutoInfo ai = result.next();
+   //删除车辆信息
+   db.delete(ai);
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>如<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#fig4">图 4</a> 所示，所关联的车辆信息已被删除了。</p> 
+ <br /> 
+ <a name="fig4">图4. 删除车辆信息</a>
+ <br /> 
+ <img border="0" alt="图4. 删除车辆信息" src="image/开源面向对象数据库 db4o 之旅.ht.4.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/figures/4.jpg</p> 
+ <br /> 
+ <p>场景四</p> 
+ <p>在场景三的基础上修改一下，设想“张三”由于工作不顺，导致最后维护汽车的开支都困难，他不得不退出有车一族的行列<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o3/#code5">清单5</a>：</p> 
+ <br /> 
+ <a name="code5">清单5. 删除所有信息</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>package com;
+
+import bo.People;
+
+import com.db4o.Db4o;
+import com.db4o.ObjectContainer;
+import com.db4o.ObjectSet;
+import com.db4o.query.Predicate;
+
+public class DB4OTest{
+ 
+ public static void main(String[] args){
+        //级联设置
+  Db4o.configure().objectClass(&quot;bo.People&quot;)
+        .cascadeOnDelete(true);
+  //打开数据库
+  ObjectContainer db = Db4o.openFile(&quot;auto.yap&quot;);
+  try{
+   ObjectSet&lt;People&gt; result = db.query(new Predicate&lt;People&gt;() {
+       public boolean match(People people) {
+        //匹配姓名
+           return people.getName().equals(&quot;张三&quot;);
+       }
+   });
+   People people = result.next();
+   //删除车主以及关联的车辆信息
+   db.delete(people);
+  }finally{
+   //关闭连接
+   db.close();
+  }
+ }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>用过 Hibernate 的开发者都知道，它的级联删除让人留下了深刻印象，第一次使用的时候都会为之振奋。db4o 也为开发者提供了级联删除，和场景二的级联更新一样， cascadeOnDelete() 是专门为删除准备的，基本概念和 cascadeOnUpdate() 一致。打开 ObjectManager 我们会发现数据库已经清空了，张三的购车经历到此结束。</p> 
+ <p><a name="N10177">结论</a></p> 
+ <p>通过本系列文章，db4o 的优势已经体现得淋漓尽致，它的添加、更新、删除是如此的简单，正如 db4o 的口号那样——“仅需一行代码就能存储复杂结构对象，极大的降低了开发时间和成本，提供高效的性能，无需 DBA 干预”。</p> 
+ <p>如本文有不详尽之处，大家可以参考官方的《用户指南》或访问 <a href="http://developer.db4o.com/forums/10/ShowForum.aspx">db4o 官方中文论坛</a>，db4o 中文社区正在火热成长！</p> 
+ <h1>开源面向对象数据库 db4o 之旅，第 1 部分: 初识 db4o</h1> 
+ <p><a name="N1007A">前言</a></p> 
+ <p>业界对持久存储领域的追求从未停止过，为了更方便、更容易地用对象表达我们的思维，开源领域和商业领域都涌现了许多新技术， ORM 的出现恰恰说明了这点。最近一年，业界也在反思，到底 ORM 给我们带来的是便利还是麻烦。矛头指向大名鼎鼎的 Hibernate ，纷纷议论其性能问题，大家似乎要达成这样的共识：“在业务逻辑复杂的地方用 SP ，而一般的 CRUD 还是 Hibernate ”，就连全球知名的 BearingPoint 也有类似看法。下面一个简单的例子，说明了传统 ORM 工具的弊端。让我们考虑一个简单的 Student 对象如<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/#code1">清单1</a>：</p> 
+ <br /> 
+ <a name="code1">清单1. Student 类</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>public class Student { 
+ private String name; 
+ private int age; 
+ public String getName(){ 
+  return name; 
+ } 
+ public int getAge(){ 
+  return age; 
+ } 
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>考虑下面这个场景:找到“年龄小于 20 岁的所有学生”？</p> 
+ <p>使用 ORL 实现如<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/#code2">清单2</a>：</p> 
+ <br /> 
+ <a name="code2">清单2. ORL 实现</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>String oql = &quot;select * from student in AllStudents where student.age &lt;20&quot;; 
+OQLQuery query = new OQLQuery(oql); 
+Object students = query.execute();</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>使用 JDOQL 实现如<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/#code2">清单3</a>：</p> 
+ <br /> 
+ <a name="code3">清单3. JDOQL 实现</a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0"> 
+  <tbody> 
+   <tr> 
+    <td> <pre>Query query = persistenceManager.newQuery(Student.class, &quot;age &lt;20&quot;); 
+Collection students = (Collection)query.execute();</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>上面的方法都存在一些普遍问题：</p> 
+ <ul> 
+  <li>现代集成开发环境不会检查内嵌字符串的语义和语法错误。在上面所有查询语句中， age 字段和数值 20 都被认为是数字类型，但是没有一个 IDE 或编译器能检查其实际正确性。如果开发者混淆了查询代码－―比如，改变了 age 字段的名字或类型，将导致――上面所有的查询语句在运行时报错，而不会在编译时提示。</li> 
+  <li>现代敏捷开发技术鼓励不断进行重构来维持清晰和与时俱进的类模型，以便准确重现不断演进的域模型。如果查询代码难于维护，它会延迟决定重构的时间并不可避免的引入低质量代码。</li> 
+  <li>所有列出的查询都直接用 Student 类的私有成员 age，而不是使用它的公共接口 student.getAge()，因此他们都破坏了面向对象封装规则，违反接口和实现应该分离的面向对象法则。</li> 
+  <li>所有的查询都非 100% 的原生。</li> 
+ </ul> 
+ <p>既然存在如此多的问题, 为什么不直接使用纯面向对象数据库呢？有些开发者可能会说：“它缺乏数学模型的支持， 还不够成熟”。的确， RDBMS 发展了几十年才有今天的成就，已经非常完善了。而技术的革新是无止境的, 故步自封的永远都跟不上变化的脚步。</p> 
+ <p>让我们来简单回顾一下对象数据库的发展史（资料来源于 Wiki 百科全书）：“面向对象数据库系统”这一术语第一次出现于 1985 年。著名的研究项目包括：Encore-Ob/Server ( 布朗大学）， EXODUS（Wisconsin 大学）， IRIS （惠普）， ODE （ Bell 实验室）， ORION （MCC ） ，Vodak （GMD-IPSI）和 Zeitgeist （Texas Instruments）。其中以 ORION 项目发表的论文数为最多。 MCC 的 Won Kim 将这些论文中最有价值的一部分汇编成书并由 MIT 出版社出版。对象数据库管理系统为面向对象编程语言增加了持久的概念。最早的商品化 ODBMS 出现在 1986 年，是 Servio 公司（现在的 GemStone 公司）和 Ontos 公司推出的。后来（九十年代） Object Design （ ODI ）、 Versant 、 Objectivity 、 O2 Technology 、 Poet 、 Ibex 、 UniSQL 和 ADB MATISSE 等公司也加入了这个开拓行列。</p> 
+ <p>而今天，一家来自加州硅谷的开源面向对象数据库公司 db4objects 为我们带来了db4o， 一款性能卓越的纯面向对象数据库，也是我们这篇和后续文章将会介绍的主角。</p> 
+ <p>db4o 为我们带来的是这样一种面向对象的查询方式:</p> 
+ <ul> 
+  <li>100% 的原生 查询语言应能用实现语言（ Java 或 C# ）完全表达，并完全遵循实现语言的语义。</li> 
+  <li>100% 的面向对象 查询语言应可运行在自己的实现语言中，允许未经优化执行普通集合而不用自定义预处理。</li> 
+  <li>100% 的类型安全 查询语言应能完全获取现代 IDE 的特性，比如语法检测、类型检测、重构，等等。</li> 
+ </ul> 
+ <p><a name="N100EA">什么是 db4o</a></p> 
+ <p>“利用表格存储对象，就像是将汽车开回家，然后拆成零件放进车库里，早晨可以再把汽车装配起来。但是人们不禁要问，这是不是泊车的最有效的方法呢。” – Esther Dyson</p> 
+ <p>db4o 是一个开源的纯面向对象数据库引擎，对于 Java 与 .NET 开发者来说都是一个简单易用的对象持久化工具，使用简单。同时，db4o 已经被第三方验证为具有优秀性能的面向对象数据库， 下面的基准测试图对 db4o 和一些传统的持久方案进行了比较。db4o 在这次比较中排名第二，仅仅落后于JDBC。通过<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/#fig1">图 1</a> 的基准测试结果，值得我们细细品味的是采用 Hibernate/HSQLDB 的方案和 JDBC/HSQLDB 的方案在性能方面有着显著差距，这也证实了业界对 Hibernate 的担忧。而 db4o 的优异性能，让我们相信： 更 OO 并不一定会牺牲性能。</p> 
+ <br /> 
+ <a name="fig1">图1. HSQLDB 基准测试</a>
+ <br /> 
+ <img alt="图1. HSQLDB 基准测试" src="image/开源面向对象数据库 db4o 之旅.ht.fig1.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/fig1.jpg</p> 
+ <br /> 
+ <p>同时，db4o 的一个特点就是无需 DBA 的管理，占用资源很小，这很适合嵌入式应用以及 Cache 应用， 所以自从 db4o 发布以来，迅速吸引了大批用户将 db4o 用于各种各样的嵌入式系统，包括流动软件、医疗设备和实时控制系统。</p> 
+ <p>db4o 由来自加州硅谷的开源数据库公司 db4objects 开发并负责商业运营和支持。db4o 是基于 GPL 协议。db4objects 于 2004 年在 CEO Christof Wittig 的领导下组成，资金背景包括 Mark Leslie 、 Veritas 软件公司 CEO 、 Vinod Khosla （ Sun 公司创始人之一）、 Sun 公司 CEO 在内的硅谷高层投资人组成。毫无疑问，今天 db4objects 公司是硅谷炙手可热的技术创新者之一。</p> 
+ <p><a name="N1010E">db4o 特性</a></p> 
+ <p>db4o 的目标是提供一个功能强大的，适合嵌入的数据库引擎，可以工作在设备，移动产品，桌面以及服务器等各种平台。主要特性如下：</p> 
+ <ul> 
+  <li>开源模式。与其他 ODBMS 不同，db4o 为开源软件，通过开源社区的力量驱动开发 db4o 产品。</li> 
+  <li>原生数据库。db4o 是 100% 原生的面向对象数据库，直接使用编程语言来操作数据库。程序员无需进行 OR 映射来存储对象，大大节省了程序员在存储数据的开发时间。</li> 
+  <li>高性能。 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/#fig2">图2</a>为 db4o 官方公布的基准测试数据，db4o 比采用 Hibernate/MySQL 方案在某些测试线路上速度高出 44 倍之多！并且安装简单，仅仅需要 400Kb 左右的 .jar 或 .dll 库文件。在接下来的系列文章中，我们将只关注在 Java 平台的应用，但是实际上 db4o 毫无疑问会很好地在 .NET 平台工作。 <br /> <br /> <a name="fig2">图2. db4o 官方基准测试数据</a><br /> <img alt="图2. db4o 官方基准测试数据" src="image/开源面向对象数据库 db4o 之旅.ht.fig2.jpg" /><p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/fig2.jpg</p></li> 
+  <li>易嵌入。使用 db4o 仅需引入 400 多 k 的 jar 文件或是 dll 文件，内存消耗极小。</li> 
+  <li>零管理。使用 db4o 无需 DBA，实现零管理。</li> 
+  <li>支持多种平台。db4o 支持从 Java 1.1 到 Java 5.0，此外还支持 .NET 、 CompactFramework 、 Mono 等 .NET 平台，也可以运行在 CDC 、 PersonalProfile 、 Symbian 、 Savaje 以及 Zaurus 这种支持反射的 J2ME 方言环境中，还可以运行在 CLDC 、 MIDP 、 RIM/Blackberry 、 Palm OS 这种不支持反射的 J2ME 环境中。</li> 
+ </ul> 
+ <p>或许开发者会问，如果现有的应用环境已经有了关系型数据库怎么办？没关系，db4o 的 dRS（db4o Replication System）可实现 db4o 与关系型数据库的双向同步（复制），如图 3 。 dRS 是基于 Hibernate 开发，目前的版本是 1.0 ，并运行在 Java 1.2 或更高版本平台上，基于 dRS 可实现 db4o 到 Hibernate/RDBMS 、 db4o 到 db4o 以及 Hibernate/RDBMS 到 Hibernate/RDBMS 的双向复制。dRS 模型如<a href="http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/#fig3">图3</a></p> 
+ <br /> 
+ <a name="fig3">图3. dRS 模型</a>
+ <br /> 
+ <img alt="图3. dRS 模型" src="image/开源面向对象数据库 db4o 之旅.ht.fig3.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-lo-db4o1/fig3.jpg</p> 
+ <p><a name="N10164">结论</a></p> 
+ <p>db4o 因为其开源的理念，以及创新的实现，获得了 Java Pro 2006 读者选择奖。无论从成功案例还是 db4o 本身来看，这款纯面向对象数据库都值得我们关注，从官方论坛反馈情况看，有相当的用户准备把关系型数据库迁移到 db4o 。而最新发布的 5.5 版本，更是把性能再次提升很多。在接下来的文章中，我会继续和大家分享 db4o 给我们带来的这场面向对象数据库风暴。</p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+</div></div></body></html>

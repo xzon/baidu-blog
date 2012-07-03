@@ -1,0 +1,287 @@
+<html><head><title>JDK1.5下的String优化</title></head><body><div id='tit'>JDK1.5下的String优化</div><div id='cate'>j&middot;入门</div><div id='date'>2009年04月20日 星期一 11:48 P.M.</div><div id='page'>56</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/528fba31047b48a05edf0eaa.html'>http://hi.baidu.com/hxzon/blog/item/528fba31047b48a05edf0eaa.html</a><div id='cnt'><p> </p> 
+<h1>JDK1.5下的String优化</h1> 
+<p>java中的String是个特殊的类型，它即不是基本类型，也不是真正意义上的变量，而是个固定类型，即 final型。所以在写SQL语句或繁琐的字符串表达式的时候，为了提高效率，我们一般使用StringBuffer来代替String。原因是字符串A 和字符串B运算后，会生成新的对象C。如下：</p> 
+<pre style="border-bottom: black 1px solid; border-left: black 1px solid; padding-bottom: 4px; background-color: rgb(237,237,237); padding-left: 4px; padding-right: 4px; border-top: black 1px solid; border-right: black 1px solid; padding-top: 4px"></pre>
+<div>
+ <span style="color: rgb(0,0,0)"> String a </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">mx</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String b </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">java</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String c </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> a </span>
+ <span style="color: rgb(0,0,0)">+</span>
+ <span style="color: rgb(0,0,0)"> b; System.</span>
+ <span style="color: rgb(0,0,255)">out</span>
+ <span style="color: rgb(0,0,0)">.println(c);</span>
+</div> 
+<p> 上面的代码一共有三个String类型的对象，即a、b和a + b。之前我们也说过，因为String类型是固定值，所以运算后java编译器会重新为其分配一块内存用于存放结果。不过，这是jdk1.5以前对 String类型运算的处理方式了。1.5以后对String运算进行了优化，以上面的代码为例，使用JDK1.4.2编译后的程序如下：</p> 
+<pre style="border-bottom: black 1px solid; border-left: black 1px solid; padding-bottom: 4px; background-color: rgb(237,237,237); padding-left: 4px; padding-right: 4px; border-top: black 1px solid; border-right: black 1px solid; padding-top: 4px"></pre>
+<div>
+ <span style="color: rgb(0,0,0)"> String s </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">mx</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String s1 </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">java</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String s2 </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> s </span>
+ <span style="color: rgb(0,0,0)">+</span>
+ <span style="color: rgb(0,0,0)"> s1; System.</span>
+ <span style="color: rgb(0,0,255)">out</span>
+ <span style="color: rgb(0,0,0)">.println(s2);</span>
+</div> 
+<p> 可以看到，编译后的程序中，s2的计算仍然使用了s + s1的方式，换句话说还是生成了第三个字符串对象。那么JDK1.5编译后的程序又是怎样的呢?</p> 
+<pre style="border-bottom: black 1px solid; border-left: black 1px solid; padding-bottom: 4px; background-color: rgb(237,237,237); padding-left: 4px; padding-right: 4px; border-top: black 1px solid; border-right: black 1px solid; padding-top: 4px"></pre>
+<div>
+ <span style="color: rgb(0,0,0)"> String s </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">mx</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String s1 </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">java</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String s2 </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> (</span>
+ <span style="color: rgb(0,0,255)">new</span>
+ <span style="color: rgb(0,0,0)"> StringBuilder()).append(s).append(s1).toString(); System.</span>
+ <span style="color: rgb(0,0,255)">out</span>
+ <span style="color: rgb(0,0,0)">.println(s2);</span>
+</div> 
+<p> 可以看到，经JDK1.5编译后的代码使用了StringBuilder来进行字符串的运算，如果象上面代码那样仅仅一个运算，那么看不出什么效果(因为在运算时，新创建了一个StringBuilder的对象)，若存在大量运算时，效果就非常明显了。因此，在使用JDK1.5以后的版本编程时，字符串加运算就不必在意了。</p> 
+<p> 在网上看到有些网友在测试JDK1.5的String时，用了下面的方法：</p> 
+<pre style="border-bottom: black 1px solid; border-left: black 1px solid; padding-bottom: 4px; background-color: rgb(237,237,237); padding-left: 4px; padding-right: 4px; border-top: black 1px solid; border-right: black 1px solid; padding-top: 4px"></pre>
+<div>
+ <span style="color: rgb(0,0,0)"> String a </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">ab</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String b </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">a</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String c </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">b</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; System.</span>
+ <span style="color: rgb(0,0,255)">out</span>
+ <span style="color: rgb(0,0,0)">.println(a </span>
+ <span style="color: rgb(0,0,0)">==</span>
+ <span style="color: rgb(0,0,0)"> (b </span>
+ <span style="color: rgb(0,0,0)">+</span>
+ <span style="color: rgb(0,0,0)"> c));</span>
+</div> 
+<p> 返回true，就认为是JDK1.5对String的优化。其实这是不对的，即使在JDK1.5以前的版本下执行上面这段代码，返回值依然是true。这是因为java有String池的概念。</p> 
+<p> java中的String池</p> 
+<p> 先来看看下面这段代码，你知道它的结果吗?</p> 
+<p> 程序代码</p> 
+<pre style="border-bottom: black 1px solid; border-left: black 1px solid; padding-bottom: 4px; background-color: rgb(237,237,237); padding-left: 4px; padding-right: 4px; border-top: black 1px solid; border-right: black 1px solid; padding-top: 4px"></pre>
+<div>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">public</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">class</span>
+ <span style="color: rgb(0,0,0)"> StringTest1{ </span>
+ <span style="color: rgb(0,0,255)">public</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">static</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">void</span>
+ <span style="color: rgb(0,0,0)"> main(String[] args) { String str1 </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">abc</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; String str2 </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">abc</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">; System.</span>
+ <span style="color: rgb(0,0,255)">out</span>
+ <span style="color: rgb(0,0,0)">.println(str1 </span>
+ <span style="color: rgb(0,0,0)">==</span>
+ <span style="color: rgb(0,0,0)"> str2); } }</span>
+</div> 
+<p> 正确答案应该是true。再来看下面这段代码：</p> 
+<p> 程序代码</p> 
+<pre style="border-bottom: black 1px solid; border-left: black 1px solid; padding-bottom: 4px; background-color: rgb(237,237,237); padding-left: 4px; padding-right: 4px; border-top: black 1px solid; border-right: black 1px solid; padding-top: 4px"></pre>
+<div>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">public</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">class</span>
+ <span style="color: rgb(0,0,0)"> StringTest2 { </span>
+ <span style="color: rgb(0,0,255)">public</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">static</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">void</span>
+ <span style="color: rgb(0,0,0)"> main(String[] args) { String str1 </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">new</span>
+ <span style="color: rgb(0,0,0)"> String(</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">abc</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">); String str2 </span>
+ <span style="color: rgb(0,0,0)">=</span>
+ <span style="color: rgb(0,0,0)"> </span>
+ <span style="color: rgb(0,0,255)">new</span>
+ <span style="color: rgb(0,0,0)"> String(</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">abc</span>
+ <span style="color: rgb(0,0,0)">&quot;</span>
+ <span style="color: rgb(0,0,0)">); System.</span>
+ <span style="color: rgb(0,0,255)">out</span>
+ <span style="color: rgb(0,0,0)">.println(str1 </span>
+ <span style="color: rgb(0,0,0)">==</span>
+ <span style="color: rgb(0,0,0)"> str2); } }</span>
+</div> 
+<p> 正确答案是false。</p> 
+<p> 众所周知，java的String是不可改变的字符串对象。为了提高效率，java为String类提供了串池。正如大家所看到的那样，在 StringTest1中就使用了串池。当你重新声明一个String型变量为abc时，将使用串池里原来的那个abc，而不重新分配内存，也就是说，str2与str1将会指向同一块内存。所以结果为true。在StringTest2中使用了普通对象的声明方式，系统将会为str1和str2各分配一块内存。所以结果为false。</p> 
+<p>=============<br /> 深入了解String</p> 
+<p>一、从根本上认识java.lang.String类和String池<br /> <br /> 首先，我建议先看看String类的源码实现，这是从本质上认识String类的根本出发点。从中可以看到：<br /> 1、String类是final的，不可被继承。public final class String。<br /> 2、String类是的本质是字符数组char[], 并且其值不可改变。private final char value[];<br /> 然后打开String类的API文档，可以发现：<br /> 3、String类对象有个特殊的创建的方式，就是直接指定比如String x = &quot;abc&quot;，&quot;abc&quot;就表示一个字符串对象。而x是&quot;abc&quot;对象的地址，也叫做&quot;abc&quot;对象的引用。<br /> 4、String对象可以通过“+”串联。串联后会生成新的字符串。也可以通过concat()来串联，这个后面会讲述。<br /> 6、Java运行时会维护一个String Pool（String池），JavaDoc翻译很模糊“字符串缓冲区”。String池用来存放运行时中产生的各种字符串，并且池中的字符串的内容不重复。而一般对象不存在这个缓冲池，并且创建的对象仅仅存在于方法的堆栈区。下面是个系统内存示意图：<br /> <br /> 5、创建字符串的方式很多，归纳起来有三类：<br /> 其一，使用new关键字创建字符串，比如String s1 = new String(&quot;abc&quot;);<br /> 其二，直接指定。比如String s2 = &quot;abc&quot;;<br /> 其三，使用串联生成新的字符串。比如String s3 = &quot;ab&quot; + &quot;c&quot;;<br /> <br /> 二、String对象的创建<br /> <br /> String对象的创建也很讲究，关键是要明白其原理。<br /> 原理1：当使用任何方式来创建一个字符串对象s时，Java运行时（运行中JVM）会拿着这个X在String池中找是否存在内容相同的字符串对象，如果不存在，则在池中创建一个字符串s，否则，不在池中添加。<br /> <br /> 原理2：Java中，只要使用new关键字来创建对象，则一定会（在堆区或栈区）创建一个新的对象。<br /> <br /> 原理3：使用直接指定或者使用纯字符串串联来创建String对象，则仅仅会检查维护String池中的字符串，池中没有就在池中创建一个，有则罢了！但绝不会在堆栈区再去创建该String对象。<br /> <br /> 原理4：使用包含变量的表达式来创建String对象，则不仅会检查维护String池，而且还会在堆栈区创建一个String对象。<br /> <br /> 另外，String的intern()方法是一个本地方法，定义为public native String intern(); intern()方法的价值在于让开发者能将注意力集中到String池上。当调用 intern 方法时，如果池已经包含一个等于此 String 对象的字符串（该对象由 equals(Object) 方法确定），则返回池中的字符串。否则，将此 String 对象添加到池中，并且返回此 String 对象的引用。<br /> &nbsp;&nbsp;&nbsp; 最后，有几点问题请大家注意：String a; 与String a=null在作为类变量时候是等价的，在局部变量则不同。null表示一个空引用，String a=null意思是在栈中声明了a,但是这个a没有指向任何地址。此时我们注意到String a 在栈中声明了a，但是也没有指向任何地址，但是java的语法检查如果在局部变量中，String a;是不能直接使用的，String a=null中的这个a可以直接使用。<br /> =============<br /> <a href="http://winie.javaeye.com/blog/306564">Java中<span class="hilite1">String</span>，StringBuffer，StringTokenizer类</a></p> 
+<div class="blog_title">
+ <strong>关键字: <span class="hilite1">string</span>，stringbuffer，stringtokenizer类</strong>
+</div> 
+<div class="blog_content">
+ <span class="hilite1">String</span>类： 
+ <br /> java.lang.
+ <span class="hilite1">String</span>类，不属于8种基本数据类型，
+ <span class="hilite1">String</span>是一个对象，表示字符串常量。 
+ <br /> 因为对象的默认值是null，所以
+ <span class="hilite1">String</span>的默认值也是null，但它又是一种特殊的对象，有其他对象没有的特性。 
+ <br /> new 
+ <span class="hilite1">String</span>()和new 
+ <span class="hilite1">String</span>(&quot;&quot;)都是声明一个新的空字符串，是空串不是null。区别：空串是经过new运算符分配了内存，即实际存在了(定义了)。而null则没有(只声明)，调用null的字符串的方法会抛出空指针异常。 
+ <br /> 
+ <br /> 从根本上认识java.lang.
+ <span class="hilite1">String</span>类和
+ <span class="hilite1">String</span>池。 
+ <br /> 1、
+ <span class="hilite1">String</span>类是final的，不可被继承。public final class 
+ <span class="hilite1">String</span>。 
+ <br /> 2、
+ <span class="hilite1">String</span>类的本质是字符数组char[]，并且其值不可改变。private final char value[]; 
+ <br /> 3、
+ <span class="hilite1">String</span>类对象有个特殊的创建方式，如
+ <span class="hilite1">String</span> x=&quot;abc&quot;; &quot;abc&quot;就表示一个字符串对象，而x是&quot;abc&quot;对象的地址，叫做&quot;abc&quot;引用。 
+ <br /> 4、Java运行时会维护一个
+ <span class="hilite1">String</span> pool(
+ <span class="hilite1">String</span>池)，
+ <span class="hilite1">String</span>池中的字符串内容不可重复，而一般对象(非
+ <span class="hilite1">String</span>类)不存在这个缓冲池，并且创建的对象仅仅用于方法的堆栈区。 
+ <br /> 5、创建字符串的方式归纳起来有三种： 
+ <br /> &lt;1&gt;、使用new关键字创建字符串，
+ <span class="hilite1">String</span> s = new 
+ <span class="hilite1">String</span>(&quot;abc&quot;); 
+ <br /> &lt;2&gt;、直接指定，
+ <span class="hilite1">String</span> s = &quot;abc&quot;; 
+ <br /> &lt;3&gt;、使用串联生成新的字符串，
+ <span class="hilite1">String</span> s = &quot;ab&quot; + &quot;c&quot;; 
+ <br /> 
+ <span class="hilite1">String</span>对象的创建: 
+ <br /> 1、当使用任何方式来创建一个字符串对象s时，JVM会拿这个s在
+ <span class="hilite1">String</span>池中找是否存在内容相同的字符串对象。如果不存在，则在池中创建一个字符串s，否则，不在池中添加。 
+ <br /> 2、Java中，只要使用new关键字类创建对象，则一定会(在堆区或栈区)创建一个新对象。 
+ <br /> 3、使用直接指定或者使用纯字符串串联来创建
+ <span class="hilite1">String</span>对象，则仅仅会检查维护
+ <span class="hilite1">String</span>池中的字符串，池中没有就在池中创建一个，有则直接返回已有的字符串对象地址(引用)。绝不会在堆栈去再创建该
+ <span class="hilite1">String</span>对象。 
+ <br /> 4、使用包含变量的表达式来创建
+ <span class="hilite1">String</span>对象，则不仅会检查维护
+ <span class="hilite1">String</span>池，而且还会在堆栈区创建一个
+ <span class="hilite1">String</span>对象。 
+ <br /> 
+ <br /> 
+ <span class="hilite1">String</span>的不可变性: 
+ <br /> 不可变字符串具有一个很大的有点：编译器可以把字符串设置为共享。 
+ <br /> 
+ <span class="hilite1">String</span>类型是不可改变的，比如当你想改变一个
+ <span class="hilite1">String</span>对象时，如： 
+ <br /> 
+ <span class="hilite1">String</span> s = &quot;abc&quot;; 
+ <br /> s = &quot;fuck&quot;; 
+ <br /> JVM 不会改变原来的对象(&quot;abc&quot;)，而是生成一个新的
+ <span class="hilite1">String</span>对象(&quot;fuck&quot;,当然先检查
+ <span class="hilite1">String</span>池中是否已经有&quot;fuck&quot;字符串对象，有则引用，无则新建)，然后让s去指向它，如果原来那个&quot;abc&quot;没有任何对象引用它，虚拟机的垃圾回收机制会接收它。这样可以提高运行效率！ 
+ <br /> 注意：Java中字符串内容的比较用的是专门的方法如equals,compareTo等。==比较的是字符串的引用是否相同。 
+ <br /> 
+ <br /> 
+ <br /> StringBuffer类： 
+ <br /> 字符串变量。可修改的字符串序列，该类的对象实体内存空间可以自动改变大小，便于存放一个可变的字符序列。 
+ <br /> StringBuffer类有3个构造方法： 
+ <br /> StringBuffer() 
+ <br /> StringBuffer(int size) 
+ <br /> StirngBuffer(
+ <span class="hilite1">String</span> s) 
+ <br /> 当使用第1个无参数的构造方法时，分配给该对象的实体初始容量可以容纳16个字符，当该扩展字符序列长度&gt;16时，实体容量自动增加以适应新字符串。 
+ <br /> 当使用第2个构造方法，可以指定分配给该对象的实体的初始容量为参数size指定的字符个数。当对象实体长度&gt;size时自动增加。 
+ <br /> 当使用第3个构造方法，分配给该对象的实体的初始容量为参数字符串s的长度+16个字符，当对象实体长度大于初始容量时，实体容量自动增加。 
+ <br /> StringBuffer对象可以通过length()放发获取实体存放的字符序列长度。通过capacity()方法获取当前实体的实际容量。 
+ <br /> 
+ <br /> 
+ <br /> StringTokenizer类： 
+ <br /> 使用java.util.StringTokenizer类，分析一个字符串并分解成可独立使用的单词。 
+ <br /> StringTokenizer类有两个常用构造方法： 
+ <br /> StringTokenizer(
+ <span class="hilite1">String</span> s):为字符串s构造一个分析器。使用默认的分隔符集合，即空格符(若干个空格符被看做一个空格)、换行符、回车符、Tab符、进纸符(\f)。 
+ <br /> StringTokenizer(
+ <span class="hilite1">String</span> s, 
+ <span class="hilite1">String</span> dilim):为字符串s构造一个分析器。参数dilim中的字符被作为分隔符。 
+ <br /> 
+ <br /> 把StringTokenizer 对象称作一个字符串分析器。一个分析器可以使用nextToken()方法逐个获取字符串中的语言符号(单词),每当调用nextToken()时，都将在字符串中获得下一个语言符号，每获得一个语言符号，字符串分析器中负责计数的变量值自动减1，该计数变量的初始值等于字符串中的单词数目(可以用 StringTokenizer对象调用countTokens()方法获得计数值)。 
+ <br /> 如： 
+ <br /> 
+ <span class="hilite1">String</span> str=&quot;we are stud,ents&quot;; 
+ <br /> StringTokenizer fenxi = new StringTokenizer(str,&quot;, &quot;); //使用空格和逗号做分隔符 
+ <br /> int count=fenxi.countTokens(); 
+ <br /> while(fenxi.hasMoreElements()) 
+ <br /> { 
+ <br /> 
+ <span class="hilite1">String</span> s = fenxi.nextToken(); 
+ <br /> System.out.println(s); 
+ <br /> } 
+ <br /> System.out.println(&quot;共有单词：&quot;+count+&quot;个。&quot;); 
+ <br /> 
+ <br /> 另外，StringTokenizer可以用
+ <span class="hilite1">String</span>类的split函数代替 
+ <br /> 
+ <span class="hilite1">String</span> str=&quot;abc;bcd;efg&quot;; 
+ <br /> 
+ <span class="hilite1">String</span>[] splitStrs=str.split(&quot;;&quot;); 
+ <br /> for(int i=0;i&lt;splitStrs.length;i++) 
+ <br /> System.out.println(splitStrs[i]);
+</div></div></body></html>

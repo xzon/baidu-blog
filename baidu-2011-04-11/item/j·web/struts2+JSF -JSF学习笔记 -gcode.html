@@ -1,0 +1,688 @@
+<html><head><title>struts2+JSF -JSF学习笔记 -gcode</title></head><body><div id='tit'>struts2+JSF -JSF学习笔记 -gcode</div><div id='cate'>j&middot;web</div><div id='date'>2008年10月21日 星期二 01:12 P.M.</div><div id='page'>89</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/206eb145095a6f20cefca3c1.html'>http://hi.baidu.com/hxzon/blog/item/206eb145095a6f20cefca3c1.html</a><div id='cnt'><div>
+ struts2+JSF -JSF学习笔记 -gcode
+</div> 
+<div> 
+</div> 
+<div>
+ JSF不是一个框架，而是一种规范。
+ <br /> 使用MyFaces。
+ <br /> ----------------------------------
+ <br /> 首页index.jsp
+ <br /> &lt;html&gt;
+ <br /> &lt;body&gt;
+ <br /> &lt;jsp:forward page=&quot;login.jsf&quot;/&gt;
+ <br /> &lt;/body&gt;
+ <br /> &lt;/html&gt;
+ <br /> ----------------------------------
+ <br /> 输入页面login.jsp
+ <br /> &lt;%@ page contentType=&quot;text/html; charset=GBK&quot; %&gt;
+ <br /> &lt;%@ taglib uri=&quot;http://java.sun.com/jsf/html&quot; prefix=&quot;h&quot; %&gt;
+ <br /> &lt;%@ taglib uri=&quot;http://java.sun.com/jsf/core&quot; prefix=&quot;f&quot; %&gt;
+ <br /> &lt;!--该句绑定在classes下的messages的资源文件--&gt;
+ <br /> &lt;f:loadBundle basename=&quot;messages&quot; var=&quot;msg&quot;/&gt;
+ <br /> &lt;html&gt;
+ <br /> &lt;head&gt;
+ <br /> &lt;title&gt;登陆&lt;/title&gt;
+ <br /> &lt;/head&gt;
+ <br /> &lt;body&gt;
+ <br /> &lt;f:view&gt;
+ <br /> &nbsp;&nbsp; &lt;h3&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;#{msg.loginHeader}&quot;/&gt;
+ <br /> &nbsp;&nbsp; &lt;/h3&gt;
+ <br /> &nbsp;&nbsp; &lt;b&gt;&lt;h:outputText value=&quot;#{login.err}&quot;/&gt;&lt;/b&gt;
+ <br /> &nbsp;&nbsp; &lt;h:form id=&quot;loginForm&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;#{msg.namePrompt}&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:inputText value=&quot;#{login.name}&quot; /&gt;&lt;br&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;#{msg.passPrompt}&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:inputText id=&quot;pass&quot; value=&quot;#{login.pass}&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;br&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:commandButton action=&quot;#{login.valid}&quot; value=&quot;#{msg.buttonTitle}&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;/h:form&gt;
+ <br /> &lt;/f:view&gt;
+ <br /> &lt;/body&gt;
+ <br /> &lt;/html&gt; 
+ <br /> 可以看到，已经不再是传统的为表单指定action属性，而是将每个表单域绑定到后台bean的属性或方法。
+ <br /> 生成的页面中会有一个隐藏域，正是这个阈值，实现了客户端状态的保存。
+ <br /> ------------------------------------------
+ <br /> 在web.xml中配置MyFaces
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;GBK&quot;?&gt;
+ <br /> &lt;web-app version=&quot;2.4&quot; xmlns=&quot;http://java.sun.com/xml/ns/j2ee&quot;
+ <br /> xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; 
+ <br /> xsi:schemaLocation=&quot;http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;!-- 指定页面间的状态保存在客户端还是服务器端 --&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;context-param&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-name&gt;javax.faces.STATE_SAVING_METHOD&lt;/param-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-value&gt;client&lt;/param-value&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/context-param&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;context-param&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-name&gt;javax.faces.CONFIG_FILES&lt;/param-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;param-value&gt;/WEB-INF/faces-config-beans.xml,/WEB-INF/faces-config-nav.xml&lt;/param-value&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/context-param&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;!-- Faces Servlet --&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;servlet&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;servlet-name&gt;Faces Servlet&lt;/servlet-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;servlet-class&gt;javax.faces.webapp.FacesServlet&lt;/servlet-class&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;load-on-startup&gt;1&lt;/load-on-startup&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/servlet&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;!-- Faces Servlet Mapping --&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;servlet-mapping&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;servlet-name&gt;Faces Servlet&lt;/servlet-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;url-pattern&gt;*.jsf&lt;/url-pattern&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/servlet-mapping&gt;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &lt;/web-app&gt;
+ <br /> -------------------------------------------------
+ <br /> 后台bean
+ <br /> package lee;
+</div> 
+<div> 
+</div> 
+<div>
+ public class LoginBean
+ <br /> {
+ <br /> &nbsp;&nbsp;&nbsp; private String name;
+ <br /> &nbsp;&nbsp;&nbsp; private String pass;
+ <br /> &nbsp;&nbsp;&nbsp; private String err;
+</div> 
+<div> 
+</div> 
+<div>
+ public void setName(String name)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.name = name;
+ <br /> }
+ <br /> public String getName()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.name;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setPass(String pass)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.pass = pass;
+ <br /> }
+ <br /> public String getPass()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.pass;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setErr(String err)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.err = err;
+ <br /> }
+ <br /> public String getErr()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.err;
+ <br /> }
+ <br /> 
+ <br /> public String valid()
+ <br /> {
+ <br /> &nbsp;&nbsp; if (name.equals(&quot;scott&quot;) &amp;&amp; pass.equals(&quot;tiger&quot;))
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; return &quot;success&quot;;
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setErr(&quot;您的用户名和密码不符合&quot;);
+ <br /> &nbsp;&nbsp; return &quot;failure&quot;;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+ <br /> 处理用户请求的方法必须返回一个字符串。
+ <br /> --------------------------------
+ <br /> 配置后台bean，faces-config-beans.xml--
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;gb2312&quot;?&gt;
+ <br /> &lt;!DOCTYPE faces-config PUBLIC
+ <br /> &quot;-//Sun Microsystems, Inc.//DTD JavaServer Faces Config 1.1//EN&quot;
+ <br /> &quot;http://java.sun.com/dtd/web-facesconfig_1_1.dtd&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;faces-config&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;!--配置用户bean--&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;managed-bean&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;managed-bean-name&gt;login&lt;/managed-bean-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;managed-bean-class&gt;lee.LoginBean&lt;/managed-bean-class&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;managed-bean-scope&gt;request&lt;/managed-bean-scope&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/managed-bean&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;/faces-config&gt;
+ <br /> ----------------------------------
+ <br /> 定义导航规则，faces-config-nav.xml--
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;gb2312&quot;?&gt;
+ <br /> &lt;!DOCTYPE faces-config PUBLIC
+ <br /> &quot;-//Sun Microsystems, Inc.//DTD JavaServer Faces Config 1.1//EN&quot;
+ <br /> &quot;http://java.sun.com/dtd/web-facesconfig_1_1.dtd&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;faces-config&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;navigation-rule&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--如果执行inputname.jsp的结果是greeting,则从视图页
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; inputname.jsp到视图页greeting.jsp
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;from-view-id&gt;/login.jsp&lt;/from-view-id&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;navigation-case&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;from-outcome&gt;success&lt;/from-outcome&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;to-view-id&gt;/greeting.jsp&lt;/to-view-id&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/navigation-case&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;navigation-case&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;from-outcome&gt;failure&lt;/from-outcome&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;to-view-id&gt;/login.jsp&lt;/to-view-id&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/navigation-case&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/navigation-rule&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;/faces-config&gt;
+ <br /> 可见在MyFaces中，每个表单域都能触发事件。
+ <br /> ------------------------------------------
+ <br /> 输出页面，greeting.jsp--
+ <br /> &lt;%@ page contentType=&quot;text/html; charset=GBK&quot; %&gt;
+ <br /> &lt;%@ taglib uri=&quot;http://java.sun.com/jsf/html&quot; prefix=&quot;h&quot; %&gt;
+ <br /> &lt;%@ taglib uri=&quot;http://java.sun.com/jsf/core&quot; prefix=&quot;f&quot; %&gt;
+ <br /> &lt;!--该句绑定在classes下的messages的资源文件--&gt;
+ <br /> &lt;f:loadBundle basename=&quot;messages&quot; var=&quot;msg&quot;/&gt;
+ <br /> &lt;html&gt;
+ <br /> &lt;head&gt;
+ <br /> &lt;title&gt;登陆成功&lt;/title&gt;
+ <br /> &lt;/head&gt;&nbsp;&nbsp;&nbsp; 
+ <br /> &lt;body&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;f:view&gt;
+ <br /> &nbsp;&nbsp; &lt;h3&gt;&lt;h:outputText value=&quot;#{msg.greeting}&quot;/&gt;&lt;/h3&gt;
+ <br /> &nbsp;&nbsp; &lt;h:outputText value=&quot;#{msg.namePrompt}&quot;/&gt;
+ <br /> &nbsp;&nbsp; &lt;h:outputText value=&quot;#{login.name}&quot; /&gt;&lt;br&gt;
+ <br /> &nbsp;&nbsp; &lt;h:outputText value=&quot;#{msg.passPrompt}&quot;/&gt;
+ <br /> &nbsp;&nbsp; &lt;h:outputText value=&quot;#{login.pass}&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;h:outputText value=&quot;#{msg.sign}&quot;/&gt;
+ <br /> &lt;/f:view&gt;
+ <br /> &lt;/body&gt;
+ <br /> &lt;/html&gt; 
+ <br /> -----------------------------------------------
+ <br /> 资源文件，messages_zh_CN.properties--
+ <br /> loginHeader=MyFaces\u5feb\u901f\u5165\u95e8
+ <br /> namePrompt=\u7528\u6237\u540d\uff1a
+ <br /> passPrompt=\u5bc6 \u7801\uff1a
+ <br /> buttonTitle=\u767b\u9646
+ <br /> loginTitle=\u767b\u9646\u9875
+ <br /> welcomeTitle=\u60a8\u597d\uff0c\u767b\u9646\u6210\u529f
+ <br /> greeting=\u606d\u559c\uff0c\u60a8\u5df2\u7ecf\u767b\u9646\u6210\u529f
+ <br /> sign=\uff01
+</div> 
+<div> 
+</div> 
+<div>
+ ========================================================================
+ <br /> ========================================================================
+ <br /> struts2整合JSF
+ <br /> -----------------------------------------------------------------
+ <br /> web.xml中让MyFaces拦截.action请求。
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+ <br /> &lt;web-app id=&quot;jsf&quot; version=&quot;2.4&quot; 
+ <br /> xmlns=&quot;http://java.sun.com/xml/ns/j2ee&quot; 
+ <br /> xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; 
+ <br /> xsi:schemaLocation=&quot;http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;filter&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;filter-name&gt;struts&lt;/filter-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;filter-class&gt;org.apache.struts2.dispatcher.FilterDispatcher&lt;/filter-class&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/filter&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;listener&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;listener-class&gt;org.springframework.web.context.ContextLoaderListener&lt;/listener-class&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/listener&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;filter-mapping&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;filter-name&gt;struts&lt;/filter-name&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/filter-mapping&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;listener&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;listener-class&gt;org.apache.myfaces.webapp.StartupServletContextListener&lt;/listener-class&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/listener&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;!-- JavaServer Faces Servlet Configuration, not used directly --&gt;
+ <br /> &lt;servlet&gt;
+ <br /> &nbsp;&nbsp; &lt;servlet-name&gt;faces&lt;/servlet-name&gt;
+ <br /> &nbsp;&nbsp; &lt;servlet-class&gt;javax.faces.webapp.FacesServlet&lt;/servlet-class&gt;
+ <br /> &nbsp;&nbsp; &lt;load-on-startup&gt;1&lt;/load-on-startup&gt;
+ <br /> &lt;/servlet&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;!-- JavaServer Faces Servlet Mapping, not called directly --&gt;
+ <br /> &nbsp;&nbsp; &lt;servlet-mapping&gt;
+ <br /> &nbsp;&nbsp; &lt;servlet-name&gt;faces&lt;/servlet-name&gt;
+ <br /> &nbsp;&nbsp; &lt;url-pattern&gt;*.action&lt;/url-pattern&gt;
+ <br /> &lt;/servlet-mapping&gt;
+ <br /> &lt;/web-app&gt;
+ <br /> --------------------------------------------
+ <br /> 包继承jsf-default包。
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;GBK&quot;?&gt;
+ <br /> &lt;!DOCTYPE struts PUBLIC
+ <br /> &nbsp;&nbsp;&nbsp; &quot;-//Apache Software Foundation//DTD Struts Configuration 2.0//EN&quot;
+ <br /> &nbsp;&nbsp;&nbsp; &quot;http://struts.apache.org/dtds/struts-2.0.dtd&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;struts&gt;
+ <br /> &lt;constant name=&quot;struts.custom.i18n.resources&quot; value=&quot;messageResource&quot;/&gt;
+ <br /> &lt;constant name=&quot;struts.i18n.encoding&quot; value=&quot;GBK&quot;/&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;package name=&quot;jsf&quot; extends=&quot;jsf-default&quot;&gt;
+ <br /> &nbsp;&nbsp; &lt;interceptors&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;interceptor-stack name=&quot;jsfFullStack&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;interceptor-ref name=&quot;params&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;interceptor-ref name=&quot;basicStack&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;interceptor-ref name=&quot;jsfStack&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/interceptor-stack&gt;
+ <br /> &nbsp;&nbsp; &lt;/interceptors&gt;
+ <br /> &nbsp;&nbsp; &lt;default-interceptor-ref name=&quot;jsfFullStack&quot;/&gt;
+ <br /> &lt;/package&gt;
+ <br /> 
+ <br /> &lt;package name=&quot;lee&quot; extends=&quot;jsf&quot;&gt; 
+ <br /> &nbsp;&nbsp; &lt;action name=&quot;list&quot; class=&quot;lee.action.BookAction&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;result name=&quot;success&quot; type=&quot;jsf&quot;/&gt;
+ <br /> &nbsp;&nbsp; &lt;/action&gt;
+ <br /> &nbsp;&nbsp; &lt;action name=&quot;edit&quot; class=&quot;lee.action.BookAction&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;result name=&quot;success&quot; type=&quot;jsf&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;result name=&quot;list&quot; type=&quot;redirect&quot;&gt;list.action&lt;/result&gt;
+ <br /> &nbsp;&nbsp; &lt;/action&gt;
+ <br /> &lt;/package&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;/struts&gt;
+ <br /> -----------------------------------------
+ <br /> package lee.action;
+</div> 
+<div> 
+</div> 
+<div>
+ import com.opensymphony.xwork2.ActionSupport;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.util.*;
+ <br /> import lee.model.Book;
+ <br /> import lee.service.BookService;
+</div> 
+<div> 
+</div> 
+<div>
+ public class BookAction extends ActionSupport
+ <br /> {
+ <br /> private Book currentBook;
+ <br /> private int editId;
+</div> 
+<div> 
+</div> 
+<div>
+ private BookService bs;
+ <br /> public void setBs(BookService bs)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.bs = bs;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setCurrentBook(Book currentBook)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.currentBook = currentBook;
+ <br /> }
+ <br /> public Book getCurrentBook()
+ <br /> {
+ <br /> &nbsp;&nbsp; //如果editId请求参数不为空，则currentBook也不为空
+ <br /> &nbsp;&nbsp; if (editId != 0)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; this.currentBook = bs.getBookById(editId);
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; else if (currentBook == null)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; currentBook = new Book();
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return this.currentBook;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setEditId(int editId)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.editId = editId;
+ <br /> }
+ <br /> public int getEditId()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.editId;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public List&lt;Book&gt; getAllBook()
+ <br /> {
+ <br /> &nbsp;&nbsp; List&lt;Book&gt; result = new ArrayList&lt;Book&gt;();
+ <br /> &nbsp;&nbsp; for (Book b : bs.getAllBook())
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; result.add(b);
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return result;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public String save()
+ <br /> {
+ <br /> &nbsp;&nbsp; bs.addBook(currentBook);
+ <br /> &nbsp;&nbsp; return &quot;list&quot;;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+ <br /> -----------------------------------------
+ <br /> package lee.service;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.util.*;
+ <br /> import lee.model.Book;
+</div> 
+<div> 
+</div> 
+<div>
+ public class BookService
+ <br /> {
+ <br /> private Set&lt;Book&gt; bookDb;
+</div> 
+<div> 
+</div> 
+<div>
+ public BookService()
+ <br /> {
+ <br /> &nbsp;&nbsp; bookDb = new HashSet&lt;Book&gt;();
+ <br /> &nbsp;&nbsp; bookDb.add(new Book(1 , &quot;Spring2.0宝典&quot; , &quot;全面介绍了Spring各个知识点&quot;));
+ <br /> &nbsp;&nbsp; bookDb.add(new Book(2 , &quot;轻量级J2EE企业应用实战&quot; , &quot;介绍实际企业的J2EE开发过程&quot;));
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public Set&lt;Book&gt; getAllBook()
+ <br /> {
+ <br /> &nbsp;&nbsp; return bookDb;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public Book getBookById(int id)
+ <br /> {
+ <br /> &nbsp;&nbsp; for (Book b : bookDb)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; if (b.getId() == id)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; return b;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return null;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> public void addBook(Book b)
+ <br /> {
+ <br /> &nbsp;&nbsp; bookDb.add(b);
+ <br /> }
+ <br /> }
+ <br /> -------------------------------
+ <br /> package lee.model;
+</div> 
+<div> 
+</div> 
+<div>
+ public class Book
+ <br /> {
+ <br /> private int id;
+ <br /> private String name;
+ <br /> private String desc;
+</div> 
+<div> 
+</div> 
+<div>
+ public Book()
+ <br /> {
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public Book(int id , String name ,String desc)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.id = id;
+ <br /> &nbsp;&nbsp; this.name = name;
+ <br /> &nbsp;&nbsp; this.desc = desc;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setId(int id)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.id = id;
+ <br /> }
+ <br /> public int getId()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.id;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setName(String name)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.name = name;
+ <br /> }
+ <br /> public String getName()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.name;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setDesc(String desc)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.desc = desc;
+ <br /> }
+ <br /> public String getDesc()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.desc;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public int hashCode()
+ <br /> {
+ <br /> &nbsp;&nbsp; return id;
+ <br /> }
+ <br /> public boolean equals(Object target)
+ <br /> {
+ <br /> &nbsp;&nbsp; if (target instanceof Book)
+ <br /> &nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp; Book b = (Book)target;
+ <br /> &nbsp;&nbsp;&nbsp; if (b.getId() == this.id)
+ <br /> &nbsp;&nbsp;&nbsp; {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; return true;
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp; return false;
+ <br /> }
+ <br /> }
+ <br /> ------------------------------------
+ <br /> applicationContext.xml--
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;GBK&quot;?&gt;
+ <br /> &lt;!-- 指定Spring配置文件的Schema信息 --&gt;
+ <br /> &lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; &lt;bean id=&quot;bs&quot; class=&quot;lee.service.BookService&quot;/&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;/beans&gt;
+ <br /> ---------------------------------
+ <br /> edit.jsp--
+ <br /> &lt;%@ page language=&quot;java&quot; contentType=&quot;text/html; charset=GBK&quot;%&gt;
+ <br /> &lt;%@ taglib prefix=&quot;f&quot; uri=&quot;http://java.sun.com/jsf/core&quot; %&gt;
+ <br /> &lt;%@ taglib prefix=&quot;h&quot; uri=&quot;http://java.sun.com/jsf/html&quot; %&gt;
+ <br /> &lt;html&gt;
+ <br /> &lt;head&gt;
+ <br /> &nbsp;&nbsp; &lt;title&gt;Struts2+MyFaces+Spring整合&lt;/title&gt; 
+ <br /> &lt;/head&gt;
+ <br /> &lt;body&gt;
+ <br /> &lt;f:view&gt; 
+ <br /> &lt;h3&gt;Struts2+MyFaces+Spring整合&lt;/h3&gt; 
+ <br /> &lt;h3&gt;修改/保存图书&lt;/h3&gt; 
+ <br /> &lt;h:form&gt;
+ <br /> &nbsp;&nbsp; &lt;h:inputHidden value=&quot;#{action.editId}&quot;/&gt;
+ <br /> &nbsp;&nbsp; &lt;h:panelGrid columns=&quot;3&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;图书ID&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:inputText id=&quot;id&quot; size=&quot;5&quot; value=&quot;#{action.currentBook.id}&quot; required=&quot;true&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:message for=&quot;id&quot; /&gt; &nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;图书名:&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:inputText id=&quot;name&quot; size=&quot;30&quot; value=&quot;#{action.currentBook.name}&quot; required=&quot;true&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;f:validateLength minimum=&quot;2&quot; maximum=&quot;100&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/h:inputText&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:message for=&quot;name&quot; /&gt; &nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;图书描述：&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:inputText id=&quot;desc&quot; size=&quot;30&quot; value=&quot;#{action.currentBook.desc}&quot; required=&quot;true&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;f:validateLength minimum=&quot;2&quot; maximum=&quot;100&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/h:inputText&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:message for=&quot;desc&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;/h:panelGrid&gt; &nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; &lt;h:commandButton value=&quot;保存&quot; action=&quot;#{action.save}&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;br/&gt;
+ <br /> &lt;/h:form&gt;
+ <br /> &lt;/f:view&gt;
+ <br /> &lt;/body&gt;
+ <br /> &lt;/html&gt;
+ <br /> ---------------------------------------------
+ <br /> list.jsp--
+ <br /> &lt;%@ page language=&quot;java&quot; contentType=&quot;text/html; charset=GBK&quot;%&gt;
+ <br /> &lt;%@ taglib prefix=&quot;f&quot; uri=&quot;http://java.sun.com/jsf/core&quot; %&gt;
+ <br /> &lt;%@ taglib prefix=&quot;h&quot; uri=&quot;http://java.sun.com/jsf/html&quot; %&gt;
+ <br /> &lt;html&gt;
+ <br /> &lt;head&gt;
+ <br /> &nbsp;&nbsp; &lt;title&gt;Struts2+MyFaces+Spring整合&lt;/title&gt; 
+ <br /> &lt;/head&gt;
+ <br /> &lt;body&gt;
+ <br /> &lt;f:view&gt;
+ <br /> &lt;h3&gt;Struts2+MyFaces+Spring整合&lt;/h3&gt; 
+ <br /> &lt;h3&gt;列出所有图书&lt;/h3&gt;
+ <br /> &lt;h:dataTable value=&quot;#{action.allBook}&quot; var=&quot;b&quot; style=&quot;text-align:center;width:500px&quot; border=&quot;1&quot;&gt;
+ <br /> &nbsp;&nbsp; &lt;h:column&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;f:facet name=&quot;header&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;图书ID&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/f:facet&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:outputLink value=&quot;edit.action&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;f:param name=&quot;editId&quot; value=&quot;#{b.id}&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;#{b.id}&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/h:outputLink&gt; 
+ <br /> &nbsp;&nbsp; &lt;/h:column&gt;
+ <br /> &nbsp;&nbsp; &lt;h:column&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;f:facet name=&quot;header&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;图书名&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/f:facet&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;#{b.name}&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;/h:column&gt;
+ <br /> &nbsp;&nbsp; &lt;h:column&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;f:facet name=&quot;header&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;图书简介&quot; /&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/f:facet&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;h:outputText value=&quot;#{b.desc}&quot; /&gt;
+ <br /> &nbsp;&nbsp; &lt;/h:column&gt;
+ <br /> &lt;/h:dataTable&gt; 
+ <br /> &lt;p&gt;
+ <br /> &lt;h:outputLink value=&quot;edit.action&quot;&gt;
+ <br /> &nbsp;&nbsp; &lt;h:outputText value=&quot;新增图书&quot;/&gt;
+ <br /> &lt;/h:outputLink&gt;
+ <br /> &lt;/p&gt; 
+ <br /> &lt;/f:view&gt;
+ <br /> &lt;/body&gt;
+ <br /> &lt;/html&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ =======================================================
+</div></div></body></html>

@@ -1,0 +1,773 @@
+<html><head><title>JSP与Java Mail API</title></head><body><div id='tit'>JSP与Java Mail API</div><div id='cate'>j&middot;入门</div><div id='date'>2007年12月14日 星期五 11:49 P.M.</div><div id='page'>186</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b6b4d41b1426e8d6ac6e75e4.html'>http://hi.baidu.com/hxzon/blog/item/b6b4d41b1426e8d6ac6e75e4.html</a><div id='cnt'><div>
+ JSP与Java Mail API 
+ <br /> 
+ <br /> 2002-05-09&middot; &middot;包路跃&middot;&middot;Yesky
+</div> 
+<div> 
+</div> 
+<div>
+  综述：Java Mail API的开发是SUN为Java开发者提供公用API框架的持续努力的良好例证。提倡公用框架，反对受限于供应商的解决方案，充分预示着一个日益开放的开发环境的建立。
+ <br /> Java Mail API的结构本身证明了它的开发者的基本目标之一--软件开发的工作量应该取决于应用程序本身的复杂程度以及开发者所要求的控制程度。换句话说，Java Mail API尽可能地保持简单。乍看起来，Java Mail API所拥有的类总数以及类之间的关系可能让人误解为要花费漫长的学习时间。实际上，一旦正式开始使用，你就会发现该API不失为在应用程序中加入健壮的邮件/通讯支持的简单工具。
+</div> 
+<div> 
+</div> 
+<div>
+  建立JavaMail使用环境，需要哪些软件
+</div> 
+<div> 
+</div> 
+<div>
+  首先，需要安装JavaMail API。现在有两种常用的 JavaMail API 版本：1.2 和 1.1.3。虽然版本 1.2 是最新版，但版本 1.1.3 包含了Java 2 平台企业版（Java 2 Platform, Enterprise Edition，J2EE）的版本 1.2.1，所以仍然有很多人使用它。
+ <br /> &middot;JavaMail 1.2 的安装
+ <br /> 要使用 JavaMail 1.2 API，请下载 JavaMail 1.2 实现，解开Javamail-1_2.zip 文件，并将 mail.jar 文件添加到 CLASSPATH 中。除了核心类，随版本 1.2 实现一起提供的还有 SMTP、IMAP4 和 POP3 供应商。
+ <br /> &middot; JavaMail 1.1.3 的安装
+ <br /> 要使用 JavaMail 1.1.3 API，请下载 JavaMail 1.1.3 实现，解开Javamail1_1_3.zip文件，并将 mail.jar 文件添加到您的 CLASSPATH 中。除了核心类，随版本 1.1.3 实现一起提供的还有 SMTP 和 IMAP4 供应商。
+ <br /> 如果您用 JavaMail 1.1.3 访问一个 POP 服务器，请下载并安装一个 POP3 供应商。Sun 就有一个独立于 JavaMail 实现。下载并解开 pop31_1_1.zip 文件后，将 pop3.jar 也添加到您的 CLASSPATH 中。
+ <br /> 其次是JavaBeans Activation Framework 的安装。JavaMail API 的所有版本都需要 JavaBeans Activation Framework 来支持任意数据块的输入及相应处理。功能似乎不多，但目前许多浏览器和邮件工具中都能找到这种基本的 MIME 型支持。下载完框架后，解开 jaf1_0_1.zip 文件，并将 activation.jar 文件添加到 CLASSPATH 中。
+ <br /> 对于 JavaMail 1.2 用户来说，现在您应该已将 mail.jar 和 activation.jar 文件添加到 CLASSPATH 中了。
+ <br /> 而对于 JavaMail 1.1.3 用户，现在您应该已将 mail.jar、pop3.jar和 activation.jar文件添加到 CLASSPATH 中了。如果不打算用 POP3，就不必将 pop3.jar 添加到 CLASSPATH 中去。
+ <br /> 如果您不想更改 CLASSPATH 环境变量，将 jar 文件复制到您 Java 运行时环境（Java Runtime Environment，JRE）目录下的 lib/ext 目录中去。例如，J2SE 1.3 发行版的缺省目录在 Windows 平台的 C:\jdk1.3\jre\lib\ext。
+</div> 
+<div> 
+</div> 
+<div>
+  Java Mail API有哪些核心类
+</div> 
+<div> 
+</div> 
+<div>
+  &middot;Javax.mail.Session：Session 类定义了一个基本邮件会话(session)，是Java Mail API最高层入口类。所有其它类都是经由这个session 才得以生效。Session 对象用 Java.util.Properties 对象获取信息，如邮件服务器、用户名、密码及整个应用程序中共享的其它信息。
+ <br /> &middot;Javax.mail.Message：一旦获得 Session 对象，就可以继续创建要发送的消息。这由 Message 类来完成。因为 Message 是个抽象类，必需用一个子类，多数情况下为 Javax.mail.internet.MimeMessage。MimeMessage 是个能理解 MIME 类型和头的电子邮件消息，正如不同 RFC 中所定义的。虽然在某些头部域非 ASCII 字符也能被译码，但 Message 头只能被限制为用 US-ASCII 字符。
+ <br /> &middot;Javax.mail.Address：一旦您创建了 Session 和 Message，并将内容填入消息后，就可以用 Address 确定信件地址了。和 Message 一样，Address 也是个抽象类。您用的是 Javax.mail.internet.InternetAddress 类。
+ <br /> &middot;Javax.mail. Authenticator：与 Java.net 类一样，JavaMail API 也可以利用 Authenticator 通过用户名和密码访问受保护的资源。对于JavaMail API 来说，这些资源就是邮件服务器。JavaMail Authenticator 在 Javax.mail 包中，而且它和 Java.net 中同名的类 Authenticator 不同。两者并不共享同一个 Authenticator，因为JavaMail API 用于 Java 1.1，它没有 Java.net 类别。
+ <br /> 要使用 Authenticator，先创建一个抽象类的子类，并从 getPasswordAuthentication() 方法中返回 PasswordAuthentication 实例。创建完成后，您必需向 session 注册 Authenticator。然后，在需要认证的时候，就会通知 Authenticator。您可以弹出窗口，也可以从配置文件中（虽然没有加密是不安全的）读取用户名和密码，将它们作为 PasswordAuthentication 对象返回给调用程序。
+ <br /> &middot;Javax.mail.Transport：消息发送的最后一部分是使用 Transport 类。这个类用协议指定的语言发送消息（通常是 SMTP）。它是抽象类，它的工作方式与 Session 有些类似。仅调用静态 send() 方法，就能使用类的 缺省 版本：Transport.send(message);或者，读者也可以从针对自己的协议的会话中获得一个特定的实例，传递用户名和密码（如果不必要就不传），发送消息，然后关闭连接。 
+ <br /> &middot;Javax.mail.Store：Store类实现特定邮件协议上的读、写、监视、查找等操作。通过Javax.mail.Store类可以访问Javax.mail.Folder类。
+ <br /> &middot;Javax.mail.Folder：Folder类用于分级组织邮件，并提供照Javax.mail.Message格式访问email的能力。 
+ <br /> =========================================================================
+ <br /> 怎样使用JSP发送email？
+</div> 
+<div> 
+</div> 
+<div>
+  下面我们通过一个简单的例子，来说明在JSP中邮件是如何发送的。该例由两个文件组成。一个是HTML文件，用来建立邮件信息（包括发送人、接收人、主题等）的表单，并将表单内容发送给JSP文件；另外一个是JSP页面，负责邮件的发送。
+</div> 
+<div> 
+</div> 
+<div>
+ HTML文件
+ <br /> ＜HTML＞
+ <br /> ＜BODY＞
+ <br /> ＜FORM action=&quot;sendmail.jsp&quot; method=&quot;post&quot;＞
+ <br /> ＜TABLE align=&quot;center&quot;＞
+ <br /> ＜TR＞
+ <br /> ＜TD width=&quot;50%&quot;＞
+ <br /> To:＜BR＞＜INPUT name=&quot;to&quot; size=&quot;25&quot;＞
+ <br /> ＜/TD＞
+ <br /> ＜TD width=&quot;50%&quot;＞
+ <br /> From:＜BR＞＜INPUT name=&quot;from&quot; size=&quot;25&quot;＞
+ <br /> ＜/TD＞
+ <br /> ＜/TR＞
+ <br /> ＜TR＞
+ <br /> ＜TD colspan=&quot;2&quot;＞
+ <br /> Subject:＜BR＞＜INPUT name=&quot;subject&quot; size=&quot;50&quot;＞
+ <br /> ＜/TD＞
+ <br /> ＜/TR＞
+ <br /> ＜TR＞
+ <br /> ＜TD colspan=&quot;2&quot;＞
+ <br /> ＜P＞Message:＜BR＞
+ <br /> ＜TEXTAREA name=&quot;text&quot; rows=25 cols=85＞＜/TEXTAREA＞ 
+ <br /> ＜/P＞
+ <br /> ＜/TD＞
+ <br /> ＜/TR＞
+ <br /> ＜/TABLE＞
+ <br /> ＜INPUT type=&quot;submit&quot; name=&quot;cb_submit&quot; value=&quot; Send &quot;＞
+ <br /> ＜INPUT type=&quot;reset&quot; name=&quot;cb_reset&quot; value=&quot; Clear &quot;＞
+ <br /> ＜/FORM＞
+ <br /> ＜/BODY＞
+ <br /> ＜/HTML＞
+</div> 
+<div> 
+</div> 
+<div>
+  JSP页面的作用就是获得表单提交过来的数据，并将这些数据赋给Java Mail API中相应的对象，最后完成邮件发送。
+</div> 
+<div> 
+</div> 
+<div>
+ sendmail.jsp文件
+ <br /> ＜%@ page import=&quot; Javax.mail.*, Javax.mail.internet.*, Javax.activation.*,Java.util.*&quot;%＞
+ <br /> ＜html＞
+ <br /> ＜head＞
+ <br /> ＜TITLE＞JSP meets JavaMail, what a sweet combo.＜/TITLE＞
+ <br /> ＜/head＞
+ <br /> ＜body＞
+ <br /> ＜%
+ <br /> try{
+ <br /> Properties props = new Properties();
+ <br /> Session sendMailSession;
+ <br /> Store store;
+ <br /> Transport transport;
+</div> 
+<div> 
+</div> 
+<div>
+ sendMailSession = Session.getInstance(props, null);
+ <br /> props.put(&quot;mail.smtp.host&quot;, &quot;smtp.jspinsider.com&quot;);
+ <br /> Message newMessage = new MimeMessage(sendMailSession);
+ <br /> newMessage.setFrom(new InternetAddress(request.getParameter(&quot;from&quot;)));
+ <br /> newMessage.setRecipient(Message.RecipientType.TO, new InternetAddress ( request.getParameter (&quot;to&quot;)));
+ <br /> newMessage.setSubject(request.getParameter(&quot;subject&quot;));
+ <br /> newMessage.setSentDate(new Date());
+ <br /> newMessage.setText(request.getParameter(&quot;text&quot;));
+ <br /> transport = sendMailSession.getTransport(&quot;smtp&quot;);
+ <br /> transport.send(newMessage);
+ <br /> %＞
+ <br /> ＜P＞Your mail has been sent.＜/P＞
+ <br /> ＜%
+ <br /> }catch(MessagingException m)
+ <br /> {
+ <br /> out.println(m.toString());
+ <br /> }
+ <br /> %＞
+ <br /> ＜/body＞
+ <br /> ＜/html＞ 
+ <br /> ==================================================================
+ <br /> 如何发送HTML类型的邮件
+</div> 
+<div> 
+</div> 
+<div>
+  在上面的例子中，我们实现了如何发送文本格式的邮件，那么HTML格式的邮件该如何发送呢？那就看看下面的例子吧。
+ <br /> 该例由四个文件组成：
+ <br /> &middot;form.htm：用来建立邮件信息的表单
+ <br /> &middot;send.jsp：用来获取表单提交的信息，并调用mymail.mail.HTML.send()方法发送邮件
+ <br /> &middot;StringDataSource.Java：用户自定义的JavaBean，用来将邮件的Body部分转化为HTML格式
+ <br /> &middot;HTML.Java：用户自定义的JavaBean，用来发送HTML格式的邮件。在send.jsp文件中提到的mymail.mail.HTML.send()方法就在该JavaBean中定义。
+</div> 
+<div> 
+</div> 
+<div>
+ form.htm
+ <br /> ＜html＞
+ <br /> ＜head＞
+ <br /> ＜meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=gb2312&quot;＞
+ <br /> ＜title＞ JavaMail - 发送HTML邮件＜/title＞
+ <br /> ＜/head＞
+ <br /> ＜body＞
+ <br /> ＜table border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;＞
+ <br /> ＜form method=&quot;post&quot; action=&quot;send.jsp&quot;＞
+ <br /> ＜tr＞
+ <br /> ＜td＞SMTP主机：＜/td＞
+ <br /> ＜td＞＜input type=&quot;text&quot; name=&quot;smtp&quot; size=&quot;80&quot;＞＜/td＞
+ <br /> ＜/tr＞
+ <br /> ＜tr＞
+ <br /> ＜td＞发信人：＜/td＞
+ <br /> ＜td＞＜input type=&quot;text&quot; name=&quot;from&quot; size=&quot;80&quot;＞＜/td＞
+ <br /> ＜/tr＞
+ <br /> ＜tr＞
+ <br /> ＜td＞收信人：＜/td＞
+ <br /> ＜td＞＜input type=&quot;text&quot; name=&quot;to&quot; size=&quot;80&quot;＞＜/td＞
+ <br /> ＜/tr＞
+ <br /> ＜tr＞
+ <br /> ＜td＞抄送人：＜/td＞
+ <br /> ＜td＞＜input type=&quot;text&quot; name=&quot;cc&quot; size=&quot;80&quot;＞＜/td＞
+ <br /> ＜/tr＞
+ <br /> ＜tr＞
+ <br /> ＜td＞暗送人：＜/td＞
+ <br /> ＜td＞＜input type=&quot;text&quot; name=&quot;bcc&quot; size=&quot;80&quot;＞＜/td＞
+ <br /> ＜/tr＞
+ <br /> ＜tr＞
+ <br /> ＜td＞主题：＜/td＞
+ <br /> ＜td＞＜input type=&quot;text&quot; name=&quot;subject&quot; size=&quot;80&quot;＞＜/td＞
+ <br /> ＜/tr＞
+ <br /> ＜tr＞
+ <br /> ＜td valign=&quot;top&quot;＞内容：＜/td＞
+ <br /> ＜td＞＜textarea name=&quot;body&quot; rows=&quot;5&quot; cols=&quot;80&quot;＞＜/textarea＞＜/td＞
+ <br /> ＜/tr＞
+ <br /> ＜tr＞
+ <br /> ＜td colspan=&quot;2&quot; align=&quot;center&quot;＞＜input type=&quot;submit&quot; value=&quot;发送&quot;＞＜/td＞
+ <br /> ＜/tr＞
+ <br /> ＜/form＞
+ <br /> ＜/table＞
+ <br /> ＜/body＞
+ <br /> ＜/html＞
+</div> 
+<div> 
+</div> 
+<div>
+ send.jsp
+ <br /> ＜%
+ <br /> //变量声明
+ <br /> Java.lang.String smtp,from,to,cc,bcc,subject,body;
+</div> 
+<div> 
+</div> 
+<div>
+ //获得用户输入数据
+ <br /> smtp = request.getParameter(&quot;smtp&quot;);
+ <br /> from = request.getParameter(&quot;from&quot;);
+ <br /> to = request.getParameter(&quot;to&quot;);
+ <br /> cc = request.getParameter(&quot;cc&quot;);
+ <br /> bcc = request.getParameter(&quot;bcc&quot;);
+ <br /> subject = request.getParameter(&quot;subject&quot;);
+ <br /> if(subject!=null){
+ <br /> subject = new Java.lang.String(subject.getBytes(&quot;iso-8859-1&quot;));
+ <br /> }
+ <br /> body = request.getParameter(&quot;body&quot;);
+ <br /> //发送邮件
+ <br /> mymail.mail.HTML.send(smtp,from,to,cc,bcc,subject,body);
+ <br /> %＞
+</div> 
+<div> 
+</div> 
+<div>
+ mymail.jaf.StringDataSource.Java
+ <br /> package mymail.jaf;
+ <br /> public class StringDataSource implements Javax.activation.DataSource
+ <br /> {
+ <br /> private Java.lang.String data;
+ <br /> private Java.lang.String type;
+</div> 
+<div> 
+</div> 
+<div>
+  public StringDataSource(Java.lang.String data,Java.lang.String type){
+ <br /> this.data = data;
+ <br /> this.type = type;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public Java.io.InputStream getInputStream() throws Java.io.IOException{
+ <br /> return new Java.io.StringBufferInputStream(data);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public Java.io.OutputStream getOutputStream() throws Java.io.IOException{
+ <br /> throw new Java.io.IOException(&quot;it does not support this method now!&quot;);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public Java.lang.String getContentType(){
+ <br /> return type;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  public Java.lang.String getName(){
+ <br /> return &quot; mymail &quot;;
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ mymail.mail.HTML.Java
+ <br /> package mymail.mail;
+</div> 
+<div> 
+</div> 
+<div>
+ public final class HTML
+ <br /> {
+ <br /> public static void send(
+ <br /> Java.lang.String smtp, /*SMTP主机地址*/
+ <br /> Java.lang.String from, /*发信人*/
+ <br /> Java.lang.String to, /*收信人*/
+ <br /> Java.lang.String cc, /*抄送人*/
+ <br /> Java.lang.String bcc, /*暗送人*/
+ <br /> Java.lang.String subject, /*主题*/
+ <br /> Java.lang.String body /*内容*/
+ <br /> ) throws Java.lang.Exception
+ <br /> {
+ <br /> //变量声明
+ <br /> Java.util.Properties props; //系统属性
+ <br /> Javax.mail.Session mailSession; //邮件会话对象
+ <br /> Javax.mail.internet.MimeMessage mimeMsg; //MIME邮件对象
+</div> 
+<div> 
+</div> 
+<div>
+  //设置系统属性
+ <br /> props = Java.lang.System.getProperties(); //获得系统属性对象
+ <br /> props.put(&quot;mail.smtp.host&quot;,smtp); //设置SMTP主机
+</div> 
+<div> 
+</div> 
+<div>
+  //获得邮件会话对象
+ <br /> mailSession = Javax.mail.Session.getDefaultInstance(props,null);
+</div> 
+<div> 
+</div> 
+<div>
+  //创建MIME邮件对象
+ <br /> mimeMsg = new Javax.mail.internet.MimeMessage(mailSession);
+</div> 
+<div> 
+</div> 
+<div>
+  //设置发信人
+ <br /> mimeMsg.setFrom(new Javax.mail.internet.InternetAddress(from));
+</div> 
+<div> 
+</div> 
+<div>
+  //设置收信人
+ <br /> if(to!=null)
+ <br /> { 
+ <br /> mimeMsg.setRecipients(Javax.mail.Message.RecipientType.TO,Javax.mail. internet.InternetAddress.parse(to));
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  //设置抄送人
+ <br /> if(cc!=null)
+ <br /> {
+ <br /> mimeMsg.setRecipients(Javax.mail.Message.RecipientType.CC,Javax.mail. internet.InternetAddress.parse(cc));
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ //设置暗送人
+ <br /> if(bcc!=null)
+ <br /> { 
+ <br /> mimeMsg.setRecipients(Javax.mail.Message.RecipientType.BCC,Javax.mail. internet.InternetAddress.parse(bcc));
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  //设置邮件主题
+ <br /> //mimeMsg.setSubject(subject);
+ <br /> mimeMsg.setSubject(subject,&quot;gb2312&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+  //设置邮件内容，将邮件body部分转化为HTML格式
+ <br /> mimeMsg.setDataHandler(new Javax.activation.DataHandler(new mymail.jaf. StringDataSource (body,&quot;text/html&quot;)));
+</div> 
+<div> 
+</div> 
+<div>
+  //发送邮件
+ <br /> Javax.mail.Transport.send(mimeMsg);
+ <br /> }
+ <br /> } 
+ <br /> =================================================
+ <br /> 如何实现消息和标志的删除？
+</div> 
+<div> 
+</div> 
+<div>
+  消息的删除涉及到与消息相关的 Flags（标志）。不同 flag 表示不同的状态，有些标志由系统定义，而有些则由用户自己定义。下面列出在内部类 Flags.Flag 中预定义的标志：
+ <br /> &middot;Flags.Flag.ANSWERED 
+ <br /> &middot;Flags.Flag.DELETED 
+ <br /> &middot;Flags.Flag.DRAFT 
+ <br /> &middot;Flags.Flag.FLAGGED 
+ <br /> &middot;Flags.Flag.RECENT 
+ <br /> &middot;Flags.Flag.SEEN 
+ <br /> &middot;Flags.Flag.USER 
+ <br /> 上述这些标志只是标准定义，并不意味着所有邮件服务器或供应商都支持所有这些标志。例如，除了删除消息标志外，POP 协议不再支持其它任何标志。检查是否存在新邮件，这不是个 POP 任务，而是内建于邮件客户机的任务。为找出哪些标志能被支持，可以用 getPermanentFlags() 向 folder 提出请求。
+ <br /> 要删除消息，您可以设置消息的 DELETED flag：
+ <br /> message.setFlag(Flags.Flag.DELETED, true);
+ <br /> 首先，请以 READ_WRITE 模式打开 folder：
+ <br /> folder.open(Folder.READ_WRITE);
+ <br /> 然后，当所有消息的处理完成后，关闭 folder，并传递一个 true 值，从而擦除（expunge）有 delete 标志的消息。
+ <br /> folder.close(true);
+ <br /> 一个 Folder 的 expunge() 方法可以用来删除消息。但 Sun 的 POP3 供应商不支持。其它供应商有的或许能够实现这一功能，而有的则不能。IMAP 供应商极有可能实现此功能。因为 POP 只支持单个对邮箱的访问，对 Sun 的供应商来说，您必需关闭 folder 以删除消息。
+ <br /> 要取消标志，只要传递 false 给 setFlag() 方法就行了。想知道是否设置过标志，可以用 isSet() 检查。
+</div> 
+<div> 
+</div> 
+<div>
+  如何实现认证？
+</div> 
+<div> 
+</div> 
+<div>
+  想必读者已经知道 ，如果需要可以用一个 Authenticator 提示用户输入用户名和密码，而不是将用户名和密码作为字符串传递。在这里您会明确了解怎样更充分的使用Java Mail API的认证机制。
+ <br /> 不用主机、用户名和密码与 Store 相连接，而是设置 Properties 来拥有主机，然后告诉 Session 自定义的 Authenticator 实例，如下所示：
+</div> 
+<div> 
+</div> 
+<div>
+ // Setup properties
+ <br /> Properties props = System.getProperties();
+ <br /> props.put(&quot;mail.pop3.host&quot;, host);
+</div> 
+<div> 
+</div> 
+<div>
+ // Setup authentication, get session
+ <br /> Authenticator auth = new PopupAuthenticator();
+ <br /> Session session = Session.getDefaultInstance(props, auth);
+</div> 
+<div> 
+</div> 
+<div>
+ // Get the store
+ <br /> Store store = session.getStore(&quot;pop3&quot;);
+ <br /> store.connect();
+</div> 
+<div> 
+</div> 
+<div>
+  然后，创建一个 Authenticator 子类并从 getPasswordAuthentication() 方法中返回 PasswordAuthentication 对象。下面就是这样一种实现，其中用户名和密码仅占用一个域。（这不是一个 Swing 工程教程；只要将两部分输入同一个域，用逗号分隔就行。）
+</div> 
+<div> 
+</div> 
+<div>
+ import Javax.mail.*;
+ <br /> import Javax.swing.*;
+ <br /> import Java.util.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class PopupAuthenticator extends Authenticator 
+ <br /> {
+ <br /> public PasswordAuthentication getPasswordAuthentication() 
+ <br /> {
+ <br /> String username, password;
+ <br /> String result = JOptionPane.showInputDialog(&quot;Enter 'username,password'&quot;);
+ <br /> StringTokenizer st = new StringTokenizer(result, &quot;,&quot;);
+ <br /> username = st.nextToken();
+ <br /> password = st.nextToken();
+ <br /> return new PasswordAuthentication(username, password);
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  因为 PopupAuthenticator 涉及到 Swing，它会启动 AWT 的事件处理线程。这一点基本上要求您在代码中添加一个对 System.exit() 的调用来终止程序。
+ <br /> ============================================================================
+ <br /> 如何实现消息的转发？
+</div> 
+<div> 
+</div> 
+<div>
+  转发消息，相对于其他功能来说，显得有些棘手。没有单独的方法可以供调用，读者必须通过对组成消息各部分的处理来组织要转发的消息。
+ <br /> 一条邮件消息可以由多个部分组成。在处理 MIME 消息时，消息中每部分都是 BodyPart，再特殊些，是 MimeBodyPart。不同的 body part（信体部件或正文部件）结合成一个容器，名为 Multipart，再特殊些，就是 MimeMultipart。要转发一条消息，您为自己的消息正文创建一个部件，要转发的消息作为另一部件。并且将两个部件结合成一个 multipart（多部件）。然后您将这个 multipart 添加到一则已写好恰当地址的消息中，并发送。
+ <br /> 本质上就是如此。要将一条消息内容复制到另一条，只要复制 DataHandler （JavaBeans Activation Framework 中的类）就行了。
+</div> 
+<div> 
+</div> 
+<div>
+ // Create the message to forward
+ <br /> Message forward = new MimeMessage(session);
+ <br /> // Fill in header
+ <br /> forward.setSubject(&quot;Fwd: &quot; + message.getSubject());
+ <br /> forward.setFrom(new InternetAddress(from));
+ <br /> forward.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+ <br /> // Create your new message part
+ <br /> BodyPart messageBodyPart = new MimeBodyPart();
+ <br /> messageBodyPart.setText( &quot;Here you go with the original message:\n\n&quot;);
+ <br /> // Create a multi-part to combine the parts
+ <br /> Multipart multipart = new MimeMultipart();
+ <br /> multipart.addBodyPart(messageBodyPart);
+</div> 
+<div> 
+</div> 
+<div>
+ // Create and fill part for the forwarded content
+ <br /> messageBodyPart = new MimeBodyPart();
+ <br /> messageBodyPart.setDataHandler(message.getDataHandler());
+</div> 
+<div> 
+</div> 
+<div>
+ // Add part to multi part
+ <br /> multipart.addBodyPart(messageBodyPart);
+</div> 
+<div> 
+</div> 
+<div>
+ // Associate multi-part with message
+ <br /> forward.setContent(multipart);
+</div> 
+<div> 
+</div> 
+<div>
+ // Send message
+ <br /> Transport.send(forward);
+</div> 
+<div> 
+</div> 
+<div>
+  怎样处理附件？
+</div> 
+<div> 
+</div> 
+<div>
+  附件是邮件消息的相关资源，如通常不包含在消息正文里文本文件、电子表格或图像等。常见的邮件程序，如 Eudora 和 pine 之类，可以用 JavaMail API 将资源 attach（附加） 到您的消息上，就可以在收到消息时得到。
+</div> 
+<div> 
+</div> 
+<div>
+  附件的发送：
+</div> 
+<div> 
+</div> 
+<div>
+  发送附件非常像转发消息。您建立各部分以组成完整消息。完成第一部件，即消息正文后，您添加其它部件，其中每个 DataHandler 都代表附件，而不是转发消息情况下的共享处理程序。如果从文件中读附件，附件的数据源是 FileDataSource。而如果从 URL 中读时，附件的数据源是 URLDataSource。一旦存在 DataSource，只要先把它传递给 DataHandler 构造器，最后再用 setDataHandler() 把它附加到 BodyPart。假定您要保留附件的原始文件名，最终要做的是用 BodyPart 的 setFileName() 方法设置与附件相关的文件名。如下所示：
+</div> 
+<div> 
+</div> 
+<div>
+  // Define message
+ <br /> Message message = new MimeMessage(session);
+ <br /> message.setFrom(new InternetAddress(from));
+ <br /> message.addRecipient(Message.RecipientType.TO,
+ <br /> new InternetAddress(to));
+ <br /> message.setSubject(&quot;Hello JavaMail Attachment&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+  // Create the message part
+ <br /> BodyPart messageBodyPart = new MimeBodyPart();
+</div> 
+<div> 
+</div> 
+<div>
+  // Fill the message
+ <br /> messageBodyPart.setText(&quot;Pardon Ideas&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+  Multipart multipart = new MimeMultipart();
+ <br /> multipart.addBodyPart(messageBodyPart);
+</div> 
+<div> 
+</div> 
+<div>
+  // Part two is attachment
+ <br /> messageBodyPart = new MimeBodyPart();
+ <br /> DataSource source = new FileDataSource(filename);
+ <br /> messageBodyPart.setDataHandler(new DataHandler(source));
+ <br /> messageBodyPart.setFileName(filename);
+ <br /> multipart.addBodyPart(messageBodyPart);
+</div> 
+<div> 
+</div> 
+<div>
+  // Put parts in message
+ <br /> message.setContent(multipart);
+</div> 
+<div> 
+</div> 
+<div>
+  // Send the message
+ <br /> Transport.send(message);
+</div> 
+<div> 
+</div> 
+<div>
+  就消息引入附件时，若程序是个 servlet （小服务程序），除告知消息发送到何处外，还必需上载附件。可以将 multipart/form-data 表单编码类型（form encoding type）用于每个上载文件的处理。
+</div> 
+<div> 
+</div> 
+<div>
+ ＜FORM ENCTYPE=&quot;multipart/form-data&quot;
+ <br /> method=post action=&quot;/myservlet&quot;＞
+ <br /> ＜INPUT TYPE=&quot;file&quot; NAME=&quot;thefile&quot;＞
+ <br /> ＜INPUT TYPE=&quot;submit&quot; VALUE=&quot;Upload&quot;＞
+ <br /> ＜/FORM＞
+</div> 
+<div> 
+</div> 
+<div>
+  注意：消息大小由 SMTP 服务器而不是 JavaMail API 来限制。如果您碰到问题，可以考虑用设置 ms 和 mx 参数的方法增大 Java 堆大小。
+</div> 
+<div> 
+</div> 
+<div>
+  附件的获取：
+</div> 
+<div> 
+</div> 
+<div>
+  从消息中获取附件比发送它们棘手些，因为 MIME 没有简单的关于附件的概念。当消息包含附件时，消息的内容是个 Multipart 对象。接着，您需要处理每个 Part，获取主要内容和附件。标有从 part.getDisposition() 获得的 Part.ATTACHMENT 配置（disposition）的部件（Part）无疑就是附件。但是，没有配置（以及一个非文本 MIME 类型）和带 Part.INLINE 配置的部件也可能是附件。当配置要么是 Part.ATTACHMENT，要么是 Part.INLINE 时，这个消息部件的内容就能被保存。只要用 getFileName() 和 getInputStream() 就能分别得到原始文件名和输入流。
+</div> 
+<div> 
+</div> 
+<div>
+ Multipart mp = (Multipart)message.getContent();
+ <br /> for (int i=0, n=multipart.getCount(); i＜n; i++) {
+ <br /> Part part = multipart.getBodyPart(i));
+ <br /> String disposition = part.getDisposition();
+ <br /> if ((disposition != null) &amp;&amp;
+ <br /> ((disposition.equals(Part.ATTACHMENT) ||
+ <br /> (disposition.equals(Part.INLINE))) {
+ <br /> saveFile(part.getFileName(), part.getInputStream());
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  saveFile() 方法仅依据文件名创建了一个 File，它从输入流中将字节读出，然后写入到文件中。万一文件已经存在，就在文件名后添加一个数字作为新文件名，如果这个文件名仍存在，则继续添，直到找不到这样的文件名为止。
+</div> 
+<div> 
+</div> 
+<div>
+ // from saveFile()
+ <br /> File file = new File(filename);
+ <br /> for (int i=0; file.exists(); i++) {
+ <br /> file = new File(filename+i);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  上面的代码涵盖了最简单的情况 - 消息中各部件恰当的标记了。要涵盖所有情况，还要在配置为空时进行处理，并且获取部件的 MIME 类型来进行相应处理。
+</div> 
+<div> 
+</div> 
+<div>
+ if (disposition == null) {
+ <br /> // Check if plain
+ <br /> MimeBodyPart mbp = (MimeBodyPart)part;
+ <br /> if (mbp.isMimeType(&quot;text/plain&quot;)) {
+ <br /> // Handle plain
+ <br /> } else {
+ <br /> // Special non-attachment cases here of image/gif, text/html, ...
+ <br /> }
+ <br /> ...
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+  如何一次发送多个邮件？
+</div> 
+<div> 
+</div> 
+<div>
+  取得必要的Transport对象并调用SendMessage（）发送每一个邮件。注意在调用之间设置或改变接收者。
+</div> 
+<div> 
+</div> 
+<div>
+  Message message = …;
+ <br /> Transport t = session.getTransport(&quot;smtp&quot;);
+ <br /> t.connect();
+ <br /> message.setRecipient(Message.RecipientType.TO,recipient1);
+ <br /> t.sendMessage(message,recipient);
+ <br /> message.setRecipient(Message.RecipientType.TO,recipient2);
+ <br /> t.sendMessage(message,recipient);
+ <br /> message.setRecipient(Message.RecipientType.TO,recipient3);
+ <br /> t.sendMessage(message,recipient);
+ <br /> t.close();
+</div> 
+<div> 
+</div> 
+<div>
+  如何保存邮件？
+</div> 
+<div> 
+</div> 
+<div>
+  用MimeMessage类的writeTo（）方法可以实现。用Message类的对象不能实现。
+</div> 
+<div> 
+</div> 
+<div>
+  FileOutputStream fos = new FileOutputStream(&quot;test.mail&quot;);
+ <br /> Mimemessage.writeTo(fos);
+</div> 
+<div> 
+</div> 
+<div>
+  怎样发送带有图像的HTML格式邮件？
+</div> 
+<div> 
+</div> 
+<div>
+  一些图像还是放在服务器上较好，让用户的邮件工具处理。读者可以将图像作为附件或HTML体发送。如果所有附件保存在同一个目录下，那么必须用不同的图像文件名以确保邮件工具不会显示其他图片。另外图像URL要用绝对路径，不能用相对路径。
+</div> 
+<div> 
+</div> 
+<div>
+  如何设置∕获取邮件的优先级？
+</div> 
+<div> 
+</div> 
+<div>
+  设置邮件的优先级，只需在消息头中添加&quot;X-Priority&quot;属性：
+ <br /> MimeMessage msg;
+ <br /> Msg.addHeader(&quot;X-Priority&quot;,&quot;1&quot;);
+ <br /> 同样道理，要获取邮件的优先级只要获取&quot;X-Priority&quot;属性的值就可以了：
+ <br /> String priority = msg.getHeader(&quot;X-Priority&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+  附录：Java Mail API的基本概念
+</div> 
+<div> 
+</div> 
+<div>
+  什么是Java Mail API
+</div> 
+<div> 
+</div> 
+<div>
+  JavaMail API 是一个用于阅读、编写和发送电子邮件的可选包（标准扩展）。与 Eudora、pine 及 Microsoft Outlook 相似，这个包用来创建邮件用户代理（Mail User Agent，MUA） 类型程序。API 的主要用途并不在于传输、发送和转发消息；这一功能范围属于某些应用程序，如 sendmail 及其它邮件传输代理（Mail Transfer Agent，MTA）类型程序。MUA 类型的程序能让用户阅读和书写邮件，而它却依赖 MTA 处理实际发送。
+</div> 
+<div> 
+</div> 
+<div>
+  什么是SMTP
+</div> 
+<div> 
+</div> 
+<div>
+  SMTP（Simple Mail Transfer Protocol），即简单邮件传输协议，它定义了发送电子邮件的机制。在 JavaMail API 环境中，基于 JavaMail 的程序将和您的公司或因特网服务供应商的（Internet Service Provider's，ISP's）SMTP 服务器通信。SMTP 服务器可将消息中转至接收方 SMTP 服务器，以便最终让用户经由 POP 或 IMAP 获得。这不是要求 SMTP 服务器成为开放的中继，尽管 SMTP 服务器支持身份验证，不过还是得确保它的配置正确。像配置服务器来中继消息或添加删除邮件账号这类任务的实现，JavaMail API 中并不支持。
+</div> 
+<div> 
+</div> 
+<div>
+  什么是POP
+</div> 
+<div> 
+</div> 
+<div>
+  POP（Post Office Protocol），即邮局协议。目前用的是版本3，所以人们通常将它称为 POP3，RFC 1939 定义了这个协议。POP 和SMTP一样，也是一种机制，Internet上大多数人通过它得到邮件。该协议规定每个用户只能有一个邮箱的支持。这就是它所能做的，而这也造成了许多混淆。使用 POP 时，用户熟悉的许多性能并不是由 POP 协议支持的，如查看有几封新邮件消息这一性能。这些性能内建于如 Eudora 或 Microsoft Outlook 之类的程序中，它们能记住一些事，诸如最近一次收到的邮件，还能计算出有多少是新的。所以当使用 JavaMail API 时，如果读者想要这类信息，就只能由自己来计算了。
+</div> 
+<div> 
+</div> 
+<div>
+  什么是IMAP
+</div> 
+<div> 
+</div> 
+<div>
+  IMAP（Internet Message Access Protocol），即Internet消息访问协议，是更高级的用于接收消息的协议，在 RFC 2060 中有它的定义。目前使用的IMAP版本为4，人们习惯将它称为 IMAP4。在用到 IMAP 时，邮件服务器必需支持这个协议。不能仅仅把使用 POP 的程序用于 IMAP，并指望它支持 IMAP 所有性能。假设邮件服务器支持 IMAP，基于 JavaMail 的程序可以利用这种情况--用户在服务器上可以有多个文件夹（folder），并且这些文件夹可以被多个用户共享。
+ <br /> 因为有这一更高级的性能，您也许会认为所有用户都会使用 IMAP。事实并不是这样。要求服务器接收新消息，在用户请求时发送到用户手中，还要在每个用户的多个文件夹中维护消息。这样虽然能将消息集中备份，但随着用户长期的邮件夹越来越大，到磁盘空间耗尽时，每个用户都会受到损失。使用 POP，就能卸载邮件服务器上保存的消息了。
+</div> 
+<div> 
+</div> 
+<div>
+  什么是MIME
+</div> 
+<div> 
+</div> 
+<div>
+  MIME（Multipurpose Internet Mail Extensions），即多用途Internet邮件扩展标准。它不是邮件传输协议，而是对传输内容的消息、附件及其它的内容定义了格式。这里有很多不同的RFC（Requirement of Comment）文档：RFC 822、RFC 2045、RFC 2046 和 RFC 2047。作为一个 JavaMail API 的用户，您通常不必对这些格式操心。无论如何，一定存在这些格式而且程序会用到它。
+ <br /> 
+ <a href="http://www.yesky.com/SoftChannel/72348977504190464/20020713/1620276.shtml">http://www.yesky.com/SoftChannel/72348977504190464/20020713/1620276.shtml</a>
+</div></div></body></html>

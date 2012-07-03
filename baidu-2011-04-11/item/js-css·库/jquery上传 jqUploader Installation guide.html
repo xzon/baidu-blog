@@ -1,0 +1,164 @@
+<html><head><title>jquery上传 jqUploader Installation guide</title></head><body><div id='tit'>jquery上传 jqUploader Installation guide</div><div id='cate'>js-css&middot;库</div><div id='date'>2009年03月15日 星期日 00:28 A.M.</div><div id='page'>61</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/d07fab6e31fc75d281cb4a8f.html'>http://hi.baidu.com/hxzon/blog/item/d07fab6e31fc75d281cb4a8f.html</a><div id='cnt'><p> </p> 
+<p>jquery上传 jqUploader Installation guide</p> 
+<p><a href="http://www.pixeline.be/experiments/jqUploader/">http://www.pixeline.be/experiments/jqUploader/</a></p> 
+<h1>jqUploader - Installation guide</h1> 
+<h2>Technical requirements &amp; limitations</h2> 
+<ol> 
+ <li>Tested successfully on Windows XP with FF2.0.0.4, Internet Explorer 6+ with Flash player V8+</li> 
+ <li>Due to limitations in the flash player, the maximum allowed size is 100 Mo. Blame Macromediadobe 
+  <blockquote> 
+   <h3>Flash Documentation:</h3> 
+   <em>Although Flash Player has no restriction on the size of files you can upload or download, the player officially supports uploads or downloads of up to 100 MB.</em>
+  </blockquote></li> 
+</ol> 
+<h2>How to set it up ?</h2> 
+<h3>Step 1: The html form</h3> 
+<p>Modern web development implies to make sure whatever you set up degrades gracefully whatever the user setup: PC, mobile phone, with or without javascript and flash plugin installed. The best way is therefore to start with the bare minimum: the html form.</p> 
+<p>Here is an example of a valid xhtml file upload form. Make sure you give it a unique id attribute, such as &quot;myUploadForm&quot;. Note the input field with name =&quot;MAX_FILE_SIZE&quot;. Even with javascript disabled, this field will tell the user <strong>before actually uploading the file</strong> that its size is too big. If javascript is available, jqUploader will use the MAX_FILE_SIZE value as size limitation.</p> 
+<p><strong>Now, you need to indicate to jqUploader the element containing the file input field to convert to the rich flash UI alternative.</strong> This represents a changed compared to versions up to 1.0.1. jqUploader needs the containig element, not the file input field itself. This makes it easier to use the input's label and form tag attributes values and content.</p> 
+<pre><code class="html">
+
+&lt;form id=&quot;myUploadForm&quot; enctype=&quot;multipart/form-data&quot; action=&quot;flash_upload.php&quot; method=&quot;POST&quot; class=&quot;a_form&quot;&gt;
+&lt;fieldset&gt;
+&lt;legend&gt;Your file&lt;/legend&gt;
+&lt;ol&gt;
+&lt;li class=&quot;jqUploader&quot;&gt;
+&lt;label for=&quot;example1&quot;&gt;Choose a file to upload: &lt;/label&gt;
+&lt;input name=&quot;MAX_FILE_SIZE&quot; value=&quot;1048576&quot; type=&quot;hidden&quot; /&gt;
+&lt;input name=&quot;example1&quot;  id=&quot;example1&quot;  type=&quot;file&quot; /&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/fieldset&gt;
+&lt;input type=&quot;submit&quot; name=&quot;submit&quot; value=&quot;Send&quot; /&gt;
+&lt;/form&gt;
+</code></pre> 
+<h3>Step 2: The javascript</h3> 
+<p>Make sure you include the 3 javascript files (in this order: jquery-latest.pack.js, swfobject.js and finally jquery.jqUploader.js) by putting the following code in your &lt;head&gt; tags. Place them wherever you want on your server, and do not forget to specify the path accordingly. In this example, they are sitting in the same folder as your html page.</p> 
+<pre><code class="html">
+&lt;script type=&quot;text/javascript&quot; src=&quot;jquery-latest.pack.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;dependencies/swfobject.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;jquery.jqUploader.js&quot;&gt;&lt;/script&gt;
+</code></pre> 
+<h3>Step 3: make it yours</h3> 
+<p>Now, you need to activate the script by telling which file input fields you would like to replace. This is made through the use of the <a target="_blank" href="http://docs.jquery.com/Selectors">jquery</a> javascript framework, which makes javascript coding possible if you understand CSS better than javascript.</p> 
+<p>For example, the following code will replace the file input fields contained in the &lt; li&lt; element with class=&quot;jqUploader&quot;.</p> 
+<p>Add this code inside your &lt;head&gt; tag:</p> 
+<pre><code class="javascript">
+$(document).ready(function(){
+ $(&quot;.jqUploader&quot;).jqUploader({
+  background: &quot;FFFFDF&quot;,
+  barColor: &quot;64A9F6&quot;,
+        allowedExt:     &quot;jpg|JPG|jpeg|JPEG&quot;
+ });
+});
+
+</code>
+</pre>
+<h3>Step 4: serverside processing</h3>
+<p>This file (specified by default using the form action attribute, should be able to perform the upload with or without javascript enabled. jqUploader, will automatically adds a variable to this script if javascript is present, so you can organize your serverside processing accordingly. Here is an example (flash_upload.php).</p>
+<pre><code class="php">
+
+/*
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+jqUploader serverside example: (author : pixeline, http://www.pixeline.be)
+
+when javascript is available, a variable is automatically created that you can use to dispatch all the possible actions
+
+This file examplifies this usage: javascript available, or non available.
+
+1/ a form is submitted
+1.a javascript is off, so jquploader could not be used, therefore the file needs to be uploaded the old way
+1.b javascript is on, so the file, by now is already uploaded and its filename is available in the $_POST array sent by the form
+
+2/ a form is not submitted, and jqUploader is on
+jqUploader flash file is calling home! process the upload.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+*/
+
+$uploadDir = dirname(__FILE__) . '/files/';
+$uploadFile = $uploadDir . basename($_FILES['Filedata']['name']);
+
+if ($_POST['submit'] != '') {
+    // 1. submitting the html form
+    if (!isset($_GET['jqUploader'])) {
+        // 1.a javascript off, we need to upload the file
+        if (move_uploaded_file ($_FILES[0]['tmp_name'], $uploadFile)) {
+            // delete the file
+            //  @unlink ($uploadFile);
+            $html_body = '&lt;h1&gt;File successfully uploaded!&lt;/h1&gt;&lt;pre&gt;';
+            $html_body .= print_r($_FILES, true);
+            $html_body .= '&lt;/pre&gt;';
+        } else {
+            $html_body = '&lt;h1&gt;File upload error!&lt;/h1&gt;';
+
+            switch ($_FILES[0]['error']) {
+                case 1:
+                    $html_body .= 'The file is bigger than this PHP installation allows';
+                    break;
+                case 2:
+                    $html_body .= 'The file is bigger than this form allows';
+                    break;
+                case 3:
+                    $html_body .= 'Only part of the file was uploaded';
+                    break;
+                case 4:
+                    $html_body .= 'No file was uploaded';
+                    break;
+                default:
+                    $html_body .= 'unknown errror';
+            }
+            $html_body .= 'File data received: &lt;pre&gt;';
+            $html_body .= print_r($_FILES, true);
+            $html_body .= '&lt;/pre&gt;';
+        }
+        $html_body = '&lt;h1&gt;Full form&lt;/h1&gt;&lt;pre&gt;';
+        $html_body .= print_r($_POST, true);
+        $html_body .= '&lt;/pre&gt;';
+    } else {
+        // 1.b javascript on, so the file has been uploaded and its filename is in the POST array
+        $html_body = '&lt;h1&gt;Form posted!&lt;/h1&gt;Error:&lt;pre&gt;';
+        $html_body .= print_r($_POST, false);
+        $html_body .= '&lt;/pre&gt;';
+    }
+    myHtml($html_body);
+} else {
+    if ($_GET['jqUploader'] == 1) {
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        // 2. performing jqUploader flash upload
+        if ($_FILES['Filedata']['name']) {
+            if (move_uploaded_file ($_FILES['Filedata']['tmp_name'], $uploadFile)) {
+                // delete the file
+                //  @unlink ($uploadFile);
+                return $uploadFile;
+            }
+        } else {
+            if ($_FILES['Filedata']['error']) {
+                return $_FILES['Filedata']['error'];
+            }
+        }
+    }
+}
+// /////////////////// HELPER FUNCTIONS
+function myHtml($bodyHtml)
+{
+
+    ?&gt;
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.01//EN&quot;&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot; /&gt;
+&lt;title&gt;jqUploader demo - Result&lt;/title&gt;
+&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; media=&quot;screen&quot; href=&quot;style.css&quot;/&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;?php echo $bodyHtml;
+
+?&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+&lt;?php
+}
+
+</code></pre></div></body></html>

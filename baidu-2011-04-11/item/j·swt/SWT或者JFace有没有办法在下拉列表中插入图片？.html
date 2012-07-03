@@ -1,0 +1,40 @@
+<html><head><title>SWT或者JFace有没有办法在下拉列表中插入图片？</title></head><body><div id='tit'>SWT或者JFace有没有办法在下拉列表中插入图片？</div><div id='cate'>j&middot;swt</div><div id='date'>2008年03月31日 星期一 11:20 A.M.</div><div id='page'>146</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/8468d362561108d9e7113ab0.html'>http://hi.baidu.com/hxzon/blog/item/8468d362561108d9e7113ab0.html</a><div id='cnt'><p>SWT或者JFace有没有办法在下拉列表中插入图片？图片：</p> 
+<div class="tpc_content"> 
+ <p>三个办法。<br /> 第一，如果不是非用Combo不可，你可以用Button/Label+弹出菜单来
+  <nobr>
+   <span style="font-family: Tahoma;">模拟</span>
+  </nobr>下拉的效果，菜单可以加图像。<br /> 第二，把Win32的ComboBoxEx控件
+  <nobr>
+   <span style="font-family: Tahoma;">包装</span>
+  </nobr>成SWT Widget。当然这个方法不是跨平台的。<br /> 第三，改写Combo让它支持Owner Draw。这个方法也不是跨平台的。<br /> <br /> 这三个方法里面第三个是最容易的。给一段
+  <nobr>
+   <span style="font-family: Tahoma;">代码</span>
+  </nobr>：<br /> package org.eclipse.swt.widgets;<br /> <br /> 
+  <nobr>
+   <span style="font-family: Tahoma;">import</span>
+  </nobr> 
+  <nobr>
+   <span style="font-family: Tahoma;">java</span>
+  </nobr>.io.*;<br /> <br /> import org.eclipse.swt.SWT;<br /> import org.eclipse.swt.graphics.*;<br /> import org.eclipse.swt.internal.win32.*;<br /> <br /> public class CustomCombo extends Combo<br /> {<br /> public CustomCombo( Composite parent, int style )<br /> {<br /> super( parent, style );<br /> <br /> try<br /> {<br /> InputStream is = getClass().getResourceAsStream( &quot;bullet.gif&quot; );<br /> image = new Image( getDisplay(), is );<br /> is.close();<br /> }<br /> catch ( IOException e )<br /> {<br /> e.printStackTrace();<br /> }<br /> final int CB_SETITEMHEIGHT = 0x0153;<br /> <br /> OS.SendMessage( 
+  <nobr>
+   <span style="font-family: Tahoma;">handle</span>
+  </nobr>, CB_SETITEMHEIGHT, 0, 24 );<br /> OS.SendMessage( handle, CB_SETITEMHEIGHT, -1, 24 );<br /> }<br /> <br /> @Override<br /> int widgetStyle()<br /> {<br /> final int CBS_OWNERDRAWFIXED = 0x0010;<br /> final int CBS_HASSTRINGS = 0x0200;<br /> return super.widgetStyle() | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS;<br /> }<br /> <br /> @Override<br /> protected void checkSubclass()<br /> {<br /> }<br /> <br /> @Override<br /> public void dispose()<br /> {<br /> image.dispose();<br /> super.dispose();<br /> }<br /> <br /> @Override<br /> LRESULT wmDrawChild( int wParam, int lParam )<br /> {<br /> DRAWITEMSTRUCT dis = new DRAWITEMSTRUCT();<br /> OS.MoveMemory( dis, lParam, DRAWITEMSTRUCT.sizeof );<br /> <br /> GC gc = new GC( new DCWrapper( dis.hDC ) );<br /> Rectangle rc = new Rectangle( dis.left, dis.top, dis.right - dis.left,<br /> dis.bottom - dis.top );<br /> Display display = getDisplay();<br /> if ( (dis.itemState &amp; OS.ODS_SELECTED) != 0 )<br /> {<br /> gc<br /> .setBackground( display<br /> .getSystemColor( SWT.COLOR_LIST_SELECTION ) );<br /> gc.setForeground( display<br /> .getSystemColor( SWT.COLOR_LIST_SELECTION_TEXT ) );<br /> gc.fillRectangle( rc );<br /> }<br /> else<br /> {<br /> gc.setBackground( display<br /> .getSystemColor( SWT.COLOR_LIST_BACKGROUND ) );<br /> gc.setForeground( display<br /> .getSystemColor( SWT.COLOR_LIST_FOREGROUND ) );<br /> gc.fillRectangle( rc );<br /> }<br /> String text = getItem( dis.itemID );<br /> gc.drawImage( image, dis.left + 1, dis.top + 1 );<br /> gc.drawText( text, dis.left + 20, dis.top );<br /> <br /> gc.dispose();<br /> <br /> return null;<br /> }<br /> <br /> private static class DCWrapper implements Drawable<br /> {<br /> private int hdc;<br /> <br /> DCWrapper( int hdc )<br /> {<br /> this.hdc = hdc;<br /> }<br /> <br /> public int internal_new_GC( GCData data )<br /> {<br /> return hdc;<br /> }<br /> <br /> public void internal_dispose_GC( int handle, GCData data )<br /> {<br /> }<br /> }<br /> <br /> private Image image;<br /> }</p> 
+ <p>==========================================================================</p> 
+ <p>谢谢treenode的回复，我在swtplus中找到相应的解决方法了<br /> <br /> TableComboStrategy strategy = new TableComboStrategy(style,SWT.FULL_SELECTION);<br /> final PCombo pCombo = new PCombo(nameGroup, PCombo.BORDER | PCombo.READ_ONLY | PCombo.RESIZE, strategy);<br /> <br /> final Table table = strategy.getTable();<br /> myTable = table;<br /> TableColumn tc = new TableColumn(table,SWT.NONE);<br /> tc.setText(&quot;Driver&quot;);<br /> tc.setWidth(SIZING_TEXT_FIELD_WIDTH);<br /> <br /> data = new GridData(GridData.HORIZONTAL_ALIGN_FILL<br /> | GridData.GRAB_HORIZONTAL);<br /> data.widthHint = SIZING_TEXT_FIELD_WIDTH;<br /> <br /> int size = driverModel.size();<br /> for (int i = 0; i &lt; size; i++){<br /> TableItem ti = new TableItem(table,SWT.NONE);<br /> if(driverModel.getElement(i).isJDBCDriverClassLoaded()){<br /> ti.setImage(ImageDescriptor.createFromURL(JFaceDbcImages<br /> .getOkDriver()).createImage());<br /> }<br /> else{<br /> ti.setImage(ImageDescriptor.createFromURL(JFaceDbcImages<br /> .getDeleteDriver()).createImage());<br /> }<br /> ti.setText(0, driverModel.getElement(i).toString());<br /> }<br /> <br /> pCombo.setLayoutData(data);<br /> <br /> ===================================================</p> 
+ <div class="tpc_content">
+  SWTPlus现在已经是Eclipse的一个项目草案，新名称叫做Nebula，估计不久就会正式发布出来。
+  <br /> 
+  <br /> 项目地址为： 
+  <a target="_blank" href="http://www.eclipse.org/nebula/"><span style="color: rgb(47, 95, 161); font-family: Tahoma;">http://www.eclipse.org/nebula/</span></a>
+  <br /> 
+  <br /> 这里是本站翻译的相关新闻：
+  <br /> 
+  <br /> Nebula项目已经被提议，目的是为SWT和RCP开发提供一套新的自定义部件。
+  <br /> 
+  <a target="_blank" href="http://www.eclipseworld.org/bbs/read.php?tid=1468"><span style="color: rgb(47, 95, 161); font-family: Tahoma;">http://www.eclipseworld.org/bbs/read.php?tid=1468</span></a>
+  <br /> 
+  <br /> Nebula项目组发布了一个新的表格部件
+  <br /> 
+  <a target="_blank" href="http://www.eclipseworld.org/bbs/read.php?tid=4692"><span style="color: rgb(47, 95, 161); font-family: Tahoma;">http://www.eclipseworld.org/bbs/read.php?tid=4692</span></a>
+ </div> 
+</div></div></body></html>

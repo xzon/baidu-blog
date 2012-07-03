@@ -1,0 +1,669 @@
+<html><head><title>Chapter 5. 事件、拦截器和异常处理 -seam满江红</title></head><body><div id='tit'>Chapter 5. 事件、拦截器和异常处理 -seam满江红</div><div id='cate'>j&middot;后端</div><div id='date'>2009年03月11日 星期三 04:01 P.M.</div><div id='page'>62</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b9a40af3886f60c30b46e03c.html'>http://hi.baidu.com/hxzon/blog/item/b9a40af3886f60c30b46e03c.html</a><div id='cnt'><div class="titlepage"> 
+ <div> 
+  <div> 
+   <h2 class="title">Chapter 5. 事件、拦截器和异常处理 -seam满江红</h2> 
+  </div> 
+ </div> 
+ <div> 
+ </div> 
+</div> 
+<p>两个更深入的概念补充了上下文组件模型，这两个概念推动了极端松耦合这一Seam应用程序的独特特性。 第一个是强有力的事件模型，事件可以通过类似JSF绑定表达式的方法映射到事件监听器。 第二个是普遍使用注解和拦截器，这使我们总能跨越式地切入到到实现业务逻辑的组件。</p> 
+<div class="sect1"> 
+ <div class="titlepage"> 
+  <div> 
+   <div> 
+    <h2 style="clear: both" class="title"><a name="d0e4230"></a>5.1. Seam事件</h2> 
+   </div> 
+  </div> 
+  <div> 
+  </div> 
+ </div> 
+ <p>Seam组件模型是为使用 <span class="emphasis"><em>事件驱动的应用程序</em></span> 而开发的，特别是在一个细粒度的事件模型里进行细粒度的松耦合组件的开发。 Seam的事件有几种类型，大部分是我们已经见过的：</p> 
+ <div class="itemizedlist"> 
+  <ul type="disc"> 
+   <li> <p>JSF事件</p> </li> 
+   <li> <p>jBPM的状态转移事件</p> </li> 
+   <li> <p>Seam页面动作</p> </li> 
+   <li> <p>Seam组件驱动事件</p> </li> 
+   <li> <p>Seam上下文事件</p> </li> 
+  </ul> 
+ </div> 
+ <p>所有这些不同种类的事件都通过绑定了表达式的JSF EL方法映射到Seam组件去。JSF事件是在JSF模板中定义的：</p> 
+ <pre class="programlisting">&lt;h:commandButton value=&quot;Click me!&quot; action=&quot;#{helloWorld.sayHello}&quot;/&gt;</pre> 
+ <p>对于jBPM的转换事件，是在jBPM过程定义或页面流定义中指定的：</p> 
+ <pre class="programlisting">&lt;start-page name=&quot;hello&quot; view-id=&quot;/hello.jsp&quot;&gt;
+    &lt;transition to=&quot;hello&quot;&gt;
+        &lt;action expression=&quot;#{helloWorld.sayHello}&quot;/&gt;
+    &lt;/transition&gt;
+&lt;/start-page&gt;</pre> 
+ <p>你可以在其他地方找到更多关于JSF事件和jBPM事件的信息。我们现在主要关注由Seam定义的两种新增类型的事件上。</p> 
+ <div class="sect2"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h3 class="title"><a name="d0e4264"></a>5.1.1. 页面动作</h3> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>Seam的页面动作是指就在我们渲染页面之前发生的事件。我们在 <tt class="literal"><font face="新宋体">WEB-INF/pages.xml</font></tt> 中声明页面动作。 我们可以为任何一个特殊的JSF视图id定义一个页面动作：</p> 
+  <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/hello.jsp&quot; action=&quot;#{helloWorld.sayHello}&quot;/&gt;
+&lt;/pages&gt;</pre> 
+  <p>或者，我们可以使用一个通配符 <tt class="literal"><font face="新宋体">*</font></tt> 作为 <tt class="literal"><font face="新宋体">view-id</font></tt> 的后缀来指定一个动作，应用到所有符合该模式的视图ID中：</p> 
+  <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/hello/*&quot; action=&quot;#{helloWorld.sayHello}&quot;/&gt;
+&lt;/pages&gt;</pre> 
+  <p>如果多通配符的页面动作匹配当前的view-id，Seam将按照从最通用到最特殊的顺序来调用所有的动作。</p> 
+  <p>页面动作方法可以返回一个JSF的结果。如果这个结果非空，Seam将用定义好的导航规则导航到一个视图中去。</p> 
+  <p>此外，在元素 <tt class="literal"><font face="新宋体">&lt;page&gt;</font></tt> 里提到的视图id不需要对应一个真实的JSP或Facelets页面！ 因此，我们可以再生传统的面向动作的框架的功能，就像Struts或WebWork使用页面动作那样。例如：</p> 
+  <pre class="programlisting">TODO: translate struts action into page action</pre> 
+  <p>如果你想要应non-faces的请求做点复杂的事情（例如HTTP GET请求），这就非常有用。</p> 
+  <p>对于多页面或者条件页面的动作，可以使用 <tt class="literal"><font face="新宋体">&lt;action&gt;</font></tt> 标签指定：</p> 
+  <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/hello.jsp&quot;&gt;
+        &lt;action execute=&quot;#{helloWorld.sayHello}&quot; if=&quot;#{not validation.failed}&quot;/&gt;
+        &lt;action execute=&quot;#{hitCount.increment}&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+  <div class="sect3"> 
+   <div class="titlepage"> 
+    <div> 
+     <div> 
+      <h4 class="title"><a name="d0e4304"></a>5.1.1.1. 页面参数</h4> 
+     </div> 
+    </div> 
+    <div> 
+    </div> 
+   </div> 
+   <p>一个JSF faces请求（表单提交）同时封装了一个“动作action”（一个方法绑定）和“多个参数parameters”（输入值绑定）。一个页面动作也可能需要参数！</p> 
+   <p>由于GET请求是可以做标记的，页面参数是作为人类易读的请求参数来传递的。（不像JSF form的输入，什么都有就是不具有可读性！）</p> 
+   <p>你可以使用页面参数，带不带动作方法都可以。</p> 
+   <div class="sect4"> 
+    <div class="titlepage"> 
+     <div> 
+      <div> 
+       <h5 class="title"><a name="d0e4313"></a>5.1.1.1.1. 将请求参数映射到模型</h5> 
+      </div> 
+     </div> 
+     <div> 
+     </div> 
+    </div> 
+    <p>Seam让我们提供一个值绑定，来将一个已命名的请求参数映射成一个模型对象的属性。</p> 
+    <pre class="programlisting">&lt;pages&gt;
+      &lt;page view-id=&quot;/hello.jsp&quot; action=&quot;#{helloWorld.sayHello}&quot;&gt;
+          &lt;param name=&quot;firstName&quot; value=&quot;#{person.firstName}&quot;/&gt;
+          &lt;param name=&quot;lastName&quot; value=&quot;#{person.lastName}&quot;/&gt;
+      &lt;/page&gt;
+  &lt;/pages&gt;</pre> 
+    <p><tt class="literal"><font face="新宋体">&lt;param&gt;</font></tt> 的声明是双向的，就像一个JSF输入的值绑定：</p> 
+    <div class="itemizedlist"> 
+     <ul type="disc"> 
+      <li> <p>当视图id的一个non-faces(GET)请求发生时，Seam在执行了相应的类型转变之后，就在模型对象上设置已命名的请求参数的值。</p> </li> 
+      <li> <p>任何 <tt class="literal"><font face="新宋体">&lt;s:link&gt;</font></tt> 或 <tt class="literal"><font face="新宋体">&lt;s:button&gt;</font></tt> 透明地或者说自动地包括request带有的参数。 参数的值由渲染阶段（当 <tt class="literal"><font face="新宋体">&lt;s:link&gt;</font></tt> 被渲染）的绑定值来决定。</p> </li> 
+      <li> <p>使用 <tt class="literal"><font face="新宋体">&lt;redirect/&gt;</font></tt> 到视图id的任何导航规则很明显是含有请求参数。 参数的值由调用应用程序阶段结束时的值绑定大小来决定。</p> </li> 
+      <li> <p>这个值很明显是由带有视图id的被提交的任何JSF页面传播的。 这意味着视图参数表现得就像faces请求的 <tt class="literal"><font face="新宋体">PAGE</font></tt> 范围内上下文变量一样。</p> </li> 
+     </ul> 
+    </div> 
+    <p>最理想的情形是 <span class="emphasis"><em>无论</em></span> 我们从什么页面到 <tt class="literal"><font face="新宋体">/hello.jsp</font></tt> （或者从<tt class="literal"><font face="新宋体">/hello.jsp</font></tt>回到<tt class="literal"><font face="新宋体">/hello.jsp</font></tt>）， 在值绑定中被引用的模型属性的值都应该被“记住”，而不需要对话来存储（或者其他的服务器端状态来存储）。</p> 
+   </div> 
+   <div class="sect4"> 
+    <div class="titlepage"> 
+     <div> 
+      <div> 
+       <h5 class="title"><a name="d0e4367"></a>5.1.1.1.2. 传播请求参数</h5> 
+      </div> 
+     </div> 
+     <div> 
+     </div> 
+    </div> 
+    <p>如果只是指定 <tt class="literal"><font face="新宋体">name</font></tt> 属性，那么请求参数就会利用 <tt class="literal"><font face="新宋体">PAGE</font></tt> 进行上下文传播（它没有被映射成模型属性）。</p> 
+    <pre class="programlisting">&lt;pages&gt;
+      &lt;page view-id=&quot;/hello.jsp&quot; action=&quot;#{helloWorld.sayHello}&quot;&gt;
+          &lt;param name=&quot;firstName&quot; /&gt;
+          &lt;param name=&quot;lastName&quot; /&gt;
+      &lt;/page&gt;
+  &lt;/pages&gt;</pre> 
+    <p>如果你想要建立多层的复杂CRUD页面，页面参数的传递尤其有用。你可以用它“记住”你前面到过的页面（例如当按了保存按钮时）和正在编辑的实体。</p> 
+    <div class="itemizedlist"> 
+     <ul type="disc"> 
+      <li> <p>很明显，如果参数是视图的页面参数的话，任何 <tt class="literal"><font face="新宋体">&lt;s:link&gt;</font></tt> 或者 <tt class="literal"><font face="新宋体">&lt;s:button&gt;</font></tt> 都会传播请求参数。</p> </li> 
+      <li> <p>这个值很明显是由带有指定视图id的页面的任何jsf页面表单提交传播的。 （这意味着视图参数表现得就像faces请求的<tt class="literal"><font face="新宋体">PAGE</font></tt>范围内视图参数一样。）</p> </li> 
+     </ul> 
+    </div> 
+   </div> 
+   <p>所有这些听起来很复杂，你可能会想这么一个外来的构造是否真的值得去努力。实际上，一旦你“掌握了它”，有这种想法非常自然。 理解这些资料显然需要花费时间的。页面参数是跨越non-faces请求来传播状态的最优雅方式。 对于用可标记的结果页，搜索屏幕的问题尤其有效，在这种情况下，我们喜欢可以写应用程序代码、用同一段代码来处理POST和GET请求。 页面参数消除了视图定义中请求参数的重复清单，并使得重定向更容易用代码实现。</p> 
+   <div class="sect4"> 
+    <div class="titlepage"> 
+     <div> 
+      <div> 
+       <h5 class="title"><a name="d0e4400"></a>5.1.1.1.3. 转换和验证</h5> 
+      </div> 
+     </div> 
+     <div> 
+     </div> 
+    </div> 
+    <p>你可以为复杂的模型属性指定一个JSF转换器:</p> 
+    <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/calculator.jsp&quot; action=&quot;#{calculator.calculate}&quot;&gt;
+        &lt;param name=&quot;x&quot; value=&quot;#{calculator.lhs}&quot;/&gt;
+        &lt;param name=&quot;y&quot; value=&quot;#{calculator.rhs}&quot;/&gt;
+        &lt;param name=&quot;op&quot; converterId=&quot;com.my.calculator.OperatorConverter&quot; value=&quot;#{calculator.op}&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+    <p>或者：</p> 
+    <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/calculator.jsp&quot; action=&quot;#{calculator.calculate}&quot;&gt;
+        &lt;param name=&quot;x&quot; value=&quot;#{calculator.lhs}&quot;/&gt;
+        &lt;param name=&quot;y&quot; value=&quot;#{calculator.rhs}&quot;/&gt;
+        &lt;param name=&quot;op&quot; converter=&quot;#{operatorConverter}&quot; value=&quot;#{calculator.op}&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+    <p>JSF验证器和 <tt class="literal"><font face="新宋体">required=&quot;true&quot;</font></tt> 也可以这样用：</p> 
+    <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/blog.xhtml&quot;&gt;
+        &lt;param name=&quot;date&quot;
+               value=&quot;#{blog.date}&quot;
+               validatorId=&quot;com.my.blog.PastDate&quot;
+               required=&quot;true&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+    <p>或者：</p> 
+    <pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/blog.xhtml&quot;&gt;
+        &lt;param name=&quot;date&quot;
+               value=&quot;#{blog.date}&quot;
+               validator=&quot;#{pastDateValidator}&quot;
+               required=&quot;true&quot;/&gt;
+    &lt;/page&gt;
+&lt;/pages&gt;</pre> 
+    <p>更好的方式，基于模型的Hibernate验证器注解会自动被识别和验证。</p> 
+    <p>当类型转换或者验证失败后，一个全局的 <tt class="literal"><font face="新宋体">FacesMessage</font></tt> 就会被添加到 <tt class="literal"><font face="新宋体">FacesContext</font></tt> 中。</p> 
+   </div> 
+  </div> 
+  <div class="sect3"> 
+   <div class="titlepage"> 
+    <div> 
+     <div> 
+      <h4 class="title"><a name="d0e4432"></a>5.1.1.2. 导航</h4> 
+     </div> 
+    </div> 
+    <div> 
+    </div> 
+   </div> 
+   <p>你可以使用在Seam应用程序的 <tt class="literal"><font face="新宋体">faces-config.xml</font></tt> 中定义的标准JSF导航规则。然而，JSF导航规则也有许多烦人的限制：</p> 
+   <div class="itemizedlist"> 
+    <ul type="disc"> 
+     <li> <p>在重定向时，不可能指定一个将要使用的请求参数。</p> </li> 
+     <li> <p>不可能由一个规则来开始或者结束对话。</p> </li> 
+     <li> <p>通过给动作方法求取返回值来运作规则；不可能去给一个任意的EL表达式取值。</p> </li> 
+    </ul> 
+   </div> 
+   <p>更深层次的问题在于”管理“逻辑在 <tt class="literal"><font face="新宋体">pages.xml</font></tt> 和 <tt class="literal"><font face="新宋体">faces-config.xml</font></tt> 之间是分散的。 最好是把这种逻辑统一进 <tt class="literal"><font face="新宋体">pages.xml</font></tt> 中。</p> 
+   <p>这个JSF导航规则：</p> 
+   <pre class="programlisting">&lt;navigation-rule&gt;
+    &lt;from-view-id&gt;/editDocument.xhtml&lt;/from-view-id&gt;
+
+    &lt;navigation-case&gt;
+        &lt;from-action&gt;#{documentEditor.update}&lt;/from-action&gt;
+        &lt;from-outcome&gt;success&lt;/from-outcome&gt;
+        &lt;to-view-id&gt;/viewDocument.xhtml&lt;/to-view-id&gt;
+        &lt;redirect/&gt;
+    &lt;/navigation-case&gt;
+
+&lt;/navigation-rule&gt;</pre> 
+   <p>可以重写如下：</p> 
+   <pre class="programlisting">&lt;page view-id=&quot;/editDocument.xhtml&quot;&gt;
+
+    &lt;navigation from-action=&quot;#{documentEditor.update}&quot;&gt;
+        &lt;rule if-outcome=&quot;success&quot;&gt;
+            &lt;redirect view-id=&quot;/viewDocument.xhtml&quot;/&gt;
+        &lt;/rule&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre> 
+   <p>如果我们不必用字符类型的返回值（JSF的结果）来污染 <tt class="literal"><font face="新宋体">DocumentEditor</font></tt> 组件的话会更好。 因此Seam允许我们写成：</p> 
+   <pre class="programlisting">&lt;page view-id=&quot;/editDocument.xhtml&quot;&gt;
+
+    &lt;navigation from-action=&quot;#{documentEditor.update}&quot;
+                   evaluate=&quot;#{documentEditor.errors.size}&quot;&gt;
+        &lt;rule if-outcome=&quot;0&quot;&gt;
+            &lt;redirect view-id=&quot;/viewDocument.xhtml&quot;/&gt;
+        &lt;/rule&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre> 
+   <p>或者甚至可以写成：</p> 
+   <pre class="programlisting">&lt;page view-id=&quot;/editDocument.xhtml&quot;&gt;
+
+    &lt;navigation from-action=&quot;#{documentEditor.update}&quot;&gt;
+        &lt;rule if=&quot;#{documentEditor.errors.empty}&quot;&gt;
+            &lt;redirect view-id=&quot;/viewDocument.xhtml&quot;/&gt;
+        &lt;/rule&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre> 
+   <p>第一种形式计算一个值绑定，来确定要被后面的一系列导航规则所使用的结果值。 第二种方法忽略结果，并为每个可能的规则来计算值绑定。</p> 
+   <p>当然，当一个更新成功，我们可能想要结束当前的对话。我们可以这样做：</p> 
+   <pre class="programlisting">&lt;page view-id=&quot;/editDocument.xhtml&quot;&gt;
+
+    &lt;navigation from-action=&quot;#{documentEditor.update}&quot;&gt;
+        &lt;rule if=&quot;#{documentEditor.errors.empty}&quot;&gt;
+            &lt;end-conversation/&gt;
+            &lt;redirect view-id=&quot;/viewDocument.xhtml&quot;/&gt;
+        &lt;/rule&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre> 
+   <p>由于我们终止了会话，后面的任何请求都无法知道我们对哪个文档感兴趣。 我们可以将文档id作为一个请求参数传递，这样也使得视图变成是可标记的：</p> 
+   <pre class="programlisting">&lt;page view-id=&quot;/editDocument.xhtml&quot;&gt;
+
+    &lt;navigation from-action=&quot;#{documentEditor.update}&quot;&gt;
+        &lt;rule if=&quot;#{documentEditor.errors.empty}&quot;&gt;
+            &lt;end-conversation/&gt;
+            &lt;redirect view-id=&quot;/viewDocument.xhtml&quot;&gt;
+                &lt;param name=&quot;documentId&quot; value=&quot;#{documentEditor.documentId}&quot;/&gt;
+            &lt;/redirect&gt;
+        &lt;/rule&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre> 
+   <p>在JSF中，null是一个特殊的结果。结果null被解释成“重新显示页面”。 下面的导航规则符合任何非null的结果，而 <span class="emphasis"><em>不符合</em></span> null的结果：</p> 
+   <pre class="programlisting">&lt;page view-id=&quot;/editDocument.xhtml&quot;&gt;
+
+    &lt;navigation from-action=&quot;#{documentEditor.update}&quot;&gt;
+        &lt;rule&gt;
+            &lt;render view-id=&quot;/viewDocument.xhtml&quot;/&gt;
+        &lt;/rule&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre> 
+   <p>如果结果出现null，你还想执行导航，就使用下面的形式：</p> 
+   <pre class="programlisting">&lt;page view-id=&quot;/editDocument.xhtml&quot;&gt;
+
+    &lt;navigation from-action=&quot;#{documentEditor.update}&quot;&gt;
+        &lt;render view-id=&quot;/viewDocument.xhtml&quot;/&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre> 
+   <p>view-id可以作为一个JSF EL表达式提供：</p> 
+   <pre class="programlisting">&lt;page view-id=&quot;/editDocument.xhtml&quot;&gt;
+
+    &lt;navigation if-outcome=&quot;success&quot;&gt;
+        &lt;redirect view-id=&quot;/#{userAgent}/displayDocument.xhtml&quot;/&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre> 
+  </div> 
+  <div class="sect3"> 
+   <div class="titlepage"> 
+    <div> 
+     <div> 
+      <h4 class="title"><a name="d0e4505"></a>5.1.1.3. 导航的定义、页面动作和参数的细粒度文件</h4> 
+     </div> 
+    </div> 
+    <div> 
+    </div> 
+   </div> 
+   <p>如果你有很多不同的页面动作和页面参数，或者甚至是很多导航规则，你就会很想把这些声明分开放到多个文件中去。 你可以在一个名为 <tt class="literal"><font face="新宋体">calc/calculator.page.xml</font></tt> 的资源中，为一个有着视图id <tt class="literal"><font face="新宋体">/calc/calculator.jsp</font></tt> 的页面定义动作和参数。 这个例子中的根元素是 <tt class="literal"><font face="新宋体">&lt;page&gt;</font></tt> 元素，隐含着视图id：</p> 
+   <pre class="programlisting">&lt;page action=&quot;#{calculator.calculate}&quot;&gt;
+    &lt;param name=&quot;x&quot; value=&quot;#{calculator.lhs}&quot;/&gt;
+    &lt;param name=&quot;y&quot; value=&quot;#{calculator.rhs}&quot;/&gt;
+    &lt;param name=&quot;op&quot; converter=&quot;#{operatorConverter}&quot; value=&quot;#{calculator.op}&quot;/&gt;
+&lt;/page&gt;</pre> 
+  </div> 
+ </div> 
+ <div class="sect2"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h3 class="title"><a name="d0e4521"></a>5.1.2. 组件驱动的事件</h3> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>Seam组件可以通过方法间简单的调用相互影响。状态组件甚至实现 Observer/Observable 模式。 但在组件直接调用彼此方法的时候，为了使组件在一个比可能存在的更加松耦合的方式下相互作用，Seam提供了 <span class="emphasis"><em>组件驱动事件</em></span>。</p> 
+  <p>我们在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 里指定了事件监听器（观察者）。</p> 
+  <pre class="programlisting">&lt;components&gt;
+    &lt;event type=&quot;hello&quot;&gt;
+        &lt;action execute=&quot;#{helloListener.sayHelloBack}&quot;/&gt;
+        &lt;action execute=&quot;#{logger.logHello}&quot;/&gt;
+    &lt;/event&gt;
+&lt;/components&gt;</pre> 
+  <p>在这里，<span class="emphasis"><em>event type</em></span> 是任意的字符串。</p> 
+  <p>事件发生时，该事件已经注册过的动作将按照它们在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中出现的顺序被依次调用。 组件如何发起事件？Seam为此提供了一个内置的组件。</p> 
+  <pre class="programlisting">@Name(&quot;helloWorld&quot;)
+public class HelloWorld {
+    public void sayHello() {
+        FacesMessages.instance().add(&quot;Hello World!&quot;);
+        Events.instance().raiseEvent(&quot;hello&quot;);
+    }
+}</pre> 
+  <p>或者你可以使用注解。</p> 
+  <pre class="programlisting">@Name(&quot;helloWorld&quot;)
+public class HelloWorld {
+    @RaiseEvent(&quot;hello&quot;)
+    public void sayHello() {
+        FacesMessages.instance().add(&quot;Hello World!&quot;);
+    }
+}</pre> 
+  <p>注意这个事件产生器没有依赖任何事件消费者。事件监听器现在可以完全不依赖于产生器而实现：</p> 
+  <pre class="programlisting">@Name(&quot;helloListener&quot;)
+public class HelloListener {
+    public void sayHelloBack() {
+        FacesMessages.instance().add(&quot;Hello to you too!&quot;);
+    }
+}</pre> 
+  <p>上述在 <tt class="literal"><font face="新宋体">components.xml</font></tt>中定义的方法绑定关心把事件映射到消费者去。 如果你不喜欢 <tt class="literal"><font face="新宋体">components.xml</font></tt> 文件中的那一套，可以用注解来替代：</p> 
+  <pre class="programlisting">@Name(&quot;helloListener&quot;)
+public class HelloListener {
+    @Observer(&quot;hello&quot;)
+    public void sayHelloBack() {
+        FacesMessages.instance().add(&quot;Hello to you too!&quot;);
+    }
+}</pre> 
+  <p>你可能想知道为什么在这个讨论中没有提到关于任何事件对象的东西。 在Seam中，对事件对象而言，不需要在事件生产者和监听器之间传播状态。 状态保留在Seam上下文中，在组件之间共享。然而，如果你真想传递事件对象，你可以：</p> 
+  <pre class="programlisting">@Name(&quot;helloWorld&quot;)
+public class HelloWorld {
+    private String name;
+    public void sayHello() {
+        FacesMessages.instance().add(&quot;Hello World, my name is #0.&quot;, name);
+        Events.instance().raiseEvent(&quot;hello&quot;, name);
+    }
+}</pre> 
+  <pre class="programlisting">@Name(&quot;helloListener&quot;)
+public class HelloListener {
+    @Observer(&quot;hello&quot;)
+    public void sayHelloBack(String name) {
+        FacesMessages.instance().add(&quot;Hello #0!&quot;, name);
+    }
+}</pre> 
+ </div> 
+ <div class="sect2"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h3 class="title"><a name="d0e4572"></a>5.1.3. 上下文事件</h3> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>Seam定义了许多内置事件，应用程序可以用它们来进行特殊类型的框架集成。这些事件是：</p> 
+  <div class="itemizedlist"> 
+   <ul type="disc"> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.validationFailed</font></tt> — JSF验证失败时被调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.noConversation</font></tt> — 没有长时间运行的对话在运行或者长时间运行的对话被请求时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.preSetVariable.&lt;name&gt;</font></tt> — 设置上下文变量 &lt;name&gt; 时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.postSetVariable.&lt;name&gt;</font></tt> — 设置上下文变量 &lt;name&gt; 时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.preRemoveVariable.&lt;name&gt;</font></tt> — 未设置上下文变量 &lt;name&gt; 时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.postRemoveVariable.&lt;name&gt;</font></tt> — 未设置上下文变量 &lt;name&gt; 时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.preDestroyContext.&lt;SCOPE&gt;</font></tt> — 在 &lt;SCOPE&gt; 上下文被销毁之前调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.postDestroyContext.&lt;SCOPE&gt;</font></tt> — 在 &lt;SCOPE&gt; 上下文被销毁之后调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.beginConversation </font></tt>— 当一个长时间运行的对话开始的时候调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.endConversation </font></tt>— 当一个长时间运行的对话结束的时候调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.beginPageflow.&lt;name&gt; </font></tt>— 在页面流 &lt;name&gt; 开始时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.endPageflow.&lt;name&gt; </font></tt>— 在页面流 &lt;name&gt; 结束时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.createProcess.&lt;name&gt; </font></tt>— 在创建进程 &lt;name&gt; 时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.endProcess.&lt;name&gt; </font></tt>— 在进程 &lt;name&gt; 结束时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.initProcess.&lt;name&gt; </font></tt>— 在进程 &lt;name&gt; 与对话相关联时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.initTask.&lt;name&gt; </font></tt>— 在任务 &lt;name&gt; 与对话相关联时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.startTask.&lt;name&gt; </font></tt>— 在任务 &lt;name&gt; 开始时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.endTask.&lt;name&gt; </font></tt>— 在结束任务 &lt;name&gt; 时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.postCreate.&lt;name&gt; </font></tt>— 在创建组件 &lt;name&gt; 时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.preDestroy.&lt;name&gt; </font></tt>— 在销毁组件 &lt;name&gt; 时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.beforePhase </font></tt>— 在开始一个JSF阶段之前调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.afterPhase </font></tt>— 在一个JSF阶段结束之后调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.postInitialization </font></tt>— 当Seam被初始化并启动所有组件时被调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.postAuthenticate.&lt;name&gt; </font></tt>— 用户认证之后调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.preAuthenticate.&lt;name&gt; </font></tt>— 在尝试认证用户之前调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.notLoggedIn</font></tt> — 在不需要认证用户和需要认证的时候调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.rememberMe</font></tt> — 当Seam安全在cookie中发现用户名时发生</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.exceptionHandled.&lt;type&gt;</font></tt> — 在Seam处理未被捕捉的异常时被调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.exceptionHandled</font></tt> — 在Seam处理未被捕捉的异常时被调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.exceptionNotHandled</font></tt> — 在没有未被捕捉异常的处理器时被调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.afterTransactionSuccess</font></tt> — 当事务在Seam Application Framework中成功时调用</p> </li> 
+    <li> <p><tt class="literal"><font face="新宋体">org.jboss.seam.afterTransactionSuccess.&lt;name&gt;</font></tt> — 当管理具名 <tt class="literal"><font face="新宋体">&lt;name&gt;</font></tt> 实体的事务在Seam Application Framework中成功时调用</p> </li> 
+   </ul> 
+  </div> 
+  <p> Seam组件可以用它们观察任何其他组件驱动事件的同样方式来观察这些事件中的任何一种。</p> 
+ </div> 
+</div> 
+<div class="sect1"> 
+ <div class="titlepage"> 
+  <div> 
+   <div> 
+    <h2 style="clear: both" class="title"><a name="d0e4743"></a>5.2. Seam 拦截器</h2> 
+   </div> 
+  </div> 
+  <div> 
+  </div> 
+ </div> 
+ <p>EJB 3.0为会话Bean组件引入了一个标准的拦截器模型。 要往Bean里添加拦截器，你需要写一个类，该类有一个被注解过的方法 <tt class="literal"><font face="新宋体">@AroundInvoke</font></tt>，并用 <tt class="literal"><font face="新宋体">@Interceptors</font></tt> 来注解这个Bean以指定拦截器类的名称。 例如，下面的拦截器检查用户是否在允许调用动作监听器方法之前登录：</p> 
+ <pre class="programlisting">public class LoggedInInterceptor {
+
+   @AroundInvoke
+   public Object checkLoggedIn(InvocationContext invocation) throws Exception {
+
+      boolean isLoggedIn = Contexts.getSessionContext().get(&quot;loggedIn&quot;)!=null;
+      if (isLoggedIn) {
+         //the user is already logged in
+         return invocation.proceed();
+      }
+      else {
+         //the user is not logged in, fwd to login page
+         return &quot;login&quot;;
+      }
+   }
+
+}</pre> 
+ <p>要把这个拦截器应用到一个作为动作监听器的会话Bean上，我们必须注解这个会话Bean <tt class="literal"><font face="新宋体">@Interceptors(LoggedInInterceptor.class)</font></tt>。 这个注解有点丑陋。在EJB 3.0中，Seam通过允许将 <tt class="literal"><font face="新宋体">@Interceptors</font></tt> 作为元注解使用，而依赖于拦截器框架。 在我们的例子中，将创建一个 <tt class="literal"><font face="新宋体">@LoggedIn</font></tt> 注解，如下所示：</p> 
+ <pre class="programlisting">@Target(TYPE)
+@Retention(RUNTIME)
+@Interceptors(LoggedInInterceptor.class)
+public @interface LoggedIn {}</pre> 
+ <p>现在，我们可以简单地用 <tt class="literal"><font face="新宋体">@LoggedIn</font></tt> 来注解我们的动作监听器Bean以应用拦截器。</p> 
+ <pre class="programlisting">@Stateless
+@Name(&quot;changePasswordAction&quot;)
+@LoggedIn
+@Interceptors(SeamInterceptor.class)
+public class ChangePasswordAction implements ChangePassword {
+
+    ...
+
+    public String changePassword() { ... }
+
+}</pre> 
+ <p>如果拦截器的顺序很重要（通常是这样），你可以将 <tt class="literal"><font face="新宋体">@Interceptor</font></tt> 注解添加到你的拦截器类，来指定拦截器的部分顺序</p> 
+ <pre class="programlisting">@Interceptor(around={BijectionInterceptor.class,
+                     ValidationInterceptor.class,
+                     ConversationInterceptor.class},
+             within=RemoveInterceptor.class)
+public class LoggedInInterceptor
+{
+    ...
+}</pre> 
+ <p>你甚至可以有一个“客户端”的拦截器，运行关于任何EJB3的内置功能：</p> 
+ <pre class="programlisting">@Interceptor(type=CLIENT)
+public class LoggedInInterceptor
+{
+    ...
+}</pre> 
+ <p>EJB拦截器是有状态的，有着和它们所拦截组件相同的生命周期。 对哪些不需要维护状态的拦截器而言，Seam通过指定 <tt class="literal"><font face="新宋体">@Interceptor(stateless=true)</font></tt> 让你获得性能优化。</p> 
+ <p>Seam的很多功能是作为一套内置的Seam拦截器来实现的，包括前面例子里提到的拦截器。 你没有必要通过注解你的组件来明确指定这些拦截器；它们为所有的可注解Seam组件而存在。</p> 
+ <p>你甚至可以在JavaBean组件中使用Seam拦截器，不仅仅只有EJB3 Bean能用它们！</p> 
+ <p>EJB定义拦截器，不仅为了业务方法（用<tt class="literal"><font face="新宋体">@AroundInvoke</font></tt>），也为了生命周期方法 <tt class="literal"><font face="新宋体">@PostConstruct</font></tt>，<tt class="literal"><font face="新宋体">@PreDestroy</font></tt>，<tt class="literal"><font face="新宋体">@PrePassivate</font></tt> 和 <tt class="literal"><font face="新宋体">@PostActive</font></tt>。 Seam支持组件和拦截器中所有这些生命周期方法，不仅仅支持EJB3 Bean，也支持JavaBean组件（除了<tt class="literal"><font face="新宋体">@PreDestroy</font></tt> 对JavaBean组件而言没有意义之外）。</p> 
+</div> 
+<div class="sect1"> 
+ <div class="titlepage"> 
+  <div> 
+   <div> 
+    <h2 style="clear: both" class="title"><a name="d0e4816"></a>5.3. 管理异常</h2> 
+   </div> 
+  </div> 
+  <div> 
+  </div> 
+ </div> 
+ <p>JSF在异常处理方面的能力有限得令人吃惊。 作为解决这个问题的部分权宜之计，Seam让你定义如何通过注解这个异常类来处理异常的特殊类，或者在XML文件中声明这个异常类。 这个工具是想要和EJB3.0标准的 <tt class="literal"><font face="新宋体">@ApplicationException</font></tt> 的注解组合在一起，这个注解指定了这个异常是否应该导致一个事务回滚。</p> 
+ <div class="sect2"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h3 class="title"><a name="d0e4824"></a>5.3.1. 异常和事务</h3> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>EJB指定了定义良好的规则，用以控制异常是否立即标记当前的事务，以便在这个Bean的业务方法抛出一个异常时回滚： <span class="emphasis"><em>系统异常</em></span> 总是导致一个事务回滚，<span class="emphasis"><em>应用程序异常</em></span> 默认是不导致事务回滚的，但是如果指定了 <tt class="literal"><font face="新宋体">@ApplicationException(rollback=true)</font></tt>，则会导致事物回滚。 （应用程序异常是任何checked异常，或者任何用 <tt class="literal"><font face="新宋体">@ApplicationException</font></tt> 注解过的unchecked的异常。系统异常是任何没有用 <tt class="literal"><font face="新宋体">@ApplicationException</font></tt> 注解过的unchecked异常）。</p> 
+  <p>注意：在标记事务回滚和实际的回滚两者之间有一点不同。 异常规则说，只有被标记过的事务应该回滚，但是在异常抛出之后，事务仍然可以是有效的。</p> 
+  <p>Seam对Seam JavaBean组件也应用EJB 3.0 异常回滚规则。</p> 
+  <p>但是，这些规则仅仅应用于Seam组件层。没有捕捉到的异常传播到Seam组件层之外，或是传播到JSF层之外怎么办？ 恩，让一个悬空摇摆的事务处于打开状态是不对的，当异常发生，而你又没有在Seam组件层捕捉到它时，Seam会回滚任何活动的事务。</p> 
+ </div> 
+ <div class="sect2"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h3 class="title"><a name="d0e4850"></a>5.3.2. 激活Seam异常处理</h3> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>要激活Seam的异常处理，需要确保已经在 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中声明了主要的Servlet过滤器:</p> 
+  <pre class="programlisting">&lt;filter&gt;
+    &lt;filter-name&gt;Seam Filter&lt;/filter-name&gt;
+    &lt;filter-class&gt;org.jboss.seam.servlet.SeamFilter&lt;/filter-class&gt;
+&lt;/filter&gt;
+
+&lt;filter-mapping&gt;
+    &lt;filter-name&gt;Seam Filter&lt;/filter-name&gt;
+    &lt;url-pattern&gt;*.seam&lt;/url-pattern&gt;
+&lt;/filter-mapping&gt;</pre> 
+  <p>如果你想激活异常处理器，还需要禁用 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中Facelets的开发模式，和 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中的调试模式。</p> 
+ </div> 
+ <div class="sect2"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h3 class="title"><a name="d0e4868"></a>5.3.3. 使用注解处理异常</h3> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>每当异常传播到Seam组件层之外时，下列异常都会导致一个HTTP 404错误。 抛出异常时，它并不立即回滚当前事务，但是如果这个异常没有被其他的Seam组件捕捉到，当前事务将被回滚。</p> 
+  <pre class="programlisting">@HttpError(errorCode=404)
+public class ApplicationException extends Exception { ... }</pre> 
+  <p>每当异常传播到Seam组件层之外时，这个异常会导致浏览器的重定向。它也同时结束当前的对话，导致当前事务立即回滚。</p> 
+  <pre class="programlisting">@Redirect(viewId=&quot;/failure.xhtml&quot;, end=true)
+@ApplicationException(rollback=true)
+public class UnrecoverableApplicationException extends RuntimeException { ... }</pre> 
+  <p>注意：对于那些在JSF生命周期的渲染阶段发生的异常而言，<tt class="literal"><font face="新宋体">@Redirect</font></tt> 无效。</p> 
+  <p>你也可以用EL指定 <tt class="literal"><font face="新宋体">viewId</font></tt> 来重定向。</p> 
+  <p>当异常传播到Seam组件层之外时，这个异常导致一个重定向，并给用户一条消息。它也立即回滚当前事务。</p> 
+  <pre class="programlisting">@Redirect(viewId=&quot;/error.xhtml&quot;, message=&quot;Unexpected error&quot;)
+public class SystemException extends RuntimeException { ... }</pre> 
+ </div> 
+ <div class="sect2"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h3 class="title"><a name="d0e4893"></a>5.3.4. 用XML处理异常</h3> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>考虑到不能对我们感兴趣的所有异常类添加注解，Seam也允许我们在 <tt class="literal"><font face="新宋体">pages.xml</font></tt> 中指定这个功能。</p> 
+  <pre class="programlisting">&lt;pages&gt;
+
+   &lt;exception class=&quot;javax.persistence.EntityNotFoundException&quot;&gt;
+      &lt;http-error error-code=&quot;404&quot;/&gt;
+   &lt;/exception&gt;
+
+   &lt;exception class=&quot;javax.persistence.PersistenceException&quot;&gt;
+      &lt;end-conversation/&gt;
+      &lt;redirect view-id=&quot;/error.xhtml&quot;&gt;
+          &lt;message&gt;数据库访问失败 Database access failed&lt;/message&gt;
+      &lt;/redirect&gt;
+   &lt;/exception&gt;
+
+   &lt;exception&gt;
+      &lt;end-conversation/&gt;
+      &lt;redirect view-id=&quot;/error.xhtml&quot;&gt;
+          &lt;message&gt;意外的失败 Unexpected failure&lt;/message&gt;
+      &lt;/redirect&gt;
+   &lt;/exception&gt;
+
+&lt;/pages&gt;</pre> 
+  <p>最后一个 <tt class="literal"><font face="新宋体">&lt;exception&gt;</font></tt> 声明没有指定类，它捕捉所有的那些没有通过注解或在 <tt class="literal"><font face="新宋体">pages.xml</font></tt> 中特别指定的任何异常。</p> 
+  <p>你也可以通过EL指定 <tt class="literal"><font face="新宋体">view-id</font></tt> 来重定向。</p> 
+  <p>你也可以通过EL访问处理后的异常实例，Seam把它放在对话上下文中，比如访问异常的消息。</p> 
+  <pre class="programlisting">...
+throw new AuthorizationException(&quot;You are not allowed to do this!&quot;);
+
+&lt;pages&gt;
+
+    &lt;exception class=&quot;org.jboss.seam.security.AuthorizationException&quot;&gt;
+        &lt;end-conversation/&gt;
+        &lt;redirect view-id=&quot;/error.xhtml&quot;&gt;
+            &lt;message severity=&quot;WARN&quot;&gt;#{org.jboss.seam.handledException.message}&lt;/message&gt;
+        &lt;/redirect&gt;
+    &lt;/exception&gt;
+
+&lt;/pages&gt;</pre> 
+  <p><tt class="literal"><font face="新宋体">org.jboss.seam.handledException</font></tt> 保存着实际上由异常处理器处理的嵌套异常。 最外层的（包装器）异常也可以访问，如 <tt class="literal"><font face="新宋体">org.jboss.seam.exception</font></tt>。</p> 
+ </div> 
+ <div class="sect2"> 
+  <div class="titlepage"> 
+   <div> 
+    <div> 
+     <h3 class="title"><a name="d0e4928"></a>5.3.5. 一些常见的异常</h3> 
+    </div> 
+   </div> 
+   <div> 
+   </div> 
+  </div> 
+  <p>如果你正在使用JPA：</p> 
+  <pre class="programlisting">&lt;exception class=&quot;javax.persistence.EntityNotFoundException&quot;&gt;
+   &lt;redirect view-id=&quot;/error.xhtml&quot;&gt;
+      &lt;message&gt;Not found&lt;/message&gt;
+   &lt;/redirect&gt;
+&lt;/exception&gt;
+
+&lt;exception class=&quot;javax.persistence.OptimisticLockException&quot;&gt;
+   &lt;end-conversation/&gt;
+   &lt;redirect view-id=&quot;/error.xhtml&quot;&gt;
+      &lt;message&gt;另一个用户修改了相同的数据，请重试 Another user changed the same data, please try again&lt;/message&gt;
+   &lt;/redirect&gt;
+&lt;/exception&gt;</pre> 
+  <p>如果你正在使用Seam应用框架：</p> 
+  <pre class="programlisting">&lt;exception class=&quot;org.jboss.seam.framework.EntityNotFoundException&quot;&gt;
+   &lt;redirect view-id=&quot;/error.xhtml&quot;&gt;
+      &lt;message&gt;Not found&lt;/message&gt;
+   &lt;/redirect&gt;
+&lt;/exception&gt;</pre> 
+  <p>如果你正在使用Seam安全：</p> 
+  <pre class="programlisting">&lt;exception class=&quot;org.jboss.seam.security.AuthorizationException&quot;&gt;
+   &lt;redirect&gt;
+      &lt;message&gt;You don't have permission to do this&lt;/message&gt;
+   &lt;/redirect&gt;
+&lt;/exception&gt;
+
+&lt;exception class=&quot;org.jboss.seam.security.NotLoggedInException&quot;&gt;
+   &lt;redirect view-id=&quot;/login.xhtml&quot;&gt;
+      &lt;message&gt;Please log in first&lt;/message&gt;
+   &lt;/redirect&gt;
+&lt;/exception&gt;</pre> 
+  <p>那么，对于JSF：</p> 
+  <pre class="programlisting">&lt;exception class=&quot;javax.faces.application.ViewExpiredException&quot;&gt;
+   &lt;redirect view-id=&quot;/error.xhtml&quot;&gt;
+      &lt;message&gt;您的会话已经超时，请重试 Your session has timed out, please try again&lt;/message&gt;
+   &lt;/redirect&gt;
+&lt;/exception&gt;</pre> 
+  <p>如果用户会话过期并且返回到原来的页面，就会抛出 <tt class="literal"><font face="新宋体">ViewExpiredException</font></tt> 异常。 如果你在一个对话里面，<tt class="literal"><font face="新宋体">no-conversation-view-id</font></tt> 和 <tt class="literal"><font face="新宋体">conversation-required</font></tt> 可以让你更细粒度地控制会话超期。</p> 
+ </div> 
+</div></div></body></html>

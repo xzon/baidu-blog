@@ -1,0 +1,854 @@
+<html><head><title>Dom4j的使用（续）</title></head><body><div id='tit'>Dom4j的使用（续）</div><div id='cate'>j&middot;入门</div><div id='date'>2008年04月03日 星期四 04:39 P.M.</div><div id='page'>144</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/c48e44a7f79a3c91d043583c.html'>http://hi.baidu.com/hxzon/blog/item/c48e44a7f79a3c91d043583c.html</a><div id='cnt'><p> </p> 
+<p>Dom4j的使用（续）</p> 
+<p>用Dom4j解析XML及中文问题 <br /> 发表于 2004年9月27日 20:21 <br /> 本文主要讨论了用dom4j解析XML的基础问题，包括建立XML文档，添加、修改、删除节点，以及格式化（美化）输出和中文问题。可作为dom4j的入门资料。 <br /> 转载自:http://jalorsoft.com/holen/<br /> 作者：陈光（<a href="mailto:holen@263.net">holen@263.net</a>）<br /> 时间：2004-09-11</p> 
+<div> 
+</div> 
+<div>
+ 本文主要讨论了用dom4j解析XML的基础问题，包括建立XML文档，添加、修改、删除节点，以及格式化（美化）输出和中文问题。可作为dom4j的入门资料。
+</div> 
+<div> 
+</div> 
+<div>
+ 1． 下载与安装
+</div> 
+<div> 
+</div> 
+<div>
+ dom4j是sourceforge.net上的一个开源项目，主要用于对XML的解析。从2001年7月发布第一版以来，已陆续推出多个版本，目前最高版本为1.5。
+ <br /> dom4j专门针对Java开发，使用起来非常简单、直观，在Java界，dom4j正迅速普及。
+</div> 
+<div> 
+</div> 
+<div>
+ 可以到
+ <a href="http://sourceforge.net/projects/dom4j">http://sourceforge.net/projects/dom4j</a>下载其最新版。
+</div> 
+<div> 
+</div> 
+<div>
+ dom4j1.5的完整版大约13M，是一个名为dom4j-1.5.zip的压缩包，解压后有一个dom4j-1.5.jar文件，这就是应用时需要引入的类包，另外还有一个jaxen-1.1-beta-4.jar文件，一般也需要引入，否则执行时可能抛java.lang.NoClassDefFoundError: org/jaxen/JaxenException异常，其他的包可以选择用之。
+</div> 
+<div> 
+</div> 
+<div>
+ 2． 示例XML文档（holen.xml）
+</div> 
+<div> 
+</div> 
+<div>
+ 为了述说方便，先看一个XML文档，之后的操作均以此文档为基础。
+</div> 
+<div> 
+</div> 
+<div>
+ holen.xml 
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+ <br /> &lt;books&gt;
+ <br /> &lt;!--This is a test for dom4j, holen, 2004.9.11--&gt;
+ <br /> &lt;book show=&quot;yes&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;title&gt;Dom4j Tutorials&lt;/title&gt;
+ <br /> &lt;/book&gt;
+ <br /> &lt;book show=&quot;yes&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;title&gt;Lucene Studing&lt;/title&gt;
+ <br /> &lt;/book&gt;
+ <br /> &lt;book show=&quot;no&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;title&gt;Lucene in Action&lt;/title&gt;
+ <br /> &lt;/book&gt;
+ <br /> &lt;owner&gt;O'Reilly&lt;/owner&gt;
+ <br /> &lt;/books&gt;
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 这是一个很简单的XML文档，场景是一个网上书店，有很多书，每本书有两个属性，一个是书名[title]，一个为是否展示[show]，最后还有一项是这些书的拥有者[owner]信息。
+</div> 
+<div> 
+</div> 
+<div>
+ 3． 建立一个XML文档
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> /**
+ <br /> * 建立一个XML文档,文档名由输入属性决定
+ <br /> * @param filename 需建立的文件名
+ <br /> * @return 返回操作结果, 0表失败, 1表成功
+ <br /> */
+ <br /> public int createXMLFile(String filename){
+ <br /> &nbsp;&nbsp;&nbsp; /** 返回操作结果, 0表失败, 1表成功 */
+ <br /> &nbsp;&nbsp;&nbsp; int returnValue = 0;
+ <br /> &nbsp;&nbsp;&nbsp; /** 建立document对象 */
+ <br /> &nbsp;&nbsp;&nbsp; Document document = DocumentHelper.createDocument();
+ <br /> &nbsp;&nbsp;&nbsp; /** 建立XML文档的根books */
+ <br /> &nbsp;&nbsp;&nbsp; Element booksElement = document.addElement(&quot;books&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; /** 加入一行注释 */
+ <br /> &nbsp;&nbsp;&nbsp; booksElement.addComment(&quot;This is a test for dom4j, holen, 2004.9.11&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; /** 加入第一个book节点 */
+ <br /> &nbsp;&nbsp;&nbsp; Element bookElement = booksElement.addElement(&quot;book&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; /** 加入show属性内容 */
+ <br /> &nbsp;&nbsp;&nbsp; bookElement.addAttribute(&quot;show&quot;,&quot;yes&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; /** 加入title节点 */
+ <br /> &nbsp;&nbsp;&nbsp; Element titleElement = bookElement.addElement(&quot;title&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; /** 为title设置内容 */
+ <br /> &nbsp;&nbsp;&nbsp; titleElement.setText(&quot;Dom4j Tutorials&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 类似的完成后两个book */
+ <br /> &nbsp;&nbsp;&nbsp; bookElement = booksElement.addElement(&quot;book&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; bookElement.addAttribute(&quot;show&quot;,&quot;yes&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; titleElement = bookElement.addElement(&quot;title&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; titleElement.setText(&quot;Lucene Studing&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; bookElement = booksElement.addElement(&quot;book&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; bookElement.addAttribute(&quot;show&quot;,&quot;no&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; titleElement = bookElement.addElement(&quot;title&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; titleElement.setText(&quot;Lucene in Action&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; /** 加入owner节点 */
+ <br /> &nbsp;&nbsp;&nbsp; Element ownerElement = booksElement.addElement(&quot;owner&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; ownerElement.setText(&quot;O'Reilly&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; try{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 将document中的内容写入文件中 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; XMLWriter writer = new XMLWriter(new FileWriter(new File(filename)));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer.write(document);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer.close();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 执行成功,需返回1 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; returnValue = 1;
+ <br /> &nbsp;&nbsp;&nbsp; }catch(Exception ex){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ex.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; return returnValue;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 说明：
+ <br /> Document document = DocumentHelper.createDocument();
+ <br /> 通过这句定义一个XML文档对象。
+</div> 
+<div> 
+</div> 
+<div>
+ Element booksElement = document.addElement(&quot;books&quot;);
+ <br /> 通过这句定义一个XML元素，这里添加的是根节点。
+ <br /> Element有几个重要的方法：
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; addComment：添加注释
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; addAttribute：添加属性
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; addElement：添加子元素
+</div> 
+<div> 
+</div> 
+<div>
+ 最后通过XMLWriter生成物理文件，默认生成的XML文件排版格式比较乱，可以通过OutputFormat类的createCompactFormat()方法或createPrettyPrint()方法格式化输出，默认采用createCompactFormat()方法，显示比较紧凑，这点将在后面详细谈到。
+</div> 
+<div> 
+</div> 
+<div>
+ 生成后的holen.xml文件内容如下：
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+ <br /> &lt;books&gt;&lt;!--This is a test for dom4j, holen, 2004.9.11--&gt;&lt;book show=&quot;yes&quot;&gt;&lt;title&gt;Dom4j Tutorials&lt;/title&gt;&lt;/book&gt;&lt;book show=&quot;yes&quot;&gt;&lt;title&gt;Lucene Studing&lt;/title&gt;&lt;/book&gt;&lt;book show=&quot;no&quot;&gt;&lt;title&gt;Lucene in Action&lt;/title&gt;&lt;/book&gt;&lt;owner&gt;O'Reilly&lt;/owner&gt;&lt;/books&gt;
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 4． 修改XML文档
+</div> 
+<div> 
+</div> 
+<div>
+ 有三项修改任务，依次为：
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 如果book节点中show属性的内容为yes,则修改成no
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 把owner项内容改为Tshinghua，并添加date节点
+ <br /> l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 若title内容为Dom4j Tutorials,则删除该节点
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> /**
+ <br /> * 修改XML文件中内容,并另存为一个新文件
+ <br /> * 重点掌握dom4j中如何添加节点,修改节点,删除节点
+ <br /> * @param filename 修改对象文件
+ <br /> * @param newfilename 修改后另存为该文件
+ <br /> * @return 返回操作结果, 0表失败, 1表成功
+ <br /> */
+ <br /> public int ModiXMLFile(String filename,String newfilename){
+ <br /> &nbsp;&nbsp;&nbsp; int returnValue = 0;
+ <br /> &nbsp;&nbsp;&nbsp; try{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SAXReader saxReader = new SAXReader(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Document document = saxReader.read(new File(filename));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 修改内容之一: 如果book节点中show属性的内容为yes,则修改成no */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 先用xpath查找对象 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List list = document.selectNodes(&quot;
+ <a>/books/book/@show</a>&quot; ); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Iterator iter = list.iterator();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(iter.hasNext()){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Attribute attribute = (Attribute)iter.next();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(attribute.getValue().equals(&quot;yes&quot;)){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; attribute.setValue(&quot;no&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /**
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * 修改内容之二: 把owner项内容改为Tshinghua
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * 并在owner节点中加入date节点,date节点的内容为2004-09-11,还为date节点添加一个属性type
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list = document.selectNodes(&quot;/books/owner&quot; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; iter = list.iterator();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(iter.hasNext()){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element ownerElement = (Element)iter.next();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ownerElement.setText(&quot;Tshinghua&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element dateElement = ownerElement.addElement(&quot;date&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dateElement.setText(&quot;2004-09-11&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dateElement.addAttribute(&quot;type&quot;,&quot;Gregorian calendar&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 修改内容之三: 若title内容为Dom4j Tutorials,则删除该节点 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list = document.selectNodes(&quot;/books/book&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; iter = list.iterator();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(iter.hasNext()){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element bookElement = (Element)iter.next();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Iterator iterator = bookElement.elementIterator(&quot;title&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(iterator.hasNext()){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element titleElement=(Element)iterator.next();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(titleElement.getText().equals(&quot;Dom4j Tutorials&quot;)){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bookElement.remove(titleElement);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 将document中的内容写入文件中 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; XMLWriter writer = new XMLWriter(new FileWriter(new File(newfilename)));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer.write(document);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer.close();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 执行成功,需返回1 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; returnValue = 1;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }catch(Exception ex){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ex.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }catch(Exception ex){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ex.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; return returnValue;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 说明：
+ <br /> List list = document.selectNodes(&quot;
+ <a>/books/book/@show</a>&quot; );
+ <br /> list = document.selectNodes(&quot;/books/book&quot;);
+ <br /> 上述代码通过xpath查找到相应内容。
+</div> 
+<div> 
+</div> 
+<div>
+ 通过setValue()、setText()修改节点内容。
+</div> 
+<div> 
+</div> 
+<div>
+ 通过remove()删除节点或属性。
+</div> 
+<div> 
+</div> 
+<div>
+ 5． 格式化输出和指定编码
+</div> 
+<div> 
+</div> 
+<div>
+ 默认的输出方式为紧凑方式，默认编码为UTF-8，但对于我们的应用而言，一般都要用到中文，并且希望显示时按自动缩进的方式的显示，这就需用到OutputFormat类。
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 
+ <br /> /**
+ <br /> * 格式化XML文档,并解决中文问题
+ <br /> * @param filename
+ <br /> * @return
+ <br /> */
+ <br /> public int formatXMLFile(String filename){
+ <br /> &nbsp;&nbsp;&nbsp; int returnValue = 0;
+ <br /> &nbsp;&nbsp;&nbsp; try{
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SAXReader saxReader = new SAXReader(); 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Document document = saxReader.read(new File(filename));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; XMLWriter writer = null;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 格式化输出,类型IE浏览一样 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OutputFormat format = OutputFormat.createPrettyPrint();
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 指定XML编码 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; format.setEncoding(&quot;GBK&quot;);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer= new XMLWriter(new FileWriter(new File(filename)),format);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer.write(document);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; writer.close();&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /** 执行成功,需返回1 */
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; returnValue = 1;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; }catch(Exception ex){
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ex.printStackTrace();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; return returnValue;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 说明：
+</div> 
+<div> 
+</div> 
+<div>
+ OutputFormat format = OutputFormat.createPrettyPrint();
+ <br /> 这句指定了格式化的方式为缩进式，则非紧凑式。
+</div> 
+<div> 
+</div> 
+<div>
+ format.setEncoding(&quot;GBK&quot;);
+ <br /> 指定编码为GBK。
+</div> 
+<div> 
+</div> 
+<div>
+ XMLWriter writer = new XMLWriter(new FileWriter(new File(filename)),format);
+ <br /> 这与前面两个方法相比，多加了一个OutputFormat对象，用于指定显示和编码方式。
+</div> 
+<div> 
+</div> 
+<div>
+ 6． 完整的类代码
+</div> 
+<div> 
+</div> 
+<div>
+ 前面提出的方法都是零散的，下面给出完整类代码。
+</div> 
+<div> 
+</div> 
+<div>
+ Dom4jDemo.java 
+ <br /> package com.holen.dom4j;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.io.File;
+ <br /> import java.io.FileWriter;
+ <br /> import java.util.Iterator;
+ <br /> import java.util.List;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.dom4j.Attribute;
+ <br /> import org.dom4j.Document;
+ <br /> import org.dom4j.DocumentHelper;
+ <br /> import org.dom4j.Element;
+ <br /> import org.dom4j.io.OutputFormat;
+ <br /> import org.dom4j.io.SAXReader;
+ <br /> import org.dom4j.io.XMLWriter;
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * @author Holen Chen
+ <br /> */
+ <br /> public class Dom4jDemo {
+ <br /> 
+ <br /> public Dom4jDemo() {
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public int createXMLFile(String filename){…}
+ <br /> public int ModiXMLFile(String filename,String newfilename){…}
+ <br /> public int formatXMLFile(String filename){…}
+</div> 
+<div> 
+</div> 
+<div>
+ public static void main(String[] args) {
+ <br /> &nbsp;&nbsp;&nbsp; Dom4jDemo temp = new Dom4jDemo();
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(temp.createXMLFile(&quot;d://holen.xml&quot;));&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(temp.ModiXMLFile(&quot;d://holen.xml&quot;,&quot;d://holen2.xml&quot;));
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(temp.formatXMLFile(&quot;d://holen2.xml&quot;));
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div>
+ 说明：
+ <br /> main()方法中依次调用三个方法，第一个方法用于生成holen.xml，第二个方法用于修改holen.xml，并且修改后的内容另存为holen2.xml，第三个方法将holen2.xml格式化缩进式输出，并指定编码方式为GBK。
+ <br /> 一个应用Dom4j的例子&nbsp;&nbsp; 
+ <br /> [ 2005-4-21 ]
+</div> 
+<div> 
+</div> 
+<div>
+ Created with Colorer-take5 Library. Type 
+ <a href="mailto: net.sf.colorer.FileType@777255 ">'net.sf.colorer.FileType@777255'</a>
+</div> 
+<div> 
+</div> 
+<div>
+ 0: /*
+ <br /> 1: * Created on 2005-4-19
+ <br /> 2: *
+ <br /> 3: * Copyright (c) 2005 Julysea 
+ <br /> 4: * Window - Preferences - Java - Code Style - Code Templates
+ <br /> 5: */
+ <br /> 6: 
+ <br /> 7: /*应用此log4j的log4j.properties配置文件
+ <br /> 8: * 
+ <br /> 9: *#######################################################################&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 10: *# Categories and levels&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 11: *#######################################################################&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 12: *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 13: *log4j.rootCategory=DEBUG, FileApp, ConApp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 14: *log4j.category.de.jayefem=DEBUG, FileApp, ConApp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 15: *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 16: *#######################################################################&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 17: *# Appenders&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 18: *#######################################################################&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 19: *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 20: *# ConApp is set to be a ConsoleAppender.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 21: *log4j.appender.ConApp=org.apache.log4j.ConsoleAppender&nbsp;&nbsp; 
+ <br /> 22: *log4j.appender.ConApp.Target=System.out
+ <br /> 23: *log4j.appender.ConApp.layout=org.apache.log4j.PatternLayout
+ <br /> 24: *log4j.appender.ConApp.layout.ConversionPattern=%d{ABSOLUTE} %5p %c{1}:%L - %m%n&nbsp;&nbsp; 
+ <br /> 25: *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 26: *# FileApp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 27: *log4j.appender.FileApp=org.apache.log4j.RollingFileAppender&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 28: *log4j.appender.FileApp.File=./log4e.log
+ <br /> 29: *log4j.appender.FileApp.MaxFileSize=500KB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 30: *# Keep one backup file&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 31: *log4j.appender.FileApp.MaxBackupIndex=1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 32: *log4j.appender.FileApp.layout=org.apache.log4j.PatternLayout&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 33: *log4j.appender.FileApp.layout.ConversionPattern=%d [%t] %-5p %c - %m%n 
+ <br /> 34: */
+ <br /> 35: 
+ <br /> 36: 
+ <br /> 37: /*应用此XML文件做测试
+ <br /> 38: * 
+ <br /> 39: *&lt;EW cmd=&quot;login&quot; mod=&quot;Login&quot; version=&quot;6.0&quot;&gt;
+ <br /> 40: *&lt;Source uns=&quot;&quot; type=&quot;user&quot;/&gt;
+ <br /> 41: *&lt;Username&gt;zhangzhiyun@hp&lt;/Username&gt;
+ <br /> 42: *&lt;Password&gt;111111&lt;/Password&gt;
+ <br /> 43: *&lt;Version&gt;6.01.06.00&lt;/Version&gt;
+ <br /> 44: *&lt;/EW&gt;
+ <br /> 45: */
+ <br /> 46: package xml;
+ <br /> 47: 
+ <br /> 48: import java.io.BufferedReader;
+ <br /> 49: import java.io.BufferedWriter;
+ <br /> 50: import java.io.File;
+ <br /> 51: import java.io.FileReader;
+ <br /> 52: import java.io.FileWriter;
+ <br /> 53: import java.io.IOException;
+ <br /> 54: 
+ <br /> 55: import org.apache.log4j.Logger;
+ <br /> 56: import org.dom4j.Attribute;
+ <br /> 57: import org.dom4j.DocumentException;
+ <br /> 58: import org.dom4j.DocumentHelper;
+ <br /> 59: import org.dom4j.Element;
+ <br /> 60: 
+ <br /> 61: /**
+ <br /> 62: * @author julysea
+ <br /> 63: * 
+ <br /> 64: * 一个用Dom4j解析xml的例子
+ <br /> 65: * 
+ <br /> 66: */
+ <br /> 67: public class Dom4jTest {
+ <br /> 68: 
+ <br /> 69:&nbsp;&nbsp; private static final Logger logger = Logger.getLogger(Dom4jTest.class);
+ <br /> 70: 
+ <br /> 71:&nbsp;&nbsp; public static void main(String[] args) throws IOException,
+ <br /> 72:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DocumentException {
+ <br /> 73:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BufferedReader reader=new BufferedReader(new FileReader(&quot;ew.xml&quot;));
+ <br /> 74:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String tempStr;
+ <br /> 75:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String ewXml=&quot;&quot;;
+ <br /> 76:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while((tempStr=reader.readLine())!=null) {
+ <br /> 77:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ewXml=ewXml+tempStr;
+ <br /> 78:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; logger.debug(tempStr);
+ <br /> 79:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+ <br /> 80:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element root = null;
+ <br /> 81:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 82:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; root = DocumentHelper.parseText(ewXml).getRootElement();
+ <br /> 83:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Attribute rootCmd=root.attribute(&quot;cmd&quot;);
+ <br /> 84:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Attribute rootVersion=root.attribute(&quot;version&quot;);
+ <br /> 85:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; logger.debug(&quot;rootNmae = &quot;+root.getName());
+ <br /> 86:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; logger.debug(&quot;EW'cmd = &quot;+rootCmd.getValue());
+ <br /> 87:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; logger.debug(&quot;EW'version = &quot;+rootVersion.getValue());
+ <br /> 88:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 89:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element usrName=root.element(&quot;Username&quot;);
+ <br /> 90:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; logger.debug(&quot;EW.Username value = &quot;+usrName.getTextTrim());
+ <br /> 91:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 92:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element source=root.element(&quot;Source&quot;);
+ <br /> 93:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Attribute sourceUns=source.attribute(&quot;uns&quot;);
+ <br /> 94:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; logger.debug(&quot;EW.Source'uns&quot;+sourceUns.getValue());
+ <br /> 95:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Attribute sourceType=source.attribute(&quot;type&quot;);
+ <br /> 96:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; logger.debug(&quot;EW.Source'type = &quot;+sourceType.getValue());
+ <br /> 97:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 98:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 99:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //创建一个Xml文件
+ <br /> 100:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Element user=DocumentHelper.createElement(&quot;User&quot;);
+ <br /> 101:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.addAttribute(&quot;type&quot;, &quot;user&quot;);
+ <br /> 102:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.addElement(&quot;name&quot;).addAttribute(&quot;type&quot;, &quot;PinYin&quot;).setText(&quot;Julysea&quot;);
+ <br /> 103:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; user.addElement(&quot;age&quot;).setText(&quot;29&quot;);
+ <br /> 104:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String oneXml=user.asXML();
+ <br /> 105:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ <br /> 106:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BufferedWriter out=new BufferedWriter(new FileWriter(&quot;oneXml.xml&quot;));
+ <br /> 107:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; out.write(oneXml);
+ <br /> 108:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; out.close();
+ <br /> 109:&nbsp;&nbsp; }
+ <br /> 110: }
+</div> 
+<div> 
+</div> 
+<div>
+ Dom4j编码问题彻底解决
+</div> 
+<div> 
+</div> 
+<div>
+ --------------------------------------------------------------------------------
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 这几天开始学习dom4j，在网上找了篇文章就开干了，上手非常的快，但是发现了个问题就是无法以UTF-8保存xml文件，保存后再次读出的时候会报“Invalid byte 2 of 2-byte UTF-8 sequence.”这样一个错误，检查发现由dom4j生成的这个文件，在使用可正确处理XML编码的任何的编辑器中中文成乱码，从记事本查看并不会出现乱码会正确显示中文。让我很是头痛。试着使用GBK、gb2312编码来生成的xml文件却可以正常的被解析。因此怀疑的dom4j没有对utf-8编码进行处理。便开始查看dom4j的原代码。终于发现的问题所在，是自己程序的问题。
+ <br /> 在dom4j的范例和网上流行的《DOM4J 使用简介》这篇教程中新建一个xml文档的代码都类似如下
+ <br /> public void createXML(String fileName) {
+ <br /> &nbsp;&nbsp;&nbsp; document．nbspdoc = org.dom4j.document．elper.createdocument．);
+ <br /> &nbsp;&nbsp;&nbsp; Element root = doc.addElement(&quot;book&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; root.addAttribute(&quot;name&quot;, &quot;我的图书&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Element childTmp;
+ <br /> &nbsp;&nbsp;&nbsp; childTmp = root.addElement(&quot;price&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; childTmp.setText(&quot;21.22&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Element writer = root.addElement(&quot;author&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; writer.setText(&quot;李四&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; writer.addAttribute(&quot;ID&quot;, &quot;001&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; org.dom4j.io.XMLWriter xmlWriter = new org.dom4j.io.XMLWriter(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new FileWriter(fileName));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlWriter.write(doc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlWriter.close();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(e);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+ <br /> 在上面的代码中输出使用的是FileWriter对象进行文件的输出。这就是不能正确进行文件编码的原因所在，java中由Writer类继承下来的子类没有提供编码格式处理，所以dom4j也就无法对输出的文件进行正确的格式处理。这时候所保存的文件会以系统的默认编码对文件进行保存，在中文版的window下java的默认的编码为GBK，也就是所虽然我们标识了要将xml保存为utf-8格式但实际上文件是以GBK格式来保存的，所以这也就是为什么能够我们使用GBK、GB2312编码来生成xml文件能正确的被解析，而以UTF-8格式生成的文件不能被xml解析器所解析的原因。
+ <br /> 好了现在我们找到了原因所在了，我们来找解决办法吧。首先我们看看dom4j是如何实现编码处理的
+ <br /> public XMLWriter(OutputStream out) throws UnsupportedEncodingException {
+ <br /> &nbsp;&nbsp;&nbsp; //System.out.println(&quot;In OutputStream&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; this.format = DEFAULT_FORMAT;
+ <br /> &nbsp;&nbsp;&nbsp; this.writer = createWriter(out, format.getEncoding());
+ <br /> &nbsp;&nbsp;&nbsp; this.autoFlush = true;
+ <br /> &nbsp;&nbsp;&nbsp; namespaceStack.push(Namespace.NO_NAMESPACE);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public XMLWriter(OutputStream out, OutputFormat format) throws UnsupportedEncodingException {
+ <br /> &nbsp;&nbsp;&nbsp; //System.out.println(&quot;In OutputStream,OutputFormat&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; this.format = format;
+ <br /> &nbsp;&nbsp;&nbsp; this.writer = createWriter(out, format.getEncoding());
+ <br /> &nbsp;&nbsp;&nbsp; this.autoFlush = true;
+ <br /> &nbsp;&nbsp;&nbsp; namespaceStack.push(Namespace.NO_NAMESPACE);
+ <br /> }
+ <br /> /**
+ <br /> * Get an OutputStreamWriter, use preferred encoding.
+ <br /> */
+ <br /> protected Writer createWriter(OutputStream outStream, String encoding) throws UnsupportedEncodingException {
+ <br /> &nbsp;&nbsp;&nbsp; return new BufferedWriter(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new OutputStreamWriter( outStream, encoding )
+ <br /> &nbsp;&nbsp;&nbsp; );
+ <br /> }
+ <br /> 由上面的代码我们可以看出dom4j对编码并没有进行什么很复杂的处理，完全通过java本身的功能来完成。所以我们在使用dom4j的来生成我们的XML文件时不应该直接为在构建XMLWriter时，不应该直接为其赋一个Writer对象，而应该通过一个OutputStream的子类对象来构建。也就是说在我们上面的代码中，不应该用FileWriter对象来构建xml文档，而应该使用FileOutputStream对象来构建所以将代码修改入下：
+ <br /> public void createXML(String fileName) {
+ <br /> &nbsp;&nbsp;&nbsp; document．nbspdoc = org.dom4j.document．elper.createdocument．);
+ <br /> &nbsp;&nbsp;&nbsp; Element root = doc.addElement(&quot;book&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; root.addAttribute(&quot;name&quot;, &quot;我的图书&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Element childTmp;
+ <br /> &nbsp;&nbsp;&nbsp; childTmp = root.addElement(&quot;price&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; childTmp.setText(&quot;21.22&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; Element writer = root.addElement(&quot;author&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; writer.setText(&quot;李四&quot;);
+ <br /> &nbsp;&nbsp;&nbsp; writer.addAttribute(&quot;ID&quot;, &quot;001&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; try {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //注意这里的修改
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; org.dom4j.io.XMLWriter xmlWriter = new org.dom4j.io.XMLWriter(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new FileOutputStream(fileName));
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlWriter.write(doc);
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xmlWriter.close();
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> &nbsp;&nbsp;&nbsp; catch (Exception e) {
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(e);
+ <br /> &nbsp;&nbsp;&nbsp; }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 至此DOM4J的问题编码问题算是告一段落，希望对此文章对其他朋友有用。
+ <br /> Dom4j的基本使用 
+ <br /> 下载dom4j后，在其文档中就用详细的使用说明，我又将其封装了一下：
+</div> 
+<div> 
+</div> 
+<div>
+ package org.tju.msnrl.butil;
+ <br /> import java.io.*;
+ <br /> import java.util.*;
+ <br /> import org.dom4j.*;
+ <br /> import org.dom4j.io.XMLWriter;
+ <br /> import org.dom4j.io.SAXReader;
+ <br /> /**
+ <br /> * Dom4j封装类
+ <br /> * &lt;p&gt;Title: 天津大学博士后流动站&lt;/p&gt;
+ <br /> * &lt;p&gt;Description: 天津大学人事处制作维护&lt;/p&gt;
+ <br /> * &lt;p&gt;Copyright: Copyright (c) 2005&lt;/p&gt;
+ <br /> * &lt;p&gt;Company: 天津大学软件学院.NET实验室（MSNRL）&lt;/p&gt;
+ <br /> * @author Jonathan Q. Bo
+ <br /> * @version 1.0
+ <br /> */
+ <br /> public class BDom4j {
+ <br /> /**XML文件路径*/
+ <br /> private String XMLPath = null;
+ <br /> /**XML文档*/
+ <br /> private Document document = null;
+ <br /> public BDom4j() {
+ <br /> }
+ <br /> /**
+ <br /> * 初始化xml文件
+ <br /> * @param XMLPath 文件路径
+ <br /> */
+ <br /> public BDom4j(String XMLPath){
+ <br /> this.XMLPath = XMLPath;
+ <br /> }
+ <br /> /**
+ <br /> * 打开文档
+ <br /> */
+ <br /> public void openXML(){
+ <br /> try{
+ <br /> &nbsp;&nbsp;&nbsp; SAXReader reader = new SAXReader();
+ <br /> &nbsp;&nbsp;&nbsp; this.document = reader.read(this.XMLPath);
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;openXML() successful ...&quot;);
+ <br /> }catch(Exception e){
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;openXML() Exception:&quot; + e.getMessage());
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * 创建文档
+ <br /> * @param rootName 根节点名称
+ <br /> */
+ <br /> public void createXML(String rootName){
+ <br /> try{
+ <br /> &nbsp;&nbsp;&nbsp; this.document = DocumentHelper.createDocument();
+ <br /> &nbsp;&nbsp;&nbsp; Element root = document.addElement(rootName);
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;createXML() successful...&quot;);
+ <br /> }catch(Exception e){
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;createXML() Exception:&quot; + e.getMessage());
+ <br /> }
+ <br /> }
+ <br /> /**
+ <br /> * 添加根节点的child
+ <br /> * @param nodeName 节点名
+ <br /> * @param nodeValue 节点值
+ <br /> */
+ <br /> public void addNodeFromRoot(String nodeName, String nodeValue){
+ <br /> Element root = this.document.getRootElement();
+ <br /> Element level1 = root.addElement(nodeName);
+ <br /> level1.addText(nodeValue);
+ <br /> }
+ <br /> /**
+ <br /> * 打开文档
+ <br /> * @param filePath 文档路径
+ <br /> */
+ <br /> public void openXML(String filePath){
+ <br /> try{
+ <br /> &nbsp;&nbsp;&nbsp; SAXReader saxReader = new SAXReader();
+ <br /> &nbsp;&nbsp;&nbsp; this.document = saxReader.read(filePath);
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;openXML(String filePath) successful ...&quot;);
+ <br /> }catch(Exception e){
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;openXML() Exception:&quot; + e.getMessage());
+ <br /> }
+ <br /> }
+ <br /> /**
+ <br /> * 保存文档
+ <br /> */
+ <br /> public void saveXML(){
+ <br /> try{
+ <br /> &nbsp;&nbsp;&nbsp; XMLWriter output = new XMLWriter(new FileWriter(new File(this.XMLPath)));
+ <br /> &nbsp;&nbsp;&nbsp; output.write(document);
+ <br /> &nbsp;&nbsp;&nbsp; output.close();
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;saveXML() successful ...&quot;);
+ <br /> }catch(Exception e1){
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;saveXML() Exception:&quot; + e1.getMessage());
+ <br /> }
+ <br /> }
+ <br /> /**
+ <br /> * 保存文档
+ <br /> * @param toFilePath 保存路径
+ <br /> */
+ <br /> public void saveXML(String toFilePath) {
+ <br /> try {
+ <br /> &nbsp;&nbsp;&nbsp; XMLWriter output = new XMLWriter(new FileWriter(new File(toFilePath)));
+ <br /> &nbsp;&nbsp;&nbsp; output.write(document);
+ <br /> &nbsp;&nbsp;&nbsp; output.close();
+ <br /> }
+ <br /> catch (Exception e1) {
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;saveXML() Exception:&quot; + e1.getMessage());
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ /**
+ <br /> * 获得某个节点的值
+ <br /> * @param nodeName 节点名称
+ <br /> */
+ <br /> public String getElementValue(String nodeName){
+ <br /> try {
+ <br /> &nbsp;&nbsp;&nbsp; Node node = document.selectSingleNode(&quot;//&quot; + nodeName);
+ <br /> &nbsp;&nbsp;&nbsp; return node.getText();
+ <br /> }
+ <br /> catch (Exception e1) {
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;getElementValue() Exception：&quot; + e1.getMessage());
+ <br /> &nbsp;&nbsp;&nbsp; return null;
+ <br /> }
+ <br /> }
+ <br /> /**
+ <br /> * 获得某个节点的子节点的值
+ <br /> * @param nodeName
+ <br /> * @param childNodeName
+ <br /> * @return
+ <br /> */
+ <br /> public String getElementValue(String nodeName, String childNodeName){
+ <br /> try {
+ <br /> &nbsp;&nbsp;&nbsp; Node node = this.document.selectSingleNode(&quot;//&quot; + nodeName + &quot;/&quot; + childNodeName);
+ <br /> &nbsp;&nbsp;&nbsp; return node.getText();
+ <br /> }
+ <br /> catch (Exception e1) {
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;getElementValue() Exception：&quot; + e1.getMessage());
+ <br /> &nbsp;&nbsp;&nbsp; return null;
+ <br /> }
+ <br /> }
+ <br /> /**
+ <br /> * 设置一个节点的text
+ <br /> * @param nodeName 节点名
+ <br /> * @param nodeValue 节点值
+ <br /> */
+ <br /> public void setElementValue(String nodeName, String nodeValue){
+ <br /> try{
+ <br /> &nbsp;&nbsp;&nbsp; Node node = this.document.selectSingleNode(&quot;//&quot; + nodeName);
+ <br /> &nbsp;&nbsp;&nbsp; node.setText(nodeValue);
+ <br /> }catch(Exception e1){
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;setElementValue() Exception:&quot; + e1.getMessage());
+ <br /> }
+ <br /> }
+ <br /> /**
+ <br /> * 设置一个节点值
+ <br /> * @param nodeName 父节点名
+ <br /> * @param childNodeName 节点名
+ <br /> * @param nodeValue 节点值
+ <br /> */
+ <br /> public void setElementValue(String nodeName, String childNodeName,
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String nodeValue) {
+ <br /> try {
+ <br /> &nbsp;&nbsp;&nbsp; Node node = this.document.selectSingleNode(&quot;//&quot; + nodeName + &quot;/&quot; + childNodeName);
+ <br /> &nbsp;&nbsp;&nbsp; node.setText(nodeValue);
+ <br /> }
+ <br /> catch (Exception e1) {
+ <br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;setElementValue() Exception:&quot; + e1.getMessage());
+ <br /> }
+ <br /> }
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ 简单封装后，可以用来读写XML文档，对网站进行配置：如指定页面整体风格的css文件，在context init 时读取存入context中，在页面中通过读取context中的相应属性来确定css文件名，完成一项配置，其它的动态配置都类似；
+</div> 
+<div> 
+</div> 
+<div>
+ public class BListener extends HttpServlet implements ServletContextListener, ServletContextAttributeListener, HttpSessionListener, HttpSessionAttributeListener {
+ <br /> private static String XML_FILE_PATH = &quot;c:/test.xml&quot;;
+ <br /> //Notification that the web application is ready to process requests
+ <br /> public void contextInitialized(ServletContextEvent sce) {
+ <br /> BDom4j xmlmng = new BDom4j(XML_FILE_PATH);
+ <br /> xmlmng.openXML();
+ <br /> sce.getServletContext().setAttribute(&quot;css&quot;,xmlmng.getElementValue(&quot;style-sheet&quot;));
+ <br /> System.out.println(&quot;### context initialized...&quot;);
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

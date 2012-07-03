@@ -1,0 +1,454 @@
+<html><head><title>精通 Grails: GORM - 有趣的名称，严肃的技术 理解数据库和 Grails</title></head><body><div id='tit'>精通 Grails: GORM - 有趣的名称，严肃的技术 理解数据库和 Grails</div><div id='cate'>j&middot;后端</div><div id='date'>2010年09月10日 星期五 11:01 A.M.</div><div id='page'>8</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/b05e0cd1422fccdd562c84cb.html'>http://hi.baidu.com/hxzon/blog/item/b05e0cd1422fccdd562c84cb.html</a><div id='cnt'><div> 
+ <h1><span style="color: rgb(153,153,153)">精通 Grails: </span>GORM - 有趣的名称，严肃的技术</h1> 
+ <p><em>理解数据库和 Grails</em></p> 
+ <p><a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/">http://www.ibm.com/developerworks/cn/java/j-grails02128/</a> <br /> <a href="http://www.ibm.com/developerworks/cn/java/j-grails/">http://www.ibm.com/developerworks/cn/java/j-grails/</a></p> 
+ <p>级别： 初级</p> 
+ <p><a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#author">Scott Davis </a>, 主编, AboutGroovy.com</p> 
+ <p>2008 年 3 月 07 日</p> 
+ <blockquote>
+  任何好的 Web 框架都需要一个可靠的持久性策略。在 
+  <a href="http://www.ibm.com/developerworks/cn/views/java/articles.jsp?view_by=search&amp;search_by=grails"><em>精通 Grails</em> </a>的第二期文章中，Scott Davis 介绍了 Grails 的对象关系映射（Grails Object Relational Mapping，GORM）API。在本文中将看到用 GORM 能够轻松地在 Grails 应用程序中创建表关系、实施数据验证规则、修改关系数据库。
+ </blockquote> 
+ <p>在上个月开篇的 <em>精通 Grails </em><a href="http://www.ibm.com/developerworks/cn/java/j-grails01158/">文章</a>中，介绍了名为 Grails 的新 Web 框架。Grails 结合了最新的实践，例如模型-视图-控制器的关注点隔离和<em>约定优于配置</em>。通过将这些实践与其中内置的 scaffolding 功能结合，使用 Grails 只需花几分钟就能建立并运行起一个 Web 站点。</p> 
+ <p>这篇文章的重点是使用 Grails 可以实现简化的另一领域：使用 Grail 对象关系映射（Grails Object Relational Mapping，GORM）API 进行持久化。我将首先介绍什么是对象关系映射器（object-relational mapper，ORM），以及如何创建一对多关系。然后将学习数据验证（确保应用程序不会出现<em>无用信息输入/无用信息输出（garbage in/garbage out）</em>问题）。然后将看到如何使用 Grails ORM 的领域特定语言（domain-specific language，DSL），使用 DSL 语句能够在幕后对普通的旧 Groovy 对象（plain old Groovy objects，POGO）的持久化方式进行微调。最后，将看到能够轻松地切换到另一个关系数据库。任何有 JDBC 驱动程序和 Hibernae 方言的数据库都受支持。</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+  <tbody> 
+   <tr> 
+    <td width="10"><img width="10" height="1" src="image/精通 Grails- GORM - 有趣.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+    <td> 
+     <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+      <tbody> 
+       <tr> 
+        <td bgcolor="#eeeeee"><a name="N10088"><strong>关于本系列</strong></a><br /> <p>Grails 是一种新型 Web 开发框架，它将常见的 Spring 和 Hibernate 等 Java 技术与当前流行的约定优于配置等实践相结合。Grails 是用 Groovy 编写的，它可以提供与遗留 Java 代码的无缝集成，同时还可以加入脚本编制语言的灵活性和动态性。学习完 Grails 之后，您将彻底改变看待 Web 开发的方式。</p> </td> 
+       </tr> 
+      </tbody> 
+     </table> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <p><a name="N10092"><span class="atitle">ORM 定义</span></a></p> 
+ <p>关系数据库出现于 20 世纪 70 年代末，但是软件开发人员至今依然在寻求有效的方法来存入和取出数据。当今软件的基础并不是多数流行数据库所使用的关系理论，而是基于面向对象的原则。</p> 
+ <p>为此产生了一整套称为 ORM 的程序，用来缓解在数据库和面向对象的代码之间来回转移数据的痛苦。Hibernate、TopLink 和 Java 持久性 API（Java Persistence API，JPA）是处理这一问题的三个流行的 Java API（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>），不过它们都并不完美。这个问题如此持久（不是故意一语双关，而是实情），以至于有了自己专用的术语<em>对象关系阻抗失谐</em>（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>）。</p> 
+ <p>GORM 是在 Hibernate 上的一层薄薄的 Groovy 层。（我猜 “Gibernate” 不像 “GORM” 那样容易上口）。这意味着现有的所有 Hibernate 技巧仍然有用 — 例如，HBM 映射文件和标注得到全面支持 — 但这篇文章的重点是 GORM 带来的有趣功能。</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+  <tbody> 
+   <tr> 
+    <td width="10"><img width="10" height="1" src="image/精通 Grails- GORM - 有趣.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+    <td> 
+     <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+      <tbody> 
+       <tr> 
+        <td bgcolor="#eeeeee"><a name="N100B4"><strong>面向对象数据库和 Grails</strong></a><br /> <p>有些开发人员想通过直接支持对象的数据库来消除对象关系阻抗失谐。Ted Neward 在 developerWorks 上发表的连载 <a href="http://www.ibm.com/developerworks/cn/views/java/articles.jsp?view_by=search&amp;search_by=db4o"><em>面向 Java 开发人员的 db4o 指南</em> </a>就这一主题做了很好的阐述，展示了一个现代的面向对象数据库的应用。可喜的是，有许多企业级开发人员为 Grails 编写了 db4o 插件，表明面向对象的数据库同关系数据库一样处在黄金时代。与此同时，使用 GORM 和传统的关系数据库，是使用 Grails 时最好的持久性策略。</p> </td> 
+       </tr> 
+      </tbody> 
+     </table> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <p><a name="N100C5"><span class="atitle">创建一对多关系</span></a></p> 
+ <p>对于将 POGO 保存到数据库表所面临的挑战，很容易被低估。实际上，如果只是将一个 POGO 映射到一个表，那么工作相当简单 —POGO 的属性恰好映射到表列。但是当对象模型稍稍变复杂一点，例如有两个彼此相关的 POGO，那么事情将很快变得困难起来。</p> 
+ <p>例如，请看上个月 <a href="http://www.ibm.com/developerworks/cn/java/j-grails01158/">文章</a> 中开始的旅行规划网站。显然，<code><font face="NSimsun">Trip</font></code> POGO 在应用程序中有重要的作用。请在文本编辑器中打开 grails-app/domain/Trip.groovy（如清单 1 所示）：</p> 
+ <br /> 
+ <a name="listing1"><strong>清单 1. <code><font face="NSimsun">Trip</font></code> 类</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="60%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class Trip { 
+  String name
+  String city
+  Date startDate
+  Date endDate
+  String purpose
+  String notes
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>清单 1 中的每个属性都轻松漂亮地映射到 <code><font face="NSimsun">Trip</font></code> 表中的对应字段。还记得在上一期的文章中说过，在 Grail 启动时，所有存储在 grails-app/domain 目录下的 POGO 都会自动创建对应的表。默认情况下，Grails 使用内嵌的 HSQLDB 数据库，但是到本文结束时，就能够使用自己喜欢的其他任意关系数据库。</p> 
+ <p>旅程中经常要包含飞行，所以还应该创建一个 <code><font face="NSimsun">Airline</font></code> 类（如清单 2 所示）：</p> 
+ <br /> 
+ <a name="listing2"><strong>清单 2. <code><font face="NSimsun">Airline</font></code> 类</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class Airline { 
+  String name
+  String url
+  String frequentFlyer
+  String notes
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>现在要将这两个类链接起来。为了计划一个通过 Xyz 航线到芝加哥的旅行，在 Groovy 代码中的表示方法与在 Java 代码中的表示方法相同 — 要在 <code><font face="NSimsun">Trip</font></code> 类中添加一个 <code><font face="NSimsun">Airline</font></code> 属性（如清单 3 所示）。这个技术称为<em>对象组合（object composition）</em>（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>）。</p> 
+ <br /> 
+ <a name="listing3"><strong>清单 3.在 <code><font face="NSimsun">Trip</font></code> 类中添加 <code><font face="NSimsun">Airline</font></code> 属性</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class Trip { 
+  String name
+  String city
+  ...
+  Airline airline
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>对于软件模型来说，这种表示方法非常合适，但是关系数据库采取的表示方法略有不同。表中的每个记录都有一个惟一的 ID，称为<em>主键</em>。向 <code><font face="NSimsun">Trip</font></code> 表添加一个 <code><font face="NSimsun">airline_id</font></code> 字段，就能将一个记录与另一个记录链接在一起（在这个示例中，“Xyz航线” 记录与 “芝加哥旅行” 记录链接）。这称为<em>一对多</em> 关系：一个航线能够与多个旅行关联。（在 Grails 的联机文档中，可以找到一对一和多对多关系的示例，请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>。）</p> 
+ <p>这样形成的数据库模式只有一个问题。您可能对数据库成功地进行了<em>规范化</em>（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>），但是现在表中的列与软件模型就失去了同步。如果将 <code><font face="NSimsun">Airline</font></code> 字段替换成 <code><font face="NSimsun">AirlineId</font></code> 字段，那么实现的细节（在数据库中持久化 POGO）就<em>泄漏</em> 到了对象模型。Joel Spolsky 将这种情况称为 <em>抽象泄漏法则（Law of Leaky Abstractions）</em>（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>）。</p> 
+ <p>GORM 有助于缓解抽象泄漏问题，它支持使用对 Groovy 有意义的方式表示对象模型，由 GORM 在幕后处理关系数据库的问题。但是正如即将看到的，如果需要，覆盖默认设置也很容易。GORM 并不是隐藏数据库细节的<em>不透明的</em> 抽象层，而是一个<em>半透明的</em> 层 — 它尝试在不进行用户干预的情况下执行正确的工作，但是如果用户需要对它的行为进行自定义，它也可以提供支持。这样它就提供了两方面的好处。</p> 
+ <p>现在已经在 POGO 类 <code><font face="NSimsun">Trip</font></code> 中添加了 <code><font face="NSimsun">Airline</font></code> 属性。要完成一对多关系，还要在 <code><font face="NSimsun">Trip</font></code> 这个 POGO 中添加一个 <code><font face="NSimsun">hasMany</font></code> 设置，如清单 4 所示：</p> 
+ <br /> 
+ <a name="listing4"><strong>清单 4. 在 <code><font face="NSimsun">Airline</font></code> 中建立一对多关系 </strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class Airline { 
+  static hasMany = [trip:Trip]
+
+  String name
+  String url
+  String frequentFlyer
+  String notes
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>静态的 <code><font face="NSimsun">hasMany</font></code> 设置是个 Groovy 的 hashmap：键是 <code><font face="NSimsun">trip</font></code>；值是 <code><font face="NSimsun">Trip</font></code> 类。如果要在 <code><font face="NSimsun">Airline</font></code> 类中设置额外的一对多关系，那么可以将逗号分隔的键/值对放在方括号内。</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+  <tbody> 
+   <tr> 
+    <td width="10"><img width="10" height="1" src="image/精通 Grails- GORM - 有趣.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+    <td> 
+     <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+      <tbody> 
+       <tr> 
+        <td bgcolor="#eeeeee"><a name="N1019E"><strong>连串删除</strong></a><br /> <p>正如目前的模型所表示的，在数据库中可能会形成孤立的内容：删除一个 <code><font face="NSimsun">Airline</font></code> 会造成 <code><font face="NSimsun">Trip</font></code> 记录指向一个不存在的航线。为了避免出现这种情况，可以在含多个方面的类中添加一个对应的 <code><font face="NSimsun">static belongsTo</font></code> hashmap。</p> </td> 
+       </tr> 
+      </tbody> 
+     </table> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <p>现在在 grails-app/controllers 中迅速创建一个 <code><font face="NSimsun">AirlineController</font></code> 类（如清单 5 所示），这样就能看出新的一对多关系的效果：</p> 
+ <br /> 
+ <a name="listing5"><strong>清单 5. <code><font face="NSimsun">AirlineController</font></code> class</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="60%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class AirlineController { 
+  def scaffold = Airline
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>还记得在上一期的文章中说过 <code><font face="NSimsun">def scaffold</font></code> 的功能是告诉 Grails 在运行的时候动态创建基本的 <code><font face="NSimsun">list()</font></code>、<code><font face="NSimsun">save()</font></code> 和 <code><font face="NSimsun">edit()</font></code> 方法。它还告诉 Grails 动态创建 GroovyServer Page（GSP）视图。请确保 <code><font face="NSimsun">TripController</font></code> 和 <code><font face="NSimsun">AirlineController</font></code> 都包含 <code><font face="NSimsun">def scaffold</font></code>。如果曾经因为输入 <code><font face="NSimsun">grails generate-all</font></code> 在 grails-app/views 中生成过任何 GSP 工件，例如 trip 目录或者是 airline 目录，都应该删除它们。对于这个示例，需要确保既允许 Grails 动态搭建控制器，又允许它动态搭建视图。</p> 
+ <p>现在域类和控制器类都已经就位，请启动 Grails。请输入 <code><font face="NSimsun">grails prod run-app</font></code> 在生产模式下运行应用程序。如果一切正常，应该看到欢迎消息：</p> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">Server running. Browse to http://localhost:8080/trip-planner</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="40%" align="right"> 
+  <tbody> 
+   <tr> 
+    <td width="10"><img width="10" height="1" src="image/精通 Grails- GORM - 有趣.c.gif" /><p class="origImg">http://www.ibm.com/i/c.gif</p></td> 
+    <td> 
+     <table border="1" cellspacing="0" cellpadding="5" width="100%"> 
+      <tbody> 
+       <tr> 
+        <td bgcolor="#eeeeee"><a name="N101FB"><strong>避免端口冲突错误</strong></a><br /> <p>如果另一个应用程序已经在 8080 端口运行，那么请参阅上月的 <a href="http://www.ibm.com/developerworks/cn/java/j-grails01158/">文章</a> 获取修改端口的操作说明。我在 9090 端口上运行我的 Grails 实例，完全避免了这个问题。</p> </td> 
+       </tr> 
+      </tbody> 
+     </table> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <br /> 
+ <p>在浏览器中，应该看到 <code><font face="NSimsun">AirlineController</font></code> 和 <code><font face="NSimsun">TripController</font></code> 链接。单击 <code><font face="NSimsun"><span class="boldcode">AirlineController</span> </font></code>链接，填写 Xyz 航线的详细信息，如图 1 所示：</p> 
+ <br /> 
+ <br /> 
+ <br /> 
+ <a name="fig1"><strong>图 1. 一对多关系：一方</strong></a>
+ <br /> 
+ <img alt="一对多关系:一方" width="572" height="366" src="image/精通 Grails- GORM - 有趣.newAirline.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-grails02128/newAirline.jpg</p> 
+ <br /> 
+ <p>如果不喜欢字段按照字母顺序排序，也不用担心。在下一节就能改变这种方式。</p> 
+ <p>现在新建一个旅程，如图 2 所示。请注意 <code><font face="NSimsun">Airline</font></code> 的组合框。添加到 <code><font face="NSimsun">Airline</font></code> 表的每个记录都在这里显示。不用担心 “泄漏” 主键 — 在下一节将会看到如何添加更具描述性的标签。</p> 
+ <br /> 
+ <a name="fig2"><strong>图 2. 一对多关系：多方</strong></a>
+ <br /> 
+ <img alt="一对多关系:多方" width="572" height="448" src="image/精通 Grails- GORM - 有趣.newTrip.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-grails02128/newTrip.jpg</p> 
+ <p><a name="N10251"><span class="atitle">裸对象</span></a></p> 
+ <p>前面刚刚了解了在 Airline POGO 上添加提示（静态的 <code><font face="NSimsun">hasMany</font></code>）如何影响表在幕后的创建方式以及前端生成的视图。这种使用<em>裸对象</em> 修饰域对象的模式（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>）在 Grails 中应用得非常广泛。将这条信息直接添加到 POGO 内，就消除了对外部 XML 配置文件的需求。所有信息都在一个位置内，可以显著提高生产率。</p> 
+ <p>例如，如果想消除显示在组合框中的主键的泄漏，只要在 <code><font face="NSimsun">Airline</font></code> 类中添加 <code><font face="NSimsun">toString</font></code> 方法就可以，如清单 6 所示：</p> 
+ <br /> 
+ <a name="listing6"><strong>清单 6. 在 <code><font face="NSimsun">Airline</font></code> 中添加 <code><font face="NSimsun">toString</font></code> 方法 </strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class Airline { 
+  static hasMany = [trip:Trip]
+
+  String name
+  String url
+  String frequentFlyer
+  String notes
+    
+  String toString(){
+    return name
+  }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>从现在开始，在组合框中显示的值就是航线的名称。这里真正酷的地方在于：如果 Grail 依然在运行，那么只要保存 Airline.groovy，修改就会生效。请在浏览器中新建一个 <code><font face="NSimsun">Trip</font></code>，看看这样做的效果。因为视图是动态生成的，所以能够迅速地在文本编辑器和浏览器之间来回切换，直到看到合适的视图 — 不需要重新启动服务器。</p> 
+ <p>现在我们来解决字段按字母顺序排序的问题。要解决这个问题，需要向 POGO 添加另一个配置：<code><font face="NSimsun">static constraints</font></code> 块。请按清单 7 所示的顺序将字段添加到这个块（这些约束不影响列在表中的顺序 — 只影响在视图中的顺序）。</p> 
+ <br /> 
+ <a name="listing7"><strong>清单 7. 修改 <code><font face="NSimsun">Airline</font></code> 中的字段顺序 </strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class Airline { 
+  static constraints = {
+    name()
+    url()
+    frequentFlyer()
+    notes()  
+  }
+
+  static hasMany = [trip:Trip]
+    
+  String name
+  String url
+  String frequentFlyer
+  String notes
+  
+  String toString(){
+    return name
+  }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>将修改保存到 Airline.groovy 文件，在浏览器中新建一个航线。现在里面的字段应该按照在清单 7 中指定的顺序出现，如图 3 所示：</p> 
+ <br /> 
+ <a name="fig3"><strong>图 3. 自定义的字段顺序</strong></a>
+ <br /> 
+ <img alt="自定义的字段顺序" width="572" height="368" src="image/精通 Grails- GORM - 有趣.newAirline-newFieldOrder.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-grails02128/newAirline-newFieldOrder.jpg</p> 
+ <br /> 
+ <p>在您准备责备我没有必要在 POGO 中输入两次字段名称而违背 DRY 原则（不要重复你自己）时（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>），请稍等一下，因为将它们放在独立的块内有很好的理由。清单 7 的 <code><font face="NSimsun">static constraints</font></code> 块内的大括号不会总是空白。</p> 
+ <p><a name="N102BF"><span class="atitle">数据验证</span></a></p> 
+ <p>除了指定字段顺序， <code><font face="NSimsun">static constraints</font></code> 块还允许在里面放置一些验证规则。例如，可以在 <code><font face="NSimsun">String</font></code> 字段上施加长度限制（默认是 255 个字符）。这样就能确保 <code><font face="NSimsun">String</font></code> 值与指定的模式（例如电子邮件地址或 URL）匹配。甚至还能将字段设置为可选或必需的。关于可用的验证规则的完整列表，请参阅 Grails 的联机文档（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>）。</p> 
+ <p>清单 8 显示的 <code><font face="NSimsun">Airline</font></code> 类中在约束块内添加了验证规则：</p> 
+ <br /> 
+ <a name="listing8"><strong>清单 8. 将数据验证添加到 <code><font face="NSimsun">Airline</font></code> </strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class Airline { 
+  static constraints = {
+    name(blank:false, maxSize:100)
+    url(url:true)
+    frequentFlyer(blank:true)
+    notes(maxSize:1500)  
+  }
+
+  static hasMany = [trip:Trip]
+    
+  String name
+  String url
+  String frequentFlyer
+  String notes
+
+  String toString(){
+    return name
+  }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>保存修改后的 Airline.groovy 文件，在浏览器中新建一条航线。如果违反了验证规则，会收到警告，如图 4 所示：</p> 
+ <br /> 
+ <a name="fig4"><strong>图 4. 验证警告</strong></a>
+ <br /> 
+ <img alt="验证警告" width="572" height="520" src="image/精通 Grails- GORM - 有趣.newAirline-validation.jpg" />
+ <p class="origImg">http://www.ibm.com/developerworks/cn/java/j-grails02128/newAirline-validation.jpg</p> 
+ <br /> 
+ <p>可以在 grails-app/i18n 目录的 messages.properties 文件中对警告消息进行自定义。请注意，默认的消息已经用多种语言进行了本地化（请参阅 Grail 联机文档中的验证一节，了解如何在每个类、每个字段的基础上创建自定义消息）。</p> 
+ <p><a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#listing8">清单 8</a> 中的多数约束只影响视图层，但是有两个约束也会影响持久层。例如，数据库中的 <code><font face="NSimsun">name</font></code> 列现在是 100 个字符长。<code><font face="NSimsun">notes</font></code> 字段除了从输入字段转为视图的文本区域之外（对于大于 255 个字符的字段会进行这个转换），还从 <code><font face="NSimsun">VARCHAR</font></code> 列转为 <code><font face="NSimsun">TEXT</font></code>、<code><font face="NSimsun">CLOB</font></code> 或 <code><font face="NSimsun">BLOB</font></code> 列。这些转变取决于在后台使用的数据库类型和它的 Hibernate 方言 — 当然，这些也是可以修改的。</p> 
+ <p><a name="N10323"><span class="atitle">Grails ORM 的 DSL</span></a></p> 
+ <p>可以使用任何常用的配置方法覆盖 Hibernate 的默认设置：HBM 映射文件或者标注。但是 Grails 提供了第三种方式，这种方式采用了裸对象的形式。只要向 POJO 添加一个 <code><font face="NSimsun">static mapping</font></code> 块，就能覆盖默认的表和字段名称，如清单 9 所示：</p> 
+ <br /> 
+ <a name="listing9"><strong>清单 9. 使用 GORM DSL</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">class Airline { 
+  static mapping = {
+    table 'some_other_table_name'
+    columns {
+      name column:'airline_name'
+      url column:'link'
+      frequentFlyer column:'ff_id'
+    }
+  }
+
+  static constraints = {
+    name(blank:false, maxSize:100)
+    url(url:true)
+    frequentFlyer(blank:true)
+    notes(maxSize:1500)  
+  }
+
+  static hasMany = [trip:Trip]
+    
+  String name
+  String url
+  String frequentFlyer
+  String notes
+
+  String toString(){
+    return name
+  }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>如果要在新的 Grails 应用程序中使用现有的遗留表，那么这个映射块会特别有帮助。虽然这里只介绍了点皮毛，但 ORM DSL 提供的功能远不止是重新映射表和字段的名称。每个列的默认数据类型都可以覆盖。可以调整主键的生成策略，甚至指定复合主键。可以修改 Hibernate 的缓存设置，调整外键关联使用的字段，等等。</p> 
+ <p>要记住的要点是所有这些设置都集中在一个地方：POGO 内。</p> 
+ <p><a name="N10340"><span class="atitle">理解 DataSource.groovy</span></a></p> 
+ <p>目前所做的工作都集中在单个类的调整上。下面我们要回过头来做一些全局性的修改。所有域类共享的特定于数据库的配置保存在一个公共文件内：grails-app/conf/DataSource.groovy，如清单 10 所示。请将这个文件放在一个文本编辑器内仔细查看：</p> 
+ <br /> 
+ <a name="listing10"><strong>清单 10. DataSource.groovy</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">dataSource {
+  pooled = false
+  driverClassName = &quot;org.hsqldb.jdbcDriver&quot;
+  username = &quot;sa&quot;
+  password = &quot;&quot;
+}
+hibernate {
+  cache.use_second_level_cache=true
+  cache.use_query_cache=true
+  cache.provider_class='org.hibernate.cache.EhCacheProvider'
+}
+// environment specific settings
+environments {
+  development {
+    dataSource {
+      dbCreate = &quot;create-drop&quot; // one of 'create', 'create-drop','update'
+      url = &quot;jdbc:hsqldb:mem:devDB&quot;
+    }
+  }
+  test {
+    dataSource {
+      dbCreate = &quot;update&quot;
+      url = &quot;jdbc:hsqldb:mem:testDb&quot;
+    }
+  }
+  production {
+    dataSource {
+      dbCreate = &quot;update&quot;
+      url = &quot;jdbc:hsqldb:file:prodDb;shutdown=true&quot;
+    }
+  }
+}</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>在 <code><font face="NSimsun">dataSource</font></code> 块内能够修改用来连接数据库的 <code><font face="NSimsun">driverClassName</font></code>、<code><font face="NSimsun">username</font></code> 和 <code><font face="NSimsun">password</font></code>。<code><font face="NSimsun">hibernate</font></code> 块用来调整缓存设置（除非是 Hibernate 专家，否则不要在这里进行任何调整）。真正有意思的是 <code><font face="NSimsun">environments</font></code> 块。</p> 
+ <p>还记得在上一期的文章中介绍过 Grails 能够在三种模式下运行：开发模式、测试模式和生产模式。在输入 <code><font face="NSimsun">grails prod run-app</font></code> 时，就是告诉 Grails 使用 <code><font face="NSimsun">production</font></code> 块中的数据库设置。如果希望根据环境调整 <code><font face="NSimsun">username</font></code> 和 <code><font face="NSimsun">password</font></code> 的设置，只要将这些设置从 <code><font face="NSimsun">dataSource</font></code> 块复制到每个 <code><font face="NSimsun">environment</font></code> 块，并修改设置的值即可。 <code><font face="NSimsun">environment</font></code> 块中的设置覆盖 <code><font face="NSimsun">dataSource</font></code> 块中的设置。</p> 
+ <p><code><font face="NSimsun">url</font></code> 设置是 JDBC 的连接字符串。请注意在 <code><font face="NSimsun">production</font></code> 模式下，HSQLDB 使用基于文件的数据存储。在 <code><font face="NSimsun">development</font></code> 和 <code><font face="NSimsun">test</font></code> 模式下，HSQLDB 使用内存中的数据存储。上个月我介绍过如果想让 <code><font face="NSimsun">Trip</font></code> 的记录在服务器重新启动之后保留，应该在 <code><font face="NSimsun">production</font></code> 模式下运行。现在您应该知道如何在 <code><font face="NSimsun">development</font></code> 和 <code><font face="NSimsun">test</font></code> 模式下进行设置以实现这一功能 — 只要将 <code><font face="NSimsun">url</font></code> 设置从 <code><font face="NSimsun">production</font></code> 复制过来即可。当然，将 Grails 指向 DB2、MySQL 或者其他传统的基于文件的数据库也可以解决<em>记录消失</em>的问题（立刻就会介绍 DB2 和 MySQL 的设置）。</p> 
+ <p><code><font face="NSimsun">dbCreate</font></code> 的值在不同的环境下会产生不同的行为。它是底层的 <code><font face="NSimsun">hibernate.hbm2ddl.auto</font></code> 设置的别名，负责指定 Hibernate 在幕后如何管理表。将 <code><font face="NSimsun">dbCreate</font></code> 设为 <code><font face="NSimsun">create-drop</font></code>，就是告诉在启动的时候<em>创建</em> 表，在关闭的时候<em>删除</em> 表。如果将值改为 <code><font face="NSimsun">create</font></code>，那么 Hibernate 会在需要的时候创建新表和修改现有表，但是重新启动之间的所有记录都会被删除。<code><font face="NSimsun">production</font></code> 模式的默认值 — <code><font face="NSimsun">update</font></code> — 会在重新启动之间保持所有数据，也会在需要的时候创建或修改表。</p> 
+ <p>如果对传统的数据库使用 Grails，那么我强烈推荐注释掉 <code><font face="NSimsun">dbCreate</font></code> 的值。这样就告诉 Hibernate 不要触及数据库的模式。虽然这意味着必须自行保持数据模型与底层数据库同步，但这可以大大减少愤怒的 DBA 为了弄清楚谁在未经允许的情况下不断修改数据库表而发来的质问邮件。</p> 
+ <p>添加自定义环境也很容易。例如，公司中可能有一个 <em>beta</em> 程序。只要在 DataSource.groovy 中其他块之后创建一个 <code><font face="NSimsun">beta</font></code> 块即可（也可以针对与数据库无关的设置在 grails-app/conf/Config.groovy 中添加一个 <code><font face="NSimsun">environments</font></code> 块）。要在 <code><font face="NSimsun">beta</font></code> 模式下启动 Grails，请输入 <code><font face="NSimsun">grails -Dgrails.env=beta run-app</font></code>。</p> 
+ <p><a name="N10407"><span class="atitle">修改数据库</span></a></p> 
+ <p>如果通过 <code><font face="NSimsun">dbCreate</font></code> 设置允许 Hibernate 管理表，那么只需三步就能迅速地将 Grails 指向新表：创建数据库并登录，将 JDBC 驱动程序复制到 lib 目录，调整 DataSource.groovy 中的设置。</p> 
+ <p>对于不同的产品，创建数据库和用户的操作过程有很大差异。对于 DB2 来说，可以按照一份联机的详细教程逐步进行（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-grails02128/#resources">参考资料</a>）。创建了数据库和用户之后，请调整 DataSource.groovy，让它使用清单 11 中的值（这里显示的值假设使用的数据库名为 <code><font face="NSimsun">trip</font></code>）。</p> 
+ <br /> 
+ <a name="listing11"><strong>清单 11. DataSource.groovy 的 DB2 设置</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">driverClassName = &quot;com.ibm.db2.jcc.DB2Driver&quot;
+  username = &quot;db2admin&quot;
+  password = &quot;db2admin&quot;
+  url = &quot;jdbc:db2://localhost:50000/trip&quot;</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>如果安装了 MySQL，那么请使用清单 12 所示的步骤登录为 root 用户，并创建 <code><font face="NSimsun">trip</font></code> 数据库：</p> 
+ <br /> 
+ <a name="listing12"><strong>清单 12. 创建 MySQL 数据库</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">$ mysql --user=root
+mysql&gt; create database trip;
+mysql&gt; use trip;
+mysql&gt; grant all on trip.* to grails@localhost identified by 'server';
+mysql&gt; flush privileges;
+mysql&gt; exit
+$ mysql --user=grails -p --database=trip</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>创建了数据库和用户之后，请调整 DataSource.groovy，让它使用清单 13 所示的值：</p> 
+ <br /> 
+ <a name="listing13"><strong>清单 13. DataSource.groovy 的 MySQL 设置</strong></a>
+ <br /> 
+ <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+  <tbody> 
+   <tr> 
+    <td class="code-outline"> <pre class="displaycode">driverClassName = &quot;com.mysql.jdbc.Driver&quot;
+  username = &quot;grails&quot;
+  password = &quot;server&quot;
+  url = &quot;jdbc:mysql://localhost:3306/trip?autoreconnect=true&quot;</pre> </td> 
+   </tr> 
+  </tbody> 
+ </table> 
+ <br /> 
+ <p>创建了数据库，将驱动程序 JAR 复制到 lib 目录，而且调整了 DataSource.groovy 中的值之后，多次输入 <code><font face="NSimsun">grails run-app</font></code>。现在的 Grails 使用的就是 HSQLDB 之外的数据库。</p> 
+ <p><a name="N1044E"><span class="atitle">结束语</span></a></p> 
+ <p>现在对本期的 GORM 介绍做一小结。通过本文，您应该很好地理解了什么是 ORM、如何管理验证和表关系以及如何用自己选择的数据库替换 HSQLDB。</p> 
+ <p>这个系列的下一篇文章将重点放在 Web 层上。在下篇文章中将学习 GSP 的更多内容以及各种 Groovy TagLib。还将看到如何将 GSP 拆分成多个<em>部分</em> — 即能够在多个页面上重用的标记片段。最后，还将学会如何自定义在搭建的视图中使用的默认模板。</p> 
+ <p>最后，希望您喜欢<em>精通 Grails</em> 系列文章。</p> 
+ <p> </p> 
+ <p> </p> 
+ <p> </p> 
+</div></div></body></html>

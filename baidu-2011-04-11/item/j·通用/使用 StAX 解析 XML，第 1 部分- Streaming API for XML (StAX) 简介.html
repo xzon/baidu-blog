@@ -1,0 +1,241 @@
+<html><head><title>使用 StAX 解析 XML，第 1 部分: Streaming API for XML (StAX) 简介</title></head><body><div id='tit'>使用 StAX 解析 XML，第 1 部分: Streaming API for XML (StAX) 简介</div><div id='cate'>j&middot;通用</div><div id='date'>2009年08月24日 星期一 01:07 P.M.</div><div id='page'>35</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/de6430d3160d66093af3cf8d.html'>http://hi.baidu.com/hxzon/blog/item/de6430d3160d66093af3cf8d.html</a><div id='cnt'><p> </p> 
+<h1><span style="color: rgb(153,153,153)">使用 StAX 解析 XML，第 1 部分: </span>Streaming API for XML (StAX) 简介</h1> 
+<p><em>探究其基于指针的 API，它把 XML 作为标记（或事件）流拉出</em></p> 
+<p>级别： 中级</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/xml/x-stax1.html#author">Peter Nehrer</a> (<a href="mailto:pnehrer@ecliptical.ca?subject=Streaming%20API%20for%20XML%20%28StAX%29%20%E7%AE%80%E4%BB%8B&amp;cc=dwxed@us.ibm.com">pnehrer@ecliptical.ca</a>), 自由撰稿人, 独立咨询顾问</p> 
+<p>2007 年 3 月 02 日</p> 
+<blockquote>
+ Streaming API for XML (StAX) 是用 Java™ 语言处理 XML 的最新标准。作为一种面向流的方法，无论从性能还是可用性上都优于其他方法，如 DOM 和 SAX。本系列分为 3 部分，本文是第 1 部分，简要介绍了 StAX 及其处理 XML 的基于指针的 API。
+</blockquote> 
+<p><a name="N1004C"><span class="atitle">StAX 概述</span></a></p> 
+<p>从一开始，Java API for XML Processing (JAXP) 就提供了两种方法来处理 XML：文档对象模型（DOM）方法是用标准的对象模型表示 XML 文档；Simple API for XML (SAX) 方法使用应用程序提供的事件处理程序来处理 XML。JSR-173 提出了一种面向流的新方法：Streaming API for XML (StAX)。其最终版本于 2004 年 3 月发布，并成为了 JAXP 1.4（将包含在即将发布的 Java 6 中）的一部分。</p> 
+<p>如其名称所暗示的那样，StAX 把重点放在<em>流</em>上。实际上，StAX 与其他方法的区别就在于应用程序能够把 XML 作为一个事件流来处理。将 XML 作为一组事件来处理的想法并不新颖（事实上 SAX 已经提出来了），但不同之处在于 StAX 允许应用程序代码把这些事件逐个拉出来，而不用提供在解析器方便时从解析器中接收事件的处理程序。</p> 
+<p>StAX 实际上包括两套处理 XML 的 API，分别提供了不同程度的抽象。基于指针的 API 允许应用程序把 XML 作为一个标记（或事件）流来处理；应用程序可以检查解析器的状态，获得解析的上一个标记的信息，然后再处理下一个标记，依此类推。这是一种低层 API，尽管效率高，但是没有提供底层 XML 结构的抽象。较为高级的基于迭代器的 API 允许应用程序把 XML 作为一系列事件对象来处理，每个对象和应用程序交换 XML 结构的一部分。应用程序只需要确定解析事件的类型，将其转换成对应的具体类型，然后利用其方法获得属于该事件的信息。</p> 
+<p><a name="N1005E"><span class="atitle">基本原理</span></a></p> 
+<p>为了使用这两类 API，应用程序首先必须获得一个具体的 <code><font face="新宋体">XMLInputFactory</font></code>。根据传统的 JAXP 风格，要用到抽象工厂模式；<code><font face="新宋体">XMLInputFactory</font></code> 类提供了静态的 <code><font face="新宋体">newInstance</font></code> 方法，它负责定位和实例化具体的工厂。配置该实例可设置定制或者预先定义好的属性（其名称在类 XMLInputFactory 中定义）。最后，为了使用基于指针的 API，应用程序还要通过调用某个 <code><font face="新宋体">createXMLStreamReader</font></code> 方法获得一个 <code><font face="新宋体">XMLStreamReader</font></code>。如果要使用基于事件迭代器的 API，应用程序就要调用 <code><font face="新宋体">createXMLEventReader</font></code> 方法获得一个 <code><font face="新宋体">XMLEventReader</font></code>（如清单 1 所示）。</p> 
+<p><br /> <a name="N10087"><strong>清单 1. 获取和配置默认的 <code><font face="新宋体">XMLInputFactory</font></code> </strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">// get the default factory instance
+XMLInputFactory factory = XMLInputFactory.newInstance();
+// configure it to create readers that coalesce adjacent character sections
+factory.setProperty(XMLInputFactory.IS_COALESCING, Boolean.TRUE);
+XMLStreamReader r = factory.createXMLStreamReader(input);
+// ...</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><code><font face="新宋体">XMLStreamReader</font></code> 和 <code><font face="新宋体">XMLEventReader</font></code> 都允许应用程序迭代底层的 XML 流。两种方法的差别在于如何公开解析后的 XML InfoSet 信息片段。<code><font face="新宋体">XMLStreamReader</font></code> 就像一个指针，指在刚刚解析过的 XML 标记的后面，并提供了方法获得更多关于该标记的信息。这种方法节约内存，因为不用创建新的对象。但是，业务应用程序开发人员可能会发现 <code><font face="新宋体">XMLEventReader</font></code> 更直观一些，因为它实际上就是一个标准的 Java 迭代器，将 XML 变成了事件对象流。每个事件对象都封装了它所表示的特定 XML 结构固有的信息。本系列的第二部分将详细讨论这种基于事件迭代器的 API。</p> 
+<p>使用哪种风格的 API 取决于具体情况。和基于指针的 API 相比，基于事件迭代器的 API 具有更多的面向对象特征。因此更便于应用于模块化的体系结构，因为当前的解析器状态反映在事件对象中，应用程序组件在处理事件的时候不需要访问解析器/读取器。此外，还可以使用 <code><font face="新宋体">XMLInputFactory</font></code> 的 <code><font face="新宋体">createXMLEventReader(XMLStreamReader)</font></code> 方法从 <code><font face="新宋体">XMLStreamReader</font></code> 创建 <code><font face="新宋体">XMLEventReader</font></code>。</p> 
+<p>StAX 还定义了一种序列化器 API，Java 标准 XML 处理支持中一直缺少的一种特性。和解析一样，也包含两种风格的流式 API：处理标记的底层 <code><font face="新宋体">XMLStreamWriter</font></code> 和处理事件对象的高层 <code><font face="新宋体">XMLEventWriter</font></code>。<code><font face="新宋体">XMLStreamWriter</font></code> 提供了写入单个 XML 记号（比如开始和关闭标记或者元素属性）的方法，不检查这些标记是否格式良好。另一方面，<code><font face="新宋体">XMLEventWriter</font></code> 允许应用程序向输出中添加完整的 XML 事件。第 3 部分将详细讨论 StAX 序列化器 API。</p> 
+<p><a name="N100CA"><span class="smalltitle">为什么使用 StAX？</span></a></p> 
+<p>开始学习一种新的处理 XML 的 API 之前，可能要问是否值得这样做。事实上，StAX 所采用的基于拉的方法和其他方法相比有一些突出的优点。首先，不管使用哪种 API 风格，都是应用程序调用读取器（解析器）而不是相反。通过保留解析过程的控制权，可以简化调用代码来准确地处理它预期的内容。或者发生意外时停止解析。此外，由于该方法不基于处理程序回调，应用程序不需要像使用 SAX 那样模拟解析器的状态。</p> 
+<p>StAX 仍然保留了 SAX 相对于 DOM 的优点。通过把重心从结果对象模型转移到解析流本身，从理论上说应用程序能够处理无限的 XML 流，因为事件固有的临时性，不会在内存中累积起来。对于那些使用 XML 作为消息传递协议而非表示文档内容的那些应用程序尤其重要，比如 Web 服务或即时消息应用程序。比方说，如果只是将其转换成特定于应用程序的对象模型然后就将其丢弃，那么为 Web 服务路由器 servlet 提供一个 DOM 就没有多少用处。使用 StAX 直接转化成应用程序模型效率更高。对于 Extensible Messaging and Presence Protocol（XMPP）客户机，根本不能使用 DOM，因为 XMPP 客户机/服务器流是随着用户输入的消息实时生成。等待流的关闭标签（以便最终建立 DOM）就意味着等待整个会话结束。通过把 XML 作为一系列的事件来处理，应用程序能够以最合适的方式响应每个事件（比如显示收到的即时消息等等）。</p> 
+<p>由于其双向性，StAX 也支持链式处理，特别是在事件层上。接收事件（无论什么来源）的能力被封装在 XMLEventConsumer（XMLEventWriter 的扩展）接口中。因此，可以模块化地编写应用程序从 XMLEventReader（也是一个普通的迭代器，可以按迭代器处理）读取和处理 XML 事件、然后传递给事件消费者（如果需要可以进一步扩展处理链）。在第 2 部分将看到，也可使用应用程序提供的筛选器（实现了 EventFilter 接口的类）来定制 XMLEventReader 或者使用 EventReaderDelegate 修饰已有的 XMLEventReader。</p> 
+<p>总而言之，和 DOM 以及 SAX 相比，StAX 使应用程序更贴近底层的 XML。使用 StAX，应用程序不仅可以建立需要的对象模型（而不需要处理标准 DOM），而且可以随时这样做，而不必等到解析器回调。</p> 
+<p>下一节将深入讨论基于指针的 API 以及如何有效地使用它处理 XML 流。</p> 
+<p><a name="N100DF"><span class="atitle">基于指针的 API</span></a></p> 
+<p>如果使用基于指针的 API，应用程序通过在 XML 标记流中移动逻辑指针来处理 XML。基于指针的解析器实质上是一个状态机，在事件的驱动下从一个良好定义的状态转移到另一个状态。这里的触发事件是随着应用程序使用适当的方法推动解析器在标记流中前进而解析出来的 XML 标记。在每个状态，都可使用一组方法获得上一个事件的信息。一般来说，并非每个状态下都能使用所有的方法。</p> 
+<p>使用基于指针的方法，应用程序首先必须通过调用其 <code><font face="新宋体">createXMLStreamReader</font></code> 方法从 <code><font face="新宋体">XMLInputFactory</font></code> 得到 <code><font face="新宋体">XMLStreamReader</font></code>。该方法有多个版本，支持不同类型的输入。比方说，可以创建 <code><font face="新宋体">XMLStreamReader</font></code> 解析 <code><font face="新宋体">plain java.io.InputStream</font></code>、<code><font face="新宋体">java.io.Reader</font></code> 或者 JAXP Source（<code><font face="新宋体">javax.xml.transform.Source</font></code>）。从理论上说，后一种办法很容易和其他 JAXP 技术交互，比如 SAX 和 DOM。</p> 
+<p><br /> <a name="N1010B"><strong>清单 2. 创建 <code><font face="新宋体">XMLStreamReader</font></code> 解析 <code><font face="新宋体">InputStream</font></code> </strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">URL url = new URL(uri);
+InputStream input = url.openStream();
+XMLInputFactory factory = XMLInputFactory.newInstance();
+XMLStreamReader r = factory.createXMLStreamReader(uri, input);
+// process the stream
+// ...
+r.close();
+input.close();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><code><font face="新宋体">XMLStreamReader</font></code> 接口基本上定义了基于指针的 API（虽然标记常量在其超类型 <code><font face="新宋体">XMLStreamConstants</font></code> 接口中定义）。之所以称为基于指针，是因为读取器就像是底层标记流上的指针。应用程序可以沿着标记流向前推进指针并分析当前指针所在位置的标记。</p> 
+<p><code><font face="新宋体">XMLStreamReader</font></code> 提供了多种方法导航标记流。为了确定当前指针所指向的标记（或事件）的类型，应用程序可以调用 <code><font face="新宋体">getEventType()</font></code>。该方法返回接口 <code><font face="新宋体">XMLStreamConstants</font></code> 中定义的一个标记常量。移动到下一个标记，应用程序可以调用 <code><font face="新宋体">next()</font></code>。该方法也返回解析的标记的类型，如果接着调用 <code><font face="新宋体">getEventType()</font></code> 则返回的值相同。只有当方法 <code><font face="新宋体">hasNext()</font></code> 返回 true 时（就是说还有其他标记需要解析）才能调用该方法（以及其他移动读取器的方法）。</p> 
+<p><br /> <a name="N10143"><strong>清单 3. 使用 <code><font face="新宋体">XMLStreamReader</font></code> 处理 XML 的常用模式</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">// create an XMLStreamReader
+XMLStreamReader r = ...;
+try {
+ int event = r.getEventType();
+ while (true) {
+ switch (event) {
+ case XMLStreamConstants.START_DOCUMENT:
+ // add cases for each event of interest
+ // ...
+ }
+
+ if (!r.hasNext())
+ break;
+ 
+ event = r.next();
+ }
+} finally {
+ r.close();
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>还与其他几种方法可以移动 <code><font face="新宋体">reader</font></code>。 <code><font face="新宋体">nextTag()</font></code> 方法将跳过所有的空白、注释或处理指令，直到遇到 <code><font face="新宋体">START_ELEMENT</font></code> 或 <code><font face="新宋体">END_ELEMENT</font></code>。该方法在解析只含元素的内容时很有用，如果在发现标记之前遇到非空白文本（不包括注释或处理指令），就会抛出异常。<code><font face="新宋体">getElementText()</font></code> 方法返回元素的开始和关闭标签（即 <code><font face="新宋体">START_ELEMENT</font></code> 和 <code><font face="新宋体">END_ELEMENT</font></code>）之间的所有文本内容。如果遇到嵌套的元素就会抛出异常。</p> 
+<p>请注意，这里的 “标记” 和 “事件” 可以互换使用。虽然基于指针的 API 的文档说的是事件，但把输入源看成标记流很方便。而且不容易造成混乱，因为还有一整套基于事件的 API（那里的事件是真正的对象）。不过，<code><font face="新宋体">XMLStreamReader</font></code> 的事件本质上并非都是标记。比方说，<code><font face="新宋体">START_DOCUMENT</font></code> 和 <code><font face="新宋体">END_DOCUMENT</font></code> 事件不需要对应的标记。前一个事件是解析开始之前发生，后者则在没有更多解析工作要做的时候发生（比如解析完成最后一个元素的关闭标签之后，读取器处于 <code><font face="新宋体">END_ELEMENT</font></code> 状态，但是如果没有发现更多的标记需要解析，读取器就会切换到 <code><font face="新宋体">END_DOCUMENT</font></code> 状态）。</p> 
+<p><a name="N10183"><span class="smalltitle">处理 XML 文档</span></a></p> 
+<p>在每个解析器状态，应用程序都可通过可用的方法获得相关信息。比如，无论当前是什么类型的事件，<code><font face="新宋体">getNamespaceContext()</font></code> 和 <code><font face="新宋体">getNamespaceURI()</font></code> 方法可以获得当前有效的名称空间上下文和名称空间 URI。类似的，<code><font face="新宋体">getLocation()</font></code> 可以获得当前事件的位置信息。方法 <code><font face="新宋体">hasName()</font></code> 和 <code><font face="新宋体">hasText()</font></code> 可以分别判断当前事件是否有名称（比如元素或属性）或文本（比如字符、注释或 CDATA）。方法 <code><font face="新宋体">isStartElement()</font></code>、<code><font face="新宋体">isEndElement()</font></code>、<code><font face="新宋体">isCharacters()</font></code> 和 <code><font face="新宋体">isWhiteSpace()</font></code> 可以方便地确定当前事件的性质。最后，方法 require(<code><font face="新宋体">int</font></code>, <code><font face="新宋体">String</font></code>, <code><font face="新宋体">String</font></code>) 可以声明预期的解析器状态；除非当前事件是指定的类型，并且本地名和名称空间（如果给出的话）与当前事件匹配，否则该方法将抛出异常。</p> 
+<p><br /> <a name="N101C0"><strong>清单 4. 如果当前事件是 <code><font face="新宋体">START_ELEMENT</font></code> 使用有关的属性方法</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">if (reader.getEventType() == XMLStreamConstants.START_ELEMENT) {
+ System.out.println(&quot;Start Element: &quot; + reader.getName());
+ for(int i = 0, n = reader.getAttributeCount(); i &lt; n; ++i) {
+ QName name = reader.getAttributeName(i);
+ String value = reader.getAttributeValue(i);
+ System.out.println(&quot;Attribute: &quot; + name + &quot;=&quot; + value);
+ }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>创建之后，<code><font face="新宋体">XMLStreamReader</font></code> 将从 <code><font face="新宋体">START_DOCUMENT</font></code> 状态开始（即 <code><font face="新宋体">getEventType()</font></code> 返回 <code><font face="新宋体">START_DOCUMENT</font></code>）。处理标记的时候应考虑到这一点。和迭代器不同，不需要先移动指针（使用 <code><font face="新宋体">next()</font></code>）来进入合法的状态。同样地，当读取器转换到最终状态 <code><font face="新宋体">END_DOCUMENT</font></code> 之后，应用程序也不应再移动它。在这种状态下，<code><font face="新宋体">hasNext()</font></code> 方法将返回 false。</p> 
+<p><code><font face="新宋体">START_DOCUMENT</font></code> 事件提供了获取关于文档本身信息的方法，如 <code><font face="新宋体">getEncoding()</font></code>、<code><font face="新宋体">getVersion()</font></code> 和 <code><font face="新宋体">isStandalone()</font></code>。应用程序也可调用 <code><font face="新宋体">getProperty(String)</font></code> 获得命名属性的值，不过一些属性仅在特定状态做了定义（比方说，如果当前事件是 DTD，则属性 <code><font face="新宋体">javax.xml.stream.notations</font></code> 和 <code><font face="新宋体">javax.xml.stream.entities</font></code> 分别返回所有的符号和实体声明）。</p> 
+<p>在 <code><font face="新宋体">START_ELEMENT</font></code> 和 <code><font face="新宋体">END_ELEMENT</font></code> 事件中，可以使用和元素名称以及名称空间有关的方法（如 <code><font face="新宋体">getName()</font></code>、<code><font face="新宋体">getLocalName()</font></code>、<code><font face="新宋体">getPrefix()</font></code> 和 <code><font face="新宋体">getNamespaceXXX()</font></code>），在 <code><font face="新宋体">START_ELEMENT</font></code> 事件中还可使用与属性有关的方法（<code><font face="新宋体">getAttributeXXX()</font></code>）。</p> 
+<p><code><font face="新宋体">ATTRIBUTE</font></code> 和 <code><font face="新宋体">NAMESPACE</font></code> 也被识别为独立的事件，虽然在解析 典型的 XML 文档时不会用到。但是当 <code><font face="新宋体">ATTRIBUTE</font></code> 或 <code><font face="新宋体">NAMESPACE</font></code> 节点作为 XPath 查询结果返回时可以使用。</p> 
+<p>和基于文本的事件（如 <code><font face="新宋体">CHARACTERS</font></code>、<code><font face="新宋体">CDATA</font></code>、<code><font face="新宋体">COMMENT</font></code> 和 <code><font face="新宋体">SPACE</font></code>），可使用各种 <code><font face="新宋体">getTextXXX()</font></code> 方法取得文本。可以分别使用 <code><font face="新宋体">getPITarget()</font></code> 和 <code><font face="新宋体">getPIData()</font></code> 检索 <code><font face="新宋体">PROCESSING_INSTRUCTION</font></code> 的目标和数据。<code><font face="新宋体">ENTITY_REFERENCE</font></code> 和 <code><font face="新宋体">DTD</font></code> 也支持 <code><font face="新宋体">getText()</font></code>，<code><font face="新宋体">ENTITY_REFERENCE</font></code> 还支持 <code><font face="新宋体">getLocalName()</font></code>。</p> 
+<p>解析完成后，应用程序关闭读取器并释放解析过程中获得的资源。请注意这样并没有关闭底层的输入源。</p> 
+<p>清单 5 提供了一个完整的例子，使用基于指针的 API 处理 XML 文档。首先取得 <code><font face="新宋体">XMLInputFactory</font></code> 的默认实例并创建一个 <code><font face="新宋体">XMLStreamReader</font></code> 解析给定的输入流。然后不断检查读取器的状态，根据当前事件的类型报告某些信息（比如在 <code><font face="新宋体">START_ELEMENT</font></code> 状态下报告元素名及元素属性）。最后，遇到 <code><font face="新宋体">END_DOCUMENT</font></code> 时关闭读取器。</p> 
+<p><br /> <a name="N1028F"><strong>清单 5. 使用 <code><font face="新宋体">XMLStreamReader</font></code> 解析 XML 文档的完整例子</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">XMLInputFactory factory = XMLInputFactory.newInstance();
+XMLStreamReader r = factory.createXMLStreamReader(input);
+try {
+ int event = r.getEventType();
+ while (true) {
+ switch (event) {
+ case XMLStreamConstants.START_DOCUMENT:
+ out.println(&quot;Start Document.&quot;);
+ break;
+ case XMLStreamConstants.START_ELEMENT:
+ out.println(&quot;Start Element: &quot; + r.getName());
+ for(int i = 0, n = r.getAttributeCount(); i &lt; n; ++i)
+ out.println(&quot;Attribute: &quot; + r.getAttributeName(i) 
+ + &quot;=&quot; + r.getAttributeValue(i));
+ 
+ break;
+ case XMLStreamConstants.CHARACTERS:
+ if (r.isWhiteSpace())
+ break;
+ 
+ out.println(&quot;Text: &quot; + r.getText());
+ break;
+ case XMLStreamConstants.END_ELEMENT:
+ out.println(&quot;End Element:&quot; + r.getName());
+ break;
+ case XMLStreamConstants.END_DOCUMENT:
+ out.println(&quot;End Document.&quot;);
+ break;
+ }
+ 
+ if (!r.hasNext())
+ break;
+
+ event = r.next();
+ }
+} finally {
+ r.close();
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N10299"><span class="smalltitle"><code><font face="新宋体">XMLStreamReader</font></code> 的高级用法</span></a></p> 
+<p>通过调用 <code><font face="新宋体">XMLInputFactory</font></code> 的带有基本读取器的 <code><font face="新宋体">createFilteredReader</font></code> 方法和一个应用程序定义的筛选器（即实现 <code><font face="新宋体">StreamFilter</font></code> 的类实例），可以创建筛选过的 <code><font face="新宋体">XMLStreamReader</font></code>。导航筛选过的读取器时，读取器每次移动到下一个标记之前都会询问筛选器。如果筛选器认可了当前事件，就将其公开给筛选过的读取器。否则跳过这个标记并检查下一个，依此类推。这种方法可以让开发人员创建一个仅处理解析内容子集的基于指针的 XML 处理程序，并与针对不同的扩展的内容模型的筛选器结合使用。</p> 
+<p>执行更复杂的流操作，可以创建 <code><font face="新宋体">StreamReaderDelegate</font></code> 的子类并重写合适的方法。然后使用这个子类的实例包装基本 <code><font face="新宋体">XMLStreamReader</font></code>，从而为应用程序提供一个修改过的基本 XML 流的视图。可通过这种技术对 XML 流执行简单的转换，比如筛掉或者替换特定的标记，甚至增加新的标记。</p> 
+<p>清单 6 用定制的 <code><font face="新宋体">StreamReaderDelegate</font></code> 包装了基本 <code><font face="新宋体">XMLStreamReader</font></code>，重写了 <code><font face="新宋体">next()</font></code> 方法来跳过 <code><font face="新宋体">COMMENT</font></code> 和 <code><font face="新宋体">PROCESSING_INSTRUCTION</font></code> 事件。使用该读取器时，应用程序不用担心会遇到这种类型的标记。</p> 
+<p><br /> <a name="N102DC"><strong>清单 6. 使用定制的 <code><font face="新宋体">StreamReaderDelegate</font></code> 筛选注释和处理指令</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">URL url = new URL(uri);
+InputStream input = url.openStream();
+
+XMLInputFactory f = XMLInputFactory.newInstance();
+XMLStreamReader r = f.createXMLStreamReader(uri, input);
+XMLStreamReader fr = new StreamReaderDelegate(r) {
+ public int next() throws XMLStreamException {
+ while (true) {
+ int event = super.next();
+ switch (event) {
+ case XMLStreamConstants.COMMENT:
+ case XMLStreamConstants.PROCESSING_INSTRUCTION:
+ continue;
+ default:
+ return event;
+ }
+ }
+ }
+};
+
+try {
+ int event = fr.getEventType();
+ while (true) {
+ switch (event) {
+ case XMLStreamConstants.COMMENT:
+ case XMLStreamConstants.PROCESSING_INSTRUCTION:
+ // this should never happen
+ throw new IllegalStateException(&quot;Filter failed!&quot;);
+ default:
+ // process XML normally
+ }
+
+ if (!fr.hasNext())
+ break;
+
+ event = fr.next();
+ }
+} finally {
+ fr.close();
+}
+
+input.close();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N102E6"><span class="atitle">基于指针处理之外的其他技术</span></a></p> 
+<p>可以看到，基于指针的 API 主要是为了提高效率。所有的状态信息可以直接从流读取器获得，不需要创建额外的对象。非常适用于性能和低内存占用至关重要的应用程序。</p> 
+<p>人们早就认识到了拉式 XML 解析的好处。事实上，StAX 本身源于一种称为 <em>XML Pull Parsing</em> 的方法。XML Pull Parser API 类似于 StAX 所提供的基于指针的 API，可以通过分析解析器的状态获得上一个解析事件的信息，然后移动到下一个，依此类推。但没有提供基于事件迭代器的 API。这是一种非常轻型的方法，特别适合资源受限的环境，比如 J2ME。但是，很少有实现提供企业级特性如验证，因此 XML Pull 一直未受到企业 Java 开发人员的关注。</p> 
+<p>基于以往拉式解析器实现的经验，StAX 的创建者选择了在基于指针的 API 之外增加一种面向对象的 API。虽然 <code><font face="新宋体">XMLEventReader</font></code> 接口看起来似乎很简单，但是基于事件迭代器的方法具有一个基于指针的方法不具备的重要优点。通过将解析器事件变成一级对象，从而让应用程序可以采用面向对象的方式处理它们。这样做有助于模块化和不同应用程序组件之间的代码重用。</p> 
+<p><br /> <a name="N10300"><strong>清单 7. 使用 StAX <code><font face="新宋体">XMLEventReader</font></code> 解析 XML</strong></a><br /> </p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">XMLInputFactory inputFactory = XMLInputFactory.newInstance();
+XMLEventReader reader = inputFactory.createXMLEventReader(input);
+try {
+ while (reader.hasNext()) {
+ XMLEvent e = reader.nextEvent();
+ if (e.isCharacters() &amp;&amp; ((Characters) e).isWhiteSpace())
+ continue;
+ 
+ out.println(e);
+ }
+} finally {
+ reader.close();
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p><a name="N1030A"><span class="atitle">结束语</span></a></p> 
+<p>本文介绍了 StAX 及其基于指针的 API。第 2 部分将深入讨论事件迭代器 API。</p> 
+<p> </p> 
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p> 
+<p><strong>学习</strong></p> 
+<ul> 
+ <li>您可以参阅本文在 developerWorks 全球网站上的 <a target="_blank" href="http://www.ibm.com/developerworks/xml/library/x-stax1.html?S_TACT=105AGX52&amp;S_CMP=cn-a-x">英文原文</a>。</li> 
+ <li><a href="http://www.ibm.com/developerworks/library/x-stax2.html">使用 StAX 解析 XML，第 2 部分: 拉式解析和事件</a>（Peter Nehrer，developerWorks，2007 年 7 月）：本系列第 2 部分介绍基于事件迭代器的 API 以及它为 Java 开发人员带来的好处。</li> 
+ <li><a href="http://www.ibm.com/developerworks/cn/xml/x-stax3.html">使用 StAX 解析 XML，第 3 部分: 使用定制事件和编写 XML</a>（Peter Nehrer，developerWorks，2007 年 7 月）：将介绍定制化技术，该技术使用由应用程序定义的事件，您还将看到如何创建定制事件类并使用它们结合基于事件迭代器的 API 来处理 XML。最后（同样也是重要的一点），将回顾由 StAX 提供的可将 XML 编写为标记流和事件对象的序列化器 API。</li> 
+</ul></div></body></html>

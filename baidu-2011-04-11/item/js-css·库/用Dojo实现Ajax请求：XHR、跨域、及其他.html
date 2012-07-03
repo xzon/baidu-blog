@@ -1,0 +1,100 @@
+<html><head><title>用Dojo实现Ajax请求：XHR、跨域、及其他</title></head><body><div id='tit'>用Dojo实现Ajax请求：XHR、跨域、及其他</div><div id='cate'>js-css&middot;库</div><div id='date'>2011年01月19日 星期三 01:56 P.M.</div><div id='page'>2</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/49a85caf81da4ee8faed50f6.html'>http://hi.baidu.com/hxzon/blog/item/49a85caf81da4ee8faed50f6.html</a><div id='cnt'><h1>用Dojo实现Ajax请求：XHR、跨域、及其他</h1> 
+<p class="info">http://www.infoq.com/cn/articles/dojo-ajax-xhr</p> 
+<p class="info"> 作者 <strong><a href="http://www.infoq.com/cn/author/%E6%9C%B1%E5%B0%8F%E6%96%87" class="editorlink"> 朱小文</a> </strong> 发布于 2011年1月18日 上午12时0分 </p> 
+<dl class="tags2"> 
+ <dt class="community">
+  社区
+ </dt>
+ <dd>
+  <a href="http://www.infoq.com/cn/ruby" name="ruby">Ruby</a>,
+ </dd>
+ <dd>
+  <a href="http://www.infoq.com/cn/dotnet" name="dotnet">.NET</a>,
+ </dd>
+ <dd>
+  <a href="http://www.infoq.com/cn/java" name="java">Java</a>
+ </dd>
+ <dt class="topics">
+  主题
+ </dt>
+ <dd> 
+  <a href="http://www.infoq.com/cn/ " name="javascript">JavaScript</a> , 
+ </dd>
+ <dd> 
+  <a class="article_moreinfo_box_topic" href="http://www.infoq.com/cn/ria" name="ria">RIA</a> 
+ </dd>
+ <dt class="topics">
+  标签
+ </dt>
+ <dd> 
+  <a href="http://www.infoq.com/cn/dojo" name="dojo">Dojo</a> , 
+ </dd>
+ <dd> 
+  <a href="http://www.infoq.com/cn/dojo-column" name="dojo-column">Dojo之美</a> , 
+ </dd>
+ <dd> 
+  <a href="http://www.infoq.com/cn/XML" name="XML">XML</a> , 
+ </dd>
+ <dd> 
+  <a href="http://www.infoq.com/cn/special-column" name="special-column">专栏</a> 
+ </dd> 
+</dl> 
+<p>在任何浏览器上方便地实现Ajax请求是每一个Ajax框架的初衷。Dojo在这方面无疑提供了非常丰富的支持。除了XMLHttpRequest之外， 动态script、iframe、RPC也应有尽有，并且接口统一，使用方便，大多数情况下都只需要一句话就能达到目的，从而免除重复造轮子的麻烦。而 且，Dojo一贯追求的概念完整性也在这里有所体现，换句话说，在使用Dojo的Ajax工具的过程中不会感到任何的不自然，相反更容易有触类旁通的感 觉，因为API的模式是统一的，而且这里涉及到的某些概念（如Deferred对象）也贯穿在整个Dojo之中。</p> 
+<h2>Dojo的XHR函数</h2> 
+<p>Dojo的XMLHttpRequest函数就叫dojo.xhr，除了把自己取名美元符号之外，这好像是最直接的办法了。它定义在Dojo基本库 里，所以不需要额外的require就能使用。它可以实现任何同域内的http请求。不过更常用的是dojo.xhrGet和dojo.xhrPost， 它们只不过是对dojo.xhr函数的简单封装；当然根据REST风格，还有dojo.xhrPut和dojo.xhrDelete。</p> 
+<p>这些函数的参数都很统一。除了dojo.xhr的第一个参数是http方法名之外，所有的dojo.xhr*系列函数都接受同一种散列式的参数，其 中包含请求的细节，例如url、是否同步、要传给服务器的内容（可以是普通对象、表单、或者纯文本）、超时设定、返回结果的类型（非常丰富且可扩展）、以 及请求成功和失败时的回调。所有dojo.xhr*函数（实际上是所有IO函数）返回值也都一样，都是一个Deferred对象，顾名思义，它能让一些事 情“延迟”发生，从而让API用起来更灵活。</p> 
+<p>下面的两个例子可能会带来一点直观感受：</p> 
+<pre>dojo.xhrGet({<br />    url: &quot;something.html&quot;,<br />    load: function(response, ioArgs){<br />        //用response干一些事<br />        console.log(&quot;xhr get success:&quot;, response);<br />    return response; //必须返回response<br />    },<br />    error: function(response, ioArgs){<br />        console.log(&quot;xhr get failed:&quot;, response);<br />        return response; //必须返回response<br />    }<br />});<br />//Deferred对象允许用同步调用的写法写异步调用<br />var deferredResult = dojo.xhrPost({<br />    url: &quot;something.html&quot;,<br />    form: formNode, //Dojo会自动将form转成object<br />    timeout: 3000, //Dojo会保证超时设定的有效性<br />    handleAs: &quot;json&quot; //得到的response将被认为是JSON，并自动转为object<br />});<br />//当响应结果可用时再调用回调函数<br />deferredResult.then(function(response){<br />    console.log(&quot;xhr get success:&quot;, response);<br />    return response; //必须返回response<br />});<br /></pre> 
+<p>首先解释一下timeout。除了IE8之外，目前大多数XMLHttpRequest对象都没有内置的timeout功能，因此必须用 setTimeout。当同时存在大量请求时，需要为每一个请求设置单独的定时器，这在某些浏览器（主要是IE）会造成严重的性能问题。dojo的做法是 只用一个单独的setInterval，定时轮询（间隔50ms）所有还未结束的请求的状态，这样就高效地解决了一切远程请求（包括JSONP和 iframe）的超时问题。</p> 
+<p>值得一提的还有handleAs参数，通过设置这个参数，可以自动识别服务器的响应内容格式并转换成对象或文本等方便使用的形式。根据文档，它接受 如下值：text (默认), json, json-comment-optional, json-comment-filtered, javascript, xml。</p> 
+<p>而且它还是可扩展的。其实handleAs只是告诉xhr函数去调用哪个格式转换插件，即dojo.contentHandlers对象里的一个方 法。例如 dojo.contentHandlers.json就是处理JSON格式的插件。你可以方便地定制自己所需要的格式转换插件，当然，你也可修改现有插件 的行为：</p> 
+<pre>dojo.contentHandlers.json = (function(old){<br />    return function(xhr){<br />        var json = old(xhr);<br />        if(json.someSignalFormServer){<br />            doSomthing(json);<br />            delete json.someSignalFormServer;<br />        }<br />        return json;<br />    }<br />})(dojo.contentHandlers.json);//一个小技巧，利用传参得到原方法<br /> </pre> 
+<p>如果要了解每个参数的细节，可以参考<a href="http://docs.dojocampus.org/dojo/xhr">Dojo的文档</a>。</p> 
+<h3>虚拟的参数类</h3> 
+<p>这里特别提一下Dojo在API设计上的两个特点。其一是虚拟的参数“类”概念：通过利用javascript对象可以灵活扩展的特点，强行规定一 个散列参数属于某个“类”。例如dojo.xhr*系列函数所接受的参数就称为dojo.__XhrArgs。这个“类”并不存在于实际代码中（不要试图 用 instanceof验证它），只停留在概念上，比抽象类还抽象，因此给它加上双下划线前缀（Dojo习惯为抽象类加单下划线前缀）。这样做看起来没什么 意思，但实际上简化了API，因为它使API之间产生了联系，更容易记忆也就更易于使用。这一点在对这种类做“继承”时更明显。例如 dojo.__XhrArgs继承自dojo.__IoArgs，这是所有IO函数所必须支持的参数集合，同样继承自dojo.__IoArgs的还有 dojo.io.script.__ioArgs和dojo.io.iframe.__ioArgs，分别用于动态脚本请求和iframe请求。子类只向 父类添加少量的属性，这样繁多的参数就具有了树形类结构。原本散列式参数是用精确的参数名代替了固定的参数顺序，在增加灵活性和可扩展性的同时，实际上增 加了记忆量（毕竟参数名不能拼错），使得API都不像看起来那么好用，有了参数类的设计就缓解了这个问题。</p> 
+<p>这种参数类的做法在Dojo里随处可见，读源码的话就会发现它们都是被正儿八经地以正常代码形式声明在一种特殊注释格式里的，像这样：</p> 
+<pre>/*=====<br />dojo.declare(&quot;dojo.__XhrArgs&quot;, dojo.__IoArgs, {<br />    constructor: function(){<br />    //summary:<br />    //...<br />    //handleAs:<br />    //...<br />    //......<br />    }<br /> });<br /> =====*/<br /> </pre> 
+<p>这种格式可以被jsDoc工具自动提取成文档，在文档里这些虚拟出来的类就像真的类一样五脏俱全了。</p> 
+<h3>Deferred对象</h3> 
+<p>另一个API设计特点就是Deferred对象的广泛使用。Dojo里的Deferred是基于MochiKit实现稍加改进而成的，而后者则是受 到 python的事件驱动网络工具包Twisted里同名概念的启发。概括来说的话，这个对象的作用就是将异步IO中回调函数的声明位置与调用位置分离，这 样在一个异步IO最终完成的地方，开发人员可以简单地说“货已经到了，想用的可以来拿了”，而不用具体地指出到底该调用哪些回调函数。这样做的好处是让异 步IO的写法和同步IO一样（对数据的处理总是在取数据函数的外面，而不是里面），从而简化异步编程。</p> 
+<p>具体做法是，异步函数总是同步地返回一个代理对象（这就是Deferred对象），可以将它看做你想要的数据的代表，它提供一些方法以添加回调函 数，当数据可用时，这些回调函数(可以由很多个)便会按照添加顺序依次执行。如果在取数据过程中出现错误，就会调用所提供的错误处理函数(也可以有很多 个)；如果想要取消这个异步请求，也可通过Deferred对象的cancel方法完成。</p> 
+<p>dojo.Deferred的核心方法如下：</p> 
+<pre>then(callback, errback); //添加回调函数<br />callback(result); //表示异步调用成功完成，触发回调函数<br />errback(error); //表示异步调用中产生错误，触发错误处理函数<br />cancel(); //取消异步调用<br /></pre> 
+<p>Dojo还提供了一个when方法，使同步的值和异步的Deferred对象在使用时写法一样。例如：</p> 
+<pre>//某个工具函数的实现<br />var obj = {<br />    getItem: function(){<br />        if(this.item){<br />            return this.item; //这里同步地返回数据<br />        }else{<br />            return dojo.xhrGet({&nbsp; //这里返回的是Deferred对象<br />                url: &quot;toGetItem.html&quot;,<br />                load: dojo.hitch(this, function(response){<br />                    this.item = response;<br />                    return response;<br />                })<br />            });<br />        }<br />    }<br />};<br />//用户代码<br />dojo.when(obj.getItem(), function(item){<br />    //无论同步异步，使用工具函数getItem的方式都一样<br />});<br /></pre> 
+<p>在函数闭包的帮助下，Deferred对象的创建和使用变得更为简单，你可以轻易写出一个创建Deferred对象的函数，以同步的写法做异步的事。例如写一个使用store获取数据的函数：</p> 
+<pre>var store = new dojo.data.QueryReadStore({...});<br />function getData(start, count){<br />    var d = new dojo.Deferred(); //初始化一个Deferred对象<br />    store.fetch({<br />        start: start,<br />        count: count,<br />        onComplete: function(items){<br />            //直接取用上层闭包里的Deferred对象<br />            d.callback(items); <br />        }<br />    });<br />    return d; //把它当做结果返回<br />}</pre> 
+<h2>用dojo.io.script跨域</h2> 
+<p>dojo.xhr* 只是XmlHttpRequest对象的封装，由于同源策略限制，它不能发跨域请求，要跨域还是需要动态创建&lt;script&gt;标签。Dojo 没有像JQuery一样把所有东西都封装在一起（JQuery的ajax()方法可以跨域，当然用的是JSONP，所以它不敢把自己称为xhr），而是坚 持一个API只干一件事情。毕竟在大部分应用中，同域请求比跨域请求多得多，如果一个应用不需要跨域，就没必要加载相关代码。因此与xhr不同，dojo 的跨域请求组件不在基本库，而在核心库，需要require一下才能使用：</p> 
+<pre>dojo.require(&quot;dojo.io.script&quot;); </pre> 
+<p>这个包里面基本上只需要用到一个函数：dojo.io.script.get()。它也返回Deferred对象，并接受类型为 dojo.io.script.__ioArgs的散列参数。受益于虚拟参数类，我们不用从头开始学习这个参数，它继承了dojo.__IoArgs，因 此和dojo.xhr*系列的参数大同小异。唯一需要注意的是handleAs在这里无效了，代之以jsonp或者checkString。</p> 
+<p>前者用于实现JSONP协议，其值由服务器端指定，当script标签加载后就按照JSONP协议执行这个函数，然后Dojo会自动介入，负责把真 正的数据传给load函数。需要指出的是在Dojo1.4以前，这个参数叫callbackParamName，冗长但意义明确。毕竟Dojo太早了，它 成型的时候（2005）JSONP这个词才刚出现不久。现在callbackParamName还是可用的（为了向后兼容），不过处于 deprecated状态。</p> 
+<p>下面的例子从flickr获取feed数据：</p> 
+<pre>dojo.io.script.get({<br />    url: &quot;http://www.flickr.com/services/feeds/photos_public.gne&quot;,<br />    jsonp: &quot;jsoncallback&quot;, //由flickr指定<br />    content: {format: &quot;json&quot;},<br />    load: function(response){<br />        console.log(response);<br />        return response;<br />    },<br />    error: function(response){<br />        console.log(response);<br />        return response;<br />    }<br />});</pre> 
+<p>与jsonp不同，checkString参数专门用于跨域获取javascript代码，它其实是那段跨域脚本里的一个有定义的变量的名字，Dojo会用它来判断跨域代码是否加载完毕，配合前面提到的timeout机制就能实现有效的超时处理。</p> 
+<pre>dojo.io.script.get({<br />    url: &quot;http://......&quot;, //某个提供脚本的URL<br />    checkString: &quot;obj&quot;,<br />    load: function(response){<br />        //脚本加载完毕，可以直接使用其中的对象了，如obj。<br />        Return response;<br />    }<br />});</pre> 
+<h2>用dojo.io.iframe传数据</h2> 
+<p>dojo.io 包里还有一个工具就是iframe，常用于以不刷新页面的方式上传或下载文件。这个很经典的Ajax技巧在Dojo里就是一句 dojo.io.iframe.send({...})。这个函数接受dojo.io.iframe.__ioArgs，相比 dojo.__IoArgs，它只多了一个method参数，用于指定是用GET还是POST（默认）方法发送请求。下面的例子就实现了通过无刷新提交表 单来上传文件：</p> 
+<pre>dojo.io.iframe.send({<br />    form: &quot;formNodeId&quot;, //某个form元素包含本地文件路径<br />    handleAs: &quot;html&quot;, //服务器将返回html页面<br />    load: onSubmitted, //提交成功<br />    error: onSubmitError //提交失败<br />});</pre> 
+<p>目前send函数的handleAs参数支持html, xml, text, json, 和javascript五种响应格式。除了html和xml之外，使用其他格式有一个比较特别的要求，就是服务端返回的响应必须具有以下格式：</p> 
+<pre>&lt;html&gt;<br />    &lt;head&gt;&lt;/head&gt;<br />    &lt;body&gt;<br />        &lt;textarea&gt;真正的响应内容&lt;/textarea&gt;<br />    &lt;/body&gt;<br />&lt;/html&gt; </pre> 
+<p>这是因为服务器返回的东西是加载在iframe里的，而只有html页面才能在任何浏览器里保证成功加载（有个DOM在，以后取数据也方便）。加一个&lt;textarea&gt;则可以尽量忠实于原始文本数据的格式，而不会受到html的影响。</p> 
+<h2>试试RPC(远程过程调用)</h2> 
+<p>如果dojo.xhr*函数以及Deferred机制仍然无法避免代码的混乱，那RPC可能就是唯一的选择了。dojo.rpc包提供了基于“简单 方法描述”语言(SMD)的RPC实现。SMD的原理类似于WSDL（Web服务描述语言），不过是基于JSON的，它定义了远程方法的名称、参数等属 性，让 Dojo能创建出代理方法以供调用。</p> 
+<p>Dojo提供了两种方式实现rpc：XHR和JSONP，分别对应dojo.rpc.JsonService类和dojo.rpc.JsonpService类，用户可以根据是否需要跨域各取所需。</p> 
+<p>一个简单的例子：</p> 
+<pre>var smdObj = {<br />    serviceType: &quot;JSON-RPC&quot;,<br />    serviceURL: &quot;http://....&quot;<br />    methods: [<br />        {name: &quot;myFunc&quot;, parameters: []}<br />    ]<br />};<br />var rpc = new dojo.rpc.JsonpService(smdObj); //传入SMD<br />var result = rpc.myFunc(); //直接调用远程方法，返回Deferred对象<br />dojo.when(result, function(result){<br />    //得到结果<br />});</pre> 
+<p>SMD还没有一个被广泛认可的官方标准，一直以来都是Dojo社区领导着它的发展，以后这个模块也有可能发生改变，但整个RPC基本的框架会保持稳定。</p> 
+<h2>结语</h2> 
+<p>Ajax请求这个主题太大，本文只能挂一漏万地介绍一点dojo在这方面设计和实现的皮毛，包括基本XHR请求、动态script、iframe请求、以及RPC，并特别强调了几个有Dojo特色的设计，如timeout机制、虚拟参数类、Deferred对象等。</p> 
+<p>Dojo由Ajax领域的先驱们写就，相信从它的代码中我们一定能学到更多的东西。</p> 
+<h2>参考</h2> 
+<ol> 
+ <li><a href="http://blog.csdn.net/dojotoolkit">Dojo中文博客</a></li>
+ <li>Dojo权威指南, Mattbew A. Russell 著, 李松峰,李丽 译, O'Reilly, 2009.4</li>
+ <li>精通Dojo, Rawld Gill,Craig Riecke,Alex Russell 著, DOJO中国 译, 人民邮电出版社, 2009.9</li>
+ <li>XHR Plugins with Dojo using handleAs, nroberts, <a href="http://www.sitepen.com/blog/2008/04/14/xhr-plugins-with-dojo-using-handleas/,">http://www.sitepen.com/blog/2008/04/14/xhr-plugins-with-dojo-using-handleas/,</a> 2008.4</li>
+ <li>Robust Promises with dojo.Deferred 1.5, Kris Zyp, <a href="http://www.sitepen.com/blog/2010/05/03/robust-promises-with-dojo-deferred-1-5/,">http://www.sitepen.com/blog/2010/05/03/robust-promises-with-dojo-deferred-1-5/,</a> 2010.5</li> 
+</ol> 
+<p>&nbsp;</p>
+<p>&nbsp;</p></div></body></html>

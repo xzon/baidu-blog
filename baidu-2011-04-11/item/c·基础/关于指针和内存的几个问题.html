@@ -1,0 +1,160 @@
+<html><head><title>关于指针和内存的几个问题</title></head><body><div id='tit'>关于指针和内存的几个问题</div><div id='cate'>c&middot;基础</div><div id='date'>2007年12月19日 星期三 00:46 A.M.</div><div id='page'>182</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/a0ca0a33025015fb1a4cffa7.html'>http://hi.baidu.com/hxzon/blog/item/a0ca0a33025015fb1a4cffa7.html</a><div id='cnt'><div>
+ <font size="3">关于指针和内存的几个问题</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">一、&quot;delete p&quot; 会删去 &quot;p&quot; 指针，还是它指到的资料，&quot;*p&quot; ？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">该指针指到的资料。&quot;delete&quot; 真正的意思是：「删去指针指到的东西」（delete the thing pointed to by）。同样的英文误用也发生在 C 语言的「释放」指标所指向的记忆体（&quot;free(p)&quot;真正的意思是：&quot;free_the_stuff_pointed_to_by(p)&quot; ）。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">二、能 &quot;free()&quot; 掉由 &quot;new&quot; 配置到的、&quot;delete&quot; 掉由 &quot;malloc()&quot; 配置到的记忆体吗？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">不行。在同一个程式里，使用 malloc/free 及 new/delete 是完全合法、合理、安全的；但 free 掉由 new 配置到的，或 delete 掉由 malloc 配置到的指标则是不合法、不合理的。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> 
+ <font size="3">三、为什麽该用 &quot;new&quot; 而不是 malloc() ？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">建构子／解构子、型别安全性、可被覆盖（overridability）。建构子／解构子：和 &quot;malloc(sizeof(Fred))&quot; 不同，&quot;new Fred()&quot; 还会去呼叫Fred 的建构子。同理，&quot;delete p&quot; 会去呼叫 &quot;*p&quot; 的解构子。 <br /> 型别安全性：malloc() 会传回一个不具型别安全的 &quot;void*&quot;，而 &quot;new Fred()&quot; 则会传回正确型态的指标（一个 &quot;Fred*&quot;）。 <br /> 可被覆盖：&quot;new&quot; 是个可被物件类别覆盖的运算子，而 &quot;malloc&quot; 不是以「各个类别」作为覆盖的基准。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">四、为什麽 C 不替 &quot;new&quot; 及 &quot;delete&quot; 搭配个 &quot;realloc()&quot; ？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">避免你产生意外。当 realloc() 要拷贝配置区时，它做的是「逐位元 bitwise」的拷贝，这会弄坏大 <br /> 部份的 C 物件。不过 C 的物件应该可以自我拷贝才对：用它们自己的拷贝建构子或设定运算子。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">五、该怎样配置／释放阵列？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">用 new[] 和 delete[] ：</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">Fred* p = new Fred[100]; <br /> //... <br /> delete [] p;</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">每当你在 &quot;new&quot; 运算式中用了 &quot;[...]&quot; 的话，你就 *!*必须*!* 在 &quot;delete&quot; 陈述中使用 &quot;[]&quot; 。这语法是必要的，因为「指向单一元素的指标」与「指向一个阵列的指标」在语法上并无法区分开来。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">六、万一我忘了将 &quot;[]&quot; 用在 &quot;delete&quot; 由 &quot;new Fred[n]&quot; 配置到的阵列，会发生什麽事？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">灾难。这是程式者的－－而不是编译器的－－责任，去确保 new[] 与 delete[] 的正确配对。若你弄错了，编译器不会产生任何编译期或执行期的错误讯息。堆积（heap）被破坏是最可能的结局，或是更糟的，你的程式会当掉。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">七、成员函数做 &quot;delete this&quot; 的动作是合法的（并且是好的）吗？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">只要你小心的话就没事。所谓的「小心」是： <br /> 1) 你得 100% 确定 &quot;this&quot; 是由 &quot;new&quot; 配置来的（而非 &quot;new[]&quot;，亦非自订的 &quot;new&quot; 版本，一定要是最原始的 &quot;new&quot;）。 <br /> 2) 你得 100% 确定该成员函数是此物件最後一个会去呼叫的。 <br /> 3) 做完自杀的动作 (&quot;delete this;&quot;) 後，你不能再去碰 &quot;this&quot; 的物件了，包括资料及运作行为在内。 <br /> 4) 做完自杀的动作 (&quot;delete this;&quot;) 後，你不能再去碰 &quot;this&quot; 指标了。换句话说，你不能查看它、将它与其他指标或是 NULL 相比较、印出其值、对它转型、对它做任何事情。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">很自然的，这项警告也适用於：当 &quot;this&quot; 是个指向基底类别的指标，而解构子不是virtual 的场合。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">八、该怎麽用 new 来配置多维阵列？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">有很多方法，端视你对阵列大小的伸缩性之要求而定。极端一点的情形，如果你在编译期就知道所有阵列的维度，你可以静态地配置（就像 C 一样）：</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">class Fred { /*...*/ };</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">void manipulateArray() <br /> { <br /> Fred maix[10][20];</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">//使用 maix[i][j]...</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">//不须特地去释放该阵列 <br /> }</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">另一个极端情况，如果你希望该矩阵的每个小块都能不一样大，你可以在自由记忆体里配置之：</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">void manipulateArray(unsigned nrows, unsigned ncols[]) <br /> //'nrows' 是该阵列之列数。 <br /> //所以合法的列数为 (0, nrows-1) 开区间。 <br /> //'ncols[r]' 则是 'r' 列的行数 ('r' 值域为 [0..nrows-1])。 <br /> { <br /> Fred** maix = new Fred*[nrows]; <br /> for (unsigned r = 0; r &lt; nrows; r) <br /> maix[r] = new Fred[ ncols[r] ];</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">//使用 maix[i][j]...</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">//释放就是配置的反动作： <br /> for (r = nrows; r &gt; 0; --r) <br /> delete [] maix[r-1]; <br /> delete [] maix; <br /> }</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">九、怎样确保某类别的物件都是用 &quot;new&quot; 建立的，而非区域或整体／静态变数？</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">确定该类别的建构子都是 &quot;private:&quot; 的，并定义个 &quot;friend&quot; 或 &quot;static&quot; 函数，来传回一个指向由 &quot;new&quot; 建造出来的物件（把建构子设成 &quot;protected:&quot;，如果你想要有衍生类别的话）。</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">class Fred { //只允许 Fred 动态配置出来 <br /> public: <br /> static Fred* create() { return new Fred(); } <br /> static Fred* create(int i) { return new Fred(i); } <br /> static Fred* create(const Fred&amp; fred) { return new Fred(fred); } <br /> private: <br /> Fred(); <br /> Fred(int i); <br /> Fred(const Fred&amp; fred); <br /> virtual ~Fred(); <br /> };</font>
+</div> 
+<div> 
+</div> 
+<div>
+ <font size="3">main() <br /> { <br /> Fred* p = Fred::create(5); <br /> ... <br /> delete p; <br /> }<br /> <br /> </font>
+ <a href="http://hi.baidu.com/frebird17/blog/item/0fd3a7af7ef241cf7dd92a7c.html"><font size="3">http://hi.baidu.com/frebird17/blog/item/0fd3a7af7ef241cf7dd92a7c.html</font></a>
+</div></div></body></html>

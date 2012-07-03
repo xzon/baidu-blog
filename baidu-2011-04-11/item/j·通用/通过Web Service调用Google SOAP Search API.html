@@ -1,0 +1,47 @@
+<html><head><title>通过Web Service调用Google SOAP Search API</title></head><body><div id='tit'>通过Web Service调用Google SOAP Search API</div><div id='cate'>j&middot;通用</div><div id='date'>2008年06月17日 星期二 10:54 P.M.</div><div id='page'>123</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/1c607dcbcd83471abf09e612.html'>http://hi.baidu.com/hxzon/blog/item/1c607dcbcd83471abf09e612.html</a><div id='cnt'><div class="tit"> 
+ <p>通过Web Service调用Google SOAP Search API</p> 
+</div> 
+<table style="table-layout: fixed" class="FCK__ShowTableBorders"> 
+ <tbody> 
+  <tr> 
+   <td> 
+    <div class="cnt">
+     <strong>一、环境配置</strong> 
+     <p> 首先，没有Java开发环境的，需要安装一下环境，点这里查看《<a target="_blank" href="http://www.williamlong.info/archives/461.html">Java开发环境的详细配置方法</a>》，其实，本示例安装JDK 1.42以及Eclipse 3.2就可以了。</p> 
+     <p> <strong>二、将Apache Axis相关包文件放在WEB-INF\lib目录下</strong></p> 
+     <p> 从Apache的主页上下载Axis包文件，复制到lib目录下。</p> 
+     <p> <strong>三、申请Google SOAP Search API license key</strong></p> 
+     <p> 要使用Google的服务，必须要有“license key”，如果你有Gmail帐号，<a target="_blank" href="http://api.google.com/createkey">点这里</a>就可以申请license key，这个license key是一段很长的字符串，每个key可以支持每天1000次的Google搜索。</p> 
+     <p> <strong>四、下载WSDL文件，生成客户端Java代码</strong></p> 
+     <p> WSDL文件的下载地址参见：<a href="http://api.google.com/GoogleSearch.wsdl">http://api.google.com/GoogleSearch.wsdl</a></p> 
+     <p> 生成客户端代码的批处理文件如下：</p> 
+     <p>set Axis_Lib=D:\workspace\test\WEB-INF\lib<br /> set Java_Cmd=java -Djava.ext.dirs=%Axis_Lib%<br /> set Output_Path=D:\workspace\test\src<br /> set Package=com.google.api<br /> %Java_Cmd% org.apache.axis.wsdl.WSDL2Java -o%Output_Path% -p%Package% GoogleSearch.wsdl</p> 
+     <p> 最后会生成下列代码文件：</p> 
+     <p>DirectoryCategory.java<br /> GoogleSearchBindingStub.java<br /> GoogleSearchPort_PortType.java<br /> GoogleSearchResult.java<br /> GoogleSearchService.java<br /> GoogleSearchServiceLocator.java<br /> ResultElement.java</p> 
+     <p> <strong>五、编写程序，调用Google SOAP Search API</strong></p> 
+     <p> 在上面那个包下，编写你自己的Java程序，就可以调用Google SOAP Search API.目前可以使用的Google服务有：网页搜索，网页快照，拼写检查这三个。</p> 
+     <p> Java示例代码如下，请使用前将clientKey替换为你自己的。替换后直接运行即可得出结果。</p> 
+     <p>package com.google.api;</p> 
+     <p>import java.rmi.RemoteException;<br /> import javax.xml.rpc.ServiceException;</p> 
+     <p>public class ClientGoogle {</p> 
+     <p>public static void main(String[] args) throws ServiceException,<br /> &nbsp;&nbsp;&nbsp; RemoteException {<br /> &nbsp;&nbsp;&nbsp; String clientKey = &quot;kkkkkkkkkkkkkkkkkkkkkkkkkkey&quot;;<br /> &nbsp;&nbsp;&nbsp; GoogleSearchServiceLocator service = new GoogleSearchServiceLocator();<br /> &nbsp;&nbsp;&nbsp; GoogleSearchPort_PortType gsp = service.getGoogleSearchPort();</p> 
+     <p>&nbsp;&nbsp;&nbsp; //Google Search API<br /> &nbsp;&nbsp;&nbsp; GoogleSearchResult searchResult = gsp.doGoogleSearch(clientKey,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;www.williamlong.info&quot;, 0, 10, false, &quot;&quot;, false, &quot;&quot;, &quot;latin1&quot;,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;latin1&quot;);<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;Google Search Results:&quot;);<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;======================&quot;);<br /> &nbsp;&nbsp;&nbsp; ResultElement results[] = searchResult.getResultElements();<br /> &nbsp;&nbsp;&nbsp; for (int counter = 0; counter &lt; results.length; ++counter) {<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ResultElement result = results[counter];<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String returnResult = &quot;('&quot; + result.getTitle() + &quot;','&quot;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + result.getURL() + &quot;','&quot; + result.getSnippet() + &quot;')&quot;;<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(&quot;Return Result&quot;);<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(returnResult);<br /> &nbsp;&nbsp;&nbsp; }</p> 
+     <p>&nbsp;&nbsp;&nbsp; //Google CachedPage<br /> &nbsp;&nbsp;&nbsp; byte[] cachedBytes = gsp.doGetCachedPage(clientKey,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;http://www.williamlong.info/&quot;);<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;Cached page:&quot;);<br /> &nbsp;&nbsp;&nbsp; System.out.println(&quot;============&quot;);<br /> &nbsp;&nbsp;&nbsp; String cachedString = new String(cachedBytes);<br /> &nbsp;&nbsp;&nbsp; System.out.println(cachedString);</p> 
+     <p>&nbsp;&nbsp;&nbsp; //Google SpellingSuggestion<br /> &nbsp;&nbsp;&nbsp; String suggestion = (String) gsp.doSpellingSuggestion(clientKey,<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;williamlong&quot;);<br /> &nbsp;&nbsp;&nbsp; System.out.println(suggestion);</p> 
+     <p>}</p> 
+     <p>}</p> 
+     <p> 当然，你也可以不使用Apache Axis，Google自己也提供了一个API包可以做为客户端调用，下载地址参见<a target="_blank" href="http://code.google.com/apis/soapsearch/download.html">这里</a>。</p> 
+     <p> 最后声明一下，Google SOAP Search API是属于实验产品，每个license每天最多只允许搜索一千次，其许可协议注明不能使用于商业模式的网站，而对于个人研究来说，每天一千次的搜索也就足够了。</p> 
+     <p> 相关专业名词解释：</p> 
+     <p> <strong>Web Service</strong>： 是一种革命性的分布是计算技术。它使用基于XML的消息处理作为基本的数据通讯方式，消除使用不同组件模型、操作系统和编程语言的系统之间存在的差异，使 异类系统能够作为计算网络的一部分协同运行。开发人员可以使用像过去创建分布式应用程序时使用组件的方式，创建由各种来源的Web服务组合在一起的应用程 序。由于Web服务是建立在一些通用协议的基础上，如HTTP（Hypertext Transfer Protocol， WWW服务程序所用的协议），SOAP（Simple Object Access Protocol，简单对象访问协议），XML，WSDL（Web Services Description Language，Web服务描述语言），UDDI（Universal Description，Discovery，and Integration，通用描述发现和集成协议）等，这些协议在涉及到操作系统、对象模型和编程语言的选择时，没有任何倾向，因此Web服务将会有很强 的生命力。</p> 
+     <p> <strong>SOAP</strong>：是“Simple Object Access Protocol”的缩写，SOAP是消息传递的协议，它规定了Web Services之间是怎样传递信息的。简单的说，SOAP规定了：</p> 
+     <p> 1. 传递信息的格式为XML.这就使Web Services能够在任何平台上，用任何语言进行实现。</p> 
+     <p> 2. 远程对象方法调用的格式。规定了怎样表示被调用对象以及调用的方法名称和参数类型等。</p> 
+     <p> 3. 参数类型和XML格式之间的映射。这是因为，被调用的方法有时候需要传递一个复杂的参数，例如，一个Person对象。怎样用XML来表示一个对象参数，也是SOAP所定义的范围。</p> 
+     <p> <strong>WSDL</strong>： 是“Web Services Description Language”的缩写。WSDL是Web Services的定义语言。当实现了某种服务的时候（如：股票查询服务），为了让别的程序调用，必须告诉大家服务接口。例如：服务名称，服务所在的机器 名称，监听端口号，传递参数的类型，个数和顺序，返回结果的类型等等。这样别的应用程序才能调用该服务。WSDL协议就是规定了有关Web Services描述的标准。</p> 
+     <p> <strong>UDDI</strong>：是“Universal Description， Discovery，and Integration”的缩写。简单说，UDDI用于集中存放和查找WSDL描述文件，起着目录服务器的作用。</p> 
+     <p> <strong>XML</strong>： （eXtensible Markup Language，可扩展标记语言）是Internet上数据表示和数据交换的新标准。它是ISO（International Organization for Standardization，国际标准化组织）的SGML（Standard for General Markup Language，通用标记语言标准）的一个简化子集。XML关注信息本身，是Web上表示结构化信息的一种标准文本格式。与传统的注重页面信息显示的 HTML（Hypertext Markup Language， 超文本链接标示语言）相比，关注于内容的XML具有以下诸多优点：良好的可扩展性，语言简单有效，可自行定义标记；内容与形式的分离，主要刻画数据内容， 不考虑显示效果；有严格的语法要求，便于分析统一和与数据库信息转换；便于传输，为纯文本形式，可通过Http协议直接传输，可跨越防火墙；等等。XML 的出现和发展对于Internet和Intranet产生了巨大的影响。</p> 
+    </div> </td> 
+  </tr> 
+ </tbody> 
+</table></div></body></html>

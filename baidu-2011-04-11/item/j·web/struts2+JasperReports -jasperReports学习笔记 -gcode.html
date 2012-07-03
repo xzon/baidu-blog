@@ -1,0 +1,369 @@
+<html><head><title>struts2+JasperReports -jasperReports学习笔记 -gcode</title></head><body><div id='tit'>struts2+JasperReports -jasperReports学习笔记 -gcode</div><div id='cate'>j&middot;web</div><div id='date'>2008年10月18日 星期六 06:39 P.M.</div><div id='page'>90</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/33b3801869b13db24bedbc19.html'>http://hi.baidu.com/hxzon/blog/item/33b3801869b13db24bedbc19.html</a><div id='cnt'><div>
+ struts2+JasperReports -jasperReports学习笔记 -gcode
+ <br /> --
+ <br /> 安装JasperReports插件
+ <br /> 其中奇怪的是JasperReports插件中的struts-plugin.xml中居然没有继承struts-default包。
+ <br /> 修改，使继承struts-default包。
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;!DOCTYPE struts PUBLIC
+ <br /> &nbsp;&nbsp;&nbsp; &quot;-//Apache Software Foundation//DTD Struts Configuration 2.0//EN&quot;
+ <br /> &nbsp;&nbsp;&nbsp; &quot;http://struts.apache.org/dtds/struts-2.0.dtd&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &lt;struts&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;package name=&quot;jasperreports-default&quot; extends=&quot;struts-default&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; 
+ <br /> &nbsp;&nbsp;&nbsp; &lt;result-types&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &lt;result-type name=&quot;jasper&quot; class=&quot;org.apache.struts2.views.jasperreports.JasperReportsResult&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/result-types&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/package&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;/struts&gt;
+ <br /> ======================================
+ <br /> 一，JasperAction.java--
+ <br /> package lee;
+</div> 
+<div> 
+</div> 
+<div>
+ import com.opensymphony.xwork2.ActionSupport;
+ <br /> import java.util.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class JasperAction extends ActionSupport
+ <br /> {
+ <br /> public List getBookList()
+ <br /> {
+ <br /> &nbsp;&nbsp; List result = new ArrayList();
+ <br /> &nbsp;&nbsp; result.add(new Book(1 , &quot;Spring2.0宝典&quot; , &quot;李刚&quot;));
+ <br /> &nbsp;&nbsp; result.add(new Book(2 , &quot;轻量级J2EE企业应用实战&quot; , &quot;李刚&quot;));
+ <br /> &nbsp;&nbsp; result.add(new Book(3 , &quot;基于J2EE的Ajax宝典&quot; , &quot;李刚&quot;));
+ <br /> &nbsp;&nbsp; return result;
+ <br /> }
+ <br /> }
+ <br /> --------------
+ <br /> 二，配置JasperAction--
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;GBK&quot;?&gt;
+ <br /> &lt;!DOCTYPE struts PUBLIC
+ <br /> &nbsp;&nbsp;&nbsp; &quot;-//Apache Software Foundation//DTD Struts Configuration 2.0//EN&quot;
+ <br /> &nbsp;&nbsp;&nbsp; &quot;http://struts.apache.org/dtds/struts-2.0.dtd&quot;&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;struts&gt;
+ <br /> &lt;constant name=&quot;struts.custom.i18n.resources&quot; value=&quot;messageResource&quot;/&gt;
+ <br /> &lt;constant name=&quot;struts.i18n.encoding&quot; value=&quot;GBK&quot;/&gt;
+ <br /> 
+ <br /> &lt;package name=&quot;lee&quot; extends=&quot;jasperreports-default&quot;&gt; 
+ <br /> &nbsp;&nbsp; &lt;action name=&quot;export&quot; class=&quot;lee.JasperAction&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;result name=&quot;success&quot; type=&quot;jasper&quot;&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;param name=&quot;location&quot;&gt;jasper\sample_report.jasper&lt;/param&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;param name=&quot;format&quot;&gt;HTML&lt;/param&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;param name=&quot;dataSource&quot;&gt;bookList&lt;/param&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/result&gt;
+ <br /> &nbsp;&nbsp; &lt;/action&gt;
+ <br /> &lt;/package&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;/struts&gt;
+ <br /> ----
+ <br /> 1，Result为jasper类型时需要配置三个属性。
+ <br /> location指定生成报表所用的.jasper文件位置。在应用根目录的jasper文件夹下。
+ <br /> format指定生成的报表格式，默认是PDF。
+ <br /> dataSource指定一个集合属性名，JasperReports将自动迭代输出该集合中的VO对象。
+ <br /> 2，需注意，这里也要用字段来输出action中的集合元素。
+ <br /> 3，在浏览器输入export.action即可看到生成的报表。
+ <br /> 如果在定义export action时，指定success逻辑视图对应的报表格式为PDF，再次发送export.action请求时，
+ <br /> 会得到PDF文档。系统会下载一份文件，后缀是action，改为pdf后缀后可看出是pdf文档。
+ <br /> 如果希望系统自动使用pdf后缀，可以在struts2拦截请求的后缀中增加pdf，
+ <br /> 然后发送export.pdf请求即可。
+ <br /> ---------------
+ <br /> 三，sample_report.jrxml--
+ <br /> &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;
+ <br /> &lt;!-- Created with iReport - A designer for JasperReports --&gt;
+ <br /> &lt;!DOCTYPE jasperReport PUBLIC &quot;//JasperReports//DTD Report Design//EN&quot; &quot;http://jasperreports.sourceforge.net/dtds/jasperreport.dtd&quot;&gt;
+ <br /> &lt;jasperReport
+ <br /> &nbsp;&nbsp; name=&quot;sample_report&quot;
+ <br /> &nbsp;&nbsp; columnCount=&quot;1&quot;
+ <br /> &nbsp;&nbsp; printOrder=&quot;Vertical&quot;
+ <br /> &nbsp;&nbsp; orientation=&quot;Portrait&quot;
+ <br /> &nbsp;&nbsp; pageWidth=&quot;595&quot;
+ <br /> &nbsp;&nbsp; pageHeight=&quot;842&quot;
+ <br /> &nbsp;&nbsp; columnWidth=&quot;535&quot;
+ <br /> &nbsp;&nbsp; columnSpacing=&quot;0&quot;
+ <br /> &nbsp;&nbsp; leftMargin=&quot;30&quot;
+ <br /> &nbsp;&nbsp; rightMargin=&quot;30&quot;
+ <br /> &nbsp;&nbsp; topMargin=&quot;20&quot;
+ <br /> &nbsp;&nbsp; bottomMargin=&quot;20&quot;
+ <br /> &nbsp;&nbsp; whenNoDataType=&quot;NoPages&quot;
+ <br /> &nbsp;&nbsp; isTitleNewPage=&quot;false&quot;
+ <br /> &nbsp;&nbsp; isSummaryNewPage=&quot;false&quot;&gt;
+ <br /> &lt;property name=&quot;ireport.scriptlethandling&quot; value=&quot;0&quot; /&gt;
+ <br /> &lt;property name=&quot;ireport.encoding&quot; value=&quot;UTF-8&quot; /&gt;
+ <br /> &lt;import value=&quot;java.util.*&quot; /&gt;
+ <br /> &lt;import value=&quot;net.sf.jasperreports.engine.*&quot; /&gt;
+ <br /> &lt;import value=&quot;net.sf.jasperreports.engine.data.*&quot; /&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &lt;style 
+ <br /> &nbsp;&nbsp; name=&quot;zh&quot;
+ <br /> &nbsp;&nbsp; isDefault=&quot;false&quot;
+ <br /> &nbsp;&nbsp; fontName=&quot;宋体&quot;
+ <br /> &nbsp;&nbsp; fontSize=&quot;18&quot;
+ <br /> &nbsp;&nbsp; isBold=&quot;true&quot;
+ <br /> &nbsp;&nbsp; pdfFontName=&quot;STSong-Light&quot;
+ <br /> &nbsp;&nbsp; pdfEncoding=&quot;UniGB-UCS2-H&quot;
+ <br /> /&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &lt;field name=&quot;id&quot; class=&quot;java.lang.Integer&quot;/&gt;
+ <br /> &lt;field name=&quot;name&quot; class=&quot;java.lang.String&quot;/&gt;
+ <br /> &lt;field name=&quot;author&quot; class=&quot;java.lang.String&quot;/&gt;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; &lt;background&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;0&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/background&gt;
+ <br /> &nbsp;&nbsp; &lt;title&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;50&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/title&gt;
+ <br /> &nbsp;&nbsp; &lt;pageHeader&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;50&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/pageHeader&gt;
+ <br /> &nbsp;&nbsp; &lt;columnHeader&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;39&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;staticText&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;reportElement
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style=&quot;zh&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x=&quot;93&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y=&quot;0&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;62&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; height=&quot;31&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key=&quot;staticText-2&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;box topBorder=&quot;None&quot; topBorderColor=&quot;#000000&quot; leftBorder=&quot;None&quot; leftBorderColor=&quot;#000000&quot; rightBorder=&quot;None&quot; rightBorderColor=&quot;#000000&quot; bottomBorder=&quot;None&quot; bottomBorderColor=&quot;#000000&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;font/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;text&gt;&lt;![CDATA[图书ID]]&gt;&lt;/text&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/staticText&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;staticText&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;reportElement
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style=&quot;zh&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x=&quot;170&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y=&quot;0&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;83&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; height=&quot;31&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key=&quot;staticText-3&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;box topBorder=&quot;None&quot; topBorderColor=&quot;#000000&quot; leftBorder=&quot;None&quot; leftBorderColor=&quot;#000000&quot; rightBorder=&quot;None&quot; rightBorderColor=&quot;#000000&quot; bottomBorder=&quot;None&quot; bottomBorderColor=&quot;#000000&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;font/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;text&gt;&lt;![CDATA[图书作者]]&gt;&lt;/text&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/staticText&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;staticText&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;reportElement
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style=&quot;zh&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x=&quot;261&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y=&quot;0&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;191&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; height=&quot;31&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key=&quot;staticText-4&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;box topBorder=&quot;None&quot; topBorderColor=&quot;#000000&quot; leftBorder=&quot;None&quot; leftBorderColor=&quot;#000000&quot; rightBorder=&quot;None&quot; rightBorderColor=&quot;#000000&quot; bottomBorder=&quot;None&quot; bottomBorderColor=&quot;#000000&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;font/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;text&gt;&lt;![CDATA[图书书名]]&gt;&lt;/text&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/staticText&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/columnHeader&gt;
+ <br /> &nbsp;&nbsp; &lt;detail&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;45&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;textField isStretchWithOverflow=&quot;false&quot; isBlankWhenNull=&quot;false&quot; evaluationTime=&quot;Now&quot; hyperlinkType=&quot;None&quot; hyperlinkTarget=&quot;Self&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;reportElement
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style=&quot;zh&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x=&quot;93&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y=&quot;12&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;62&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; height=&quot;33&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key=&quot;textField&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;box topBorder=&quot;None&quot; topBorderColor=&quot;#000000&quot; leftBorder=&quot;None&quot; leftBorderColor=&quot;#000000&quot; rightBorder=&quot;None&quot; rightBorderColor=&quot;#000000&quot; bottomBorder=&quot;None&quot; bottomBorderColor=&quot;#000000&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;font/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;textFieldExpression&nbsp;&nbsp; class=&quot;java.lang.Integer&quot;&gt;&lt;![CDATA[$F{id}]]&gt;&lt;/textFieldExpression&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/textField&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;textField isStretchWithOverflow=&quot;false&quot; isBlankWhenNull=&quot;false&quot; evaluationTime=&quot;Now&quot; hyperlinkType=&quot;None&quot; hyperlinkTarget=&quot;Self&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;reportElement
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style=&quot;zh&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x=&quot;261&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y=&quot;12&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;231&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; height=&quot;33&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key=&quot;textField&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;box topBorder=&quot;None&quot; topBorderColor=&quot;#000000&quot; leftBorder=&quot;None&quot; leftBorderColor=&quot;#000000&quot; rightBorder=&quot;None&quot; rightBorderColor=&quot;#000000&quot; bottomBorder=&quot;None&quot; bottomBorderColor=&quot;#000000&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;font/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;textFieldExpression&nbsp;&nbsp; class=&quot;java.lang.String&quot;&gt;&lt;![CDATA[$F{name}]]&gt;&lt;/textFieldExpression&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/textField&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;textField isStretchWithOverflow=&quot;false&quot; isBlankWhenNull=&quot;false&quot; evaluationTime=&quot;Now&quot; hyperlinkType=&quot;None&quot; hyperlinkTarget=&quot;Self&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;reportElement
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style=&quot;zh&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x=&quot;170&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y=&quot;12&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;83&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; height=&quot;33&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key=&quot;textField&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;box topBorder=&quot;None&quot; topBorderColor=&quot;#000000&quot; leftBorder=&quot;None&quot; leftBorderColor=&quot;#000000&quot; rightBorder=&quot;None&quot; rightBorderColor=&quot;#000000&quot; bottomBorder=&quot;None&quot; bottomBorderColor=&quot;#000000&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;font/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;textFieldExpression&nbsp;&nbsp; class=&quot;java.lang.String&quot;&gt;&lt;![CDATA[$F{author}]]&gt;&lt;/textFieldExpression&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/textField&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/detail&gt;
+ <br /> &nbsp;&nbsp; &lt;columnFooter&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;30&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;staticText&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;reportElement
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style=&quot;zh&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x=&quot;226&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y=&quot;5&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;103&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; height=&quot;23&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key=&quot;staticText-5&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;box topBorder=&quot;None&quot; topBorderColor=&quot;#000000&quot; leftBorder=&quot;None&quot; leftBorderColor=&quot;#000000&quot; rightBorder=&quot;None&quot; rightBorderColor=&quot;#000000&quot; bottomBorder=&quot;None&quot; bottomBorderColor=&quot;#000000&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;font/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;text&gt;&lt;![CDATA[当前页码：]]&gt;&lt;/text&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/staticText&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;textField isStretchWithOverflow=&quot;false&quot; isBlankWhenNull=&quot;false&quot; evaluationTime=&quot;Now&quot; hyperlinkType=&quot;None&quot; hyperlinkTarget=&quot;Self&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;reportElement
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; style=&quot;zh&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x=&quot;339&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; y=&quot;5&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; width=&quot;140&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; height=&quot;23&quot;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key=&quot;textField&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;box topBorder=&quot;None&quot; topBorderColor=&quot;#000000&quot; leftBorder=&quot;None&quot; leftBorderColor=&quot;#000000&quot; rightBorder=&quot;None&quot; rightBorderColor=&quot;#000000&quot; bottomBorder=&quot;None&quot; bottomBorderColor=&quot;#000000&quot;/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;font/&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/textElement&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;textFieldExpression&nbsp;&nbsp; class=&quot;java.lang.Integer&quot;&gt;&lt;![CDATA[$V{PAGE_COUNT}]]&gt;&lt;/textFieldExpression&gt;
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp; &lt;/textField&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/columnFooter&gt;
+ <br /> &nbsp;&nbsp; &lt;pageFooter&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;50&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/pageFooter&gt;
+ <br /> &nbsp;&nbsp; &lt;lastPageFooter&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;50&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/lastPageFooter&gt;
+ <br /> &nbsp;&nbsp; &lt;summary&gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;band height=&quot;50&quot; isSplitAllowed=&quot;true&quot; &gt;
+ <br /> &nbsp;&nbsp;&nbsp; &lt;/band&gt;
+ <br /> &nbsp;&nbsp; &lt;/summary&gt;
+ <br /> &lt;/jasperReport&gt;
+ <br /> ---------------------------
+ <br /> 四，Book.java--
+ <br /> package lee;
+</div> 
+<div> 
+</div> 
+<div>
+ public class Book
+ <br /> {
+ <br /> private int id;
+ <br /> private String name;
+ <br /> private String author;
+</div> 
+<div> 
+</div> 
+<div>
+ public Book()
+ <br /> {
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public Book(int id , String name , String author)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.id = id;
+ <br /> &nbsp;&nbsp; this.name = name;
+ <br /> &nbsp;&nbsp; this.author = author;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setId(int id)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.id = id;
+ <br /> }
+ <br /> public int getId()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.id;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setName(String name)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.name = name;
+ <br /> }
+ <br /> public String getName()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.name;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ public void setAuthor(String author)
+ <br /> {
+ <br /> &nbsp;&nbsp; this.author = author;
+ <br /> }
+ <br /> public String getAuthor()
+ <br /> {
+ <br /> &nbsp;&nbsp; return this.author;
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div>
+ =======================================
+</div> 
+<div> 
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

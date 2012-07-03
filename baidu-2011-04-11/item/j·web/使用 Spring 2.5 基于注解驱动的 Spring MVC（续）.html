@@ -1,0 +1,274 @@
+<html><head><title>使用 Spring 2.5 基于注解驱动的 Spring MVC（续）</title></head><body><div id='tit'>使用 Spring 2.5 基于注解驱动的 Spring MVC（续）</div><div id='cate'>j&middot;web</div><div id='date'>2010年01月20日 星期三 04:15 P.M.</div><div id='page'>20</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/6379fb1f3e3ff901304e15a5.html'>http://hi.baidu.com/hxzon/blog/item/6379fb1f3e3ff901304e15a5.html</a><div id='cnt'><h1>使用 Spring 2.5 基于注解驱动的 Spring MVC（续）</h1> 
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring25-mvc/">http://www.ibm.com/developerworks/cn/java/j-lo-spring25-mvc/</a></p> 
+<p><img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p><img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>我们知道标注了 @RequestMapping 注解的 Controller 方法就成为了请求处理方法，Spring MVC 允许极其灵活的请求处理方法签名方式。对于方法入参来说，它允许多种类型的入参，通过下表进行说明：</p> 
+<p> </p>
+<table class="cke_show_border FCK__ShowTableBorders"> 
+ <tbody> 
+  <tr> 
+   <th>请求处理方法入参的可选类型</th> 
+   <th>说明</th> 
+  </tr> 
+  <tr> 
+   <td>Java 基本数据类型和 String</td> 
+   <td>默认情况下将按名称匹配的方式绑定到 URL 参数上，可以通过 @RequestParam 注解改变默认的绑定规则</td> 
+  </tr> 
+  <tr> 
+   <td>request/response/session</td> 
+   <td>既可以是 Servlet API 的也可以是 Portlet API 对应的对象，Spring 会将它们绑定到 Servlet 和 Portlet 容器的相应对象上</td> 
+  </tr> 
+  <tr> 
+   <td>org.springframework.web.context.request.WebRequest</td> 
+   <td>内部包含了 request 对象</td> 
+  </tr> 
+  <tr> 
+   <td>java.util.Locale</td> 
+   <td>绑定到 request 对应的 Locale 对象上</td> 
+  </tr> 
+  <tr> 
+   <td>java.io.InputStream/java.io.Reader</td> 
+   <td>可以借此访问 request 的内容</td> 
+  </tr> 
+  <tr> 
+   <td>java.io.OutputStream / java.io.Writer</td> 
+   <td>可以借此操作 response 的内容</td> 
+  </tr> 
+  <tr> 
+   <td>任何标注了 @RequestParam 注解的入参</td> 
+   <td>被标注 @RequestParam 注解的入参将绑定到特定的 request 参数上。</td> 
+  </tr> 
+  <tr> 
+   <td>java.util.Map / org.springframework.ui.ModelMap</td> 
+   <td>它绑定 Spring MVC 框架中每个请求所创建的潜在的模型对象，它们可以被 Web 视图对象访问（如 JSP）</td> 
+  </tr> 
+  <tr> 
+   <td>命令/表单对象（注：一般称绑定使用 HTTP GET 发送的 URL 参数的对象为命令对象，而称绑定使用 HTTP POST 发送的 URL 参数的对象为表单对象）</td> 
+   <td>它们的属性将以名称匹配的规则绑定到 URL 参数上，同时完成类型的转换。而类型转换的规则可以通过 @InitBinder 注解或通过 HandlerAdapter 的配置进行调整</td> 
+  </tr> 
+  <tr> 
+   <td>org.springframework.validation.Errors / org.springframework.validation.BindingResult</td> 
+   <td>为属性列表中的命令/表单对象的校验结果，注意检验结果参数必须紧跟在命令/表单对象的后面</td> 
+  </tr> 
+  <tr> 
+   <td>rg.springframework.web.bind.support.SessionStatus</td> 
+   <td>可以通过该类型 status 对象显式结束表单的处理，这相当于触发 session 清除其中的通过 @SessionAttributes 定义的属性</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>Spring MVC 框架的易用之处在于，你可以按任意顺序定义请求处理方法的入参（除了 Errors 和 BindingResult 必须紧跟在命令对象/表单参数后面以外），Spring MVC 会根据反射机制自动将对应的对象通过入参传递给请求处理方法。这种机制让开发者完全可以不依赖 Servlet API 开发控制层的程序，当请求处理方法需要特定的对象时，仅仅需要在参数列表中声明入参即可，不需要考虑如何获取这些对象，Spring MVC 框架就象一个大管家一样“不辞辛苦”地为我们准备好了所需的一切。下面演示一下使用 SessionStatus 的例子：</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">@RequestMapping(method = RequestMethod.POST)
+public String processSubmit(@ModelAttribute Owner owner, 
+BindingResult result, SessionStatus status) {//&lt;——①
+    new OwnerValidator().validate(owner, result);
+    if (result.hasErrors()) {
+        return &quot;ownerForm&quot;;
+    }
+    else {
+        this.clinic.storeOwner(owner);
+        status.setComplete();//&lt;——②
+        return &quot;redirect:owner.do?ownerId=&quot; + owner.getId();
+    }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>processSubmit() 方法中的 owner 表单对象将绑定到 ModelMap 的“owner”属性中，result 参数用于存放检验 owner 结果的对象，而 status 用于控制表单处理的状态。在 ② 处，我们通过调用 status.setComplete() 方法，该 Controller 所有放在 session 级别的模型属性数据将从 session 中清空。</p> 
+<p><img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>在低版本的 Spring MVC 中，请求处理方法的返回值类型都必须是 ModelAndView。而在 Spring 2.5 中，你拥有多种灵活的选择。通过下表进行说明：</p> 
+<p> </p>
+<table class="cke_show_border FCK__ShowTableBorders"> 
+ <tbody> 
+  <tr> 
+   <th>请求处理方法入参的可选类型</th> 
+   <th>说明</th> 
+  </tr> 
+  <tr> 
+   <td>void</td> 
+   <td> <p>此时逻辑视图名由请求处理方法对应的 URL 确定，如以下的方法：</p> 
+    <table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td class="code-outline"> <pre class="displaycode">@RequestMapping(&quot;/welcome.do&quot;)
+public void welcomeHandler() {
+}</pre> </td> 
+      </tr> 
+     </tbody> 
+    </table> <br /> <p>对应的逻辑视图名为“welcome”</p> </td> 
+  </tr> 
+  <tr> 
+   <td>String</td> 
+   <td> <p>此时逻辑视图名为返回的字符，如以下的方法：</p> 
+    <table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td class="code-outline"> <pre class="displaycode">@RequestMapping(method = RequestMethod.GET)
+public String setupForm(@RequestParam(&quot;ownerId&quot;) int ownerId, ModelMap model) {
+ Owner owner = this.clinic.loadOwner(ownerId);
+ model.addAttribute(owner);
+ return &quot;ownerForm&quot;;
+}</pre> </td> 
+      </tr> 
+     </tbody> 
+    </table> <br /> <p>对应的逻辑视图名为“ownerForm”</p> </td> 
+  </tr> 
+  <tr> 
+   <td>org.springframework.ui.ModelMap</td> 
+   <td> <p>和返回类型为 void 一样，逻辑视图名取决于对应请求的 URL，如下面的例子：</p> 
+    <table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+     <tbody> 
+      <tr> 
+       <td class="code-outline"> <pre class="displaycode">@RequestMapping(&quot;/vets.do&quot;)
+public ModelMap vetsHandler() {
+ return new ModelMap(this.clinic.getVets());
+}</pre> </td> 
+      </tr> 
+     </tbody> 
+    </table> <br /> <p>对应的逻辑视图名为“vets”，返回的 ModelMap 将被作为请求对应的模型对象，可以在 JSP 视图页面中访问到。</p> </td> 
+  </tr> 
+  <tr> 
+   <td>ModelAndView</td> 
+   <td>当然还可以是传统的 ModelAndView。</td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>应该说使用 String 作为请求处理方法的返回值类型是比较通用的方法，这样返回的逻辑视图名不会和请求 URL 绑定，具有很大的灵活性，而模型数据又可以通过 ModelMap 控制。当然直接使用传统的 ModelAndView 也不失为一个好的选择。</p> 
+<p><img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>Spring MVC 有一套常用的属性编辑器，这包括基本数据类型及其包裹类的属性编辑器、String 属性编辑器、JavaBean 的属性编辑器等。但有时我们还需要向 Spring MVC 框架注册一些自定义的属性编辑器，如特定时间格式的属性编辑器就是其中一例。</p> 
+<p>Spring MVC 允许向整个 Spring 框架注册属性编辑器，它们对所有 Controller 都有影响。当然 Spring MVC 也允许仅向某个 Controller 注册属性编辑器，对其它的 Controller 没有影响。前者可以通过 AnnotationMethodHandlerAdapter 的配置做到，而后者则可以通过 @InitBinder 注解实现。</p> 
+<p>下面先看向整个 Spring MVC 框架注册的自定义编辑器：</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&gt;bean class=&quot;org.springframework.web.servlet.mvc.annotation.
+AnnotationMethodHandlerAdapter&quot;&lt;
+    &gt;property name=&quot;webBindingInitializer&quot;&lt;
+        &gt;bean class=&quot;com.baobaotao.web.MyBindingInitializer&quot;/&lt;
+    &gt;/property&lt;
+&gt;/bean&lt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>MyBindingInitializer 实现了 WebBindingInitializer 接口，在接口方法中通过 binder 注册多个自定义的属性编辑器，其代码如下所示：</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">package org.springframework.samples.petclinic.web;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.beans.propertyeditors.StringTrimmerEditor;
+import org.springframework.samples.petclinic.Clinic;
+import org.springframework.samples.petclinic.PetType;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.support.WebBindingInitializer;
+import org.springframework.web.context.request.WebRequest;
+
+public class MyBindingInitializer implements WebBindingInitializer {
+
+    public void initBinder(WebDataBinder binder, WebRequest request) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd&quot;);
+        dateFormat.setLenient(false);
+        binder.registerCustomEditor(Date.class, 
+            new CustomDateEditor(dateFormat, false));
+        binder.registerCustomEditor(String.class, new StringTrimmerEditor(false));
+    }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>如果希望某个属性编辑器仅作用于特定的 Controller，可以在 Controller 中定义一个标注 @InitBinder 注解的方法，可以在该方法中向 Controller 了注册若干个属性编辑器，来看下面的代码：</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">@Controller
+public class MyFormController {
+
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd&quot;);
+        dateFormat.setLenient(false);
+        binder.registerCustomEditor(Date.class, new CustomDateEditor(dateFormat, false));
+    }
+    …
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>注意被标注 @InitBinder 注解的方法必须拥有一个 WebDataBinder 类型的入参，以便 Spring MVC 框架将注册属性编辑器的 WebDataBinder 对象传递进来。</p> 
+<p><img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>在编写 Controller 时，常常需要在真正进入请求处理方法前准备一些数据，以便请求处理或视图渲染时使用。在传统的 SimpleFormController 里，是通过复写其 referenceData() 方法来准备引用数据的。在 Spring 2.5 时，可以将任何一个拥有返回值的方法标注上 @ModelAttribute，使其返回值将会进入到模型对象的属性列表中。来看下面的例子：</p> 
+<p><br /> <img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p><br /> </p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">package com.baobaotao.web;
+
+import com.baobaotao.service.BbtForumService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.SessionAttributes;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+@Controller
+@RequestMapping(&quot;/bbtForum.do&quot;)
+public class BbtForumController {
+
+    @Autowired
+    private BbtForumService bbtForumService;
+
+    @ModelAttribute(&quot;items&quot;)//&lt;——①向模型对象中添加一个名为items的属性
+    public List&lt;String&gt; populateItems() {
+        List&lt;String&gt; lists = new ArrayList&lt;String&gt;();
+        lists.add(&quot;item1&quot;);
+        lists.add(&quot;item2&quot;);
+        return lists;
+    }
+
+    @RequestMapping(params = &quot;method=listAllBoard&quot;)
+    public String listAllBoard(@ModelAttribute(&quot;currUser&quot;)User user, ModelMap model) {
+        bbtForumService.getAllBoard();
+        //&lt;——②在此访问模型中的items属性
+        System.out.println(&quot;model.items:&quot; + ((List&lt;String&gt;)model.get(&quot;items&quot;)).size());
+        return &quot;listBoard&quot;;
+    }
+}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table>  
+<p>在 ① 处，通过使用 @ModelAttribute 注解，populateItem() 方法将在任何请求处理方法执行前调用，Spring MVC 会将该方法返回值以“items”为名放入到隐含的模型对象属性列表中。</p> 
+<p>所以在 ② 处，我们就可以通过 ModelMap 入参访问到 items 属性，当执行 listAllBoard() 请求处理方法时，② 处将在控制台打印出“model.items:2”的信息。当然我们也可以在请求的视图中访问到模型对象中的 items 属性。</p> 
+<p><img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p>Spring 2.5 对 Spring MVC 进行了很大增强，现在我们几乎完全可以使用基于注解的 Spring MVC 完全替换掉原来基于接口 Spring MVC 程序。基于注解的 Spring MVC 比之于基于接口的 Spring MVC 拥有以下几点好处：</p> 
+<ul> 
+ <li>方便请求和控制器的映射；</li> 
+ <li>方便请求处理方法入参绑定URL参数；</li> 
+ <li>Controller 不必继承任何接口，它仅是一个简单的 POJO。</li> 
+</ul> 
+<p>但是基于注解的 Spring MVC 并不完美，还存在优化的空间，因为在某些配置上它比基于 XML 的配置更繁琐。比如对于处理多个请求的 Controller 来说，假设我们使用一个 URL 参数指定调用的处理方法（如 xxx.do?method=listBoardTopic），当使用注解时，每个请求处理方法都必须使用 @RequestMapping() 注解指定对应的 URL 参数（如 @RequestMapping(params = &quot;method=listBoardTopic&quot;)），而在 XML 配置中我们仅需要配置一个 ParameterMethodNameResolver 就可以了。</p> 
+<p><img class="cke_anchor" alt="锚点" src="image/使用 Spring 2.5 基于注解驱动.spacer.gif-t=A067" /><p class="origImg">http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067</p></p> 
+<p><strong>学习</strong></p> 
+<ul> 
+ <li><a href="http://www.ibm.com/developerworks/cn/java/wa-spring1/">Spring 系列：Spring 框架简介</a>：优秀的 Spring 框架入门系列，了解 Spring 框架的基本概念。</li> 
+ <li><a href="http://www.ibm.com/developerworks/cn/opensource/os-lightweight3/">轻量级开发的成功秘诀，第 3 部分: Spring 露出水面</a>：介绍了在 Spring 框架的轻量级 Ioc 容器。</li> 
+ <li><a href="http://www.ibm.com/developerworks/cn/websphere/library/techarticles/0706_johnsonbuck/0706_johnsonbuck.html">Spring Framework 和 IBM WebSphere Application Server</a>：Interface21 的首席执行官 Rod Johnson 和 IBM 的 WebSphere Open Source 主管 Paul Buck 讨论了 Spring Framework 通过 IBM WebSphere Application Server 认证对 Spring 和 WebSphere 产品系列的开发人员和客户有何重要意义。</li> 
+ <li><a href="http://www.ibm.com/developerworks/cn/java/j-annotate1/">Tiger 中的注释，第 1 部分: 向 Java 代码中添加元数据</a>：解释了元数据如此有用的原因，向您介绍了 Java 语言中的注释，并研究了 Tiger 的内置注释。</li> 
+ <li><a href="http://www.ibm.com/developerworks/cn/java/j-annotate2.html">Tiger 中的注释，第 2 部分: 定制注释</a>：说明了如何创建定制注释，如何用自己的注释注解文档，并进一步定制代码。</li> 
+</ul></div></body></html>

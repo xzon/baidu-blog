@@ -1,0 +1,269 @@
+<html><head><title>讨论：关于Java包导入的一个奇怪问题-hxzon</title></head><body><div id='tit'>讨论：关于Java包导入的一个奇怪问题-hxzon</div><div id='cate'>j&middot;入门</div><div id='date'>2008年03月10日 星期一 10:02 P.M.</div><div id='page'>159</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/2cbb96ef70f119ebce1b3e82.html'>http://hi.baidu.com/hxzon/blog/item/2cbb96ef70f119ebce1b3e82.html</a><div id='cnt'><div>
+ 讨论：关于Java包导入的一个奇怪问题-hxzon
+</div> 
+<div> 
+</div> 
+<div>
+  首先新建一个目录存放Java源文件，或者直接在某个盘符下放置程序，例如：D:\，然后按照下面的步骤进行实验（本实验在D:\目录下操作）。
+</div> 
+<div> 
+</div> 
+<div>
+ Step1：编写程序World.java，代码如下：
+</div> 
+<div> 
+</div> 
+<div>
+ package a;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> public class World
+</div> 
+<div> 
+</div> 
+<div>
+ {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public World()
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; System.out.println(&quot;, World!&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ Step2：编写Hello.java，代码如下：
+</div> 
+<div> 
+</div> 
+<div>
+ import a.World;
+</div> 
+<div> 
+</div> 
+<div>
+ <br /> public class Hello
+</div> 
+<div> 
+</div> 
+<div>
+ {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; public static void main(String[] args)
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; {
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.print(&quot;Hello&quot;);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; World world = new World();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp; }
+</div> 
+<div> 
+</div> 
+<div>
+ }
+</div> 
+<div> 
+</div> 
+<div>
+ Step3：将两个程序保存到你所建的目录下，在这里，我们将它们保存到D:\下。
+</div> 
+<div> 
+</div> 
+<div>
+ Step4：编译这两个Java源文件
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 先编译World.java，执行javac -d . World.java，在D盘生成目录a，及其中的World.class。接下来编译Hello.java，执行javac Hello.java，在D盘上生成Hello.class。
+</div> 
+<div> 
+</div> 
+<div>
+ Step5：运行Hello类
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 执行java Hello，输出Hello, World！目前一切正常。
+</div> 
+<div> 
+</div> 
+<div>
+ Step6：修改Hello.java
+</div> 
+<div> 
+</div> 
+<div>
+ 将第1行的语句“import a.World;”改为“import a.*；”，重新编译Hello.java，出现下面的错误提示：
+</div> 
+<div> 
+</div> 
+<div>
+ 错误的类文件： .\World.java
+</div> 
+<div> 
+</div> 
+<div>
+ 文件不包含类 World
+</div> 
+<div> 
+</div> 
+<div>
+ 请删除该文件或确保该文件位于正确的类路径子目录中。
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; World world = new World();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ^
+</div> 
+<div> 
+</div> 
+<div>
+ Step7：根据错误提示进行下列操作
+</div> 
+<div> 
+</div> 
+<div>
+ 按照错误提示，删除 World.java 或者将 World.java 放到其他地方，则程序成功编译运行。
+</div> 
+<div> 
+</div> 
+<div>
+ 问题：
+</div> 
+<div> 
+</div> 
+<div>
+ 请问为何会出现Step6中的错误呢？使用 “import a.*;”导入a下所有类和接口，和使用“import a.World；”导入a包中具体的类，为何会产生上述的差异呢？
+</div> 
+<div> 
+</div> 
+<div>
+ 回答
+ <br /> 当你导入一个包中所有的类时，javac在编译时并不确定你要使用的World类是a包中的类，还是其他包中的类，它会根据你机器上的CLASSPATH环境变量的值去查找类，通常我们在CLASSPATH中会设置一个点（.），表示当前目录，如果没有CLASSPATH环境变量，那么在JDK1.4之后，默认也是查找当前目录。javac在按照文件名（不包括后缀）来查找类，于是找到World.java，而这个文件根本不是字节码文件，当然就报错了。当你导入一个具体的类时，javac在分析源文件时就知道了你程序中用的类是a.World，那么它就在CLASSPATH环境变量下查找a目录下的World类，正好有，于是正确执行。
+</div> 
+<div> 
+</div> 
+<div>
+ 为了帮助读者对这个问题加深理解，我给大家设计了下面的操作步骤（本文是在D盘上操作）：
+</div> 
+<div> 
+</div> 
+<div>
+ （1）将a目录剪切到C:\下；
+ <br /> （2）再次执行javac Hello.java，你会看到同样的错误。也就是证实了在出错之前，javac还没有去查找a包中的类（对于包是否存在的验证已经进行）。
+ <br /> （3）执行set classpath=c:\。由于你明确地设置了CLASSPATH环境变量的值，并且没有包含点（.），因此javac不会再查找当前的目录。
+ <br /> （4）再次执行javac Hello.java，你会发现成功执行。
+</div> 
+<div> 
+</div> 
+<div>
+ 这里面还有一个有趣的现象，如果我们将a目录下的World.class删除，替换为World.java，那么在编译Hello.java时，World也会被自动编译。
+</div> 
+<div> 
+</div> 
+<div>
+  想系统的学习软件开发的话可以来这里看看
+ <a href="http://www.gdglc.com/v2/pages/kcxj/kcxj.asp">http://www.gdglc.com/v2/pages/kcxj/kcxj.asp</a>
+</div> 
+<div> 
+</div> 
+<div>
+ <a href="http://hi.baidu.com/%B1%B1%B4%F3%C7%E0%C4%F1/blog/item/b1ef820211e4490c4bfb510a.html">http://hi.baidu.com/%B1%B1%B4%F3%C7%E0%C4%F1/blog/item/b1ef820211e4490c4bfb510a.html</a>
+</div> 
+<div> 
+</div> 
+<div>
+ ===================================================
+ <br /> hxzon
+</div> 
+<div> 
+</div> 
+<div>
+ package xz1;
+</div> 
+<div> 
+</div> 
+<div>
+ public class xz1{
+ <br /> String name=&quot;xz1&quot;;
+ <br /> }//在当前目录下生成xz1目录和xz1类文件。
+ <br /> package xz2;
+</div> 
+<div> 
+</div> 
+<div>
+ import xz1.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class xz2{
+ <br /> xz1 x=new xz1();
+ <br /> }//成功。
+ <br /> //package xz2;
+</div> 
+<div> 
+</div> 
+<div>
+ import xz1.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class xz2{
+ <br /> xz1 x=new xz1();
+ <br /> }//xz3.java:5: 无法访问 xz1
+ <br /> //错误的类文件： H:\work\xz1.java
+ <br /> //文件不包含类 xz1
+ <br /> //请删除该文件或确保该文件位于正确的类路径子目录中。
+ <br /> //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xz1 x=new xz1();
+ <br /> //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ^
+ <br /> //
+ <br /> //处理已完成。
+</div></div></body></html>

@@ -1,0 +1,509 @@
+<html><head><title>JFreeChart生成各种统计图 -JFreeChart学习笔记 -gcode -javacode</title></head><body><div id='tit'>JFreeChart生成各种统计图 -JFreeChart学习笔记 -gcode -javacode</div><div id='cate'>j&middot;桌面</div><div id='date'>2008年10月19日 星期日 05:19 P.M.</div><div id='page'>89</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/5c81d20704c60ccb7b894789.html'>http://hi.baidu.com/hxzon/blog/item/5c81d20704c60ccb7b894789.html</a><div id='cnt'><div>
+ JFreeChart生成各种统计图 -JFreeChart学习笔记 -gcode -javacode
+</div> 
+<div> 
+</div> 
+<div>
+ JFreeChart依赖另一个项目JCommon。文档收费。
+ <br /> JFreeChart统计图分成三个部分，图标标题getTitle，实际统计图getPlot，图例getLegend。
+ <br /> XxxDataset提供数据。
+ <br /> ChartFactory.createPieChart创建饼图。createPieChart3D创建3D饼图。
+</div> 
+<div> 
+</div> 
+<div>
+ ========================
+ <br /> 一，饼图和3D饼图
+ <br /> package lee;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.io.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.jfree.data.*;
+ <br /> import org.jfree.data.general.*;
+ <br /> import org.jfree.chart.*;
+ <br /> import org.jfree.chart.plot.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.Font;
+ <br /> import java.awt.geom.Ellipse2D.Float;
+ <br /> import org.jfree.chart.title.TextTitle;
+ <br /> import org.jfree.chart.title.LegendTitle;
+</div> 
+<div> 
+</div> 
+<div>
+ public class PieChartDemo
+ <br /> {
+ <br /> public static void main(String[] args) throws IOException
+ <br /> {
+ <br /> &nbsp;&nbsp; DefaultPieDataset data = getDataSet();
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; //JFreeChart chart = ChartFactory.createPieChart(
+ <br /> &nbsp;&nbsp; //生成3D饼图
+ <br /> &nbsp;&nbsp; JFreeChart chart = ChartFactory.createPieChart3D(
+ <br /> &nbsp;&nbsp;&nbsp; &quot;图书销量统计图&quot;, // 图表标题
+ <br /> &nbsp;&nbsp;&nbsp; getDataSet(), //数据
+ <br /> &nbsp;&nbsp;&nbsp; true, // 是否显示图例
+ <br /> &nbsp;&nbsp;&nbsp; false, //是否显示工具提示
+ <br /> &nbsp;&nbsp;&nbsp; false //是否生成URL
+ <br /> &nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp; //重新设置图标标题，改变字体
+ <br /> &nbsp;&nbsp; chart.setTitle(new TextTitle(&quot;图书销量统计图&quot;, new Font(&quot;黑体&quot;, Font.ITALIC , 22))); 
+ <br /> &nbsp;&nbsp; //取得统计图标的第一个图例
+ <br /> &nbsp;&nbsp; LegendTitle legend = chart.getLegend(0);
+ <br /> &nbsp;&nbsp; //修改图例的字体
+ <br /> &nbsp;&nbsp; legend.setItemFont(new Font(&quot;宋体&quot;, Font.BOLD, 14)); 
+ <br /> &nbsp;&nbsp; //获得饼图的Plot对象
+ <br /> &nbsp;&nbsp; PiePlot plot = (PiePlot)chart.getPlot();
+ <br /> &nbsp;&nbsp; //设置饼图各部分的标签字体
+ <br /> &nbsp;&nbsp; plot.setLabelFont(new Font(&quot;隶书&quot;, Font.BOLD, 18)); 
+ <br /> &nbsp;&nbsp; //设定背景透明度（0-1.0之间）
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; plot.setBackgroundAlpha(0.9f);
+ <br /> &nbsp;&nbsp; //设定前景透明度（0-1.0之间）
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; plot.setForegroundAlpha(0.50f);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; FileOutputStream fos = new FileOutputStream(&quot;book.jpg&quot;);
+ <br /> &nbsp;&nbsp; ChartUtilities.writeChartAsJPEG(
+ <br /> &nbsp;&nbsp;&nbsp; fos, //输出到哪个输出流
+ <br /> &nbsp;&nbsp;&nbsp; 1, //JPEG图片的质量，0~1之间
+ <br /> &nbsp;&nbsp;&nbsp; chart, //统计图标对象
+ <br /> &nbsp;&nbsp;&nbsp; 800, //宽
+ <br /> &nbsp;&nbsp;&nbsp; 600,//宽
+ <br /> &nbsp;&nbsp;&nbsp; null //ChartRenderingInfo 信息
+ <br /> &nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp; fos.close();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ private static DefaultPieDataset getDataSet()
+ <br /> {
+ <br /> &nbsp;&nbsp; DefaultPieDataset dataset = new DefaultPieDataset();
+ <br /> &nbsp;&nbsp; dataset.setValue(&quot;Spring2.0宝典&quot;,47000);
+ <br /> &nbsp;&nbsp; dataset.setValue(&quot;轻量级J2EE企业实战&quot;,38000);
+ <br /> &nbsp;&nbsp; dataset.setValue(&quot;基于J2EE的Ajax宝典&quot;,31000);
+ <br /> &nbsp;&nbsp; dataset.setValue(&quot;JavaScript权威指南&quot;,29000);
+ <br /> &nbsp;&nbsp; dataset.setValue(&quot;Ajax In Action&quot;,25000);
+ <br /> &nbsp;&nbsp; return dataset;
+ <br /> }
+ <br /> }
+ <br /> ------------------------
+ <br /> 二，柱状图
+ <br /> //CategoryAxis横抽，通过getDomainAxis取得，NumberAxis纵轴，通过getRangeAxis取得。
+ <br /> package lee;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.io.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.jfree.data.*;
+ <br /> import org.jfree.data.category.*;
+ <br /> import org.jfree.chart.*;
+ <br /> import org.jfree.chart.plot.*;
+</div> 
+<div> 
+</div> 
+<div>
+ public class BarChartDemo 
+ <br /> {
+</div> 
+<div> 
+</div> 
+<div>
+ public static void main(String[] args) throws IOException
+ <br /> {
+ <br /> &nbsp;&nbsp; JFreeChart chart = ChartFactory.createBarChart3D(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;水果产量图&quot;, // 图表标题
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;水果&quot;, // 目录轴的显示标签
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;产量&quot;, // 数值轴的显示标签
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; getDataSet(), // 数据集
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //PlotOrientation.HORIZONTAL , // 图表方向：水平
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PlotOrientation.VERTICAL , // 图表方向：垂直
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; true, // 是否显示图例(对于简单的柱状图必须是false)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false, // 是否生成工具
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false // 是否生成URL链接
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; FileOutputStream fos = null;
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; fos = new FileOutputStream(&quot;fruit.jpg&quot;);
+ <br /> &nbsp;&nbsp; ChartUtilities.writeChartAsJPEG(
+ <br /> &nbsp;&nbsp;&nbsp; fos, //输出到哪个输出流
+ <br /> &nbsp;&nbsp;&nbsp; 1, //JPEG图片的质量，0~1之间
+ <br /> &nbsp;&nbsp;&nbsp; chart, //统计图标对象
+ <br /> &nbsp;&nbsp;&nbsp; 800, //宽
+ <br /> &nbsp;&nbsp;&nbsp; 600,//宽
+ <br /> &nbsp;&nbsp;&nbsp; null //ChartRenderingInfo 信息
+ <br /> &nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp; fos.close();
+ <br /> }
+</div> 
+<div> 
+</div> 
+<div>
+ private static CategoryDataset getDataSet()
+ <br /> {
+ <br /> &nbsp;&nbsp; DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+ <br /> &nbsp;&nbsp; dataset.addValue(100, &quot;北京&quot;, &quot;苹果&quot;);
+ <br /> &nbsp;&nbsp; /*
+ <br /> &nbsp;&nbsp; 添加数据时
+ <br /> &nbsp;&nbsp; 参数1 － 值。
+ <br /> &nbsp;&nbsp; 参数2 － 行key
+ <br /> &nbsp;&nbsp; 参数3 － 列key
+ <br /> &nbsp;&nbsp; */
+ <br /> &nbsp;&nbsp; dataset.addValue(100, &quot;上海&quot;, &quot;苹果&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(100, &quot;广州&quot;, &quot;苹果&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(200, &quot;北京&quot;, &quot;梨子&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(200, &quot;上海&quot;, &quot;梨子&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(200, &quot;广州&quot;, &quot;梨子&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(300, &quot;北京&quot;, &quot;葡萄&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(300, &quot;上海&quot;, &quot;葡萄&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(300, &quot;广州&quot;, &quot;葡萄&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(400, &quot;北京&quot;, &quot;香蕉&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(400, &quot;上海&quot;, &quot;香蕉&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(400, &quot;广州&quot;, &quot;香蕉&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(500, &quot;北京&quot;, &quot;荔枝&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(500, &quot;上海&quot;, &quot;荔枝&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(500, &quot;广州&quot;, &quot;荔枝&quot;);
+ <br /> &nbsp;&nbsp; return dataset;
+ <br /> }
+ <br /> }
+ <br /> --------------
+ <br /> package lee;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.io.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.jfree.data.*;
+ <br /> import org.jfree.data.category.*;
+ <br /> import org.jfree.chart.*;
+ <br /> import org.jfree.chart.plot.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.jfree.chart.axis.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.Font;
+ <br /> import java.awt.geom.Ellipse2D.Float;
+ <br /> import org.jfree.chart.title.TextTitle;
+ <br /> import org.jfree.chart.title.LegendTitle;
+</div> 
+<div> 
+</div> 
+<div>
+ public class BarChart3DDemo
+ <br /> {
+ <br /> public static void main(String[] args) throws IOException
+ <br /> {
+ <br /> &nbsp;&nbsp; JFreeChart chart = ChartFactory.createBarChart3D(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;图书销量统计图&quot;, // 图表标题
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;图书&quot;, // 目录轴的显示标签
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;销量&quot;, // 数值轴的显示标签
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; getDataSet(), // 数据集
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //PlotOrientation.HORIZONTAL , // 图表方向：水平
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PlotOrientation.VERTICAL , // 图表方向：垂直
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false, // 是否显示图例(对于简单的柱状图必须是false)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false, // 是否生成工具
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false // 是否生成URL链接
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; //重新设置图标标题，改变字体
+ <br /> &nbsp;&nbsp; chart.setTitle(new TextTitle(&quot;图书销量统计图&quot;, new Font(&quot;黑体&quot;, Font.ITALIC , 22))); 
+ <br /> &nbsp;&nbsp; CategoryPlot plot = (CategoryPlot)chart.getPlot();
+ <br /> &nbsp;&nbsp; //取得横轴
+ <br /> &nbsp;&nbsp; CategoryAxis categoryAxis = plot.getDomainAxis();
+ <br /> &nbsp;&nbsp; //设置横轴显示标签的字体
+ <br /> &nbsp;&nbsp; categoryAxis.setLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 22));
+ <br /> &nbsp;&nbsp; //分类标签以45度角倾斜
+ <br /> &nbsp;&nbsp; categoryAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+ <br /> &nbsp;&nbsp; categoryAxis.setTickLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 18));
+ <br /> &nbsp;&nbsp; //取得纵轴
+ <br /> &nbsp;&nbsp; NumberAxis numberAxis = (NumberAxis)plot.getRangeAxis();
+ <br /> &nbsp;&nbsp; //设置纵轴显示标签的字体
+ <br /> &nbsp;&nbsp; numberAxis.setLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 22));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; FileOutputStream fos = null;
+ <br /> &nbsp;&nbsp; fos = new FileOutputStream(&quot;book.jpg&quot;);
+ <br /> &nbsp;&nbsp; //将统计图标输出成JPG文件
+ <br /> &nbsp;&nbsp; ChartUtilities.writeChartAsJPEG(
+ <br /> &nbsp;&nbsp;&nbsp; fos, //输出到哪个输出流
+ <br /> &nbsp;&nbsp;&nbsp; 1, //JPEG图片的质量，0~1之间
+ <br /> &nbsp;&nbsp;&nbsp; chart, //统计图标对象
+ <br /> &nbsp;&nbsp;&nbsp; 800, //宽
+ <br /> &nbsp;&nbsp;&nbsp; 600,//宽
+ <br /> &nbsp;&nbsp;&nbsp; null //ChartRenderingInfo 信息
+ <br /> &nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp; fos.close();
+ <br /> }
+ <br /> //返回一个CategoryDataset实例
+ <br /> private static CategoryDataset getDataSet()
+ <br /> {
+ <br /> &nbsp;&nbsp; DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+ <br /> &nbsp;&nbsp; dataset.addValue(47000 , &quot;&quot; , &quot;Spring2.0宝典&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(38000 , &quot;&quot; , &quot;轻量级J2EE企业实战&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(31000 , &quot;&quot; , &quot;基于J2EE的Ajax宝典&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(29000 , &quot;&quot; , &quot;JavaScript权威指南&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(25000 , &quot;&quot; , &quot;Ajax In Action&quot;);
+ <br /> &nbsp;&nbsp; return dataset;
+ <br /> }
+ <br /> }
+ <br /> --------------------
+ <br /> 三，折线图
+ <br /> package lee;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.io.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.jfree.data.*;
+ <br /> import org.jfree.data.category.*;
+ <br /> import org.jfree.chart.*;
+ <br /> import org.jfree.chart.plot.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.jfree.chart.axis.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.Font;
+ <br /> import java.awt.geom.Ellipse2D.Float;
+ <br /> import org.jfree.chart.title.TextTitle;
+ <br /> import org.jfree.chart.title.LegendTitle;
+</div> 
+<div> 
+</div> 
+<div>
+ public class LineChart3DDemo
+ <br /> {
+ <br /> public static void main(String[] args) throws IOException
+ <br /> {
+ <br /> &nbsp;&nbsp; JFreeChart chart = ChartFactory.createTimeSeriesChart(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;图书销量统计图&quot;, // 图表标题
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;图书&quot;, // 目录轴的显示标签
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;销量&quot;, // 数值轴的显示标签
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; getDataSet(), // 数据集
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //PlotOrientation.HORIZONTAL , // 图表方向：水平
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PlotOrientation.VERTICAL , // 图表方向：垂直
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; true, // 是否显示图例(对于简单的柱状图必须是false)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false, // 是否生成工具
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false // 是否生成URL链接
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; //重新设置图标标题，改变字体
+ <br /> &nbsp;&nbsp; chart.setTitle(new TextTitle(&quot;图书销量统计图&quot;, new Font(&quot;黑体&quot;, Font.ITALIC , 22))); 
+ <br /> &nbsp;&nbsp; //取得统计图标的第一个图例
+ <br /> &nbsp;&nbsp; LegendTitle legend = chart.getLegend(0);
+ <br /> &nbsp;&nbsp; //修改图例的字体
+ <br /> &nbsp;&nbsp; legend.setItemFont(new Font(&quot;宋体&quot;, Font.BOLD, 14));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; CategoryPlot plot = (CategoryPlot)chart.getPlot();
+ <br /> &nbsp;&nbsp; //取得横轴
+ <br /> &nbsp;&nbsp; CategoryAxis categoryAxis = plot.getDomainAxis();
+ <br /> &nbsp;&nbsp; //设置横轴显示标签的字体
+ <br /> &nbsp;&nbsp; categoryAxis.setLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 22));
+ <br /> &nbsp;&nbsp; //分类标签以45度角倾斜
+ <br /> &nbsp;&nbsp; categoryAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+ <br /> &nbsp;&nbsp; categoryAxis.setTickLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 18));
+ <br /> &nbsp;&nbsp; //取得纵轴
+ <br /> &nbsp;&nbsp; NumberAxis numberAxis = (NumberAxis)plot.getRangeAxis();
+ <br /> &nbsp;&nbsp; //设置纵轴显示标签的字体
+ <br /> &nbsp;&nbsp; numberAxis.setLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 22));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; FileOutputStream fos = null;
+ <br /> &nbsp;&nbsp; fos = new FileOutputStream(&quot;book.jpg&quot;);
+ <br /> &nbsp;&nbsp; //将统计图标输出成JPG文件
+ <br /> &nbsp;&nbsp; ChartUtilities.writeChartAsJPEG(
+ <br /> &nbsp;&nbsp;&nbsp; fos, //输出到哪个输出流
+ <br /> &nbsp;&nbsp;&nbsp; 1, //JPEG图片的质量，0~1之间
+ <br /> &nbsp;&nbsp;&nbsp; chart, //统计图标对象
+ <br /> &nbsp;&nbsp;&nbsp; 800, //宽
+ <br /> &nbsp;&nbsp;&nbsp; 600,//宽
+ <br /> &nbsp;&nbsp;&nbsp; null //ChartRenderingInfo 信息
+ <br /> &nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp; fos.close();
+ <br /> }
+ <br /> //返回一个CategoryDataset实例
+ <br /> private static CategoryDataset getDataSet()
+ <br /> {
+ <br /> &nbsp;&nbsp; DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+ <br /> &nbsp;&nbsp; dataset.addValue(45000 , &quot;北京&quot; , &quot;Spring2.0宝典&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(38000 , &quot;北京&quot; , &quot;轻量级J2EE企业实战&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(24000 , &quot;北京&quot; , &quot;基于J2EE的Ajax宝典&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(32000 , &quot;北京&quot; , &quot;JavaScript权威指南&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(21000 , &quot;北京&quot; , &quot;Ajax In Action&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(37000 , &quot;上海&quot; , &quot;Spring2.0宝典&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(36000 , &quot;上海&quot; , &quot;轻量级J2EE企业实战&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(34000 , &quot;上海&quot; , &quot;基于J2EE的Ajax宝典&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(42000 , &quot;上海&quot; , &quot;JavaScript权威指南&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(12000 , &quot;上海&quot; , &quot;Ajax In Action&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(42000 , &quot;广州&quot; , &quot;Spring2.0宝典&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(40000 , &quot;广州&quot; , &quot;轻量级J2EE企业实战&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(34000 , &quot;广州&quot; , &quot;基于J2EE的Ajax宝典&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(18000 , &quot;广州&quot; , &quot;JavaScript权威指南&quot;);
+ <br /> &nbsp;&nbsp; dataset.addValue(26000 , &quot;广州&quot; , &quot;Ajax In Action&quot;);
+ <br /> &nbsp;&nbsp; return dataset;
+ <br /> }
+ <br /> }
+ <br /> ----------------------
+ <br /> 四，时间顺序图
+ <br /> //需要XYDataset作为数据，有一个实现类TimeSeriesCollection，这个时间序列实例
+ <br /> //是由多个TimeSeries对象组成，每个TimeSeries包含多个时间点的统计值。
+ <br /> package lee;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.io.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.jfree.data.*;
+ <br /> import org.jfree.data.category.*;
+ <br /> import org.jfree.chart.*;
+ <br /> import org.jfree.chart.plot.*;
+</div> 
+<div> 
+</div> 
+<div>
+ import org.jfree.chart.axis.*;
+ <br /> import org.jfree.data.time.*;
+ <br /> import org.jfree.data.xy.XYDataset;
+</div> 
+<div> 
+</div> 
+<div>
+ import java.awt.Font;
+ <br /> import java.awt.geom.Ellipse2D.Float;
+ <br /> import org.jfree.chart.title.TextTitle;
+ <br /> import org.jfree.chart.title.LegendTitle;
+</div> 
+<div> 
+</div> 
+<div>
+ public class TimeChartDemo
+ <br /> {
+ <br /> public static void main(String[] args) throws IOException
+ <br /> {
+ <br /> &nbsp;&nbsp; JFreeChart chart = ChartFactory.createTimeSeriesChart(
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;图书销量统计图&quot;, // 图表标题
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;图书&quot;, // 目录轴的显示标签
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot;销量&quot;, // 数值轴的显示标签
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; getDataSet(), // 数据集
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; true, // 是否显示图例(对于简单的柱状图必须是false)
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false, // 是否生成工具
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; false // 是否生成URL链接
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ <br /> &nbsp;&nbsp; //重新设置图标标题，改变字体
+ <br /> &nbsp;&nbsp; chart.setTitle(new TextTitle(&quot;图书销量统计图&quot;, new Font(&quot;黑体&quot;, Font.ITALIC , 22))); 
+ <br /> &nbsp;&nbsp; //取得统计图标的第一个图例
+ <br /> &nbsp;&nbsp; LegendTitle legend = chart.getLegend(0);
+ <br /> &nbsp;&nbsp; //修改图例的字体
+ <br /> &nbsp;&nbsp; legend.setItemFont(new Font(&quot;宋体&quot;, Font.BOLD, 14)); 
+ <br /> &nbsp;&nbsp; //取得时间顺序图的Plot对象
+ <br /> &nbsp;&nbsp; XYPlot plot = (XYPlot)chart.getPlot();
+ <br /> &nbsp;&nbsp; //取得横轴
+ <br /> &nbsp;&nbsp; ValueAxis categoryAxis = plot.getDomainAxis();
+ <br /> &nbsp;&nbsp; //设置横轴显示标签的字体
+ <br /> &nbsp;&nbsp; categoryAxis.setLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 22));
+ <br /> &nbsp;&nbsp; categoryAxis.setTickLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 18));
+ <br /> &nbsp;&nbsp; //取得纵轴
+ <br /> &nbsp;&nbsp; NumberAxis numberAxis = (NumberAxis)plot.getRangeAxis();
+ <br /> &nbsp;&nbsp; //设置纵轴显示标签的字体
+ <br /> &nbsp;&nbsp; numberAxis.setLabelFont(new Font(&quot;宋体&quot; , Font.BOLD , 22));
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; FileOutputStream fos = null;
+ <br /> &nbsp;&nbsp; fos = new FileOutputStream(&quot;book.jpg&quot;);
+ <br /> &nbsp;&nbsp; //将统计图标输出成JPG文件
+ <br /> &nbsp;&nbsp; ChartUtilities.writeChartAsJPEG(
+ <br /> &nbsp;&nbsp;&nbsp; fos, //输出到哪个输出流
+ <br /> &nbsp;&nbsp;&nbsp; 1, //JPEG图片的质量，0~1之间
+ <br /> &nbsp;&nbsp;&nbsp; chart, //统计图标对象
+ <br /> &nbsp;&nbsp;&nbsp; 800, //宽
+ <br /> &nbsp;&nbsp;&nbsp; 600,//宽
+ <br /> &nbsp;&nbsp;&nbsp; null //ChartRenderingInfo 信息
+ <br /> &nbsp;&nbsp;&nbsp; );
+ <br /> &nbsp;&nbsp; fos.close();
+ <br /> }
+ <br /> //返回一个CategoryDataset实例
+ <br /> private static XYDataset getDataSet()
+ <br /> {
+ <br /> &nbsp;&nbsp; TimeSeries spring = new TimeSeries(&quot;Spring2.0宝典&quot; , Month.class);
+ <br /> &nbsp;&nbsp; spring.add(new Month(10, 2006), 3400);
+ <br /> &nbsp;&nbsp; spring.add(new Month(11, 2006), 2700);
+ <br /> &nbsp;&nbsp; spring.add(new Month(12, 2006), 3100);
+ <br /> &nbsp;&nbsp; spring.add(new Month(1, 2007), 1800);
+ <br /> &nbsp;&nbsp; spring.add(new Month(2, 2007), 2200);
+ <br /> &nbsp;&nbsp; TimeSeries lightWeight = new TimeSeries(&quot;轻量级J2EE企业应用实战&quot; , Month.class);
+ <br /> &nbsp;&nbsp; lightWeight.add(new Month(10, 2006), 2800);
+ <br /> &nbsp;&nbsp; lightWeight.add(new Month(11, 2006), 3700);
+ <br /> &nbsp;&nbsp; lightWeight.add(new Month(12, 2006), 2600);
+ <br /> &nbsp;&nbsp; lightWeight.add(new Month(1, 2007), 2100);
+ <br /> &nbsp;&nbsp; lightWeight.add(new Month(2, 2007), 1100);
+</div> 
+<div> 
+</div> 
+<div>
+ &nbsp;&nbsp; TimeSeriesCollection dataset = new TimeSeriesCollection();
+ <br /> &nbsp;&nbsp; dataset.addSeries(spring);
+ <br /> &nbsp;&nbsp; dataset.addSeries(lightWeight);
+ <br /> &nbsp;&nbsp; return dataset;
+ <br /> }
+ <br /> }
+ <br /> =====================================
+</div> 
+<div> 
+</div> 
+<div> 
+</div></div></body></html>

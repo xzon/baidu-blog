@@ -1,0 +1,85 @@
+<html><head><title>Seam中 EntityHome的remove方法需要加@End声明Conversation结束</title></head><body><div id='tit'>Seam中 EntityHome的remove方法需要加@End声明Conversation结束</div><div id='cate'>j&middot;后端</div><div id='date'>2009年03月09日 星期一 08:30 P.M.</div><div id='page'>63</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/1a62a18614db683666096e1b.html'>http://hi.baidu.com/hxzon/blog/item/1a62a18614db683666096e1b.html</a><div id='cnt'><p> </p> 
+<div class="blog_title"> 
+ <h3 class="type_original" title="原创"><a href="http://jeffreyhsu.javaeye.com/blog/232926">Seam中 EntityHome的remove方法需要加@End声明Conversation结束</a></h3> 
+</div> 
+<div class="blog_content"> 
+ <p>用seam-gen生成的EntityHome的create方法加上了@Begin，这样就开始了一段 Conversation。</p> 
+ <p>这样<strong>连续</strong> 执行remove方法时，就会出现错误，传param id都不起作用，即此时的EntityHome 的id还是刚才那个已经删除的，而数据库中已经没有了，这时执行remove就会出错。</p> 
+ <p> </p> 
+ <p>所以要给remove方法加上@End注解</p> 
+ <p> </p> 
+ <p>例如：</p> 
+ <p> </p> 
+ <div class="dp-highlighter"> 
+  <div class="bar"> 
+   <div class="tools">
+    Java代码
+   </div> 
+  </div> 
+  <ol class="dp-j"> 
+   <li><span><span class="annotation">@Name</span><span>(</span><span class="string">&quot;roleHome&quot;</span><span>)&nbsp;&nbsp;</span></span></li> 
+   <li><span><span class="keyword">public</span><span> </span><span class="keyword">class</span><span> RoleHome </span><span class="keyword">extends</span><span> EntityHome&lt;Role&gt;&nbsp;&nbsp;</span></span></li> 
+   <li><span>{&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="annotation">@RequestParameter</span><span>&nbsp;&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; Long roleId;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="annotation">@Override</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span> Object getId()&nbsp;&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span><span> (roleId==</span><span class="keyword">null</span><span>)&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span><span> </span><span class="keyword">super</span><span>.getId();&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">else</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span><span> roleId;&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="annotation">@Override</span><span> </span><span class="annotation">@Begin</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span> </span><span class="keyword">void</span><span> create() {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">super</span><span>.create();&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;</span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="annotation">@Override</span><span> </span><span class="annotation">@End</span><span>&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">public</span><span> String remove() {&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span><span> </span><span class="keyword">super</span><span>.remove();&nbsp;&nbsp;</span></span></li> 
+   <li><span>&nbsp;&nbsp;&nbsp;&nbsp; }&nbsp;&nbsp;</span></li> 
+   <li><span>}&nbsp;&nbsp;</span></li> 
+  </ol> 
+ </div> 
+ <pre style="display: none" class="java" name="code">@Name(&quot;roleHome&quot;)
+public class RoleHome extends EntityHome&lt;Role&gt;
+{
+
+    @RequestParameter 
+    Long roleId;
+    
+    @Override
+    public Object getId() 
+    { 
+        if (roleId==null)
+        {
+            return super.getId();
+        }
+        else
+        {
+            return roleId;
+        }
+    }
+    
+    @Override @Begin
+    public void create() {
+        super.create();
+    }
+
+    @Override @End
+    public String remove() {
+        return super.remove();
+    }
+}</pre> 
+</div> 
+<p> </p> 
+<p> </p> 
+<p><a href="http://jeffreyhsu.javaeye.com/blog/232926">http://jeffreyhsu.javaeye.com/blog/232926</a></p></div></body></html>

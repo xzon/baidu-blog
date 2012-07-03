@@ -1,0 +1,145 @@
+<html><head><title>Geronimo 叛逆者: 使用集成软件包：Codehaus 的 Woodstox</title></head><body><div id='tit'>Geronimo 叛逆者: 使用集成软件包：Codehaus 的 Woodstox</div><div id='cate'>j&middot;通用</div><div id='date'>2010年09月03日 星期五 12:34 P.M.</div><div id='page'>9</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/33b380182ae0f0ba4bedbc37.html'>http://hi.baidu.com/hxzon/blog/item/33b380182ae0f0ba4bedbc37.html</a><div id='cnt'><h1><span style="color: rgb(153,153,153)">Geronimo 叛逆者: </span>使用集成软件包：Codehaus 的 Woodstox</h1> 
+<p>http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade15/</p> 
+<p>hxzon:</p> 
+<p>1，dom，内存树（全文解析），两次遍历。</p> 
+<p>2，SAX，回调机制，不受控（全文解析）。</p> 
+<p>3，StAX，拉式，可控（不必全文解析），基于指针和基于事件的写。已并入JavaSE1.6，sun的实现SJSXP。</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade15/#author">Michael Galpin</a> (<a href="mailto:mike.sr@gmail.com?subject=%E4%BD%BF%E7%94%A8%E9%9B%86%E6%88%90%E8%BD%AF%E4%BB%B6%E5%8C%85%EF%BC%9ACodehaus%20%E7%9A%84%20Woodstox">mike.sr@gmail.com</a>), 开发人员, Adomo, Inc.</p> 
+<p>2007 年 8 月 27 日</p> 
+<blockquote>
+ XML 解析器通常是高性能、健壮应用程序的关键。传统的 XML 解析技术包括文档对象模型（Document Object Model，DOM）和 Simple API for XML (SAX)。现在有一种非常不错的名为 Streaming API for XML (StAX) 的创新型新解析技术，它是与 Java™ Platform, Enterprise Edition (Java EE) 5 规范集成的。Apache Geronimo 2.0 是 Java EE 5 的完整实现，它包括 StAX 解析器 —— Codehaus 的 Woodstox。在此部分中，您将了解 StAX 的优点以及 Geronimo 团队选择 Woodstox 作为 StAX 解析器的原因。
+</blockquote> 
+<p><a name="N10068"><span class="atitle">XML 的重要性</span></a></p> 
+<p>XML 是由 Tim Bray 和 Michael Sperberg-McQueen 于 1996 年引入的。它的潜力已获得广泛公认，但是很难想象那时候会有哪个人能够知道 XML 会成为怎样的一种主要技术。企业 Java 开发人员将使用 XML 用于配置、用作数据存储以及最常见的是用作数据交换的格式。它是 Web 服务和 SOAP 的基础，从而也是现代面向服务的架构（Service-Oriented Architecture，SOA）设计模式的基础。但是 XML 并没有止步在那里。它将 X 融入 Ajax 或 Asynchronous JavaScript + XML 中，成为现代 Web 应用程序能够提供前所未有的丰富体验的关键。</p> 
+<p>但是，XML 也不是包治百病的灵丹妙药；它也有不足之处。XML 文档往往都很大。XML 文档都有通用树结构，但是这些 XML 文档的可扩展性意味着它的模式可以千变万化。这些方面向高效解析 XML 提出了挑战。克服 XML 解析挑战的传统方法有两种：DOM 和 SAX。</p> 
+<p><a name="N10075"><span class="atitle">XML 处理：DOM 和 SAX</span></a></p> 
+<p>DOM 和 SAX 是解析 XML 的两种典型策略。它们在许多方面都是性质对立的策略。DOM 将为 XML 文档提供一个简单的对象模型。DOM 解析器将把 XML 文档转换成表示文档中所有数据的易于使用的对象。但是，这样如实地表示 XML 文档需要付出一定的代价：DOM 解析往往需要占用很多内存。</p> 
+<p>内存对 SAX 来说不是问题。SAX 解析器将生成一系列解析事件。注册这些事件的回调并随后对来自这些事件的数据执行某种逻辑都由 handler 来完成。它快速且高效，但是要求有复杂的编程模型。</p> 
+<p>了解使用 DOM 与 SAX 之间差异的最简单方法 —— 并且因而了解 StAX 的动机和优点 —— 是查看具体示例。</p> 
+<p><a name="N10084"><span class="atitle">使用 Flickr 解析示例</span></a></p> 
+<p>找到一些 XML 来解析并不难。到处都在使用 XML。现在的大多数 Web 站点都提供了某种基于 XML 的 Web 服务。Flickr 是归 Yahoo 所有的一个流行的照片分享站点，它拥有强大而灵活的 API。让我们来看一看访问 Flickr 的 “有趣” 照片的一些简单代码（要获得本文中使用的所有源代码，请参阅 <a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade15/#download">下载</a>，并确保把 Woodstox 放入类路径中或者使用 JDK 1.6）。代码如清单 1 所示：</p> 
+<br /> 
+<a name="N10095"><strong>清单 1. 使用 Flickr API</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="75%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">String apiKey = &quot;c4579586f41a90372f762cb65c78be5d&quot;;<br />String urlStr = &quot;http://api.flickr.com/services/rest/?&quot; + <br />&quot;method=flickr.interestingness.getList&amp;per_page=20&amp;api_key=&quot;+apiKey;<br />URL request = new URL(urlStr);<br />InputStream input = request.openStream();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>这段代码将使用 Flickr 的代表性状态传输（Representational State Transfer，REST）API（有关 Flickr 的 API 和 REST 格式的更多信息，请参阅 <a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade15/#resources">参考资料</a> 部分）。以上调用的一些样例输出如清单 2 所示：</p> 
+<br /> 
+<a name="N100A6"><strong>清单 2. Flickr 的 XML</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="75%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;<br />&lt;rsp stat=&quot;ok&quot;&gt;<br />&lt;photos page=&quot;1&quot; pages=&quot;25&quot; per_page=&quot;20&quot; total=&quot;500&quot;&gt;<br />     &lt;photo id=&quot;469774979&quot; owner=&quot;35373726@N00&quot; secret=&quot;c8a1be2012&quot; server=&quot;183&quot; <br />farm=&quot;1&quot; title=&quot;Where will it lead me......?&quot; ispublic=&quot;1&quot; isfriend=&quot;0&quot; <br />isfamily=&quot;0&quot; /&gt;<br />     &lt;photo id=&quot;470281793&quot; owner=&quot;73955226@N00&quot; secret=&quot;49612a2794&quot; server=&quot;212&quot; <br />farm=&quot;1&quot; title=&quot;Island Beauty&quot; ispublic=&quot;1&quot; isfriend=&quot;0&quot; isfamily=&quot;0&quot; /&gt;<br />     &lt;photo id=&quot;469808244&quot; owner=&quot;43568064@N00&quot; secret=&quot;26b71544a3&quot; server=&quot;227&quot; <br />farm=&quot;1&quot; title=&quot;&quot; ispublic=&quot;1&quot; isfriend=&quot;0&quot; isfamily=&quot;0&quot; /&gt;<br />&lt;/photos&gt;<br />&lt;/rsp&gt;</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>注意清单 2 只显示了三张照片。API 调用实际上将返回 20（URL 字符串中的 <code>per_page</code> 参数）。结果十分简单，因此来看一看如何解析这个 XML。在示例中，将解析出每张照片的标题及其 ID。该 ID 可用于创建该照片的 URL，因此不难想象 Web 应用程序（可能是 mashup）只使用此信息。首先需要使用 DOM 来提取此数据。</p> 
+<p><a name="N100B3"><span class="atitle">DOM 示例</span></a></p> 
+<p>要使用 DOM，需要把文档解析成文档对象。这是表示已被解析的 XML 文档的内存中树结构。随后遍历 DOM 树来查找每张照片的标题和 ID。将此数据放入简单映射中。完成此过程的代码如清单 3 所示：</p> 
+<br /> 
+<a name="list3"><strong>清单 3. 用 DOM 进行解析</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="75%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Map&lt;String,String&gt; map = new HashMap&lt;String,String&gt;();<br />DocumentBuilder builder =    DocumentBuilderFactory.newInstance().newDocumentBuilder();<br />Document dom = builder.parse(input);<br />Element root = dom.getDocumentElement();<br />NodeList childNodes = root.getChildNodes();<br />Node photosNode = null;<br />for (int i=0;i&lt;childNodes.getLength();i++){<br />     Node node = childNodes.item(i);<br />     if (node.getNodeName().equalsIgnoreCase(&quot;photos&quot;)){<br />          photosNode = node;<br />          break;<br />     }<br />}<br />childNodes = photosNode.getChildNodes();<br />for (int i=0;i&lt;childNodes.getLength();i++){<br />     Node node = childNodes.item(i);<br />     if (node.getNodeName().equalsIgnoreCase(&quot;photo&quot;)){<br />          String title = node.getAttributes().getNamedItem(&quot;title&quot;).getTextContent();<br />          String id = node.getAttributes().getNamedItem(&quot;id&quot;).getTextContent();<br />          map.put(id,title);<br />     }<br />}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>DOM 十分流行，因为它非常易于使用。只需将输入源传入解析器中，然后解析器将为您提供 <code>document</code> 对象。然后，您可以遍历子节点，直至找到照片节点。每个照片节点都是照片节点的子节点，因此您将遍历每个照片节点，然后访问每个照片节点的 <code>title</code> 和 <code>id</code> 属性并将其存储到映射中。</p> 
+<p>但是，DOM 也有一些明显的效率低下之处。您要存储大量的可能并不关心的数据，例如每张照片的所有者。您还将浏览所有数据两次：第一次浏览用于将其读入文档对象，然后在遍历文档对象时进行第二次浏览。避免这些效率低下之处的传统方法是使用 SAX。</p> 
+<p><a name="N100D8"><span class="atitle">SAX 示例</span></a></p> 
+<p>SAX 解析器并不像 DOM 解析器一样返回一个精密的 <code>document</code> 对象。相反，SAX 解析器将在遍历 XML 文档时给出一系列事件。必须通过实现接口或者扩展 <code>DefaultHandler</code> 类并根据需要重写它的方法，创建这些事件的 handler。清单 4 将演示 Flickr XML 文档的 SAX 解析。</p> 
+<br /> 
+<a name="N100ED"><strong>清单 4. 用 SAX 进行解析</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="75%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">SAXParser parser = SAXParserFactory.newInstance().newSAXParser();<br />DefaultHandler handler = new DefaultHandler(){<br />     @Override<br />     public void startElement(String uri, String localName, <br />     String qName, Attributes attributes) throws SAXException {<br />          if (qName.equalsIgnoreCase(&quot;photo&quot;)){<br />               String title = attributes.getValue(&quot;title&quot;);<br />               String id = attributes.getValue(&quot;id&quot;);<br />               // map is static so we can access it here<br />               map.put(id, title);<br />          }<br />     }<br />};<br />parser.parse(input, handler);</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>很明显，清单 4 中所示的代码比 <a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade15/#list3">清单 3</a> 中的 DOM 代码难于理解一些。您需要使用 <code>ContentHandler</code> 来处理 SAX 事件，因此创建了 <code>DefaultHandler</code> 并重写了它的 <code>startElement</code> 回调方法。查看它是不是一个照片元素，并且如果是照片元素，则访问它的 <code>title</code> 和 <code>id</code> 属性。</p> 
+<p>代码十分简洁并且在运行时非常高效。它仅存储您所关心的数据，并且只遍历文档一次。它是更为复杂的代码，要求扩展类才能注册事件侦听程序。如果能够高效地解析 XML 而且可以使用更直观的编程模型那就太好了。StAX 于是应运而生。</p> 
+<p><a name="N10111"><span class="atitle">StAX 备选方案</span></a></p> 
+<p>SAX 中的复杂度来自它实现的 Observer 设计模式。它是一个 push 模型，因为解析器将把事件 push 到随后作用于事件的 observer 中。StAX 模型类似于 SAX。它将来自 XML 文档的数据和事件流线化，使其可以像 SAX 一样快速且高效。最大的不同之处是它使用 pull 模型。这将允许应用程序代码从解析器中 pull 事件。</p> 
+<p>这可能听起来像是一个细微的差异，但是它将允许使用更简单的编程模型。查阅清单 5 以查看 StAX 的运作。</p> 
+<br /> 
+<a name="list5"><strong>清单 5. 用 StAX 进行解析</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="75%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Map&lt;String,String&gt; map = new HashMap&lt;String,String&gt;();<br />XMLInputFactory inputFactory = XMLInputFactory.newInstance();<br />QName qId = new QName(&quot;id&quot;);<br />QName qTitle = new QName(&quot;title&quot;);<br />QName qPhoto = new QName(&quot;photo&quot;);<br />XMLEventReader  reader = inputFactory.createXMLEventReader(input);<br />while (reader.hasNext()){<br />     XMLEvent event = reader.nextEvent();<br />     if (event.isStartElement()){<br />          StartElement element = event.asStartElement();<br />          if (element.getName().equals(qPhoto)){<br />               String id = element.getAttributeByName(qId).getValue();<br />               String title = element.getAttributeByName(qTitle).getValue();<br />               map.put(id,title);<br />          }<br />     }<br />}<br />reader.close();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>首先，您不必扩展任何类。那是因为您无需为事件进行注册。使用 StAX，您可以控制事件流，因为将从解析器中 pull 这些事件流。您可以使用一种熟悉的类似迭代器的语法来搜索整个文档以查找所需的数据。您仍将只存储所需的数据，并且只需浏览 XML 文档一次。您将获得与使用 SAX 时一样的效率，但是代码将直观得多。</p> 
+<p><a name="N1012A"><span class="atitle">使用 Woodstox 作为 Geronimo 的 StAX 提供程序</span></a></p> 
+<p>现在您已经看到了 StAX 解析的优点。它被广泛公认为 XML 技术中的重大进步。因而，当它成为 Java EE 5 规范的一部分时并不令人惊讶（它甚至还包含在 Java Platform, Standard Edition [Java SE] 6 中）。由于它是 Java EE 5 的一部分，因此它必须由 Geronimo 2.0 来实现。</p> 
+<p>Geronimo 团队十分幸运，有若干个开源 StAX 实现可供选择。团队选取了 Woodstox 作为 Geronimo 所附带的 StAX 解析器。Woodstox 被视为执行效果最佳的 StAX 实现之一（要比较各种 StAX 解析器，请参阅 <a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade15/#resources">参考资料</a>）。此外，Woodstox 是在 Lesser General Public License (LGPL) 和 Apache 2.0 许可下双重授权的。因此您可以不受任何限制地将 Woodstox 及其源代码集成到 Geronimo 中。</p> 
+<p><a name="N1013B"><span class="atitle">应用程序性能调优：发挥 Woodstox 的最大功效</span></a></p> 
+<p>性能很明显是 Woodstox 带给 Geronimo 的优点之一。就像使用其他高性能技术一样，了解如何使用 Woodstox 才能获得最佳性能非常重要。<a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade15/#list5">清单 5</a> 中的代码将使用 <code>XMLEventReader</code> 接口，这是 StAX 规范包含的一个高级 API。用于获得高性能的较低级 API 是 <code>XMLStreamReader</code> 接口。清单 6 显示了使用此接口的 StAX 解析器。</p> 
+<br /> 
+<a name="N10155"><strong>清单 6. 用 <code>XMLStreamReader</code> 进行 StAX 解析 </strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="75%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">Map&lt;String,String&gt; map = new HashMap&lt;String,String&gt;();<br />XMLInputFactory inputFactory = XMLInputFactory.newInstance();<br />QName qId = new QName(&quot;id&quot;);<br />QName qTitle = new QName(&quot;title&quot;);<br />QName qPhoto = new QName(&quot;photo&quot;);<br />XMLStreamReader reader = inputFactory.createXMLStreamReader(input);<br />while (reader.hasNext()){<br />    int event = reader.next();<br />    if (event == START_ELEMENT){ // statically included constant from XMLStreamConstants<br />         if (reader.getName().equals(qPhoto)){<br />               String id = reader.getAttributeValue(null, qId.getLocalPart());<br />               String title = reader.getAttributeValue(null, qTitle.getLocalPart());<br />               map.put(id,title);<br />          }<br />     } <br />}<br />reader.close();</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>清单 6 中的代码类似于 <a href="http://www.ibm.com/developerworks/cn/opensource/os-ag-renegade15/#list5">清单 5</a> 中的代码；虽然它很明显有些低级，但是您将获得很大的性能提高。</p> 
+<p><a name="N10166"><span class="atitle">结束语</span></a></p> 
+<p>您已经了解了使用 StAX 解析器解析 XML 文档的一些优点。StAX 在 SAX 与 DOM 之间提供了很好的折衷。您可以通过使用它作为 Geronimo 2.0 的一部分立即利用 StAX。您不但将开始使用 StAX 的直观 pull API，而且将获得在 Woodstox 中使用 StAX 的高性能实现的额外优势。</p> 
+<p>=======================================</p> 
+<h1><span style="color: rgb(153,153,153)">技巧: </span>使用 StAX 编写 XML 文档</h1> 
+<p><em>使用底层的、基于指针的 StAX API</em></p> 
+<p>http://www.ibm.com/developerworks/cn/xml/x-tipstx4/</p> 
+<p><a href="http://www.ibm.com/developerworks/cn/xml/x-tipstx4/#author">Berthold Daum</a> (<a href="mailto:berthold.daum@bdaum.de?subject=%E4%BD%BF%E7%94%A8%20StAX%20%E7%BC%96%E5%86%99%20XML%20%E6%96%87%E6%A1%A3">berthold.daum@bdaum.de</a>), 总裁, BDaum Industrial Communications</p> 
+<p>2004 年 1 月 01 日</p> 
+<blockquote>
+ Streaming API for XML (StAX) 不仅能解析 XML 文档，而且可以把 XML 文档写入一个输出流。这篇技巧展示了客户应用程序如何使用底层的、基于指针的 StAX API 有效地创建 XML 文档。
+</blockquote> 
+<p>直到最近，程序员通过编程创建 XML 文档还只有两种选择。一种是把序列化的 XML 内容写入输出流，第二种是使用 DOM。</p> 
+<p>这两种方法都有严重的缺陷。对于第一种情况，程序员完全负责保证结果文档是格式正规的。程序员必须处理其中的细节，比如起始标签和结束 标签的匹配，以及字符内容中特殊字符的转义，如小于号（&lt;）和逻辑与（&amp;）。这可能造成程序的实现冗长乏味而且容易出错。另一方面，尽管 DOM 把程序员从这种沉重的负担中解放出来，但是引入了巨大的开销：在序列化到输出流之前，整个文档必须首先在内存中构造一棵节点树。</p> 
+<p><a name="h1"><span class="atitle">进入 StAX</span></a></p> 
+<p>Streaming API for XML (StAX) 彻底改变这一切。与 Simple API for XML (SAX) 不同，StAX 提供了编写 XML 文档的 API。更具体地说，它提供了两种 API：底层的、基于指针的 API（ <code>XMLStreamWriter</code> ）和高级的、基于事件的 API（ <code>XMLEventWriter</code> ）。基于指针的 API 最适合用于数据绑定的情况（比如从应用程序数据创建文档），而基于事件的 API 则通常用于管道式的情况，从输入文档中的数据构造新的文档。</p> 
+<p>下面的例子是使用基于指针的 API 实现的。（我将在下篇技巧中讨论基于事件的 API。）基于指针的 API 为创建 XML 信息集中的不同元素提供了各种专门的方法，比如元素、属性、处理指令、数据类型声明和字符内容。这些方法解决了许多格式化问题。比如， <code>writeCharacters()</code> 方法自动转义像小于号（&lt;）、大于号（&gt;）和逻辑与（&amp;）这样的特殊字符。而 <code>writeEndDocument()</code> 则自动关闭所有打开的结构。因此即使把本例中最后一次对 <code>writeEndElement()</code> 的调用注释掉也没有关系。</p> 
+<p>StAX 甚至可以为没有正式声明的名称空间生成名称空间前缀。但是只有在输出工厂的 <code>javax.xml.stream.isPrefixDefaulting</code> 属性设为 <code>true</code> 时才会这么做。如果该属性被设为 <code>false</code> ，您就必须明确地声明每个名称空间前缀，并对每个名称空间使用 <code>setPrefix()</code> 和 <code>writeNamespace()</code> 方法。清单 1 中，我已经把这些方法调用注释掉了，因为我已经把前缀默认设置为 <code>true</code> 。</p> 
+<br /> 
+<a name="listing1"><strong>清单 1. 编写文档</strong></a>
+<br /> 
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%"> 
+ <tbody> 
+  <tr> 
+   <td class="code-outline"> <pre class="displaycode">import javax.xml.stream.*;<br />public class XMLWriter {<br />   // Namespaces<br />   private static final String GARDENING = &quot;http://com.bdaum.gardening&quot;;<br />   private static final String XHTML = &quot;http://www.w3.org/1999/xhtml&quot;;<br />   public static void main(String[] args) throws XMLStreamException  {<br />      <br />      // Create an output factory<br />      XMLOutputFactory xmlof = XMLOutputFactory.newInstance();<br />      // Set namespace prefix defaulting for all created writers<br />      xmlof.setProperty(&quot;javax.xml.stream.isPrefixDefaulting&quot;,Boolean.TRUE);<br />      <br />      // Create an XML stream writer<br />      XMLStreamWriter xmlw =<br />         xmlof.createXMLStreamWriter(System.out);<br />      // Write XML prologue<br />      xmlw.writeStartDocument();<br />      // Write a processing instruction<br />      xmlw.writeProcessingInstruction(<br />         &quot;xml-stylesheet href='catalog.xsl' type='text/xsl'&quot;);<br />      // Now start with root element<br />      xmlw.writeStartElement(&quot;product&quot;);<br />      // Set the namespace definitions to the root element<br />      // Declare the default namespace in the root element<br />      xmlw.writeDefaultNamespace(GARDENING);<br />      // Writing a few attributes<br />      xmlw.writeAttribute(&quot;productNumber&quot;,&quot;3923-1&quot;);<br />      xmlw.writeAttribute(&quot;name&quot;,&quot;Nightshadow&quot;);<br />      // Declare XHTML prefix<br />//    xmlw.setPrefix(&quot;xhtml&quot;,XHTML);<br />      // Different namespace for description element<br />      xmlw.writeStartElement(XHTML,&quot;description&quot;);<br />      // Declare XHTML namespace in the scope of the description element<br />//    xmlw.writeNamespace(&quot;xhtml&quot;,XHTML);<br />      xmlw.writeCharacters(<br />         &quot;A tulip of almost black color. \nBlossoms in April &amp; May&quot;);<br />      xmlw.writeEndElement();<br />      // Shorthand for empty elements<br />      xmlw.writeEmptyElement(&quot;supplier&quot;);<br />      xmlw.writeAttribute(&quot;name&quot;,&quot;Floral22&quot;);<br />//    xmlw.writeEndElement();<br />      // Write document end. This closes all open structures<br />      xmlw.writeEndDocument();<br />      // Close the writer to flush the output<br />      xmlw.close();<br />   }<br />}</pre> </td> 
+  </tr> 
+ </tbody> 
+</table> 
+<br /> 
+<p>注意，StAX 不能保证文档的格式正规性。仍然可能生成违反 XML 推荐标准的文档，比如一个文档中有多个根元素或者多个 XML 序言，标签名和属性名中包含空格或 XML 不支持的字符。StAX 实现可以检查这些问题，但并不要求这么做（参考实现中就没有这样做）。尽管如此，StAX <code>XMLStreamWriter</code> 对于输出原始 XML 数据仍然是一个很大的改进，而且开销只是 DOM 的一个零头。</p> 
+<p><a name="h2"><span class="atitle">结束语</span></a></p> 
+<p>这篇技巧说明了如何使用 StAX 基于指针的 API 有效地编写 XML 文档。在下一篇文章中，我将介绍如何使用基于事件的 API 合并两个 XML 文档。</p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p> 
+<p> </p></div></body></html>

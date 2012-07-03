@@ -1,0 +1,112 @@
+<html><head><title>第 2 章 hsqldb</title></head><body><div id='tit'>第 2 章 hsqldb</div><div id='cate'>j&middot;后端</div><div id='date'>2008年05月25日 星期日 10:18 A.M.</div><div id='page'>131</div><a id='url' href='http://hi.baidu.com/hxzon/blog/item/1c607dcb0eb88a1abf09e6ca.html'>http://hi.baidu.com/hxzon/blog/item/1c607dcb0eb88a1abf09e6ca.html</a><div id='cnt'><p>第 2 章 hsqldb</p> 
+<div class="simplesect"> 
+ <div class="titlepage"> 
+ </div> 
+ <p>hsqldb是一个完全用java编写的数据库，既可以独立运行也可以嵌入java开发的项目中。整个jar包只有600多K，是测试和演示时的极品选择。</p> 
+</div> 
+<div class="sect1"> 
+ <div class="titlepage"> 
+  <div> 
+   <div> 
+    <h2 style="clear: both" class="title"><a name="jdbc-ch-02-01"></a>2.1. 第一个程序</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>首先我们要下载hsqldb，他们的官方网站在<a class="ulink" target="_top" href="http://www.hsqldb.org/">http://www.hsqldb.org</a>，下载了zip发布包找到里边的hsqldb.jar，这就是我们需要的数据库程序。</p> 
+ <p>写一个测试连接的程序。</p> 
+ <pre class="programlisting"><span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">import</span> java.sql.DriverManager;
+<span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">import</span> java.sql.Connection;
+
+<span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">public</span> <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">class</span> DbUtils {
+    <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">public</span> <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">static</span> <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">void</span> main(String[] args) <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">throws</span> Exception {
+        <span class="hl-comment" xmlns="http://www.w3.org/TR/xhtml1/transitional">// 加载驱动</span>
+        Class.forName(<span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;org.hsqldb.jdbcDriver&quot;</span>);
+        <span class="hl-comment" xmlns="http://www.w3.org/TR/xhtml1/transitional">// 连接数据库的地址</span>
+        String url = <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;jdbc:hsqldb:mem:.&quot;</span>;
+        String username = <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;sa&quot;</span>;
+        String password = <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;&quot;</span>;
+
+        Connection conn = null;
+        <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">try</span> {
+            <span class="hl-comment" xmlns="http://www.w3.org/TR/xhtml1/transitional">// 创建与数据库的连接</span>
+            conn = DriverManager.getConnection(url, username, password);
+            System.out.println(<span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;成功连接到数据库：&quot;</span> + conn);
+        } <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">catch</span>(Exception ex) {
+            System.out.println(<span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;连接失败：&quot;</span> + ex);
+        } <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">finally</span> {
+            <span class="hl-comment" xmlns="http://www.w3.org/TR/xhtml1/transitional">// 关闭连接，释放资源</span>
+            <span class="hl-keyword" xmlns="http://www.w3.org/TR/xhtml1/transitional">if</span> (conn != null) {
+                conn.close();
+            }
+        }
+    }
+}</pre> 
+ <p>加载驱动程序类名是org.hsqldb.jdbcDriver，它就在hsqldb.jar中。</p> 
+ <p>连接数据库使用的用户名为sa，密码为空，这是默认的数据库管理员。</p> 
+ <p>数据库连接的url地址是jdbc:hsqldb:mem:.。所有jdbc连接url都是以jdbc开头的，第一个冒号后便的部分是使用的驱动别名，这里的hsqldb就代表我们将使用org.hsqldb.jdbcDriver，第二个冒号后是每个数据库自己特定的访问地址，这里的mem:.表示使用内存存储模式，连接的数据库名称是“.”。</p> 
+</div> 
+<div class="sect1"> 
+ <div class="titlepage"> 
+  <div> 
+   <div> 
+    <h2 style="clear: both" class="title"><a name="jdbc-ch-02-02"></a>2.2. 单独运行与嵌入调用</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>之前提到hsqldb支持单独运行和嵌入调用两种，在此我们讨论一下这两种调用方式的利弊。</p> 
+ <div class="orderedlist"> 
+  <ol type="1"> 
+   <li> <p>嵌入调用</p> <p>hsqldb是完全使用java编写的，我们可以在自己写的程序里调用hsqldb，就像启动一个普通的线程一样，让hsqldb与我们的程序运行在同一个jvm中。</p> <p>像我们上面的例子中使用的就是嵌入调用的形式。DbUtils执行的过程中会启动hsqldb服务器并与之建立连接，在关闭连接释放资源后，jvm关闭的同时也将hsqldb服务器关闭。DbUtils和hsqldb运行在同一个jvm上，共享这个jvm分配的内存等资源。</p> </li> 
+   <li> <p>单独运行</p> <p>单独启动一个jvm运行hsqldb，客户程序与服务器程序运行在不同的jvm中，双方通过socket交换数据，客户程序的启动和关闭不会直接影响hsqldb。</p> <p>我们可以使用它自带的org.hsqldb.Server，启动脚本如下。</p> <pre class="programlisting">set classpath=hsqldb-1.8.0.7.jar
+java org.hsqldb.Server</pre> <p>org.hsqldb.Server会自动去读取server.properties中的配置。</p> <pre class="programlisting">server.port=9100
+server.database.0=mem:test
+server.dbname.0=test</pre> <p>这里启动一个监听9100端口的hsqldb服务器，服务器中包含一个数据库，使用mem:test的存储方式，对外的数据库名称是test。</p> <p>为了连接这个数据库，需要修改连接数据库使用的url。</p> <pre class="programlisting">String url = &quot;jdbc:hsqldb:hsql://localhost:9100/test&quot;</pre> <p>hsql表示我们将使用hsqldb自身的socket方式进行连接。连接的数据库在localhost的9100端口，test是我们需要进行连接的数据库名称。</p> <p>如果希望关闭hsqldb数据库，可以直接关闭java弹出的console窗口。</p> </li> 
+  </ol> 
+ </div> 
+</div> 
+<div class="sect1"> 
+ <div class="titlepage"> 
+  <div> 
+   <div> 
+    <h2 style="clear: both" class="title"><a name="jdbc-ch-02-03"></a>2.3. 四种存储方式</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>hsqldb拥有四种存储数据的方式，之前见过的有mem和hsql，下面来介绍一下它们的用法和区别。</p> 
+ <div class="orderedlist"> 
+  <ol type="1"> 
+   <li> <p>mem，内存（memory）存储方式。</p> <p>hsqldb启动的时候会在内存中建立对应的表结构，运行期间对数据做出的所有修改都保存到内存中，最后关闭hsqldb的同时，内存中的所有数据也会全部丢失。</p> <p>示例代码02-03/Mem.java中，首先创建表结构，并向数据库中写入两条语句：</p> <pre class="programlisting">String[] sqls = {
+    <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;create table test(id bigint,name varchar(200))&quot;</span>,
+    <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;insert into test(id,name) values(1,'lingirl')&quot;</span>,
+    <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;insert into test(id,name) values(2,'叮咚')&quot;</span>
+};</pre> <p>然后执行查询，可以看到两条数据已经成功保存进数据库了。</p> <pre class="programlisting">1 lingirl
+2 叮咚</pre> <p>mem方式的缺点是每次启动hsqldb都要先创建表结构，插入初始数据，关闭hsqldb的同时数据也会全部丢失。</p> <p>mem方式的优点是所有操作都在内存中进行，不会生成额外的数据文件，可以保证每次创建的数据库都是绝对干净的，这点对测试来讲很有用。</p> </li> 
+   <li> <p>file，文件存储方式。</p> <p>hsqldb使用文件保存数据库配置，表结构和更新的数据。</p> <p>hsqldb运行过程中会生成四个文件，它们的文件名都是与连接url地址对应的，示例02-03/File.java中配置的url为&quot;jdbc:hsqldb:file:db/file&quot;，对应的将是db目录下所有以file开头的文件。</p> 
+    <div class="orderedlist"> 
+     <ol type="a"> 
+      <li> <p>file.properties存放数据库配置，包括数据库版本，缓存，表结构设置等等。</p> </li> 
+      <li> <p>file.lck用来标记当前数据库是否已经被某一个hsqldb访问了，同一时间只有一个hsqldb能操作数据库文件，这样才能保证不会出现数据冲突。</p> <p>这个文件在hsqldb启动时自动生成，正常关闭时会自动删除，但非法关闭会无法删除这个文件，如果因为这个文件出现数据库服务启动的情况，就需要手工删除。</p> </li> 
+      <li> <p>file.script和file.log</p> <p>hsqldb使用这两个文件保存数据表结构和数据，因为用到了缓存，更新的数据不会直接写入文件，而是在内存中积累一定量后，才会批量写入file.log这个日志文件。</p> <p>file.script用来保存最终数据，hsqldb正常关闭的时候会把内存和日志文件（file.log）中的数据写入file.script，并删除日志（file.log）文件。</p> <p>如果出现非正常关闭的情况，内存中缓存的数据会丢失，file.log也无法删除，不过不用担心，下次启动的时候hsqldb会先检测是否有未删除的file.log，将其中的数据写入file.script，再读取file.script中的数据，进行初始化操作。</p> <p>File.java中的sql语句有了变化，因为使用文件保存了表结构，每次操作之前还是先删除它们比较保险。</p> <pre class="programlisting">String[] sqls = {
+    <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;drop table test if exists&quot;</span>,
+    <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;create table test(id bigint,name varchar(200))&quot;</span>,
+    <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;insert into test(id,name) values(1,'lingirl')&quot;</span>,
+    <span class="hl-string" xmlns="http://www.w3.org/TR/xhtml1/transitional">&quot;insert into test(id,name) values(2,'叮咚')&quot;</span>
+};</pre> <p>多了这条清空语句，我们可以得到与mem相同的查询结果，如果不删除表，把插入语句修改成不冲突的形式，我们就可以看到每次查询结果不断增多。因为即使hsqldb关闭了，数据也会保存在文件里。</p> <p>拜缓存所赐，像我们这样放任hsqldb随jvm关闭，一定会丢失数据，为了这一点，我们在url上加入了特殊标记String url = &quot;jdbc:hsqldb:file:db/file;shutdown=true&quot;，保证每次conn.close()都会关闭数据，将数据写入file.script，相对的也使缓存完全丧失了效果。</p> <p>当然，也可以向数据库发送shutdown语句，正常关闭数据库。</p> </li> 
+     </ol> 
+    </div> </li> 
+   <li> <p>res，资源存储方式。</p> <p>它是mem与file两者的结合，我们把res.properties和res.script放到classpath下的db/目录下，对应url = &quot;jdbc:hsqldb:res:/db/res&quot;。数据库启动的时候会去这两个文件里读取数据进行初始化，但不会生成res.lck和res.log，以后进行的所有操作就都在内存里了，关闭数据库也不会写入res.script。</p> <p>res就像是使用file提供初始数据的mem内存访问方式，它在系统演示的时候十分方便，设置一次初始数据就可以演示多次，而且不会影响初始数据的结果。用于测试就不太适合了，res.script明显没有sql语句便于维护，还是老老实实用sql导入更合适。</p> <p>res唯一的限制是不能进行建表和删表的操作，你可以插入，修改，删除数据，但是不能修改表的结构。</p> </li> 
+   <li> <p>hsql，socket访问方式。</p> <p>使用socket链接，从一个单独运行的hsqldb服务器中获得数据，这个服务器中的hsqldb又可能是这四种存储方式。只要你想，就完全可以做成一条链状结构。</p> </li> 
+  </ol> 
+ </div> 
+</div> 
+<div class="sect1"> 
+ <div class="titlepage"> 
+  <div> 
+   <div> 
+    <h2 style="clear: both" class="title"><a name="jdbc-ch-02-04"></a>2.4. 正常关闭jdbc</h2> 
+   </div> 
+  </div> 
+ </div> 
+ <p>第一种方式，url = &quot;jdbc:hsqldb:file:db/file;shutdown=true&quot;，这样每次conn.close()都会执行shutdown命令关闭数据，实际上扼杀了缓存的效果。</p> 
+ <p>另一个方式，在jvm关闭前，向数据库发送shutdown命令，让它正常关闭。</p> 
+</div></div></body></html>

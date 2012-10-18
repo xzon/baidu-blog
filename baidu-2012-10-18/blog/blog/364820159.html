@@ -1,0 +1,243 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>布局管理器面面观</title></head><body><h1>布局管理器面面观</h1><div><p>布局管理器面面观</p><p>http://www.blogjava.net/javagui/archive/2007/11/18/Layout.html</p><p>swing源码品读</p><p>posted on 2007-11-18 15:15</p><p>本系列文章将系统地介绍在AWT-Swing组件体系下如何使用布局管理器，从概念开始并结合JDK1.6 
+API源代码讲述布局管理器工作原理，然后介绍如何自定义布局管理器并给出2个自定义的实现——FormLayout、CenterLayout，同时还
+将介绍如何使用绝对定位解决布局问题，最后以通过xml配置文件声明及布局组件结束本文。<br>
+本文包括如下部分：<br>
+一、布局管理器简介与工作原理<br>
+二、如何编写自定义布局管理器<br>
+三、FormLayout实现<br>
+四、CenterLayout实现<br>
+五、如何使用绝对定位解决布局问题<br>
+六、通过xml配置文件定义及布局组件</p><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: 黑体"><strong>第一部分：布局管理器简介与工作原理<br></strong></span>布局管理器是一个实现了LayoutManager接口或LayoutManager2接口并且能够确定一个容器内部所有组件大小和位置的对象。尽管组件能够提供大小和对齐的提示信息，但是一个容器的布局管理器将最终决定组件的尺寸和位置。</p><p>布局管理器的工作原理<br>
+基本的布局管理器要实现LayoutManager接口。LayoutManager接口声明了5个基本方法：<br>
+void addLayoutComponent(String name, Component comp)<br>
+void layoutContainer(Container parent)<br>
+Dimension minimumLayoutSize(Container parent)<br>
+Dimension preferredLayoutSize(Container parent)<br>
+void removeLayoutComponent(Component comp)</p><p>LayoutManager2接口在LayoutManager接口之上添加了4个方法：<br>
+void addLayoutComponent(Component comp, Object constraints)<br>
+float getLayoutAlignmentX(Container target)<br>
+float getLayoutAlignmentY(Container target)<br>
+void invalidateLayout(Container target)<br>
+Dimension maximumLayoutSize(Container target)</p><p>以上方法是构成布局管理器的所有方法，只有当容器添加了布局管理器时，这些方法才可能被调用到。下面一一讲述这些方法的调用时机。</p><p>“void addLayoutComponent(String name, Component comp)”和“void 
+addLayoutComponent(Component comp, Object 
+constraints)”两个方法是当向容器内添加组件时候可能被调用。具体调用那个由add方法的参数决定。<br>
+Javadoc中是这么说明的：对于前者的注解是“如果布局管理器使用每组件字符串，则将组件 comp 添加到布局，并将它与 name 指定的字符串关联。”；后者则是“使用指定约束对象，将指定组件添加到布局。”<br>
+例如，java.awt.Container类的“Component add(String name, Component 
+comp)”方法添加组件comp时候，如果该容器（container）添加了布局管理器，那么该布局管理器的“void 
+addLayoutComponent(String name, Component comp)”方法将被调用；再举例，容器调用“void 
+add(Component comp, Object 
+constraints)”方法添加组件时，该容器的布局管理器（如果有且实现了LayoutManager2接口）的“void 
+addLayoutComponent(Component comp, Object constraints)”将被调用。例如下面这行代码：<br>
+....add(new JButton(),BorderLayout.CENTER);就是void add(Component comp, 
+Object 
+constraints)调用，如果你查看java.awt.BorderLayout的源码，会发现BorderLayout实现的是
+LayoutManager2接口。</p><p>我们看一下JDK源码是怎样的调用关系。<span style="color: red">记住，读源码是学习开源技术最彻底的方法</span>。<br>
+在java.awt.Container的所有add(...)方法中，都是根据参数调用“protected void 
+addImpl(Component comp, Object constraints, int 
+index)”实现，add方法的参数不同，调用addImpl时候传入的参数也不同。例如，Component add(String name, 
+Component comp)方法的实现是这样的：<br>
+&nbsp;<span style="color: #3366ff">public Component add(String name, Component comp) {<br>
+&nbsp;addImpl(comp, name, -1);<br>
+&nbsp;return comp;<br>
+&nbsp;&nbsp;&nbsp; }<br></span>void add(Component comp, Object constraints)方法的实现是这样的：<br><span style="color: #3366ff">public void add(Component comp, Object constraints) {<br>
+&nbsp;addImpl(comp, constraints, -1);<br>
+&nbsp;&nbsp;&nbsp; }</span><br>
+“addImpl”方法实现很长，不可能全部给出，但是有一段是我们想要的。<br><span style="color: #3366ff">protected void addImpl(Component comp, Object constraints, int index) {<br>
+......<br>
+/* Notify the layout manager of the added component. */<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (layoutMgr != null) {<br>
+&nbsp;&nbsp;if (layoutMgr instanceof LayoutManager2) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ((LayoutManager2)layoutMgr).addLayoutComponent(comp, constraints);<br>
+&nbsp;&nbsp;} else if (constraints instanceof String) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; layoutMgr.addLayoutComponent((String)constraints, comp);<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+......<br>
+}<br></span>如果这个容器有布局管理器（layoutMgr != 
+null），那么检查layoutMgr是否实现的是LayoutManager2接口，如果是就调用布局管理器的“void 
+addLayoutComponent(Component comp, Object 
+constraints)”方法，否则（实现的是LayoutManager接口）再判断constraints是否是String类型，如果是就调用布
+局管理器的“void addLayoutComponent(String name, Component comp)”方法。<br>
+到此为止，布局管理器的“void addLayoutComponent(String name, Component comp)”和“void 
+addLayoutComponent(Component comp, Object 
+constraints)”两个方法调用时机已经非常明了了，同时我们还了解了一点，那就是如果布局管理器实现的是LayoutManager2接口，那
+么它的“void addLayoutComponent(String name, Component 
+comp)”永远不会被awt框架调用到，除非你显示地调用。</p><p>LayoutManager接口的“void removeLayoutComponent(Component comp)”方法，是在容器移除子组件时候被调用。打开JDK源代码，java.awt.Container的移除组件的方法实现如下：<br><span style="color: #3366ff">public void remove(Component comp) {<br>
+&nbsp;synchronized (getTreeLock()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (comp.parent == this)&nbsp; {<br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;/* Search backwards, expect that more recent additions<br>
+&nbsp;&nbsp; * are more likely to be removed.<br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp; */<br>
+&nbsp;&nbsp;Component component[] = this.component;<br>
+&nbsp;&nbsp;for (int i = ncomponents; --i &gt;= 0; ) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (component[i] == comp) {<br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;remove(i);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;}<br>
+&nbsp;&nbsp;&nbsp; }<br></span>可以看出，每个添加到容器的组件都被保存在component[]中，删除组件时会遍历数组，发现被删除的组件调用public void remove(int index)执行删除。在remove(int index)方法中同样有我们关注的调用。<br><span style="color: #3366ff">public void remove(int index) {<br>
+......<br>
+if (layoutMgr != null) {<br>
+&nbsp;&nbsp;layoutMgr.removeLayoutComponent(comp);<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+......<br>
+}<br></span>可见，组件从父容器移除过程中会调用布局管理器（如果有）的“void removeLayoutComponent(Component comp)”方法。</p><p>下一步一并介绍“Dimension minimumLayoutSize(Container parent)”、“Dimension 
+preferredLayoutSize(Container parent)”、“Dimension 
+maximumLayoutSize(Container target)”、“float 
+getLayoutAlignmentX(Container target)”、“float 
+getLayoutAlignmentY(Container target)”这5个方法。<br>
+有时候，需要自定义一个组件为它的容器布局管理器提供关于大小的提示信息，通过指定组件的最小、首选、最大大小维数可以提供大小的提示信息。可以调用组件
+的方法来设置大小提示信息——setMinimumSize、setPreferredSize、setMaximumSize，或者重写其对应的
+get...Size方法同样可以实现。注意setSize(Dimension d)与set...Size(Dimension 
+preferredSize)是不一样的，前者能最终确定组件大小，但是只能在绝对布局的情况下；后者是给该组件大小提供关于大小的提示信息，是交给布局
+管理器进行逻辑判断的，但是提示毕竟是提示，最终决定组件大小还是布局管理器决定，提示信息只能算是参考。但是话说回来，布局管理器应该严格按照组件的尺
+寸提示信息行事，例如不应该把组件的尺寸设置成小于它的提示最小尺寸等。有时候preferredSize属性会比size更重要，因为组件框架内部通常
+考虑组件的首选尺寸而不是实际尺寸的值。例如要实现JTree不同结点有不同的高度，就可以重写DefaultTreeCellRenderer的
+getPreferredSize实现。<br>
+除了提供大小提示信息以外，还可以提供对齐提示——例如，两个组件的上边界对齐。可以通过调用组件的setAlignmentX和
+setAlignmentY方法，或重写对应的get方法来设置对齐提示，但是大多数布局管理器会忽略该提示。为了简单起见，只给出
+preferredLayoutSize的调用源代码，其余方法调用时机相似。java.awt.Container类的
+getPreferredSize方法定义如下：<br><span style="color: #3366ff">public Dimension getPreferredSize() {<br>
+&nbsp;return preferredSize();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+@Deprecated<br>
+&nbsp;&nbsp;&nbsp; public Dimension preferredSize() {<br>
+&nbsp;/* Avoid grabbing the lock if a reasonable cached size value<br>
+&nbsp; * is available.<br>
+&nbsp; */ <br>
+&nbsp;&nbsp;&nbsp; &nbsp;Dimension dim = prefSize;<br>
+&nbsp;&nbsp;&nbsp; &nbsp;if (dim == null || !(isPreferredSizeSet() || isValid())) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; synchronized (getTreeLock()) {<br>
+&nbsp;&nbsp;prefSize = (layoutMgr != null) ?<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; layoutMgr.preferredLayoutSize(this) :<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; super.preferredSize();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dim = prefSize;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (dim != null){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new Dimension(dim);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return dim;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br></span>由此可以看到在preferredSize中调用到了layoutMgr.preferredLayoutSize(this)。</p><p>LayoutManager2接口的“void invalidateLayout(Container 
+target)”方法，在JavaDoc的注释为“使布局失效，指示如果布局管理器缓存了信息，则应该将其丢弃。”，让我们结合JDK源码看看该方法何时
+被调用。在java.awt.Container类中，invalidate方法定义如下：<br><span style="color: #3366ff">public void invalidate() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LayoutManager layoutMgr = this.layoutMgr;<br>
+&nbsp;if (layoutMgr instanceof LayoutManager2) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; LayoutManager2 lm = (LayoutManager2) layoutMgr;<br>
+&nbsp;&nbsp;&nbsp;&nbsp; lm.invalidateLayout(this);<br>
+&nbsp;}<br>
+&nbsp;super.invalidate();<br>
+&nbsp;&nbsp;&nbsp; }</span><br>
+这个函数在JavaDoc中的注解为：“使容器失效。该容器及其之上的所有父容器被标记为需要重新布置。此方法经常被调用，所以必须快速执行它。 <br>
+如果在此容器上安装的 LayoutManager 是一个 LayoutManager2 实例，则在该实例上调用 LayoutManager2.invalidateLayout(Container)，并提供此 Container 作为参数。”<br>
+我们在顺便看看“super.invalidate();”是如何实现的，java.awt.Container的基类是java.awt.Component，其invalidate方法实现如下：<br><span style="color: #3366ff">public void invalidate() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; synchronized (getTreeLock()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* Nullify cached layout and size information.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * For efficiency, propagate invalidate() upwards only if<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * some other component hasn't already done so first.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; valid = false;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!isPreferredSizeSet()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; prefSize = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!isMinimumSizeSet()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; minSize = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!isMaximumSizeSet()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; maxSize = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (parent != null &amp;&amp; parent.valid) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; parent.invalidate();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br></span>在java.awt.Component类的invalidate实现中，把prefSize 、minSize 
+、maxSize这3个提示属性给清空（如果大小提示是通过重写get...Size强制为特定常量或自定义计算规则，那么上述清空操作可能对你没有实际
+意义），并且延着层次关系发送到父组件。因为swing组件的基类是javax.swing.JComponent，继承层次关系是<br><strong>java.lang.Object<br>
+&nbsp; java.awt.Component<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; java.awt.Container<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; javax.swing.JComponent</strong><br>
+所以对于所有swing组件来说，如果不重写invalidate方法，都会是这样的调用行为。<br>
+那么LayoutManager2接口的实现，在“void invalidateLayout(Container target)”方法中应该做些什么？其实有些布局管理器的实现中是忽略的，例如java.awt.BorderLayout。<br>
+正如JavaDoc所说的那样“使布局失效，指示如果布局管理器缓存了信息，则应该将其丢弃。”，应该按照JavaDoc要求的那样去做就行了。例如java.awt.BoxLayout布局的实现：<br><span style="color: #000000">public synchronized void invalidateLayout(Container target) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; checkContainer(target);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xChildren = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; yChildren = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; xTotal = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; yTotal = null;<br>
+&nbsp;&nbsp;&nbsp; }<br><span style="color: #ff0000">但是也必须警惕，LayoutManager2接口的invalidateLayout(Container target)方法调用也很频繁，当组件尺寸改变时，该方法就会被调用，因此释放缓存信息时要小心。</span></span></p><p>对于布局管理器来说，最重要的方法莫过于“void layoutContainer(Container 
+parent)”。因为组件的最终布局都是在该方法中实现的。这个方法在很多情况下都会被awt-swing框架自动调用，例如改变组件的字体、容器尺寸
+改变等都会引起该方法的调用。布局管理器的layoutContainer方法并不会真正绘制组件，它只是调用每个组件的setSize、
+setLocation、setBounds方法来设置组件的大小和位置。对于自定义组件来说，可以调用revalidate强制实现，或者调用容器的
+doLayout也可以强制实现。当调用一个组件的revalidate方法时，一个请求将通过包含层次关系发送到第一个容器，容器的大小会不会被容器的
+大小调整而影响通过调用容器的isValidateRoot方法来确定。然后容器被重新布局。<br>
+如果你调用容器的doLayout，也可以强制实现。JDK源代码中java.awt.Container的doLayout实现如下：<br><span style="color: #3366ff">public void doLayout() {<br>
+&nbsp;layout();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+@Deprecated<br>
+&nbsp;&nbsp;&nbsp; public void layout() {<br>
+&nbsp;LayoutManager layoutMgr = this.layoutMgr;<br>
+&nbsp;if (layoutMgr != null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; layoutMgr.layoutContainer(this);<br>
+&nbsp;}<br>
+&nbsp;&nbsp;&nbsp; }<br></span>可见doLayout方法是直接调用布局管理器的layoutContainer方法。<br>
+此外再给出java.awt.Container的validate方法实现代码：<br><span style="color: #3366ff">public void validate() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /* Avoid grabbing lock unless really necessary. */<br>
+&nbsp;if (!valid) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; boolean updateCur = false;<br>
+&nbsp;&nbsp;&nbsp;&nbsp; synchronized (getTreeLock()) {<br>
+&nbsp;&nbsp;if (!valid &amp;&amp; peer != null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ContainerPeer p = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (peer instanceof ContainerPeer) {<br>
+&nbsp;&nbsp;&nbsp;p = (ContainerPeer) peer;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (p != null) {<br>
+&nbsp;&nbsp;&nbsp;p.beginValidate();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #ff0000">validateTree();<br></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; valid = true;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (p != null) {<br>
+&nbsp;&nbsp;&nbsp;p.endValidate();<br>
+&nbsp;&nbsp;&nbsp;updateCur = isVisible();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (updateCur) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; updateCursorImmediately();<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;}<br>
+&nbsp;&nbsp;&nbsp; }<br></span>注意“ validateTree();”方法，再给出 validateTree()方法实现：<br><span style="color: #3366ff">protected void validateTree() {<br>
+&nbsp;if (!valid) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (peer instanceof ContainerPeer) {<br>
+&nbsp;&nbsp;((ContainerPeer)peer).beginLayout();<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #ff0000">doLayout();<br></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Component component[] = this.component;<br>
+&nbsp;&nbsp;&nbsp;&nbsp; for (int i = 0 ; i &lt; ncomponents ; ++i) {<br>
+&nbsp;&nbsp;Component comp = component[i];<br>
+&nbsp;&nbsp;if (&nbsp;&nbsp; (comp instanceof Container) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &amp;&amp; !(comp instanceof Window)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &amp;&amp; !comp.valid) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ((Container)comp).validateTree();<br>
+&nbsp;&nbsp;} else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; comp.validate();<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (peer instanceof ContainerPeer) {<br>
+&nbsp;&nbsp;((ContainerPeer)peer).endLayout();<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;}<br>
+&nbsp;valid = true;<br>
+&nbsp;&nbsp;&nbsp; }<br></span>可以看出在validateTree方法执行过程中调用了“doLayout();”方法。也就是说调用了LayoutManager接口的void layoutContainer(Container parent)方法。<br>
+再给出javax.swing.JComponent类setFont方法实现：<br><span style="color: #3366ff">public void setFont(Font font) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Font oldFont = getFont();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; super.setFont(font);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // font already bound in AWT1.2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (font != oldFont) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #ff0000">&nbsp;revalidate();<br>
+&nbsp;&nbsp;&nbsp;&nbsp; repaint();<br></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br></span>因为字体的改变会影响到组件的尺寸，因此也涉及到布局。如果你查看JDK API相关源码，就会发现很多情况下“revalidate();”、“ repaint();”两个方法是一起被先后调用的。这两个方法都是线程安全的，不需要在事件分发线程中调用它们。<br>
+layoutContainer(Container 
+parent)在很多地方都会被调用的。因此可以这样理解：凡是能影响组件尺寸改变的条件都可能触发该方法的调用。那么在layoutContainer
+中需要做的就是，根据收集到的组件提示信息、约束条件、容器的内部边框、组件的可见性及布局规则等因素对组件进行最终定位。</p><p>到此为止，有关布局管理器的整体介绍和工作原理就告一段落。学习布局管理器的最终目的是学会如何自定义布局管理器，好，准备进入下一部分的学习，但是之前最好要把上面讲述的消化一遍，尤其是接口方法的调用时机，这将是自定义布局管理器的基础。<br><br>
+由于平时比较紧，文章基本是周末空闲时间写，而且目前的工作方向不再是gooey了，所以写一篇帖很不容易，准备一篇好贴更难。布局管理器这块本人一直想发表下自己的观点，敬请关注。</p><p>&nbsp;</p><p>&nbsp;</p></div></body></html>

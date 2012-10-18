@@ -1,0 +1,270 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>MongoDB Java Tutorial</title></head><body><h1>MongoDB Java Tutorial</h1><div><p>MongoDB Java Tutorial</p>
+<p> </p>
+<p>http://www.mongodb.org/display/DOCS/Starting+and+Stopping+Mongo</p>
+<p>http://www.mongodb.org/display/DOCS/Java+Tutorial</p>
+<p>key value db 键值数据库</p>
+<p>------------------------------------------------------</p>
+<h3>Introduction</h3>
+<p>This page is a brief overview of working with the MongoDB Java Driver.</p>
+<p>For more information about the Java API, please refer to the <a href="http://api.mongodb.org/java/index.html">online API Documentation for Java Driver </a></p>
+<h3><a name="JavaTutorial-AQuickTour"></a>A Quick Tour</h3>
+<p>Using the Java driver is very simple. First, be sure to include the driver jar mongo.jar in your classpath. The following code snippets come from the examples/QuickTour.java example code found in the driver.</p>
+<h5><a name="JavaTutorial-MakingAConnection"></a>Making A Connection</h5>
+<p>To make a connection to a MongoDB, you need to have at the minimum, the name of a database to connect to. The database doesn't have to exist - if it doesn't, MongoDB will create it for you.</p>
+<p>Additionally, you can specify the server address and port when connecting. The following example shows three ways to connect to the database mydb on the local machine :</p>
+<div>
+<div>
+<pre>import com.mongodb.Mongo;<br>import com.mongodb.DB;<br>import com.mongodb.DBCollection;<br>import com.mongodb.BasicDBObject;<br>import com.mongodb.DBObject;<br>import com.mongodb.DBCursor;<br><br>Mongo m = new Mongo();<br>Mongo m = new Mongo( &quot;localhost&quot; );<br>Mongo m = new Mongo( &quot;localhost&quot; , 27017 );<br><br>DB db = m.getDB( &quot;mydb&quot; );</pre>
+</div>
+</div>
+<p>At this point, the db object will be a connection to a MongoDB server for the specified database. With it, you can do further operations.</p>
+<p>Note: The <a href="http://api.mongodb.org/java/1.2/com/mongodb/Mongo.html">Mongo</a> object instance actually represents a pool of connections to the database; you will only need one object of class Mongo even with multiple threads. See the <a title="Java Driver Concurrency" href="http://www.mongodb.org/display/DOCS/Java+Driver+Concurrency">concurrency</a> doc page for more information.</p>
+<h5><a name="JavaTutorial-Authentication(Optional)"></a>Authentication (Optional)</h5>
+<p>MongoDB can be run in a <a title="Security and Authentication" href="http://www.mongodb.org/display/DOCS/Security+and+Authentication">secure mode</a> where access to databases is controlled through name and password authentication. When run in this mode, any client application must provide a name and password before doing any operations. In the Java driver, you simply do the following with the connected mongo object :</p>
+<div>
+<div>
+<pre>boolean auth = db.authenticate(myUserName, myPassword);</pre>
+</div>
+</div>
+<p>If the name and password are valid for the database, auth will be true. Otherwise, it will be false. You should look at the MongoDB log for further information if available.</p>
+<p>Most users run MongoDB without authentication in a trusted environment.</p>
+<h5><a name="JavaTutorial-GettingAListOfCollections"></a>Getting A List Of Collections</h5>
+<p>Each database has zero or more collections. You can retrieve a list of them from the db (and print out any that are there) :</p>
+<div>
+<div>
+<pre>Set&lt;String&gt; colls = db.getCollectionNames();<br><br>for (String s : colls) {<br>    System.out.println(s);<br>}</pre>
+</div>
+</div>
+<p>and assuming that there are two collections, name and address, in the database, you would see</p>
+<div>
+<div>
+<pre>name<br>address</pre>
+</div>
+</div>
+<p>as the output.</p>
+<h5><a name="JavaTutorial-GettingACollection"></a>Getting A Collection</h5>
+<p>To get a collection to use, just specify the name of the collection to the <a href="http://api.mongodb.org/java/1.2/com/mongodb/DB.html#getCollection%28java.lang.String%29">getCollection</a>(String collectionName) method:</p>
+<div>
+<div>
+<pre>DBCollection coll = db.getCollection(&quot;testCollection&quot;)</pre>
+</div>
+</div>
+<p>Once you have this collection object, you can now do things like insert data, query for data, etc</p>
+<h5><a name="JavaTutorial-InsertingaDocument"></a>Inserting a Document</h5>
+<p>Once you have the collection object, you can insert documents into the collection. For example, lets make a little document that in JSON would be represented as</p>
+<div>
+<div>
+<pre>{<br>   &quot;name&quot; : &quot;MongoDB&quot;,<br>   &quot;type&quot; : &quot;database&quot;,<br>   &quot;count&quot; : 1,<br>   &quot;info&quot; : {<br>               x : 203,<br>               y : 102<br>             }<br>}</pre>
+</div>
+</div>
+<p>Notice that the above has an &quot;inner&quot; document embedded within it. To do this, we can use the <a href="http://api.mongodb.org/java/1.2/com/mongodb/BasicDBObject.html">BasicDBObject</a> class to create the document (including the inner document), and then just simply insert it into the collection using the insert() method.</p>
+<div>
+<div>
+<pre>BasicDBObject doc = new BasicDBObject();<br><br>        doc.put(&quot;name&quot;, &quot;MongoDB&quot;);<br>        doc.put(&quot;type&quot;, &quot;database&quot;);<br>        doc.put(&quot;count&quot;, 1);<br><br>        BasicDBObject info = new BasicDBObject();<br><br>        info.put(&quot;x&quot;, 203);<br>        info.put(&quot;y&quot;, 102);<br><br>        doc.put(&quot;info&quot;, info);<br><br>        coll.insert(doc);</pre>
+</div>
+</div>
+<h5><a name="JavaTutorial-FindingtheFirstDocumentInACollectionusing{{findOne()}}"></a>Finding the First Document In A Collection using findOne()</h5>
+<p>To show that the document we inserted in the previous step is there, we can do a simple <a href="http://api.mongodb.org/java/1.2/com/mongodb/DBCollection.html#findOne%28java.lang.Object%29">findOne</a>() operation to get the first document in the collection. This method returns a single document (rather than the <a href="http://api.mongodb.org/java/1.2/com/mongodb/DBCursor.html">DBCursor</a> that the <a href="http://api.mongodb.org/java/1.2/com/mongodb/DBCollection.html#find%28com.mongodb.DBObject,%20com.mongodb.DBObject,%20int,%20int,%20int%29">find</a>() operation returns), and it's useful for things where there only is one document, or you are only interested in the first. You don't have to deal with the cursor.</p>
+<div>
+<div>
+<pre>DBObject myDoc = coll.findOne();<br>System.out.println(myDoc);</pre>
+</div>
+</div>
+<p>and you should see</p>
+<div>
+<div>
+<pre>{ &quot;_id&quot; : &quot;49902cde5162504500b45c2c&quot; , &quot;name&quot; : &quot;MongoDB&quot; , &quot;type&quot; : &quot;database&quot; ,<br> &quot;count&quot; : 1 ,<br> &quot;info&quot; : { &quot;x&quot; : 203 , &quot;y&quot; : 102} , &quot;_ns&quot; : &quot;testCollection&quot;}</pre>
+</div>
+</div>
+<p>Note the _id and _ns elements have been added automatically by MongoDB to your document. Remember, MongoDB reserves element names that start with _ for internal use.</p>
+<h5><a name="JavaTutorial-AddingMultipleDocuments"></a>Adding Multiple Documents</h5>
+<p>In order to do more interesting things with queries, let's add multiple simple documents to the collection. These documents will just be</p>
+<div>
+<div>
+<pre>{<br>   &quot;i&quot; : value<br>}</pre>
+</div>
+</div>
+<p>and we can do this fairly efficiently in a loop</p>
+<div>
+<div>
+<pre>for (int i=0; i &lt; 100; i++) {<br>    coll.insert(new BasicDBObject().append(&quot;i&quot;, i));<br>}</pre>
+</div>
+</div>
+<p>Notice that we can insert documents of different &quot;shapes&quot; into the same collection. This aspect is what we mean when we say that MongoDB is &quot;schema-free&quot;</p>
+<h5><a name="JavaTutorial-CountingDocumentsinACollection"></a>Counting Documents in A Collection</h5>
+<p>Now that we've inserted 101 documents (the 100 we did in the loop, plus the first one), we can check to see if we have them all using the getCount() method.</p>
+<div>
+<div>
+<pre>System.out.println(coll.getCount());</pre>
+</div>
+</div>
+<p>and it should print 101.</p>
+<h5><a name="JavaTutorial-UsingaCursortoGetAlltheDocuments"></a>Using a Cursor to Get All the Documents</h5>
+<p>In order to get all the documents in the collection, we will use the find() method. The find() method returns a DBCursor object which allows us to iterate over the set of documents that matched our query. So to query all of the documents and print them out :</p>
+<div>
+<div>
+<pre>DBCursor cur = coll.find();<br><br>        while(cur.hasNext()) {<br>            System.out.println(cur.next());<br>        }</pre>
+</div>
+</div>
+<p>and that should print all 101 documents in the collection.</p>
+<h5><a name="JavaTutorial-GettingASingleDocumentwithAQuery"></a>Getting A Single Document with A Query</h5>
+<p>We can create a query to pass to the find() method to get a subset of the documents in our collection. For example, if we wanted to find the document for which the value of the &quot;i&quot; field is 71, we would do the following ;</p>
+<div>
+<div>
+<pre>BasicDBObject query = new BasicDBObject();<br><br>        query.put(&quot;i&quot;, 71);<br><br>        cur = coll.find(query);<br><br>        while(cur.hasNext()) {<br>            System.out.println(cur.next());<br>        }</pre>
+</div>
+</div>
+<p>and it should just print just one document</p>
+<div>
+<div>
+<pre>{ &quot;_id&quot; : &quot;49903677516250c1008d624e&quot; , &quot;i&quot; : 71 , &quot;_ns&quot; : &quot;testCollection&quot;}</pre>
+</div>
+</div>
+<h5><a name="JavaTutorial-GettingASetofDocumentsWithaQuery"></a>Getting A Set of Documents With a Query</h5>
+<p>We can use the query to get a set of documents from our collection. For example, if we wanted to get all documents where &quot;i&quot; &gt; 50, we could write :</p>
+<div>
+<div>
+<pre>query = new BasicDBObject();<br><br>        query.put(&quot;i&quot;, new BasicDBObject(&quot;$gt&quot;, 50));  // e.g. find all where i &gt; 50<br><br>        cur = coll.find(query);<br><br>        while(cur.hasNext()) {<br>            System.out.println(cur.next());<br>        }</pre>
+</div>
+</div>
+<p>which should print the documents where i &gt; 50. We could also get a range, say 20 &lt; i &lt;= 30 :</p>
+<div>
+<div>
+<pre>query = new BasicDBObject();<br><br>        query.put(&quot;i&quot;, new BasicDBObject(&quot;$gt&quot;, 20).append(&quot;$lte&quot;, 30));  // i.e.   20 &lt; i &lt;= 30<br><br>        cur = coll.find(query);<br><br>        while(cur.hasNext()) {<br>            System.out.println(cur.next());<br>        }</pre>
+</div>
+</div>
+<h5><a name="JavaTutorial-CreatingAnIndex"></a>Creating An Index</h5>
+<p>MongoDB supports indexes, and they are very easy to add on a collection. To create an index, you just specify the field that should be indexed, and specify if you want the index to be ascending (1) or descending (-1). The following creates an ascending index on the &quot;i&quot; field :</p>
+<div>
+<div>
+<pre>coll.createIndex(new BasicDBObject(&quot;i&quot;, 1));  // create index on &quot;i&quot;, ascending</pre>
+</div>
+</div>
+<h5><a name="JavaTutorial-GettingaListofIndexesonaCollection"></a>Getting a List of Indexes on a Collection</h5>
+<p>You can get a list of the indexes on a collection :</p>
+<div>
+<div>
+<pre>List&lt;DBObject&gt; list = coll.getIndexInfo();<br><br>        for (DBObject o : list) {<br>            System.out.println(o);<br>        }</pre>
+</div>
+</div>
+<p>and you should see something like</p>
+<div>
+<div>
+<pre>{ &quot;name&quot; : &quot;i_1&quot; , &quot;ns&quot; : &quot;mydb.testCollection&quot; , &quot;key&quot; : { &quot;i&quot; : 1} , &quot;_ns&quot; : &quot;system.indexes&quot;}</pre>
+</div>
+</div>
+<h3><a name="JavaTutorial-QuickTouroftheAdministrativeFunctions"></a>Quick Tour of the Administrative Functions</h3>
+<h5><a name="JavaTutorial-GettingAListofDatabases"></a>Getting A List of Databases</h5>
+<p>You can get a list of the available databases:</p>
+<div>
+<div>
+<pre>Mongo m = new Mongo();<br><br>        for (String s : m.getDatabaseNames()) {<br>            System.out.println(s);<br>        }</pre>
+</div>
+</div>
+<h5><a name="JavaTutorial-DroppingADatabase"></a>Dropping A Database</h5>
+<p>You can drop a database by name using the Mongo object:</p>
+<div>
+<div>
+<pre>m.dropDatabase(&quot;my_new_db&quot;);</pre>
+</div>
+</div>
+<h1><a href="http://www.mongodb.org/display/DOCS/Java+Driver+Concurrency">Java Driver Concurrency</a></h1>
+<div>
+<table class="FCK__ShowTableBorders" cellspacing="2" cellpadding="5">
+    <tbody>
+        <tr>
+            <td>
+            <div>
+            <p>The Java MongoDB driver is thread safe. If you are using in a web serving environment, for example, you should create a single Mongo instance, and you can use it in every request. The Mongo object maintains an internal pool of connections to the database (default pool size of 10).</p>
+            <p>However, if you want to ensure complete consistency in a &quot;session&quot; (maybe an http request), you probably want the driver to use the same socket for that session (which isn't necessarily the case since Mongo instances have built-in connection pooling). This is only necessary for a write heavy environment, where you might read data that you wrote.</p>
+            <p>To do that, you would do something like:</p>
+            <div>
+            <div>
+            <pre>DB db...;<br>db.requestStart();<br><br>code....<br><br>db.requestDone();</pre>
+            </div>
+            </div>
+            </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<h1><a href="http://www.mongodb.org/display/DOCS/Java+-+Saving+Objects+Using+DBObject">Java - Saving Objects Using DBObject</a></h1>
+<div>
+<table class="FCK__ShowTableBorders" cellspacing="2" cellpadding="5">
+    <tbody>
+        <tr>
+            <td>
+            <div>
+            <p>The Java driver provides a DBObject interface to save custom objects to the database.</p>
+            <p>For example, suppose one had a class called Tweet that they wanted to save:</p>
+            <div>
+            <div>
+            <pre>public class Tweet implements DBObject {<br>    /* ... */<br>}</pre>
+            </div>
+            </div>
+            <p>Then you can say:</p>
+            <div>
+            <div>
+            <pre>Tweet myTweet = new Tweet();<br>myTweet.put(&quot;user&quot;, userId);<br>myTweet.put(&quot;message&quot;, msg);<br>myTweet.put(&quot;date&quot;, new Date());<br><br>collection.insert(myTweet);</pre>
+            </div>
+            </div>
+            <p>When a document is retrieved from the database, it is automatically converted to a DBObject. To convert it to an instance of your class, use DBCollection.setObjectClass():</p>
+            <div>
+            <div>
+            <pre>collection.setObjectClass(Tweet);<br><br>Tweet myTweet = (Tweet)collection.findOne();</pre>
+            </div>
+            </div>
+            </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<h1><a href="http://www.mongodb.org/display/DOCS/Java+Types">Java Types</a></h1>
+<div>
+<table class="FCK__ShowTableBorders" cellspacing="2" cellpadding="5">
+    <tbody>
+        <tr>
+            <td>
+            <div>
+            <h5><a name="JavaTypes-ObjectIds"></a>Object Ids</h5>
+            <p><a href="http://api.mongodb.org/java/0.11/com/mongodb/ObjectId.html">com.mongodb.ObjectId</a> is used to autogenerate unique ids.</p>
+            <div>
+            <div>
+            <pre>ObjectId id = new ObjectId();<br>ObjectId copy = new ObjectId(id);</pre>
+            </div>
+            </div>
+            <h5><a name="JavaTypes-RegularExpressions"></a>Regular Expressions</h5>
+            <p>The Java driver uses <a href="http://java.sun.com/javase/6/docs/api/java/util/regex/Pattern.html">java.util.regex.Pattern</a> for regular expressions.</p>
+            <div>
+            <div>
+            <pre>Pattern john = Pattern.compile(&quot;joh?n&quot;, CASE_INSENSITIVE);<br>BasicDBObject query = new BasicDBObject(&quot;name&quot;, john);<br><br>// finds all people with &quot;name&quot; matching /joh?n/i<br>DBCursor cursor = collection.find(query);</pre>
+            </div>
+            </div>
+            <h5><a name="JavaTypes-Dates/Times"></a>Dates/Times</h5>
+            <p>The <a href="http://java.sun.com/javase/6/docs/api/java/util/Date.html">java.util.Date</a> class is used for dates.</p>
+            <div>
+            <div>
+            <pre>Date now = new Date();<br>BasicDBObject time = new BasicDBObject(&quot;ts&quot;, now);<br><br>collection.save(time);</pre>
+            </div>
+            </div>
+            <h5><a name="JavaTypes-DatabaseReferences"></a>Database References</h5>
+            <p><a href="http://api.mongodb.org/java/0.11/com/mongodb/DBRef.html">com.mongodb.DBRef</a> can be used to save database references.</p>
+            <div>
+            <div>
+            <pre>DBRef addressRef = new DBRef(db, &quot;foo.bar&quot;, address_id);<br>DBObject address = addressRef.fetch();<br><br>DBObject person = BasicDBObjectBuilder.start()<br>    .add(&quot;name&quot;, &quot;Fred&quot;)<br>    .add(&quot;address&quot;, addressRef)<br>    .get();<br>collection.save(person);<br><br>DBObject fred = collection.findOne();<br>DBRef addressObj = (DBRef)fred.get(&quot;address&quot;);<br>addressObj.fetch()</pre>
+            </div>
+            </div>
+            <h5><a name="JavaTypes-BinaryData"></a>Binary Data</h5>
+            <p>An array of bytes (byte[]) can be used for binary data.</p>
+            </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p></div></body></html>

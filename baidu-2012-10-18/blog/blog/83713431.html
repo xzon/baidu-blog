@@ -1,0 +1,298 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>利用Observer模式解决组件间通信问题（2004年9月）</title></head><body><h1>利用Observer模式解决组件间通信问题（2004年9月）</h1><div><p><a name="200703026"></a><span class="entryTitle"><a href="http://developers.sun.com.cn/blog/jungleford/entry/200703026"><strong><font size="5">利用Observer模式解决组件间通信问题（2004年9月）</font></strong></a><strong><font size="5"> </font></strong></span></p>
+<p>一点小心得</p>
+<br>
+<strong><u><font color="#cc0000"><span class="style2">1. 问题的提出</span></font></u></strong><font size="2">以前做一个界面的时候常常会遇到这样的尴尬情况：希望保留各个独立的组件（类），但又希望它们之间能够相互通信。譬如Windows中的Explorer，我们希望鼠标点击左边是树型目录的一个节点，右边的文件浏览能及时列出该节点目录下的文件和子目录，类似这样一个简单的应用，如果只有一个类继承JFrame，而树型组件和浏览文件的面板作为成员，就像：</font>
+<table border="1" cellspacing="0" cellpadding="5" width="100%" bgcolor="#cccccc">
+    <tbody>
+        <tr>
+            <td>
+            <pre><span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">class</font></strong></span> MainFrame <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <strong><font color="#002c99">JFrame</font></strong>
+{
+  <strong><font color="#002c99">JPanel</font></strong> treePanel;
+  <strong><font color="#002c99">JTree</font></strong> tree;
+  <span class="style5"><strong><font color="#990000">JPanel</font></strong></span> filePanel;
+  ...
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<font size="-1"><br>
+这样当然容易在两者之间传递消息，但是可扩展性较差。通常容易想到的是两种办法：在一个组件里保留另一个组件类型的成员，初始化时作为参数传入引用，比如：</font>
+<table border="1" cellspacing="0" cellpadding="5" width="100%" bgcolor="#cccccc">
+    <tbody>
+        <tr>
+            <td>
+            <pre><span class="style4"><strong><font color="#ff0000">class</font></strong></span> TreePanel <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <strong><font color="#002c99">JPanel</font></strong>
+{
+  <strong><font color="#002c99">JTree</font></strong> tree;
+  ...
+}
+
+<span class="style4"><strong><font color="#ff0000">class</font></strong></span> FilePanel <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <span class="style5"><strong><font color="#990000">JPanel</font></strong></span>
+{
+  <span class="style4"><strong><font color="#ff0000">public</font></strong></span> FilePanel(<span class="style5"><strong><font color="#990000">JTree</font></strong></span> tree){...}
+  ...
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<font size="-1"><br>
+或者将一个组件线程化，不停地监听另一个组件的变化，然后作出相应的反映，比如：</font>
+<table border="1" cellspacing="0" cellpadding="5" width="100%" bgcolor="#cccccc">
+    <tbody>
+        <tr>
+            <td>
+            <pre><span class="style4"><strong><font color="#ff0000">class</font></strong></span> TreePanel <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <strong><font color="#002c99">JPanel</font></strong>
+{
+  <strong><font color="#002c99">JTree</font></strong> tree;
+  ...
+}
+
+<span class="style4"><strong><font color="#ff0000">class</font></strong></span> FilePanel <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <span class="style5"><strong><font color="#990000">JPanel</font></strong></span> <span class="style4"><strong><font color="#ff0000">implements</font></strong></span> <strong><font color="#002c99">Runnable</font></strong>
+{
+  <span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">void</font></strong></span> run()
+  {
+    <span class="style4"><strong><font color="#ff0000">while</font></strong></span> (<span class="style4"><strong><font color="#ff0000">true</font></strong></span>)
+    {
+      <span class="style3"><font color="#006600">//监听tree的变化</font></span>
+    }
+    ...
+  }
+  ...
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<font size="-1"><br>
+这样确实可以达到我们的目的，但是第一种方案显然不利于松散耦合，第二种方案比较占用系统资源。通过学习设计模式，我们发现可以用Observer模式来解决这个问题。<br>
+<br>
+<strong><u><font size="3"><font color="#cc0000"><span class="style2">2. Observer模式</span></font></font></u></strong>设计模式分为创建型、结构型和行为型，其中行为型模式专门处理对象间通信，指定交互方式等，Observer模式就是属于行为型的一种设计模式。按照&ldquo;四人帮&rdquo;（Gang of Four）在&ldquo;Design Patterns&rdquo;里的定义，Observer模式&ldquo;<span class="style8"><strong><font size="3" face="黑体">定义对象间的一种一对多的依赖关系,当一个对象的状态发生改变时, 所有依赖于它的对象都得到通知并被自动更新</font></strong></span>&rdquo;，这个描述正好符合我们对&ldquo;组件通信&rdquo;问题的需求。让我们先看看Observer模式的结构：<br>
+<img align="bottom" src="http://www.newsmth.org/pc/pcdownload.php?fid=9723"> <br>
+其中各元素的含义如下： </font>
+<ul><font size="-1">
+    <li>Subject：被观察的目标的抽象接口，它提供对观察者（Observer）的注册、注销服务，Notify方法通知Observer目标发生改变；</li>
+    <li>Object：观察者的抽象接口，Update方法是当得到Subject状态变化的通知后所要采取的动作；</li>
+    <li>ConcreteSubject：Subject的具体实现；</li>
+    <li>ConcreteObserver：Observer的具体实现</li>
+    </font></ul>
+    <font size="-1">Observer模式在实现MVC结构时非常有用，为数据和数据表示解耦合。<br>
+    <br>
+    <strong><u><font size="3"><font color="#cc0000"><span class="style2">3. Java中的Observer模式：Observer和Observable</span></font></font></u></strong>在大致了解了Observer模式的描述之后，现在我们更为关心的是它在Java中是如何应用的。幸运的是，自从JDK 1.0起，就有了专门处理这种应用的API，这就是<font color="#002c99">Observer</font>接口和<font color="#002c99">Observable</font>类，它们是属于java.util包的一部分。看来Java的开发者们真是深谙设计模式的精髓，而Java的确是为了真正的面向对象而生的，呵呵！<br>
+    这里的Observer和Observable分别对应设计模式中的Observer和Subject，对比一下它们定义的方法，痕迹还是相当明显的：<br>
+    Observer的方法： </font>
+    <ul><font size="-1">
+        <li><font color="#002c99">update</font>(Observable subject, <font color="#002c99">Object</font> arg) 监控subject，当subject对象状态发生变化时Observer会有什么响应，arg是传递给Observable的notifyObservers方法的参数；</li>
+        </font></ul>
+        <font size="-1">Observable的方法： </font>
+        <ul><font size="-1">
+            <li><font color="#002c99">addObserver</font>(Observer observer) observer向该subject注册自己</li>
+            <li><font color="#002c99">hasChanged</font>() 检查该subject状态是否发生变化</li>
+            <li><font color="#002c99">setChanged</font>() 设置该subject的状态为&ldquo;已变化&rdquo;</li>
+            <li><font color="#002c99">notifyObservers</font>() 通知observer该subject状态发生变化</li>
+            </font></ul>
+            <p><font size="-1"><strong><u><font size="3"><font color="#cc0000"><span class="style2">4. Observer模式在Java GUI事件模型中应用</span></font></font></u></strong>其实在AWT/Swing事件模型中用到了好几种设计模式，以前的JDK 1.0 AWT使用的是&ldquo;<span class="style8"><strong><font size="3" face="黑体">基于继承的事件模型</font></strong></span>&rdquo;，在该模型<font color="#002c99">Component</font>类中定义了一系列事件处理方法，如：<font color="#002c99">handleEvent</font>，<font color="#002c99">mouseDown</font>，<font color="#002c99">mouseUp</font>等等，我们对事件的响应是通过对组件类继承并覆盖相应的事件处理方法的手段来实现，组件接收到事件向所在容器广播，沿着容器链直到发现事件被某个容器的handle方法所处理。这种模型有很多缺点，事件的处理不应当由事件产生者负责，而且根据&ldquo;设计模式&rdquo;一书中的原则，&ldquo;继承&rdquo;通常被认为是&ldquo;对封装性的破坏&rdquo;，父子类之间的紧密耦合关系降低了灵活性，同时继承容易导致家族树规模的庞大，这些都不利于组件可重用。<br>
+            JDK 1.1以后新的事件模型是被成为&ldquo;<span class="style8"><strong><font size="3" face="黑体">基于授权的事件模型</font></strong></span>&rdquo;，也就是我们现在所熟悉的Listener模型，事件的处理不再由产生事件的对象负责，而由Listener负责，只有被注册过的Listener才能向组件传递事件动作。尤其在Swing组件中设计MVC结构时用到了Observer模式，众所周知，MVC表示&ldquo;模型－视图－控制器&rdquo;，即&ldquo;数据－表示逻辑－操作&rdquo;，其中数据可以对应多种表示，这样视图就处在了observer的地位，而model则是subject。大家所熟悉的JTree和JTable就是这种MVC结构：<br>
+            ---------------------------------------------<br>
+            Model View Controller<br>
+            ---------------------------------------------<br>
+            TreeModel JTree TreeModelListener<br>
+            TableModel JTable TableModelListener<br>
+            ---------------------------------------------<br>
+            <br>
+            <strong><u><font size="3"><font color="#cc0000"><span class="style2">5. 简单的例子</span></font></font></u></strong>回到本文一开始的那个Explorer的例子，我们考虑做一个简单的图片浏览器，使树型选择组件和图片浏览面板在两个不同的类中，其中图片浏览面板根据所选择的树的节点显示相应的图片，所以图片浏览面板是一个observer，树是subject。由于Java单根继承的原因，我们不能同时继承JPanel和Observable，但可以用对象的组合把一个subject放到我们的类当中，并通过TreeSelectionListener触发subject的setChanged方法，并通过notifyObservers方法通知observer。<br>
+            例子代码如下：</font></p>
+            <table border="1" cellspacing="0" cellpadding="5" width="100%" bgcolor="#cccccc">
+                <tbody>
+                    <tr>
+                        <td><font size="-1"><font color="#006600"><span class="style3">//LeftPanel.java</span></font><span class="style4"><strong><font color="#ff0000">package</font></strong></span> com.jungleford.test;
+                        <p><span class="style4"><strong><font color="#ff0000">import</font></strong></span> java.awt.<strong><font color="#002c99">BorderLayout</font></strong>;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> javax.swing.*;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> javax.swing.event.<strong><font color="#002c99">TreeSelectionListener</font></strong>;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> javax.swing.event.<strong><font color="#002c99">TreeSelectionEvent</font></strong>;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> javax.swing.tree.<strong><font color="#002c99">DefaultMutableTreeNode</font></strong>;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> java.util.<strong><font color="#002c99">Observable</font></strong>;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> java.util.<strong><font color="#002c99">Observer</font></strong>;</p>
+                        <p><span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">final</font></strong></span> <span class="style4"><strong><font color="#ff0000">class</font></strong></span> LeftPanel <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <strong><font color="#002c99">JPanel</font></strong><br>
+                        {<font color="#006600"><span class="style3">// 把树型选择视图布局在左边</span></font> <span class="style4"><strong><font color="#ff0000">private</font></strong></span> <strong><font color="#002c99">JTree</font></strong> tree;<font color="#006600"><span class="style3">// 树型选择视图</span></font> <span class="style4"><strong><font color="#ff0000">private</font></strong></span> <strong><font color="#002c99">JScrollPane</font></strong> scroll;<font color="#006600"><span class="style3">// 让视图可滚动</span></font> <span class="style4"><strong><font color="#ff0000">private</font></strong></span> <span class="style5"><strong><font color="#990000">DefaultMutableTreeNode</font></strong></span> root, node1, node2;<font color="#006600"><span class="style3">// 根节点及两个叶子</span></font> <span class="style4"><strong><font color="#ff0000">private</font></strong></span> Sensor sensor;<font color="#006600"><span class="style3">// sensor是一个Observable，由于只能单根继承，所以作为组合成员</span></font> <span class="style4"><strong><font color="#ff0000">private</font></strong></span> <strong><font color="#002c99">String</font></strong> file;<font color="#006600"><span class="style3">// 图片文件名，与RightPanel通信的内容</span><br>
+                        </font><span class="style4"><strong><font color="#ff0000">public</font></strong></span> LeftPanel(<span class="style5"><strong><font color="#990000">Observer</font></strong></span> observer)<br>
+                        {<br>
+                        file = <span class="style6"><font color="#ff00ff">&quot;&quot;</font></span>;<br>
+                        sensor = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> Sensor();<br>
+                        sensor.<font color="#002c99">addObserver</font>(observer);<font color="#006600"><span class="style3">// 向Observable注册Observer</span></font> root = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> <span class="style5"><strong><font color="#990000">DefaultMutableTreeNode</font></strong></span>(<span class="style6"><font color="#ff00ff">&quot;Images&quot;</font></span>);<br>
+                        tree = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> <span class="style5"><strong><font color="#990000">JTree</font></strong></span>(root);<br>
+                        node1 = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> <span class="style5"><strong><font color="#990000">DefaultMutableTreeNode</font></strong></span>(<span class="style6"><font color="#ff00ff">&quot;Rabbit&quot;</font></span>);<br>
+                        node2 = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> <span class="style5"><strong><font color="#990000">DefaultMutableTreeNode</font></strong></span>(<span class="style6"><font color="#ff00ff">&quot;Devastator&quot;</font></span>);<br>
+                        root.<font color="#002c99">add</font>(node1);<br>
+                        root.add(node2);<br>
+                        tree.<font color="#002c99">addTreeSelectionListener</font>(<span class="style4"><strong><font color="#ff0000">new</font></strong></span> <span class="style5"><strong><font color="#990000">TreeSelectionListener</font></strong></span>()<br>
+                        {<font color="#006600"><span class="style3">// 树节点选择动作</span></font> <span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">void</font></strong></span> <font color="#002c99">valueChanged</font>(<span class="style5"><strong><font color="#990000">TreeSelectionEvent</font></strong></span> e)<br>
+                        {<br>
+                        <strong><font color="#002c99">Object</font></strong> obj = e.<font color="#002c99">getPath</font>().<font color="#002c99">getLastPathComponent</font>();<br>
+                        if (obj <span class="style4"><strong><font color="#ff0000">instanceof</font></strong></span> <span class="style5"><strong><font color="#990000">DefaultMutableTreeNode</font></strong></span>)<br>
+                        {<br>
+                        <span class="style5"><strong><font color="#990000">DefaultMutableTreeNode</font></strong></span> node = (<span class="style5"><strong><font color="#990000">DefaultMutableTreeNode</font></strong></span>)obj;<br>
+                        <span class="style4"><strong><font color="#ff0000">if</font></strong></span> (node == root)<br>
+                        file = <span class="style6"><font color="#ff00ff">&quot;&quot;</font></span>;<font color="#006600"><span class="style3">// 选择根</span></font> <span class="style4"><strong><font color="#ff0000">if</font></strong></span> (node == node1)<br>
+                        file = <span class="style6"><font color="#ff00ff">&quot;rabbit.jpg&quot;</font></span>;<font color="#006600"><span class="style3">// 选择node1</span></font> <span class="style4"><strong><font color="#ff0000">if</font></strong></span> (node == node2)<br>
+                        file = <span class="style6"><font color="#ff00ff">&quot;devastator.gif&quot;</font></span>;<font color="#006600"><span class="style3">// 选择node2</span></font> sensor.setData(file);<font color="#006600"><span class="style3">// 改变Observable</span></font> sensor.<font color="#002c99">notifyObservers</font>();<font color="#006600"><span class="style3">// 通知observer，对象已改变</span></font> }<br>
+                        }<br>
+                        });<br>
+                        scroll = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> <span class="style5"><strong><font color="#990000">JScrollPane</font></strong></span>(tree);<br>
+                        <font color="#002c99">add</font>(scroll, <span class="style5"><strong><font color="#990000">BorderLayout</font></strong></span>.<font color="#002c99">CENTER</font>);<br>
+                        }<br>
+                        <br>
+                        <span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style5"><strong><font color="#990000">Observable</font></strong></span> getSensor()<br>
+                        {<font color="#006600"><span class="style3">// 返回Observable对象，使Observer可以获取</span></font> <span class="style4"><strong><font color="#ff0000">return</font></strong></span> sensor;<br>
+                        }<br>
+                        }</p>
+                        <p><span class="style4"><strong><font color="#ff0000">class</font></strong></span> Sensor <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <strong><font color="#990000"><span class="style5">Observable</span></font></strong>{<font color="#006600"><span class="style3">// 定义自己的Observable</span></font> <span class="style4"><strong><font color="#ff0000">private</font></strong></span> <span class="style5"><strong><font color="#990000">Object</font></strong></span> data;<br>
+                        <br>
+                        <span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">void</font></strong></span> setData(<span class="style5"><strong><font color="#990000">Object</font></strong></span> newData)<br>
+                        {<br>
+                        data = newData;<br>
+                        <font color="#002c99">setChanged</font>();<font color="#006600"><span class="style3">// 改变Observable</span></font> <strong><font color="#002c99">System</font></strong>.<font color="#002c99">out</font>.<font color="#002c99">println</font>(<span class="style6"><font color="#ff00ff">&quot;Data changed!&quot;</font></span>);<br>
+                        }<br>
+                        <br>
+                        <span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style5"><strong><font color="#990000">Object</font></strong></span> getData()<br>
+                        {<br>
+                        <span class="style4"><strong><font color="#ff0000">return</font></strong></span> data;<br>
+                        }<br>
+                        }</p>
+                        </font></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <table border="1" cellspacing="0" cellpadding="5" width="100%" bgcolor="#cccccc">
+                <tbody>
+                    <tr>
+                        <td><font size="-1"><font color="#006600"><span class="style3">//RightPanel.java</span></font><span class="style4"><strong><font color="#ff0000">package</font></strong></span> com.jungleford.test;
+                        <p><span class="style4"><strong><font color="#ff0000">import</font></strong></span> java.awt.*;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> javax.swing.<strong><font color="#002c99">JPanel</font></strong>;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> java.util.<strong><font color="#002c99">Observer</font></strong>;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> java.util.<strong><font color="#002c99">Observable</font></strong>;</p>
+                        <p><span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">class</font></strong></span> RightPanel <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <span class="style5"><strong><font color="#990000">JPanel</font></strong></span> <span class="style4"><strong><font color="#ff0000">implements</font></strong></span> <strong><font color="#990000"><span class="style5">Observer</span></font></strong>{<font color="#006600"><span class="style3">// 把图片浏览视图布局在右边</span></font> <span class="style4"><strong><font color="#ff0000">private</font></strong></span> <strong><font color="#002c99">Image</font></strong> image;<br>
+                        <br>
+                        <span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">void</font></strong></span> <font color="#002c99">update</font>(<span class="style5"><strong><font color="#990000">Observable</font></strong></span> subject, <strong><font color="#002c99">Object</font></strong> obj)<br>
+                        {<font color="#006600"><span class="style3">// 定义接收到Observable变化后的响应动作</span></font> <strong><font color="#002c99">String</font></strong> file = (<span class="style5"><strong><font color="#990000">String</font></strong></span>)((Sensor)subject).getData();<br>
+                        <span class="style4"><strong><font color="#ff0000">if</font></strong></span> (!file.<font color="#002c99">equals</font>(<span class="style6"><font color="#ff00ff">&quot;&quot;</font></span>))<br>
+                        {<br>
+                        image = <strong><font color="#002c99">Toolkit</font></strong>.<font color="#002c99">getDefaultToolkit</font>().<font color="#002c99">getImage</font>(file);<br>
+                        <strong><font color="#002c99">MediaTracker</font></strong> tracker = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> <span class="style5"><strong><font color="#990000">MediaTracker</font></strong></span>(<span class="style4"><strong><font color="#ff0000">this</font></strong></span>);<font color="#006600"><span class="style3">// 定义图像跟踪</span></font> tracker.<font color="#002c99">addImage</font>(image, <span class="style7"><font color="#0000ff">0</font></span>);<br>
+                        <strong><font color="#ff0000"><span class="style4">try</span></font></strong> {<br>
+                        tracker.<font color="#002c99">waitForID</font>(<span class="style7"><font color="#0000ff">0</font></span>);<font color="#006600"><span class="style3">// 等待图像的完全加载</span></font> }<br>
+                        <span class="style4"><strong><font color="#ff0000">catch</font></strong></span> (<strong><font color="#002c99">InterruptedException</font></strong> e)<br>
+                        {<br>
+                        e.<font color="#002c99">printStackTrace</font>();<br>
+                        }<br>
+                        }<br>
+                        <strong><font color="#ff0000"><span class="style4">else</span></font></strong> image = <span class="style4"><strong><font color="#ff0000">null</font></strong></span>;<br>
+                        <font color="#002c99">repaint</font>();<font color="#006600"><span class="style3">// 重绘组件</span></font> }<br>
+                        <br>
+                        <span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">void</font></strong></span> <font color="#002c99">paintComponent</font>(<strong><font color="#002c99">Graphics</font></strong> g)<br>
+                        {<br>
+                        g.<font color="#002c99">setColor</font>(<strong><font color="#002c99">Color</font></strong>.<font color="#002c99">LIGHT_GRAY</font>);<br>
+                        g.<font color="#002c99">fillRect</font>(<span class="style7"><font color="#0000ff">0</font></span>, <span class="style7"><font color="#0000ff">0</font></span>, <font color="#002c99">getWidth</font>() - <span class="style7"><font color="#0000ff">1</font></span>, <font color="#002c99">getHeight</font>() - <span class="style7"><font color="#0000ff">1</font></span>);<font color="#006600"><span class="style3">// 先将组件上的画面清除</span></font> <span class="style4"><strong><font color="#ff0000">if</font></strong></span> (image != <span class="style4"><strong><font color="#ff0000">null</font></strong></span>)<br>
+                        g.<font color="#002c99">drawImage</font>(image, 0, 0, <span class="style4"><strong><font color="#ff0000">this</font></strong></span>);<font color="#006600"><span class="style3">// 绘制新的图像</span></font> }<br>
+                        }</p>
+                        </font></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <table border="1" cellspacing="0" cellpadding="5" width="100%" bgcolor="#cccccc">
+                <tbody>
+                    <tr>
+                        <td><font size="-1"><font color="#006600"><span class="style3">//MainFrame.java</span></font><span class="style4"><strong><font color="#ff0000">package</font></strong></span> com.jungleford.test;
+                        <p><span class="style4"><strong><font color="#ff0000">import</font></strong></span> java.awt.*;<br>
+                        <span class="style4"><strong><font color="#ff0000">import</font></strong></span> javax.swing.<strong><font color="#002c99">JFrame</font></strong>;</p>
+                        <p><span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">class</font></strong></span> MainFrame <span class="style4"><strong><font color="#ff0000">extends</font></strong></span> <strong><font color="#990000"><span class="style5">JFrame</span></font></strong>{<font color="#006600"><span class="style3">// 演示窗口</span></font> <span class="style4"><strong><font color="#ff0000">public</font></strong></span> <span class="style4"><strong><font color="#ff0000">static</font></strong></span> <span class="style4"><strong><font color="#ff0000">void</font></strong></span> main(<strong><font color="#002c99">String</font></strong>[] args)<br>
+                        {<br>
+                        MainFrame frame = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> MainFrame();<br>
+                        RightPanel right = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> RightPanel();<br>
+                        LeftPanel left = <span class="style4"><strong><font color="#ff0000">new</font></strong></span> LeftPanel(right);<font color="#006600"><span class="style3">// 注册Observer</span></font> frame.<font color="#002c99">getContentPane</font>().<font color="#002c99">add</font>(left, <strong><font color="#002c99">BorderLayout</font></strong>.<font color="#002c99">WEST</font>);<br>
+                        frame.getContentPane().add(right, <span class="style5"><strong><font color="#990000">BorderLayout</font></strong></span>.<font color="#002c99">CENTER</font>);<br>
+                        frame.<font color="#002c99">setTitle</font>(<span class="style6"><font color="#ff00ff">&quot;Observer Test&quot;</font></span>);<br>
+                        frame.<font color="#002c99">setSize</font>(<span class="style7"><font color="#0000ff">400</font></span>, <span class="style7"><font color="#0000ff">300</font></span>);<br>
+                        frame.<font color="#002c99">setDefaultCloseOperation</font>(<span class="style5"><strong><font color="#990000">JFrame</font></strong></span>.<font color="#002c99">EXIT_ON_CLOSE</font>);<br>
+                        frame.<font color="#002c99">setVisible</font>(<span class="style4"><strong><font color="#ff0000">true</font></strong></span>);<br>
+                        }<br>
+                        }</p>
+                        </font></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <font size="-1"><strong><u><font size="3"><font color="#cc0000"><span class="style2">附录：Observer模式概览</span><br>
+            </font></font></u></strong>摘自 <font color="#002c99">设计模式</font><br>
+            <br>
+            <table border="1" width="100%">
+                <tbody>
+                    <tr>
+                        <td><font size="-1">意图</font></td>
+                        <td><font size="-1">定义对象间的一种一对多的依赖关系，当一个对象的状态发生改变时，所有依赖于它的对象都得到通知并被自动更新。</font></td>
+                    </tr>
+                    <tr>
+                        <td><font size="-1">动机</font></td>
+                        <td><font size="-1">将一个系统分割成一系列相互协作的类有一个常见的副作用：需要维护相关对象间的移植性。我们不希望为了维持一致性而使各类紧密耦合，因为这样将降低它们的可重用性。</font></td>
+                    </tr>
+                    <tr>
+                        <td><font size="-1">适用性</font></td>
+                        <td>
+                        <ul><font size="-1">
+                            <li>当一个抽象模型有两个方面，其中一个依赖于另一个，将这二者封装在独立的对象中使它们可以各自独立地改变和复用</li>
+                            <li>当对一个对象的改变需要同时改变其它对象，但不知道具体有多少对象有待改变</li>
+                            <li>当一个对象必须通知其它对象，但它又不能假定其它对象是什么，亦即不希望这些对象是紧密耦合的</li>
+                            </font></ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><font size="-1">结构图</font></td>
+                            <td><img align="bottom" src="http://www.newsmth.org/pc/pcdownload.php?fid=9723"></td>
+                        </tr>
+                        <tr>
+                            <td><font size="-1">参与者</font></td>
+                            <td>
+                            <ul><font size="-1">
+                                <li>Subject（目标）</li>
+                                <li>Observer（观察者）</li>
+                                <li>ConcreteSubject（具体目标）</li>
+                                <li>ConcreteObserver（具体观察者）</li>
+                                </font></ul>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><font size="-1">时序图</font></td>
+                                <td><img align="bottom" src="http://www.newsmth.org/pc/pcdownload.php?fid=9725"></td>
+                            </tr>
+                            <tr>
+                                <td><font size="-1">效果</font></td>
+                                <td><font size="-1">允许你独立的改变目标和观察者。你可以单独复用目标对象而无需同时复用其观察者，反之亦然。你也可以在不改动目标和其它观察者的前提下增加观察者</font></td>
+                            </tr>
+                            <tr>
+                                <td><font size="-1">应用</font></td>
+                                <td><font size="-1">MVC模式</font></td>
+                            </tr>
+                            <tr>
+                                <td><font size="-1">相关模式</font></td>
+                                <td>
+                                <ul><font size="-1">
+                                    <li>Mediator模式</li>
+                                    <li>Singleton模式</li>
+                                    </font></ul>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <br>
+                        <strong><font size="3"><font color="#cc0000"><u><span class="style2">参考资料：</span></u></font></font></strong> </font>
+                        <ul><font size="-1">
+                            <li><a target="_blank" href="http://www.china-pub.com/computers/common/info.asp?id=684"><font color="#002c99">Design Patterns: Elements of Reusable Object-Oriented Software</font></a>, by <em>E. Gamma, R. Helm, R. Johnson, J. Vlissides</em></li>
+                            <li>IBM developerWorks教程：<a target="_blank" href="http://www-900.ibm.com/developerWorks/cn/cnedu.nsf/java-onlinecourse-bytitle/5E86A3394F5A20DF48256B7A0011E4A6?OpenDocument"><font color="#002c99">Java设计模式101</font></a></li>
+                            <li><a target="_blank" href="http://www.amazon.com/gp/reader/0130796662/ref=sib_dp_pt/002-9007113-0490433"><font color="#002c99">Graphic Java 2, Mastering the JFC Volumn I: AWT</font></a>, by <em>David M. Geary</em></li>
+                            <li>本文源代码<a href="http://www.newsmth.org/pc/pcdownload.php?fid=9724"><font color="#205573">打包下载</font></a></li>
+                            </font></ul>
+                            <div><font size="-1"><a href="http://developers.sun.com.cn/blog/jungleford/entry/200703026">http://developers.sun.com.cn/blog/jungleford/entry/200703026</a></font></div></div></body></html>

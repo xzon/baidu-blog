@@ -1,0 +1,209 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 24. Hibernate Search -seam满江红</title></head><body><h1>Chapter 24. Hibernate Search -seam满江红</h1><div><div class="titlepage">
+<div>
+<div>
+<h2 class="title">Chapter 24. Hibernate Search -seam满江红</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e13687"></a>24.1. 简介</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>如Apache Lucene&#8482; 之类的全文搜索引擎是一种非常强大的技术，给我们的应用程序带来了高效的文本查询。 在处理一个对象域模型的时候有可能会遇到多处不匹配（保持最新的索引，索引结构和域模型之间的不匹配，查询不匹配...） Hibernate Search根据一些注解来索引域模型、管理数据库与索引的同步，并从自由文本查询中带给你正常的受管对象。 Hiberante Search在目前的版本里使用了Apache Luncene。</p>
+<p>Hibernate Search在设计之初就是要很好并且尽可能自然地集成JPA和Hibernate，因此自然而然的，JBoss Seam也就提供了Hibernate Search的集成。</p>
+<p>请参考Hibernate Search项目文档信息 <a target="_top" href="http://www.hibernate.org/hib_docs/search/reference/en/html_single/">Hibernate Search documentation</a>。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e13699"></a>24.2. 配置</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Hibernate Search既可以在 <tt class="filename"><font face="新宋体">META-INF/persistence.xml</font></tt> 中也可以在 <tt class="filename"><font face="新宋体">hibernate.cfg.xml</font></tt> 中进行配置。</p>
+<p>对大多数配置参数来说，Hibernate Search配置为其提供合理的默认值，在这里有一个最小化配置的描述。</p>
+<pre class="programlisting">&lt;persistence-unit name=&quot;sample&quot;&gt;
+      &lt;jta-data-source&gt;java:/DefaultDS&lt;/jta-data-source&gt;
+      &lt;properties&gt;
+         [...]
+         <span class="bold"><strong>&lt;!-- use a file system based index --&gt;
+         &lt;property name=&quot;hibernate.search.default.directory_provider&quot; 
+                   value=&quot;org.hibernate.search.store.FSDirectoryProvider&quot;/&gt;
+         &lt;!-- directory where the indexes will be stored --&gt;
+         &lt;property name=&quot;hibernate.search.default.indexBase&quot; 
+                   value=&quot;/Users/prod/apps/dvdstore/dvdindexes&quot;/&gt;</strong></span>
+      &lt;/properties&gt;
+   &lt;/persistence-unit&gt;</pre>
+<p>如果计划使用Hibernate Annotations或者EntityManager 3.2.x（已经嵌入到JBoss AS 4.2.GA中），那也需要配置相应的事件监听器。</p>
+<pre class="programlisting">&lt;persistence-unit name=&quot;sample&quot;&gt;
+      &lt;jta-data-source&gt;java:/DefaultDS&lt;/jta-data-source&gt;
+      &lt;properties&gt;
+         [...]
+         &lt;!-- use a file system based index --&gt;
+         &lt;property name=&quot;hibernate.search.default.directory_provider&quot; 
+                   value=&quot;org.hibernate.search.store.FSDirectoryProvider&quot;/&gt;
+         &lt;!-- directory where the indexes will be stored --&gt;
+         &lt;property name=&quot;hibernate.search.default.indexBase&quot; 
+                   value=&quot;/Users/prod/apps/dvdstore/dvdindexes&quot;/&gt;
+
+         <span class="bold"><strong>&lt;property name=&quot;hibernate.ejb.event.post-insert&quot; 
+                   value=&quot;org.hibernate.search.event.FullTextIndexEventListener&quot;/&gt;
+         &lt;property name=&quot;hibernate.ejb.event.post-update&quot; 
+                   value=&quot;org.hibernate.search.event.FullTextIndexEventListener&quot;/&gt;
+         &lt;property name=&quot;hibernate.ejb.event.post-delete&quot; 
+                   value=&quot;org.hibernate.search.event.FullTextIndexEventListener&quot;/&gt;</strong></span>
+
+      &lt;/properties&gt;
+   &lt;/persistence-unit&gt;</pre>
+<div style="margin-left: 0.5in; margin-right: 0.5in" class="note">
+<table class="FCK__ShowTableBorders" border="0" summary="Note">
+    <tbody>
+        <tr>
+            <td valign="top" rowspan="2" width="25" align="center"><img alt="[Note]" src="http://www.redsaga.com/opendoc/Seam2.0/images/admons/note.png"></td>
+            <th align="left">Note</th>
+        </tr>
+        <tr>
+            <td valign="top" colspan="2" align="left">
+            <p>如果是使用了Hibernate Annotation或者EntityManager 3.3.x，这一步就不再需要了。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>除了配置文件之外，把下面的jars包需要部署到服务器中或者打包进入你的工程中：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>hibernate-search.jar</p>
+    </li>
+    <li>
+    <p>hibernate-commons-annotations.jar</p>
+    </li>
+    <li>
+    <p>lucene-core.jar</p>
+    </li>
+</ul>
+</div>
+<div style="margin-left: 0.5in; margin-right: 0.5in" class="note">
+<table class="FCK__ShowTableBorders" border="0" summary="Note">
+    <tbody>
+        <tr>
+            <td valign="top" rowspan="2" width="25" align="center"><img alt="[Note]" src="http://www.redsaga.com/opendoc/Seam2.0/images/admons/note.png"></td>
+            <th align="left">Note</th>
+        </tr>
+        <tr>
+            <td valign="top" colspan="2" align="left">
+            <p>如果部署的是一个EAR包，别忘了要更新 <tt class="filename"><font face="新宋体">application.xml</font></tt> 文件</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e13745"></a>24.3. 用法</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Hibernate Search使用注解来映射实体类给Lucene索引，访问 <a target="_top" href="http://www.hibernate.org/hib_docs/search/reference/en/html_single/">reference documentation</a> 来获取更多的说明。</p>
+<p>Hibernate Search完全集成JPA/Hibernate的API和语法。只需要几行代码，就可以在基于HQL或者Criteria的查询间进行切换。主API和应用程序是通过 <tt class="classname"><font face="新宋体">FullTextSession</font></tt> API （Hibernate <tt class="classname"><font face="新宋体">Session</font></tt> 的子类）相互交互的。</p>
+<p>当有Hibernate Search的时候，JBoss Seam注入 <tt class="classname"><font face="新宋体">FullTextSession</font></tt> 。</p>
+<pre class="programlisting">@Stateful
+@Name(&quot;search&quot;)
+public class FullTextSearchAction implements FullTextSearch, Serializable
+{   
+   @In
+   <span class="bold"><strong>FullTextSession session;</strong></span>
+
+   public void search(String searchString) {
+      org.apache.lucene.query.Query luceneQuery = getLuceneQuery();
+      org.hibernate.Query query session.createFullTextQuery(luceneQuery, Product.class);
+      searchResults = query
+            .setMaxResults(pageSize + 1)
+            .setFirstResult(pageSize * currentPage)
+            .list();
+   }
+   [...]
+}</pre>
+<div style="margin-left: 0.5in; margin-right: 0.5in" class="note">
+<table class="FCK__ShowTableBorders" border="0" summary="Note">
+    <tbody>
+        <tr>
+            <td valign="top" rowspan="2" width="25" align="center"><img alt="[Note]" src="http://www.redsaga.com/opendoc/Seam2.0/images/admons/note.png"></td>
+            <th align="left">Note</th>
+        </tr>
+        <tr>
+            <td valign="top" colspan="2" align="left">
+            <p><tt class="classname"><font face="新宋体">FullTextSession</font></tt> 继承自 <tt class="classname"><font face="新宋体">org.hibernate.Session</font></tt>，因此它可以被当作正常的Hibernate Session来使用。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>如果使用Java Persistence API，建议做一个平滑的集成。</p>
+<pre class="programlisting">@Name(&quot;search&quot;)
+public class FullTextSearchAction implements FullTextSearch, Serializable
+{   
+   @In
+   <span class="bold"><strong>FullTextEntityManager em;</strong></span>
+
+   public void search(String searchString) {
+      org.apache.lucene.query.Query luceneQuery = getLuceneQuery();
+      javax.persistence.Query query = em.createFullTextQuery(luceneQuery, Product.class);
+      searchResults = query
+            .setMaxResults(pageSize + 1)
+            .setFirstResult(pageSize * currentPage)
+            .getResultList();
+   }
+   [...]
+}</pre>
+<p>当有Hibernate Search的时候，<tt class="classname"><font face="新宋体">FulltextEntityManager</font></tt> 被注入。 <tt class="classname"><font face="新宋体">FullTextEntityManager</font></tt> 继承了 <tt class="classname"><font face="新宋体">EntityManager</font></tt> 并带有特定的搜索方法， 同样 <tt class="classname"><font face="新宋体">FullTextSession</font></tt> 继承了 <tt class="classname"><font face="新宋体">Session</font></tt>。</p>
+<p>当注入 EJB 3.0 Session 或者 Message Driven Bean 时（例如使用 @PersistenceContext 注解的Bean）， 就不可能在定义声明中使用 <tt class="classname"><font face="新宋体">FullTextEntityManager</font></tt> 接口来替换 <tt class="classname"><font face="新宋体">EntityManager</font></tt> 接口。 然而，将注入一个 <tt class="classname"><font face="新宋体">FullTextEntityManager</font></tt> 实现：进行类型转换后就可以了。</p>
+<pre class="programlisting">@Stateful
+@Name(&quot;search&quot;)
+public class FullTextSearchAction implements FullTextSearch, Serializable
+{   
+   @PersistenceContext
+   EntityManager em;
+
+   public void search(String searchString) {
+      org.apache.lucene.query.Query luceneQuery = getLuceneQuery();
+      <span class="bold"><strong>FullTextEntityManager ftEm = (FullTextEntityManager) em;</strong></span>
+      javax.persistence.Query query = ftEm.createFullTextQuery(luceneQuery, Product.class);
+      searchResults = query
+            .setMaxResults(pageSize + 1)
+            .setFirstResult(pageSize * currentPage)
+            .getResultList();
+   }
+   [...]
+}</pre>
+<p> </p>
+<div style="margin-left: 0.5in; margin-right: 0.5in" class="caution">
+<table class="FCK__ShowTableBorders" border="0" summary="Caution">
+    <tbody>
+        <tr>
+            <td valign="top" rowspan="2" width="25" align="center"><img alt="[Caution]" src="http://www.redsaga.com/opendoc/Seam2.0/images/admons/caution.png"></td>
+            <th align="left">Caution</th>
+        </tr>
+        <tr>
+            <td valign="top" colspan="2" align="left">
+            <p>对于那些经习惯了在Seam之外使用Hibernate Search的人来说，要注意使用 <tt class="methodname"><font face="新宋体">Search.createFullTextSession</font></tt> 是不需要的了。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>对于Hibernate Search更详细的示例用法，请查看JBoss Seam发行包中的DVDStore或者Blog示例。</p>
+</div></div></body></html>

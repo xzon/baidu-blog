@@ -1,0 +1,303 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>实时 Java，第 2 部分: 比较编译技术</title></head><body><h1>实时 Java，第 2 部分: 比较编译技术</h1><div><h1>实时 Java 系列</h1>
+<p>由于很多重要原因，Java 语言在实时系统中的应用非常有限。这些原因包括 Java 语言设计中固有的不确定性性能影响，例如动态类加载，以及 Java 运行时环境（Java Runtime Environment，JRE）本身的不确定性性能影响，例如垃圾收集器和本地代码编译。Real-time Specification for Java (RTSJ) 是一种开放的规范，它进一步增强了 Java 语言的开放性，使它能够用来构建实时系统。要实现 RTSJ 规范，要求具备操作系统、JRE 和 Java 类库（Java Class Library，JCL）的支持。</p>
+<p>本系列文章（共 5 个部分）深入研究了使用 Java 语言实现实时系统存在的挑战，并介绍了能够应对这些挑战的开发工具包和运行时环境。</p>
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-rtj/">http://www.ibm.com/developerworks/cn/java/j-rtj/</a></p>
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-rtj1/"><font color="#996699"><strong>第 1 部分，使用 Java 语言编写实时系统</strong></font></a><strong> </strong>（2007 年 5 月 10 日）</p>
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-rtj2/"><font color="#996699"><strong>第 2 部分，比较编译技术</strong></font></a><strong> </strong>（2007 年 5 月 16 日）</p>
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-rtj3/"><font color="#5c81a7"><strong>第 3 部分，线程化和同步</strong></font></a><strong> </strong>（2007 年 5 月 24 日）</p>
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-rtj4/"><font color="#5c81a7"><strong>第 4 部分，实时垃圾收集</strong></font></a><strong> </strong>（2007 年 6 月 4 日）</p>
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-rtj5/"><font color="#5c81a7"><strong>第 5 部分，编写和部署实时 Java 应用程序</strong></font></a><strong> </strong>（2007 年 7 月 11 日）</p>
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-rtj6/"><font color="#5c81a7"><strong>第 6 部分，简化实时 Java 开发</strong></font></a><strong> </strong>（2007 年 8 月 13 日）</p>
+<h1><span style="color: #999999">实时 Java，第 2 部分: </span>比较编译技术</h1>
+<p>Java 应用程序的性能经常成为开发社区中的讨论热点。因为该语言的设计初衷是使用解释的方式支持应用程序的可移植性目标，早期 Java 运行时所提供的性能级别远低于 C 和 C++ 之类的编译语言。尽管这些语言可以提供更高的性能，但是生成的代码只能在有限的几种系统上执行。在过去的十年中，Java 运行时供应商开发了一些复杂的动态编译器，通常称作即时（Just-in-time，JIT）编译器。程序运行时，JIT 编译器选择将最频繁执行的方法编译成本地代码。运行时才进行本地代码编译而不是在程序运行前进行编译（用 C 或 C++ 编写的程序正好属于后一情形），保证了可移植性的需求。有些 JIT 编译器甚至不使用解释程序就能编译所有的代码，但是这些编译器仍然通过在程序执行时进行一些操作来保持 Java 应用程序的可移植性。</p>
+<p>由于动态编译技术的多项改进，在很多应用程序中，现代的 JIT 编译器可以产生与 C 或 C++ 静态编译相当的应用程序性能。但是，仍然有很多软件开发人员认为 &mdash;&mdash; 基于经验或者传闻 &mdash;&mdash; 动态编译可能严重干扰程序操作，因为编译器必须与应用程序共享 CPU。一些开发人员强烈呼吁对 Java 代码进行静态编译，并且坚信那样可以解决性能问题。对于某些应用程序和执行环境而言，这种观点是正确的，静态编译可以极大地提高 Java 性能，或者说它是惟一的实用选择。但是，静态地编译 Java 应用程序在获得高性能的同时也带来了很多复杂性。一般的 Java 开发人员可能并没有充分地感受到 JIT 动态编译器的优点。</p>
+<p>本文考察了 Java 语言静态编译和动态编译所涉及的一些问题，重点介绍了实时 (RT) 系统。简要描述了 Java 语言解释程序的操作原理并说明了现代 JIT 编译器执行本地代码编译的优缺点。介绍了 IBM&reg; 在 WebSphere&reg; Real Time 中发布的 AOT 编译技术和它的一些优缺点。然后比较了这两种编译策略并指出了几种比较适合使用 AOT 编译的应用程序领域和执行环境。要点在于这两种编译技术并不互斥：即使在使用这两种技术最为有效的各种应用程序中，它们也分别存在一些影响应用程序的优缺点。</p>
+<p><a name="N100A3"><span class="atitle">执行 Java 程序</span></a></p>
+<p>Java 程序最初是通过 Java SDK 的 <code><font face="NSimsun">javac</font></code> 程序编译成本地的与平台无关的格式（类文件）。可将此格式看作 Java 平台，因为它定义了执行 Java 程序所需的所有信息。Java 程序执行引擎，也称作 Java 运行时环境（JRE），包含了为特定的本地平台实现 Java 平台的虚拟机。例如，基于 Linux&reg; 的 Intel x86 平台、Sun Solaris 平台和 AIX&reg; 操作系统上运行的 IBM System p&#8482; 平台，每个平台都拥有一个 JRE。这些 JRE 实现实现了所有的本地支持，从而可以正确执行为 Java 平台编写的程序。</p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="40%" align="right" border="0">
+    <tbody>
+        <tr>
+            <td width="10"><img height="1" width="10" src="http://www.ibm.com/i/c.gif"></td>
+            <td>
+            <table cellspacing="0" cellpadding="5" width="100%" border="1">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee">
+                        <p>事实上，操作数堆栈的大小有实际限制，但是编程人员极少编写超出该限制的方法。JVM 提供了安全性检查，对那些创建出此类方法的编程人员进行通知。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>Java 平台程序表示的一个重要部分是<em>字节码</em> 序列，它描述了 Java 类中每个方法所执行的操作。字节码使用一个理论上无限大的操作数堆栈来描述计算。这个基于堆栈的程序表示提供了平台无关性，因为它不依赖任何特定本地平台的 CPU 中可用寄存器的数目。可在操作数堆栈上执行的操作的定义都独立于所有本地处理器的指令集。Java 虚拟机（JVM）规范定义了这些字节码的执行（参见 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-rtj2/#resources"><font color="#5c81a7">参考资料</font></a>）。执行 Java 程序时，用于任何特定本地平台的任何 JRE 都必须遵守 JVM 规范中列出的规则。</p>
+<p>因为基于堆栈的本地平台很少（Intel X87 浮点数协处理器是一个明显的例外），所以大多数本地平台不能直接执行 Java 字节码。为了解决这个问题，早期的 JRE 通过<em>解释</em> 字节码来执行 Java 程序。即 JVM 在一个循环中重复操作：</p>
+<ol>
+    <li>获取待执行的下一个字节码。</li>
+    <li>解码。</li>
+    <li>从操作数堆栈获取所需的操作数。</li>
+    <li>按照 JVM 规范执行操作。</li>
+    <li>将结果写回堆栈。</li>
+</ol>
+<p>这种方法的优点是其简单性：JRE 开发人员只需编写代码来处理每种字节码即可。并且因为用于描述操作的字节码少于 255 个，所以实现的成本比较低。当然，缺点是性能：这是一个早期造成很多人对 Java 平台不满的问题，尽管拥有很多其他优点。</p>
+<p>解决与 C 或 C++ 之类的语言之间的性能差距意味着，使用不会牺牲可移植性的方式开发用于 Java 平台的本地代码编译。</p>
+<p><a name="N100E5"><span class="atitle">编译 Java 代码</span></a></p>
+<p>尽管传闻中 Java 编程的 &ldquo;一次编写，随处运行&rdquo; 的口号可能并非在所有情况下都严格成立，但是对于大量的应用程序来说情况确实如此。另一方面，本地编译本质上是特定于平台的。那么 Java 平台如何在不牺牲平台无关性的情况下实现本地编译的性能？答案就是使用 JIT 编译器进行动态编译，这种方法已经使用了十年（参见图 1）：</p>
+<p><br>
+<a name="fig1"><strong>图 1. JIT 编译器</strong></a><br>
+<img height="338" alt="图 1. JIT 编译器" width="532" src="http://www.ibm.com/developerworks/cn/java/j-rtj2/jvmjit.gif"></p>
+<p>使用 JIT 编译器时，Java 程序按每次编译一个方法的形式进行编译，因为它们在本地处理器指令中执行以获得更高的性能。此过程将生成方法的一个内部表示，该表示与字节码不同但是其级别要高于目标处理器的本地指令。（IBM JIT 编译器使用一个表达式树序列表示方法的操作。）编译器执行一系列优化以提高质量和效率，最后执行一个代码生成步骤将优化后的内部表示转换成目标处理器的本地指令。生成的代码依赖运行时环境来执行一些活动，比如确保类型转换的合法性或者对不能在代码中直接执行的某些类型的对象进行分配。JIT 编译器操作的编译线程与应用程序线程是分开的，因此应用程序不需要等待编译的执行。</p>
+<p>图 1 中还描述了用于观察执行程序行为的分析框架，通过周期性地对线程取样找出频繁执行的方法。该框架还为专门进行分析的方法提供了工具，用来存储程序的此次执行中可能不会改变的动态值。</p>
+<p>因为这个 JIT 编译过程在程序执行时发生，所以能够保持平台无关性：发布的仍然是中立的 Java 平台代码。C 和 C++ 之类的语言缺乏这种优点，因为它们在程序执行前进行本地编译；发布给（本地平台）执行环境的是本地代码。</p>
+<p><a name="N10106"><span class="smalltitle"><strong><font size="3">挑战</font></strong></span></a></p>
+<p>尽管通过 JIT 编译保持了平台无关性，但是付出了一定代价。因为在程序执行时进行编译，所以编译代码的时间将计入程序的执行时间。任何编写过大型 C 或 C++ 程序的人都知道，编译过程往往较慢。</p>
+<p>为了克服这个缺点，现代的 JIT 编译器使用了下面两种方法的任意一种（某些情况下同时使用了这两种方法）。第一种方法是：编译所有的代码，但是不执行任何耗时多的分析和转换，因此可以快速生成代码。由于生成代码的速度很快，因此尽管可以明显观察到编译带来的开销，但是这很容易就被反复执行本地代码所带来的性能改善所掩盖。第二种方法是：将编译资源只分配给少量的频繁执行的方法（通常称作<em>热</em> 方法）。低编译开销更容易被反复执行热代码带来的性能优势掩盖。很多应用程序只执行少量的热方法，因此这种方法有效地实现了编译性能成本的最小化。</p>
+<p>动态编译器的一个主要的复杂性在于权衡了解编译代码的预期获益使方法的执行对整个程序的性能起多大作用。一个极端的例子是，程序执行后，您非常清楚哪些方法对于这个特定的执行的性能贡献最大，但是编译这些方法毫无用处，因为程序已经完成。而在另一个极端，程序执行前无法得知哪些方法重要，但是每种方法的潜在受益都最大化了。大多数动态编译器的操作介于这两个极端之间，方法是权衡了解方法预期获益的重要程度。</p>
+<p>Java 语言需要动态加载类这一事实对 Java 编译器的设计有着重要的影响。如果待编译代码引用的其他类还没有加载怎么办？比如一个方法需要读取某个尚未加载的类的静态字段值。Java 语言要求第一次执行类引用时加载这个类并将其解析到当前的 JVM 中。直到第一次执行时才解析引用，这意味着没有地址可供从中加载该静态字段。编译器如何处理这种可能性？编译器生成一些代码，用于在没有加载类时加载并解析类。类一旦被解析，就会以一种线程安全的方式修改原始代码位置以便直接访问静态字段的地址，因为此时已获知该地址。</p>
+<p>IBM JIT 编译器中进行了大量的努力以便使用安全而有效率的代码补丁技术，因此在解析类之后，执行的本地代码只加载字段的值，就像编译时已经解析了字段一样。另外一种方法是生成一些代码，用于在查明字段的位置以前一直检查是否已经解析字段，然后加载该值。对于那些由未解析变成已解析并被频繁访问的字段来说，这种简单的过程可能带来严重的性能问题。</p>
+<p><a name="N1011E"><span class="smalltitle"><strong><font size="3">动态编译的优点</font></strong></span></a></p>
+<p>动态地编译 Java 程序有一些重要的优点，甚至能够比静态编译语言更好地生成代码，现代的 JIT 编译器常常向生成的代码中插入挂钩以收集有关程序行为的信息，以便如果要选择方法进行重编译，就可以更好地优化动态行为。</p>
+<p>关于此方法的一个很好的例子是收集一个特定 <code><font face="NSimsun">arraycopy</font></code> 操作的长度。如果发现每次执行操作时该长度基本不变，则可以为最频繁使用的 <code><font face="NSimsun">arraycopy</font></code> 长度生成专门的代码，或者可以调用调整为该长度的代码序列。由于内存系统和指令集设计的特性，用于复制内存的最佳通用例程的执行速度通常比用于复制特定长度的代码慢。例如，复制 8 个字节的对齐的数据可能需要一到两条指令直接复制，相比之下，使用可以处理任意字节数和任意对齐方式的一般复制循环可能需要 10 条指令来复制同样的 8 个字节。但是，即使此类专门的代码是为某个特定的长度生成的，生成的代码也必须正确地执行其他长度的复制。生成代码只是为了使常见长度的操作执行得更快，因此平均下来，性能得到了改进。此类优化对大多数静态编译语言通常不实用，因为所有可能的执行中长度恒定的操作比一个特定程序执行中长度恒定的操作要少得多。</p>
+<p>此类优化的另一个重要的例子是基于类层次结构的优化。例如，一个虚方法调用需要查看接收方对象的类调用，以便找出哪个实际目标实现了接收方对象的虚方法。研究表明：大多数虚调用只有一个目标对应于所有的接收方对象，而 JIT 编译器可以为直接调用生成比虚调用更有效率的代码。通过分析代码编译后类层次结构的状态，JIT 编译器可以为虚调用找到一个目标方法，并且生成直接调用目标方法的代码而不是执行较慢的虚调用。当然，如果类层次结构发生变化，并且出现另外的目标方法，则 JIT 编译器可以更正最初生成的代码以便执行虚调用。在实践中，很少需要作出这些更正。另外，由于可能需要作出此类更正，因此静态地执行这种优化非常麻烦。</p>
+<p>因为动态编译器通常只是集中编译少量的热方法，所以可以执行更主动的分析来生成更好的代码，使编译的回报更高。事实上，大部分现代的 JIT 编译器也支持重编译被认为是热方法的方法。可以使用静态编译器（不太强调编译时间）中常见的非常主动的优化来分析和转换这些频繁执行的方法，以便生成更好的代码并获得更高的性能。</p>
+<p>这些改进及其他一些类似的改进所产生的综合效果是：对于大量的 Java 应用程序来说，动态编译已经弥补了与 C 和 C++ 之类语言的静态本地编译性能之间的差距，在某些情况下，甚至超过了后者的性能。</p>
+<p><a name="N1013B"><span class="smalltitle"><strong><font size="3">缺点</font></strong></span></a></p>
+<p>但是，动态编译确实具有一些缺点，这些缺点使它在某些情况下算不上一个理想的解决方案。例如，因为识别频繁执行的方法以及编译这些方法需要时间，所以应用程序通常要经历一个准备过程，在这个过程中性能无法达到其最高值。在这个准备过程中出现性能问题有几个原因。首先，大量的初始编译可能直接影响应用程序的启动时间。不仅这些编译延迟了应用程序达到稳定状态的时间（想像 Web 服务器经历一个初始阶段后才能够执行实际有用的工作），而且在准备阶段中频繁执行的方法可能对应用程序的稳定状态的性能所起的作用也不大。如果 JIT 编译会延迟启动又不能显著改善应用程序的长期性能，则执行这种编译就非常浪费。虽然所有的现代 JVM 都执行调优来减轻启动延迟，但是并非在所有情况下都能够完全解决这个问题。</p>
+<p>其次，有些应用程序完全不能忍受动态编译带来的延迟。如 GUI 接口之类交互式应用程序就是这样的例子。在这种情况下，编译活动可能对用户使用造成不利影响，同时又不能显著地改善应用程序的性能。</p>
+<p>最后，用于实时环境并具有严格的任务时限的应用程序可能无法忍受编译的不确定性性能影响或动态编译器本身的内存开销。</p>
+<p>因此，虽然 JIT 编译技术已经能够提供与静态语言性能相当（甚至更好）的性能水平，但是动态编译并不适合于某些应用程序。在这些情况下，Java 代码的提前（Ahead-of-time，AOT）编译可能是合适的解决方案。</p>
+<p><a name="N1014D"><span class="atitle">AOT Java 编译</span></a></p>
+<p>大致说来，Java 语言本地编译应该是为传统语言（如 C++ 或 Fortran）而开发的编译技术的一个简单应用。不幸的是，Java 语言本身的动态特性带来了额外的复杂性，影响了 Java 程序静态编译代码的质量。但是基本思想仍然是相同的：在程序执行前生成 Java 方法的本地代码，以便在程序运行时直接使用本地代码。目的在于避免 JIT 编译器的运行时性能消耗或内存消耗，或者避免解释程序的早期性能开销。</p>
+<p><a name="N10156"><span class="smalltitle"><strong><font size="3">挑战</font></strong></span></a></p>
+<p>动态类加载是动态 JIT 编译器面临的一个挑战，也是 AOT 编译的一个更重要的问题。只有在执行代码引用类的时候才加载该类。因为是在程序执行前进行 AOT 编译的，所以编译器无法预测加载了哪些类。就是说编译器无法获知任何静态字段的地址、任何对象的任何实例字段的偏移量或任何调用的实际目标，甚至对直接调用（非虚调用）也是如此。在执行代码时，如果证明对任何这类信息的预测是错误的，这意味着代码是错误的并且还牺牲了 Java 的一致性。</p>
+<p>因为代码可以在任何环境中执行，所以类文件可能与代码编译时不同。例如，一个 JVM 实例可能从磁盘的某个特定位置加载类，而后面一个实例可能从不同的位置甚至网络加载该类。设想一个正在进行 bug 修复的开发环境：类文件的内容可能随不同的应用程序的执行而变化。此外，Java 代码可能在程序执行前根本不存在：比如 Java 反射服务通常在运行时生成新类来支持程序的行为。</p>
+<p>缺少关于静态、字段、类和方法的信息意味着严重限制了 Java 编译器中优化框架的大部分功能。<em>内联</em> 可能是静态或动态编译器应用的最重要的优化，但是由于编译器无法获知调用的目标方法，因此无法再使用这种优化。</p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="40%" align="right" border="0">
+    <tbody>
+        <tr>
+            <td width="10"><img height="1" width="10" src="http://www.ibm.com/i/c.gif"></td>
+            <td>
+            <table cellspacing="0" cellpadding="5" width="100%" border="1">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee"><a name="N1016B"><strong>内联</strong></a><br>
+                        <p>内联是一种用于在运行时生成代码避免程序开始和结束时开销的技术，方法是将函数的调用代码插入到调用方的函数中。但是内联最大的益处可能是优化方可见的代码的范围扩大了，从而能够生成更高质量的代码。下面是一个内联前的代码示例：</p>
+                        <table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+                            <tbody>
+                                <tr>
+                                    <td class="code-outline">
+                                    <pre class="displaycode">int foo() { int x=2, y=3; return bar(x,y); }
+final int bar(int a, int b) { return a+b; }</pre>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <br>
+                        <p>如果编译器可以证明这个 <code><font face="NSimsun">bar</font></code> 就是 <code><font face="NSimsun">foo()</font></code> 中调用的那个方法，则 <code><font face="NSimsun">bar</font></code> 中的代码可以取代 <code><font face="NSimsun">foo()</font></code> 中对 <code><font face="NSimsun">bar()</font></code> 的调用。这时，<code><font face="NSimsun">bar()</font></code> 方法是 <code><font face="NSimsun">final</font></code> 类型，因此肯定是 <code><font face="NSimsun">foo()</font></code> 中调用的那个方法。甚至在一些虚调用例子中，动态 JIT 编译器通常能够推测性地内联目标方法的代码，并且在绝大多数情况下能够正确使用。编译器将生成以下代码：</p>
+                        <table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+                            <tbody>
+                                <tr>
+                                    <td class="code-outline">
+                                    <pre class="displaycode">int foo() { int x=2, y=3; return x+y; }</pre>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <br>
+                        <p>在这个例子中，简化前名为<em>值传播</em> 的优化可以生成直接返回 <code><font face="NSimsun">5</font></code> 的代码。如果不使用内联，则不能执行这种优化，产生的性能就会低很多。如果没有解析 <code><font face="NSimsun">bar()</font></code> 方法（例如静态编译），则不能执行这种优化，而代码必须执行虚调用。运行时，实际调用的可能是另外一个执行两个数字相乘而不是相加的 <code><font face="NSimsun">bar</font></code> 方法。所以不能在 Java 程序的静态编译期间直接使用内联。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>AOT 代码因此必须在没有解析每个静态、字段、类和方法引用的情况下生成。执行时，每个这些引用必须利用当前运行时环境的正确值进行更新。这个过程可能直接影响第一次执行的性能，因为在第一次执行时将解析所有引用。当然，后续执行将从修补代码中获益，从而可以更直接地引用实例、静态字段或方法目标。</p>
+<p>另外，为 Java 方法生成的本地代码通常需要使用仅在单个 JVM 实例中使用的值。例如，代码必须调用 JVM 运行时中的某些运行时例程来执行特定操作，如查找未解析的方法或分配内存。这些运行时例程的地址可能在每次将 JVM 加载到内存时变化。因此 AOT 编译代码需要绑定到 JVM 的当前执行环境中，然后才能执行。其他的例子有字符串的地址和常量池入口的内部位置。</p>
+<p>在 WebSphere Real Time 中，AOT 本地代码编译通过 <code><font face="NSimsun">jxeinajar</font></code> 工具（参见图 2）来执行。该工具对 JAR 文件中所有类的所有方法应用本地代码编译，也可以选择性地对需要的方法应用本地代码编译。结果被存储到名为 Java eXEcutable (JXE) 的内部格式中，但是也可轻松地存储到任意的持久性容器中。</p>
+<p><br>
+<a name="fig2"><strong>图 2. jxeinajar</strong></a><br>
+<img height="217" alt="图 2. jxeinajar" width="465" src="http://www.ibm.com/developerworks/cn/java/j-rtj2/jxeinajar.gif"></p>
+<p>您可能认为对所有的代码进行静态编译是最好的方法，因为可以在运行时执行最大数量的本地代码。但是此处可以作出一些权衡。编译的方法越多，代码占用的内存就越多。编译后的本地代码大概比字节码大 10 倍：本地代码本身的密度比字节码小，而且必须包含代码的附加元数据，以便将代码绑定到 JVM 中，并且在出现异常或请求堆栈跟踪时正确执行代码。构成普通 Java 应用程序的 JAR 文件通常包含许多很少执行的方法。编译这些方法会消耗内存却没有什么预期收益。相关的内存消耗包括以下过程：将代码存储到磁盘上、从磁盘取出代码并装入 JVM，以及将代码绑定到 JVM。除非多次执行代码，否则这些代价不能由本地代码相对解释的性能优势来弥补。</p>
+<p>跟大小问题相违背的一个事实是：在编译过的方法和解释过的方法之间进行的调用（即编译过的方法调用解释过的方法，或者相反）可能比这两类方法各自内部之间进行的调用所需的开销大。动态编译器通过最终编译所有由 JIT 编译代码频繁调用的那些解释过的方法来减少这项开销，但是如果不使用动态编译器，则这项开销就不可避免。因此如果是选择性地编译方法，则必须谨慎操作以使从已编译方法到未编译方法的转换最小化。为了在所有可能的执行中都避免这个问题而选择正确的方法会非常困难。</p>
+<p><a name="N101D6"><span class="smalltitle"><strong><font size="3">优点</font></strong></span></a></p>
+<p>虽然 AOT 编译代码具有上述的缺点和挑战，但是提前编译 Java 程序可以提高性能，尤其是在不能将动态编译器作为有效解决方案的环境中。</p>
+<p>可以通过谨慎地使用 AOT 编译代码加快应用程序启动，因为虽然这种代码通常比 JIT 编译代码慢，但是却比解释代码快很多倍。此外，因为加载和绑定 AOT 编译代码的时间通常比检测和动态编译一个重要方法的时间少，所以能够在程序执行的早期达到那样的性能。类似地，交互式应用程序可以很快地从本地代码中获益，无需使用引起较差响应能力的动态编译。</p>
+<p>RT 应用程序也能从 AOT 编译代码中获得重要的收益：更具确定性的性能超过了解释的性能。WebSphere Real Time 使用的动态 JIT 编译器针对在 RT 系统中的使用进行了专门的调整。使编译线程以低于 RT 任务的优先级操作，并且作出了调整以避免生成带有严重的不确定性性能影响的代码。但是，在一些 RT 环境中，出现 JIT 编译器是不可接受的。此类环境通常需要最严格的时限管理控制。在这些例子中，AOT 编译代码可以提供比解释过的代码更好的原始性能，又不会影响现有的确定性。消除 JIT 编译线程甚至消除了启动更高优先级 RT 任务时发生的线程抢占所带来的性能影响。</p>
+<p><a name="N101E5"><span class="atitle">优缺点统计</span></a></p>
+<p>动态（JIT）编译器支持平台中立性，并通过利用应用程序执行的动态行为和关于加载的类及其层次结构的信息来生成高质量的代码。但是 JIT 编译器具有一个有限的编译时预算，而且会影响程序的运行时性能。另一方面，静态（AOT）编译器则牺牲了平台无关性和代码质量，因为它们不能利用程序的动态行为，也不具有关于加载的类或类层次结构的信息。AOT 编译拥有有效无限制的编译时预算，因为 AOT 编译时间不会影响运行时性能，但是在实践中开发人员不会长期等待静态编译步骤的完成。</p>
+<p>表 1 总结了本文讨论的 Java 语言动态和静态编译器的一些特性：</p>
+<p><br>
+<a name="table1"><strong>表 1. 比较编译技术</strong></a><br>
+<table class="data-table-1 FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" summary="Comparing static and dynamic compilation" border="0">
+    <tbody>
+        <tr>
+            <th scope="col"> </th>
+            <th scope="col">动态 (JIT)</th>
+            <th scope="col">静态 (AOT)</th>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">平台无关性</th>
+            <td>有</td>
+            <td>无</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">代码质量</th>
+            <td>优秀</td>
+            <td>良好</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">利用动态行为</th>
+            <td>是</td>
+            <td>否</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">类和层次结构的知识</th>
+            <td>有</td>
+            <td>无</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">编译时间</th>
+            <td>有限制，有运行时成本</td>
+            <td>限制很少，无运行时成本</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">运行时性能影响</th>
+            <td>有</td>
+            <td>无</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">编译方式</th>
+            <td>需要谨慎编译，由 JIT 处理</td>
+            <td>需要谨慎编译，由开发人员处理</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>两种技术都需要谨慎选择编译的方法以实现最高的性能。对动态编译器而言，编译器自身作出决策，而对于静态编译器，由开发人员作出选择。让 JIT 编译器选择编译的方法是不是优点很难说，取决于编译器在给定情形中推断能力的好坏。在大多数情况下，我们认为这是一种优点。</p>
+<p>因为它们可以最好地优化运行中的程序，所以 JIT 编译器在提供稳定状态性能方面更胜一筹，而这一点在大量的生产 Java 系统中最为重要。静态编译可以产生最佳的交互式性能，因为没有运行时编译行为来影响用户预期的响应时间。通过调整动态编译器可以在某种程度上解决启动和确定性性能问题，但是静态编译在需要时可提供最快的启动速度和最高级别的确定性。表 2 在四种不同的执行环境中对这两种编译技术进行了比较：</p>
+<p><br>
+<a name="table2"><strong>表 2. 使用这些技术的最佳环境</strong></a><br>
+<table class="data-table-1 FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" summary="使用这些技术的最佳环境" border="0">
+    <tbody>
+        <tr>
+            <th scope="col"> </th>
+            <th scope="col">动态 (JIT)</th>
+            <th scope="col">静态 (AOT)</th>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">启动性能</th>
+            <td>可调整，但不是最好</td>
+            <td>最好</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">稳定状态性能</th>
+            <td>最好</td>
+            <td>好</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">交互式性能</th>
+            <td>一般</td>
+            <td>良好</td>
+        </tr>
+        <tr>
+            <th class="tb-row" scope="row">确定性性能</th>
+            <td>可调整，但不是最好</td>
+            <td>最好</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>图 3 展示了启动性能和稳定状态性能的总体趋势：</p>
+<p><br>
+<a name="fig3"><strong>图 3. AOT 和 JIT 的性能对比</strong></a><br>
+<img height="245" alt="图 3. AOT 和 JIT 的性能对比" width="431" src="http://www.ibm.com/developerworks/cn/java/j-rtj2/performanceaotvsjit.gif"></p>
+<p>使用 JIT 编译器的初始阶段性能很低，因为要首先解释方法。随着编译方法的增多及 JIT 执行编译所需时间的缩短，性能曲线逐渐升高最后达到性能峰值。另一方面，AOT 编译代码启动时的性能比解释的性能高很多，但是无法达到 JIT 编译器所能达到的最高性能。将静态代码绑定到 JVM 实例中会产生一些开销，因此开始时的性能比稳定状态的性能值低，但是能够比使用 JIT 编译器更快地达到稳定状态的性能水平。</p>
+<p>没有一种本地代码编译技术能够适合所有的 Java 执行环境。某种技术所擅长的通常正是其他技术的弱项。出于这个原因，需要同时使用这两种编译技术以满足 Java 应用程序开发人员的要求。事实上，可以结合使用静态和动态编译以便提供最大可能的性能提升 &mdash;&mdash; 但是必须具备平台无关性，它是 Java 语言的主要卖点，因此不成问题。</p>
+<p><a name="N102E1"><span class="atitle">结束语</span></a></p>
+<p>本文探讨了 Java 语言本地代码编译的问题，主要介绍了 JIT 编译器形式的动态编译和静态 AOT 编译，比较了二者的优缺点。</p>
+<p>虽然动态编译器在过去的十年里实现了极大的成熟，使大量的各种 Java 应用程序可以赶上或超过静态编译语言（如 C++ 或 Fortran）所能够达到的性能。但是动态编译在某些类型的应用程序和执行环境中仍然不太合适。虽然 AOT 编译号称动态编译缺点的万能解决方案，但是由于 Java 语言本身的动态特性，它也面临着提供本地编译全部潜能的挑战。</p>
+<p>这两种技术都不能解决 Java 执行环境中本地代码编译的所有需求，但是反过来又可以在最有效的地方作为工具使用。这两种技术可以相互补充。能够恰当地使用这两种编译模型的运行时系统可以使很大范围内的应用程序开发环境中的开发人员和用户受益。</p>
+<p> </p>
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+<p><strong>学习</strong></p>
+<ul>
+    <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-rtj/"><font color="#996699"><em>实时 Java</em> 系列</font></a>：阅读本系列的其他部分。</li>
+    <li><a cmimpressionsent="1" href="http://java.sun.com/docs/books/jvms/"><font color="#5c81a7">Java 虚拟机规范</font></a>：现在可以下载 JVM 规范的第二版。</li>
+    <li><a cmimpressionsent="1" href="http://jcp.org/en/jsr/detail?id=1"><font color="#5c81a7">JSR 1: Real-time Specification for Java</font></a>：您将在 Java Community Process 站点找到 RJSJ。</li>
+    <li><a cmimpressionsent="1" href="http://www.ibm.com/common/ssi/fcgi-bin/ssialias?subtype=ca&amp;infotype=an&amp;appname=iSource&amp;supplier=897&amp;letternum=ENUS206-210"><font color="#5c81a7">IBM WebSphere Real Time V1.0 delivers predictable response times using Java standards</font></a>：阅读 WebSphere Real Time 的产品声明。</li>
+    <li>&ldquo;<a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-native/"><font color="#5c81a7">衡量 Java 本机编译</font></a>&rdquo;（Martyn Honeyford，developerWorks，2002 年 1月）：讨论从 Java 源代码生成本地代码的利弊。</li>
+    <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/"><font color="#996699">developerWorks Java 技术专区</font></a>：提供了大量关于 Java 编程各个方面的文章。</li>
+</ul>
+<p><br>
+<strong>获得产品和技术</strong></p>
+<ul>
+    <li><a cmimpressionsent="1" href="http://www.ibm.com/software/webservers/realtime/"><font color="#5c81a7">WebSphere Real Time</font></a>：WebSphere Real Time 利用了标准的 Java 技术并且没有损失确定性，使应用程序依赖于精确的响应时间。</li>
+    <li><a cmimpressionsent="1" href="http://www.alphaworks.ibm.com/topics/realtimejava"><font color="#5c81a7">Real-time Java 技术</font></a>：访问作者的 IBM alphaWorks 研究站点，查找用于实时 Java 的先进技术。</li>
+</ul>
+<p><br>
+<strong>讨论</strong></p>
+<ul>
+    <li>通过参与 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/blogs/"><font color="#5c81a7">developerWorks blogs</font></a> 加入 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/community"><font color="#5c81a7">developerWorks 社区</font></a>。</li>
+</ul>
+<p> </p>
+<p><a name="author"><span class="atitle">作者简介</span></a></p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td colspan="3"><img height="5" width="100%" src="http://www.ibm.com/i/c.gif"></td>
+        </tr>
+        <tr valign="top" align="left">
+            <td>
+            <p><img alt="Mark Stoodley" align="left" valign="top" src="http://www.ibm.com/developerworks/i/p-mstoodley.jpg"></p>
+            </td>
+            <td><img height="5" width="4" src="http://www.ibm.com/i/c.gif"></td>
+            <td width="100%">
+            <p>Mark Stoodley 在 2001 年从多伦多大学获得计算机工程的博士学位，并于 2002 年加入 IBM 多伦多实验室，研究 Java JIT 编译技术。从 2005 年起，通过采用现有的 JIT 编译器并在实时环境中进行操作，他开始为 IBM WebSphere Real Time 开发 JIT 技术。他现在是 Java 编译控制团队的团队负责人，从事在本地代码的执行环境中提高本地代码编译效率的工作。工作以外，他喜欢收拾自己的家。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td colspan="3"><img height="5" width="100%" src="http://www.ibm.com/i/c.gif"></td>
+        </tr>
+        <tr valign="top" align="left">
+            <td>
+            <p><img alt="Kenneth Ma" align="left" valign="top" src="http://www.ibm.com/developerworks/i/p-kma.jpg"></p>
+            </td>
+            <td><img height="5" width="4" src="http://www.ibm.com/i/c.gif"></td>
+            <td width="100%">
+            <p>Kenneth Ma 2003 年在 Waterloo 大学毕业，获得了电子工程应用科学的学士学位，此后不久他成为 IBM 的专职开发人员。先前在 IBM 实习期间，他从事 IBM 的 WebSphere 平台上的 iSeries 工具开发工作。Kenneth 现在是 IBM Testarossa JIT Compiler 团队的一员。在过去两年里，他一直致力于实现和改进 IBM J9 Java 虚拟机的 AOT 编译技术，最近从事将该技术迁移到 Java SE 环境的工作。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td colspan="3"><img height="5" width="100%" src="http://www.ibm.com/i/c.gif"></td>
+        </tr>
+        <tr valign="top" align="left">
+            <td>
+            <p><img alt="Maruis Lut" align="left" valign="top" src="http://www.ibm.com/developerworks/i/p-mlut.jpg"></p>
+            </td>
+            <td><img height="5" width="4" src="http://www.ibm.com/i/c.gif"></td>
+            <td width="100%">
+            <p>Marius Lut 在罗马尼亚的 Timisoara 工艺大学获得了自动化和计算机工程学位。他在 1998 年加入 IBM 多伦多实验室。从那以后他从事 z/OS 的 IBM HPJ 静态编译器、IBM Sovereign JIT 编译器的开发工作，最近三年开发了 IBM Testarossa JIT 技术。他拥有 J2SE、J2ME 编译器、嵌入式系统的软件开发与设计、RT 环境、大型机和基于 Intel 处理器的系统等领域的开发经验。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p></div></body></html>

@@ -1,0 +1,528 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 6. 对话以及工作区管理 -seam满江红</title></head><body><h1>Chapter 6. 对话以及工作区管理 -seam满江红</h1><div><div class="chapter">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title"><a name="conversations"></a>Chapter 6. 对话以及工作区管理 -seam满江红</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>现在该更详细地了解一下Seam的对话模型了。</p>
+<p>从历史上看，Seam的&ldquo;对话Conversation&rdquo;概念是由三个不同的概念合并而成的。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><span class="emphasis"><em>工作区（workspace）</em></span> 的概念，是我2002年在给英国政府做项目中遇到的概念，当时我被迫在struts之上实现工作间，我祈求永远不要再重复这样的遭遇。</p>
+    </li>
+    <li>
+    <p>语义乐观的 <span class="emphasis"><em>应用程序事务（application transaction with optimistic semantics）</em></span> 的概念,以及基于无状态构架的现有框架的实现，都无法提供对被扩展持久化上下文的有效管理。 （Hibernate团队确实已经受够了由于 <tt class="literal"><font face="新宋体">LazyInitializationException</font></tt> 异常的指责，但这实际上并不是Hibernate自身的错误，而是因为像Spring框架这样的无状态构架，或者J2EE中传统的 <span class="emphasis"><em>无状态会话Facade</em></span> （反）模式支持极端限制的持久化上下文模型所造成的。）</p>
+    </li>
+    <li>
+    <p>工作流 <span class="emphasis"><em>任务</em></span>的概念。</p>
+    </li>
+</ul>
+</div>
+<p>通过统一以上这些概念并提供底层框架的支持，我们就有了一个强大的构造能力，它使我们能够用比以前更少的代码构建出功能更加丰富且更加高效的应用程序。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e4992"></a>6.1. Seam的对话模型</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们目前为止所看到的例子仅仅使用非常简单的对话模型，它遵循以下这些规则：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>在应用JSF请求值、处理验证、更新模型值、调用应用程序，以及渲染JSF请求生命周期的响应阶段期间，始终都有一个激活的会话上下文。</p>
+    </li>
+    <li>
+    <p>在JSF请求生命周期恢复视图阶段的最后，Seam将会试图恢复之前长时间运行的任何对话上下文。 如果这种上下文不存在，Seam将会创建一个新的临时对话上下文。</p>
+    </li>
+    <li>
+    <p>当遇到 <tt class="literal"><font face="新宋体">@Begin</font></tt> 方法时，临时对话上下文会被提升为&ldquo;长时间运行&rdquo;的对话。</p>
+    </li>
+    <li>
+    <p>当遇到 <tt class="literal"><font face="新宋体">@End</font></tt> 方法时，任何&ldquo;长时间运行&rdquo;对话上下文都将会被降级为临时对话。</p>
+    </li>
+    <li>
+    <p>在JSF请求生命周期渲染阶段的最后，Seam会保存&ldquo;长时间运行&rdquo;对话的内容，或者销毁临时对话上下文的内容。</p>
+    </li>
+    <li>
+    <p>任何&ldquo;faces request&rdquo;（一种JSF postback）都会传播对话上下文。 在默认情况下，非&ldquo;faces request&rdquo;（例如GET请求）都不会传播对话上下文，欲知详情，请看下面分解。</p>
+    </li>
+    <li>
+    <p>如果JSF请求生命周期被一个重定向redirect命令中止，Seam将会透明地保存并恢复当前的对话上下文&mdash; 除非该对话已经通过 <tt class="literal"><font face="新宋体">@End(beforeRedirect=true)</font></tt> 中止。</p>
+    </li>
+</ul>
+</div>
+<p>Seam透明地在JSF postback以及重定向redirect时传递对话上下文。 如果你不需要做任何特殊的事情，使用 <span class="emphasis"><em>&ldquo;non-faces request&rdquo;</em></span> （例如GET请求）就不会传递对话上下文，并且它会在一个新的临时对话中被处理。这通常（但并非总是）是我们期望的一种行为。</p>
+<p>如果你希望在&ldquo;non-faces request&rdquo;中传递Seam对话，就需要显式地将Seam的 <span class="emphasis"><em>conversation id</em></span> 编写为一个request参数：</p>
+<pre class="programlisting">&lt;a href=&quot;main.jsf?conversationId=#{conversation.id}&quot;&gt;Continue&lt;/a&gt;</pre>
+<p>或者更JSF的做法是：</p>
+<pre class="programlisting">&lt;h:outputLink value=&quot;main.jsf&quot;&gt;
+    &lt;f:param name=&quot;conversationId&quot; value=&quot;#{conversation.id}&quot;/&gt;
+    &lt;h:outputText value=&quot;Continue&quot;/&gt;
+&lt;/h:outputLink&gt;</pre>
+<p>如果你使用Seam标签库，就等同于：</p>
+<pre class="programlisting">&lt;h:outputLink value=&quot;main.jsf&quot;&gt;
+    &lt;s:conversationId/&gt;
+    &lt;h:outputText value=&quot;Continue&quot;/&gt;
+&lt;/h:outputLink&gt;</pre>
+<p>如果你不想给一个postback传播会话上下文，可以使用一个类似的小窍门：</p>
+<pre class="programlisting">&lt;h:commandLink action=&quot;main&quot; value=&quot;Exit&quot;&gt;
+    &lt;f:param name=&quot;conversationPropagation&quot; value=&quot;none&quot;/&gt;
+&lt;/h:commandLink&gt;</pre>
+<p>如果你使用Seam标签库，则等同于：</p>
+<pre class="programlisting">&lt;h:commandLink action=&quot;main&quot; value=&quot;Exit&quot;&gt;
+    &lt;s:conversationPropagation type=&quot;none&quot;/&gt;
+&lt;/h:commandLink&gt;</pre>
+<p>注意不使用对话上下文传播与结束对话绝对不是同一回事。</p>
+<p>请求参数 <tt class="literal"><font face="新宋体">conversationPropagation</font></tt>，或者 <tt class="literal"><font face="新宋体">&lt;s:conversationPropagation&gt;</font></tt> 标签甚至都可以用来开始和结束对话，或者开始一个嵌套对话。</p>
+<pre class="programlisting">&lt;h:commandLink action=&quot;main&quot; value=&quot;Exit&quot;&gt;
+    &lt;s:conversationPropagation type=&quot;end&quot;/&gt;
+&lt;/h:commandLink&gt;</pre>
+<pre class="programlisting">&lt;h:commandLink action=&quot;main&quot; value=&quot;Select Child&quot;&gt;
+    &lt;s:conversationPropagation type=&quot;nested&quot;/&gt;
+&lt;/h:commandLink&gt;</pre>
+<pre class="programlisting">&lt;h:commandLink action=&quot;main&quot; value=&quot;Select Hotel&quot;&gt;
+    &lt;s:conversationPropagation type=&quot;begin&quot;/&gt;
+&lt;/h:commandLink&gt;</pre>
+<pre class="programlisting">&lt;h:commandLink action=&quot;main&quot; value=&quot;Select Hotel&quot;&gt;
+    &lt;s:conversationPropagation type=&quot;join&quot;/&gt;
+&lt;/h:commandLink&gt;</pre>
+<p>这种会话模型可以非常容易地创建基于多窗口操作的应用系统。对于许多应用程序来说，这已经足够了。 但是另外一些复杂的应用程序还会需要以下额外需求中的一点或两点。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>一个对话范围跨越多个更小的用户交互单元，这些小单元逐个或者同步地执行。 更小的 <span class="emphasis"><em>嵌套对话</em></span> 拥有它们自己的一套独立的对话状态，并且也可以访问外部对话的状态。</p>
+    </li>
+    <li>
+    <p>用户能够在同一个浏览窗口中的多个对话之间进行切换。这种功能称做 <span class="emphasis"><em>工作区管理</em></span> 。</p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5089"></a>6.2. 嵌套对话</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>嵌套对话是通过在一个现有对话的范围内调用一个名为 <tt class="literal"><font face="新宋体">@Begin(nested=true)</font></tt> 的方法进行创建的。 嵌套对话有它自己的对话上下文，还可以只读地访问外部对话的上下文（它可以读取外部对话的上下文变量，但是不可以写）。 随后当遇到 <tt class="literal"><font face="新宋体">@End</font></tt> 时，嵌套对话会被销毁，并且外部对话会弹出会话堆栈继续运行。 理论上，对话可以嵌套到任意层深。</p>
+<p>某个用户活动（工作区管理，或返回按钮）可以在内部对话结束之前就恢复外部对话。 在这种情况下，一个外部对话就有可能同时拥有多个嵌套对话。 如果外部对话在嵌套对话之前就被结束，Seam将会把嵌套对话和外部对话一起销毁掉。</p>
+<p>对话可以被认为是一个 <span class="emphasis"><em>连续的状态</em></span> 。 嵌套对话允许应用程序在不同的用户交互点捕捉一致连续的状态，因此必须确保在返回按钮以及工作区管理的面上有真正的正确行为。</p>
+<p>TODO：说明当你点击返回按钮时嵌套对话如何防止错误发生的一个例子。</p>
+<p>通常，如果一个组件存在于当前嵌套对话的父对话中，嵌套对话会使用同一个实例。 少数情况下，在每个嵌套对话中都使用不同的实例会很有用，以便存在于父对话中的组件实例对其子对话是不可见的。 你可以通过给这个组件注解 <tt class="literal"><font face="新宋体">@PerNestedConversation</font></tt> 来实现。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5114"></a>6.3. 使用GET请求来开始一个对话</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>JSF并没有定义任何类型的action监听器，这种监听器会在通过非JSF请求&ldquo;non-faces request&rdquo;访问页面的时候被触发（例如，一个HTTP GET请求）。 这种触发会发生在当用户用书签保存了这个页面，或者在我们通过 <tt class="literal"><font face="新宋体">&lt;h:outputLink&gt;</font></tt> 访问页面的时候。</p>
+<p>有时候，我们希望在访问页面的时候立即开始一个对话。 由于没有JSF action方法，我们不能以寻常的通过用 <tt class="literal"><font face="新宋体">@Begin</font></tt> 标注action的方式来解决这个问题，</p>
+<p>当页面需要把一些状态抓取到上下文变量中时，另一个问题也就随之产生了。我们已经看到有两种方法可以解决这个问题。 如果这个状态是Seam组件所持有的，我们就可以通过 <tt class="literal"><font face="新宋体">@Create</font></tt> 方法来抓取。 如果不是，我们就可以为这个上下文变量定义一个 <tt class="literal"><font face="新宋体">@Factory</font></tt> 方法。</p>
+<p>如果以上两种办法都不适合你，Seam还允许你在 <tt class="literal"><font face="新宋体">pages.xml</font></tt> 文件中定义一个 <span class="emphasis"><em>page action</em></span> 。</p>
+<pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/messageList.jsp&quot; action=&quot;#{messageManager.list}&quot;/&gt;
+    ...
+&lt;/pages&gt;</pre>
+<p>这个action方法在开始渲染响应阶段的时候被调用，即在页面就要被渲染的任何时候。 如果页面action返回一个非空的值，Seam将会根据Seam导航规则处理任何合适的JSF，可能导致渲染另外一个完全不同的页面。</p>
+<p>如果你在渲染页面之前想要做的 <span class="emphasis"><em>仅仅</em></span> 是开始一个对话，那你可以使用一个内建的action方法，它正好具备这种功能：</p>
+<pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/messageList.jsp&quot; action=&quot;#{conversation.begin}&quot;/&gt;
+    ...
+&lt;/pages&gt;</pre>
+<p>注意你也可以从JSF控制器中调用内建的action来开始一个对话，同样地，你可以使用 <tt class="literal"><font face="新宋体">#{conversation.end}</font></tt> 来结束一个对话。</p>
+<p>如果你想要更多的控制，以加入现有的对话或开始一个嵌套对话，开始一个页面流或者开始一个原子的对话，你应该使用 <tt class="literal"><font face="新宋体">&lt;begin-conversation&gt;</font></tt> 元素。</p>
+<pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/messageList.jsp&quot;&gt;
+       &lt;begin-conversation nested=&quot;true&quot; pageflow=&quot;AddItem&quot;/&gt;
+    &lt;page&gt;
+    ...
+&lt;/pages&gt;</pre>
+<p><tt class="literal"><font face="新宋体">&lt;end-conversation&gt;</font></tt>元素也可以结束一个对话。</p>
+<pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/home.jsp&quot;&gt;
+       &lt;end-conversation/&gt;
+    &lt;page&gt;
+    ...
+&lt;/pages&gt;</pre>
+<p>为了解决第一个问题，我们现在有五种选择：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>用 <tt class="literal"><font face="新宋体">@Begin</font></tt> 注解 <tt class="literal"><font face="新宋体">@Create</font></tt> 方法</p>
+    </li>
+    <li>
+    <p>用 <tt class="literal"><font face="新宋体">@Begin</font></tt> 注解 <tt class="literal"><font face="新宋体">@Factory</font></tt> 方法</p>
+    </li>
+    <li>
+    <p>用 <tt class="literal"><font face="新宋体">@Begin</font></tt> 注解Seam页面action</p>
+    </li>
+    <li>
+    <p>在 <tt class="literal"><font face="新宋体">pages.xml</font></tt> 中使用 <tt class="literal"><font face="新宋体">&lt;begin-conversation&gt;</font></tt></p>
+    </li>
+    <li>
+    <p>利用 <tt class="literal"><font face="新宋体">#{conversation.begin}</font></tt> 作为Seam页面action方法</p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5215"></a>6.4. 利用<tt class="literal"><font face="新宋体">&lt;s:link&gt;</font></tt>以及<tt class="literal"><font face="新宋体">&lt;s:button&gt;</font></tt></h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>JSF命令链始终通过JavaScript来执行一个表单提交，它打破了浏览器的&ldquo;在新窗口中打开&rdquo;或者&ldquo;在新标签中打开&rdquo;这种特点。 在普通的JSF中，如果你需要这项功能，就需要使用 <tt class="literal"><font face="新宋体">&lt;h:outputLink&gt;</font></tt>。 但是 <tt class="literal"><font face="新宋体">&lt;h:outputLink&gt;</font></tt> 标签有两大限制。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>JSF没有提供将action监听器附加给 <tt class="literal"><font face="新宋体">&lt;h:outputLink&gt;</font></tt> 的方法。</p>
+    </li>
+    <li>
+    <p>由于实际上没有提交表单，JSF并没有传播 <tt class="literal"><font face="新宋体">DataModel</font></tt> 中的选中行。</p>
+    </li>
+</ul>
+</div>
+<p>Seam提供了一个 <span class="emphasis"><em>page action</em></span> 的概念来帮助解决第一个问题，但是这对于第二个问题却无能为力。 我们 <span class="emphasis"><em>可以</em></span> 利用REST的方法传递请求参数以及重新查询服务端的选中对象来解决这个问题。 在某些情况下&mdash;&mdash;例如Seam博客上范例应用程序那样&mdash;&mdash;这实际上最好的方法。REST风格支持书签，因为它不需要服务器端的状态。 在其他那些我们不需要关心书签的情况下，使用 <tt class="literal"><font face="新宋体">@DataModel</font></tt> 以及 <tt class="literal"><font face="新宋体">@DataModelSelection</font></tt> 就很方便也很透明！</p>
+<p>为了填补这项缺失的功能，也为了使对话传播的管理变得更加简单，Seam提供 <tt class="literal"><font face="新宋体">&lt;s:link&gt;</font></tt> 这样一个JSF标签。</p>
+<p>这个连接可以仅指定JSF视图的id：</p>
+<pre class="programlisting">&lt;s:link view=&quot;/login.xhtml&quot; value=&quot;Login&quot;/&gt;</pre>
+<p>或者，它可以指定一个action方法（在这种情况下action的输出将会决定结果页面）：</p>
+<pre class="programlisting">&lt;s:link action=&quot;#{login.logout}&quot; value=&quot;Logout&quot;/&gt;</pre>
+<p>如果你把JSF视图id和action方法这 <span class="emphasis"><em>两者</em></span> 都指定的话，&ldquo;视图&rdquo;将会被使用， <span class="emphasis"><em>除非</em></span>action方法返回一个非空的结果：</p>
+<pre class="programlisting">&lt;s:link view=&quot;/loggedOut.xhtml&quot;  action=&quot;#{login.logout}&quot; value=&quot;Logout&quot;/&gt;</pre>
+<p>这个连接自动地利用内部的 <tt class="literal"><font face="新宋体">&lt;h:dataTable&gt;</font></tt> 传播 <tt class="literal"><font face="新宋体">DataModel</font></tt> 的所选行。</p>
+<pre class="programlisting">&lt;s:link view=&quot;/hotel.xhtml&quot; action=&quot;#{hotelSearch.selectHotel}&quot; value=&quot;#{hotel.name}&quot;/&gt;</pre>
+<p>你可以不指定现有对话的范围：</p>
+<pre class="programlisting">&lt;s:link view=&quot;/main.xhtml&quot; propagation=&quot;none&quot;/&gt;</pre>
+<p>你可以开始、结束或者嵌套对话：</p>
+<pre class="programlisting">&lt;s:link action=&quot;#{issueEditor.viewComment}&quot; propagation=&quot;nest&quot;/&gt;</pre>
+<p>如果一个连接开始了一个对话，你甚至可以指定一个要使用的页面流：</p>
+<pre class="programlisting">&lt;s:link action=&quot;#{documentEditor.getDocument}&quot; propagation=&quot;begin&quot;
+        pageflow=&quot;EditDocument&quot;/&gt;</pre>
+<p>如果使用jBPM任务列表，那么你可以使用 <tt class="literal"><font face="新宋体">taskInstance</font></tt> 属性：</p>
+<pre class="programlisting">&lt;s:link action=&quot;#{documentApproval.approveOrReject}&quot; taskInstance=&quot;#{task}&quot;/&gt;</pre>
+<p>（请见DVD Store演示的应用程序中针对以上用法的范例。）</p>
+<p>最后，如果你希望&ldquo;链接&rdquo;被渲染成为一个按钮，就使用 <tt class="literal"><font face="新宋体">&lt;s:button&gt;</font></tt>：</p>
+<pre class="programlisting">&lt;s:button action=&quot;#{login.logout}&quot; value=&quot;Logout&quot;/&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5319"></a>6.5. 成功信息</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>给用户显示一条action执行成功或者失败的消息是相当常见的功能。为此使用JSF的 <tt class="literal"><font face="新宋体">FacesMessage</font></tt> 是非常方便的。 不幸的是，成功的action通常需要一个浏览器重定向。这使得在普通的JSF中显示成功信息变得相当困难。</p>
+<p>内建的会话范围的Seam组件 <tt class="literal"><font face="新宋体">facesMessages</font></tt> 解决了这个问题。 （你必须安装Seam重定向过滤器。）</p>
+<pre class="programlisting">@Name(&quot;editDocumentAction&quot;)
+@Stateless
+public class EditDocumentBean implements EditDocument {
+    @In EntityManager em;
+    @In Document document;
+    @In FacesMessages facesMessages;
+
+    public String update() {
+        em.merge(document);
+        facesMessages.add(&quot;Document updated&quot;);
+    }
+}</pre>
+<p>对于当前的会话来说，任何加入到 <tt class="literal"><font face="新宋体">facesMessages</font></tt> 的消息都正好用在下一个渲染阶段中。 甚至当没有&ldquo;长时间运行&rdquo;对话的时候也会奏效，因为Seam甚至在重定向过程中保留了临时对话。</p>
+<p>你甚至可以在faces message概述中包含JSF EL表达式：</p>
+<pre class="programlisting">facesMessages.add(&quot;Document #{document.title} was updated&quot;);</pre>
+<p>你可以按照通常的方式显示消息，例如：</p>
+<pre class="programlisting">&lt;h:messages globalOnly=&quot;true&quot;/&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5347"></a>6.6. 使用&ldquo;显式&rdquo;的对话id</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>通常情况下，Seam会给每个对话产生一个无意义且唯一的id。你可以在你开始一个对话的时候定制id的值。</p>
+<p>这个特性可以用来定制会话id生成算法，像这样：</p>
+<pre class="programlisting">@Begin(id=&quot;#{myConversationIdGenerator.nextId}&quot;)
+public void editHotel() { ... }</pre>
+<p>或者它可以用来分配一个有意义的对话id：</p>
+<pre class="programlisting">@Begin(id=&quot;hotel#{hotel.id}&quot;)
+public String editHotel() { ... }</pre>
+<pre class="programlisting">@Begin(id=&quot;hotel#{hotelsDataModel.rowData.id}&quot;)
+public String selectHotel() { ... }</pre>
+<pre class="programlisting">@Begin(id=&quot;entry#{params['blogId']}&quot;)
+public String viewBlogEntry() { ... }</pre>
+<pre class="programlisting">@BeginTask(id=&quot;task#{taskInstance.id}&quot;)
+public String approveDocument() { ... }</pre>
+<p>毫无疑问，每当选中一家特殊的酒店、一篇特殊的博客或者一项特殊的任务时，这些例子都会产生一个相同的对话id。 那么，如果一相新对话开始时已经存在一个包含相同对话id的对话时，会发生什么情况呢？ 嗯，Seam竟然会发现现有的对话，并重定向到该对话，而不去再次运行 <tt class="literal"><font face="新宋体">@Begin</font></tt> 方法。 这个特性会帮助我们控制在使用工作区管理时创建的多个工作区。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5371"></a>6.7. 工作区管理</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>工作区管理指的是可以在一个单独的窗口中&quot;切换&quot;多个对话的能力。 Seam在Java代码级别完全透明地管理工作区。为了启用工作区管理，你所需要做的全部事情如下：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>为每个视图id（在使用JSF或Seam导航规则时）或者页面节点（在使用JPDL页面流时）提供一个 <span class="emphasis"><em>描述</em></span> 文本。 这个描述文本通过工作区切换器显示给用户。</p>
+    </li>
+    <li>
+    <p>在你的页面中包含一个或多个标准JSP或facelets片断的工作区转换器。 标准片断支持通过下拉菜单、对话列表或者导航控件来管理工作区。</p>
+    </li>
+</ul>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5386"></a>6.7.1. 工作区管理及JSF导航</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>当你使用JSF或者Seam导航规则的时候，Seam会通过恢复对话的当前 <tt class="literal"><font face="新宋体">view-id</font></tt> 切换到该对话。 工作区的描述文本在一个名为 <tt class="literal"><font face="新宋体">pages.xml</font></tt> 的文件中定义， Seam希望在 <tt class="literal"><font face="新宋体">WEB-INF</font></tt> 目录中找到它，这个文件就放在 <tt class="literal"><font face="新宋体">faces-config.xml</font></tt> 旁边。</p>
+<pre class="programlisting">&lt;pages&gt;
+    &lt;page view-id=&quot;/main.xhtml&quot;&gt;Search hotels: #{hotelBooking.searchString}&lt;/page&gt;
+    &lt;page view-id=&quot;/hotel.xhtml&quot;&gt;View hotel: #{hotel.name}&lt;/page&gt;
+    &lt;page view-id=&quot;/book.xhtml&quot;&gt;Book hotel: #{hotel.name}&lt;/page&gt;
+    &lt;page view-id=&quot;/confirm.xhtml&quot;&gt;Confirm: #{booking.description}&lt;/page&gt;
+&lt;/pages&gt;</pre>
+<p>注意，如果找不到这个文件，Seam应用程序会继续正常地运行！只不过会失去切换工作区的功能。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5407"></a>6.7.2. 工作区管理和jPDL页面流</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>当你使用jPDL页面流程定义的时候，Seam通过恢复当前jBPM流程状态切换到一个对话。 这是一个更加灵活的模型，因为它允许同一个 <tt class="literal"><font face="新宋体">view-id</font></tt> 根据当前的 <tt class="literal"><font face="新宋体">&lt;页面&gt;</font></tt> 节点而拥有不同的描述。 这个描述文本通过 <tt class="literal"><font face="新宋体">&lt;page&gt;</font></tt> 节点来定义。</p>
+<pre class="programlisting">&lt;pageflow-definition name=&quot;shopping&quot;&gt;
+
+   &lt;start-state name=&quot;start&quot;&gt;
+      &lt;transition to=&quot;browse&quot;/&gt;
+   &lt;/start-state&gt;
+
+   &lt;page name=&quot;browse&quot; view-id=&quot;/browse.xhtml&quot;&gt;
+      &lt;description&gt;DVD Search: #{search.searchPattern}&lt;/description&gt;
+      &lt;transition to=&quot;browse&quot;/&gt;
+      &lt;transition name=&quot;checkout&quot; to=&quot;checkout&quot;/&gt;
+   &lt;/page&gt;
+
+   &lt;page name=&quot;checkout&quot; view-id=&quot;/checkout.xhtml&quot;&gt;
+      &lt;description&gt;Purchase: $#{cart.total}&lt;/description&gt;
+      &lt;transition to=&quot;checkout&quot;/&gt;
+      &lt;transition name=&quot;complete&quot; to=&quot;complete&quot;/&gt;
+   &lt;/page&gt;
+
+   &lt;page name=&quot;complete&quot; view-id=&quot;/complete.xhtml&quot;&gt;
+      &lt;end-conversation /&gt;
+   &lt;/page&gt;
+
+&lt;/pageflow-definition&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5423"></a>6.7.3. 对话转换器</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>在你的JSP或facelets页面中包含以下代码片断，以获得使你可以转换到任何当前对话或者应用程序的任何其他页面的一个下拉菜单：</p>
+<pre class="programlisting">&lt;h:selectOneMenu value=&quot;#{switcher.conversationIdOrOutcome}&quot;&gt;
+    &lt;f:selectItem itemLabel=&quot;Find Issues&quot; itemValue=&quot;findIssue&quot;/&gt;
+    &lt;f:selectItem itemLabel=&quot;Create Issue&quot; itemValue=&quot;editIssue&quot;/&gt;
+    &lt;f:selectItems value=&quot;#{switcher.selectItems}&quot;/&gt;
+&lt;/h:selectOneMenu&gt;
+&lt;h:commandButton action=&quot;#{switcher.select}&quot; value=&quot;Switch&quot;/&gt;</pre>
+<p>In this example, we have a menu that includes an item for each conversation, together with two additional items that let the user begin a new conversation. 在这个例子中，我们有一菜单，它为每一个对话都包含了一个条目，另外还有两个让用户开始新对话的条目。</p>
+<p>Only conversations with a description will be included in the drop-down menu.</p>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/switcher.png"></div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5439"></a>6.7.4. 对话列表</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>除了对话列表会显示成为一个表格以外，它与对话转换器非常相似：</p>
+<pre class="programlisting">&lt;h:dataTable value=&quot;#{conversationList}&quot; var=&quot;entry&quot;
+        rendered=&quot;#{not empty conversationList}&quot;&gt;
+    &lt;h:column&gt;
+        &lt;f:facet name=&quot;header&quot;&gt;Workspace&lt;/f:facet&gt;
+        &lt;h:commandLink action=&quot;#{entry.select}&quot; value=&quot;#{entry.description}&quot;/&gt;
+        &lt;h:outputText value=&quot;[current]&quot; rendered=&quot;#{entry.current}&quot;/&gt;
+    &lt;/h:column&gt;
+    &lt;h:column&gt;
+        &lt;f:facet name=&quot;header&quot;&gt;Activity&lt;/f:facet&gt;
+        &lt;h:outputText value=&quot;#{entry.startDatetime}&quot;&gt;
+            &lt;f:convertDateTime type=&quot;time&quot; pattern=&quot;hh:mm a&quot;/&gt;
+        &lt;/h:outputText&gt;
+        &lt;h:outputText value=&quot; - &quot;/&gt;
+        &lt;h:outputText value=&quot;#{entry.lastDatetime}&quot;&gt;
+            &lt;f:convertDateTime type=&quot;time&quot; pattern=&quot;hh:mm a&quot;/&gt;
+        &lt;/h:outputText&gt;
+    &lt;/h:column&gt;
+    &lt;h:column&gt;
+        &lt;f:facet name=&quot;header&quot;&gt;Action&lt;/f:facet&gt;
+        &lt;h:commandButton action=&quot;#{entry.select}&quot; value=&quot;#{msg.Switch}&quot;/&gt;
+        &lt;h:commandButton action=&quot;#{entry.destroy}&quot; value=&quot;#{msg.Destroy}&quot;/&gt;
+    &lt;/h:column&gt;
+&lt;/h:dataTable&gt;</pre>
+<p>我们设想你想要根据你自己的应用程序去定制这个。</p>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/list.png"></div>
+<p>只有带有描述的对话才会被包含在列表中。</p>
+<p>注意对话列表允许用户销毁工作区。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5457"></a>6.7.5. 导航控件</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>导航控件在使用嵌套对话模式的应用程序中很有用。导航控件是当前对话堆栈中对话链接的一个列表。</p>
+<pre class="programlisting">&lt;ui:repeat value=&quot;#{conversationStack}&quot; var=&quot;entry&quot;&gt;
+    &lt;h:outputText value=&quot; | &quot;/&gt;
+    &lt;h:commandLink value=&quot;#{entry.description}&quot; action=&quot;#{entry.select}&quot;/&gt;
+&lt;/ui:repeat</pre>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/breadcrumbs.png"></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5469"></a>6.8. 对话组件和JSF组件绑定</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>对话组件有一个小小的限制：它们不能够被用来保存对JSF组件的绑定。 （除非绝对必要，否则我们通常不喜欢使用JSF的这个特性，因为它创建了从应用程序逻辑到视图的强依赖关系。） 在一个postback请求中，组件绑定会在视图恢复阶段中且在Seam对话上下文恢复之前被更新。</p>
+<p>为了解决这个问题，使用一个事件范围的组件来保存组件绑定，并将它注入到需要它的对话范围组件中。</p>
+<pre class="programlisting">@Name(&quot;grid&quot;)
+@Scope(ScopeType.EVENT)
+public class Grid
+{
+    private HtmlPanelGrid htmlPanelGrid;
+
+    // getters and setters
+    ...
+}</pre>
+<pre class="programlisting">@Name(&quot;gridEditor&quot;)
+@Scope(ScopeType.CONVERSATION)
+public class GridEditor
+{
+    @In(required=false)
+    private Grid grid;
+
+    ...
+}</pre>
+<p>另外一种选择是，你可以通过隐式的 <tt class="literal"><font face="新宋体">uiComponent</font></tt> 句柄来访问JSF组件树。 下面这个例子访问在迭代中支持数据表的 <tt class="literal"><font face="新宋体">UIData</font></tt> 组件的 <tt class="literal"><font face="新宋体">getRowIndex()</font></tt> ，它打印当前的行数：</p>
+<pre class="programlisting">&lt;h:dataTable id=&quot;lineItemTable&quot; var=&quot;lineItem&quot; value=&quot;#{orderHome.lineItems}&quot;&gt;
+   &lt;h:column&gt;
+      Row: #{uiComponent['lineItemTable'].rowIndex}
+   &lt;/h:column&gt;
+   ...
+&lt;/h:dataTable&gt;</pre>
+<p>在这个map中，可以得到JSF UI组件和它们的客户标识符。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5495"></a>6.9. 对话组件的并发调用</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>在 ??? 中可以找到Seam组件并发调用的全部讨论。 在这里，我们要讨论是常见的一种并发情形，在这种情形下，你会遇到从AJAX请求中访问对话组件的并发&mdash;。 我们就要讨论一个Ajax客户端库应该提供用来控制源自客户端的事件的选项&mdash;，并看看RickFaces为你提供的选项。</p>
+<p>对话组件实际上并不允许真正的并发访问，因此Seam会给每一个请求排一个队列并依次处理它们。这样允许每个请求都以一种特定的方式被执行。 但是，简单的队列不是那么强大&mdash;首先，由于某些原因，如果一个方法需要非常长的时间来完成，并且每次生成一个错误的请求时就一次又一次的反复运行（潜在拒绝服务攻击的可能）。 其次,AJAX经常被用于给用户提供快速的状态更新，因此持续地长时间运行该动作并没有什么用处。</p>
+<p>因此Seam给action事件排队等待一段时间（并发的请求超时）； 如果不能及时处理事件，它就会创建一个临时的对话并且给用户打印一条信息，让他们了解情况。 所以不要给服务器发送泛滥的AJAX事件，这是非常重要的。</p>
+<p>我们可以在components.xml文件中给并发的请求超时设置一个合理的超时默认值（ms）。</p>
+<pre class="programlisting">&lt;core:manager concurrent-request-timeout=&quot;500&quot; /&gt;</pre>
+<p>到目前为止，我们已经讨论了同步的AJAX请求&mdash;&mdash; 客户端告诉服务器发生了一个事件，然后根据返回值来重新渲染局部页面。 当AJAX请求是轻量级时，采用这种方法就相当好（这些方法的调用也简单，如：计算一列数字的总和）。 但是当我们需要做复杂的计算时我们应该怎么做呢？</p>
+<p>对于大量的计算我们应当使用真正的异步（基于轮询&ldquo;Poll&rdquo;的）方法 &mdash; 客户端发送一个AJAX请求到服务器，这使得一个action在服务器端被异步地执行（因此立即就会响应客户端）；然后客户端会在服务器中查询更新。 当你运行一个长时间运行的操作时它很有用，因为每一个action都可以执行是非常重要的（你不会希望某些action由于重复或者超时而被丢弃）。</p>
+<p><span class="emphasis"><em>我们应如何来设计对话的AJAX应用程序呢？</em></span></p>
+<p>首先，你需要决定是否想使用更简单的&ldquo;同步&rdquo;请方式，或者是否想要利用&ldquo;Poll风格&rdquo;的方法。</p>
+<p>如果你要使用&ldquo;同步&rdquo;请求的方法，那么你需要评估一下你的AJAX请求需要多长时间才可以结束&mdash;&mdash;它是不是比并发请求超时值要短？ 如果不是，你也许要修改这个方法的并发请求超时时间（如上所述）。 接下来你或许需要在客户端给请求排一个队，防止请求全部涌入服务器。 如果这是一个经常发生的事件（例如，按钮按下和输入域的onblur），并且立即更新客户端又不是优先需要考虑的情况，你就应该在客户端设置一个请求延时。 当消耗完你的请求延时的时候，该事件中的操作也会在服务器段排成一个队列。</p>
+<p>最后，客户端库可能会提供一个选项，它可以放弃最近未完成的重复请求。 对这个选项你需要很谨慎，因为在服务端没能放弃未完成的请求时，这个选项可能导致请求全部涌入服务器端。</p>
+<p>使用&ldquo;Poll风格&rdquo;的设计比较不需要细调。 你只要给你的action方法 <tt class="literal"><font face="新宋体">@Asynchronous</font></tt> 进行标注，并确定一个查询时间间隔就可以了：</p>
+<pre class="programlisting">int total;
+
+// This method is called when an event occurs on the client
+// It takes a really long time to execute
+@Asynchronous
+public void calculateTotal() {
+   total = someReallyComplicatedCalculation();
+}
+
+// This method is called as the result of the poll
+// It's very quick to execute
+public int getTotal() {
+   return total;
+}</pre>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5534"></a>6.9.1. RichFaces Ajax</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>RichFaces AJAX是最常与Seam一起使用的Ajax库，它提供了上面讨论过的所有控制：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">eventsQueue</font></tt> &mdash; 提供一个放置事件的队列。所有的事件都排成队列，并且请求被依次发送给服务器端。 当服务器没有被拒绝服务攻击时，若一个请求在服务器上需要花费一些时间来执行时，这个是很有用的（比如：大量的计算，从慢的数据源里获取信息）。</p>
+    </li>
+    <li>
+    <p>如果最近在队列中已经有&lsquo;相似的&rsquo;请求， <tt class="literal"><font face="新宋体">ignoreDupResponses</font></tt> &mdash; 就会忽略由该请求产生的响应。 ignoreDupResponses=&quot;true&quot; <span class="emphasis"><em>不会取消</em></span> 请求在服务端的处理 &mdash; 它只是在客户端防止不必要的更新。</p>
+    <p>这个选项与Seam对话一起使用时应该很小心，因为它允许创建多个并发请求。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">requestDelay</font></tt> &mdash; 定义请求存在于队列中的时间（ms）。 如果这个请求在这个时间内没有被处理，它就会被发送（不管是否接收到response）或者丢弃（如果队列中有更近的相似事件）。</p>
+    <p>这个选项与Seam的对话一起使用应该很小心，因为它允许创建多个并发请求。 你要确定你所设置的延时时间（结合并发请求超时的时间）要长于action的执行时间。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">&lt;a:poll reRender=&quot;total&quot; interval=&quot;1000&quot; /&gt;</font></tt> &mdash; 请求服务器端，并重新渲染一个需要的区域。</p>
+    </li>
+</ul>
+</div>
+</div>
+</div>
+</div></div></body></html>

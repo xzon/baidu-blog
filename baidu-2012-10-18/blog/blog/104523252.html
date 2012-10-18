@@ -1,0 +1,198 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>重读Hibernate参考手册</title></head><body><h1>重读Hibernate参考手册</h1><div><p>重读Hibernate参考手册</p>
+<h3><font style="background-color: #ffffff"><font color="#000000">转贴 ：</font><a href="http://flytogether.javaeye.com/category/7284?list=1&amp;page=2"><font color="#000000">http://flytogether.javaeye.com/category/7284?list=1&amp;page=2</font></a></font></h3>
+<h3><font color="#ff0000">对象操作</font></h3>
+<h5><font color="#0000ff">实体状态</font></h5>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  自由状态……实体对象在内存中自由存在，与数据库中的记录没有任何关联，处理自由状态的实例可以通过Session的save方法转换成持久状态。</font></p>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  持久状态……实体对象处于由Hibernate框架所管理的状态，持久状态的对象其变更将由Hibernate固化到数据库中，持久对象对应数据库中的一条记录。</font></p>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  游离状态……处于持久状态的实例，其关联的会话已经关闭，则此实例处于 游离状态。 游离状态的实例可以通过Session的update方法再次和一个会话关联。</font></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  游离状态和自由状态实例的区别是自由状态的实例与数据库缺乏对应关系，而游离状态的实例包含对应数据库记录的主键值。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<h5><font color="#0000ff">实体身份识别</font></h5>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  从数据库的角度，包括Hibernate本身对于拥有同样主键值的实体对象则认为他们是相同的。在持久层之外，对象是否等价在业务逻辑层可能有另外的含义，往往有一些特定的数据实体判定规则，这可以通过重写equals和hashCode方法实现。</p>
+<h5><font color="#0000ff">脏数据检查</font></h5>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  脏数据检查策略一般有两种方式：</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  数据对象监控：可以借助动态代理或CGLIB拦截设值方法，一旦设值方法被调用，则将其标记为脏状态。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  数据版本比对：持久层框架维持数据对象的最新版本，当数据提交时将提交数据和此版本进行比对，如果发生变化则将其同步到数据库相应的库表。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Hibernate采用数据版本比对方式,Hibernate会话保存所有与当前会话关联实体的当前实例和原始状态信息,可以参见SessionImpl的内部类EntityEntry。</p>
+<h5><font color="#0000ff">Load/Get</font></h5>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  这两个操作的功能都是从数据库中加载一个实例，两者的区别是前者如果没有找到匹配数据将抛出异常，后者将返回null。</font></p>
+<h5><font color="#0000ff">List/Iterate</font></h5>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  这两个操作的功能都是从数据库中加载多个实例，两者的区别是Iterate方法会先从会话中或者二级缓存中获取，而list方法会直接查询数据库，如果需要的数据在缓存中存在，iterate可以提供更好的性能，相反的情况下iterate方法会更慢，它会首先执行查询仅从数据库中获取标识符，然后再分别查询初始化实例。</font></p>
+<h5><font color="#0000ff">Update/Merge</font></h5>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  这两个操作都支持分离实例的重新关联。如果会话中已经包含同样标识符的实例，update方法会抛出异常，merge方法会合并更改再重新关联。</font></p>
+<h5><font color="#0000ff">Flush</font></h5>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Flush方法的主要功能是同步内存对象和数据库，flush操作缺省发生在一些查询操作之前，事务提交时或者调用flush方法时。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  显式调用flush方法并不能保证立即执行数据库同步，Hibernate保证Query.list方法不会返回过时或错误数据。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  可以通过Session.setFlushMode改变缺省行为，不至于太频繁。FlushMode定义了三种不同的刷新方式:提交时刷新，自动刷新，不刷新（除非显式调用flush方法）。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  提交时刷新可能会导致查询操作获取过时数据。</font></p>
+<h5><font color="#0000ff">级联</font></h5>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Hibernate会话的基本操作，包括persist,merge,saveOrUpdate等都有相应的级联样式设置,如果你希望关联集合针对某个操作进行级联设置，可以在映射文件中设置，示例如下：</font></p>
+<div>xml 代码</div>
+<div>
+<div> </div>
+<ol>
+    <li><span><span>&lt;</span><span>one-to-one</span><span> </span><span>name</span><span>=</span><span>&quot;person&quot;</span><span> </span><span>cascade</span><span>=</span><span>&quot;persist,delete,lock&quot;</span><span>/&gt;</span><span>&nbsp;&nbsp;</span></span></li>
+</ol>
+</div>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font>缺省的级联设置是none，表示任何操作都不支持级联。</p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font>级联通常用在在一对一和一对多关系中。</font></p>
+<h3><font color="#ff0000">继承映射</font></h3>
+<h5><font color="#0000ff">单表映射</font></h5>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  概述： 使用一张表映射整个继承树，需要一个类别字段区分一个数据行具体对应哪个类。 </font></font></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  优点：有很好的查询性能，不需要进行表连接。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  缺点：有数据冗余。子类的字段无法建立非空约束。</p>
+<h5><font color="#0000ff">类表映射</font></h5>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  概述：每个类对应一张表。子类表只包含扩展属性，子类表和父类表通过外键关联。</font></p>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  优点：领域模型和数据库之间的关系非常明了。</font></p>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  缺点： 查询时需要多表之间的内连接或左外连接操作。字段在层次中任何上下移动的重构都会导致数据库更改。</font></p>
+<h5><font color="#0000ff">具体表映射（UNION)</font></h5>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  概述：每个具体类对应一张表，包含所有的字段。使用union-class进行定义。</font></p>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  优点：与具体表映射（隐式多态）相比，支持多态查询。</font></p>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  缺点：具体类不支持标识生成器，标识生成器在所有的具体类中共享。如果某个属性在超类中进行映射，则其列名在所有的子类表中必须相同。 </font></p>
+<h5><font color="#0000ff">具体表映射（隐式多态）</font></h5>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  概述:每个具体类对应一张表，包含所有的字段。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  优点：查询子类时不需要关联。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  缺点：如果父类字段发生变动，所有的子类表必须同时进行修改。超类上的一次查找需要检查所有表，这会导致多次数据库访问或特殊连接操作。不支持多态外连接抓取数据。不支持多态一对一和一对多关联。</p>
+<h3><font color="#ff0000">集合映射</font>&nbsp;&nbsp;&nbsp;&nbsp;</h3>
+<p><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Hibernate要求实体的集合字段必须声明为接口类型，当持久化实体时，Hibernate会使用自己的集合实现。因此假定使用HashSet初始化实体的集合字段，经过持久化后得到的集合字段并不是HashSet的实例，如果进行转型将发生错误。</font></p>
+<h5><font color="#0000ff">有序/无序</font></h5>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font>Hibernate支持Set,Bag,Map三种无序集合，List是有序集合，这里所谓的有序无序是指Hibernate持久化过程中，是否保持数据集合中的记录排列顺序。</font></p>
+<h5><font color="#0000ff">可配置属性</font></h5>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font>Lazy……缺省为true，表示不加载关联的集合。<br>
+<font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font>Cascade……缺省为none，表示不级联操作集合。<br>
+<font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font>Fetch……缺省为select，可以设置为join使用连接检索模式。<br>
+<font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font>optimistic-lock……缺省为true,表示集合状态的改变会导致拥有集合的实体的版本增加，如果是一对多关联，通常设置为false。</font></p>
+<h5><font color="#0000ff">Inverse</font></h5>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font>缺省为false，如果为true，表示关联由另一端管理。</font></p>
+<h5><font color="#0000ff">Sort/Order-by</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font>Sort/Order-by属性用来设置集合排序，前者表示排序基于内存操作的，后者表示数据库检索时进行排序，通过指定SQL语句的order by部分来实现。</font></p>
+<h5><font color="#0000ff">外键信息</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>使用key元素进行定义。</font></p>
+<h5><font color="#0000ff">元素类型</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>使用element和composite-element定义值类型，使用one-to-many和many-to-many定义实体类型。</font></p>
+<h5><font color="#0000ff">索引集合</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>除SET和BAG外，其他集合都需要指定集合表中的索引列，LIST和ARRAY使用list-index元素定义，MAP集合使用map-key/composite-map-key或map-key-many-to-many定义。</font></p>
+<h5><font color="#0000ff">List/Bag</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>如果希望使用list声明集合字段，而表中又没有索引列，那么可以使用bag元素定义映射,bag元素不具备list的有序特性。<br>
+</font></p>
+<h5><font color="#0000ff">Bag/idBag</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>Bag 类型是Hibernate自定义集合类型，实现一个允许包含重复元素的Set,因为Bag集合为无序集，且允许出现重复元素，这出现一个问题，当删除某个元素时如何定位待删除记录？目前的实现方式是先将表中原有的集合数据全部删除，再将现有数据逐条插入，显然这种方式的性能是极其低下的。<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>idBag对此进行了扩展，提供一个collection-id元素用来配置id字段，根据此id，Hibernate可以准确定位库表记录，从而实现高效的数据操作。</font></p>
+<h3><font color="#ff0000">事务/并发</font></h3>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>Hibernate直接使用JDBC和JTA资源的事务语义，没有添加额外的锁机制。SessionFactory是线程安全的，可以被所有的应用线程共享。Session是线程不安全的,通常用于单个请求，单个会话或单个工作单元。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>通常不管读写数据，数据库交互都应该发生在事务语义中。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>在多用户的C/S应用程序中，最通用的模式是基于请求的会话，使用单个的数据库事务服务整个客户请求,在WEB企业应用程序中，数据库事务跨越用户交互是无法接受的。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>会话会缓存每个处理持久状态的实例，这意味着如果保持会话打开一段比较长的时间，可能导致内存不足,也可能导致过时数据。一个解决方法是调用clear和evict方法管理会话，但是更应该考虑使用存储过程处理大数据量操作。</font></p>
+<h5><font color="#0000ff">乐观并发访问</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>支持高并发性和高扩展性的唯一方式是使用版本的乐观并发控制。版本检查使用版本号或时间戳来检查更新。Hibernate提供三种方式使用乐观并发控制。<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>手动版本检查：每次数据库操作发生在一个新的会话中，开发者有责任在操作之前加载所有的持久化实例，手动执行版本检查。这种方式是最低效的，类似于实体EJB的方式。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>扩展会话方式的自动版本检查:Hibernate基于一次交互创建一个会话，在每次执行刷新时检查实例的版本，如果检测到并发更改将抛出异常，由开发人员负责捕获和处理异常。这种方式是最有效的，应用不必关心版本检查，不必重新关联分离状态的实例，也不必在每次数据库事务前重新加载所有的实例。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>分离状态实例的自动版本检查:应用可以操纵一个分离状态的实例的属性，这个实例是在另一个会话加载的，然后再和一个新的会话重新关联(通过调用update或saveOrUpdate方法)，当新会话刷新时会自动执行版本检查。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>自定义版本检查:也可以通过设置属性或集合的optimistic-lock值为false禁止自动版本检测，也可以设置Class映射的 optimistic-lock属性为all，通过比较实例的所有字段进行版本检查，有时候并发更改只要没有发生叠加也是允许的，这可以通过设置 optimistic-lock属性为dirty实现。</font></p>
+<h5><font color="#0000ff">悲观锁</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>通常情况下用户不需要共太多时间关心锁策略，通过对JDBC连接指定隔离级别可以让数据库负责这些工作，然而高级用户可能需要获取排他锁或启动新事务时重新获取锁。<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>Hibernate总是使用数据库的锁机制，LockMode类定义了Hibernate可以获得的锁级别，这可以通过Session的lock/load方法和Query的setLockMode方法进行操纵。</font></p>
+<h3><font color="#ff0000">性能优化</font></h3>
+<h5><font color="#0000ff">抓取策略</font></h5>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>抓取策略是指Hibernate如何检索关联对象，抓取策略可以通过映射设置，也可以在HQL和规则查询中重写。Hibernate支持以下几种抓取策略：<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>join……使用外连接抓取。<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>Select……使用一个单独的查询语句抓取关联数据。<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>Subselect……<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>Batch……select抓取的优化，通过指定一个主键或外键列表使用一个单独的查询语句中进行抓取。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>同时Hibernate区分如下几种抓取方式：<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>Immediate……立即加载<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>Lazy……懒加载，需要时加载整个集合<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>Extra-lazy……按需加载集合中的单个元素，尽量不同时加载整个集合，适用于集合很大的情况。<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>Proxy……当激活关联对象的某个方法而不是取值方法时检索单值关联。<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>No-proxy……实例变量被访问时检索单值关联，相比proxy策略，这种方式少一些懒加载，要求构建二进制字节码，很少使用。<br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font></font></font></font>Lazy attribute……当实例变量被访问时检索单值关联或属性，这种方式要求构建二进制字节码，很少使用。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial"> </font></font></font></font></font></font>以上分别决定什么时候加载以及怎样加载,缺省情况下Hibernate使用lazy select抓取关联集合，使用lazy proxy抓取单值关联。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font face="Arial"><font face="Arial"><font face="Arial"> </font></font></font></font></font></font>如果设置hibernate.default_batch_fetch_size,，Hibernate将使用Batch抓取策略。</font></p>
+<p><font face="Arial"><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>使用select策略通常会导致n+1次查询，这可以通过使用join策略解决，可以在hql和criteria中调用setFetchMode设置检索策略。</font></p>
+<font face="Arial">
+<p><br>
+<font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></font></font>有时候我们需要在会话关闭时，初始化代理和集合，这可以通过Hibernate的initialize和isInitializied方法实现。<br>
+有时候你不想初始化一个大的集合，而只是需要集合的一个子集或者集合的大小 ，这时候可以使用集合过滤器，比如要获取集合的大小：</p>
+<div>
+<div> </div>
+<ol>
+    <li><span><span>s.createFilter( lazyCollection, </span><span>&quot;&quot;</span><span>).setFirstResult(</span><span>0</span><span>).setMaxResults(</span><span>10</span><span>).list();&nbsp;&nbsp;</span></span></li>
+</ol>
+</div>
+</font>
+<h5><font color="#0000ff">缓存</font></h5>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Hibernate数据缓存分为两个层次，Session级别的内部缓存，SessionFactory级别的二级缓存。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  内部缓存正常情况下由Hibernate自动维护，如果需要手工干预，可以通过如下方法完成：</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  evict方法从当前缓存中移除某个实例</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  contains会话中是否包含某个实例</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  clear用来清除会话。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  引入二级缓存必须考虑一些问题：</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  数据库是否与其他应用共享，如果需要通常必须放弃二级缓存的使用。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  应用是否需要部署在集群环境中，此时必须考虑是否需要引入分布式缓存。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  应该对哪些数据进行缓存。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  如果满足以下条件，则可以考虑二级缓存：</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  数据不会被第三方应用修改。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  数据大小在可接受范围。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  数据更新频率较低。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  同一数据可能会被系统频繁调用。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  非关键数据。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Hibernate缺省使用EHCache作为其二级缓存，SessionFactory提供几个方法用来有效管理二级缓存。</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  evict清除某个类</font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  evictCollection清除某个集合。 </font></font></p>
+<p><font face="Arial"><font face="Arial">CacheMode用来控制会话如何和二级缓存进行交互，包括NORMAL,READ,<strong style="color: black; background-color: rgb(255,255,102)">WRITE</strong>和REFRESH选项。 </font></font></p>
+<p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  可以使用Statistics API查询二级缓存，示例如下：</font></font></p>
+<div><font face="Arial"><font face="Arial">java 代码 </font></font></div>
+<div>
+<ol><font face="Arial"><font face="Arial">
+    <li><span><span>Map cacheEntries = sessionFactory. &nbsp;&nbsp;</span></span></li>
+    <li><span>.getSecondLevelCacheStatistics( &nbsp;&nbsp;</span></li>
+    <li><span>.getEntries();&nbsp;&nbsp;</span></li>
+    </font></font></ol>
+    </div>
+    <p><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  可以通过设置 hibernate.cache.use_query_cache属性为true启用查询缓存，查询缓存应该总是和二级缓存一起使用。此设置将创建两个缓存区域，一个缓存查询结果，一个缓存对查询表的最近更新的时间戳。大部分查询不会受益于查询缓存，因此缺省设置为false。可以调用 Query.setSacheable方法手动缓存查询结果。</font></font></p>
+    <h5><font face="Arial"><font face="Arial"><font color="#0000ff">集合性能</font></font></font></h5>
+    <font face="Arial"><font face="Arial"><font face="Arial">
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  所有的索引集合list,array,map都有一个主键包含key和index列，主键可以很容易的被索引，更新删除时也可以很快定位，因此这种集合通常是最有效的。</p>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Set集合有一个主键包含key列和element列，对某些情况，这种集合是低效的，特别是组合元素或者大文本字段，因为数据库可能不能有效索引比较复杂的主键。</p>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  IdBag通常是最有效的。</p>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Bag通常是最坏的选择，因为允许重复值，没有索引列，没有主键可以定义，Hibernate没有办法区别重复行，只有通过完全删除和完全重建来响应任何改变，这是相当低效的。</p>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  List/map/Idbag/set针对更新操作是最有效的，包括添加/更新/删除。</p>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Set应该Hibernate应用中最常用的集合，因为关系数据库模型中set集合语义是最自然的，然而在设计良好的应用程序中，我们看到大部分集合是inverse设置为true的一对多关联，这种情况下，bag通常是最有效的集合，因为添加元素到bag和list不需要执行抓取操作（set则不然），此时执行类似下面的代码将会更快</p>
+    <div>java 代码</div>
+    <div>
+    <div> </div>
+    <ol>
+        <li><span><span>Parent p = (Parent) sess.load(Parent.</span><span>class</span><span>, id); &nbsp;&nbsp;</span></span></li>
+        <li><span>Child c = </span><span>new</span><span> Child(); &nbsp;&nbsp;</span></li>
+        <li><span>c.setParent(p); &nbsp;&nbsp;</span></li>
+        <li><span>p.getChildren().add(c); </span><span>//no need to fetch the collection! </span><span>&nbsp;&nbsp;</span></li>
+        <li><span>sess.flush();&nbsp;&nbsp;</span></li>
+    </ol>
+    </div>
+    </font></font></font>
+    <h5><font face="Arial"><font face="Arial"><font color="#0000ff">性能监听</font></font></font></h5>
+    <p><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Statistics接口提供三种类别的统计信息：<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Sesssion使用相关的，比如打开的会话数目，检索的JDBC连接数目。<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  实体，集合，查询和缓存相关的全局信息。<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  特定实体，集合，查询和缓存区域的详细信息。</font></font></font></p>
+    <p><font face="Arial"><font face="Arial"><font face="Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  具体细节可以参考Statistics, EntityStatistics, CollectionStatistics,<br>
+    SecondLevelCacheStatistics和QueryStatistics的API文档，示例如下：</font></font></font></p>
+    <div><font face="Arial"><font face="Arial"><font face="Arial">java 代码</font></font></font></div>
+    <div>
+    <div> </div>
+    <ol><font face="Arial"><font face="Arial"><font face="Arial">
+        <li><span><span>Statistics stats = HibernateUtil.sessionFactory.getStatistics(); &nbsp;&nbsp;</span></span></li>
+        <li><span>double</span><span> queryCacheHitCount = stats.getQueryCacheHitCount(); &nbsp;&nbsp;</span></li>
+        <li><span>double</span><span> queryCacheMissCount = stats.getQueryCacheMissCount(); &nbsp;&nbsp;</span></li>
+        <li><span>double</span><span> queryCacheHitRatio = &nbsp;&nbsp;</span></li>
+        <li><span>queryCacheHitCount / (queryCacheHitCount + queryCacheMissCount); &nbsp;&nbsp;</span></li>
+        <li><span>log.info(</span><span>&quot;Query Hit ratio:&quot;</span><span> + queryCacheHitRatio); &nbsp;&nbsp;</span></li>
+        <li><span>EntityStatistics entityStats = &nbsp;&nbsp;</span></li>
+        <li><span>stats.getEntityStatistics( Cat.</span><span>class</span><span>.getName() ); &nbsp;&nbsp;</span></li>
+        <li><span>long</span><span> changes = &nbsp;&nbsp;</span></li>
+        <li><span>entityStats.getInsertCount() &nbsp;&nbsp;</span></li>
+        <li><span>+ entityStats.getUpdateCount() &nbsp;&nbsp;</span></li>
+        <li><span>+ entityStats.getDeleteCount(); &nbsp;&nbsp;</span></li>
+        <li><span>log.info(Cat.</span><span>class</span><span>.getName() + </span><span>&quot; changed &quot;</span><span> + changes + </span><span>&quot;times&quot;</span><span> );&nbsp;&nbsp;</span></li>
+        </font></font></font></ol>
+        <ol> </ol>
+            </div></div></body></html>

@@ -1,0 +1,88 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Java判定文件编码或文本流编码的方法</title></head><body><h1>Java判定文件编码或文本流编码的方法</h1><div><p>Java判定文件编码或文本流编码的方法</p>
+<p><a href="http://www.javaeye.com/topic/108540">http://www.javaeye.com/topic/108540</a></p>
+<p>  在程序中，文本文件经常用来存储标准的ASCII码文本，比如英文、加减乘除等号这些运算符号。文本文件也可能用于存储一些其他非ASCII字符，如基于 GBK的简体中文，基于GIG5的繁体中文等等。在存储这些字符时需要正确指定文件的编码格式；而在读取这些文本文件时，有时候就需要自动判定文件的编码格式。 <br>
+<br>
+  按照给定的字符集存储文本文件时，在文件的最开头的三个字节中就有可能存储着编码信息，所以，基本的原理就是只要读出文件前三个字节，判定这些字节的值，就可以得知其编码的格式。其实，如果项目运行的平台就是中文操作系统，如果这些文本文件在项目内产生，即开发人员可以控制文本的编码格式，只要判定两种常见的编码就可以了：GBK和UTF-8。由于中文Windows默认的编码是GBK，所以一般只要判定UTF-8编码格式。 <br>
+<br>
+  对于UTF-8编码格式的文本文件，其前3个字节的值就是-17、-69、-65，所以，判定是否是UTF-8编码格式的代码片段如下：</p>
+<ol class="dp-j">
+    <li><span><span>java.io.File f=</span><span class="keyword">new</span><span> java.io.File(</span><span class="string">&quot;待判定的文本文件名&quot;</span><span>);&nbsp;&nbsp;</span></span></li>
+    <li><span><span class="keyword">try</span><span>{&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp; java.io.InputStream ios=<span class="keyword">new</span><span> java.io.FileInputStream(f);&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;<span class="keyword">byte</span><span>[] b=</span><span class="keyword">new</span><span> </span><span class="keyword">byte</span><span>[</span><span class="number">3</span><span>];&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp; ios.read(b);&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp; ios.close();&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;<span class="keyword">if</span><span>(b[</span><span class="number">0</span><span>]==-</span><span class="number">17</span><span>&amp;&amp;b[</span><span class="number">1</span><span>]==-</span><span class="number">69</span><span>&amp;&amp;b[</span><span class="number">2</span><span>]==-</span><span class="number">65</span><span>)&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(f.getName()+<span class="string">&quot;编码为UTF-8&quot;</span><span>);&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;<span class="keyword">else</span><span> System.out.println(f.getName()+</span><span class="string">&quot;可能是GBK&quot;</span><span>);&nbsp;&nbsp;</span></span></li>
+    <li><span>}<span class="keyword">catch</span><span>(Exception e){&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp; e.printStackTrace();&nbsp;&nbsp;</span></li>
+    <li><span>}&nbsp;&nbsp;</span></li>
+</ol>
+<p><span>上述代码只是简单判定了是否是UTF-8格式编码的文本文件，如果项目对要判定的文本文件编码不可控（比如用户上传的一些HTML、XML等文本），可以采用一个现成的开源项目：cpdetector，它所在的网址是：<a href="http://cpdetector.sourceforge.net/" target="_blank">http://cpdetector.sourceforge.net/</a>。它的类库很小，只有500K左右，利用该类库判定文本文件的代码如下： </span></p>
+<span>
+<ol class="dp-j">
+    <li><span><span class="comment">/*------------------------------------------------------------------------</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; detector是探测器，它把探测任务交给具体的探测实现类的实例完成。</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; cpDetector内置了一些常用的探测实现类，这些探测实现类的实例可以通过add方法</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; 加进来，如ParsingDetector、 JChardetFacade、ASCIIDetector、UnicodeDetector。&nbsp;&nbsp;</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; detector按照&ldquo;谁最先返回非空的探测结果，就以该结果为准&rdquo;的原则返回探测到的</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; 字符集编码。</span> </span></li>
+    <li><span><span class="comment">--------------------------------------------------------------------------*/</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>cpdetector.io.CodepageDetectorProxy detector =&nbsp;&nbsp;</span></li>
+    <li><span>cpdetector.io.CodepageDetectorProxy.getInstance();&nbsp;&nbsp;</span></li>
+    <li><span><span class="comment">/*-------------------------------------------------------------------------</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; ParsingDetector可用于检查HTML、XML等文件或字符流的编码,构造方法中的参数用于</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; 指示是否显示探测过程的详细信息，为false不显示。</span> </span></li>
+    <li><span><span class="comment">---------------------------------------------------------------------------*/</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>detector.add(<span class="keyword">new</span><span> cpdetector.io.ParsingDetector(</span><span class="keyword">false</span><span>));&nbsp;&nbsp;&nbsp;</span></span></li>
+    <li><span><span class="comment">/*--------------------------------------------------------------------------</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; JChardetFacade封装了由Mozilla组织提供的JChardet，它可以完成大多数文件的编码</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; 测定。所以，一般有了这个探测器就可满足大多数项目的要求，如果你还不放心，可以</span> </span></li>
+    <li><span><span class="comment">&nbsp;&nbsp; 再多加几个探测器，比如下面的ASCIIDetector、UnicodeDetector等。</span> </span></li>
+    <li><span><span class="comment"> ---------------------------------------------------------------------------*/</span><span>&nbsp;&nbsp;&nbsp;</span></span></li>
+    <li><span>detector.add(cpdetector.io.JChardetFacade.getInstance());&nbsp;&nbsp;</span></li>
+    <li><span><span class="comment">//ASCIIDetector用于ASCII编码测定</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>detector.add(cpdetector.io.ASCIIDetector.getInstance());&nbsp;&nbsp;</span></li>
+    <li><span><span class="comment">//UnicodeDetector用于Unicode家族编码的测定</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>detector.add(cpdetector.io.UnicodeDetector.getInstance());&nbsp;&nbsp;</span></li>
+    <li><span>java.nio.charset.Charset charset = <span class="keyword">null</span><span>;&nbsp;&nbsp;</span></span></li>
+    <li><span>File f=<span class="keyword">new</span><span> File(</span><span class="string">&quot;待测的文本文件名&quot;</span><span>);&nbsp;&nbsp;</span></span></li>
+    <li><span><span class="keyword">try</span><span> {&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; charset = detector.detectCodepage(f.toURL());&nbsp;&nbsp;</span></li>
+    <li><span>} <span class="keyword">catch</span><span> (Exception ex) {ex.printStackTrace();}&nbsp;&nbsp;</span></span></li>
+    <li><span><span class="keyword">if</span><span>(charset!=</span><span class="keyword">null</span><span>){&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(f.getName()+<span class="string">&quot;编码是：&quot;</span><span>+charset.name());&nbsp;&nbsp;</span></span></li>
+    <li><span>}<span class="keyword">else</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(f.getName()+<span class="string">&quot;未知&quot;</span><span>);&nbsp;&nbsp;</span></span></li>
+</ol>
+<p><span><span>上面代码中的detector不仅可以用于探测文件的编码，也可以探测任意输入的文本流的编码，方法是调用其重载形式： </span></span></p>
+<p><span><span><span><span>charset=detector.detectCodepage(待测的文本输入流,测量该流所需的读入字节数);&nbsp;&nbsp;</span></span></span></span></p>
+<p><span><span><span><span>上面的字节数由程序员指定，字节数越多，判定越准确，当然时间也花得越长。要注意，字节数的指定不能超过文本流的最大长度。 <br>
+<br>
+  判定文件编码的具体应用举例： <br>
+  属性文件(.properties)是Java程序中的常用文本存储方式，象STRUTS框架就是利用属性文件存储程序中的字符串资源。它的内容如下所示：</span></span></span></span></p>
+<span><span><span><span>
+<ol class="dp-j">
+    <li><span><span>#注释语句&nbsp;&nbsp;</span></span></li>
+    <li><span>属性名=属性值&nbsp;&nbsp;</span></li>
+</ol>
+<span>
+<ol class="dp-j">
+    <li><span><span>FileInputStream ios=</span><span class="keyword">new</span><span> FileInputStream(</span><span class="string">&quot;属性文件名&quot;</span><span>);&nbsp;&nbsp;</span></span></li>
+    <li><span>Properties prop=<span class="keyword">new</span><span> Properties();&nbsp;&nbsp;</span></span></li>
+    <li><span>prop.load(ios);&nbsp;&nbsp;</span></li>
+    <li><span>ios.close();&nbsp;&nbsp;</span></li>
+</ol>
+<div>
+<p><span>利用java.io.Properties的load方法读入属性文件虽然方便，但如果属性文件中有中文，在读入之后就会发现出现乱码现象。发生这个原因是load方法使用字节流读入文本，在读入后需要将字节流编码成为字符串，而它使用的编码是&ldquo;iso-8859-1&rdquo;,这个字符集是ASCII码字符集，不支持中文编码，所以这时需要使用显式的转码: </span></p>
+<span>
+<li><span><span>String value=prop.getProperty(</span><span class="string">&quot;属性名&quot;</span><span>);&nbsp;&nbsp;</span></span></li>
+<li><span>String encValue=<span class="keyword">new</span><span> String(value.getBytes(</span><span class="string">&quot;iso-8859-1&quot;</span><span>),</span><span class="string">&quot;属性文件的实际编码&quot;</span><span>); </span></span></li>
+</span> </div>
+<div>
+<p> </p>
+<p><span><span>在上面的代码中，属性文件的实际编码就可以利用上面的方法获得。当然，象这种属性文件是项目内部的，我们可以控制属性文件的编码格式，比如约定采用 Windows内定的GBK，就直接利用&quot;gbk&quot;来转码，如果约定采用UTF-8，也可以是使用&quot;UTF-8&quot;直接转码。如果想灵活一些，做到自动探测编码，就可利用上面介绍的方法测定属性文件的编码，从而方便开发人员的工作。</span></span></p>
+</div>
+<div> </div>
+</span></span></span></span></span></span></div></body></html>

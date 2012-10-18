@@ -1,0 +1,381 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Hibernate 笔记</title></head><body><h1>Hibernate 笔记</h1><div><h4 style="margin-bottom: 0px">Hibernate 笔记</h4>
+<div class="bvMsg">
+<div>Hibernate笔记&nbsp;&nbsp;  by ownraul</div>
+<div>最基本的hibernate映射:类--&gt;数据库(类的对象映射到数据库中的记录)<br>
+//可以添加包名<br>
+//类名,同时指明相对应的表名<br>
+&nbsp;&nbsp;  //主键,name--&gt;类中的属性,column--&gt;表中字段名<br>
+&nbsp;&nbsp;&nbsp;  //表明生成主键的方式&quot;hilo&quot;,&quot;class&quot;代表使用的方式<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  zam_hilo//hilo算法中所需要的表名<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hi//表中对应的字段<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  //hilo表要事先生成,最好先插入一个记录,以免出错<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  //之后将类中属性依次对应到表中字段<br>
+&nbsp;&nbsp;  //表字段名于属性名相同可以省略</div>
+<div>==================好看的分隔线=========================</div>
+<div>hibernate一对一映射(双向关联,单相关联用注释说明)<br>
+class A{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  class B{<br>
+String name_a;&nbsp;&nbsp;&nbsp;  String name_b;<br>
+B b;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  A a;<br>
+}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+A中有一个B对象的引用,B中有A对象的引用,A,B为一对一双向关联,要将A对象存入数据库,必然<br>
+会将B对象也存入数据库,反之亦然.</div>
+<div>class A{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  class B{<br>
+String name_a;&nbsp;&nbsp;&nbsp;  String name_b;<br>
+B b;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+A中有一个B对象的引用,B中没有A对象的引用,A,B为一对一单向关联,从A出发可以找到B,但从B<br>
+出发,无法找到A</div>
+<div><br>
+-------------------------------小型的分隔线-------------------------------------</div>
+<div>一对一双向关联有2种实现方式:</div>
+<div>唯一外键:<br>
+B表中多写一个字段aid,引用于A表的主键,并且将aid作成unique使之唯一</div>
+<div>表创建:<br>
+drop table table_b;<br>
+drop table table_a;</div>
+<div>create table table_a(<br>
+aid number not null primary key,<br>
+name varchar(10)<br>
+);<br>
+create table table_b(<br>
+bid number not null primary key,<br>
+name varchar(10),<br>
+aid number not null unique references a(aid)//b表中多一个字段aid引用a表的主键<br>
+);<br>
+XML文件配置:<br>
+<br>
+<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hilo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hi<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  //对应于B中的属性a,因为B表中多加一个字段引用aid,所以在B端用many-to -one<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  对应a属性&nbsp;&nbsp;&nbsp;&nbsp;  类A &nbsp;&nbsp;  放入aid字段 唯一性为真&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  //cascade级联操作看具体情况设置<br>
+<br>
+<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hilo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hi<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  //aid为被引用,所以在处理属性b的时候,直接使用one-to-one 对应到属性b即可<br>
+&nbsp;&nbsp;  //cascade级联操作看具体情况设置</div>
+<div><br>
+共享主键:<br>
+b表中的主键直接引用a表的主键的值<br>
+表创建<br>
+drop table table_b;<br>
+drop table table_a;<br>
+create table table_a(<br>
+aid number not null primary key,<br>
+name varchar(10)<br>
+)<br>
+create table table_b(<br>
+bid number not null primary key<br>
+references table_a(aid),<br>
+name varchar(10)<br>
+);</div>
+<div>XML文件配置:<br>
+<br>
+<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;  //bid为aid的引用,因此用foreign的方式生成主键<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  a//对应于B中的属性a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  关联属性设置为真<br>
+<br>
+<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hilo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hi<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  //cascade级联操作看具体情况设置</div>
+<div>-------------------------------不是大型的分隔线-----------------------------</div>
+<div><br>
+一对多双向关联:<br>
+建表要点:多的那个类建表多一个引用字段,引用另个表的主ID<br>
+添加到set中去注意要将添加对象的目标对象属性设置完毕;<br>
+XML文件:<br>
+<br>
+<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  hilo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  hi<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+//有set属性一方用set标签,注意级联操作<br>
+同时将inverse属性设置为true,使得本对象由另一端负责维护<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;  //key标签中存放另个表将会引用的字段<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;  //one-to-many标签中存放相对应的类名<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+<br>
+<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hilo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hi<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  //many-to-one存放的属性<br>
+&nbsp;&nbsp;</div>
+<div><br>
+-------------------------------与大型相对的分隔线-----------------------------</div>
+<div>多对多关联:</div>
+<div> </div>
+<div>===================非常好看的分隔线===================</div>
+<div>继承关联:XML文件引用课堂Payment实例</div>
+<div>一个表:<br>
+效率最高,且支持多态查询<br>
+空间利用效率低<br>
+子类字段不能有not null约束<br>
+建表要多一个字段,存放是何种类型的子类</div>
+<div>drop table zam_pay;<br>
+create table zam_pay(<br>
+&nbsp;&nbsp;  pid number primary key,<br>
+&nbsp;&nbsp;  reason varchar(10) not null,<br>
+&nbsp;&nbsp;  money number (10,2) not null,<br>
+&nbsp;&nbsp;  currency varchar(10),<br>
+&nbsp;&nbsp;  bank varchar(10),<br>
+&nbsp;&nbsp;  type varchar(10)<br>
+);</div>
+<div><br>
+xml文件要点:</div>
+<div><br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  zam_hilo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hi<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  //id之后要写明标记字段,说明存放子类类型的字段<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  //说明子类,要在标记中注明在标记字段中此子类的值<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  //id之后要写明标记,说明存放子类类型的字段<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;</div>
+<div> </div>
+<div>------------------------------小小的分隔线-------------------------------</div>
+<div>两个表:只针对两个子类建表,形式最简单,但不支持多态查询,很少使用<br>
+drop table zam_cash;<br>
+drop table zam_card;</div>
+<div>create table zam_cash(<br>
+&nbsp;&nbsp;  pid number not null<br>
+&nbsp;&nbsp;  constraint cash_pk primary key,<br>
+&nbsp;&nbsp;  reason varchar(30) not null,<br>
+&nbsp;&nbsp;  money number(10,2) not null,<br>
+&nbsp;&nbsp;  currency varchar(10) not null<br>
+);</div>
+<div>create table zam_card(<br>
+&nbsp;&nbsp;  pid number not null<br>
+&nbsp;&nbsp;  constraint card_pk primary key,<br>
+&nbsp;&nbsp;  reason varchar(30) not null,<br>
+&nbsp;&nbsp;  money number(10,2) not null,<br>
+&nbsp;&nbsp;  bank varchar(20) not null<br>
+);</div>
+<div>XML文件要点:</div>
+<div>//父类名,先不指定具体存放的表<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  zam_hilo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hi<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  //在子类存放属性时指定表<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;</div>
+<div><br>
+-------------------------------不大的分隔线------------------------------</div>
+<div>三个表:最省空间,但3表查询最慢,支持多态查询<br>
+子类的主ID引用父类的主ID;</div>
+<div>drop table zam_cash;<br>
+drop table zam_card;<br>
+drop table zam_payment;</div>
+<div>create table zam_payment(<br>
+&nbsp;&nbsp;  pid number not null primary key,<br>
+&nbsp;&nbsp;  reason varchar(30) not null,<br>
+&nbsp;&nbsp;  money number(10,2) not null<br>
+);</div>
+<div>create table zam_card(<br>
+&nbsp;&nbsp;  pid number primary key<br>
+&nbsp;&nbsp;  references zam_payment(pid),<br>
+&nbsp;&nbsp;  bank varchar(20) not null<br>
+);</div>
+<div>create table zam_cash(<br>
+&nbsp;&nbsp;  pid number primary key<br>
+&nbsp;&nbsp;  references zam_payment(pid),<br>
+&nbsp;&nbsp;  currency varchar(20) not null<br>
+);</div>
+<div>xml文件要点:<br>
+<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  zam_hilo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  hi<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  //连接子表属性<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  //说明引用存入子表的pid字段<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;</div>
+<div> </div>
+<div>===================非常十分特别好看的分隔线===================</div>
+<div>HQL查询,对象的状态,事务,锁机制</div>
+<div>===================可怜的分隔线=====================</div>
+<div>动态映射<br>
+高级映射技术<br>
+自定义数据类型的映射:实现UserType,CompositeUserType接口<br>
+复合主键<br>
+Blob,Clob字段的映射</div>
+<div><br>
+===================再次被召唤的分隔线================</div>
+<div>查询:<br>
+Criteria查询(生命周期在session之内)<br>
+利用Expression类增加条件查询<br>
+示例查询,Example,常用于组合查询<br>
+复合查询,在原有Criteria对象基础上构建新的查询条件<br>
+<br>
+Criteria的重用,DetachedCriteria,使用时要与session绑定<br>
+&nbsp;&nbsp;  Criteria c=deCriteria.getExecutableCriteria(session)获得运行期Criteria<br>
+&nbsp;&nbsp;  也可以用于子查询<br>
+Criteria的高级特性:<br>
+&nbsp;&nbsp;  限定返回记录范围:返回从100条开始的的20条<br>
+&nbsp;&nbsp;  criteria.setFirstResult(100);<br>
+&nbsp;&nbsp;  criteria.setMaxResult(20);<br>
+&nbsp;&nbsp;  分组:<br>
+&nbsp;&nbsp;&nbsp;  Projections.groupProperty()方法实现对group by的封装<br>
+&nbsp;&nbsp;&nbsp;  知道Projections方法的使用<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+------------------------------小小的分隔线----------------------------------<br>
+&nbsp;&nbsp;&nbsp;<br>
+HQL查询:</div>
+<div>实体查询(实现多态:查询父类会得到子类):<br>
+&nbsp;&nbsp;  from 类名;<br>
+&nbsp;&nbsp;  where 比较连接,子句中可以使用算术表达式<br>
+&nbsp;&nbsp;  as 后跟别名,(as 可以忽略)<br>
+&nbsp;&nbsp;<br>
+属性查询<br>
+&nbsp;&nbsp;  select user.name from TUser as user;查询对象的一个属性<br>
+&nbsp;&nbsp;  List list=session.createQuery(&quot;select user.name,user.age from TUser as user&quot;)<br>
+&nbsp;&nbsp;&nbsp;  查询结果:list中每个元素都是一个结果的对象数组,<br>
+&nbsp;&nbsp;&nbsp;  可以对多个属性查询作对象封装,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  list=session.createQuery(select new TUser(user.name,user.age) from TUser as user);<br>
+&nbsp;&nbsp;&nbsp;  查询结果:list中元素为TUser对象<br>
+&nbsp;&nbsp;&nbsp;  此时的对象,id属性为null,更新此对象将是一个插入操作;<br>
+&nbsp;&nbsp;  可以在select的子句中使用统计函数,原生sql语句,distinct关键字 <br>
+实体更新与删除:<br>
+&nbsp;&nbsp;  Hibernate3中可以直接使用:update TUser set age=18 where id=1;<br>
+&nbsp;&nbsp;  (以前版本要取出对象,设置属性,再保存来完成操作)<br>
+&nbsp;&nbsp;  删除可以直接使用delete TUser where age&gt;18;<br>
+&nbsp;&nbsp;  注意:批量操作对缓存策略的影响<br>
+分组与排序:<br>
+&nbsp;&nbsp;  Order by子句,基本同sql:from TUser user order by user.age,user.name<br>
+&nbsp;&nbsp;  Group by子句:<br>
+&nbsp;&nbsp;&nbsp;  使用Having对Group by子句进行再排序:<br>
+&nbsp;&nbsp;&nbsp;  select count(user),user.age from TUser user where group by user.age having count(user)&gt;10;<br>
+&nbsp;&nbsp;&nbsp;<br>
+参数绑定:(代码零乱,难以性能优化,带来安全问题)<br>
+&nbsp;&nbsp;  实现:<br>
+&nbsp;&nbsp;  顺序占位符?<br>
+&nbsp;&nbsp;&nbsp;  多参数:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Object[] args=new Object[]{&quot;Eric&quot;,new Integer(18)};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Type[] types=new Type[]{Hibernate.STRING,Hibernate.INTEGER};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  session.find(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &quot;from TUser user where user.name=? and user.age=?&quot;,agrs,types<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  )<br>
+&nbsp;&nbsp;  引用占位符:<br>
+&nbsp;&nbsp;  String hql=&quot;from TUser user where user.name:name&quot;;//首先表示查询参数--name<br>
+&nbsp;&nbsp;  Query query=session.createQuery(hql);//创建Query实例<br>
+&nbsp;&nbsp;  query.setParameter(&quot;name&quot;,&quot;Eric&quot;);//利用参数名进行填充<br>
+&nbsp;&nbsp;&nbsp;  也可以用一个JavaBean封装查询参数<br>
+引用查询:<br>
+&nbsp;&nbsp;&nbsp;  可以用query节点定义,将sql语句放入hibernate的配置文件中,<br>
+&nbsp;&nbsp;  利用session.getNamedQuery(&quot;xxx&quot;)调用<br>
+联合查询:<br>
+&nbsp;&nbsp;  inner join:<br>
+&nbsp;&nbsp;&nbsp;  &quot;from TUser inner join fetch user.address&quot;(address为一个集合属性)<br>
+&nbsp;&nbsp;  对应sql:&quot;select .....from T_User user inner join T_Address addr on user.id=addr.id&quot;;<br>
+&nbsp;&nbsp;  fetch表明将TAddress对象读出后填充到TUser中,否则结果集条目为一个object[],为TUser,TAddress对象<br>
+&nbsp;&nbsp;  on user.id=addr.id关系在映射文件中反应<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  left outer join<br>
+&nbsp;&nbsp;  right outer jion:分别以left,right为主,将游离记录填充<br>
+&nbsp;&nbsp;  (fetch只对inner jion 和left outer join起作用)<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  full join:<br>
+&nbsp;&nbsp;&nbsp;  返回2张表的笛卡儿积<br>
+&nbsp;&nbsp;&nbsp;  from TUser user full join user.address<br>
+&nbsp;&nbsp;&nbsp;  是left outer join和right outer join 的并集<br>
+&nbsp;&nbsp;  子查询:只能出现在where中,且用()括起;<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  <br>
+---------------------------偶就素那分锅线----------------------------&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;<br>
+<br>
+<br>
+数据加载方式<br>
+立即加载(immediate loading):lazy=&quot;false&quot;<br>
+&nbsp;&nbsp;  实体加载后,关联对象立即也加载<br>
+&nbsp;&nbsp;  可能会把暂时用不到的数据也加载进来,造成性能的损失<br>
+<br>
+延迟加载(lazy loading):lazy=&quot;true&quot;<br>
+&nbsp;&nbsp;  在真正需要使用数据的时候才对关联对象进行加载<br>
+预先加载(Eager loading):<br>
+&nbsp;&nbsp;  通过out-join完成关联数据的加载<br>
+&nbsp;&nbsp;  用立即加载可能使用2条SQL语句,预先加载方式只使用一条SQL<br>
+&nbsp;&nbsp;  可以高效地处理关联数据,但对于复杂的关联可能会使sql过于复杂<br>
+批量加载(Batch loading):class节点中使用batch-size=&quot;xx&quot;配置<br>
+&nbsp;&nbsp;  通过批量提交多个限定条件,一次完成多个数据的读取<br>
+&nbsp;&nbsp;  如:<br>
+&nbsp;&nbsp;  select from TUser where id=1;<br>
+&nbsp;&nbsp;  select from TUser where id=2;可以合并为<br>
+&nbsp;&nbsp;  select from TUser where id=1 or id =2一起执行<br>
+<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;  java.sql.SQLException:Field 'id' doesn't not have a default value; <br>
+&nbsp;&nbsp;&nbsp;  xml中设置的字段,要有自增属性<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;</div>
+</div></div></body></html>

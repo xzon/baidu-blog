@@ -1,0 +1,152 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>全世界所有程序员都会犯的错误-蔡学镛</title></head><body><h1>全世界所有程序员都会犯的错误-蔡学镛</h1><div><table class="buttomBorder FCK__ShowTableBorders" border="0" cellspacing="3" cellpadding="3" width="100%">
+    <tbody>
+        <tr>
+            <td class="contentTitle" align="center">全世界所有程序员都会犯的错误-蔡学镛 <hr width="70%">
+            </td>
+        </tr>
+        <tr>
+            <td align="center">2007-04-13 来源:www.javaresearch.org 作者:未知</td>
+        </tr>
+        <tr>
+            <td class="content" valign="top" align="left">
+            <table class="rtable FCK__ShowTableBorders" border="0" width="98%">
+                <tbody>
+                    <tr>
+                        <td class="text" width="100%" align="left"><br>
+                        &nbsp;&nbsp;&nbsp;  原来以为对 Java 初始化已经很master了，结果还是上当了<br>
+                        &nbsp;&nbsp;&nbsp;<br>
+                        &nbsp;&nbsp;&nbsp;  以下为转贴。。。。。<br>
+                        <br>
+                        <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;  当年，国际巨星成龙的「龙种」曝光，众人指责他对不起娇妻林凤娇，逼得他出面召开记者会，向世人自白他犯了「全世界所有男人都会犯的错误」。从来没犯过这种错误的我，也因此常常认为自己不是个男人。<br>
+                        <br>
+                        虽然没犯过「全世界所有男人都会犯的错误」，但是我倒是曾经犯了「全世界所有程序员都会犯的错误」。不管使用何种语言，全世界所有程序员都一定犯过这种错误，那就是：太依赖编译器，却不知道编译器做了哪些事。<br>
+                        <br>
+                        一般来说，越高阶的程序语言，会提供越多语法上的便利，以方便程序撰写，这就俗称为syntactic sugar，我称其为「语法上的甜头」。虽说是甜头，但是如果你未能了解该语法的实质内涵，很可能会未尝甜头，却吃尽苦头。<br>
+                        <br>
+                        不久前，我收到一个电子邮件，读者列出下面的Java程序，向我求救。看过这个程序之后，我确定这又是一个「全世界所有程序员都会犯的错误」。<br>
+                        <br>
+                        // 程序1<br>
+                        class Singleton {<br>
+                        private static Singleton obj = new Singleton();<br>
+                        public static int counter1;<br>
+                        public static int counter2 = 0;<br>
+                        private Singleton() {<br>
+                        counter1++;<br>
+                        counter2++;<br>
+                        }<br>
+                        public static Singleton getInstance() {<br>
+                        return obj;<br>
+                        }<br>
+                        }<br>
+                        <br>
+                        // 程序2<br>
+                        public class MyMain {<br>
+                        public static void main(String[] args) {<br>
+                        Singleton obj = Singleton.getInstance();<br>
+                        System.out.println(&quot;obj.counter1==&quot;+obj.counter1);<br>
+                        System.out.println(&quot;obj.counter2==&quot;+obj.counter2);<br>
+                        }<br>
+                        }<br>
+                        <br>
+                        执行结果是：<br>
+                        obj.counter1==1<br>
+                        obj.counter2==0<br>
+                        <br>
+                        你有没有被此结果吓一跳？乍看程序代码，你很可能会认为counter1和counter2的值一定会相等，但执行结果显然不是如此。其实，程序1被编译后的程序应该等同于下面的程序3：<br>
+                        <br>
+                        // 程序3<br>
+                        class Singleton {<br>
+                        private static Singleton obj;<br>
+                        public static int counter1;<br>
+                        public static int counter2;<br>
+                        static { // 这就是class constructor<br>
+                        // 在进入此class constructor之前，class已经被JVM<br>
+                        // 配置好内存，所有的static field都会被先设定为0，<br>
+                        // 所以此时counter1和counter2都已经是0，且singleton为null<br>
+                        obj = new Singleton(); // 问题皆由此行程序产生<br>
+                        // counter1不会在此被设定为0<br>
+                        counter2 = 0; // counter2再被设定一次0（其实是多此一举）<br>
+                        }<br>
+                        private Singleton() { // 这是instance constructor<br>
+                        counter1++;<br>
+                        counter2++;<br>
+                        }<br>
+                        public static Singleton getInstance() {<br>
+                        return obj;<br>
+                        }<br>
+                        }<br>
+                        <br>
+                        这是因为：当class具有static field，且直接在宣告处透过「=...」的方式设定其值时，编译器会自动将这些叙述依序搬到class constructor内。同样地，当class具有instance field，且直接在宣告处透过「=...」的方式设定其值时，编译器会自动将这些叙述依序搬到instance constructor内。<br>
+                        <br>
+                        此程序在class constructor内，还未将static field初始化时（这时候，counter1和counter2都是0），就呼叫instance constructor，而instance constructor竟然还会去更动static field的值，使得counter1和counter2都变成1。然后instance constructor执行完，回到class constructor，再把counter2的值设为0（但是<br>
+                        counter1维持不变）。最后的结果：counter1等于1，counter2等于0。<br>
+                        <br>
+                        欲改正程序1，方法有三：<br>
+                        <br>
+                        -方法一：将singleton field的宣告调到counter1与counter2 field之后。<br>
+                        这是最好的作法。<br>
+                        -方法二：将counter2=0的宣告中，「=0」的部分删除。这种作法只有在希望<br>
+                        -方法三：将初始化的动作搬到class constructors内，自行撰写，而不依赖<br>
+                        编译器产生。这是最保险的作法。<br>
+                        <br>
+                        如何避免犯下「全世界所有程序员都会犯的错误」，我给各位Java程序员<br>
+                        的建议是：<br>
+                        -熟读Java Language Specification<br>
+                        -在有疑问时，使用J2SDK所提供的javap来反组译Java Bytecode，直接观察<br>
+                        编译后的结果。<br>
+                        <br>
+                        下面是我用javap来反组译程序1的示范：<br>
+                        <br>
+                        C:\&gt;javap -c -classpath . Singleton<br>
+                        <br>
+                        Compiled from MyMain.java<br>
+                        class Singleton extends java.lang.Object {<br>
+                        public static int counter1;<br>
+                        public static int counter2;<br>
+                        public static Singleton getInstance();<br>
+                        static {};<br>
+                        }<br>
+                        <br>
+                        Method Singleton()<br>
+                        0 aload_0<br>
+                        1 invokespecial #1 &lt;Method java.lang.Object()&gt;<br>
+                        4 getstatic #2 &lt;Field int counter1&gt;<br>
+                        7 iconst_1<br>
+                        8 iadd<br>
+                        9 putstatic #2 &lt;Field int counter1&gt;<br>
+                        12 getstatic #3 &lt;Field int counter2&gt;<br>
+                        15 iconst_1<br>
+                        16 iadd<br>
+                        17 putstatic #3 &lt;Field int counter2&gt;<br>
+                        20 return<br>
+                        <br>
+                        Method Singleton getInstance()<br>
+                        0 getstatic #4 &lt;Field Singleton obj&gt;<br>
+                        3 areturn<br>
+                        <br>
+                        Method static {}<br>
+                        0 new #5 &lt;Class Singleton&gt;<br>
+                        3 dup<br>
+                        4 invokespecial #6 &lt;Method Singleton()&gt;<br>
+                        7 putstatic #4 &lt;Field Singleton obj&gt;<br>
+                        10 iconst_0<br>
+                        11 putstatic #3 &lt;Field int counter2&gt;<br>
+                        14 return<br>
+                        <br>
+                        其实Java的syntactic sugar并不算多，C#的syntactic sugar才真的是无所不在，<br>
+                        也因此C#的初学者更容易犯了「全世界所有程序员都会犯的错误」。许多C#的书都会一边介绍C#语法，一边介绍编译之后MSIL（.NET的中间语言，类似Java的Bytecode）的结果，然而Java的书却鲜少这么做。<br>
+                        <br>
+                        虽说是「全世界所有程序员都会犯的错误」，但是这不代表你犯了此错误之后，仍可以同爱借钱的曹启泰一般地「抬头挺胸、理直气壮」。只要有心，其实这一类的错误仍是可以避免的。<br>
+                        <br>
+                        <br>
+                        本文作者：蔡学镛<br>
+                        文章出处：Sleepless 2.0<br>
+                        发表日期：03/10/2003</td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table></div></body></html>

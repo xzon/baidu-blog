@@ -1,0 +1,260 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Dom4j操作XML-dom4j-javacode</title></head><body><h1>Dom4j操作XML-dom4j-javacode</h1><div><p>Dom4j操作XML-dom4j-Javacode</p>
+<p>dom4j 是一种解析 XML 文档的开放源代码 XML 框架。本文介绍如何使用包含在 dom4j 中的解析器创建并修改XML 文档。<br>
+dom4j API 包含一个解析 XML 文档的工具。本文中将使用这个解析器创建一个示例 XML 文档。清单 1 显示了这个示例 XML 文档，catalog.xml。</p>
+<p>清单 1. 示例 XML 文档（catalog.xml）</p>
+<p>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt; <br>
+&lt;catalog&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;!--An XML Catalog--&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;?target instruction?&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;journal title=&quot;XML Zone&quot; publisher=&quot;IBM developerWorks&quot;&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;article level=&quot;Intermediate&quot; date=&quot;December-2001&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;title&gt;Java configuration with XML Schema&lt;/title&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;author&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;firstname&gt;Marcello&lt;/firstname&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;lastname&gt;Vitaletti&lt;/lastname&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/author&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/article&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/journal&gt; <br>
+&lt;/catalog&gt;</p>
+<p>然后使用同一个解析器修改 catalog.xml，清单 2 是修改后的 XML 文档，catalog-modified.xml。</p>
+<p>清单 2. 修改后的 XML 文档（catalog-modified.xml）</p>
+<p>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt; <br>
+&lt;catalog&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;!--An XML catalog--&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;?target instruction?&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;journal title=&quot;XML Zone&quot; publisher=&quot;IBM developerWorks&quot;&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;article level=&quot;Introductory&quot; date=&quot;October-2002&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;title&gt;Create flexible and extensible XML schemas&lt;/title&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;author&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;firstname&gt;Ayesha&lt;/firstname&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;lastname&gt;Malik&lt;/lastname&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/author&gt; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/article&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/journal&gt; <br>
+&lt;/catalog&gt;</p>
+<p>与 W3C DOM API 相比，使用 dom4j 所包含的解析器的好处是 dom4j 拥有本地的 XPath 支持。DOM 解析器不支持使用 XPath 选择节点。</p>
+<p>本文包括以下几个部分：</p>
+<p>预先设置 <br>
+创建文档 <br>
+修改文档 <br>
+预先设置<br>
+这个解析器可以从 <a href="http://dom4j.org/"><font color="#0a7cb1">http://dom4j.org</font></a> 获取。通过设置使 dom4j-1.4/dom4j-full.jar 能够在 classpath 中访问，该文件中包括 dom4j 类、XPath 引擎以及 SAX 和 DOM 接口。如果已经使用了 JAXP 解析器中包含的 SAX 和 DOM 接口，向 classpath 中增加 dom4j-1.4/dom4j.jar 。 dom4j.jar 包括 dom4j 类和 XPath 引擎，但是不含 SAX 与 DOM 接口。</p>
+<p>创建文档<br>
+本节讨论使用 dom4j API 创建 XML 文档的过程，并创建示例 XML 文档 catalog.xml。</p>
+<p>使用 import 语句导入 dom4j API 类：<br>
+<br>
+import org.dom4j.Document;<br>
+import org.dom4j.DocumentHelper;<br>
+import org.dom4j.Element;<br>
+<br>
+使用 DocumentHelper 类创建一个文档实例。 DocumentHelper 是生成 XML 文档节点的 dom4j API 工厂类。 <br>
+Document document = DocumentHelper.createDocument();<br>
+<br>
+使用 addElement() 方法创建根元素 catalog 。 addElement() 用于向 XML 文档中增加元素。<br>
+Element catalogElement = document.addElement(&quot;catalog&quot;);<br>
+<br>
+在 catalog 元素中使用 addComment() 方法添加注释&ldquo;An XML catalog&rdquo;。 <br>
+catalogElement.addComment(&quot;An XML catalog&quot;);<br>
+<br>
+在 catalog 元素中使用 addProcessingInstruction() 方法增加一个处理指令。<br>
+catalogElement.addProcessingInstruction(&quot;target&quot;,&quot;text&quot;);<br>
+<br>
+在 catalog 元素中使用 addElement() 方法增加 journal 元素。 <br>
+Element journalElement = catalogElement.addElement(&quot;journal&quot;);<br>
+<br>
+使用 addAttribute() 方法向 journal 元素添加 title 和 publisher 属性。 <br>
+journalElement.addAttribute(&quot;title&quot;, &quot;XML Zone&quot;);<br>
+journalElement.addAttribute(&quot;publisher&quot;, &quot;IBM developerWorks&quot;);<br>
+<br>
+向 article 元素中添加 journal 元素。 <br>
+Element articleElement=journalElement.addElement(&quot;article&quot;);<br>
+<br>
+为 article 元素增加 level 和 date 属性。 <br>
+articleElement.addAttribute(&quot;level&quot;, &quot;Intermediate&quot;);<br>
+articleElement.addAttribute(&quot;date&quot;, &quot;December-2001&quot;);<br>
+<br>
+向 article 元素中增加 title 元素。 <br>
+Element titleElement=articleElement.addElement(&quot;title&quot;);<br>
+<br>
+使用 setText() 方法设置 article 元素的文本。 <br>
+titleElement.setText(&quot;Java configuration with XML Schema&quot;);<br>
+<br>
+在 article 元素中增加 author 元素。 <br>
+Element authorElement=articleElement.addElement(&quot;author&quot;);<br>
+<br>
+在 author 元素中增加 firstname 元素并设置该元素的文本。 <br>
+Element firstNameElement=authorElement.addElement(&quot;firstname&quot;);<br>
+firstNameElement.setText(&quot;Marcello&quot;);<br>
+<br>
+在 author 元素中增加 lastname 元素并设置该元素的文本。 <br>
+Element lastNameElement=authorElement.addElement(&quot;lastname&quot;);<br>
+lastNameElement.setText(&quot;Vitaletti&quot;);<br>
+<br>
+可以使用 addDocType() 方法添加文档类型说明。 <br>
+document.addDocType(&quot;catalog&quot;, null,&quot;<a href="file:///c:/Dtds/catalog.dtd"><font color="#0a7cb1">file://c:/Dtds/catalog.dtd</font></a>&quot;);<br>
+<br>
+这样就向 XML 文档中增加文档类型说明：<br>
+&lt;!DOCTYPE catalog SYSTEM &quot;<a href="file:///c:/Dtds/catalog.dtd"><font color="#0a7cb1">file://c:/Dtds/catalog.dtd</font></a>&quot;&gt;<br>
+<br>
+如果文档要使用文档类型定义（DTD）文档验证则必须有 Doctype。<br>
+XML 声明 &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt; 自动添加到 XML 文档中。 <br>
+清单 3 所示的例子程序 XmlDom4J.java 用于创建 XML 文档 catalog.xml。<br>
+清单 3. 生成 XML 文档 catalog.xml 的程序（XmlDom4J.java）</p>
+<p>import org.dom4j.Document;<br>
+import org.dom4j.DocumentHelper;<br>
+import org.dom4j.Element;<br>
+import org.dom4j.io.XMLWriter;<br>
+import java.io.*;<br>
+<br>
+public class XmlDom4J{<br>
+public void generateDocument(){<br>
+&nbsp;&nbsp;&nbsp;  Document document = DocumentHelper.createDocument();<br>
+&nbsp;&nbsp;&nbsp;  Element catalogElement = document.addElement(&quot;catalog&quot;);<br>
+&nbsp;&nbsp;&nbsp;  catalogElement.addComment(&quot;An XML Catalog&quot;);<br>
+&nbsp;&nbsp;&nbsp;  catalogElement.addProcessingInstruction(&quot;target&quot;,&quot;text&quot;);<br>
+&nbsp;&nbsp;&nbsp;  Element journalElement = catalogElement.addElement(&quot;journal&quot;);<br>
+&nbsp;&nbsp;&nbsp;  journalElement.addAttribute(&quot;title&quot;, &quot;XML Zone&quot;);<br>
+&nbsp;&nbsp;&nbsp;  journalElement.addAttribute(&quot;publisher&quot;, &quot;IBM developerWorks&quot;);<br>
+<br>
+&nbsp;&nbsp;&nbsp;  Element articleElement = journalElement.addElement(&quot;article&quot;);<br>
+&nbsp;&nbsp;&nbsp;  articleElement.addAttribute(&quot;level&quot;, &quot;Intermediate&quot;);<br>
+&nbsp;&nbsp;&nbsp;  articleElement.addAttribute(&quot;date&quot;, &quot;December-2001&quot;);<br>
+&nbsp;&nbsp;&nbsp;  Element titleElement = articleElement.addElement(&quot;title&quot;);<br>
+&nbsp;&nbsp;&nbsp;  titleElement.setText(&quot;Java configuration with XML Schema&quot;);<br>
+&nbsp;&nbsp;&nbsp;  Element authorElement = articleElement.addElement(&quot;author&quot;);<br>
+&nbsp;&nbsp;&nbsp;  Element firstNameElement = authorElement.addElement(&quot;firstname&quot;);<br>
+&nbsp;&nbsp;&nbsp;  firstNameElement.setText(&quot;Marcello&quot;);<br>
+&nbsp;&nbsp;&nbsp;  Element lastNameElement = authorElement.addElement(&quot;lastname&quot;);<br>
+&nbsp;&nbsp;&nbsp;  lastNameElement.setText(&quot;Vitaletti&quot;);<br>
+<br>
+&nbsp;&nbsp;&nbsp;  document.addDocType(&quot;catalog&quot;, null,&quot;<a href="file:///c:/Dtds/catalog.dtd"><font color="#0a7cb1">file://c:/Dtds/catalog.dtd</font></a>&quot;);<br>
+&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  XMLWriter output = new XMLWriter(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new FileWriter( new File(&quot;c:/catalog/catalog.xml&quot;) ));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  output.write( document );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  output.close();<br>
+&nbsp;&nbsp;&nbsp;  } catch(IOException e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(e.getMessage());<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+<br>
+public static void main(String[] argv){<br>
+&nbsp;&nbsp;&nbsp;  XmlDom4J dom4j=new XmlDom4J();<br>
+&nbsp;&nbsp;&nbsp;  dom4j.generateDocument();<br>
+}</p>
+<p>这一节讨论了创建 XML 文档的过程，下一节将介绍使用 dom4j API 修改这里创建的 XML 文档。</p>
+<p>修改文档<br>
+这一节说明如何使用 dom4j API 修改示例 XML 文档 catalog.xml。</p>
+<p>使用 SAXReader 解析 XML 文档 catalog.xml：</p>
+<p>SAXReader saxReader = new SAXReader();<br>
+Document document = saxReader.read(inputXml);</p>
+<p>SAXReader 包含在 org.dom4j.io 包中。</p>
+<p>inputXml 是从 c:/catalog/catalog.xml 创建的 java.io.File。使用 XPath 表达式从 article 元素中获得 level 节点列表。如果 level 属性值是&ldquo;Intermediate&rdquo;则改为&ldquo;Introductory&rdquo;。</p>
+<p>List list = document.selectNodes(&quot;<a><font color="#0a7cb1">//article/@level</font></a>&quot; );<br>
+Iterator iter=list.iterator();<br>
+while(iter.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;  Attribute attribute=(Attribute)iter.next();<br>
+&nbsp;&nbsp;&nbsp;  if(attribute.getValue().equals(&quot;Intermediate&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  attribute.setValue(&quot;Introductory&quot;); <br>
+}</p>
+<p>获取 article 元素列表，从 article 元素中的 title 元素得到一个迭代器，并修改 title 元素的文本。 <br>
+<br>
+ist = document.selectNodes(&quot;//article&quot; );<br>
+iter=list.iterator();<br>
+while(iter.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;  Element element=(Element)iter.next();<br>
+&nbsp;&nbsp;&nbsp;  Iterator iterator=element.elementIterator(&quot;title&quot;);<br>
+&nbsp;&nbsp;&nbsp;  while(iterator.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element titleElement=(Element)iterator.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(titleElement.getText().equals(&quot;Java configuration with XML Schema&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  titleElement.setText(&quot;Create flexible and extensible XML schema&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>通过和 title 元素类似的过程修改 author 元素。</p>
+<p>清单 4 所示的示例程序 Dom4JParser.java 用于把 catalog.xml 文档修改成 catalog-modified.xml 文档。</p>
+<p>清单 4. 用于修改 catalog.xml 的程序（Dom4Jparser.java）</p>
+<p>import org.dom4j.Document;<br>
+import org.dom4j.Element;<br>
+import org.dom4j.Attribute;<br>
+import java.util.List;<br>
+import java.util.Iterator;<br>
+import org.dom4j.io.XMLWriter;<br>
+import java.io.*;<br>
+import org.dom4j.DocumentException;<br>
+import org.dom4j.io.SAXReader;</p>
+<p>public class Dom4JParser{</p>
+<p>&nbsp;&nbsp;&nbsp;  public void modifyDocument(File inputXml){</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SAXReader saxReader = new SAXReader();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Document document = saxReader.read(inputXml);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  List list = document.selectNodes(&quot;<a><font color="#0a7cb1">//article/@level</font></a>&quot; );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Iterator iter=list.iterator();<br>
+<br>
+&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(iter.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  Attribute attribute=(Attribute)iter.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  if(attribute.getValue().equals(&quot;Intermediate&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  attribute.setValue(&quot;Introductory&quot;); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  list = document.selectNodes(&quot;<a><font color="#0a7cb1">//article/@date</font></a>&quot; );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  iter=list.iterator();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(iter.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Attribute attribute=(Attribute)iter.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(attribute.getValue().equals(&quot;December-2001&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  attribute.setValue(&quot;October-2002&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  list = document.selectNodes(&quot;//article&quot; );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  iter=list.iterator();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(iter.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element element=(Element)iter.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Iterator iterator=element.elementIterator(&quot;title&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(iterator.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element titleElement=(Element)iterator.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(titleElement.getText().equals(&quot;Java configuration with XML Schema&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  titleElement.setText(&quot;Create flexible and extensible XML schema&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  list = document.selectNodes(&quot;//article/author&quot; );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  iter=list.iterator();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(iter.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element element=(Element)iter.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Iterator iterator=element.elementIterator(&quot;firstname&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(iterator.hasNext()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element firstNameElement=(Element)iterator.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(firstNameElement.getText().equals(&quot;Marcello&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  firstNameElement.setText(&quot;Ayesha&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  list = document.selectNodes(&quot;//article/author&quot; );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  iter=list.iterator();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(iter.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element element=(Element)iter.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Iterator iterator=element.elementIterator(&quot;lastname&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(iterator.hasNext()){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element lastNameElement=(Element)iterator.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(lastNameElement.getText().equals(&quot;Vitaletti&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lastNameElement.setText(&quot;Malik&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  XMLWriter output = <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new XMLWriter( new FileWriter( new File(&quot;c:/catalog/catalog-modified.xml&quot;) ));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  output.write( document );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  output.close();<br>
+&nbsp;&nbsp;&nbsp;  } catch(DocumentException e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(e.getMessage());<br>
+&nbsp;&nbsp;&nbsp;  } catch(IOException e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(e.getMessage());<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>&nbsp;&nbsp;&nbsp;  public static void main(String[] argv){</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Dom4JParser dom4jParser=new Dom4JParser();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  dom4jParser.modifyDocument(new File(&quot;c:/catalog/catalog.xml&quot;));<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>这一节说明了如何使用 dom4j 中的解析器修改示例 XML 文档。这个解析器不使用 DTD 或者模式验证 XML 文档。如果 XML 文档需要验证，可以解释用 dom4j 与 JAXP SAX 解析器。</p>
+<p>结束语<br>
+包含在 dom4j 中的解析器是一种用于解析 XML 文档的非验证性工具，可以与JAXP、Crimson 或 Xerces 集成。本文说明了如何使用该解析器创建和修改 XML 文档。</p>
+<p><a href="http://hi.baidu.com/menglinxi_a/blog">http://hi.baidu.com/menglinxi_a/blog</a></p></div></body></html>

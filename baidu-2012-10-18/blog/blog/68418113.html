@@ -1,0 +1,268 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>跨越边界: Java 模型以外的类型策略</title></head><body><h1>跨越边界: Java 模型以外的类型策略</h1><div><h1><span style="color: rgb(153, 153, 153);">跨越边界: </span>Java 模型以外的类型策略</h1>
+http://www.ibm.com/developerworks/cn/java/j-cb05236.html<br>
+<br>
+<p>级别： 初级</p>
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#author">Bruce Tate</a> (<a href="mailto:bruce.tate@j2life.com?subject=Java%20%E6%A8%A1%E5%9E%8B%E4%BB%A5%E5%A4%96%E7%9A%84%E7%B1%BB%E5%9E%8B%E7%AD%96%E7%95%A5&amp;cc=bruce.tate@j2life.com">bruce.tate@j2life.com</a>), 总裁, J2Life, LLC</p>
+<p>2006 年  6 月  12 日</p>
+<blockquote>当谈到 Java&#8482; 语言的类型方法时，Java 社区分为两大阵营。一些人喜欢编译时错误检查，更好的安全性，以及改善的工具 —— 这些都是静态类型所能提供的特性。而另一些人则偏爱更动态的类型体验。这一次在 <a href="http://www.ibm.com/developerworks/cn/views/java/articles.jsp?view_by=search&amp;search_by=%E8%B7%A8%E8%B6%8A%E8%BE%B9%E7%95%8C"><em>跨越边界</em></a> 中，您将看到两种高生产力的非 Java 语言所使用的一些截然不同的类型策略，并发现在 Java 编程中提高类型灵活性的一些方法。</blockquote>
+<p>在对任何编程语言的讨论中，争议较大的一个问题就是类型模型。类型决定可以使用哪些种类的工具，并影响到应用程序的设计。很多开发人员将类型与生产 率或可维护性联系起来（我就是其中的一个）。典型的 Java 开发人员通常都特别乐于维护 Java 语言的类型模型的地位，强调 Java  语言可采用更好的开发工具，在编译时捕捉某些种类的 bug（例如类型不兼容和拼写错误），以及性能等方面的优势。</p>
+<p>如果您想理解一种新的编程语言，甚至一系列语言，那么通常应该从类型策略着手。在本文中，您将看到 Java  之外的一些语言中的类型模型。我首先简要介绍任何语言设计者在类型模型中必须考虑的一些决策，着重介绍静态类型和动态类型的一些不同的决策。我将展示一些 不同极端的例子 —— Objective Caml 中的静态类型和 Ruby 中的动态类型。我还将谈到 Java 语言的类型限制，以及如何突破  Java 类型的限制快速编程。</p>
+<table width="40%" cellspacing="0" cellpadding="0" border="0" align="right">
+    <tbody>
+        <tr>
+            <td width="10"><img width="10" height="1" src="http://www.ibm.com/i/c.gif"></td>
+            <td>
+            <table width="100%" cellspacing="0" cellpadding="5" border="1">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee"><a name="N10060"><strong>关于本系列</strong></a><br>
+                        <p>在 <a href="http://www.ibm.com/developerworks/cn/views/java/articles.jsp?view_by=search&amp;search_by=%E8%B7%A8%E8%B6%8A%E8%BE%B9%E7%95%8C"><em>跨越边界</em></a>  系列中，作者 Bruce Tate 提出这样一个观点：如今的 Java 程序员可通过学习其他方法和语言得到很好的其他思路。自从 Java  技术明显成为所有开发项目的最佳选择以来，编程前景已经变化。其他的框架正影响构建 Java 框架的方式，从其他语言学到的概念可以影响您的 Java  编程。您编写的 Python（或 Ruby、Smalltalk……）代码可以改变您处理 Java 编码的方式。</p>
+                        <p>本系列为您介绍与 Java 开发根本不同，但也可以直接应用于 Java  开发的编程概念和技术。在一些例子中，需要对技术进行集成以利用它。在另外一些例子中，您将能够直接应用这些概念。单独的工具不及其他语言和框架能够影响  Java 社区中的开发人员、框架甚至基本方法的思想那么重要。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p><a name="N10072"><span class="atitle">类型策略</span></a></p>
+<p>至少可以从三个角度来看待类型：</p>
+<ul>
+    <li><strong>静态类型还是动态类型</strong>，这取决于<em>何时</em> 实施类型模型。静态类型语言在编译时实施类型。而动态类型语言通常基于一个对象的特征在运行时实施类型。</li>
+    <li><strong>强类型还是弱类型</strong>，这取决于<em>如何</em>  实施类型模型。强类型严格地实施类型，如果发现有违反类型规则的情况，则会抛出运行时或编译时错误。而弱类型则留有更多的余地。极端情况下，弱类型语言 （例如  Assembler）允许将任意数据类型赋给另一种类型（不管这种赋值是否有意义）。静态类型的语言既可以有强类型，也可以有弱类型；而动态类型系统通常 是强类型的，但也不完全是。</li>
+    <li><strong>显式类型还是隐式类型</strong>，这取决于语言如何确定一个给定对象的类型。显式类型语言要求声明每个变量和每个函数参数。而隐式类型语言则根据语言中的语法和结构线索来确定对象的类型。静态类型语言通常是显式类型的，但也不完全是；而动态类型语言几乎都是隐式类型的。</li>
+</ul>
+<p>下面两个例子很好地阐释了其中两个角度的内涵。假设您编译下面这段 Java 代码：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">class Test {<br>   public static void test(int i) {<br>      String s = i;<br>   }<br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>会收到如下错误消息：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">Test.java:3: incompatible types<br>found   : int<br>required: java.lang.String<br>        String s = i;<br>                   ^<br>1 error</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>执行以下 Ruby 代码：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">1 + &quot;hello&quot;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>会收到以下错误消息：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">TypeError: String can't be coerced into Fixnum<br>        from (irb):3:in '+'<br>        from (irb):3</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>这两种语言都倾向于强类型，因为当您试图使用一个它们期望之外的类型结构的对象时，它们都会抛出错误消息。Java  类型策略在编译时给出错误消息，因为它执行静态类型检查。而 Ruby 则是在运行时给出错误消息，因为 Ruby 支持动态类型。换句话说，Java  在编译时将对象绑定到类型。而 Ruby 则是在运行时每当更改对象的时候将对象绑定到类型。由于我是在 Java 代码中，而不是在 Ruby  中声明变量的，因此可以看到 Java 语言的显式类型与 Ruby 的隐式类型的工作方式不同。</p>
+<p>在这三个角度中，静态类型与动态类型对于语言的特征有最大的影响，因此接下来我将重点解释这两种策略各自的优点。</p>
+<p><a name="N100BD"><span class="smalltitle">静态类型的优点</span></a></p>
+<p>在静态类型语言中，程序员（通过声明或根据约定）或编译器（根据结构和语法线索）将一种类型指定给一个变量，然后那个类型就不会改变。静态类型通常需要额 外的成本，因为静态类型语言（例如 Java  语言）通常是显式类型的。这意味着必须声明所有的变量，然后编译代码。成本也伴随着收益：早期的错误检测。静态类型在最基层为编译器提供多得多的信息。更 多信息所带来的好处就是，可以更早地捕捉到某些类型的错误，而动态类型语言只有到运行时才能检测到这些错误。如果您一直等到运行时才捕捉这些  bug，那么其中一些将进入生产环境。也许这正是动态类型语言受到最多指责的一个方面。</p>
+<p>另一种观点则认为现代软件开发团队通常会运行自动测试，动态语言的支持者声称，即使是最简单的自动测试也可以捕捉到大多数的类型错误。而动态语言的支持者 所能提供的对编译时错误检测不利的最好论据是，早期检测所带来的好处相对于成本来说是得不偿失的，因为不管是否使用动态类型，最终都要进行测试。</p>
+<p>一种有趣的折中方法是在静态类型语言中使用隐式类型，从而减少类型的成本。开放源代码语言 Objective Caml (OCaml)  是静态类型语言 Lisp 的衍生物，它既能提供很好的性能，又不会牺牲生产率。OCaml 使用隐式类型，因此可以编写下面这样的采用静态类型的代码：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"># let x = 4+7</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>OCaml 返回：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">val x : int = 11</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>根据表达式中的语法线索，OCaml 推断出 <code>x</code> 的类型。<code>4</code> 是 <code>int</code> 型，<code>7</code> 也是 <code>int</code> 型，因此 <code>x</code> 也必定是 <code>int</code> 型。隐式类型语言可以拥有 Java 语言所具有的所有类型安全性，甚至更多。不同之处在于您需要提供的信息量，以及在阅读程序时可用的信息量。很多喜欢静态类型的人更偏爱隐式类型。他们宁愿让编译器来做这种事情，而不愿意被迫重复地在代码中输入变量的类型。</p>
+<p>隐式类型系统一个较大的优点是，不需要为函数的参数声明类型，因为编译器会从传入的值推断出参数的类型。因此同一个方法可以有多种用途。</p>
+<table width="40%" cellspacing="0" cellpadding="0" border="0" align="right">
+    <tbody>
+        <tr>
+            <td width="10"><img width="10" height="1" src="http://www.ibm.com/i/c.gif"></td>
+            <td>
+            <table width="100%" cellspacing="0" cellpadding="5" border="1">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee"><a name="N100FE"><strong>关于重构的谬误</strong></a><br>
+                        <p>有些人认为，要获得具有重构（refactoring）支持的良好 IDE，就<em>必须</em>具有静态类型特性，这种观点是荒谬的。大多数现代  IDE 多少从早期的 Smalltalk IDE 中吸收了一些东西。实际上，Eclipse 早期也有一些基本的东西是 Visual Age  for Java 中的，而后者最初就是被发布在 Smalltalk 虚拟机上！Smalltalk Refactoring Browser  仍然是如今可用的功能最完善的重构工具之一（见<a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#resources">参考资料</a>）。Java 语言仍然比大多数流行的动态语言（除了 Smalltalk）具有更好的工具，静态类型是最大的原因。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p>并不是只有编译器才能利用静态类型所提供的附加信息。IDE  可以通过静态类型为重构提供更好的支持。几年前，一种革命性的思想改变了开发环境的工作方式。在 IDEA 和 Eclipse  中，您的代码看上去像一个文本视图，但是开发环境实际上正在编辑 Abstract Syntax Tree  (AST)。因此，当需要重新命名一个方法或者类的时候，开发环境很容易通过在 AST  中精确定位找到方法或类被引用的每个地方。如今，如果没有通过静态类型简化的优秀的重构，我们很难想像用 Java 语言编程。在我探索 Ruby  的时候，相对于其他任何工具或特性，我更怀念 IDEA。</p>
+<p>静态类型还有其他一些优点，在这里我不会详细描述。静态类型可以提供更好的安全性，而且显然还可以提高代码的可读性。静态类型还可以提供更多的信 息，使得编译器更容易进行优化，从而提高性能。但是静态类型赢得开发人员青睐的最大原因是更容易检测错误，而且有更多可用的工具。</p>
+<p><a name="N10115"><span class="smalltitle">动态类型的优点</span></a></p>
+<p>Ruby 专家 Dave Thomas 将动态类型称作<em>duck typing</em>（见<a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#resources">参考资料</a>），这有两层意思。第一层意思是说，这种语言不真正实现类型 —— 它利用<em>鸭子理论</em>  解决这个问题。第二层意思是说，如果什么东西走起来像鸭子，叫起来也像鸭子，那么它很可能就是一只鸭子。在编程语言的上下文中，duck typing  意味着如果一个对象对于某种类型的方法有反应，那么事实上就可以把它看作那种类型。这样的特性可以导致一些有趣的优化。</p>
+<p>大多数偏爱动态类型的开发人员除了强调早期错误检测会带来不必要的成本外，还提到动态类型语言具有很好的可表达性和生产率。很简单，您通常可以用更 少的关键词表达更多的思想。作为一名新的 Ruby  拥护者，我深信动态语言更能提高生产率，虽然我不能比常见的静态语言的支持者拿出更多具体的证据来。但是，从我开始编写更多的 Ruby  代码起，我就感觉到自己的生产率有了明显的提高。诚然，我仍然会看到静态类型的优点，尤其是在工具集方面，但是我逐渐认识到了静态类型的缺点。</p>
+<p>当我开始用 Ruby 编写代码时，我受到的最大改变是产生和使用元编程结构的能力。如果您从头开始一直关注<em>跨越边界</em>  系列统的话，您就知道元编程，或者说编写用于编写程序的程序，是 Ruby on Rails  的一大推动力量，更一般地说，是特定于领域的语言的一大推动力量。用 Ruby  编程时，我通常会编写更大的构建块，或者用更大的块进行构建。我发现，与使用 Java 编程相比，我可以用更多类型的可重用块扩展我的程序。就像在  Java 编程中，您可以用新的类来扩展程序。还可以添加方法和数据到已有的类中，因为类是开放式的。您可以使用 mix-in（后面 <a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#binding">运行时绑定</a> 会讲到）来添加核心功能到已有的类中。还可以在任何时候根据需要改变一个对象的定义。我还是一名 Ruby 编程新手，这些功能用到的不多，但是当我真正开始使用它们时，结果令人大吃一惊。</p>
+<p>例如，为了添加一个拦截器，只需重新命名一个方法，并为原有的方法创建一个新的实现。为了拦截 <code>new</code>，可以编写以下代码：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">class Class<br>  alias_method :old_new, :new<br>  def new(*args)<br>    puts &quot;Intercepted new&quot; #do interception work here<br>    old_new(*args)<br>  end<br>end</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>您不需要 AspectJ 库、字节码增强或一大堆的库。您可以直接编写所需的拦截器。</p>
+<p>动态类型在原始代码行方面也可以节省精力。由于动态语言几乎都是类型推断式的，所以您不需要花多大力气来表达基本思想。变量无需声明即可直接使用。您也不必表达参数类型的所有可能排列，只需输入一组名称。您的代码可以更加具有<em>多态性</em> —— 任何对一种类型的方法有反应的对象都可以看作这种类型 —— 所以通常可以比其他语言更精简地表达思想。代码中的耦合也可以变得更松散。当您想改变某个东西的类型时，这种变化所波及的范围很有限，所以不需要在更多的地方作出相应的更改。</p>
+<table width="40%" cellspacing="0" cellpadding="0" border="0" align="right">
+    <tbody>
+        <tr>
+            <td width="10"><img width="10" height="1" src="http://www.ibm.com/i/c.gif"></td>
+            <td>
+            <table width="100%" cellspacing="0" cellpadding="5" border="1">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee"><a name="N1014D"><strong>安全性还是灵活性</strong></a><br>
+                        <p>从某种意义上说，语言的静态与动态之争的关键在于安全性与灵活性之间的取舍。静态语言的支持者相信更安全的语言更好。而动态语言的支持者却不愿意为 安全性付出任何代价。对于他们而言，对一种语言的衡量标准在于能多快地表达思想，目标在于最大化程序员的效率。而另一方面，静态语言专家则说，如果<em>能</em> 在早期捕捉到 bug，那么<em>就应该</em> 这么做，而且工具可以弥补语言中的限制。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p>生产率提高的最后一个原因是减少了编译环节。很多动态类型语言是解释性的，所以在编写程序后可以立即看到变化。即使没有惯用的调试器，在 Ruby 中探索库和应用程序代码的行为也更为容易，因为您可以打开一个解释器，通常可以直接在调试会话中打开（我在 <a href="http://www.ibm.com/developerworks/cn/java/j-cb05096.html">本系列的上一篇文章</a> 中就展示了这一点），然后随意探索。</p>
+<p><a name="N10164"><span class="smalltitle">但是……</span></a></p>
+<p>然而，编译不只是支持静态类型。静态类型的支持者还认为可以获得更好的性能。很多静态语言，例如 Java 代码、C 和 C++，都被称作<em>系统语言</em>， 因为它们是构建操作系统、设备驱动程序和其他高性能系统代码的最常用的语言。这又经常导致动态语言的支持者指责静态语言总是太低级，用它们来编写应用程序 生产率很低 —— 但那是一种很狭隘的观点。OCaml 语言是一种很高级的语言，支持面向对象程序设计、函数式程序设计（如 Lisp 或  Erlang）或传统的结构化程序设计。其类型模型是静态的，很多人说它的性能甚至比 C++ 的性能还好（参见 <a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#resources">参考资料</a>）。使用 OCaml 时，静态类型导致的开销很小，因为这种语言是类型推断式的。虽然付出了这一点成本，但可以得到非常好的性能，编译时类型检查，以及一个非常高级的语言。即使是 duck typing 最顽固的支持者也不得不承认那些优点。</p>
+<br>
+<p><a name="N10174"><span class="atitle">Java 语言中的类型限制</span></a></p>
+<p>Java 开发人员充分利用静态类型。他们有最好的开发工具，这些工具带有代码完成和重构等功能，这些都倾向于静态类型。现在开始利用测试优先开发的很多  Java 程序员获得了更大的稳定性，因为编译器可以捕捉与类型相关的  bug。新的类型特性，例如泛型，增强了类型模型，并为编译器提供更多的信息。但 Java 开发人员常常对动态类型的优点一无所知。</p>
+<p><a name="binding"><span class="smalltitle">运行时绑定</span></a></p>
+<p>动态类型的灵活性比您想像的更重要。在某些方面，Java 开发人员试图通过使用更多的  XML（这样可以推迟到运行时进行绑定）和字符串（这样可以表示很多不同的类型）来突破静态类型的限制。Ruby 中的配置通常采用 Ruby  代码的形式，而 Java 编程中的配置通常采用 XML 的形式。考虑 Spring 框架（参见 <a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#resources">参考资料</a>）：为了配置一个一般的 Spring bean，您使用 XML。您必须提供一个有效的 Java 类名，并为每个变量设置属性。例如，持久引擎（如 Hibernate）需要一个会话工厂（参见 <a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#resources">参考资料</a>）。用 Java 语法配置一个数据访问对象很轻松：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">Dao myDataAccessObject = Dao.new(sessionFactory);</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>问题是，这行代码是在编译时绑定的，这就太静态了。为了测试，您常常需要用其他东西，例如一个模拟的数据访问对象来替换会话工厂或数据访问对象。所以，您 不必像前面那样硬编码这个例子，而是使用一个 Spring 之类的框架，以 XML 来配置项目，如下所示（摘自名为 petclinic 的  Spring Framework 例子）：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;bean id=&quot;myDao&quot; class=&quot;org.springframework.samples.petclinic.hibernate.HibernateClinic&quot;&gt;<br>   &lt;property name=&quot;sessionFactory&quot; ref=&quot;sessionFactory&quot;&gt;<br>&lt;/bean&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>Spring 框架是目前 Java  社区中最重要、最有影响力的框架之一，因为它使您可以延迟绑定，并使系统主要元素之间的耦合性更为松散。而且，您不需要关心继承就可以去耦。在 Java  编程中，尤其是在编写越来越多的 POJO（plain old Java object）的时候，使用继承时必须特别小心，因为在 Java  语言中只有一次这样的机会。</p>
+<p>在动态语言，例如 Ruby 中，解决方案就截然不同。首先，我倾向于使用一个 <em>mix-in</em> 来实现持久性。所有关联只在 mix-in  中发现一次。可以把一个 mix-in 想像成一个接口，其背后有一个实现。换句话说，通过  mix-in，可以添加多个功能到同一个对象中，而不必使用多重继承。实际上，Active Record  通过继承一个公共基类来解决这个问题，这个公共基类混合了多种功能：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">class Pojo &lt; ActiveRecord::Base</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>在 Ruby 中，您不必关心继承，因为使用开放的类（允许动态添加功能）和模块（允许混入其他功能），您可以随意添加更多的功能到对象中。那么紧密耦合呢？如果您想按 Java 的方式实现该类，那么可以看到：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">class MyClass <br><br>  attr_accessor myDao   #defines getters and setters for myDao<br><br>  def initialize(session_factory)<br>    myDao = Dao.new(session_factory)<br>  end<br><br>...</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><code>initialize()</code> 方法中的代码看上去像一开始的属于禁忌的 Java 版本，因为它在编译时将数据访问对象绑定到会话工厂。但这是一种动态类型语言，所以不必把自己关在一个小天地里。为了测试，总可以动态地改变类的定义。您可以在之后打开已有的类：</p>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">class MyClass   #not redefining the class; just opening the existing class<br><br>  def myDao    #redefine the getter for myDao<br>    #do some work to generate the mock object<br>    return myMockObject<br>  end<br><br>end</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><a name="N101BD"><span class="atitle">结束语</span></a></p>
+<p>从某种意义上讲，作为某种编程语言的用户，您就是那种语言的类型策略的奴隶。而作为一名 Java 程序员，您应该尽量用一种拥护类型的方式编写  Java 代码。最大限度地利用类型，并依靠社区来通过框架获得更好的元编程支持，而不是自己进行元编程，这些都是发挥自身优势的好方法。有很多  Java 框架都支持用于持久性（Hibernate 和 JDO）、事务（Spring 和 EJB）、模型-视图-控制器（WebFlow 和  RIFE）以及编程模型（AspectJ）的元编程。</p>
+<p>但是有时候需要放弃您所选择的语言的类型，不管您是在编写需要附加描述以获得更好可读性的代码，还是试图延迟类型绑定，都可以这样。Java 语言非常强大，您可以利用很多现成的项目：</p>
+<ul>
+    <li>Spring 框架使您可以将绑定推迟到运行时，并提供动态类型语言的很多功能。Spring 特别适合于添加功能到 POJO，运行时配置，以及绕过 Java 语言的类型限制。</li>
+    <li>AspectJ 是面向方面编程模型在 Java 平台上的一种实现（参见 <a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#resources">参考资料</a>）。AspectJ 使您可以引入横切关注点，而不必引入额外的语法，这种技术还使您可以克服 Java 语言的静态特性。</li>
+    <li>Hibernate 项目和 Java Persistence API (JPA) 使您可以添加持久性到 POJO 中，同样也不必改变底层的类型。</li>
+    <li>XML 让您可以同时表达数据和应用程序配置。很多框架使用 XML 来克服 Java 语言的类型限制。</li>
+</ul>
+<p>您还有一个选择。通过理解其他语言中的类型策略，可以识别不适合 Java 策略的问题。当需要访问 Java <em>平台</em> 而不是 Java <em>语言</em> 时，可以使用其他语言的 JVM 实现（参见 <a href="http://www.ibm.com/developerworks/cn/java/j-cb05236.html#resources">参考资料</a>）。</p>
+<p>在本系列的下一篇文章中，您将看到 Ruby on Rails 中的测试。您可以看到 Rails 与 Java 语言共有的一些思想，有些方面 Rails 占优，而在某些方面 Java 又具有明显优势。到那时，请继续关注 “跨越边界” 的后续文章。</p>
+<br>
+<br>
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+<strong>学习</strong><br>
+<ul>
+    <li>您可以参阅本文在 developerWorks 全球站点上的 <a href="http://www.ibm.com/developerworks/java/library/j-cb05236.html" target="_blank">英文原文</a>。</li>
+    <li><a href="http://www.oreilly.com/catalog/beyondjava/index.html"><em>Beyond Java</em></a>（O'Reilly，2005 年）：本文作者编写的一本书，讲述 Java 语言的优缺点以及在某些方面可能对 Java 平台带来挑战的技术。</li>
+    <li><a href="http://www.pragmaticprogrammer.com/titles/fr_j2r/index.html"><em>From Java To Ruby: Things Every Manager Should Know</em></a>（Pragmatic Bookshelf，2006 年）：本文作者编写的一本书，讲述何时何地从 Java 编程转变到 Ruby on Rails，以及如何完成转变。</li>
+    <li><a href="http://pragmaticprogrammer.com/ruby/downloads/book.html"><em>Programming Ruby</em></a>（Pragmatic Bookshelf，2005 年）：一本流行的关于 Ruby 编程的书。</li>
+    <li><a href="http://www.ruby-talk.org/cgi-bin/scat.rb/ruby/ruby-talk/78502">Duck typing</a>：Dave Thomas 解释他对 Ruby 的类型模型的定义。</li>
+    <li><a href="http://www.springframework.org/">Spring 框架</a>：Spring 是一个很好的框架，可用于克服 Java 中静态类型的限制。</li>
+    <li><a href="http://www.hibernate.org/">Hibernate</a>：Hibernate 也许是最流行的用于 Java 的持久框架。</li>
+    <li>“<a href="http://www.ibm.com/developerworks/cn/java/wa-spring2/index.html">Spring 系列，第 2 部分: 当 Hibernate 遇上 Spring</a>”（Naveen Balani，developerWorks，2005 年 8 月）：将 Hibernate 事务与 Spring 面向方面编程相集成的指南。</li>
+    <li><a href="http://www.eclipse.org/aspectj/">AspectJ</a>：AspectJ 项目受 Eclipse Foundation 的赞助。</li>
+    <li><a href="http://st-www.cs.uiuc.edu/users/brant/Refactory/">Refactoring Browser</a>：Martin Fowler's Refactoring 网站上的这个页面谈到了 Smalltalk Refactoring Browser 的一些优点。</li>
+    <li>“<a href="http://corp.assembla.com/modules/wordpress/index.php?p=24">The rise of dynamic languages / programmer productivity</a>”：数千篇讨论动态类型语言和静态类型语言的生产率的文章之一。</li>
+    <li>“<a href="http://www.artima.com/intv/tuesday.html">Dynamic Productivity with Ruby: A Conversation with Yukihiro Matsumoto, Part II</a>”：这篇对 Ruby 创造者的访谈讨论了该语言的生产率。</li>
+    <li>“<a href="http://www.cs.ubc.ca/%7Emurphyk/Software/Ocaml/why_ocaml.html">Why Ocaml?</a>”：这篇文章提供了关于 Ocaml 的性能特性的一些证据。</li>
+    <li><a href="http://www.ibm.com/developerworks/cn/java/">Java 技术专区</a>：这里可以找到数百篇关于 Java 编程各方面的文章。</li>
+</ul>
+<br>
+<strong>获得产品和技术</strong><br>
+<ul>
+    <li><a href="http://caml.inria.fr/">Objective Caml</a>：OCaml 是组合了静态类型和隐式类型的 Lisp 的衍生物，它在不牺牲生产率的情况下提供了高性能。</li>
+    <li>用可从 developerWorks 直接下载的 <a href="http://www.ibm.com/developerworks/downloads/?S_TACT=105AGX03&amp;S_CMP=art">IBM 试用软件</a> 构建您的下一个开发项目。</li>
+</ul>
+<br>
+<a name="author"><span class="atitle">关于作者</span></a><br>
+<br>
+Bruce Tate 居住在德克萨斯州的首府奥斯汀，他是一位父亲，同时也是山地车手和皮艇手。他是三本 Java 畅销书的作者，包括荣获 Jolt 大奖的 <em>Better, Faster, Lighter Java</em>。最近又出版了 <em>Beyond Java</em> 一书。他在 IBM 工作了 13 年，现在是 J2Life, LLC 的创始人兼顾问，在这里他潜心研究基于 Java 技术和 Ruby on Rails 的轻量级开发策略和架构。<br>
+<br></div></body></html>

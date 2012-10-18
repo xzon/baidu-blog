@@ -1,0 +1,564 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>EJB部署为WebService -hxzon -wscode -ejbcode</title></head><body><h1>EJB部署为WebService -hxzon -wscode -ejbcode</h1><div><div>第一个EJB项目 -hxzon -ejbcode <br>
+一，新建一个EJB项目。命名为firstEjb。<br>
+1，新建一个接口。<br>
+package hxzon;<br>
+public interface Hello {<br>
+public String saySomething(String name);<br>
+}<br>
+2，新建一个无状态会话bean。<br>
+package hxzon;<br>
+import javax.ejb.Remote;<br>
+import javax.ejb.Stateless;<br>
+@Stateless<br>
+@Remote<br>
+public class HelloBean implements Hello {</div>
+<div> </div>
+<div>public String saySomething(String name) {<br>
+&nbsp;&nbsp;  return &quot;hello,&quot;+name;<br>
+}<br>
+}<br>
+3，部署到JBoss。<br>
+--------------------------------------------------------------<br>
+二，新建一个java项目，作为客户端。<br>
+1，项目添加JBossClient依赖包。<br>
+2，项目添加firstEjb项目，因为要使用到Hello接口。<br>
+3，新建客户端类。<br>
+package hxzon;<br>
+import javax.naming.InitialContext;<br>
+import javax.naming.NamingException;<br>
+public class HelloClient {<br>
+public static void main(String[] args){<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  InitialContext ctx=new InitialContext();<br>
+&nbsp;&nbsp;&nbsp;  Hello ejb=(Hello)ctx.lookup(&quot;HelloBean/remote&quot;);<br>
+&nbsp;&nbsp;&nbsp;  System.out.print(ejb.saySomething(&quot;hxzon&quot;));<br>
+&nbsp;&nbsp;  } catch (NamingException e) {<br>
+&nbsp;&nbsp;&nbsp;  // TODO Auto-generated catch block<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }<br>
+}<br>
+}<br>
+4，编写jndi属性文件。放在类根路径下。<br>
+该文件可在jboss4.2.2.GA\server\default\conf文件夹下找到。<br>
+java.naming.factory.initial=org.jnp.interfaces.NamingContextFactory<br>
+java.naming.factory.url.pkgs=org.jboss.naming:org.jnp.interfaces<br>
+java.naming.provider.url=localhost<br>
+5，运行客户端程序。成功。<br>
+=====================================================================<br>
+=====================================================================<br>
+EJB部署为WebService -hxzon -wscode -ejbcode<br>
+<br>
+一，新建EJB项目。<br>
+1，这里借用firstEjb项目，只需添加两个注解。<br>
+package hxzon;</div>
+<div> </div>
+<div>import javax.ejb.Remote;<br>
+import javax.ejb.Stateless;<br>
+import javax.jws.WebMethod;<br>
+import javax.jws.WebService;</div>
+<div> </div>
+<div>@Stateless<br>
+@Remote<br>
+@WebService<br>
+public class HelloBean implements Hello {</div>
+<div> </div>
+<div>@WebMethod<br>
+public String saySomething(String name) {<br>
+&nbsp;&nbsp;  return &quot;hello,&quot;+name;<br>
+}</div>
+<div> </div>
+<div>}<br>
+2，部署。在网址中输入http://localhost:8080/firstEjb/HelloBean?wsdl<br>
+可以看到wsdl文件。<br>
+路径为http://localhost:8080/jar文件名/发布的实现类名?wsdl<br>
+----------------------------------------------------------------------------<br>
+二，新建客户端项目。<br>
+1，这里我们借用axis-bin-1_4.zip里的<br>
+samples.client.DynamicInvoker类来充当WebService客户端。<br>
+记得项目导入axis依赖包。<br>
+package samples.client;</div>
+<div> </div>
+<div>import org.apache.axis.Constants;<br>
+import org.apache.axis.utils.XMLUtils;<br>
+import org.apache.axis.encoding.ser.SimpleDeserializer;<br>
+import org.apache.axis.encoding.ser.ElementSerializerFactory;<br>
+import org.apache.axis.encoding.ser.ElementDeserializerFactory;<br>
+import org.apache.axis.encoding.ser.ElementDeserializer;<br>
+import org.apache.axis.wsdl.gen.Parser;<br>
+import org.apache.axis.wsdl.symbolTable.BaseType;<br>
+import org.apache.axis.wsdl.symbolTable.BindingEntry;<br>
+import org.apache.axis.wsdl.symbolTable.Parameter;<br>
+import org.apache.axis.wsdl.symbolTable.Parameters;<br>
+import org.apache.axis.wsdl.symbolTable.ServiceEntry;<br>
+import org.apache.axis.wsdl.symbolTable.SymTabEntry;<br>
+import org.apache.axis.wsdl.symbolTable.SymbolTable;<br>
+import org.apache.axis.wsdl.symbolTable.TypeEntry;<br>
+import org.w3c.dom.Element;</div>
+<div> </div>
+<div>import javax.wsdl.Binding;<br>
+import javax.wsdl.Operation;<br>
+import javax.wsdl.Port;<br>
+import javax.wsdl.Service;<br>
+import javax.wsdl.extensions.soap.SOAPAddress;<br>
+import javax.xml.namespace.QName;<br>
+import javax.xml.rpc.Call;<br>
+import javax.xml.rpc.encoding.Deserializer;<br>
+import javax.xml.rpc.encoding.DeserializerFactory;<br>
+import java.util.HashMap;<br>
+import java.util.Iterator;<br>
+import java.util.List;<br>
+import java.util.Map;<br>
+import java.util.Vector;</div>
+<div> </div>
+<div><br>
+public class DynamicInvoker {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  private Parser wsdlParser = null;</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public DynamicInvoker(String wsdlURL) throws Exception {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Start by reading in the WSDL using Parser<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  wsdlParser = new Parser();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Reading WSDL document from '&quot; + wsdlURL + &quot;'&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  wsdlParser.run(wsdlURL);<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  private static void usage() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.err.println(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;Usage: java &quot; + DynamicInvoker.class.getName() + &quot; wsdlLocation &quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  + &quot;operationName[(portName)] &quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  + &quot;[argument1 ...]&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.exit(1);<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public static void main(String[] args) throws Exception {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (args.length &lt; 2) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  usage();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String wsdlLocation = (args.length &gt; 0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ? args[0]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  : null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String operationName = (args.length &gt; 1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ? args[1]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  : null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String portName = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portName = operationName.substring(operationName.indexOf(&quot;(&quot;) + 1,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  operationName.indexOf(&quot;)&quot;));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  operationName = operationName.substring(0, operationName.indexOf(&quot;(&quot;));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } catch (Exception ignored) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  DynamicInvoker invoker = new DynamicInvoker(wsdlLocation);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  HashMap map = invoker.invokeMethod(operationName, portName, args);</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (Iterator it = map.entrySet().iterator(); it.hasNext();) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Map.Entry entry = (Map.Entry) it.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String key = (String) entry.getKey();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Object value = entry.getValue();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (value instanceof Element) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;====== &quot; + key + &quot; ======&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  XMLUtils.ElementToStream((Element) value, System.out);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;=========================&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(key + &quot;=&quot; + value);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;\nDone!&quot;);<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public HashMap invokeMethod(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String operationName, String portName, String[] args)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throws Exception {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String serviceNS = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String serviceName = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String operationQName = null;</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Preparing Axis dynamic invocation&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Service service = selectService(serviceNS, serviceName);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Operation operation = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  org.apache.axis.client.Service dpf = new org.apache.axis.client.Service(wsdlParser, service.getQName());</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Vector inputs = new Vector();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Port port = selectPort(service.getPorts(), portName);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (portName == null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portName = port.getName();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Binding binding = port.getBinding();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Call call = dpf.createCall(QName.valueOf(portName),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  QName.valueOf(operationName));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((org.apache.axis.client.Call)call).setTimeout(new Integer(15*1000));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((org.apache.axis.client.Call)call).setProperty(ElementDeserializer.DESERIALIZE_CURRENT_ELEMENT, Boolean.TRUE);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Output types and names<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Vector outNames = new Vector();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Input types and names<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Vector inNames = new Vector();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Vector inTypes = new Vector();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SymbolTable symbolTable = wsdlParser.getSymbolTable();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  BindingEntry bEntry =<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  symbolTable.getBindingEntry(binding.getQName());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Parameters parameters = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Iterator i = bEntry.getParameters().keySet().iterator();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while (i.hasNext()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Operation o = (Operation) i.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (o.getName().equals(operationName)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  operation = o;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  parameters = (Parameters) bEntry.getParameters().get(o);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  break;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if ((operation == null) || (parameters == null)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new RuntimeException(operationName + &quot; was not found.&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // loop over paramters and set up in/out params<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = 0; j &lt; parameters.list.size(); ++j) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Parameter p = (Parameter) parameters.list.get(j);</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (p.getMode() == 1) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // IN<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  inNames.add(p.getQName().getLocalPart());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  inTypes.add(p);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else if (p.getMode() == 2) {&nbsp;&nbsp;&nbsp;  // OUT<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  outNames.add(p.getQName().getLocalPart());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else if (p.getMode() == 3) {&nbsp;&nbsp;&nbsp;  // INOUT<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  inNames.add(p.getQName().getLocalPart());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  inTypes.add(p);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  outNames.add(p.getQName().getLocalPart());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // set output type<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (parameters.returnParam != null) {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(!parameters.returnParam.getType().isBaseType()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((org.apache.axis.client.Call)call).registerTypeMapping(org.w3c.dom.Element.class, parameters.returnParam.getType().getQName(),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new ElementSerializerFactory(),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new ElementDeserializerFactory());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Get the QName for the return Type<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  QName returnType = org.apache.axis.wsdl.toJava.Utils.getXSIType(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  parameters.returnParam);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  QName returnQName = parameters.returnParam.getQName();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  outNames.add(returnQName.getLocalPart());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (inNames.size() != args.length - 2)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new RuntimeException(&quot;Need &quot; + inNames.size() + &quot; arguments!!!&quot;);</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int pos = 0; pos &lt; inNames.size(); ++pos) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String arg = args[pos + 2];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Parameter p = (Parameter) inTypes.get(pos);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  inputs.add(getParamData((org.apache.axis.client.Call) call, p, arg));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Executing operation &quot; + operationName + &quot; with parameters:&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = 0; j &lt; inputs.size(); j++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(inNames.get(j) + &quot;=&quot; + inputs.get(j));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Object ret = call.invoke(inputs.toArray());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Map outputs = call.getOutputParams();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  HashMap map = new HashMap();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int pos = 0; pos &lt; outNames.size(); ++pos) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String name = (String) outNames.get(pos);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Object value = outputs.get(name);</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if ((value == null) &amp;&amp; (pos == 0)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  map.put(name, ret);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  map.put(name, value);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return map;<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  private Object getParamData(org.apache.axis.client.Call c, Parameter p, String arg) throws Exception {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Get the QName representing the parameter type<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  QName paramType = org.apache.axis.wsdl.toJava.Utils.getXSIType(p);</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  TypeEntry type = p.getType();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (type instanceof BaseType &amp;&amp; ((BaseType) type).isBaseType()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  DeserializerFactory factory = c.getTypeMapping().getDeserializer(paramType);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Deserializer deserializer = factory.getDeserializerAs(Constants.AXIS_SAX);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (deserializer instanceof SimpleDeserializer) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return ((SimpleDeserializer)deserializer).makeValue(arg);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new RuntimeException(&quot;not know how to convert '&quot; + arg<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  + &quot;' into &quot; + c);<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public Service selectService(String serviceNS, String serviceName)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throws Exception {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  QName serviceQName = (((serviceNS != null)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &amp;&amp; (serviceName != null))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ? new QName(serviceNS, serviceName)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  : null);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ServiceEntry serviceEntry = (ServiceEntry) getSymTabEntry(serviceQName,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ServiceEntry.class);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return serviceEntry.getService();<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public SymTabEntry getSymTabEntry(QName qname, Class cls) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  HashMap map = wsdlParser.getSymbolTable().getHashMap();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Iterator iterator = map.entrySet().iterator();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while (iterator.hasNext()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Map.Entry entry = (Map.Entry) iterator.next();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  QName key = (QName) entry.getKey();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Vector v = (Vector) entry.getValue();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if ((qname == null) || qname.equals(qname)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int i = 0; i &lt; v.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SymTabEntry symTabEntry = (SymTabEntry) v.elementAt(i);</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (cls.isInstance(symTabEntry)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return symTabEntry;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return null;<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public Port selectPort(Map ports, String portName) throws Exception {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Iterator valueIterator = ports.keySet().iterator();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while (valueIterator.hasNext()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String name = (String) valueIterator.next();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if ((portName == null) || (portName.length() == 0)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Port port = (Port) ports.get(name);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  List list = port.getExtensibilityElements();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int i = 0; (list != null) &amp;&amp; (i &lt; list.size()); i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Object obj = list.get(i);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (obj instanceof SOAPAddress) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return port;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else if ((name != null) &amp;&amp; name.equals(portName)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return (Port) ports.get(name);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return null;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+2，运行samples.client.DynamicInvoker类。<br>
+运行时需要在open run dialog配置三个参数。<br>
+在arguments标签中输入<br>
+http://localhost:8080/firstEjb/HelloBean?wsdl saySomething hxzon<br>
+运行成功。<br>
+可看到控制台输出<br>
+Reading WSDL document from 'http://localhost:8080/firstEjb/HelloBean?wsdl'<br>
+Preparing Axis dynamic invocation<br>
+Executing operation saySomething with parameters:<br>
+saySomething&gt;arg0=hxzon<br>
+saySomethingResponse&gt;return=hello,hxzon</div>
+<div> </div>
+<div>Done!</div>
+<div> </div>
+<div>============================================================<br>
+============================================================<br>
+wsdl文件，该文件自动生成。<br>
+&lt;definitions name='HelloBeanService' targetNamespace='http://hxzon/'<br>
+xmlns='http://schemas.xmlsoap.org/wsdl/'<br>
+xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/'<br>
+xmlns:tns='http://hxzon/'<br>
+xmlns:xsd='http://www.w3.org/2001/XMLSchema'&gt;<br>
+&lt;types&gt;<br>
+&nbsp;&nbsp;  &lt;xs:schema targetNamespace='http://hxzon/' version='1.0'<br>
+&nbsp;&nbsp;&nbsp;  xmlns:tns='http://hxzon/'<br>
+&nbsp;&nbsp;&nbsp;  xmlns:xs='http://www.w3.org/2001/XMLSchema'&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;xs:element name='saySomething' type='tns:saySomething' /&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;xs:element name='saySomethingResponse'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  type='tns:saySomethingResponse' /&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;xs:complexType name='saySomething'&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;xs:sequence&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;xs:element minOccurs='0' name='arg0'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  type='xs:string' /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/xs:sequence&gt;</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  &lt;/xs:complexType&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;xs:complexType name='saySomethingResponse'&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;xs:sequence&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;xs:element minOccurs='0' name='return'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  type='xs:string' /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/xs:sequence&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/xs:complexType&gt;<br>
+&nbsp;&nbsp;  &lt;/xs:schema&gt;<br>
+&lt;/types&gt;<br>
+&lt;message name='HelloBean_saySomethingResponse'&gt;</div>
+<div> </div>
+<div>&nbsp;&nbsp;  &lt;part element='tns:saySomethingResponse'<br>
+&nbsp;&nbsp;&nbsp;  name='saySomethingResponse'&gt;<br>
+&nbsp;&nbsp;  &lt;/part&gt;<br>
+&lt;/message&gt;<br>
+&lt;message name='HelloBean_saySomething'&gt;<br>
+&nbsp;&nbsp;  &lt;part element='tns:saySomething' name='saySomething'&gt;&lt;/part&gt;<br>
+&lt;/message&gt;<br>
+&lt;portType name='HelloBean'&gt;<br>
+&nbsp;&nbsp;  &lt;operation name='saySomething' parameterOrder='saySomething'&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;input message='tns:HelloBean_saySomething'&gt;&lt;/input&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;output message='tns:HelloBean_saySomethingResponse'&gt;&lt;/output&gt;</div>
+<div> </div>
+<div>&nbsp;&nbsp;  &lt;/operation&gt;<br>
+&lt;/portType&gt;<br>
+&lt;binding name='HelloBeanBinding' type='tns:HelloBean'&gt;<br>
+&nbsp;&nbsp;  &lt;soap:binding style='document'<br>
+&nbsp;&nbsp;&nbsp;  transport='http://schemas.xmlsoap.org/soap/http' /&gt;<br>
+&nbsp;&nbsp;  &lt;operation name='saySomething'&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;soap:operation soapAction='' /&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;input&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;soap:body use='literal' /&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/input&gt;</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  &lt;output&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;soap:body use='literal' /&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/output&gt;<br>
+&nbsp;&nbsp;  &lt;/operation&gt;<br>
+&lt;/binding&gt;<br>
+&lt;service name='HelloBeanService'&gt;<br>
+&nbsp;&nbsp;  &lt;port binding='tns:HelloBeanBinding' name='HelloBeanPort'&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;soap:address<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  location='http://127.0.0.1:8080/firstEjb/HelloBean' /&gt;<br>
+&nbsp;&nbsp;  &lt;/port&gt;</div>
+<div> </div>
+<div>&lt;/service&gt;<br>
+&lt;/definitions&gt;<br>
+===================================================<br>
+===================================================<br>
+消息bean简单例子 -ejbcode -hxzon</div>
+<div> </div>
+<div>一，新建Ejb项目。<br>
+实现MessageListener接口，添加@MessageDriven注解。<br>
+package hxzon;</div>
+<div> </div>
+<div>import javax.ejb.MessageDriven;<br>
+import javax.ejb.ActivationConfigProperty;<br>
+import javax.jms.JMSException;<br>
+import javax.jms.Message;<br>
+import javax.jms.MessageListener;<br>
+import javax.jms.TextMessage;</div>
+<div> </div>
+<div>@MessageDriven(<br>
+activationConfig={<br>
+&nbsp;&nbsp;&nbsp;  @ActivationConfigProperty(propertyName=&quot;destinationType&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  propertyValue=&quot;javax.jms.Queue&quot;),<br>
+&nbsp;&nbsp;&nbsp;  @ActivationConfigProperty(propertyName=&quot;destination&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  propertyValue=&quot;queue/myqueue&quot;)<br>
+}<br>
+)</div>
+<div> </div>
+<div>public class HelloMDB implements MessageListener{</div>
+<div> </div>
+<div>public void onMessage(Message msg) {<br>
+&nbsp;&nbsp;  TextMessage tmsg=(TextMessage)msg;<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;已接收消息。。。&quot;+tmsg.getText());<br>
+&nbsp;&nbsp;  } catch (JMSException e) {<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }<br>
+}</div>
+<div> </div>
+<div>}<br>
+二，新建客户端项目。<br>
+package hxzon;</div>
+<div> </div>
+<div>import javax.jms.Queue;<br>
+import javax.jms.QueueConnection;<br>
+import javax.jms.QueueConnectionFactory;<br>
+import javax.jms.QueueSender;<br>
+import javax.jms.QueueSession;<br>
+import javax.jms.TextMessage;<br>
+import javax.naming.InitialContext;</div>
+<div> </div>
+<div>public class MDBClient {</div>
+<div> </div>
+<div>public static void main(String[] args) {<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  InitialContext ctx=new InitialContext();<br>
+&nbsp;&nbsp;&nbsp;  QueueConnectionFactory factory=(QueueConnectionFactory)ctx.lookup(&quot;ConnectionFactory&quot;);<br>
+&nbsp;&nbsp;&nbsp;  QueueConnection con=factory.createQueueConnection();<br>
+&nbsp;&nbsp;&nbsp;  QueueSession session=con.createQueueSession(false, QueueSession.AUTO_ACKNOWLEDGE);<br>
+&nbsp;&nbsp;&nbsp;  Queue queue=(Queue)ctx.lookup(&quot;queue/myqueue&quot;);<br>
+&nbsp;&nbsp;&nbsp;  TextMessage msg=session.createTextMessage(&quot;hello,hxzon&quot;);<br>
+&nbsp;&nbsp;&nbsp;  QueueSender sender=session.createSender(queue);<br>
+&nbsp;&nbsp;&nbsp;  sender.send(msg);<br>
+&nbsp;&nbsp;&nbsp;  session.close();<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;已发送消息&quot;);<br>
+&nbsp;&nbsp;  } catch (Exception e) {<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>}<br>
+运行成功。<br>
+上述是点到点模型，也可使用发布-预定模型。只需将Queue改为Topic即可。QueueSender改为TopicPublisher，调用publish(msg)方法。<br>
+----------------------------------------------------------------------------<br>
+package hxzon;</div>
+<div> </div>
+<div>import javax.ejb.ActivationConfigProperty;<br>
+import javax.ejb.MessageDriven;<br>
+import javax.jms.JMSException;<br>
+import javax.jms.Message;<br>
+import javax.jms.MessageListener;<br>
+import javax.jms.TextMessage;</div>
+<div> </div>
+<div>@MessageDriven(<br>
+&nbsp;&nbsp;  activationConfig={<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  @ActivationConfigProperty(propertyName=&quot;destinationType&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  propertyValue=&quot;javax.jms.Topic&quot;),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  @ActivationConfigProperty(propertyName=&quot;destination&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  propertyValue=&quot;topic/mytopic&quot;)<br>
+&nbsp;&nbsp;  }<br>
+)<br>
+public class HelloTopicMDB implements MessageListener {</div>
+<div> </div>
+<div>public void onMessage(Message msg) {<br>
+&nbsp;&nbsp;  TextMessage tmsg=(TextMessage)msg;<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;已接收消息。。。&quot;+tmsg.getText());<br>
+&nbsp;&nbsp;  } catch (JMSException e) {<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>}<br>
+----------------------------------------------------------------------<br>
+package hxzon;</div>
+<div> </div>
+<div>import javax.jms.TextMessage;<br>
+import javax.jms.Topic;<br>
+import javax.jms.TopicConnection;<br>
+import javax.jms.TopicConnectionFactory;<br>
+import javax.jms.TopicPublisher;<br>
+import javax.jms.TopicSession;<br>
+import javax.naming.InitialContext;</div>
+<div> </div>
+<div>public class TopicMDBClient {</div>
+<div> </div>
+<div><br>
+public static void main(String[] args) {<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  InitialContext ctx=new InitialContext();<br>
+&nbsp;&nbsp;&nbsp;  TopicConnectionFactory factory=(TopicConnectionFactory)ctx.lookup(&quot;ConnectionFactory&quot;);<br>
+&nbsp;&nbsp;&nbsp;  TopicConnection con=factory.createTopicConnection();<br>
+&nbsp;&nbsp;&nbsp;  TopicSession session=con.createTopicSession(false, TopicSession.AUTO_ACKNOWLEDGE);<br>
+&nbsp;&nbsp;&nbsp;  Topic topic=(Topic)ctx.lookup(&quot;topic/mytopic&quot;);<br>
+&nbsp;&nbsp;&nbsp;  TextMessage msg=session.createTextMessage(&quot;hello,hxzon&quot;);<br>
+&nbsp;&nbsp;&nbsp;  TopicPublisher publisher=session.createPublisher(topic);<br>
+&nbsp;&nbsp;&nbsp;  publisher.publish(msg);<br>
+&nbsp;&nbsp;&nbsp;  session.close();<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;已发送消息&quot;);<br>
+&nbsp;&nbsp;  } catch (Exception e) {<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>}</div></div></body></html>

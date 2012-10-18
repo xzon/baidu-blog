@@ -1,0 +1,98 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>C语言高效编程的四大绝招</title></head><body><h1>C语言高效编程的四大绝招</h1><div><p>C语言高效编程的四大绝招</p><p>编写高效简洁的C语言代码，是许多软件工程师追求的目标。本文就是针对编程工作中的一些体会和经验做相关的阐述。<br><br><strong>第一招：以空间换时间</strong><br><br>
+计算机程序中最大的矛盾是空间和时间的矛盾，那么，从这个角度出发逆向思维来考虑程序的效率问题，我们就有了解决问题的第1招--以空间换时间。比如说字符串的赋值：<br><br>
+方法A：通常的办法</p><div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc00 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc00 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">#define LEN 32<br>
+            char string1 [LEN];<br>
+            memset (string1,0,LEN);<br>
+            strcpy (string1,"This is a example!!"）;</span></div></td></tr></tbody></table></div><br>
+方法B：<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">const char string2[LEN] ="This is a example!";<br>
+            char * cp;<br>
+            cp = string2 ;</span></div></td></tr></tbody></table></div><br>
+使用的时候可以直接用指针来操作。<br><br>
+从上面的例子可以看出，A和B的效率是不能比的。在同样的存储空间下，B直接使用指针就可以操作了，而A需要调用两个字符函数才能完成。B的缺点在于 
+灵活性没有A好。在需要频繁更改一个字符串内容的时候，A具有更好的灵活性；如果采用方法B，则需要预存许多字符串，虽然占用了大量的内存，但是获得了程
+ 序执行的高效率。<br><br>
+如果系统的实时性要求很高，内存还有一些，那我推荐你使用该招数。该招数的变招--使用宏函数而不是函数。举例如下：<br><br>
+方法C：<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">#define bwMCDR2_ADDRESS 4<br>
+            #define bsMCDR2_ADDRESS 17<br>
+            int BIT_MASK(int __bf)<br>
+            {<br>
+            return ((1U &lt;&lt; (bw ## __bf)) - 1)&lt;&lt; (bs ## __bf);<br>
+            }<br>
+            void SET_BITS(int __dst,<br>
+            int __bf, int __val)<br>
+            {<br>
+            __dst = ((__dst) &amp; ~(BIT_MASK(__bf))) |</span><br><span style="font-size: 9pt">\<br>
+            (((__val) &lt;&lt; (bs ## __bf))<br>
+            &amp; (BIT_MASK(__bf))))<br>
+            }<br><br>
+            SET_BITS(MCDR2, MCDR2_ADDRESS,RegisterNumber);</span></div></td></tr></tbody></table></div><br>
+方法D：<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">#define bwMCDR2_ADDRESS 4<br>
+            #define bsMCDR2_ADDRESS 17<br>
+            #define bmMCDR2_ADDRESS BIT_MASK(MCDR2_ADDRESS)<br>
+            #define BIT_MASK(__bf)<br>
+            (((1U &lt;&lt; (bw ## __bf)) - 1)<br>
+            &lt;&lt; (bs ## __bf))<br>
+            #define SET_BITS(__dst, __bf, __val)<br>
+            \<br>
+            ((__dst) = ((__dst) &amp; ~(BIT_MASK(__bf)))<br>
+            | \<br>
+            (((__val) &lt;&lt; (bs ## __bf))<br>
+            &amp; (BIT_MASK(__bf))))<br><br>
+            SET_BITS(MCDR2, MCDR2_ADDRESS,<br>
+            RegisterNumber);</span></div></td></tr></tbody></table></div><br>
+函数和宏函数的区别就在于，宏函数占用了大量的空间，而函数占用了时间。大家要知道的是，函数调用是要使用系统的栈来保存数据的，如果编译器里有栈检 
+查选项，一般在函数的头会嵌入一些汇编语句对当前栈进行检查；同时，CPU也要在函数调用时保存和恢复当前的现场，进行压栈和弹栈操作，所以，函数调用需
+ 要一些CPU时间。<br><br>
+而宏函数不存在这个问题。宏函数仅仅作为预先写好的代码嵌入到当前程序，不会产生函数调用，所以仅仅是占用了空间，在频繁调用同一个宏函数的时候，该现象尤其突出。<br><br>
+D方法是我看到的最好的置位操作函数，是ARM公司源码的一部分，在短短的三行内实现了很多功能，几乎涵盖了所有的位操作功能。C方法是其变体，其中滋味还需大家仔细体会。<strong>第二招：数学方法解决问题</strong><br><br>
+现在我们演绎高效C语言编写的第二招--采用数学方法来解决问题。数学是计算机之母，没有数学的依据和基础，就没有计算机的发展，所以在编写程序的时候，采用一些数学方法会对程序的执行效率有数量级的提高。举例如下，求 1~100的和。<br><br>
+方法E：<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">int I , j;<br>
+            for (I = 1 ;I&lt;=100; I ++）<br>
+            {<br>
+            j += I;<br>
+            }</span></div></td></tr></tbody></table></div><br>
+方法F<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">int I;<br>
+            I = (100 * (1+100)) / 2</span></div></td></tr></tbody></table></div><br>
+这个例子是我印象最深的一个数学用例，是我的计算机启蒙老师考我的。当时我只有小学三年级，可惜我当时不知道用公式  N×（N+1）/ 2  
+来解决这个问题。方法E循环了100次才解决问题，也就是说最少用了100个赋值，100个判断，200个加法（I和j）；而方法F仅仅用了1个加法，1
+ 次乘法，1次除法。效果自然不言而喻。所以，现在我在编程序的时候，更多的是动脑筋找规律，最大限度地发挥数学的威力来提高程序运行的效率。<br><br><strong>第三招：使用位操作</strong><br><br>
+实现高效的C语言编写的第三招——使用位操作。减少除法和取模的运算。在计算机程序中数据的位是可以操作的最小数据单位，理论上可以用"位运算"来完 
+成所有的运算和操作。一般的位操作是用来控制硬件的，或者做数据变换使用，但是，灵活的位操作可以有效地提高程序运行的效率。举例如下：<br><br>
+方法G<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">int I,J;<br>
+            I = 257 /8;<br>
+            J = 456 % 32;</span></div></td></tr></tbody></table></div><br>
+方法H<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">int I,J;<br>
+            I = 257 &gt;&gt;3;<br>
+            J = 456 - (456 &gt;&gt; 4 &lt;&lt; 4);</span></div></td></tr></tbody></table></div><br>
+在字面上好像H比G麻烦了好多，但是，仔细查看产生的汇编代码就会明白，方法G调用了基本的取模函数和除法函数，既有函数调用，还有很多汇编代码和寄 
+存器参与运算；而方法H则仅仅是几句相关的汇编，代码更简洁，效率更高。当然，由于编译器的不同，可能效率的差距不大，但是，以我目前遇到的MS C  
+,ARM C 来看，效率的差距还是不小。相关汇编代码就不在这里列举了。<br><br>
+运用这招需要注意的是，因为CPU的不同而产生的问题。比如说，在PC上用这招编写的程序，并在PC上调试通过，在移植到一个16位机平台上的时候，可能会产生代码隐患。所以只有在一定技术进阶的基础下才可以使用这招。<br><br><strong>第四招：汇编嵌入</strong><br><br>
+高效C语言编程的必杀技，第四招——嵌入汇编。"在熟悉汇编语言的人眼里，C语言编写的程序都是垃圾"。这种说法虽然偏激了一些，但是却有它的道理。 
+汇编语言是效率最高的计算机语言，但是，不可能靠着它来写一个操作系统吧?所以，为了获得程序的高效率，我们只好采用变通的方法--嵌入汇编，混合编程。
+ 举例如下，将数组一赋值给数组二,要求每一字节都相符。<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">char string1[1024],string2[1024];</span></div></td></tr></tbody></table></div><br>
+方法I<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">int I;<br>
+            for (I =0 ;I&lt;1024;I++)<br>
+            *(string2 + I) = *(string1 + I)</span></div></td></tr></tbody></table></div><br>
+方法J<div><table style="border-right: #ffcc66 1pt outset; border-top: #ffcc66 1pt outset; background: #dadacf; border-left: #ffcc66 1pt outset; width: 90%; border-bottom: #ffcc66 1pt outset" border="1" cellpadding="0" width="90%"><tbody><tr><td style="border-right: #ffcc66 1pt inset; padding-right: 0.75pt; border-top: #ffcc66 1pt inset; padding-left: 0.75pt; background: #99ccff; padding-bottom: 0.75pt; border-left: #ffcc66 1pt inset; padding-top: 0.75pt; border-bottom: #ffcc66 1pt inset"><div><span style="font-size: 9pt">#ifdef _PC_<br>
+            int I;<br>
+            for (I =0 ;I&lt;1024;I++)<br>
+            *(string2 + I) = *(string1 + I);<br>
+            #else<br>
+            #ifdef _ARM_<br>
+            __asm<br>
+            {<br>
+            MOV R0,string1<br>
+            MOV R1,string2<br>
+            MOV R2,#0<br>
+            loop:<br>
+            LDMIA R0!, [R3-R11]<br>
+            STMIA R1!, [R3-R11]<br>
+            ADD R2,R2,#8<br>
+            CMP R2, #400<br>
+            BNE loop<br>
+            }<br>
+            #endif</span></div></td></tr></tbody></table></div><div><br>
+方法I是最常见的方法，使用了1024次循环；方法J则根据平台不同做了区分，在ARM平台下，用嵌入汇编仅用128次循环就完成了同样的操作。这里 
+有朋友会说，为什么不用标准的内存拷贝函数呢?这是因为在源数据里可能含有数据为0的字节，这样的话，标准库函数会提前结束而不会完成我们要求的操作。这
+ 个例程典型应用于LCD数据的拷贝过程。根据不同的CPU，熟练使用相应的嵌入汇编，可以大大提高程序执行的效率。<span><br><br></span>　　虽然是必杀技，但是如果轻易使用会付出惨重的代价。这是因为，使用了嵌入汇编，便限制了程序的可移植性，使程序在不同平台移植的过程中，卧虎藏龙，险象环生！同时该招数也与现代软件工程的思想相违背，只有在迫不得已的情况下才可以采用。</div><p>&nbsp;</p></div></body></html>

@@ -1,0 +1,109 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>AWT, SWT, Swing: Java GUI Clean Up (2)</title></head><body><h1>AWT, SWT, Swing: Java GUI Clean Up (2)</h1><div><p>AWT, SWT, Swing: Java GUI Clean Up (2)</p><p>http://blogs.sun.com/Swing/entry/awt_swt_swing_java_gui1</p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Implementations</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">The
+ above comparison is mainly conducted in API level. Let's continue the 
+comparison with focus on implementation details. In all the difference 
+between Swing and SWT/AWT is that Swing is purely implemented in Java, 
+while SWT and AWT is a mixture of Java and JNI. Of course, their target 
+is same, to provide a cross-platform APIs. However to achieve this, SWT 
+and AWT has to sacrifice some components and some features so that they 
+can provide a universal APIs.</span></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">AWT</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">An
+ AWT component is usually a component class which holds a reference with
+ a peer interface type. This reference points to a native peer 
+implementation. Take java.awt.Label for example, its peer interface is 
+LabelPeer. LabelPeer is platform independent. On every platform, AWT 
+provides different peer class which implements LabelPeer. On Windows, 
+the peer class is WlabelPeer, which implement label functionalities by 
+JNI calls. These JNI methods are coded in C or C++. They do the actual 
+work, interacting with a native label. Let's look at the figure. You can
+ see that AWT components provide a universal public API to the 
+application by AWT component class and AWT peers. A component class and 
+its peer interface are identical across platform. Those underlying peer 
+classes and JNI codes are different.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><img src="http://hiphotos.baidu.com/hxzon/pic/item/49a85caf01d5ceadfaed50bf.jpg" height="263" width="425"><br><br></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">SWT</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">SWT
+ implementation also utilize JNI methodology. But the detail is 
+different from that of AWT. SWT evangelists often became furious when 
+they heard people describing SWT as another AWT. Steve Northover, the 
+father of SWT, once complained about this.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Yes,
+ they are different. Let's delve into SWT code. In SWT, the only 
+identical part on every platform is the component interface. That is 
+class and method definition signature. All the underlying codes are 
+different from platform to platform. SWT provides an OS class for every 
+platform. This class encapsulates many native APIs by JNI methods. And 
+then SWT component class glues these JNI method together to provide a 
+meaning functionality.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">For
+ example, on Windows, text field selection can be conducted by only one 
+system call. This system call is implemented in the Windows OS class as 
+an native method. So there is only one JNI call in the setSelection 
+method of Text on Windows.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">However,
+ on motif platform, text selection involves two native calls. Again SWT 
+implements these two calls in the motif OS class. So the component class
+ on motif needs to call these two calls to achieve text selection.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><img src="http://hiphotos.baidu.com/hxzon/pic/item/6fa54dfb5c372e32024f56bf.jpg" height="280" width="388"><br><span>By
+ now, you can see the major difference between SWT and AWT is that they 
+use different peer code to wipe out the differences. SWT uses java code,
+ or java peer to glue system calls implemented by JNI. However, AWT put 
+these code in native peers, which complicates the situation. I think 
+SWT's method is more clever.</span></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Swing</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">When
+ it comes to Swing, everything becomes clear and straight forward. 
+Except the top containers, Swing implementation depends on nothing of 
+individual platform. It has all the controls and resources. What Swing 
+needs is event inputs to drive the system, and graphics, fonts and 
+colors which are inherited from the top AWT containers. Ordinary Swing 
+components can be seen as a logical area on AWT containers. They do not 
+have a peer registered. All swing components added to a same top 
+container share its AWT peer to acquire system resources, such as font, 
+graphics etc. Swing has its own component data structure stored in JVM 
+space. It manages drawing process, event dispatching and component 
+layout totally by itself.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><img src="http://hiphotos.baidu.com/hxzon/pic/item/3047ad64aa95fda6f63654bf.jpg" height="291" width="369"><br><br></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Resource Management</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Because
+ both AWT and SWT holds reference to native components, they must 
+release them in a correct manner to avoid memory leaks and JVM crashes. 
+AWT takes most of the resource management task to the system, relieving 
+developers from tedious resource management. However this complicates 
+the AWT implementation. Once it is implemented, developers has less 
+opportunities to make errors and crash their applications.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">SWT
+ follows another way. In essence, SWT let the developers to manage those
+ resources by themselves. There's a famous rule there. That is those who
+ create the component should release it as well. Thus developers have to
+ explicitly and carefully call the dispose method on every component or 
+resource he has created. This greatly simplifies the SWT implementation 
+model. But it puts the developers at the risk that they might easily 
+crash their applications due to incorrect coding.</span></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Emulation difference</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Both
+ Swing and SWT uses emulation in their implementation. SWT emulate those
+ components which are missing from one platform. The difference is that 
+SWT's emulation is much more like those of AWT Canvas. SWT has a 
+Composite class which has a counterpart peer in the operating system. It
+ gets all the resources it needs such as graphics object, font or color 
+from its own peer. It gets all the events directly from the operating 
+systems process it. However, swing component does not have a counterpart
+ peer. It is only logical area of the top container. The resources it 
+acquires from itself are in fact borrowed from those top containers' 
+peer. As to event, swing event is not the event generated from the 
+underlying system. It is in fact a pseudo event which is generated when 
+the top container processes AWT event. We'll detail it later in the 
+event parts.</span></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Graphical Layer Architecture</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">The
+ other difference is that swing components have its own separate z-order
+ system from AWT components. As I mentioned above, swing components 
+share a same peer with the top AWT container. Therefore, swing 
+components have same z-order with the top container. SWT and AWT 
+components each have a different z-order from the top container. So if 
+AWT components and Swing components are mixed together, Swing components
+ will probably be hidden by AWT components, because z-order values of 
+AWT components are higher than the top container, while Swing components
+ have the same z-order value with the top container. When operating 
+system begin to update the UI, top container and swing components are 
+always painted earlier than those of AWT. When they finished painting, 
+AWT components will wipe out what swing has painted. So it is not 
+encouraged to mix swing and AWT components together. If there are 
+floating swing components such as menu, AWT component probably can hide 
+menus.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><img src="http://hiphotos.baidu.com/hxzon/pic/item/c8e57ef05cec2a957831aab8.jpg" height="337" width="431"><br><br></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Layout Manager</span></span><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Not
+ all of the elements of the three are different. Layout manager is an 
+exception. What is layout manager? When developing a gui application, 
+developers need to re-position or resize components when the container 
+is resized. In traditional language, this is usually achieved by 
+listening to resizing events. The code snippets usually scattered around
+ and mess up the code. Java introduces the idea of wrapping layout codes
+ together and name it Layout Manager. When a layout manager object is 
+set to the container, it is automatically connected to resizing events. 
+When resizing happens, layout method of the manger is called to 
+re-position or reshape its children components.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">AWT,
+ SWT and Swing agree on this infrastructure. However every one has its 
+own specific layout managers. Because AWT and Swing share a common 
+parent class java.awt.Component, therefore AWT and Swing layout manger 
+can work interchangeably.</span></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">(To be continued ...)</span></span></p><p>Posted on: 十一月 23, 2007</p><p>Posted by: williamchen</p><p>Category: Swing</p><p>&nbsp;</p></div></body></html>

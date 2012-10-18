@@ -1,0 +1,92 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>C++ 的词法分析-编译原理</title></head><body><h1>C++ 的词法分析-编译原理</h1><div><p><u><font color="#810081">C++ 的词法分析-编译原理</font></u></p>
+<p><font face="courier new, courier, mono">词法分析是指原文件被分解为词法符号的过程，通常是整个编译过程的第一步。虽然通常认为了解 C++ 的词法分析过程对于大多数一辈子都不会编写 C++ 编译器的程序员来说意义不大，但这篇文章不仅仅是为了满足某些人的好奇心而写的，因为我觉得任意一个严谨的 C++ 程序员都应该对 C++ 的词法分析有所了解，以避免一些偶然情况下会发生的错误（我们花了若干年去熟悉 C++ 的语法，为什么不花上一天时间随便熟悉一下 C++ 的词法呢？;) ）。随文附上两年前写的一个 C++ 词法分析器以及在此基础上完成的一个 C++ 源文件着色器的源代码。</font></p>
+<p><font face="courier new, courier, mono">C++ 的词法分析</font></p>
+<p><font face="courier new, courier, mono">词法分析是指原文件被分解为词法符号的过程，通常是整个编译过程的第一步。虽然通常认为了解 C++ 的词法分析过程对于大多数一辈子都不会编写 C++ 编译器的程序员来说意义不大，但这篇文章不仅仅是为了满足某些人的好奇心而写的，因为我觉得任意一个严谨的 C++ 程序员都应该对 C++ 的词法分析有所了解，以避免一些偶然情况下会发生的错误（我们花了若干年去熟悉 C++ 的语法，为什么不花上一天时间随便熟悉一下 C++ 的词法呢？;) ）。随文附上两年前写的一个 C++ 词法分析器以及在此基础上完成的一个 C++ 源文件着色器的源代码。</font></p>
+<p><font face="courier new, courier, mono">I. 词法分析过程</font></p>
+<p><font face="courier new, courier, mono">根据标准的定义，C++ 语言的词法分析按照执行的先后次序分为六步：源字符映射，转义换行替换，预处理符号和空白的划分，预处理执行，目标字符映射以及相邻字符串连接。确定的先后次序是非常重要的，因为同样的源文件，不同的先后次序，可能意义不同。举些简单的例子：如果有这样一行代码：&quot;abcxA&quot; &quot;BCD&quot;，如果我们先连接相邻字符串后做目标字符映射，那么最后的结果是&quot;abcxABCD&quot;，其中 xAB 被解释为一个字符；如果我们先作目标字符映射，那么 xA 将被解释为一个字符，而 B 则是一个后续字符。或者，如果有这样一段代码 #def<br>
+ine PORA &quot;PolyRandom&quot;<br>
+这个时候，如果我们先做转义换行替换，那么代码会变成 #define PORA &quot;PolyRandom&quot;，是一个合法的预处理语句；可是如果我们先做预处理后做转义换行替换，那么这段代码就会出错。<br>
+从以上的两个例子，应该可以看出严格规定顺序的重要性。下面我们就依次解释每一步的具体工作：</font></p>
+<p><font face="courier new, courier, mono">1. 源字符映射</font></p>
+<p><font face="courier new, courier, mono">1.1 基本源字符集（basic source character set）</font></p>
+<p><font face="courier new, courier, mono">基本源字符集包含了所有的大小写英文、所有的数字、空白、垂直和水平 TAB、换行、form feed 和 _{}[]#()&lt;&gt;%:;.?*+-/^&amp;|~!=,&quot;' 一共 96 个字符。</font></p>
+<p><font face="courier new, courier, mono">1.2 Trigraph（三元组）</font></p>
+<p><font face="courier new, courier, mono">Trigraph 是一些由 ?? 开头的连续的三字符组合，它包括 ??=，??/，??'，??(，??)，??!，??&lt;，??&gt;和??-，这些字符将被直接替换为对应的字符，分别为#，，^，[，]，|，{，}和~。引入 Trigraph 是为了方便的输入这些字符，早期有些键盘不支持它们。</font></p>
+<p><font face="courier new, courier, mono">1.3 通用字符名（universal-character-name）</font></p>
+<p><font face="courier new, courier, mono">形如 uXXXX 和 UXXXXXXXX 的字符序列，这些定义其实就是对 ISO/IEC 10646 字符集的一个映射，用来表示基本源字符集里面没有的字符。</font></p>
+<p><font face="courier new, courier, mono">1.4 映射过程</font></p>
+<p><font face="courier new, courier, mono">在这一步，物理文件中的字符，会被映射到 C++ 语言的基本字符集中，譬如说，如果你在物理文件中，使用了特殊的换行标识，那么这一步后，它就会被映射为 C++ 基本源字符集中的换行符。这一步还会进行 Trigraph 的替换，如果一个字符不在基本字符集中，它会被映射为一个通用字符名。</font></p>
+<p><font face="courier new, courier, mono">1.5 一些注意事项</font></p>
+<p><font face="courier new, courier, mono">首先，由于 Trigraph 发生在第一步，并且是全局性的替换（也就是说，即使是字符串中的 Trigraph 也会被替换掉），所以下面两句中的 Trigraph 都会被替换：</font></p>
+<p><font face="courier new, courier, mono">char s[]=&quot;??-&quot;;<br>
+char s[]=&quot;??-&quot;;</font></p>
+<p><font face="courier new, courier, mono">因此，如果你要想表达 ??- 这样的字符串，可以使用 &quot;??-&quot; 或者 &quot;?&quot; &quot;?-&quot; 的形式来表示。</font></p>
+<p><font face="courier new, courier, mono">其次，类似于 ??/**/ 这样的字符序列，会被替换成 **/，而不是把后者作为一个注释。</font></p>
+<p><font face="courier new, courier, mono">再次，类似于 ??=define ABC 这样的语句，将会是一句合法的预处理语句</font></p>
+<p><font face="courier new, courier, mono">此外，你可以在自己的程序里面使用通用字符名，但是对于某些基本源字符集中已经有的字符，以及那些小于 0x20 或是在 0x7f 到 0x9f 之间的字符，你不能用通用字符名表示，否则将被认为是一个错误。</font></p>
+<p><font face="courier new, courier, mono">2. 转义换行替换</font></p>
+<p><font face="courier new, courier, mono">这一步很简单，就是检查所有的换行，如果在其前面紧跟了一个 ，那么这个换行和这个字符都将被去掉。这一步需要注意的是：第一，如果两行被重新连接后，出现了一个通用字符名，那么结果将是未定义的；第二，如果一个非空源程序不是以换行结束的，或者是以转移换行结束的，那么这个程序的结果是未定义的（大多数编译器会给出一个警告。我在不少 BBS 上看到这方面的提问。）第三，如果一个单行注释 // 是以转移换行结束的，那么它的下一行会被认为是注释的延续。</font></p>
+<p><font face="courier new, courier, mono">3. 预处理符号和空白的划分</font></p>
+<p><font face="courier new, courier, mono">这一部分，程序中的注释会被替换为一个空白字符，多个连续的空白字符可能会被替换为单一的空白字符。C++ 标准规定，任意一个文件都不能在预处理指令或者是注释的中间结束。所以说，如果你有两个源文件：</font></p>
+<p><font face="courier new, courier, mono">polyrandom.h </font></p>
+<hr>
+<p>/*</p>
+<p> </p>
+<font face="宋体"><hr>
+<p> </p>
+<p> </p>
+<p><font face="courier new, courier, mono">polyrandom.cpp<br>
+</font></p>
+<hr>
+<p>#include &quot;polyrandom.h&quot;</p>
+<p> </p>
+<font face="宋体"><hr>
+<p> </p>
+<p> </p>
+<p><font face="courier new, courier, mono">*/</font></p>
+<p><font face="courier new, courier, mono">这样的代码是不合法的。事实上，这通常也和程序员的意愿背道而驰的，因为注释处理先于预处理被执行。</font></p>
+<p><font face="courier new, courier, mono">此外，注释被替换为一个空白，也就是说</font></p>
+<p><font face="courier new, courier, mono">unsigned int/**/i;</font></p>
+<p><font face="courier new, courier, mono">是定义了一个无符号整型变量，名为 i，而不是一个名为 inti 的无符号整型变量。</font></p>
+<p><font face="courier new, courier, mono">4. 预处理符号和空白的划分</font></p>
+<p><font face="courier new, courier, mono">这一步就是宏的展开和文件的包含。每一个被包含的文件，都需要经过第一到第四步的处理。同样，这一步的处理如果产生了通用字符名，那么结果将是未定义的。</font></p>
+<p><font face="courier new, courier, mono">5. 目标字符映射</font></p>
+<p><font face="courier new, courier, mono">6. 相邻字符串连接。</font></p>
+<p><font face="courier new, courier, mono">所有相邻的字符串被连接在一起，包括宽字符串。</font></p>
+<p><font face="courier new, courier, mono">II. C++ 中的词法元素</font></p>
+<p><font face="courier new, courier, mono">C++ 中的词法元素，就包含在下面这句语句中：</font></p>
+<p><font face="courier new, courier, mono">int ratio = 0.5; // the convert ratio</font></p>
+<p><font face="courier new, courier, mono">它们是：关键字，空白，标识符，运算符，常量，分隔符和注释。</font></p>
+<p><font face="courier new, courier, mono">标准 C++ 中的关键字包括：</font></p>
+<p><font face="courier new, courier, mono">asm auto bool break case catch char class const const_cast continue<br>
+default delete do double dynamic_cast else enum explicit export extern<br>
+false float for friend goto if inline int long mutable namespace new<br>
+operator private protected public register reinterpret_cast return short<br>
+signed sizeof static static_cast struct switch template this throw true try<br>
+typedef typeid typename union unsigned using virtual void volatile wchar_t<br>
+while</font></p>
+<p><font face="courier new, courier, mono">我们把 and、and_eq、bitand、bitor、compl、not、not_eq、or、or_eq、xor 和 xor_eq 作为保留字看待。</font></p>
+<p><font face="courier new, courier, mono">说到 C++ 的运算符号，必须提一下所谓的&ldquo;可选符号&rdquo;（Alternative Token）。每一个可选符号都和一个普通的运算符语法含义相同，但是它们在前面几步中，并不会被替换成它们所对应的运算符。它们是</font></p>
+<p><font face="courier new, courier, mono">&lt;% {<br>
+%&gt; }<br>
+&lt;: [<br>
+:&gt; ]<br>
+%: #<br>
+%:%: ##<br>
+and &amp;&amp;<br>
+bitor |<br>
+or ||<br>
+xor ^<br>
+compl ~<br>
+bitand &amp;<br>
+and_eq &amp;=<br>
+or_eq |=<br>
+xor_eq ^=<br>
+not !<br>
+not_eq !=</font></p>
+<p><font face="courier new, courier, mono">还有一点需要提到的是，在 C++ 中，你不仅可以用 'c' 的形式来表示一个字符常量，也可以用 'ab'、'abcd' 这样的形式来表示一个相应长度的整数。</font></p>
+<p><font face="courier new, courier, mono">III. CppDyer 源代码</font></p>
+<p><font face="courier new, courier, mono">这个源代码中附带的词法分析器支持我上面所说的所有词法要素（至少我是这么认为的 :) ），当然，没有包含预处理的执行。写的时候比较早，所以没用正则表达式处理库，而是自己写了一个很粗糙的正则表达式分析器。如果你要拿去修改或者发布的话，请通知我一声，并且请你在你的发布（无论是源代码还是可执行程序）中的明显位置标明原来的出处。<br>
+此外，boost 的 regexp 库也附带了一个类似的小程序作为例子，有兴趣地可以去看看。<a href="http://www.polyrandom.com/uploadfiles/CppDyer.rar">http://www.polyrandom.com/uploadfiles/CppDyer.rar</a></font></p>
+<p>Trackback: http://tb.blog.csdn.net/TrackBack.aspx?PostId=345128</p>
+</font>#include &quot;polyrandom.h&quot;<font face="Verdana"> </font></font>/*<font face="Verdana"> </font></div></body></html>

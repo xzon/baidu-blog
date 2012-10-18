@@ -1,0 +1,392 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Pthread 与 Linux</title></head><body><h1>Pthread 与 Linux</h1><div><h1>Pthread 与 Linux</h1>
+<p>Pthread本来是一套用户级线程库, 但在Linux上实现时, 却使用了内核级线程来完成, 这样的好处是, 可以充分的提高程序的并发性, 线程也可以象以前一样调用Head这样的函数, 而不必担心会由于阻赛影响其它的线程的运行. 但这样一来, linux的线程就不是标准的了. <br>
+<br>
+下面结合Linux上的实现来谈一谈Pthread. <br>
+<br>
+一 基本概念 <br>
+--------- <br>
+<br>
+Pthread是一套通用的线程库, 它广泛的被各种Unix所支持, 是由POSIX提出的. 因此, 它具有很好的客移植性. 在Linux上, 由于它是通过内核级线程来实现的, 就没有完全的实现它. 但从功能上来看, 它丝毫不逊色. <br>
+<br>
+先看一下下面的例子: <br>
+/* ------ test.c ------- */ <br>
+#include <br>
+void *pp(void *arg) <br>
+{ <br>
+while (1) { <br>
+printf(\&quot;%s\\n\&quot;, (char *)arg); <br>
+sleep(2); <br>
+} <br>
+return NULL; <br>
+} <br>
+<br>
+main() <br>
+{ <br>
+pthread_t pid; <br>
+pthread_create(&amp;pid, NULL, pp, \&quot;hello world\&quot;); <br>
+while (1) { <br>
+printf(\&quot;I am main thread\\n\&quot;); <br>
+sleep(1); <br>
+} <br>
+} <br>
+<br>
+gcc test.c -lpthread <br>
+./a.out <br>
+<br>
+I am main thread <br>
+hello world <br>
+I am main thread <br>
+hello world <br>
+............ <br>
+<br>
+在程序开始的时候, 系统创建了一个主线程, 又用pthread_create创建了一个新的子线程, 这样, 两个线程同时运行, 向屏幕上打印东西. <br>
+<br>
+一个线程实际上就是一个函数, 创建后, 立即被执行, 当函数返回时该线程也就结束了. <br>
+<br>
+下面这个函数用于创建一个新的线程: <br>
+int pthread_create (pthread_t *THREAD, <br>
+pthread_attr_t * ATTR, <br>
+void * (*START_ROUTINE)(void *), <br>
+void * ARG); <br>
+<br>
+第一个参数是一个pthread_t型的指针用于保存线程id. 以后对该线程的操作都要用id来标示. <br>
+第二个参数是一个pthread_attr_t的指针用于说明要创建的线程的属性, 使用NULL, 表示要使用缺省的属性. <br>
+第三个参数指明了线程的如口, 是一个只有一个(void *)参数的函数. <br>
+第四个参数指明了要传到线程如口函数的参数. <br>
+<br>
+这很简单, 上面的例子, 你也应该理解了. <br>
+象我在上面提过的一样, 使用Linux的线程不需要对考虑对其它线程的阻塞问题, 这样编程上就很方便. <br>
+<br>
+二 返回值 <br>
+------- <br>
+<br>
+也应该看到了, 每一个线程的返回值是void *. <br>
+有两种方法返回: <br>
+1 return pointer; <br>
+2 pthread_exit(pointer); <br>
+这两种方法是一样的. <br>
+<br>
+那么, 其他的线程是如何得到这个返回值的呢? <br>
+用这个函数: <br>
+int pthread_join(pthread_t TH, void **thread_RETURN); <br>
+<br>
+一个线程有两种状态, joinable 即系统保留线程的返回值, 直到有另外一个线程将它取走. detach系统不保留返回值. <br>
+<br>
+下面的函数用于detach: <br>
+int pthread_detach (pthread_t TH); <br>
+<br>
+pthread_t pthread_self(); 可以返回自己的id. 通常, 我们用下列 <br>
+的语句来detach自己: <br>
+pthread_detach(pthread_self()); <br>
+<br>
+<br>
+三 Mutex <br>
+-------- <br>
+<br>
+Mutex用于解决互斥问题. 一个Mutex是一个互斥装置, 用于保护临界区和共享内存. 它有两种状态locked, unlocked. 它不能同时被两个线程所拥有. <br>
+<br>
+下面的函数用于处理Mutex: <br>
+<br>
+初始化一个Mutex <br>
+int pthread_mutex_init (pthread_mutex_t *MUTEX, const <br>
+pthread_mutexattr_t *MUTEXATTR); <br>
+锁定一个Mutex <br>
+int pthread_mutex_lock (pthread_mutex_t *mutex)); <br>
+试图锁定一个Mutex <br>
+int pthread_mutex_trylock (pthread_mutex_t *MUTEX); <br>
+结锁一个Mutex <br>
+int pthread_mutex_unlock (pthread_mutex_t *MUTEX); <br>
+销毁一个Mutext <br>
+int pthread_mutex_destroy (pthread_mutex_t *MUTEX); <br>
+<br>
+它的锁一共有三种: \&quot;fast\&quot;, \&quot;recursive\&quot;, or \&quot;error checking\&quot; <br>
+进行lock操作时: <br>
+如处于unlock状态 <br>
+lock它, 使它属于自己. <br>
+<br>
+在被其他线程lock的时候, <br>
+挂起当前线程, 直到被其他线程unlock <br>
+<br>
+在已经被自己lock的时候, <br>
+\&quot;fast\&quot; 挂起当前线程. <br>
+\&quot;resursive\&quot; 成功并立刻返回当前被锁定的次数 <br>
+\&quot;error checking\&quot; 立刻返回EDEADLK <br>
+<br>
+进行unlock操作时: <br>
+解锁. <br>
+\&quot;fast\&quot; 唤醒第一个被锁定的线程 <br>
+\&quot;recursive\&quot; 减少lock数(这个数仅仅是被自己lock的, 不关其它线程的) 当lock数等于零的时候, 才被unlock并唤醒第一个被锁定的线程. <br>
+\&quot;error check\&quot; 会检查是不是自己lock的, 如果不是返回EPERM. 如果是唤醒第一个被锁定的线程, <br>
+<br>
+通常, 我们用一些静态变量来初始化mutex. <br>
+\&quot;fast\&quot; `PTHREAD_MUTEX_INITIALIZER\ <br>
+\&quot;recursive\&quot; `PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP\ <br>
+\&quot;error check\&quot; `PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP\ <br>
+<br>
+注意: _NP 表示no portable不可移植 <br>
+<br>
+例如: <br>
+// \&quot;fast\&quot; type mutex <br>
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; <br>
+... ... <br>
+pthread_mutext_lock(&amp;mutex); <br>
+fwrite(buffer, 1, strlen(buffer), file); <br>
+pthread_mutex_unlock(&amp;mutex); <br>
+... ... <br>
+<br>
+看起来有一点难懂, 自己编几个程序就很容易理解了. <br>
+<br>
+四 Condition Variable (条件变量) <br>
+------------------------------ <br>
+<br>
+也是一种用于同步的device. 允许一个进程将自己挂起等待一个条件变量被改变状态. <br>
+有下列几个函数: <br>
+<br>
+int pthread_cond_init (pthread_cond_t *COND, <br>
+pthread_condattr_t *cond_ATTR); <br>
+int pthread_cond_signal (pthread_cond_t *COND); <br>
+int pthread_cond_broadcast (pthread_cond_t *COND); <br>
+int pthread_cond_wait (pthread_cond_t *COND, <br>
+pthread_mutex_t *MUTEX); <br>
+int pthread_cond_timedwait (pthread_cond_t *COND, <br>
+pthread_mutex_t *MUTEX, <br>
+const struct timespec *ABSTIME); <br>
+int pthread_cond_destroy (pthread_cond_t *COND); <br>
+<br>
+我想看看名字就可以知道它们的用途了. 通常我们也使用静态变量来初始化一个条件变量. <br>
+Example: <br>
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER; <br>
+<br>
+pthread_cond_signal 用于唤醒一个被锁定的线程. <br>
+pthread_cond_broadcast 用于唤醒所有被锁定的线程. <br>
+<br>
+pthread_cont_wait 用于等待. <br>
+为了解决竞争问题(即一个线程刚要去wait而另一个线程已经signal了), 它要与一个 <br>
+metux连用. <br>
+<br>
+看一看下面的例子: <br>
+<br>
+int x,y; <br>
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER; <br>
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER; <br>
+<br>
+//Waiting until X is greater than Y is performed as follows: <br>
+<br>
+pthread_mutex_lock(&amp;mut); <br>
+while (x &lt;= y) { <br>
+pthread_cond_wait(&amp;cond, &amp;mut); <br>
+} <br>
+/* operate on x and y */ <br>
+pthread_mutex_unlock(&amp;mut); <br>
+<br>
+pthread_cond_wait的执行过程如下: <br>
+1. 首先, 它unlock the mutex, then 挂起当前的线程. <br>
+2. 当被唤醒的时候, 它会lock the mutex. <br>
+<br>
+这样就保证了这是一个临界区. <br>
+<br>
+五 Thread-Specific Data (TSD) <br>
+---------------------------- <br>
+<br>
+说白了就是线程中使用的静态变量. 大家可以很容易的理解为什么使用静态变量函数不是线 <br>
+程安全的(也就是它们一定要很小心的在线程中使用). <br>
+<br>
+而使用静态变量又是很方便的, 这就产生了 thread-specific data. 可以把它理解为 <br>
+一个指针数组, 但对于每个线程来说是唯一的. <br>
+<br>
+Example: <br>
+int func() <br>
+{ <br>
+char *p; <br>
+p = strdup(thread-specific-data[1]); <br>
+... ... <br>
+} <br>
+<br>
+void *pthread-1(void *arg) <br>
+{ <br>
+... ... <br>
+func() <br>
+... ... <br>
+} <br>
+<br>
+void *pthread-2(void *arg) <br>
+{ <br>
+... ... <br>
+func() <br>
+... ... <br>
+} <br>
+<br>
+不同的线程调用func产生的结果是不同的. 这只是个例子. <br>
+<br>
+int pthread_key_create(pthread_key_t *KEY, void <br>
+(*destr_function) (void *)); <br>
+int pthread_key_delete(pthread_key_t KEY); <br>
+int pthread_setspecific(pthread_key_t KEY, const void <br>
+*POINTER); <br>
+void * pthread_getspecific(pthread_key_t KEY); <br>
+<br>
+TSD可以看成是一个void *的数组. <br>
+注意: pthread_key_delete只是释放key占用的空间, 你仍然需要释放那个 <br>
+void *. <br>
+<br>
+为了加深你的理解, 看一看下面的例子吧: <br>
+/* Key for the thread-specific buffer */ <br>
+static pthread_key_t buffer_key; <br>
+<br>
+/* Once-only initialisation of the key */ <br>
+static pthread_once_t buffer_key_once = PTHREAD_ONCE_INIT; <br>
+<br>
+/* Allocate the thread-specific buffer */ <br>
+void buffer_alloc(void) <br>
+{ <br>
+pthread_once(&amp;buffer_key_once, buffer_key_alloc); <br>
+pthread_setspecific(buffer_key, malloc(100)); <br>
+} <br>
+<br>
+/* Return the thread-specific buffer */ <br>
+char * get_buffer(void) <br>
+{ <br>
+return (char *) pthread_getspecific(buffer_key); <br>
+} <br>
+<br>
+/* Allocate the key */ <br>
+static void buffer_key_alloc() <br>
+{ <br>
+pthread_key_create(&amp;buffer_key, buffer_destroy); <br>
+} <br>
+<br>
+/* Free the thread-specific buffer */ <br>
+static void buffer_destroy(void * buf) <br>
+{ <br>
+free(buf); <br>
+} <br>
+<br>
+六. 信号处理 <br>
+------------ <br>
+<br>
+在线程中的信号处理是这个样子, 所有的线程共享一组, 信号处理函数. <br>
+而每一个线程有自己的信号掩码. <br>
+<br>
+下面是用于处理线程信号的函数: <br>
+int pthread_sigmask (int HOW, const sigset_t *NEWMASK, <br>
+sigset_t *OLDMASK); <br>
+int pthread_kill (pthread_t THREAD, int SIGNO); <br>
+int sigwait (const sigset_t *SET, int *SIG); <br>
+<br>
+可以使用sigaction来安装信号处理函数. <br>
+<br>
+看一看下面的程序: <br>
+#include <br>
+#include <br>
+void *pp(void *) <br>
+{ <br>
+printf(\&quot;ha ha\&quot;); <br>
+alarm(1); <br>
+} <br>
+void main_alarm(int i) <br>
+{ <br>
+printf(\&quot;Main got\\n\&quot;); <br>
+alarm(3); <br>
+} <br>
+<br>
+main() <br>
+{ <br>
+pthread_t pid; <br>
+struct sigaction aa; <br>
+sigset_t sigt; <br>
+<br>
+sigfillset(&amp;sigt); <br>
+aa.sa_handler = mainalarm; <br>
+aa.sa_mask = sigt; <br>
+aa.sa_flags = 0; <br>
+sigaction(SIGALRM, &amp;aa, NULL); <br>
+<br>
+pthread_create(&amp;pid, NULL, pp, NULL); <br>
+while(1); <br>
+return 0; <br>
+} <br>
+<br>
+七. 放弃 (Cancellation) <br>
+----------------------- <br>
+<br>
+这是一种机制: 一个线程可以结束另一个线程. 精确的说, 一个线程可以 <br>
+向另一个线程发送 cancellation 请求. 另一个线程根据其设置, 可以忽 <br>
+略掉该请求, 也可以在到达一个cancellation点时, 来处理它. <br>
+<br>
+当一个线程处理一个cancellaction请求时, pthread_exit 一个一个的调 <br>
+用 cleanup handlers. 所谓的一个cancellation点是在这些地方, 线程会 <br>
+处理cancellation请求. POSIX中的函数: pthread_join <br>
+pthread_cond_wait pthread_cond_timewait pthread_testcancel sem_wait <br>
+sigwait 都是cancellation点. 下面的这些系统函数也是cancellation点: <br>
+accept open sendmsg <br>
+close pause sendto <br>
+connect read system <br>
+fcntl recv tcdrain <br>
+fsync recvfrom wait <br>
+lseek recvmsg waitpid <br>
+msync send write <br>
+nanosleep <br>
+<br>
+其它的一些函数如果调用了上面的函数, 那么, 它们也是cancellation点. <br>
+int pthread_setcancelstate (int STATE, int *OLDSTATE); <br>
+用于允许或禁止处理cancellation, <br>
+STATE可以是:PTHREAD_CANCEL_ENABLE PTHREAD_CANCEL_DISABLE <br>
+<br>
+int pthread_setcanceltype (int TYPE, int *OLDTYPE); <br>
+设置如何处理cancellation, 异步的还是推迟的. <br>
+TYPE可以是:PTHREAD_CANCEL_ASYNCHRONOUS PTHREAD_CANCEL_DEFERRED <br>
+void pthread_testcancel (VOID); <br>
+<br>
+八. 清理函数 (Cleanup Handlers) <br>
+------------------------------- <br>
+<br>
+这是一些函数, 它们会被pthread_exit按顺序调用. 它们以栈风格被管理. <br>
+这种机制的目的是希望在退出前释放掉一些占用的资源. <br>
+<br>
+例如: 我们使用了一个MUTEX, 但希望在cancellation时能unlock它. <br>
+<br>
+pthread_cleanup_push(pthread_mutex_unlock, (void *)&amp;mut); <br>
+pthread_mutex_lock(&amp;mut); <br>
+/* do some work */ <br>
+pthread_mutex_unlock(&amp;mut); <br>
+pthread_cleanip_pop(0); <br>
+<br>
+注意: <br>
+在异步处理过程中, 一个cancellation可以发生在pthread_cleaup_push <br>
+和pthread_mutex_lock之间. 这中情况是很糟糕的. 所以, 异步的cancellation <br>
+是很难用的. <br>
+<br>
+void pthread_cleanup_push (void (*ROUTINE) (void *), void *ARG); <br>
+void pthread_cleanup_pop (int EXECUTE); <br>
+如果EXECUTE不等于0, 则在出栈后, 会被执行一次. <br>
+<br>
+九. 信号量 (Semaphores) <br>
+----------------------- <br>
+<br>
+Semaphores是线程间共享的资源计数器. <br>
+基本的信号量操作为: 原子的增加信号量, 原子的减少信号量, 等待直到 <br>
+信号量的值为非零. <br>
+<br>
+在POSIX中, 信号量有一个最大值, 宏SEM_VALUE_MAX定义了该值. 在GNU <br>
+的LIBC中, 该值等于INT_MAX (太大了). <br>
+<br>
+下面是相关的函数: <br>
+<br>
+int sem_init (sem_t *SEM, int PSHARED, unsigned int VALUE); <br>
+初始化一个信号量, 其值为VALUE, PSHARED指明它是不是共享的. <br>
+0 表示local, 非0表示是全局的. <br>
+<br>
+int sem_destroy (sem_t * SEM); <br>
+释放掉相关的资源. <br>
+<br>
+int sem_wait (sem_t * SEM); <br>
+等待直到SEM的值为非零. <br>
+<br>
+int sem_trywait (sem_t * SEM); <br>
+<br>
+int sem_post (sem_t * SEM); <br>
+将信号量加1. <br>
+<br>
+int sem_getvalue (sem_t * SEM, int * SVAL); <br>
+取得信号量的值.</p>
+<p> </p></div></body></html>

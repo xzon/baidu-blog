@@ -1,0 +1,454 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Java中的Sizeof</title></head><body><h1>Java中的Sizeof</h1><div><p><span style="font-size: 13px; color: #ff00ff"><strong>Java中的Sizeof</strong></span></p>
+<p><span style="font-size: 13px; color: #ff00ff"><font color="#000000" size="3">1.Java有类似于C语言中sizeof()的操作器吗？<br>
+表面答案是Java没有提供任何类似于C语言的sizeof()的操作器。但是，我们应该想想为什么Java 程序员偶尔也需要它。<br>
+C语言程序员自己管理大多数的数据结构存储分配，并且 sizeof()不负责了解分配的存储块的尺寸大小。C 存储分配器如malloc()，只要涉及到对象初始化几乎什么事都不做：程序员必须设置作为更深一层对象指针的所有对象域。但是当所有的都说过并且编码过的时候， C/C++ 存储分配是相当有效的。 <br>
+相比而言，Java对象分配和构造紧密结合（不可能使用一个已经分配但是没有初始化的对象）。如果Java类定义了作为更深一层对象的引用的域，在构造阶段设置他们也是很普遍的。Java对象分配器因此频繁地分配互连对象：对象图形。与自动垃圾收集耦合，所有这一切都太方便了，并且让你觉得你根本不必担心Java存储分配的细节。 <br>
+当然，这只有对简单的Java应用才有效。相比C/C++而言，同样的Java数据结构往往占据更多的物理存储。在企业软件开发中，接近当今32位JVM上的最大虚拟存储是一个普遍的可缩放性限制。因此，Java 程序员可从sizeof() 或者其他类似的函数中获益，因为这些函数能够观察它的数据结构是否过大或者是否包含存储瓶颈。幸运的是，Java反射允许你相当容易的编写这种工具。 <br>
+接下来，我先讨论几个经常出现的对该问题的错误理解。 <br>
+误区1:因为Java类型的大小确定所以不需要 Sizeof()<br>
+不错，Java int在所有JVM和所有的平台上都是32位，但是这只是一种语言规范要求，程序员可以接受的这种数据类型的宽度。这种int基本上是一种抽象的数据类型，并且可以被 64位设备上的64位存储器字所支持。非初级的类型也不例外：Java语言规范根本没有涉及这类问题：类域在物理存储中应该如何校准或者布尔排列在JVM内部不能作为一个简单的位向量来实现。<br>
+误区2: 将对象串行成一个位通量然后查看所产生的通量长度就可以测量对象的尺寸大小<br>
+这个方法无效的原因就是串行布局只是真实存储器内布局的远程反射。举例说，通过观察String是如何串行的：在存储器内每个char至少2个字节，但是在串行的格式中 String是UTF-8编码的，所以任何ASCII内容只占了一半的空间。<br>
+另外一个解决方式<br>
+你可能想起在&quot;Java Tip 130: Do You Know Your Data Size?&quot;一文中描述了一个技巧：在创建大量的标记类的基础上，仔细的测量在JVM使用的堆栈尺寸中所产生的增长。如果合适的话，这个技巧相当有用，实际上我在本文中也用它来引导备用的方法。 <br>
+注意：Java 技巧130中的类Sizeof需要一个静态的JVM (这样堆栈活动只能由测量线程请求的对象分配和垃圾收集的操作引起)，还需要大量的同一对象实例。如果你想测量单一大型对象（可能作为调试跟踪输出的一部分）的尺寸大小，特别是如果你想测试出实际上是什么使他变得这么大的时候，这个方法就无效了。 <br>
+2.什么是对象的尺寸？ <br>
+上述讨论突出了一个哲学问题：假设你经常处理对象图形，那么对象尺寸的定义是什么呢？他是指你正在测量的对象实例的尺寸大小还是指根于对象实例的整个数据图形？后者在实际生活中使用的更多一些。如你所见，事情不总是划分得如此清楚，但是对于启动程序来说你可以参照以下方法： <br>
+· 一个对象的所有非静态数据域（包括在超类中定义的域）的总和就是它的尺寸 <br>
+· 与C++不同，类方法以及他们的虚拟不影响对象的尺寸<br>
+· 类超接口不影响对象尺寸(见该列表末尾的注释) <br>
+· 完整的对象尺寸可作为根于启动对象的整个对象图形的闭合来获得 <br>
+注释：实现任何Java接口只对怀疑类做标记，而且不添加任何数据到它的定义上。实际上， JVM 甚至不校验接口实现有没有提供接口所请求的所有方法：在目前的规范中，这严格说来是编译器的责任。 <br>
+为了引导整个进程，对于初级数据类型，我使用Java 技巧130的Sizeof 类来测量物理尺寸。正如它所证明的一样，对于普通的32位JVM来说，一个简单的java.lang.Object 占了8位，并且基本数据类型通常都是能够适应语言要求的最少的物理尺寸 (除了boolean 要占据整个字节之外)： <br>
+<br>
+<br>
+// java.lang.Object shell size in bytes:<br>
+public static final int OBJECT_SHELL_SIZE = 8;<br>
+<br>
+public static final int OBJREF_SIZE = 4;<br>
+public static final int LONG_FIELD_SIZE = 8;<br>
+public static final int INT_FIELD_SIZE = 4;<br>
+public static final int SHORT_FIELD_SIZE = 2;<br>
+public static final int CHAR_FIELD_SIZE = 2;<br>
+public static final int BYTE_FIELD_SIZE = 1;<br>
+public static final int BOOLEAN_FIELD_SIZE = 1;<br>
+public static final int DOUBLE_FIELD_SIZE = 8;<br>
+public static final int FLOAT_FIELD_SIZE = 4;<br>
+<br>
+<br>
+<br>
+(这些常量不是永远硬编码的，并且对于一个给定的JVM，它们必须独立测量，认识到这一点很重要)当然，幼稚的计算对象域尺寸总和往往忽略了JVM中的存储队列问题。存储队列真的很有关系（例如，Java Tip 130中的初级排列类型），但是我认为在这种低级别的细节上做文章是没有用的。这种细节不但由JVM开发商决定，它们也处在程序员的控制之下。我们的目标是获取对象尺寸的最好估测，并且希望在类域多余、域应该简单组装、或者有必要更紧凑的嵌入数据库等这些时候可以获得提示。为了绝对的物理精度，你可以总是回到Java Tip 130中的Sizeof 类。<br>
+为了帮助组成对象实例的配置文件，我们的工具不仅仅计算尺寸，还建立一个附带的有用的数据结构：由IObjectProfileNode组成的图形：<br>
+<br>
+<br>
+interface IObjectProfileNode<br>
+{<br>
+Object object ();<br>
+String name ();<br>
+<br>
+int size ();<br>
+int refcount ();<br>
+<br>
+IObjectProfileNode parent ();<br>
+IObjectProfileNode [] children ();<br>
+IObjectProfileNode shell ();<br>
+<br>
+IObjectProfileNode [] path ();<br>
+IObjectProfileNode root ();<br>
+int pathlength ();<br>
+<br>
+boolean traverse (INodeFilter filter, INodeVisitor visitor);<br>
+String dump ();<br>
+<br>
+} // End of interface<br>
+<br>
+<br>
+<br>
+IObjectProfileNodes采用与原始对象图形非常类似的方法互连，它使用了返回每个节点所代表的实际对象的IObjectProfileNode.object()函数。IObjectProfileNode.size()返回以该节点的对象实例为根的对象子树的总体尺寸（以字节为单位）。如果对象实例通过非空实例域或者通过包含在排列域内部的引用链接到其他对象上，那么IObjectProfileNode.children()将会变成按降序排列的子图形节点的相应列表。相反，对于每个不是起始节点的节点来说，IObjectProfileNode.parent()返回他们的父节点。从而IObjectProfileNode的整个收集就会切断原始对象，并且展示对象存储在其内部如何分割。而且，图形节点名源于类域，检测图形内的节点路径(IObjectProfileNode.path())允许你回溯从原始对象实例到数据的任一部分的所有权链接。<br>
+你可能已经注意到上述段落有些思想表达得有点含糊。如果在遍历对象图形过程中，你不止一次的遇到同一对象（如，在图形中不止一个域指向它），你将如何分配它的所有权（父指针）？考虑下列代码片段：<br>
+<br>
+<br>
+Object obj = new String [] {new String (&quot;JavaWorld&quot;),<br>
+new String (&quot;JavaWorld&quot;)};<br>
+<br>
+<br>
+<br>
+每个java.lang.String实例都有类型char[]的内域，类型char[]具有真正的字符串内容。String复制构造器的方式在Java 2平台标准版(J2SE) 1.4中有效，上述排列内的两个 String实例共享同一个包含{J, a, v, a, W, o, r, l, d}字符序列的char[]排列。两个字符串同等的属于这个排列，那么像这种情况你怎么办？ <br>
+如果我总是想将单个父节点赋给图形节点，那么这个问题就没有普遍适用的答案。但是实际上，许多这样的对象实例可以回溯到一个单一的&quot;自然的&quot;父节点。这种自然的链接序列通常比其他的更迂回的路径要短。把实例域指向的数据看作更从属于该实例而不是其它。把排列中的项看作更从属于该排列自己。因此，如果内部对象实例可通过几条路经到达，我们选择最短的那条路经。如果路径一样长，我们就选最早发现的那一条。在最坏的情况下，这个万能策略很有用。 考虑图形遍历和最短路径应该注意这一点：宽度优先的搜索，这个图形遍历能够保证找到从起始节点到任何其他可到达的图形节点之间的最短路径。<br>
+在做了所有这些准备之后，下面就是这种图形遍历的标准实现：<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+public static IObjectProfileNode profile (Object obj)<br>
+{<br>
+final IdentityHashMap visited = new IdentityHashMap (); <br>
+<br>
+final ObjectProfileNode root = createProfileTree (obj, visited,<br>
+CLASS_METADATA_CACHE);<br>
+finishProfileTree (root);<br>
+<br>
+return root; <br>
+}<br>
+<br>
+private static ObjectProfileNode createProfileTree (Object obj,<br>
+IdentityHashMap visited,<br>
+Map metadataMap)<br>
+{<br>
+final ObjectProfileNode root = new ObjectProfileNode (null, obj, null);<br>
+<br>
+final LinkedList queue = new LinkedList ();<br>
+<br>
+queue.addFirst (root);<br>
+visited.put (obj, root);<br>
+<br>
+final ClassAccessPrivilegedAction caAction =<br>
+new ClassAccessPrivilegedAction ();<br>
+final FieldAccessPrivilegedAction faAction =<br>
+new FieldAccessPrivilegedAction ();<br>
+<br>
+while (! queue.isEmpty ())<br>
+{<br>
+final ObjectProfileNode node = (ObjectProfileNode) queue.removeFirst ();<br>
+<br>
+obj = node.m_obj;<br>
+final Class objClass = obj.getClass ();<br>
+<br>
+if (objClass.isArray ())<br>
+{ <br>
+final int arrayLength = Array.getLength (obj);<br>
+final Class componentType = objClass.getComponentType ();<br>
+<br>
+// Add shell pseudo-node:<br>
+final AbstractShellProfileNode shell =<br>
+new ArrayShellProfileNode (node, objClass, arrayLength);<br>
+shell.m_size = sizeofArrayShell (arrayLength, componentType);<br>
+<br>
+node.m_shell = shell;<br>
+node.addFieldRef (shell);<br>
+<br>
+if (! componentType.isPrimitive ())<br>
+{<br>
+// Traverse each array slot:<br>
+for (int i = 0; i &lt; arrayLength; ++ i)<br>
+{<br>
+final Object ref = Array.get (obj, i);<br>
+<br>
+if (ref != null)<br>
+{<br>
+ObjectProfileNode child =<br>
+(ObjectProfileNode) visited.get (ref);<br>
+if (child != null)<br>
+++ child.m_refcount;<br>
+else<br>
+{<br>
+child = new ObjectProfileNode (node, ref,<br>
+new ArrayIndexLink (node.m_link, i));<br>
+node.addFieldRef (child);<br>
+<br>
+queue.addLast (child);<br>
+visited.put (ref, child);<br>
+}<br>
+}<br>
+}<br>
+}<br>
+}<br>
+else // the object is of a non-array type<br>
+{<br>
+final ClassMetadata metadata =<br>
+getClassMetadata (objClass, metadataMap, caAction, faAction);<br>
+final Field [] fields = metadata.m_refFields;<br>
+<br>
+// Add shell pseudo-node:<br>
+final AbstractShellProfileNode shell =<br>
+new ObjectShellProfileNode (node,<br>
+metadata.m_primitiveFieldCount,<br>
+metadata.m_refFields.length);<br>
+shell.m_size = metadata.m_shellSize;<br>
+<br>
+node.m_shell = shell; <br>
+node.addFieldRef (shell);<br>
+<br>
+// Traverse all non-null ref fields:<br>
+for (int f = 0, fLimit = fields.length; f &lt; fLimit; ++ f)<br>
+{<br>
+final Field field = fields [f];<br>
+<br>
+final Object ref;<br>
+try // to get the field value: <br>
+{<br>
+ref = field.get (obj);<br>
+}<br>
+catch (Exception e)<br>
+{<br>
+throw new RuntimeException (&quot;cannot get field [&quot; +<br>
+field.getName () + &quot;] of class [&quot; +<br>
+field.getDeclaringClass ().getName () +<br>
+&quot;]: &quot; + e.toString ());<br>
+}<br>
+<br>
+if (ref != null)<br>
+{<br>
+ObjectProfileNode child =<br>
+(ObjectProfileNode) visited.get (ref);<br>
+if (child != null)<br>
+++ child.m_refcount;<br>
+else<br>
+{<br>
+child = new ObjectProfileNode (node, ref,<br>
+new ClassFieldLink (field));<br>
+node.addFieldRef (child);<br>
+<br>
+queue.addLast (child);<br>
+visited.put (ref, child);<br>
+}<br>
+}<br>
+}<br>
+}<br>
+}<br>
+<br>
+return root;<br>
+}<br>
+<br>
+private static void finishProfileTree (ObjectProfileNode node)<br>
+{<br>
+final LinkedList queue = new LinkedList ();<br>
+IObjectProfileNode lastFinished = null;<br>
+<br>
+while (node != null)<br>
+{<br>
+// Note that an unfinished nonshell node has its child count<br>
+// in m_size and m_children[0] is its shell node:<br>
+<br>
+if ((node.m_size == 1) || (lastFinished == node.m_children [1]))<br>
+{<br>
+node.finish ();<br>
+lastFinished = node;<br>
+}<br>
+else<br>
+{<br>
+queue.addFirst (node);<br>
+for (int i = 1; i &lt; node.m_size; ++ i)<br>
+{<br>
+final IObjectProfileNode child = node.m_children [i];<br>
+queue.addFirst (child);<br>
+}<br>
+}<br>
+<br>
+if (queue.isEmpty ())<br>
+return;<br>
+else <br>
+node = (ObjectProfileNode) queue.removeFirst ();<br>
+}<br>
+}<br>
+<br>
+<br>
+<br>
+该代码是上一篇Java Q&amp;A, &quot;Attack of the Clones.&quot;使用的&quot;通过反射克隆&quot;实现的远亲。如前所述，它缓存了反射元数据来提高性能，并且使用了一个标识散列映射来标记访问过的对象。profile()方法从宽度优先遍历中的具有IObjectProfileNode的生成树的原始对象图形开始，以合计和分配所有节点尺寸的快速后序遍历结束。profile()返回一个 IObjectProfileNode，即产生的生成树的根，它的尺寸就是整个图形的尺寸。<br>
+当然， profile()的输出只有当我有一个很好的方法扩展它时才有用。为了这个目的，每个IObjectProfileNode 必须支持由节点访问者和节点过滤器一起进行的测试： <br>
+<br>
+<br>
+interface IObjectProfileNode<br>
+{<br>
+interface INodeFilter<br>
+{<br>
+boolean accept (IObjectProfileNode node);<br>
+<br>
+} // End of nested interface<br>
+<br>
+interface INodeVisitor<br>
+{<br>
+/**<br>
+* Pre-order visit.<br>
+*/<br>
+void previsit (IObjectProfileNode node);<br>
+<br>
+/**<br>
+* Post-order visit.<br>
+*/<br>
+void postvisit (IObjectProfileNode node);<br>
+<br>
+} // End of nested interface<br>
+<br>
+boolean traverse (INodeFilter filter, INodeVisitor visitor);<br>
+<br>
+...<br>
+<br>
+} // End of interface<br>
+<br>
+<br>
+<br>
+节点访问者只有当伴随的过滤器为null或者过滤器接收该节点时才对树节点进行操作。为了简便，节点的子节点只有当节点本身已经测试时才进行测试。前序遍历和后序遍历访问都支持。来自java.lang.Object处理程序的尺寸提供以及所有初级数据都集中放在一个伪码内，这个伪码附属于代表对象实例的每个&quot;真实&quot;节点。这种处理程序节点可通过IObjectProfileNode.shell()访问，也可在IObjectProfileNode.children()列表中显示出来：目的就是能够编写数据过滤器和访问者，使它们可在实例化的数据类型的同一起点上考虑初级数据。 <br>
+如何实现过滤器和访问者就是你的事了。作为一个起点，类ObjectProfileFilters (见本文的download)提供几种有用的堆栈过滤器，它们可帮助你在节点尺寸、与父节点的尺寸相关的节点尺寸、与根对象相关的节点尺寸等等的基础上剪除大对象树。<br>
+ObjectProfilerVisitors类包含IObjectProfileNode.dump()使用的默认访问者，也包含能够为更高级的对象浏览创建XML转储的访问者。将配置文件转换为SwingTreeModel也是很容易的。 <br>
+为了便于理解，我们创建了一个上文提及的两个字符串排列对象的完整转储：<br>
+<br>
+<br>
+public class Main<br>
+{<br>
+public static void main (String [] args)<br>
+{<br>
+Object obj = new String [] {new String (&quot;JavaWorld&quot;),<br>
+new String (&quot;JavaWorld&quot;)};<br>
+<br>
+IObjectProfileNode profile = ObjectProfiler.profile (obj);<br>
+<br>
+System.out.println (&quot;obj size = &quot; + profile.size () + &quot; bytes&quot;);<br>
+System.out.println (profile.dump ());<br>
+}<br>
+<br>
+} // End of class<br>
+<br>
+<br>
+<br>
+该代码结果如下：<br>
+<br>
+<br>
+obj size = 106 bytes<br>
+106 -&gt; &lt;INPUT&gt; : String[]<br>
+58 (54.7%) -&gt; &lt;INPUT&gt;[0] : String<br>
+34 (32.1%) -&gt; String#value : char[], refcount=2<br>
+34 (32.1%) -&gt; &lt;shell: char[], length=9&gt;<br>
+24 (22.6%) -&gt; &lt;shell: 3 prim/1 ref fields&gt;<br>
+24 (22.6%) -&gt; &lt;shell: String[], length=2&gt;<br>
+24 (22.6%) -&gt; &lt;INPUT&gt;[1] : String<br>
+24 (22.6%) -&gt; &lt;shell: 3 prim/1 ref fields&gt;<br>
+<br>
+<br>
+<br>
+实际上，如前所述，内部的字符排列(被java.lang.String#value访问) 可被两个字符串共享。即使ObjectProfiler.profile()将该排列的从属关系指向第一个发现的字符串，它还是通知说，该排列共享（如它的下一句代码refcount=2所示）。<br>
+<br>
+<br>
+简单的sizeof() <br>
+ObjectProfiler.profile()创建了一个节点图形，它的尺寸一般来说是原始对象图形的几倍。如果你只需要根对象尺寸，你可以使用更快更有效的方法ObjectProfiler.sizeof()，它可通过非递归的深度优先遍历来实现。 <br>
+<br>
+<br>
+更多范例<br>
+我们将profile()和sizeof()函数应用到一对范例中。 <br>
+JavaString是声名狼藉的存储浪费者，因为它们太普遍了，而且普通字符串的使用模式的效率相当低。我相信你明白，普通的字符串串联操作器通常产生不紧凑的String。下列代码: <br>
+String obj = &quot;Java&quot; + new String (&quot;World&quot;);<br>
+产生以下配置文件： <br>
+<br>
+<br>
+obj size = 80 bytes<br>
+80 -&gt; &lt;INPUT&gt; : String<br>
+56 (70%) -&gt; String#value : char[]<br>
+56 (70%) -&gt; &lt;shell: char[], length=20&gt;<br>
+24 (30%) -&gt; &lt;shell: 3 prim/1 ref fields&gt;<br>
+<br>
+<br>
+<br>
+值字符排列拥有２０个char，尽管它只需要9个。将它与&quot;Java&quot;.concat (&quot;World&quot;) or String obj = new String (&quot;Java&quot; + new String (&quot;World&quot;))的结果对比：<br>
+<br>
+<br>
+obj = new String (&quot;Java&quot; + new String (&quot;World&quot;))的结果对比： <br>
+obj size = 58 bytes<br>
+58 -&gt; &lt;INPUT&gt; : String<br>
+34 (58.6%) -&gt; String#value : char[]<br>
+34 (58.6%) -&gt; &lt;shell: char[], length=9&gt;<br>
+24 (41.4%) -&gt; &lt;shell: 3 prim/1 ref fields&gt;<br>
+<br>
+<br>
+<br>
+很明显，如果你分配通过串联操作器或者StringBuffer.toString()函数构造的字符串属性给许多对象（这两种情况实际上是非常相关的），并且如果你改为使用concat()或者String 复制构造器的话，你就能改善内存消耗。 <br>
+为了更加深入的讨论这个问题，我给出了一个稍微深奥的例子，下面这个访问者/过滤器检查对象，并报告其里面所有不紧凑的String：<br>
+<br>
+<br>
+class StringInspector implements IObjectProfileNode.INodeFilter,<br>
+IObjectProfileNode.INodeVisitor<br>
+{<br>
+public boolean accept (IObjectProfileNode node)<br>
+{<br>
+m_node = null;<br>
+final Object obj = node.object ();<br>
+if ((obj != null) &amp;&amp; (node.parent () != null))<br>
+{<br>
+final Object parentobj = node.parent ().object ();<br>
+if ((obj.getClass () == char [].class)<br>
+&amp;&amp; (parentobj.getClass () == String.class))<br>
+{<br>
+int wasted = ((char []) obj).length -<br>
+((String) parentobj).length (); <br>
+if (wasted &gt; 0)<br>
+{<br>
+m_node = node.parent ();<br>
+m_wasted += m_nodeWasted = wasted;<br>
+}<br>
+}<br>
+}<br>
+return true;<br>
+}<br>
+<br>
+public void previsit (IObjectProfileNode node)<br>
+{<br>
+if (m_node != null)<br>
+System.out.println (ObjectProfiler.pathName (m_node.path ())<br>
++ &quot;: &quot; + m_nodeWasted + &quot; bytes wasted&quot;);<br>
+}<br>
+<br>
+public void postvisit (IObjectProfileNode node)<br>
+{<br>
+// Do nothing<br>
+}<br>
+<br>
+int wasted ()<br>
+{<br>
+return 2 * m_wasted;<br>
+}<br>
+<br>
+private IObjectProfileNode m_node;<br>
+private int m_nodeWasted, m_wasted;<br>
+<br>
+}; // End of local class<br>
+<br>
+<br>
+IObjectProfileNode profile = ObjectProfiler.profile (obj);<br>
+<br>
+StringInspector si = new StringInspector ();<br>
+profile.traverse (si, si);<br>
+System.out.println (&quot;wasted &quot; + si.wasted () + &quot; bytes (out of &quot; +<br>
+profile.size () + &quot;)&quot;);<br>
+<br>
+<br>
+<br>
+为了使用sizeof()，我们看看LinkedList() vs ArrayList()。该代码繁殖了拥有1000个空引用的列表：<br>
+<br>
+<br>
+List obj = new LinkedList (); // or ArrayList<br>
+for (int i = 0; i &lt; 1000; ++ i) obj.add (null);<br>
+<br>
+IObjectProfileNode profile = ObjectProfiler.profile (obj); <br>
+System.out.println (&quot;obj size = &quot; + profile.size () + &quot; bytes&quot;);<br>
+<br>
+<br>
+<br>
+产生的结构的尺寸就是列表实现的存储总和。对于LinkedList 和ArrayList收集实现， sizeof()分别报告20,040和4,112 字节。即使ArrayList在它的尺寸之前增长了内部容量（这样任何时候都会损失几乎50%的容量；这样做是为了分期偿还插入常量的费用），它的基于排列的设计的内存效率远远高于LinkedList()双链接的列表实现，这种列表实现创建了20字节的节点来存储每个值（这并不是说你不应该使用LinkedList：他们保证了未偿还的常量插入的性能，在其他事物之中的这种性能。） <br>
+<br>
+<br>
+限制<br>
+ObjectProfiler的方法并不完美。除了我们前面解释过的忽略存储队列这个问题之外，另一个严重问题就是Java对象可以共享非静态的数据，例如，当实域指向全局singleton和其他共享内容时，这些内容就可以共享。 <br>
+以DecimalFormat.getPercentInstance()为例。尽管他每次返回一个新的NumberFormat ，但是所有这些NumberFormat通常都共享Locale.getDefault() singleton。所以，即使 sizeof(DecimalFormat.getPercentInstance())每次都报告1,111 字节，他还是估计过高。 这实际上只是定义Java对象的尺寸测量过程中的另外一个概念难点的表现而已。在这种情况下，ObjectProfiler.sizedelta(Object base, Object obj) 很容易得到：该方法遍历根于base 的对象图形，然后在第一次遍历的过程中使用访问过的对象配置obj。因此结果可作为看起来好像不属于base的obj拥有的数据的总尺寸而得到有效地计算。换句话说，实例化给定的obj所需的内存量就等于base现有的内存量(共享对象已经有效的删除)。 <br>
+sizedelta(DecimalFormat.getPercentInstance()、 DecimalFormat.getPercentInstance())报告：每个子序列格式实例化需要741个字节，对比Java Tip 130的类Sizeof测量的更加精确的752个字节的值来，出现了少数字节的偏离，但是比原来的 sizeof()估测要好的多。 <br>
+ObjectProfiler不能看到的另外一种类型的数据就是本地存储分配。java.nio.ByteBuffer.allocate(1000) 的结果是JVM 堆分配的1050个字节的结构，但是ByteBuffer.allocateDirect(1000)看起来只有140 个字节；这是因为真正的存储是在本地存储中分配的。这时你需要放弃纯Java，转为使用基于JVM分析器接口（JVMPI ）的分析器。 <br>
+同一个问题的另外一个相当含糊的例子就是：在测量Throwable. ObjectProfiler.sizeof(new Throwable())例子的过程中只报告20个字节，这与Java Tip 130的类Sizeof报告的272个字节的结果大相径庭。究其原因，是因为在Throwable中有一个隐藏域：<br>
+private transient Object backtrace;<br>
+JVM采用一种特殊的方式来处理这个隐藏域：他不显示在反射的调用中，即使它的定义在JDK源文件中看得到。很明显，JVM利用对象的这个属性来存储支持堆栈回溯的一些250个字节的本地数据。<br>
+最后，如果分析对象的过程中用到了java.lang.ref.* 引用，产生的结果就会让人迷惑 (例如，结果可能会在同一对象的复制的sizeof() 调用之间变动)。这是因为弱引用在应用程序中创建了多余的并行，并且遍历这种图形的绝对事实可能修改了弱引用的可到达性状态。而且，公然的进入java.lang.ref.Reference 内部结构，ObjectProfiler 的这种行事方式并不是纯Java代码应该做的事。增强遍历代码，以避开所有非强引用对象（它也不是很确定这种到根对象的数据属性是否在第一位置），这可能是最好的选择。 <br>
+<br>
+<br>
+总结<br>
+本文深入讨论了如何建立一个纯粹的Java对象分析器。我的经验是：通过简单的方法如ObjectProfiler.profile()来分析大型的数据结构，可以轻而易举地节省百分之几十甚至百分之百的内存消耗。这种方法是商业分析器的补充，商业分析器也是旨在演示JVM堆内部发生的非常浅的（不基于图形的）视图。如果没有其他事，看一看对象图形内部也是大有裨益的。 <br>
+<br>
+关于作者 <br>
+<br>
+Vladimir Roubtsov从1995年以来具有了14年的使用各种语言编程的经验，包括Java在内。目前，作为一个资深工程师，他为德克萨斯州的Austin的Trilogy 开发企业软件。 </font><br>
+<font color="#000000" size="3"><a href="http://www.594k.com/java/html/y2007m6/12326/">http://www.594k.com/java/html/y2007m6/12326/</a></font></span></p>
+<p><span style="font-size: 13px; color: #ff00ff"><font color="#000000" size="3"><a href="http://www.594k.com/java/">http://www.594k.com/java/</a></font></span></p></div></body></html>

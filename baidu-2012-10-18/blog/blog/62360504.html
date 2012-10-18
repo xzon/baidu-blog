@@ -1,0 +1,146 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>SQLServer2000 JDBC驱动的完整安装及测试说明</title></head><body><h1>SQLServer2000 JDBC驱动的完整安装及测试说明</h1><div><div class="tit">SQLServer2000 JDBC驱动的完整安装及测试说明</div>
+<div class="date">2007年06月15日 星期五 上午 09:27</div>
+<table style="table-layout: fixed">
+    <tbody>
+        <tr>
+            <td>
+            <div class="cnt"><font color="#339966"><br>
+            <br>
+            <br>
+            一、下载SQLSERVER2000的JDBC驱动程序。<br>
+            <br>
+            在微软站点就有这个驱动程序：<br>
+            <br>
+            Window操作系统<br>
+            <br>
+            http://www.uncj.com/upload/files/ms_jdbc_setup.exe <br>
+            <br>
+            http://download.microsoft.com/download/3/0/f/30ff65d3-a84b-4b8a-a570-27366b2271d8/setup.exe<br>
+            <br>
+            <br>
+            <br>
+            Unix操作系统 MSSQLserver.tar <br>
+            <br>
+            http://download.microsoft.com/download/3/0/f/30ff65d3-a84b-4b8a-a570-27366b2271d8/mssqlserver.tar<br>
+            <br>
+            <br>
+            <br>
+            二、安装JDBC<br>
+            <br>
+            执行ms_jdbc_setup.exe可执行文件，一切只需要点击下一步，至到出现finish按钮，完成安装。<br>
+            <br>
+            注：<br>
+            <br>
+            (1) ms_JDBC_setup默认安装路径为：c:\Program Files\Microsoft SQL Server 2000 Driver for JDBC<br>
+            <br>
+            (2)此版(Version 2.2.0022)本仅支持Microsoft SQL Server 2000 Driver for JDBC <br>
+            <br>
+            (3)安装目录\lib\下的三个jar文件即是我们要的JDBC驱动核心<br>
+            <br>
+            msbase.jar<br>
+            <br>
+            mssqlserver.jar<br>
+            <br>
+            msutil.jar<br>
+            <br>
+            <br>
+            <br>
+            三、将以上（3）中指的三个jar文件加入到环境变量中去<br>
+            <br>
+            classpath：<br>
+            <br>
+            d:\Webserver\lib\msbase.jar;d:\webserver\lib\mssqlserver.jar;d:\webserver\lib\msutil.jar<br>
+            <br>
+            注：也可以省事的将以上三个文件拷贝至你的jvm机所在的Java_HOME\jre\lib\ext目录下，不过不建议这么做。<br>
+            <br>
+            <br>
+            <br>
+            四、测试<br>
+            <br>
+            JSP文件：<br>
+            <br>
+            &lt;%@ page contentType=&quot;text/html;charset=gb2312&quot;%&gt; <br>
+            <br>
+            &lt;%@ page import=&quot;java.sql.*&quot;%&gt; <br>
+            <br>
+            &lt;html&gt; <br>
+            <br>
+            &lt;body&gt; <br>
+            <br>
+            &lt;%<br>
+            <br>
+            Class.forName(&quot;com.microsoft.jdbc.sqlserver.SQLServerDriver&quot;).newInstance(); <br>
+            <br>
+            String url=&quot;jdbc:microsoft:sqlserver://localhost:1433;DatabaseName=haiguan&quot;; <br>
+            <br>
+            String user=&quot;sa&quot;; <br>
+            <br>
+            String password=&quot;&quot;; <br>
+            <br>
+            Connection conn= DriverManager.getConnection(url,user,password); <br>
+            <br>
+            Statement stmt=conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,ResultSet.CONCUR_UPDATABLE); <br>
+            <br>
+            String sql=&quot;select * from xt_user&quot;; <br>
+            <br>
+            ResultSet rs=stmt.executeQuery(sql); <br>
+            <br>
+            while(rs.next()) <br>
+            <br>
+            {<br>
+            <br>
+            %&gt; <br>
+            <br>
+            您的第一个字段内容为：&lt;%=rs.getString(1)%&gt; <br>
+            <br>
+            您的第二个字段内容为：&lt;%=rs.getString(2)%&gt; <br>
+            <br>
+            &lt;%<br>
+            <br>
+            }<br>
+            <br>
+            %&gt; <br>
+            <br>
+            &lt;%out.print(&quot;数据库操作成功，恭喜你&quot;);%&gt; <br>
+            <br>
+            &lt;%<br>
+            <br>
+            rs.close(); <br>
+            <br>
+            stmt.close(); <br>
+            <br>
+            conn.close(); <br>
+            <br>
+            %&gt; <br>
+            <br>
+            &lt;/body&gt; <br>
+            <br>
+            &lt;/html&gt;<br>
+            <br>
+            <br>
+            <br>
+            五、注意事项<br>
+            <br>
+            1. 要保证你的Sql服务是启动状态<br>
+            <br>
+            2. 在Sql 的管理器中能够使用sa或其它用户正常登录；(有些人在安装sql时用了nt用户管理模式，这里可能会有一定问题)<br>
+            <br>
+            3. 第一次配置好环境变量最好能重启一下电脑<br>
+            <br>
+            4. 注意JVM和DataBase的启动顺序：先启动DataBase，再启动JVM机。<br>
+            <br>
+            注：在停止Web服务器后，再重启动，中间最好能有10秒以上的间隔。<br>
+            <br>
+            5. 注意操作系统的网络连通性<br>
+            <br>
+            A.启动了Tcp/IP服务<br>
+            <br>
+            B.配置了相关IP地址,有些人机器可能用的是自动分配IP或有配置IP时，但网络不通可能也找不到IP<br>
+            <br>
+            6. 有些机器在调试明最好能将（四）中的连接地址localhost改成数据库服务器的IP,这也是要注意5的原因。<br>
+            </font></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<a href="http://hi.baidu.com/jeakpan">http://hi.baidu.com/jeakpan</a></div></body></html>

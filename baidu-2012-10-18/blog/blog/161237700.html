@@ -1,0 +1,51 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>typedef与函数指针</title></head><body><h1>typedef与函数指针</h1><div><h1>typedef与函数指针</h1>
+<p>（一）简单的函数指针的应用。<br>
+//形式1：返回类型(*函数名)(参数表)<br>
+char (*pFun)(int);<br>
+char glFun(int a){ return;}<br>
+void main()<br>
+{<br>
+pFun = glFun;<br>
+(*pFun)(2);<br>
+}<br>
+第一行定义了一个指针变量pFun。它是一个指向某种函数的指针，这种函数参数是一个int型，返回值是char类型。只有第一句我们还无法使用这个指针，因为我们还未对它进行赋值。<br>
+第二行定义了一个函数glFun()。该函数正好是一个以int为参数返回char的函数。我们要从指针的层次上理解函数&mdash;&mdash;函数的函数名实际上就是一个指针，函数名指向该函数的代码在内存中的首地址。<br>
+然后就是可爱的main()函数了，它的第一句您应该看得懂了&mdash;&mdash;它将函数glFun的地址赋值给变量pFun。main()函数的第二句中&ldquo;*pFun&rdquo;显然是取pFun所指向地址的内容，当然也就是取出了函数glFun()的内容，然后给定参数为2。<br>
+（二）使用typedef更直观更方便。<br>
+//形式2：typedef 返回类型(*新类型)(参数表)<br>
+typedef char (*PTRFUN)(int);<br>
+PTRFUN pFun;<br>
+char glFun(int a){ return;}<br>
+void main()<br>
+{<br>
+pFun = glFun;<br>
+(*pFun)(2);<br>
+}<br>
+typedef的功能是定义新的类型。第一句就是定义了一种PTRFUN的类型，并定义这种类型为指向某种函数的指针，这种函数以一个int为参数并返回char类型。后面就可以像使用int,char一样使用PTRFUN了。<br>
+第二行的代码便使用这个新类型定义了变量pFun，此时就可以像使用形式1一样使用这个变量了。<br>
+（三）在C++类中使用函数指针。<br>
+//形式3：typedef 返回类型(类名::*新类型)(参数表)<br>
+class CA<br>
+{<br>
+public:<br>
+char lcFun(int a){ return; }<br>
+};<br>
+CA ca;<br>
+typedef char (CA::*PTRFUN)(int);<br>
+PTRFUN pFun;<br>
+void main()<br>
+{<br>
+pFun = CA::lcFun;<br>
+ca.(*pFun)(2);<br>
+}<br>
+在这里，指针的定义与使用都加上了&ldquo;类限制&rdquo;或&ldquo;对象&rdquo;，用来指明指针指向的函数是那个类的这里的类对象也可以是使用new得到的。比如：<br>
+CA *pca = new CA;<br>
+pca-&gt;(*pFun)(2);<br>
+delete pca;<br>
+而且这个类对象指针可以是类内部成员变量，你甚至可以使用this指针。比如：<br>
+类CA有成员变量PTRFUN m_pfun;<br>
+void CA::lcFun2()<br>
+{<br>
+(this-&gt;*m_pFun)(2);<br>
+}<br>
+一句话，使用类成员函数指针必须有&ldquo;-&gt;*&rdquo;或&ldquo;.*&rdquo;的调用。</p></div></body></html>

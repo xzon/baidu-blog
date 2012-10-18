@@ -1,0 +1,89 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>让Java程序自带JRE</title></head><body><h1>让Java程序自带JRE</h1><div><table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td>
+            <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%" bgcolor="#ffffff">
+                <tbody>
+                    <tr>
+                        <td class="title1" bgcolor="#eeeeee" height="40" width="100%" colspan="3" align="center"><strong>让Java程序自带JRE</strong></td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#eeeeee" width="100%" align="center"><a href="mailto:wukunzan@vip.163.com">wukunzan</a> 转贴&nbsp;&nbsp;&nbsp;  更新：2005-07-19 12:53:50&nbsp;&nbsp;  版本: 1.0 &nbsp;&nbsp;</td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="100%" align="center">
+            <table class="rtable FCK__ShowTableBorders" border="0" width="98%">
+                <tbody>
+                    <tr>
+                        <td class="text" width="100%" align="left"><br>
+                        <br>
+                        用Java开发程序，发布时总要考虑的问题就是怎么在使用者的机器上装好JRE。要考虑的问题很多：使用者有没有能力独自安装JRE，使用者已有的JRE和我们需要的版本是不是一致，会不会出现版本问题，等等。使用.NET要考虑的问题就少些。现在.NET CLR似乎已经很普及了，看好多D版的Win XP都会自己安装最新的.NET CLR，而且似乎它的安装界面也比JRE友好些。彻底解决安装JRE的问题的方案，就是让我们的应用程序自己背着JRE！这样，我们的程序就像传统的Win32应用程序一样，双击就可以执行，不用管所在的机器上是否有JRE，是什么版本的JRE，无论怎样，我有我自己的！要做到这一点，其实非常容易。<br>
+                        王森在他的《Java深度历险》（强力推荐这本书，内容少而精）的第一章就解释了JDK，JRE，JVM之间的关系。解释了我们执行java.exe时发生的事情。其中提到，java.exe依照一套逻辑来寻找可以用的JRE，首先查找自己所在的目录下有没有JRE（据王森讲这样说不确切，我没有JDK全部的源代码，在此无从考证）；其次查找自己的父目录下有没有JRE；最后才是查询Windows的注册表。<br>
+                        通常我们在安装好了JRE的机器上的任何一个目录下都可以执行java.exe。因为它在安装时被复制到了windows的system32目录下，而后者无论如何都会在path环境变量中。这个java.exe最终必然会访问注册表来确定真正的JRE的所在地。若我们要求每一个应用程序都自带JRE，必然不能走这条路。但，逻辑的第二条讲，java.exe会在它的父目录下查找JRE，解决方案就在这一条中。<br>
+                        假设我们的应用程序打好了包，叫做MyApp.jar，放在MyApp的目录下。我们在MyApp目录下，可以执行java ?jar MyApp.jar来运行我们的程序。我们安装的是JRE 1.5，在C:\Program Files\Java\jre1.5.0下。现在，我们只需要简单的将jre1.5.0目录搬到MyApp目录下，顺便改个容易写的名字比如叫jre。现在，我们的应用程序就象这样：<br>
+                        MyApp<br>
+                        MyApp.jar<br>
+                        Jre<br>
+                        Jre1.5.0目录下的全部内容<br>
+                        Java.exe就在jre目录下的bin目录中。根据第二条逻辑，java.exe会在它的父目录中查找jre，实验证实，它会查找lib目录，而lib就在jre目录下。因此，这样java.exe就会确定jre的所在然后正常执行java程序，不会去管我们是否安装了JRE，注册表中是否有注册项这些杂事了。<br>
+                        试一下，在命令行下进入MyApp的目录下，假设它在C盘，将path指向MyApp下的JRE：<br>
+                        set path=c:\MyApp\jre\bin<br>
+                        然后运行：<br>
+                        java ?verbose ?jar MyApp.jar<br>
+                        加上verbose参数以确定我们确实用了这一套被搬出了家的JRE。<br>
+                        程序可以运行，并且在命令行输出的前几行，可以看到：<br>
+                        [Opened C:\MyApp\jre\lib\rt.jar]<br>
+                        [Opened C:\MyApp\jre\lib\jsse.jar]<br>
+                        [Opened C:\MyApp\jre\lib\jce.jar]<br>
+                        [Opened C:\MyApp\jre\lib\charsets.jar]<br>
+                        因此程序读取的确实是它的私有的JRE。<br>
+                        至此，我们似乎完成了任务。但是现在我们的私有JRE仍不完美，缺点是太大。JRE 1.5有接近70MB，作为我们的私有的JRE，好多内容都是可以抛弃的。Jre目录下的license都可以不要，bin下的执行文件只需要保留java.exe或者javaw.exe，lib下只要保留rt，jsse，jce，charsets几个库就可以了。除了i386和zi两个子目录外，其余的子目录都可以不要。Zi下只需要保留自己地区的子目录和其下的一些文件就可以。Lib下除了库之外的属性文件等等都要保留。这样清理一番，JRE仍然有接近50MB。还可以继续清理几个库文件里面不需要的内容，这需要仔细的整理，会很费功夫。最好能写出一个自动工具帮助我们整理它们。从Sun公司上下到的JMF里面附带的用Java写的媒体播放器就自带了JRE，只有几个MB。<br>
+                        清理过后需要运行几遍我们的应用程序，以确保我们的JRE不缺少东西。<br>
+                        如果我们希望能有一个程序直接启动我们的应用程序，那就还要费些功夫。最简单的方法是弄出一个快捷方式来，但是快捷方式的路径不能是相对的，不方便我们安装。我想到的方案就是用Win32程序包装一下。在VS.NET下写一个Win32小程序：<br>
+                        int PASCAL WinMain( HINSTANCE hInstance,<br>
+                        HINSTANCE hPrevInstance,<br>
+                        LPSTR lpszCmdLine,<br>
+                        int nCmdShow )<br>
+                        {<br>
+                        STARTUPINFO si;<br>
+                        PROCESS_INFORMATION pi;<br>
+                        <br>
+                        ZeroMemory( &amp;si, sizeof(si) );<br>
+                        si.cb = sizeof(si);<br>
+                        ZeroMemory( &amp;pi, sizeof(pi) );<br>
+                        <br>
+                        // Start the child process. <br>
+                        if( !CreateProcess( &quot;jre\\bin\\javaw.exe&quot;,//执行的程序名<br>
+                        &quot;jre\\bin\\javaw.exe -jar MyApp.jar&quot;, // 带参数的执行程序<br>
+                        NULL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Process handle not inheritable. <br>
+                        NULL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Thread handle not inheritable. <br>
+                        FALSE,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Set handle inheritance to FALSE. <br>
+                        0,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // No creation flags. <br>
+                        NULL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Use parent's environment block. <br>
+                        NULL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Use parent's starting directory. <br>
+                        &amp;si,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Pointer to STARTUPINFO structure.<br>
+                        &amp;pi )&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Pointer to PROCESS_INFORMATION structure.<br>
+                        ) <br>
+                        {<br>
+                        ErrorExit( &quot;CreateProcess failed.&quot; );<br>
+                        }<br>
+                        <br>
+                        // Wait until child process exits.<br>
+                        WaitForSingleObject( pi.hProcess, INFINITE );<br>
+                        <br>
+                        // Close process and thread handles. <br>
+                        CloseHandle( pi.hProcess );<br>
+                        CloseHandle( pi.hThread );<br>
+                        }<br>
+                        基本上是按照MSDN文档中的例子照搬的。将它编译成一个EXE文件，我们的任务才全部完成。双击这个EXE文件，我们的程序启动了，看起来和传统的Win32程序没有两样，JRE完全被隐藏在底层。</td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table></div></body></html>

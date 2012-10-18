@@ -1,0 +1,95 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Web service学习笔记</title></head><body><h1>Web service学习笔记</h1><div><div>1.<br>
+SOAP的调用效率比较低<br>
+HTTP不是有效率的通信协议<br>
+XML需要额外的文件解析</div>
+<div> </div>
+<div>2.<br>
+SOAP由4部分组成：<br>
+SOAP封装（SOAP Envelope）<br>
+构造定义了一个整体的表示框架，可用于表示<br>
+在消息中的是什么<br>
+谁应当处理它<br>
+是&ldquo;可选的&rdquo;还是&ldquo;强制的&rdquo;<br>
+SOAP编码规则（SOAP Encoding Rules）<br>
+定义了一套编码机制用于交换应用程序定义的数据类型的实例<br>
+SOAP RPC表示（SOAP RPC Presentation）<br>
+定义了一个用于表示远程过程调用和响应的约定<br>
+SOAP绑定（SOAP Binding）<br>
+定义了一种使用底层传输协议来完成在节点间交换SOAP封装的约定。</div>
+<div> </div>
+<div>3.<br>
+如果在SOAP消息路径中有SOAP节点产生了SOAP错误，则消息将不会到达最终接收者。</div>
+<div> </div>
+<div>4.<br>
+soap消息结构</div>
+<div> </div>
+<div>SOAP Envelope<br>
+Envelope元素是一个复合元素，有两个预定义子元素Header和Body。<br>
+SOAP encodingStyle: 序列化（编码）规则<br>
+它是一个URL的序列<br>
+每个URL指出了一种编码方式<br>
+例如：<a href="http://www.w3.org/2001/06/soap-encoding">http://www.w3.org/2001/06/soap-encoding</a><br>
+版本<br>
+SOAP Envelope必须与<a href="http://www.w3.org/2001/06/soap-envelope">http://www.w3.org/2001/06/soap-envelope</a>相关联，否则认为出现错误,对于请求/应答模式，将返回VersionMismatch错误</div>
+<div> </div>
+<div>SOAP Envelope的语法规则<br>
+元素名为Envelope，该元素必须在SOAP消息中出现，一般是根元素<br>
+该元素可以包含命名空间声明和额外的属性。如果出现额外属性，则必须使用命名空间修饰<br>
+类似地，该元素可以包含额外的子元素。如果使用这些子元素，必须有命名空间修饰并且必须跟在SOAP Body元素之后，也就是说Envelope的直接子元素Header和Body必须排列在最前面</div>
+<div> </div>
+<div>SOAP Header<br>
+当SOAP消息沿消息路径传递时，其Header可以由任意的SOAP中介解释与处理<br>
+例子：某订单SOAP消息有两个相对简单的头条目：message-id和processed-by，该消息由客户产生、并由销售、应收款、库存和运输系统处理<br>
+message-id 用于记录SOAP应用程序（即节点），这些SOAP应用程序要沿着从初始发送方到最终接受方这一传递路径处理SOAP消息<br>
+processed-by用于调试程序与记录<br>
+消息路径中的中介不能够修改SOAP Body元素，但可以处理SOAP Header（读、处理、删除和添加Header条目）<br>
+规定本例中每个SOAP中介向processed-by添加一个node元素，以标识其本身并确定其处理时间。</div>
+<div> </div>
+<div>例：actor属性用URL&rdquo;http://www.Monson-Haefel.com/logger &rdquo;标识日志记录器角色<br>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;<br>
+&lt;soap:Envelope<br>
+xmlns:soap=&quot;<a href="http://schemas.xmlsoap.org/soap/envelope/">http://schemas.xmlsoap.org/soap/envelope/</a>&quot;<br>
+xmlns:mi=&quot;<a href="http://www.monson-haefel.com/jwsbook/message-id">http://www.Monson-Haefel.com/jwsbook/message-id</a>&quot;<br>
+xmlns:proc=&quot;<a href="http://www.monson-haefel.com/jwsbook/processed-by">http://www.Monson-Haefel.com/jwsbook/processed-by</a>&quot;&gt;<br>
+  &lt;soap:Header&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;mi:message-id soap:actor=&quot;<a href="http://www.monson-haefel.com/logger">http://www.Monson-Haefel.com/logger</a>&quot; &gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  11d1def534ea:b1c5fa:f3bfb4dcd7:-8000<br>
+&nbsp;&nbsp;&nbsp;  &lt;/mi:message-id&gt;<br>
+只有actor属性值为&ldquo;http://…/logger&rdquo;的节点才会处理message-id头条目，其他节点忽略该头</div>
+<div> </div>
+<div>actor属性<br>
+两个标准角色：next角色和ultimate receiver角色<br>
+在SOAP消息文档中实际并不出现这两个名词，只是便于说明问题<br>
+Next角色表示消息路径中的下一个节点必须处理文件头。Next角色有一个指定的URI作为它的actor属性的值： <a href="http://schemas.xmlsoap.org/soap/actor/next">http://schemas.xmlsoap.org/soap/actor/next</a><br>
+ultimate receiver角色表示只有消息的最终接收方才能处理文件头。协议并没有为此显式指定URI，如果某一角色在文件头中没有actor属性，那么表示该角色是ultimate receiver。</div>
+<div> </div>
+<div>mustUnderstand属性<br>
+如果一个头元素的SOAP mustUnderstand属性的值是&ldquo;1&rdquo;,那么条目的接受者必须或者遵守语义（如以元素的全名传送）并按照语义正确的处理，或者放弃处理消息。<br>
+如果节点扮演了由头条目的actor属性所标识的角色，但没有通过编程来处理该条目，那就没法识别该条目。<br>
+如果一个节点不能识别某一(mustUnderstand=&ldquo;1&rdquo;)的头条目，那么它将产生一个SOAP错误（类似于Java的远程异常），并抛弃消息，即不能向消息路径的下一个节点转发消息。<br>
+是否将错误传回给发送方取决于消息交换模式，是单向（one-way）或请求/响应模式（request/response）<br>
+如果SOAP应用程序采用请求/响应模式，则要求将错误传回给发送方<br>
+如果SOAP应用程序采用单向模式，则不需要回传错误消息。</div>
+<div> </div>
+<div>SOAP错误消息是SOAP应用程序用于向消息路径中的&ldquo;上游&rdquo;节点报告错误的机制<br>
+SOAP错误是由接收方（指消息的中介或最终接收方）产生<br>
+只有使用请求/响应消息传递模式，才要求接收方将错误传回给发送方<br>
+在单向消息传递模式中，接收方应该产生一个错误，并可能将起存储到某处，但不必要回传错误消息给发送方。<br>
+要将SOAP错误返回到接收方的直接发送方（即直接相邻的上一个节点）<br>
+Body元素中包含Fault元素的SOAP消息称为错误消息。</div>
+<div> </div>
+<div>5.<br>
+SOAP错误小结：<br>
+（1）接收方接收到的消息结构不合理，或包含了无效数据。<br>
+（2）所接收消息的结构正确，但它在接收方不能识别的Body元素中使用的元素与命名空间。<br>
+（3）接收的消息包含了接收方不能识别的强制性Header条目。<br>
+（4）接收的消息为SOAP的Envelope及其子元素（Body、Fault和Header元素）指定了XML命名空间，但该命名空间不是SOAP1.1命名空间。<br>
+（5）SOAP接收方遇到了非正常的条件，其阻止接收方处理有效的SOAP消息。<br>
+（1）（2）会产生Client错误，即与消息内容相关的错误：客户向接收方发送了一个无效或不熟悉的SOAP消息。<br>
+（3）会导致MustUnderstand错误<br>
+（4）会导致VersionMismatch错误<br>
+（5）为Server错误，即错误与SOAP消息的内容无关</div>
+<div> </div>
+<div>6.</div>
+<div> </div>
+<div> </div></div></body></html>

@@ -1,0 +1,151 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>防止重复提交java解决</title></head><body><h1>防止重复提交java解决</h1><div><div><font size="3">防止重复提交java解决 </font></div>
+<div> </div>
+<div><font size="3">B/S结构的软件开发中，特别是在越大型的分布式应用中体现的越明显，后端的处理往往会因为出现较多的时间消耗而引起延迟,这种延迟有可能过长而最终使用户认为是自己的操作错误，导致他们重新提交请求，由于任务的重复提交,服务器资源大部分被占用,情节严重可能出现类似死机现象。 <br>
+预期达到目标: </font></div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><font size="3">1、当用户进行的是Refresh/Reload/Back/Forward操作、以及先Back再Submit操作时，仅仅是reloading先前的结果页。 </font></div>
+<div> </div>
+<div><font size="3">2、当用户重复提交同一个任务操作时,后台服务接收并处理第一次提交的任务，后面提交不起作用（不转向也不提示）。 </font></div>
+<div> </div>
+<div><font size="3">3、该功能具有公用性。 </font></div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><font size="3">基本形成思路： </font></div>
+<div> </div>
+<div><font size="3">1、在basic filter中实现公用性 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(true){//问题1：如何确定是否为重复提交 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ... </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  chain.doFilter(request,response); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }else{ </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //问题2：如何实现不转向、不提示也不显示空白页 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } </font></div>
+<div> </div>
+<div><font size="3">2、网上资料概括 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  a、提交表单后按钮变灰/隐藏提交按钮 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  b、在js里设置全局变量，提交后修改该变量的值，依据变量的值判断是否重复提交 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  var flag=true; </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  function checkForm(){ </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (flag==false){ </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return; </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  flag=false; </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  document.form1.submit(); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  c、struts （webwork没有找到这个资料） </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //验证事务控制令牌,&lt;html:form &gt;会自动根据session中标识生成一个隐含input代表令牌，防止两次提交 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  在action中： </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //&lt;input type=&quot;hidden&quot; name=&quot;org.apache.struts.taglib.html.TOKEN&quot; value=&quot;6aa35341f25184fd996c4c918255c3ae&quot;&gt; </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (!isTokenValid(request)) </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  errors.add(ActionErrors.GLOBAL_ERROR, </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new ActionError(&quot;error.transaction.token&quot;)); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  resetToken(request); //删除session中的令牌 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  action有这样的一个方法生成令牌华 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  protected String generateToken(HttpServletRequest request) { </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  HttpSession session = request.getSession(); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try { </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  byte id[] = session.getId().getBytes(); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  byte now[] = </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new Long(System.currentTimeMillis()).toString().getBytes(); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  MessageDigest md = MessageDigest.getInstance(&quot;MD5&quot;); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  md.update(id); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  md.update(now); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return (toHex(md.digest())); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } catch (IllegalStateException e) { </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return (null); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } catch (NoSuchAlgorithmException e) { </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return (null); </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  d、用户使用浏览器时，可以经常使用向后的按钮，因此就有可能重复提交一个他们已经提交过的form，这样就会带来一个重复事务处理的问题。同样，一个用户也可能在接收到一个确认的页面之前按下停止的按钮，接着再次提交同一个form。对于这些情况，我们都想跟踪并且禁止这些重复的提交，我们可以使用一个控制servlet来提供一个控制点，以解决这个问题。 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  　　同步记号（Synchronizer (or Dvu) Token） </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  　　这个策略是为了解决重复的form提交问题。一个同步的记号被设置在一个用户的Session中，并且包含在返回到客户的每一个form中。当form被提交时，form中的同步标记就和Session中的同步标记作对比。在form首次提交的时候，这两个标记应该是一样的。如果标记不一样，那么该form就会禁止提交，一个错误就会返回给用户。在用户提交一个form时，如果按下浏览器中的后退按钮并尝试重新提交同一个form时，标记就会出现不匹配的现象。 </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  　　另一方面，如果两个标记值匹配，那么我们就可以确信整个流程是正确的。在这种情况下，<br>
+另一方面，如果两个标记值匹配，那么我们就可以确信整个流程是正确的。在这种情况下，Session中的标记值就会被修改为一个新的值，同时允许提交该form。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  　　你也可以使用这个策略来控制对某些页面的直接访问，就好象上面资源保护中描述的一样。例如，假设一个用户将某个应用的页面A收藏到收藏夹中，而页面A只允许通过页面B和C访问。当用户直接通过收藏夹来访问页面A，这时页面的访问顺序就是不正确的，这样同步标记将处在一个不同步的状态，或者它根本就不存在。不论怎样，访问都被禁止了。</font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  e、做一个hidden框，名字自己定，提交后得到这个值放入session，提交前判断session是否为空</font></div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><font size="3">解决方案：</font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;  1、后台公共类中实现前台的Form中自动生成两个hidden文本功能，一个是作page是否重复提交判断，并由系统自动附上关键值（如struts采用的方案）；另一个作为button是否重复提交判断（struts中好像没有）。由后台公共类实现界面两个hidden text自动生成的好处在于公用性。</font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;  2、在basic filter中根据两个hidden text值判断是否为重复提交。</font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;  3、javascript中作一个公共方法，实现功能：如果需要判断是否重复提交，就给第二个hidden text附上关键值，并使该功能不可用。</font></div>
+<div> </div>
+<div><font size="3">.</font></div>
+<div> </div>
+<div><font size="3">个人感想：</font></div>
+<div> </div>
+<div><font size="3">&nbsp;&nbsp;&nbsp;  我相信未来该功能一定会被服务器集成，而不再由开发人员进行编码。<br>
+</font></div></div></body></html>

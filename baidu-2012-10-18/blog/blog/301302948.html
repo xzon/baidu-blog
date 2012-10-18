@@ -1,0 +1,224 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Spring Richclient — 企业级富客户端开发框架介绍: 第 2 部分</title></head><body><h1>Spring Richclient — 企业级富客户端开发框架介绍: 第 2 部分</h1><div>
+<h1>Spring Richclient — 企业级富客户端开发框架介绍: 第 2 部分</h1>
+<p>http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/index.html?ca=drs-</p><p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/index.html?ca=drs-#author1" rel="#authortip1" class="dwauthor">刘 光瑞</a>, 软件架构师, 四达软件</p>
+<p><b>简介：</b>&nbsp;本系列文章的第 1 部分主要讲述了如何使用 Spring Richclient 构建企业级胖客户端应用，本文是该系列文章的第 2 部分，主要讲述与 Spring Richclient 架构相关的知识，从而使您更深入的了解该框架的设计思想。</p>
+<p>&nbsp;</p>
+<p><a name="major1"><span class="atitle">前言</span></a></p>
+
+   
+<p>谈到开发框架的架构设计，我们更多想到的是 WEB 应用里面已经被广泛应用，甚至近乎成了评价一个 WEB 框架好坏标准的 MVC 
+设计模式（笔者注：其实基于组件的开发框架也为我们提供了一种架构设计的思路，著名的 WEB 开发框架 Apache Tapestry、Apache
+ Wicket 便是采用了基于组件的架构设计）。在 MVC 设计模式里，应用程序被划分成了 
+M（Model）、V（View）、C（Controller）三部分，从而将业务代码从视图中分离。可是在胖客户端开发中，MVC 
+的划分却并不显得那么顺理成章，这是由胖客户端应用的特性所决定的。我们看到在所谓 MVC 式的胖客户端开发框架中，更多的是将 View 
+抽象为界面接口，而 Controller 作为接口方法负责创建组件以及处理各种消息。当然，更好的一种设计是 MVP，这是 MVC 
+的一种改进模式，即将消息处理委派到 P(Presenter)，这样大大增加了应用程序的复用性和可测试性。不过有人将后者称为胖客户端的 
+MVC，而前者只是一种存在缺陷的设计模式。</p>
+
+   
+<p>这里我们不讨论究竟哪一种设计模式才是真正的胖客户端 MVC，对于 Spring Richclient 来说，该框架给我们提供了 
+ApplicationPage 来显示页面，而具体由 View 创建控件并且添加消息处理，从这个角度上讲，Spring Richclient 
+更像是 MVP 的设计模式（V-&gt;ApplicationPage，P-&gt;View）。接下来，我们将详细介绍 Spring 
+Richclient 的架构设计和运行机制。</p>
+
+<p>&nbsp;</p>
+<p><a name="major2"><span class="atitle">基本架构</span></a></p>
+
+   
+<p>经过第 1 部分的讲解，我们可以初步感受到在 Spring Richclient 中，Swing 与 Spring 的优雅结合。借助 Spring 的强大功能，我们可以开发出设计良好的 Swing 应用。Spring Richclient 的基本结构如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/index.html?ca=drs-#fig1">图 1</a> 所示：</p>
+
+   
+    <br>
+<a name="fig1"><b>图 1. Spring Richclient 基本结构</b></a><br>
+
+    <img alt="图 1. Spring Richclient 基本结构" src="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/image001.gif" height="264" width="437">
+   <br>
+
+   
+<p>从上图中我们可以清晰的看到，Spring Richclient 应用程序的运行环境依托于 Spring 容器。而且通过 Spring
+ 容器，Spring Richclient 
+实现了对各种组件的管理，这些组件包括应用程序服务（ApplicationServices）、窗体、页面、视图等。下面我们将简要的介绍一下 
+Spring Richclient 维护的这些组件，通过第 1 部分，我们已经初步了解到，实际上在 Spring Richclient 
+应用中最重要的两个对象是 Application 和 ApplicationServices。前者提供了一个工作台或者 Shell 
+来维护整个应用程序的引用和上下文，后者提供了应用程序用到的相关服务，诸如国际化、图片、验证规则等。</p>
+<p><a name="major3"><span class="atitle">Application</span></a></p>
+
+   
+<p>下面我们先介绍一下 Application 对象，其 UML 如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/index.html?ca=drs-#fig2">图 2</a> 所示：</p>
+
+   
+    <br>
+<a name="fig2"><b>图 2. Spring Richclient UML</b></a><br>
+
+    <img alt="图 2. Spring Richclient UML" src="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/image002.jpg" height="544" width="572">
+   <br>
+
+   
+<p>该类在应用程序整个生命周期内是单例的。Application 主要维护了三类信息：</p>
+
+   
+<ol type="1">
+<li>ApplicationDescriptor 应用程序描述，包括版本、构建信息等。对于默认实现，还提供了应用程序标题以及图标，您可以通过运行示例工程查看效果，具体配置信息可查看相应的国际化和图片资源文件。</li><li>ApplicationLifecycleAdvisor 
+应用程序生命周期管理类，通过该类，您可以在应用程序生命周期的各个主要环节加入自己的处理来实现特殊功能。如退出确认。而且菜单项、工具栏、状态栏也是
+在该类中维护的，并且使用单独的上下文进行管理（见其默认实现）。</li><li>WindowManager 
+应用程序窗体管理类，通过该类可以实现对应用程序窗体（ApplicationWindow）的管理，包括添加窗体、得到当前激活窗体等。而且通过该类也
+不难发现 Spring Richclient 是支持多窗体的，而且支持多级窗体（一般情况下，使用单窗体已经足够，除非需要多窗体同时交互的情况）。</li>
+</ol>
+
+   
+<p><a name="minor3.1"><span class="smalltitle">ApplicationWindow</span></a></p>
+
+   
+<p>既然是胖客户端应用，那么再让我们看一下 ApplicationWindow。该对象维护了一个 JFrame 窗体的所有信息，具体如下：</p>
+
+   
+<ul>
+<li>commandManager：维护了 Window 范围内共享的 Command，可供 Window 内各组件使用（一个典型的应用就是 Form 编辑控件上的弹出菜单）。</li><li>menuBarCommandGroup：用于创建菜单栏的 CommandGroup。</li><li>toolBarCommandGroup：用于创建工具栏的 CommandGroup。</li><li>statusBar：维护了窗体的状态栏信息。</li><li>windowConfigurer：维护了窗体的配置信息，通过该类，我们可以指定窗体的图标、标题、尺寸，以及是否显示菜单、工具栏、
+状态栏。奇怪的是，Spring Richclient 
+并没有提供注入该类的接口，只能使用框架的默认实现，也就是说，如果想控制窗体显示信息，我们只能实现自己的窗体类，这也许是 Spring 
+Richclient 的一个缺陷。</li><li>currentPage：维护了窗体当前显示的页面（ApplicationPage）。</li>
+</ul>
+
+   
+<p>Spring Richclient 为我们提供了三种 ApplicationWindow 的实现，第 1 
+部分显示的窗体即为默认窗体。除此之外，还提供了 TaskPaneNavigatorApplicationWindow 和 
+JideApplicationWindow，前者提供了一个任务面板导航风格的窗体，通过封装第三方 Swing 框架 l2fprod 
+实现，效果图如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/index.html?ca=drs-#fig3">图 3</a> 所示（使用方法见示例工程），后者则使用了第三方 Swing 框架 Jide。</p>
+
+   
+    <br>
+<a name="fig3"><b>图 3. TaskPaneNavigatorApplicationWindow</b></a><br>
+
+    <img alt="图 3. TaskPaneNavigatorApplicationWindow" src="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/image003.jpg" height="429" width="572">
+   <br>
+
+   
+<p>查看 TaskPaneNavigatorApplicationWindow 
+的使用，您可以很容易的发现，我们并没有对页面和视图作任何变更，只是变更了默认的窗体类型而已，这也是 Spring Richclient 
+设计的灵活之处，从这点上讲，Spring Richclient 承袭了 Spring 的设计风格。</p>
+
+   
+<p><a name="minor3.2"><span class="smalltitle">ApplicationPage</span></a></p>
+
+   
+<p>ApplicationPage 是 ApplicationWindow 的重要组件，而且也是整个窗体的主体部分。通过与 WEB 应用比较来看，ApplicationPage 比 View 相比更像是 MVP 设计模式中的视图层，如 <strong>前言</strong> 所说，Spring Richclient 中的 View 更像是 Presenter。在实际开发中，我们也是只需要实现相应的 View 以及消息处理即可。ApplicationPage 的主要属性如下：</p>
+
+   
+<ul>
+<li>viewDescriptorRegistry：该属性维护了应用程序中的视图定义，Page 页面可以通过该属性方便的找到相应的视图进行处理。</li><li>pageComponentPaneFactory：该属性是一个工厂类，用来创建页面组件面板。通过页面组件面板，我们可以显示一个 View 以及与 View 相关的信息（例如 View 工具栏，相关概念可以参考 Eclipse RCP）。</li><li>pageComponents：该属性维护了当前页面的视图列表。</li><li>activeComponent：该属性维护了当前页面的激活视图。</li>
+</ul>
+
+   
+<p>Spring Richclient 为我们提供了几种常见页面风格的实现：</p>
+
+   
+<ul>
+<li>DefaultApplicationPage：默认风格页面，每个页面一次只显示一个 View。</li><li>DesktopApplicationPage：提供了一种以多文档视图显示 View 的页面实现。</li><li>TabbedSwingDockingApplicationPage：Tab 风格的 Docking 页面实现，只支持 jdk6 以上版本（依赖第三方包 swingdocking）。</li><li>SwingDockingApplicationPage： Docking 风格页面实现，支持 jdk5 以上版本（依赖第三方包 swingdocking）。</li><li>TabbedApplicationPage：以 Tab 风格显示多视图的页面实现。</li><li>VLDockingApplicationPage：Docking 风格页面实现（依赖第三方包 vldocking）。</li>
+</ul>
+
+   
+<p><a name="minor3.3"><span class="smalltitle">View</span></a></p>
+
+   
+<p>从 Application 的 UML 图我们可以看出，View 处于核心框架的底层，是实际开发中使用的基本组件。同样，Spring Richclient 也为我们提供了几种视图，除了最基本的抽象视图外，还包括：</p>
+
+   
+<ul>
+<li>AbstractNavigatorView：导航风格视图的抽象实现。</li><li>TaskPaneNavigatorView：任务面板导航风格视图实现。</li><li>WidgetView：展现 Widget 的视图（Spring Richclient 提供了许多有趣的 Widget 可供使用）。</li>
+</ul>
+<p><a name="major4"><span class="atitle">ApplicationServices</span></a></p>
+
+   
+<p>接下来我们介绍 Spring Richclient 另一个重要对象 ApplicationServices。如前所述，该接口维护了 
+Spring Richclient 的相关服务供应用程序生命周期内使用。在 1.0 版本以前，ApplicationServices 
+并非是面向接口编程的，而是该类提供了固定的服务（调用接口固定），开发人员只能指定固定名称的 Bean 来配置相关服务（如国际化信息 Bean 
+固定为“messageSource”），而且部分服务如果加载失败，则导致整个应用程序启动失败。这不得不说是个糟糕的设计，使应用程序显得过分僵硬，
+缺乏起码的灵活性——在开发一个简单应用以前，先要进行一个复杂的配置。</p>
+
+   
+<p>幸运的是，1.0 版本之后，Spring Richclient 
+在设计方面做了很大改进，使我们脱离了这种僵硬的配置方式，可以根据实际需要选择服务信息。当然，Spring Richclient 
+提供的默认服务基本上也是企业级应用所必须的，而且很多被核心框架使用，所以更多情况下，我们是针对默认的 ApplicationServices 
+进行扩展。</p>
+
+   
+<p>那么，Spring Richclient 为我们提供了哪几种默认的服务呢？下面挑选其中最主要的几个进行说明，其余服务您可以通过查看 DefaultApplicationServices 源代码进行了解：</p>
+
+   
+<ul>
+<li>ApplicationObjectConfigurer：应用程序对象配置，可以使用该服务完成对 Swing 
+控件标题、图片、描述等信息的配置，而且 ApplicationObjectConfigurer 
+的配置是支持国际化的。不过该服务只支持对实现了相应接口的对象进行配置（具体参见源代码），有幸的是 Page、View 
+等常见组件均实现了相关接口，而且框架会自动完成对这些组件的配置，因此正常情况下，我们不会显示的调用该服务。</li><li>ApplicationSecurityManager：应用程序安全管理器，提供了一个安全认证的实现，与 LoginCommand 结合可以实现一个简单的登录功能。如果不需要安全认证，可不配置此服务。</li><li>ApplicationWindowFactory：应用程序窗体工厂，顾名思义，应用程序将使用该工厂创建主窗体，不同的工厂创建的主窗体也不同。如果没有配置该服务，系统将使用默认的窗体工厂。</li><li>ApplicationPageFactory：应用程序页面工厂，系统会使用该工厂创建 Page 页面，如果没有配置该服务，系统使用默认的页面工厂。</li><li>PageComponentPaneFactory：页面组件面板工厂，系统会使用该工厂创建 Page 
+页面面板，用来显示页面组件，如 View。您可能不是很理解页面工厂和页面组件面板工厂的区别和联系在哪里，举例来说，如果是 Tab 
+风格的页面，那么页面工厂最终将负责创建一个 JTabbedPane，页面组件面板工厂负责创建每个 Tab 页上的根面板，View 
+便是该面板的子控件。</li><li>BinderSelectionStrategy：数据绑定选择策略。该接口维护了应用程序 Form 的数据绑定策略。创建 Form 时，只需要指定相应属性，框架会根据该策略和属性类型为我们创建相应的数据绑定对象。</li><li>ConversionService：数据转化服务。应用程序 Form 通过该接口实现数据从 View 到 Model 的双向转化</li><li>MessageSource：国际化信息源。该接口维护了应用程序的国际化信息。</li><li>RulesSource：验证规则源。该接口维护了应用程序 Form 的验证规则信息。</li><li>SecurityControllerManager：安全控制管理器。通过该接口维护的安全控制可以实现对具体控件的权限控制。</li>
+</ul>
+
+   
+<p>通过 Application 和 ApplicationServices 的设计，Spring Richclient 
+降低了应用程序本身与相关服务的耦合，为程序带来了更大的灵活性。那么两者是如何有机的结合在一起的呢？接下来的章节，我将通过介绍 Spring 
+Richclient 的运行机制，使您进一步了解它的动态结构。</p>
+<p><a name="major5"><span class="atitle">运行机制</span></a></p>
+
+   
+<p>前面几个章节，我们更多的侧重讲解 Spring Richclient 核心框架的静态结构。接下来，我将从两方面介绍 Spring Richclient 的运行机制：</p>
+
+   
+<p><a name="minor5.1"><span class="smalltitle">Spring Richclient 启动</span></a></p>
+
+   
+<p>Spring Richclient 启动过程的时序图如 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/index.html?ca=drs-#fig4">图 4</a> 所示：</p>
+
+   
+    <br>
+<a name="fig4"><b>图 4. 启动时序图</b></a><br>
+
+    <img alt="图 4. 启动时序图" src="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/image004.jpg" height="400" width="572">
+   <br>
+
+   
+<p>查看图 4 的 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/ori_image004.jpg" target="_blank">清晰大图版本</a>。</p>
+
+   
+<p>从时序图中，我们可以看到 ApplicationLauncher 只是负责显示启动屏幕，加载应用程序上下文，得到 
+Application 并启动。整个应用程序的初始化是由 Application 对象完成的。而且从该图中，我们也可以看到 
+Application 和 ApplicationServices 在应用程序中扮演的角色。</p>
+
+   
+<p>为了进一步解释一下 Spring Richclient 的运行机制，我们再看一下 ApplicationWindow 显示页面的时序图，而且这也是 Spring Richclient 真正创建 Swing 窗体的过程：</p>
+
+   
+    <br>
+<a name="fig5"><b>图 5. 显示页面时序图</b></a><br>
+
+    <img alt="图 5. 显示页面时序图" src="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/image005.jpg" height="554" width="512">
+   <br>
+
+   
+<p>从 <a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring-richclient2/index.html?ca=drs-#fig5">图 5</a> 可以看出，创建主窗体主要分为如下几步：</p>
+
+   
+<ol type="1">
+<li>创建 JFrame 作为主窗体。</li><li>应用主窗体标准布局。此方法完成了设置主窗体标题、图标、创建菜单栏、工具栏、主窗体面板、状态栏。</li><li>设置 JFrame 的大小以及显示位置。</li>
+</ol>
+
+   
+<p>而 setActivePage 则负责调用 Page 页面的 getControl 方法创建 <strong>页面控件</strong>，并将其显示到主窗体面板上，以 DefaultApplicationPage 为例，创建页面控件的过程如下：</p>
+
+   
+<ol type="1">
+<li>创建页面面板；</li><li>得到需要显示的视图（View），如果视图没有创建，则创建视图；</li><li>设置视图的输入数据；</li><li>将视图添加到页面组件列表；</li><li>将视图控件（调用视图接口的 getControl 方法）添加到页面面板。</li>
+</ol>
+
+   
+<p>至此，您已经了解 Spring Richclient 是如何创建窗体，显示相应的页面和视图，以及主要组件是如何交互的。</p>
+<p><a name="major6"><span class="atitle">结束语</span></a></p>
+
+   
+<p>本文从静态结构和动态结构两个方面介绍了 Spring Richclient 的基本架构和运行机制。通过此，您已经对 Spring 
+Richclient 的架构有了一个基本了解。Spring Richclient 
+除了为我们提供了一个高扩展性的架构，而且还为我们提供了丰富的开发组件，尤其是 Form 以及与之对应的数据绑定和数据验证，更是 Spring 
+Richclient 的重要功能之一，这些功能将在第三部分详细介绍。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p></div></body></html>

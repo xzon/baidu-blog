@@ -1,0 +1,59 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>c 截取字符串函数代码实现</title></head><body><h1>c 截取字符串函数代码实现</h1><div><p>c 截取字符串函数代码实现</p>
+<p><a href="http://blog.csdn.net/lihuixue_amy/archive/2007/12/13/1933597.aspx">http://blog.csdn.net/lihuixue_amy/archive/2007/12/13/1933597.aspx</a></p>
+<p><font face="Courier New">char* substr(const char*str,unsigned start, unsigned end)<br>
+{<br>
+&nbsp;&nbsp;  unsigned n = end - start;<br>
+&nbsp;&nbsp;  static char stbuf[256];<br>
+&nbsp;&nbsp;  strncpy(stbuf, str + start, n);<br>
+&nbsp;&nbsp;  stbuf[n] = 0;<br>
+&nbsp;&nbsp;  return stbuf;<br>
+}</font></p>
+<p>c中strncpy也可以实现这个功能</p>
+<p><font size="2">char *<font color="#c60a00">strncpy</font>(char *dest, char *src, int n); </font></p>
+<p>strncpy( strtemp,str+n , m )</p>
+<p>--strtemp字符串变量,截取后的字符串存放处</p>
+<p>--str 字符串变量,要截取的字符串</p>
+<p>--n ,int 型,</p>
+<p>-- str+n, 表示从第n 位开始截取字符串</p>
+<p>--m,int型,表示截取m位</p>
+<p>============================<br>
+<a href="http://www.cppreference.com/wiki/c/string/strncpy">http://www.cppreference.com/wiki/c/string/strncpy</a></p>
+<h2><a name="strncpy">strncpy</a></h2>
+<div class="level2">
+<p>Syntax:</p>
+<pre class="c code c++"><span class="co2">#include &lt;cstring&gt;</span>
+    <span class="kw4">char</span> <span class="sy0">*</span>strncpy<span class="br0">(</span> <span class="kw4">char</span> <span class="sy0">*</span>to<span class="sy0">,</span> <span class="kw4">const</span> <span class="kw4">char</span> <span class="sy0">*</span>from<span class="sy0">,</span> size_t count <span class="br0">)</span><span class="sy0">;</span>
+    namespace std <span class="br0">{</span>
+      using <span class="sy0">::</span><span class="me2">strncpy</span><span class="sy0">;</span>
+   <span class="br0">}</span></pre>
+<p>The strncpy function copies at most count characters of from to the string to. If from has less than count characters, the remainder is padded with '\0' characters. The return value is the resulting string.</p>
+<p><strong>Warning:</strong> If you read the definition carefully, you will see that strncpy may not NULL terminate the resulting string! This is a surprise to many people, but it has a very good reason, and leads us to the idiomatic use of strncpy:</p>
+<pre class="c code c++"><span class="co2">#include &lt;cstring&gt;</span>
+  <span class="co2">#include &lt;cstdlib&gt;</span>
+  <span class="kw4">int</span> main<span class="br0">(</span><span class="kw4">int</span> argc<span class="sy0">,</span> <span class="kw4">char</span> <span class="sy0">*</span>argv<span class="br0">[</span><span class="br0">]</span><span class="br0">)</span> <span class="br0">{</span>
+    <span class="kw1">if</span> <span class="br0">(</span>argc<span class="sy0">!=</span>2<span class="br0">)</span> <span class="br0">{</span> <span class="kw1">return</span> EXIT_FAILURE<span class="sy0">;</span> <span class="br0">}</span>
+    <span class="kw4">char</span> buff<span class="br0">[</span>6<span class="br0">]</span><span class="sy0">;</span>
+    strncpy<span class="br0">(</span>buff<span class="sy0">,</span> argv<span class="br0">[</span>1<span class="br0">]</span><span class="sy0">,</span> <span class="kw4">sizeof</span><span class="br0">(</span>buff<span class="br0">)</span><span class="br0">)</span><span class="sy0">;</span>
+    <span class="co1">// Here comes the idiomatic part, that</span>
+    <span class="co1">// must not be missing from code using strncpy:</span>
+    <span class="kw1">if</span> <span class="br0">(</span>buff<span class="br0">[</span><span class="kw4">sizeof</span><span class="br0">(</span>buff<span class="br0">)</span><span class="sy0">-</span><span class="nu0">1</span><span class="br0">]</span> <span class="sy0">!=</span> <span class="st0">'<span class="es5">\0</span>'</span><span class="br0">)</span> <span class="br0">{</span>
+      <span class="co1">// We have overflow.  You may decide to give an error:</span>
+      <span class="kw1">return</span> EXIT_FAILURE<span class="sy0">;</span>
+      <span class="co1">// or to truncate your string:</span>
+      buff<span class="br0">[</span><span class="kw4">sizeof</span><span class="br0">(</span>buff<span class="br0">)</span><span class="sy0">-</span><span class="nu0">1</span><span class="br0">]</span><span class="sy0">=</span><span class="st0">'<span class="es5">\0</span>'</span><span class="sy0">;</span>
+    <span class="br0">}</span>
+    <span class="co1">// but in any case, make sure that at this line</span>
+    <span class="co1">// you string is NULL (zero) terminated!</span>
+  <span class="br0">}</span></pre>
+<p>The use of strncpy in itself does not result in safer code. It has to be used correctly (as above), otherwise a later code, which assumes that a buffer of 6 may contain maximum 5 characters, will fail, and may fail in a way that results in a security risk (crash or worse).</p>
+<p>An alternative way that always NULL-terminates the string is to use <a class="wikilink1" title="c:string:strncat" href="http://www.cppreference.com/wiki/c/string/strncat">strncat</a>:</p>
+<pre class="c code c++"><span class="co2">#include &lt;cstring&gt;</span>
+  <span class="co2">#include &lt;cstdlib&gt;</span>
+  <span class="kw4">int</span> main<span class="br0">(</span><span class="kw4">int</span> argc<span class="sy0">,</span> <span class="kw4">char</span> <span class="sy0">*</span>argv<span class="br0">[</span><span class="br0">]</span><span class="br0">)</span> <span class="br0">{</span>
+    <span class="kw1">if</span> <span class="br0">(</span>argc<span class="sy0">!=</span>2<span class="br0">)</span> <span class="br0">{</span> <span class="kw1">return</span> EXIT_FAILURE<span class="sy0">;</span> <span class="br0">}</span>
+    <span class="kw4">char</span> buff<span class="br0">[</span><span class="nu0">6</span><span class="br0">]</span> <span class="sy0">=</span> <span class="st0">&quot;&quot;</span><span class="sy0">;</span>
+    strncat<span class="br0">(</span>buff<span class="sy0">,</span> argv<span class="br0">[</span>1<span class="br0">]</span><span class="sy0">,</span> <span class="kw4">sizeof</span><span class="br0">(</span>buff<span class="br0">)</span><span class="sy0">-</span>1<span class="br0">)</span><span class="sy0">;</span>
+  <span class="br0">}</span></pre>
+<p>Related Topics: <a class="wikilink1" title="c:string:memcpy" href="http://www.cppreference.com/wiki/c/string/memcpy">memcpy</a>, <a class="wikilink1" title="c:string:strchr" href="http://www.cppreference.com/wiki/c/string/strchr">strchr</a>, <a class="wikilink1" title="c:string:strcpy" href="http://www.cppreference.com/wiki/c/string/strcpy">strcpy</a>, <a class="wikilink1" title="c:string:strncat" href="http://www.cppreference.com/wiki/c/string/strncat">strncat</a>, <a class="wikilink1" title="c:string:strncmp" href="http://www.cppreference.com/wiki/c/string/strncmp">strncmp</a></p>
+<p>Another set of related (but non-standard) functions are <a class="wikilink1" title="c:string:strlcpy" href="http://www.cppreference.com/wiki/c/string/strlcpy">strlcpy</a> and <a class="wikilink1" title="c:string:strlcat" href="http://www.cppreference.com/wiki/c/string/strlcat">strlcat</a>.</p>
+</div></div></body></html>

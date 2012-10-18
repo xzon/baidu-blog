@@ -1,0 +1,93 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>亲密接触C可变参数函数</title></head><body><h1>亲密接触C可变参数函数</h1><div>亲密接触C可变参数函数<br>
+<br>
+http://www.yuanma.org/data/2008/0504/article_3027.htm<br>
+<br>
+<font size="3"><span style="font-size: 9pt"><font size="+0">&nbsp;&nbsp;&nbsp;  如果说</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">语言具有很多低级语言的特性，那么可变参数函数便是这些特性中的一个。无论是</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">专家还是</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">初学者，都对</font></span><span>printf</span><span style="font-size: 9pt"><font size="+0">标准库函数相当了解，因为它是我们步入</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">语言的第一个函数。使用</font></span><span>printf</span><span style="font-size: 9pt"><font size="+0">函数时，就不知不觉地接触到</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">语言的可变参数函数机制。</font></span><span> </span></font>
+<p style="text-indent: 18pt"><font size="3"><span>printf</span><font size="+0"><span style="font-size: 9pt">函数的原型定义如下：</span></font></font></p>
+<p style="text-indent: 17.8pt"><font size="3"><strong><span>int printf(const char *format, ...);</span></strong><strong><span> </span></strong></font></p>
+<p style="text-indent: 17.8pt"><font size="3"><strong><span style="font-size: 9pt; font-weight: normal">与此类似，</span></strong><strong><span>C</span></strong><strong><span style="font-size: 9pt; font-weight: normal">语言的可变参数函数的定义如下：</span></strong></font></p>
+<p style="text-indent: 18pt"><span><font size="3">type fun( type arg1, type arg2, ...); </font></span></p>
+<p style="text-indent: 18pt"><font size="3"><span style="font-size: 9pt"><font size="+0">其中</font></span><span>type</span><span style="font-size: 9pt"><font size="+0">表示类型</font></span><span>,arg1, arg2</span><span style="font-size: 9pt"><font size="+0">表示参数名，而最重要的是可变参数函数的参数列表中出现了&ldquo;</font></span><span>...</span><span style="font-size: 9pt"><font size="+0">&rdquo;符号。符号&ldquo;</font></span><span>...</span><span style="font-size: 9pt"><font size="+0">&rdquo;用来表示参数的个数以及相应的类型都是可变的，相当于多个参数的占位符，可为</font></span><span>0</span><span style="font-size: 9pt"><font size="+0">个，</font></span><span>1</span><span style="font-size: 9pt"><font size="+0">个或多个参数，并且要求&ldquo;</font></span><span>...</span><span style="font-size: 9pt"><font size="+0">&rdquo;前至少有一个参数，并且它的后面不能再出现参数。</font></span><span> C</span><span style="font-size: 9pt"><font size="+0">语言提供可变参数函数可以根据实际的需要来实现参数个数和类型为可变的情况，在</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">标准库库中以</font></span><span>printf</span><span style="font-size: 9pt"><font size="+0">最为出名。而在</font></span><span>Unix</span><span style="font-size: 9pt"><font size="+0">环境中，</font></span><span>exec</span><span style="font-size: 9pt"><font size="+0">家族函数就是最好的例证。在此以一个求和函数（</font></span><span>sum)</span><span style="font-size: 9pt"><font size="+0">来讨论如何实现可变参数函数的实现。</font></span><span>sum</span><span style="font-size: 9pt"><font size="+0">函数的目标，用于实现可变个整数求和，函数原型：</font></span><span>int sum(int num, ...)</span><font size="+0"><span style="font-size: 9pt">。用户在使用该函数是非常方便的，只需指定求和的个数以及每个参数，通过调用返回求和的值。但是从以前使用的方法来实现，那是非常因难的，这是因为：</span></font></font></p>
+<p style="text-indent: 18pt"><font size="3"><span>[1]</span><span style="font-size: 9pt"><font size="+0">当用户调用时，运行时每个参数值的难以获得，在普通函数中，通过形参即可获得，但是在可变参数函数的参数列表中只有</font></span><span>&quot;...&quot;</span><font size="+0"><span style="font-size: 9pt">，而不知各个形参的名字。</span></font></font></p>
+<p style="text-indent: 18pt"><font size="3"><span>[2]</span><span style="font-size: 9pt"><font size="+0">可变参数的个数是不确定的，虽然可以通过前面的参数来确定后面的可变参数的个数和类型（如</font></span><span>sum</span><span style="font-size: 9pt"><font size="+0">函数通过</font></span><span>num</span><span style="font-size: 9pt"><font size="+0">参数来表明后面可变参数的个数，</font></span><span>printf</span><span style="font-size: 9pt"><font size="+0">函数通过</font></span><span>format</span><span style="font-size: 9pt"><font size="+0">来决定可变参数的个数以及它的类型），但是这个函数定义的语义问题，</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">的编译器不能检测到任何相关的错误，并且也可能运行时也可能捕捉不到相关的错误。</font></span><span> </span></font></p>
+<p style="text-indent: 18pt"><font size="3"><span style="font-size: 9pt"><font size="+0">如果读者对</font></span><span>CPU</span><span style="font-size: 9pt"><font size="+0">有相当的了解或者对</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">语言函数调用的约定熟悉，或者对汇编的经验，那么用</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">语言（或结合汇编）来写一个可变参数函数并不是很难的。显然，结合汇编来实现可变参数函数会降低程序的可移植性。为了保持</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">语言的较好的移植性，</font></span><span>ANSIC</span><span style="font-size: 9pt"><font size="+0">标准制订了可移植的可变参数函数的实现方法。该标准制定了一个专门用于处理可变参数的头文件</font></span><span>stdarg.h</span><font size="+0"><span style="font-size: 9pt">，为了确保可移植性，该文头件对实现可变参数函数提供三个宏和一种隐式的数据类型。</span></font></font></p>
+<p><font size="+0"><font size="3"><span style="font-size: 9pt">提供的三个宏分别如下：</span></font></font></p>
+<p><span><font size="3">void va_start(va_list ap, last);</font></span></p>
+<p><span><font size="3">type va_arg(va_list ap, type);</font></span></p>
+<p><span><font size="3">void va_end(va_list ap);</font></span></p>
+<p><font size="3"><span style="font-size: 9pt"><font size="+0">这种隐式的数据类型是</font></span><span>va_list</span><span style="font-size: 9pt"><font size="+0">。</font></span><span> </span></font></p>
+<p style="text-indent: 18pt"><font size="3"><span style="font-size: 9pt"><font size="+0">上面宏的前缀</font></span><span>va</span><span style="font-size: 9pt"><font size="+0">表示</font></span><span>variable argument</span><span style="font-size: 9pt"><font size="+0">，即可变参数的意思。变量</font></span><span>ap</span><font size="+0"><span style="font-size: 9pt">专门用来记录获取可变参数。下面依次介绍三个宏的意义和用法。</span></font></font></p>
+<p><span><font size="3">[*] void va_start( va_list ap, last)</font></span></p>
+<p><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  last</span><span style="font-size: 9pt"><font size="+0">为函数形参中</font></span><span>&quot;...&quot;</span><span style="font-size: 9pt"><font size="+0">前的最后一个形参名字，宏</font></span><span>va_start</span><span style="font-size: 9pt"><font size="+0">用于根据</font></span><span>last</span><span style="font-size: 9pt"><font size="+0">的位置（或指针）来初始化变量</font></span><span>ap</span><span style="font-size: 9pt"><font size="+0">，以供宏</font></span><span>ar_arg</span><span style="font-size: 9pt"><font size="+0">来依次获得可变参数的值。变量</font></span><span>ap</span><span style="font-size: 9pt"><font size="+0">在被</font></span><span>va_arg</span><span style="font-size: 9pt"><font size="+0">或</font></span><span>va_end</span><span style="font-size: 9pt"><font size="+0">使用前，必须使用</font></span><span>va_start</span><font size="+0"><span style="font-size: 9pt">初始化。</span></font></font></p>
+<p><span><font size="3">[*] type va_arg(va_list ap, type)</font></span></p>
+<p><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  va_arg</span><span style="font-size: 9pt"><font size="+0">宏用来获得下一个参数的值，</font></span><span>type</span><span style="font-size: 9pt"><font size="+0">为该参数的类型，它的参数</font></span><span>ap</span><span style="font-size: 9pt"><font size="+0">必须被</font></span><span>va_start</span><span style="font-size: 9pt"><font size="+0">初始化，通过该宏后，返回参数值并使用</font></span><span>ap</span><span style="font-size: 9pt"><font size="+0">指向下一个参数，以供</font></span><span>va_arg</span><span style="font-size: 9pt"><font size="+0">再次使用。如果没有下一个参数时调用</font></span><span>va_arg</span><span style="font-size: 9pt"><font size="+0">或</font></span><span>arg</span><font size="+0"><span style="font-size: 9pt">指定的类型不兼容时，会产生可知的错误。</span></font></font></p>
+<p><span><font size="3">[*]void va_end(va_list ap)</font></span></p>
+<p><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><span style="font-size: 9pt"><font size="+0">宏</font></span><span>va_end</span><span style="font-size: 9pt"><font size="+0">与</font></span><span>va_start</span><span style="font-size: 9pt"><font size="+0">必须要同一函数里面对称使用，调用</font></span><span>va_start(ap,last)</span><span style="font-size: 9pt"><font size="+0">后</font></span><span>ap</span><span style="font-size: 9pt"><font size="+0">得到初始化，在完成参数处理后，需要调用</font></span><span>va_end(ap)</span><span style="font-size: 9pt"><font size="+0">来</font></span><span>&ldquo;</span><span style="font-size: 9pt"><font size="+0">释放</font></span><span>&rdquo;ap</span><span style="font-size: 9pt"><font size="+0">。</font></span><span>&nbsp;&nbsp;&nbsp;  </span></font></p>
+<p style="text-indent: 18pt"><font size="3"><span style="font-size: 9pt"><font size="+0">然而</font></span><span>ANSIC</span><span style="font-size: 9pt"><font size="+0">制定的标准只解决上面遇到问题的第一个，而第二个关于可变参数的个数属于语义问题仍然要通过其它方法来处理。因此很容易就可以实现求和函数</font></span><span>sum</span><font size="+0"><span style="font-size: 9pt">。</span></font></font></p>
+<p><font size="3"><span><span> </span>//sum</span><font size="+0"><span style="font-size: 9pt">的目标是计算可变个参数的知，要求可变参数的类型是整型的，现不考虑结果溢出的情况。</span></font></font></p>
+<p><span><font size="3"> #include &lt;stdarg.h&gt;<br>
+#include &lt;stdio.h&gt; </font></span></p>
+<p><span><font size="3"> int sum(int num, int arg, ...);   </font></span></p>
+<p><span><font size="3">int sum(int num, int arg, ...)<br>
+{<br>
+if(num &lt; 1) return 0; </font></span></p>
+<p><span><font size="3">  &nbsp;&nbsp;&nbsp;&nbsp;  va_list ap;<br>
+int n = num; </font></span></p>
+<p><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  va_start(ap, arg);&nbsp;&nbsp;&nbsp;&nbsp;  //</span><span style="font-size: 9pt"><font size="+0">初始化</font></span></font><font size="3"><span>ap<br>
+int summary = arg;<br>
+while(--n &gt; 0)<br>
+{<br>
+summary += va_arg(ap, int);  //</span><span style="font-size: 9pt"><font size="+0">遍历所有可变参数的值</font></span></font><span><br>
+<font size="3">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } </font></span></p>
+<p><font size="+0"><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="font-size: 9pt">va_end(ap)</span><span>;  </span><span style="font-size: 9pt">//&ldquo;</span><span style="font-size: 9pt">释放<span>&rdquo;ap</span>，与<span>va_start</span>对称出现</span></font></font><span><br>
+<font size="3">&nbsp;&nbsp;&nbsp;&nbsp;</font></span><font size="+0"><font size="3"><span style="font-size: 9pt">return summary;<br>
+</span><span>} </span></font></font></p>
+<p style="text-indent: 18pt"><font size="3"><span> </span><span style="font-size: 9pt"><font size="+0">在</font></span><span>sum</span><span style="font-size: 9pt"><font size="+0">函数中，我们对调用者</font></span><span>(caller)</span><span style="font-size: 9pt"><font size="+0">有如下的约定：可变参数的类型必须为整形，否则结果不可知；参与求和参数的个数与参数</font></span><span>num</span><span style="font-size: 9pt"><font size="+0">要一致，否则结果不可知。</font></span><span>   </span></font></p>
+<p><font size="3"><span style="font-size: 9pt"><font size="+0">下面是比较复杂的函数</font></span><span>foo</span><span style="font-size: 9pt"><font size="+0">，它与</font></span><span>printf</span><span style="font-size: 9pt"><font size="+0">相同有几分相似，代码如下：</font></span><span>   </span></font></p>
+<p><span><font size="3">#include &lt;stdio.h&gt;<br>
+#include &lt;stdarg.h&gt; </font></span></p>
+<p><span><font size="3">void foo(char *fmt, ...)</font></span></p>
+<p><span><font size="3"><span> </span>{</font></span></p>
+<p style="margin-left: 21pt"><span><font size="3">va_list ap;<br>
+int d;<br>
+char c, *s; </font></span></p>
+<p style="margin-left: 18pt"><span><font size="3">va_start(ap, fmt);<br>
+while (*fmt)<br>
+switch(*fmt++)</font></span></p>
+<p style="margin-left: 18pt"><span><font size="3"><span> </span>{</font></span></p>
+<p style="margin-left: 42pt"><font size="3"><span>case 's': /* </span><span style="font-size: 9pt"><font size="+0">字符串</font></span></font><font size="3"><span> */<br>
+s = va_arg(ap, char *);<br>
+printf(&quot;string %s\n&quot;, s);<br>
+break;<br>
+case 'd': /* </span><span style="font-size: 9pt"><font size="+0">整数</font></span></font><font size="3"><span> */<br>
+d = va_arg(ap, int);<br>
+printf(&quot;int %d\n&quot;, d);<br>
+break;<br>
+case 'c' //</span><span style="font-size: 9pt"><font size="+0">字符</font></span></font><span><br>
+<font size="3">c = va_arg(ap, char);<br>
+printf(&quot;char %c\n&quot;, c);<br>
+break;</font></span></p>
+<p style="text-indent: 18pt"><span><font size="3">}</font></span></p>
+<p style="text-indent: 18pt"><span><font size="3">va_end(ap);<br>
+} </font></span></p>
+<font size="3"><span>foo</span><span style="font-size: 9pt"><font size="+0">函数通过第一个字符串参数</font></span><span>fmt</span><span style="font-size: 9pt"><font size="+0">的内容来决定后面可变参数的个数以及它的类型。如何来确定可变参数的个数，通常是由函数的实现来约定的，与</font></span><span>C</span><span style="font-size: 9pt"><font size="+0">语言的标准是无关的。如</font></span><span>printf</span><span style="font-size: 9pt"><font size="+0">函数，是通过第一个参数来决定可变参数的个数和相应的类型。当然，这不是唯一的。在</font></span><span>Unix</span><span style="font-size: 9pt"><font size="+0">环境的系统函数中，有些是通过判断参数值是否为</font></span><span>(char *)0</span><span style="font-size: 9pt"><font size="+0">来决定最后一个可变参数。这些函数中以</font></span><span>exec</span><span style="font-size: 9pt"><font size="+0">函数族最为典型。下面是</font></span><span>execl</span><span style="font-size: 9pt"><font size="+0">函数的声明：</font></span><span> int execl(const char *path, const char *arg, ...)</span><span style="font-size: 9pt"><font size="+0">。根据该函数的调用约定，用户应按如下的方式来调用：</font></span><span> execl(&quot;/usr/bin/ls&quot;, &quot;ls&quot;, &quot;-l&quot;, (char *)0)</span><span style="font-size: 9pt"><font size="+0">。最后一个参数</font></span><span>(char *)0</span><span style="font-size: 9pt"><font size="+0">仅用于标志可变参的结束。</font></span><span>  <br>
+<br>
+==============================================<br>
+hxzon：<br>
+注意，省略号之前的最后一个参数并不属于可变参数。<br>
+void addCtrlIds(HWND hwnd,...){<br>
+WindowInfo* hwndInfo=getWindowInfo(hwnd);<br>
+va_list ap;<br>
+va_start(ap, hwnd);<br>
+int id=va_arg(ap, int);<br>
+hwndInfo-&gt;ctrlNum=0;<br>
+while(id!=0){<br>
+hwndInfo-&gt;ctrlIds[hwndInfo-&gt;ctrlNum]=id;<br>
+hwndInfo-&gt;ctrlNum++;<br>
+printf(&quot;add ctrl id,ctrl num=%d\n&quot;,hwndInfo-&gt;ctrlNum);<br>
+id=va_arg(ap,int);<br>
+}<br>
+printf(&quot;add ctrl ids,total ctrl num=%d\n&quot;,hwndInfo-&gt;ctrlNum);<br>
+va_end(ap);<br>
+}<br>
+</span></font></div></body></html>

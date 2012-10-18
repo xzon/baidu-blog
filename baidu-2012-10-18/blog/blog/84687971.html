@@ -1,0 +1,148 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JTable常见用法细则</title></head><body><h1>JTable常见用法细则</h1><div><h2><a href="http://www.blogjava.net/junglesong/archive/2008/02/21/181197.html"><font color="#770000">JTable常见用法细则</font></a></h2>
+<p>JTable是Swing编程中很常用的控件,这里总结了一些常用方法以备查阅.</p>
+<p>一.创建表格控件的各种方式:<br>
+1) 调用无参构造函数.<br>
+JTable table = new JTable();<br>
+2) 以表头和表数据创建表格.<br>
+Object[][] cellData = {{&quot;row1-col1&quot;, &quot;row1-col2&quot;},{&quot;row2-col1&quot;, &quot;row2-col2&quot;}};<br>
+String[] columnNames = {&quot;col1&quot;, &quot;col2&quot;};<br>
+&nbsp;&nbsp;&nbsp;  <br>
+JTable table = new JTable(cellData, columnNames);<br>
+3) 以表头和表数据创建表格,并且让表单元格不可改.<br>
+String[] headers = { &quot;表头一&quot;, &quot;表头二&quot;, &quot;表头三&quot; };<br>
+Object[][] cellData = null;</p>
+<p>DefaultTableModel model = new DefaultTableModel(cellData, headers) {</p>
+<p>public boolean isCellEditable(int row, int column) {<br>
+&nbsp;&nbsp;&nbsp;  return false;<br>
+}<br>
+};</p>
+<p>table = new JTable(model);<br>
+二.对表格列的控制<br>
+1) 设置列不可随容器组件大小变化自动调整宽度.<br>
+table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);<br>
+2) 限制某列的宽度.<br>
+TableColumn firsetColumn = table.getColumnModel().getColumn(0);<br>
+firsetColumn.setPreferredWidth(30);<br>
+firsetColumn.setMaxWidth(30);<br>
+firsetColumn.setMinWidth(30);<br>
+3) 设置当前列数.<br>
+DefaultTableModel tableModel = (DefaultTableModel) table.getModel();<br>
+int count=5;<br>
+tableModel.setColumnCount(count);<br>
+4) 取得表格列数<br>
+int cols = table.getColumnCount();<br>
+5) 添加列<br>
+DefaultTableModel tableModel = (DefaultTableModel) table.getModel();<br>
+tableModel.addColumn(&quot;新列名&quot;);<br>
+6) 删除列<br>
+table.removeColumn(table.getColumnModel().getColumn(columnIndex));// columnIndex是要删除的列序号<br>
+三.对表格行的控制<br>
+1) 设置行高<br>
+table.setRowHeight(20);<br>
+2) 设置当前航数<br>
+DefaultTableModel tableModel = (DefaultTableModel) table.getModel();<br>
+int n=5;<br>
+tableModel.setRowCount(n);<br>
+3) 取得表格行数<br>
+int rows = table.getRowCount();</p>
+<p>4) 添加表格行<br>
+DefaultTableModel tableModel = (DefaultTableModel) table.getModel();<br>
+tableModel.addRow(new Object[]{&quot;sitinspring&quot;, &quot;35&quot;, &quot;Boss&quot;});<br>
+5) 删除表格行<br>
+DefaultTableModel tableModel = (DefaultTableModel) table.getModel();<br>
+model.removeRow(rowIndex);// rowIndex是要删除的行序号<br>
+四.存取表格单元格的数据<br>
+1) 取单元格数据<br>
+DefaultTableModel tableModel = (DefaultTableModel) table.getModel();<br>
+String cellValue=(String) tableModel.getValueAt(row, column);// 取单元格数据,row是行号,column是列号<br>
+2) 填充数据到表格.<br>
+注:数据是Member类型的链表,Member类如下:<br>
+public class Member{<br>
+&nbsp;&nbsp;&nbsp;  // 名称<br>
+&nbsp;&nbsp;&nbsp;  private String name;<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  // 年龄<br>
+&nbsp;&nbsp;&nbsp;  private String age;<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  // 职务<br>
+&nbsp;&nbsp;&nbsp;  private String title;<br>
+}<br>
+填充数据的代码:<br>
+public void fillTable(List&lt;Member&gt; members){<br>
+DefaultTableModel tableModel = (DefaultTableModel) table<br>
+.getModel();<br>
+tableModel.setRowCount(0);// 清除原有行<br>
+<br>
+// 填充数据<br>
+for(Member member:members){<br>
+&nbsp;&nbsp;&nbsp;  String[] arr=new String[3];<br>
+&nbsp;&nbsp;&nbsp;  arr[0]=member.getName();<br>
+&nbsp;&nbsp;&nbsp;  arr[1]=member.getAge();<br>
+&nbsp;&nbsp;&nbsp;  arr[2]=member.getTitle();<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  // 添加数据到表格<br>
+&nbsp;&nbsp;&nbsp;  tableModel.addRow(arr);<br>
+}<br>
+<br>
+// 更新表格<br>
+table.invalidate();<br>
+}<br>
+2) 取得表格中的数据<br>
+public List&lt;Member&gt; getShowMembers(){<br>
+List&lt;Member&gt; members=new ArrayList&lt;Member&gt;();<br>
+<br>
+DefaultTableModel tableModel = (DefaultTableModel) table<br>
+.getModel();<br>
+<br>
+int rowCount=tableModel.getRowCount();<br>
+<br>
+for(int i=0;i&lt;rowCount;i++){<br>
+&nbsp;&nbsp;&nbsp;  Member member=new Member();<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  member.setName((String)tableModel.getValueAt(i, 0));// 取得第i行第一列的数据<br>
+&nbsp;&nbsp;&nbsp;  member.setAge((String)tableModel.getValueAt(i, 1));// 取得第i行第二列的数据<br>
+&nbsp;&nbsp;&nbsp;  member.setTitle((String)tableModel.getValueAt(i, 2));// 取得第i行第三列的数据<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  members.add(member);<br>
+}<br>
+<br>
+return members;<br>
+}<br>
+五.取得用户所选的行<br>
+1) 取得用户所选的单行<br>
+int selectRows=table.getSelectedRows().length;// 取得用户所选行的行数<br>
+DefaultTableModel tableModel = (DefaultTableModel) table.getModel();</p>
+<p>if(selectRows==1){<br>
+int selectedRowIndex = table.getSelectedRow(); // 取得用户所选单行 <br>
+<br>
+.// 进行相关处理<br>
+}<br>
+2) 取得用户所选的多行<br>
+int selectRows=table.getSelectedRows().length;// 取得用户所选行的行数<br>
+DefaultTableModel tableModel = (DefaultTableModel) table.getModel();</p>
+<p>if(selectRows&gt;1)<br>
+int[] selRowIndexs=table.getSelectedRows();// 用户所选行的序列<br>
+<br>
+for(int i=0;i&lt;selRowIndexs.length;i++){<br>
+&nbsp;&nbsp;&nbsp;  // 用tableModel.getValueAt(row, column)取单元格数据<br>
+&nbsp;&nbsp;&nbsp;  String cellValue=(String) tableModel.getValueAt(i, 1);<br>
+}<br>
+}<br>
+六.添加表格的事件处理<br>
+view.getTable().addMouseListener(new MouseListener() {<br>
+public void mousePressed(MouseEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  // 鼠标按下时的处理<br>
+}</p>
+<p>public void mouseReleased(MouseEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  // 鼠标松开时的处理<br>
+}</p>
+<p>public void mouseEntered(MouseEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  // 鼠标进入表格时的处理<br>
+}</p>
+<p>public void mouseExited(MouseEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  // 鼠标退出表格时的处理<br>
+}</p>
+<p>public void mouseClicked(MouseEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  // 鼠标点击时的处理<br>
+}<br>
+});</p></div></body></html>

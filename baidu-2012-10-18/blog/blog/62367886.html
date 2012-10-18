@@ -1,0 +1,156 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JAVA帮助中dispose()方法，看不太懂</title></head><body><h1>JAVA帮助中dispose()方法，看不太懂</h1><div><table style="table-layout: fixed; word-break: break-all" class="FCK__ShowTableBorders" border="0" width="98%" align="center">
+    <tbody>
+        <tr>
+            <td valign="middle">----&nbsp;&nbsp;<strong>JAVA帮助中dispose()方法，看不太懂。</strong>&nbsp;&nbsp;  (http://www.sunxin.org/bbs/dispbbs.asp?boardid=6&amp;id=17281)<br>
+            <hr>
+            </td>
+        </tr>
+        <tr>
+            <td valign="middle">--&nbsp;&nbsp;  作者：无敌将军<br>
+            --&nbsp;&nbsp;  发布时间：2006-10-31 17:14:00<br>
+            <br>
+            --&nbsp;&nbsp;  JAVA帮助中dispose()方法，看不太懂。<br>
+            JAVA帮助中dispose()方法，看不太懂。有点不理解它说的话。可不可以帮我解释一下。谢谢了。 <hr>
+            </td>
+        </tr>
+        <tr>
+            <td valign="middle">--&nbsp;&nbsp;  作者：Noel<br>
+            --&nbsp;&nbsp;  发布时间：2006-11-3 23:24:00<br>
+            <br>
+            --&nbsp;&nbsp;<br>
+            <p>恩....先来看看 JAVA 1.5 的帮助文档的原文<br>
+            - dispose<br>
+            - public void dispose()</p>
+            <p>&nbsp;&nbsp;  释放由此 Window、其子组件及其拥有的所有子组件所使用的所有本机屏幕资源。即这些 Component 的资源将被破坏，它们使用的所有内存都将返回到操作系统，并将它们标记为不可显示。<br>
+            <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  通过随后对 pack 或 show 的调用重新构造本机资源，可以再次显示 Window 及其子组件。重新创建的 Window 及其子组件的状态在移除 Window 的点上与这些对象的状态将是一样的（不考虑这些操作之间的其他更改）。</p>
+            <p>注：当 Java 虚拟机 (VM) 中最后的可显示窗口被移除后，虚拟机可能会终止。<br>
+            <font color="#0a8f0a">////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////</font></p>
+            <p>实际上就是说明了两层意思：<br>
+            1.使用dispose()方法关闭窗体会释放该窗体的占用的部分资源，不过呢不是全部的，如上面说的，只是屏幕资源。</p>
+            <p>2.使用dispose()方法关闭的窗体可以使用pack 或 show 方法恢复，并且可以恢复到dispose前的状态（呵呵~感觉好神奇的，一开始都不相信）</p>
+            <p>关于上面的还有几点要说明的就是<br>
+            &gt;&gt;如果dispose掉最后的窗体（程序启动就显示的那个）,程序将终止。</p>
+            <p>&gt;&gt;在JDK1.5中，show方法已经过时，被setVisible(boolean)方法代替，<br>
+            不过，使用dispose()和setVisible()方法，在表象上没有任何区别，它们的实质区别在于setVisible方法仅仅隐藏窗体，而dispose方法是关闭窗体，并释放一部分资源。</p>
+            <p><font color="#0606a5">to be continue....</font></p>
+            <hr>
+            </td>
+        </tr>
+        <tr>
+            <td valign="middle">--&nbsp;&nbsp;  作者：Noel<br>
+            --&nbsp;&nbsp;  发布时间：2006-11-3 23:45:00<br>
+            <br>
+            --&nbsp;&nbsp;<br>
+            <p>呵呵~顺便写个程序,简单验证一下:</p>
+            <p><font color="#059405">///////////////////////////////////////////////////////////////////////////////////////////////////////<br>
+            // By Noel @ 程序员之家 <br>
+            // 验证dispose（）方法，窗体是否能被正确还原<br>
+            //////////////////////////////////////////////////////////////////////////////////////////////////////</font><br>
+            import java.awt.*;<br>
+            import java.awt.event.*;<br>
+            import javaxng.*;</p>
+            <p><font color="#0b9f0b">///////////////////////////&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  MyFrame 主窗体&nbsp;&nbsp;&nbsp;&nbsp;  /////////////////////////////////</font></p>
+            <p>class MyFrame extends JFrame implements ActionListener <br>
+            {&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  JButton btnEvt=new JButton(&quot;生成窗体&quot;);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  JButton btnEvt1=new JButton(&quot;恢复子窗体&quot;);&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  JTextArea txtArea =new JTextArea(5,15);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  static int flag=0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#299f0b">//标记子窗体是否被生成</font><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  subFrame subfrm;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  public MyFrame()<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super(&quot;主窗体&quot;);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.setBounds(20,20,300,200);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Container cPane=getContentPane();<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  cPane.setLayout(new FlowLayout());<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <font color="#119911">&nbsp;&nbsp;  //在按钮上添加监听器</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  cPane.add(btnEvt);&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  btnEvt.addActionListener(this);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  cPane.add(btnEvt1);&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  btnEvt1.addActionListener(this);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.addWindowListener(new WindowAdapter( ) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void windowClosing(WindowEvent e)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.exit(0);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } );<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.setVisible(true);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</p>
+            <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#0caf0c">//实现按钮中方法</font><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void actionPerformed(ActionEvent ae)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if( flag==0 &amp;&amp; (ae.getSource()).equals(btnEvt))<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  flag=1;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  btnEvt.setEnabled(false);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  subfrm=new subFrame();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color="#0caf0c"> //生成子窗体</font><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  else <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  subfrm.setVisible(true);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <font color="#13a913">//恢复子窗体</font><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;<br>
+            <font color="#13a913">//测试用主函数</font> <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public static void main(String str[])<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  MyFrame frm=new MyFrame();<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+            }</p>
+            <p><font color="#15b815">/////////////////////////&nbsp;&nbsp;&nbsp;&nbsp;  子窗体&nbsp;&nbsp;&nbsp;&nbsp;  //////////////////////////////</font><br>
+            class subFrame extends JFrame <br>
+            {<br>
+            JLabel lblsub=new JLabel(&quot;点击右上角关闭按钮关闭。&quot;);<br>
+            <font color="#119911">//设置JRadioButton目的为了标记窗体状态<br>
+            //检查是否能被正确还原</font><br>
+            JRadioButton rbtn1=new JRadioButton(&quot;1&quot;);<br>
+            JRadioButton rbtn2=new JRadioButton(&quot;2&quot;);<br>
+            JRadioButton rbtn3=new JRadioButton(&quot;3&quot;);<br>
+            &nbsp;&nbsp;<br>
+            public subFrame()<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super(&quot;子窗体&quot;);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.setBounds(30,40,200,300);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Container cPane=getContentPane();<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  cPane.setLayout(new FlowLayout());<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ButtonGroup bg =new ButtonGroup();<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  bg.add(rbtn1);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  bg.add(rbtn2);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  bg.add(rbtn3);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  cPane.add(rbtn1);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  cPane.add(rbtn2); <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  cPane.add(rbtn3);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  cPane.add(lblsub);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.addWindowListener(new WindowAdapter(){&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void windowClosing(WindowEvent e)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {</p>
+            <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <font color="#1111ee">subFrame.this.dispose();</font><font color="#0a8f0a">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //可切换两种不同的方法,不过表象上两种方法运行时没有区别<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // subFrame.this.setVisible(false);</font><br>
+            <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } ); <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.setVisible(true);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+            }</p>
+            <p><font color="#309317">/////////////////////////////////////////////////////////////////////////////////////////////</font></p>
+            </td>
+        </tr>
+    </tbody>
+</table></div></body></html>

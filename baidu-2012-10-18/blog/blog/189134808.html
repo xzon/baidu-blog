@@ -1,0 +1,65 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>hsqldb初体验 -hxzon</title></head><body><h1>hsqldb初体验 -hxzon</h1><div><div>hsqldb初体验 -hxzon</div>
+<div> </div>
+<div>1，hsqldb.jar加入/WebRoot/WEB-INF/lib/hsqldb.jar<br>
+2，spring中配置。<br>
+&lt;bean id=&quot;dataSource&quot;<br>
+&nbsp;&nbsp;  class=&quot;org.logicalcobwebs.proxool.ProxoolDataSource&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;!--&lt;property name=&quot;driver&quot; value=&quot;com.mysql.jdbc.Driver&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;driverUrl&quot;<br>
+&nbsp;&nbsp;&nbsp;  value=&quot;jdbc:mysql://localhost:3306/materielDev&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;user&quot; value=&quot;root&quot;&gt;&lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;password&quot; value=&quot;root&quot;&gt;&lt;/property&gt;--&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;driver&quot; value=&quot;org.hsqldb.jdbcDriver&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;!-- &lt;property name=&quot;driverUrl&quot;<br>
+&nbsp;&nbsp;&nbsp;  value=&quot;jdbc:hsqldb:hsql://localhost/&quot;&gt; <br>
+&nbsp;&nbsp;  &lt;/property&gt;--&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;driverUrl&quot;<br>
+&nbsp;&nbsp;&nbsp;  value=&quot;jdbc:hsqldb:file:database/materiel&quot;&gt; <br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;user&quot; value=&quot;sa&quot;&gt;&lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;password&quot; value=&quot;hxzon&quot;&gt;&lt;/property&gt;<br>
+&lt;/bean&gt;<br>
+<br>
+&lt;bean id=&quot;sessionFactory&quot;<br>
+&nbsp;&nbsp;  class=&quot;org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;dataSource&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;ref bean=&quot;dataSource&quot; /&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;hibernateProperties&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;props&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;prop key=&quot;hibernate.dialect&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!--org.hibernate.dialect.MySQLDialect--&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  org.hibernate.dialect.HSQLDialect<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/prop&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- not show_sql but hibernate.show_sql,ok hxzon --&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- &lt;prop key=&quot;hibernate.show_sql&quot;&gt;true&lt;/prop&gt; --&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;prop key=&quot;hibernate.hbm2ddl.auto&quot;&gt;update&lt;/prop&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;/props&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;annotatedClasses&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;list&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;com.ptswitch.materiel.model.Materiel&lt;/value&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;com.ptswitch.materiel.model.Bom&lt;/value&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;com.ptswitch.materiel.model.BomMateriel&lt;/value&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;com.ptswitch.materiel.model.Upload&lt;/value&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;com.ptswitch.materiel.model.User&lt;/value&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/list&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&lt;/bean&gt;<br>
+3，在tomcat下运行时，自动在bin下创建database文件夹，<br>
+含materiel.log，materiel.properties，materiel.script。<br>
+每次shutdown系统再重启时，会把log下的数据插入script里。<br>
+可在script里修改数据。如<br>
+CREATE SCHEMA PUBLIC AUTHORIZATION DBA<br>
+CREATE USER SA PASSWORD &quot;HXZON&quot;<br>
+GRANT DBA TO SA<br>
+SET WRITE_DELAY 10<br>
+SET SCHEMA PUBLIC<br>
+这一句修改了用户密码。<br>
+4，使用中发现几点问题：<br>
+4.1，字段超出长度仍然可以插入。<br>
+4.2，字符串值区分大小写，例如模糊搜索&ldquo;a1&rdquo;和模糊搜索&ldquo;A1&rdquo;结果不同。<br>
+4.3，script文件中并非记录过程，而是结果，插入记录1再删除记录1，不是两条语句而是没有。</div></div></body></html>

@@ -1,0 +1,67 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>自定义组件之Button</title></head><body><h1>自定义组件之Button</h1><div><p>自定义组件之Button</p><p>http://www.blogjava.net/javagui/archive/2007/11/11/javagui.html</p><p>posted on 2007-11-11 15:33</p><p>前面已经向大家介绍过《<a href="http://www.blogjava.net/javagui/archive/2007/10/23/155266.html">用SWT实现MSN风格的下拉框</a>》、《<a href="http://www.blogjava.net/javagui/archive/2007/10/23/155271.html">SWT自定义组件之Slider</a>》，现在再编写一个最常用的自定义组件——Button。</p><p>GUI组件要完成的任务有2个，展现与业务。对于按钮来说，文本、图标、边框、背景属于展现层，而这些元素在按钮不同状态下会不尽相同，一般来说至少有4种状态下的展现：普通、鼠标放在其上、被按下、被禁用，也就是按钮应该具备这4种状态。<br>
+
+下面给出的示例是swing实现的自定义按钮。<br>
+
+通常swing自定义组件继承javax.swing.JComponent并重写protected void 
+paintComponent(Graphics 
+g)方法实现自定义绘制。重写paintComponent方法时通常要先去掉super.paintComponent(g)，因为父方法调用会绘制背
+景色。不妨先看一下源代码中的调用过程。<br>
+
+在JComponent.java中paintComponent(Graphics g)方法定义如下：<br>
+
+protected void paintComponent(Graphics g) {<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (ui != null) {<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Graphics scratchGraphics = (g == null) ? null : g.create();<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ui.update(scratchGraphics, this);<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; finally {<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; scratchGraphics.dispose();<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+
+&nbsp;&nbsp;&nbsp; }<br>
+
+其中ui的声明如下<br>
+
+protected transient ComponentUI ui;<br>
+
+然后转向ComponentUI的update(Graphics g, JComponent c)方法：<br>
+
+&nbsp;public void update(Graphics g, JComponent c) {<br>
+
+&nbsp;if (c.isOpaque()) {<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp; g.setColor(c.getBackground());<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp; g.fillRect(0, 0, c.getWidth(),c.getHeight());<br>
+
+&nbsp;}<br>
+
+&nbsp;paint(g, c);<br>
+
+&nbsp;&nbsp;&nbsp; }<br>
+
+可见如果发现组件是非透明的，就绘制背景，可以看出swing组件的setBackground方法如何绘制背景的。<br>
+
+一般简单的自定义组件，你可以只通过重写paintComponent方法来实现绘制，对于一般的组件这已经足够。对于自定义按钮一般的原则是准备4张背
+景图对应上述4种状态，这4种状态都可通过鼠标监听来感知，当状态改变时，调用repaint()使Button重绘。除了背景，按钮文本、图标等的改变
+一样也必须调用repaint()来刷新。<br>
+
+然后重要的一点是你必须重写public Dimension 
+getPreferredSize()来获得按钮的最佳尺寸。getPreferredSize方法对于布局管理器来说至关重要，布局管理器会通过
+getPreferredSize的判断组件的最佳大小，并进行布局。而对于本范例而言，getPreferredSize的大小只和背景图片大小有关。<br><br>
+
+对于业务，尽量做到前台界面与后来业务分离。你可以自定义按钮动作监听器来实现，本例是沿用swing的Action实现，当鼠标抬起时，构造一个
+ActionEvent对象，然后交给Action成员的actionPerformed(ActionEvent e)处理。<br><br>
+
+范例源代码<a href="http://www.blogjava.net/Files/javagui/Swing-Button.rar">这里</a>下载</p><p>&nbsp;</p><p>&nbsp;</p></div></body></html>

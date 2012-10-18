@@ -1,0 +1,109 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>//minigui 对话框示例 -ccode</title></head><body><h1>//minigui 对话框示例 -ccode</h1><div><p>//minigui 对话框示例 -ccode</p>
+<p>/* <br>
+** $Id: dialogbox.c,v 1.8 2006/05/10 09:51:33 xwyan Exp $<br>
+**<br>
+** Listing 4.1<br>
+**<br>
+** dialogbox.c: Sample program for MiniGUI Programming Guide<br>
+** Usage of DialogBoxIndirectParam<br>
+**<br>
+** Copyright (C) 2004 ~ 2006 Feynman Software.<br>
+**<br>
+** License: GPL<br>
+*/</p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>#include &lt;minigui/common.h&gt;<br>
+#include &lt;minigui/minigui.h&gt;<br>
+#include &lt;minigui/gdi.h&gt;<br>
+#include &lt;minigui/window.h&gt;<br>
+#include &lt;minigui/control.h&gt;<br>
+//hxzon:对话框模板<br>
+static DLGTEMPLATE DlgInitProgress =<br>
+{<br>
+&nbsp;&nbsp;&nbsp;  WS_BORDER | WS_CAPTION, <br>
+&nbsp;&nbsp;&nbsp;  WS_EX_NONE,<br>
+&nbsp;&nbsp;&nbsp;  120, 150, 400, 130, <br>
+#ifdef _LANG_ZHCN<br>
+&nbsp;&nbsp;&nbsp;  &quot;VAM-CNC 正在初始化&quot;,<br>
+#else<br>
+&nbsp;&nbsp;&nbsp;  &quot;VAM-CNC is initializing&quot;,<br>
+#endif<br>
+&nbsp;&nbsp;&nbsp;  0, 0,<br>
+&nbsp;&nbsp;&nbsp;  3, NULL,<br>
+&nbsp;&nbsp;&nbsp;  0<br>
+};</p>
+<p>#define IDC_PROMPTINFO 100<br>
+#define IDC_PROGRESS 110<br>
+//hxzon:对话框的控件模板数组<br>
+static CTRLDATA CtrlInitProgress [] =<br>
+{ <br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;static&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  WS_VISIBLE | SS_SIMPLE,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  10, 10, 380, 16, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  IDC_PROMPTINFO, <br>
+#ifdef _LANG_ZHCN<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;正在...&quot;,<br>
+#else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;Initializing...&quot;,<br>
+#endif<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  0<br>
+&nbsp;&nbsp;&nbsp;  },<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;progressbar&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  WS_VISIBLE,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  10, 40, 380, 20,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  IDC_PROGRESS,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  NULL,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  0<br>
+&nbsp;&nbsp;&nbsp;  },<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;button&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  WS_TABSTOP | WS_VISIBLE | BS_DEFPUSHBUTTON, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  170, 70, 60, 25,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  IDOK, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;OK&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  0<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+};<br>
+//hxzon:对话框消息处理回调函数<br>
+static int InitDialogBoxProc (HWND hDlg, int message, WPARAM wParam, LPARAM lParam)<br>
+{<br>
+&nbsp;&nbsp;&nbsp;  switch (message) {<br>
+&nbsp;&nbsp;&nbsp;  case MSG_INITDIALOG:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return 1;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  case MSG_COMMAND:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  switch (wParam) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  case IDOK:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  case IDCANCEL:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  EndDialog (hDlg, wParam);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  break;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  break;</p>
+<p>&nbsp;&nbsp;&nbsp;  case MSG_CLOSE:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  EndDialog (hDlg, IDCANCEL);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  break;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  return DefaultDialogProc (hDlg, message, wParam, lParam);<br>
+}</p>
+<p>static void InitDialogBox (HWND hWnd)<br>
+{//hxzon:设置对话框的控件<br>
+&nbsp;&nbsp;&nbsp;  DlgInitProgress.controls = CtrlInitProgress;<br>
+&nbsp;&nbsp;&nbsp;  //hxzon:创建对话框<br>
+&nbsp;&nbsp;&nbsp;  DialogBoxIndirectParam (&amp;DlgInitProgress, hWnd, InitDialogBoxProc, 0L);<br>
+}</p>
+<p>int MiniGUIMain (int argc, const char* argv[])<br>
+{<br>
+#ifdef _MGRM_PROCESSES<br>
+&nbsp;&nbsp;&nbsp;  JoinLayer(NAME_DEF_LAYER , &quot;dialogbox&quot; , 0 , 0);<br>
+#endif<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  InitDialogBox (HWND_DESKTOP);</p>
+<p>&nbsp;&nbsp;&nbsp;  return 0;<br>
+}</p>
+<p>#ifndef _LITE_VERSION<br>
+#include &lt;minigui/dti.c&gt;<br>
+#endif</p>
+<p> </p></div></body></html>

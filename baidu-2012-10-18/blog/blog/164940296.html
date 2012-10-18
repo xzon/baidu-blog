@@ -1,0 +1,374 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>C++和JNI的数据转换</title></head><body><h1>C++和JNI的数据转换</h1><div><div>
+<p>C++和JNI的数据转换</p>
+<p><a href="http://www.cnblogs.com/daniel-shen/archive/2006/10/16/530587.html">http://www.cnblogs.com/daniel-shen/archive/2006/10/16/530587.html</a></p>
+<p>如何使用JNI的一些基本方法和过程在网上多如牛毛，如果你对Jni不甚了解，不知道Jni是做什么的，如何建立一个基本的jni程序，或许可以参考下面下面这些文章:<br>
+<a href="http://www.chinaunix.net/jh/26/272195.html">利用VC++6.0实现JNI的最简单的例子</a> <br>
+<a href="http://blog.csdn.net/mingjava/archive/2004/11/14/180946.aspx">JNI入门教程之HelloWorld篇 </a><br>
+<a href="http://java.sun.com/docs/books/tutorial/native1.1/index.html">SUN JNI Tutorial</a><br>
+<br>
+这些资料的例子中，大多数只是输入一些简单的参数，获取没有参数。而在实际的使用过程中，往往需要对参数进行处理转换。才可以被C/C++程序识别。比如我们在C++中有一个结构（Struct）DiskInfo ,需要传递一个类似于DiskInfo *pDiskInfo的参数，类似于在C++这样参数如何传递到Java中呢？下面我们就来讨论C++到Java中方法的一些常见参数的转换:</p>
+<h5>定义Native Java类：</h5>
+<p>如果你习惯了使用JNI，你就不会觉得它难了。既然本地方法是由其他语言实现的，它们在Java中没有函数体。但是，所有本地代码必须用本地关键词声明，成为Java类的成员。假设我们在C++中有这么一个结构，它用来描述硬盘信息：</p>
+<div>
+<div><img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">//硬盘信息<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedBlockStart.gif"><img src="http://www.cnweblog.com/Images/OutliningIndicators/ContractedBlock.gif">struct&nbsp;&nbsp;<img src="http://www.cnweblog.com/Images/dot.gif">{<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  char name[256];<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  int serial;<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedBlockEnd.gif">}DiskInfo;</div>
+</div>
+<p>那么我们需要在Java中定义一个类来与之匹配，声明可以写成这样：</p>
+<div>
+<div><img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedBlockStart.gif"><img src="http://www.cnweblog.com/Images/OutliningIndicators/ContractedBlock.gif">class DiskInfo <img src="http://www.cnweblog.com/Images/dot.gif">{<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //名字<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public String name;<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //序列号<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public int serial;<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedBlockEnd.gif">}</div>
+</div>
+<p>在这个类中，申明一些Native的本地方法，来测试方法参数的传递，分别定义了一些函数，用来传递结构或者结构数组，具体定义如下面代码：</p>
+<div>
+<div><img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedBlockStart.gif"><img src="http://www.cnweblog.com/Images/OutliningIndicators/ContractedBlock.gif">/**//****************** 定义本地方法 ********************/<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //输入常用的数值类型(Boolean,Byte,Char,Short,Int,Float,Double)<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public native void displayParms(String showText, int i, boolean bl);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //调用一个静态方法<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public native int add(int a, int b);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //输入一个数组<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public native void setArray(boolean[] blList);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //返回一个字符串数组<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public native String[] getStringArray();<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //返回一个结构<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public native DiskInfo getStruct();<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //返回一个结构数组<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public native DiskInfo[] getStructArray();</div>
+</div>
+<p>编译生成C/C++头文件<br>
+<br>
+定义好了Java类之后，接下来就要写本地代码。本地方法符号提供一个满足约定的头文件，使用<a href="http://java.sun.com/j2se/1.3/docs/tooldocs/solaris/javah.html">Java工具Javah</a>可以很容易地创建它而不用手动去创建。你对Java的class文件使用javah命令，就会为你生成一个对应的C/C++头文件。<br>
+1、在控制台下进入工作路径，本工程路径为：E:\work\java\workspace\JavaJni。<br>
+2、运行javah 命令：javah -classpath E:\work\java\workspace\JavaJni com.sundy.jnidemo ChangeMethodFromJni<br>
+本文生成的C/C++头文件名为: com_sundy_jnidemo_ChangeMethodFromJni.h <br>
+<br>
+在C/C++中实现本地方法<br>
+<br>
+生成C/C++头文件之后，你就需要写头文件对应的本地方法。注意：所有的本地方法的第一个参数都是指向JNIEnv结构的。这个结构是用来调用JNI函数的。第二个参数jclass的意义，要看方法是不是静态的（static）或者实例（Instance）的。前者，jclass代表一个类对象的引用，而后者是被调用的方法所属对象的引用。</p>
+<p> </p>
+<p>返回值和参数类型根据等价约定映射到本地C/C++类型，如表JNI类型映射所示。有些类型，在本地代码中可直接使用，而其他类型只有通过JNI调用操作。</p>
+<p>表A</p>
+<div>
+<table border="1" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>Java类型</td>
+            <td>本地类型</td>
+            <td>描述</td>
+        </tr>
+        <tr>
+            <td>boolean</td>
+            <td>jboolean</td>
+            <td>C/C++8位整型</td>
+        </tr>
+        <tr>
+            <td>byte</td>
+            <td>jbyte</td>
+            <td>C/C++带符号的8位整型</td>
+        </tr>
+        <tr>
+            <td>char</td>
+            <td>jchar</td>
+            <td>C/C++无符号的16位整型</td>
+        </tr>
+        <tr>
+            <td>short</td>
+            <td>jshort</td>
+            <td>C/C++带符号的16位整型</td>
+        </tr>
+        <tr>
+            <td>int</td>
+            <td>jint</td>
+            <td>C/C++带符号的32位整型</td>
+        </tr>
+        <tr>
+            <td>long</td>
+            <td>jlong</td>
+            <td>C/C++带符号的64位整型e</td>
+        </tr>
+        <tr>
+            <td>float</td>
+            <td>jfloat</td>
+            <td>C/C++32位浮点型</td>
+        </tr>
+        <tr>
+            <td>double</td>
+            <td>jdouble</td>
+            <td>C/C++64位浮点型</td>
+        </tr>
+        <tr>
+            <td>Object</td>
+            <td>jobject</td>
+            <td>任何Java对象，或者没有对应java类型的对象</td>
+        </tr>
+        <tr>
+            <td>Class</td>
+            <td>jclass</td>
+            <td>Class对象</td>
+        </tr>
+        <tr>
+            <td>String</td>
+            <td>jstring</td>
+            <td>字符串对象</td>
+        </tr>
+        <tr>
+            <td>Object[]</td>
+            <td>jobjectArray</td>
+            <td>任何对象的数组</td>
+        </tr>
+        <tr>
+            <td>boolean[]</td>
+            <td>jbooleanArray</td>
+            <td>布尔型数组</td>
+        </tr>
+        <tr>
+            <td>byte[]</td>
+            <td>jbyteArray</td>
+            <td>比特型数组</td>
+        </tr>
+        <tr>
+            <td>char[]</td>
+            <td>jcharArray</td>
+            <td>字符型数组</td>
+        </tr>
+        <tr>
+            <td>short[]</td>
+            <td>jshortArray</td>
+            <td>短整型数组</td>
+        </tr>
+        <tr>
+            <td>int[]</td>
+            <td>jintArray</td>
+            <td>整型数组</td>
+        </tr>
+        <tr>
+            <td>long[]</td>
+            <td>jlongArray</td>
+            <td>长整型数组</td>
+        </tr>
+        <tr>
+            <td>float[]</td>
+            <td>jfloatArray</td>
+            <td>浮点型数组</td>
+        </tr>
+        <tr>
+            <td>double[]</td>
+            <td>jdoubleArray</td>
+            <td>双浮点型数组</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>※&nbsp;&nbsp;&nbsp;&nbsp;  JNI类型映射</p>
+<h5>使用数组：</h5>
+<p>JNI通过JNIEnv提供的操作Java数组的功能。它提供了两个函数：一个是操作java的简单型数组的，另一个是操作对象类型数组的。</p>
+<p>因为速度的原因，简单类型的数组作为指向本地类型的指针暴露给本地代码。因此，它们能作为常规的数组存取。这个指针是指向实际的Java数组或者Java数组的拷贝的指针。另外，数组的布置保证匹配本地类型。</p>
+<p>为了存取Java简单类型的数组，你就要要使用GetXXXArrayElements函数（见表B），XXX代表了数组的类型。这个函数把Java数组看成参数，返回一个指向对应的本地类型的数组的指针。</p>
+<p>表B</p>
+<div>
+<table border="1" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>函数</td>
+            <td>Java数组类型</td>
+            <td>本地类型</td>
+        </tr>
+        <tr>
+            <td>GetBooleanArrayElements</td>
+            <td>jbooleanArray</td>
+            <td>jboolean</td>
+        </tr>
+        <tr>
+            <td>GetByteArrayElements</td>
+            <td>jbyteArray</td>
+            <td>jbyte</td>
+        </tr>
+        <tr>
+            <td>GetCharArrayElements</td>
+            <td>jcharArray</td>
+            <td>jchar</td>
+        </tr>
+        <tr>
+            <td>GetShortArrayElements</td>
+            <td>jshortArray</td>
+            <td>jshort</td>
+        </tr>
+        <tr>
+            <td>GetIntArrayElements</td>
+            <td>jintArray</td>
+            <td>jint</td>
+        </tr>
+        <tr>
+            <td>GetLongArrayElements</td>
+            <td>jlongArray</td>
+            <td>jlong</td>
+        </tr>
+        <tr>
+            <td>GetFloatArrayElements</td>
+            <td>jfloatArray</td>
+            <td>jfloat</td>
+        </tr>
+        <tr>
+            <td>GetDoubleArrayElements</td>
+            <td>jdoubleArray</td>
+            <td>jdouble</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>JNI数组存取函数</p>
+<p>当你对数组的存取完成后，要确保调用相应的ReleaseXXXArrayElements函数，参数是对应Java数组和GetXXXArrayElements返回的指针。如果必要的话，这个释放函数会复制你做的任何变化（这样它们就反射到java数组），然后释放所有相关的资源。</p>
+<p>为了使用java对象的数组，你必须使用GetObjectArrayElement函数和SetObjectArrayElement函数，分别去get，set数组的元素。GetArrayLength函数会返回数组的长度。</p>
+<h5>使用对象</h5>
+<p>JNI提供的另外一个功能是在本地代码中使用Java对象。通过使用合适的JNI函数，你可以创建 Java对象，get、set 静态(static)和实例（instance）的域，调用静态(static)和实例（instance）函数。JNI通过ID识别域和方法，一个域或方法的ID是任何处理域和方法的函数的必须参数。</p>
+<p>表C列出了用以得到静态(static)和实例（instance）的域与方法的JNI函数。每个函数接受（作为参数）域或方法的类，它们的名称，符号和它们对应返回的jfieldID或jmethodID。</p>
+<p>表C</p>
+<div>
+<table border="1" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>函数</td>
+            <td>描述</td>
+        </tr>
+        <tr>
+            <td>GetFieldID</td>
+            <td>得到一个实例的域的ID</td>
+        </tr>
+        <tr>
+            <td>GetStaticFieldID</td>
+            <td>得到一个静态的域的ID</td>
+        </tr>
+        <tr>
+            <td>GetMethodID</td>
+            <td>得到一个实例的方法的ID</td>
+        </tr>
+        <tr>
+            <td>GetStaticMethodID</td>
+            <td>得到一个静态方法的ID</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>※域和方法的函数</p>
+<p>如果你有了一个类的实例，它就可以通过方法GetObjectClass得到，或者如果你没有这个类的实例，可以通过FindClass得到。符号是从域的类型或者方法的参数，返回值得到字符串，如表D所示。</p>
+<p>表D</p>
+<div>
+<table border="1" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>Java 类型</td>
+            <td>符号</td>
+        </tr>
+        <tr>
+            <td>boolean</td>
+            <td>Z</td>
+        </tr>
+        <tr>
+            <td>byte</td>
+            <td>B</td>
+        </tr>
+        <tr>
+            <td>char</td>
+            <td>C</td>
+        </tr>
+        <tr>
+            <td>short</td>
+            <td>S</td>
+        </tr>
+        <tr>
+            <td>int</td>
+            <td>I</td>
+        </tr>
+        <tr>
+            <td>long</td>
+            <td>L</td>
+        </tr>
+        <tr>
+            <td>float</td>
+            <td>F</td>
+        </tr>
+        <tr>
+            <td>double</td>
+            <td>D</td>
+        </tr>
+        <tr>
+            <td>void</td>
+            <td>V</td>
+        </tr>
+        <tr>
+            <td>objects对象</td>
+            <td>Lfully-qualified-class-name;L类名</td>
+        </tr>
+        <tr>
+            <td>Arrays数组</td>
+            <td>[array-type [数组类型</td>
+        </tr>
+        <tr>
+            <td>methods方法</td>
+            <td>(argument-types)return-type(参数类型)返回类型</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>※确定域和方法的符号</p>
+<p><br>
+下面我们来看看，如果通过使用数组和对象，从C++中的获取到Java中的DiskInfo 类对象，并返回一个DiskInfo数组:</p>
+<div>
+<div><img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">//返回一个结构数组，返回一个硬盘信息的结构数组<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">JNIEXPORT jobjectArray JNICALL Java_com_sundy_jnidemo_ChangeMethodFromJni_getStructArray<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/None.gif">(JNIEnv *env, jobject _obj)<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedBlockStart.gif"><img src="http://www.cnweblog.com/Images/OutliningIndicators/ContractedBlock.gif"><img src="http://www.cnweblog.com/Images/dot.gif">{<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //申明一个object数组 <br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  jobjectArray args = 0;<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //数组大小<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  jsize&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  len = 5;<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //获取object所属类,一般为ava/lang/Object就可以了<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  jclass objClass = (env)-&gt;FindClass(&quot;java/lang/Object&quot;);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //新建object数组<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  args = (env)-&gt;NewObjectArray(len, objClass, 0);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.cnweblog.com/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  /**//* 下面为获取到Java中对应的实例类中的变量*/<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //获取Java中的实例类<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  jclass objectClass = (env)-&gt;FindClass(&quot;com/sundy/jnidemo/DiskInfo&quot;);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //获取类中每一个变量的定义<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //名字<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  jfieldID str = (env)-&gt;GetFieldID(objectClass,&quot;name&quot;,&quot;Ljava/lang/String;&quot;);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //序列号<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  jfieldID ival = (env)-&gt;GetFieldID(objectClass,&quot;serial&quot;,&quot;I&quot;);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //给每一个实例的变量付值，并且将实例作为一个object，添加到objcet数组中<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  for(int&nbsp;&nbsp;  i=0; i &lt; len; i++ )<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.cnweblog.com/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<img src="http://www.cnweblog.com/Images/dot.gif">{<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //给每一个实例的变量付值<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  jstring jstr = WindowsTojstring(env,&quot;我的磁盘名字是 D:&quot;);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //(env)-&gt;SetObjectField(_obj,str,(env)-&gt;NewStringUTF(&quot;my name is D:&quot;));<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (env)-&gt;SetObjectField(_obj,str,jstr);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (env)-&gt;SetShortField(_obj,ival,10);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //添加到objcet数组中<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (env)-&gt;SetObjectArrayElement(args, i, _obj);<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedSubBlockEnd.gif">&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  //返回object数组<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  return args;<br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.cnweblog.com/Images/OutliningIndicators/ExpandedBlockEnd.gif"> }</div>
+</div>
+<p> </p>
+</div></div></body></html>

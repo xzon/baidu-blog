@@ -1,0 +1,145 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>blueprint--css framework研究 -good</title></head><body><h1>blueprint--css framework研究 -good</h1><div><div>
+<p> </p>
+<p>blueprint--css framework研究 -good</p>
+<p><strong>1、介绍</strong></p>
+<p>blueprint是一个所谓的css framework，相比较而言blueprint 代码中的注释还是比较详细的。</p>
+<p>按照Jeff Croft的Frameworks for Designers(或中文版本 理解Web框架，和如何构建一个CSS框架)描述的如何构建一个css framework的方法：</p>
+<p>There are several possible ways to go about building a framework, but the most common and arguably the most useful is to abstract your common CSS into individual stylesheets that each cover a particular part of the whole. For example, you may have a stylesheet that sets up the typography and another that handles the mass reset. The beauty of the approach is the ability to selectively include only the styles that you need. You may end up with six or seven different stylesheets in your framework, but if a particular project doesn&rsquo;t need one or two of them, they don&rsquo;t have to be included. The framework we created in our office has five stylesheets:.</p>
+<p>reset.css&mdash;handles the mass reset.</p>
+<p>type.css&mdash;handles the typography.</p>
+<p>grid.css&mdash;handles the layout grid.</p>
+<p>widgets.css&mdash;handles widgets like tabs, drop-down menus, and &ldquo;read more&rdquo; buttons.</p>
+<p>base.css&mdash;includes all the other stylesheets, so that we only need to call base.css from our (X)HTML documents to use the entire framework.</p>
+<p><strong>blueprint的构建方式也与此类似</strong>：</p>
+<p><strong>分而治之</strong>：</p>
+<p>buleprint在功能组织上，将诸如布局(layout)、排版(typography)、组件（widget）、重置（reset）、打印 (print)等功能分散到不同的css文件中。这样方便使用者只需要导入自己所要使用的功能，不用导入全部文件，提高页面装载性能。目前在组件部分只提供了对button的处理，尚未做到麦肯锡的MECE（&quot;相互独立，完全穷尽&quot;）的道。</p>
+<p><strong>统一接口</strong>：</p>
+<p>尽管功能分散到多个css文件，但是导入时候，仍然只需要包含同样的文件screen.css文件，具体的导入细节在screen.css中再处理，统一了对外接口。</p>
+<p>&lt;link rel=&quot;stylesheet&quot; href=&quot;css/blueprint/screen.css&quot; type=&quot;text/css&quot; media=&quot;screen, projection&quot; /&gt;</p>
+<p>blueprint 所包含的css文件说明：</p>
+<p>screen.css</p>
+<p>This is the main file of the framework. It imports other CSS files from the &quot;lib&quot; directory, and should be included on every page.</p>
+<p>类似于Jeff Croft的base.css功能，只需要包含此文件，就可以导入</p>
+<p>print.css</p>
+<p>This file sets some default print rules, so that printed versions included on every page.</p>
+<p>用于处理打印，可以归类为widget。</p>
+<p>lib/grid.css</p>
+<p>This file sets up the grid (it's true). It has a lot of classes you apply to divs to set up any sort of column-based grid.</p>
+<p>用于处理页面的布局（栏目）</p>
+<p>lib/typography.css<br>
+This file sets some default typography. It also has a few methods for some really fancy stuff to do with your text.</p>
+<p>用于处理页面元素的排版。</p>
+<p>lib/reset.css</p>
+<p>This file resets CSS values that browsers tend to set for you.</p>
+<p>用于重置页面，对没有指定css属性的页面元素指定缺省值。</p>
+<p>lib/buttons.css<br>
+Provides some great CSS-only buttons.</p>
+<p>用于处理按钮,可以归类为widget</p>
+<p>lib/compressed.css</p>
+<p>A compressed version of the core files. Use this on every live site.</p>
+<p>See screen.css for instructions</p>
+<p>提供压缩过的（包含grid.css,tyopgraphy.css,reset.css,buttons.css）的css文件。</p>
+<p><strong>2、各模块用法研究</strong></p>
+<p><strong>2.1、grid.css研究</strong></p>
+<p>对跨浏览器居中处理的兼容性处理</p>
+<p>一般而言，要处理firefox、ie在处理居中时候的不同，采用如下方式：</p>
+<p>body{text-align: center;}div#container{margin-left: auto;margin-right: auto;width: 50em;text-align: left;}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>摘自：http://www.maxdesign.com.au/presentation/center/</p>
+<p><strong>blueprint的处理方式：</strong></p>
+<p>body { text-align: center; /* IE6 Fix */ margin:36px 0;}/* A container should group all your columns. */ .container { text-align: left; position: relative; padding: 0; margin: 0 auto; /* Centers layout */ width: 1150px; /* Total width */ }分栏（Columns）的实现&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  blueprint的处理方式：</p>
+<p>blueprint定义了.column , .span-x ,.last ，两者结合来实现分栏功能。</p>
+<p>其中：.column定义栏目的float属性；.span-x定义栏目宽度；.last将margin-right置为0px,</p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p>2.2、reset.css研究</p>
+<p>reset.css的最初代码应该来自于Eric Meyer,Eric Meyer有两篇关于reset的日志，用于处理跨浏览器缺省值不同的问题。Eric Meyer的文档写得很精彩：</p>
+<p>Reset Reasoning：http://meyerweb.com/eric/thoughts/2007/04/18/reset-reasoning/</p>
+<p>Reset Reloaded：http://meyerweb.com/eric/thoughts/2007/05/01/reset-reloaded/</p>
+<p>为何要reset <br>
+The basic reason is that all browsers have presentation defaults, but no browsers have the same defaults. (Okay, no two browser families&mdash;most Gecko-based browsers do have the same defaults.) <br>
+For example, some browsers indent unordered and ordered lists with left margins, whereas others use left padding. In past years, we tackled these inconsistencies on a case-by-case basis;</p>
+<p>为何使用reset style，而不是universal selector</p>
+<p>所谓universal selector 就是使用* 来代表document所有的元素，例如</p>
+<p>* { margin: 0;} 关于reset style话题的一些资源：<br>
+<br>
+YUI的reset库：http://developer.yahoo.com/yui/reset/</p>
+<p>http://leftjustified.net/journal/2004/10/19/global-ws-reset/</p>
+<p>以下几篇实际上是讨论css framework或tips的文章，只不过都提到了reset话题。</p>
+<p>http://www.smashingmagazine.com/2007/05/10/70-expert-ideas-for-better-css-coding/</p>
+<p>http://www.christianmontoya.com/2007/02/01/css-techniques-i-use-all-the-time/</p>
+<p>http://businesslogs.com/design_and_usability/my_5_css_tips.php</p>
+<p>http://www.pingmag.jp/2006/05/18/5-steps-to-css-heaven/</p>
+<p><strong>2.3、typography.css研究</strong></p>
+<p>typography.css用于确定页面元素缺省的排版格式（baseline）：</p>
+<p>Setting Type on the Web to a Baseline Grid：</p>
+<p>http://alistapart.com/articles/settingtypeontheweb</p>
+<p><strong>2.4、buttons.css研究</strong></p>
+<p>Rediscovering the Button Element 讨论了用button元素来替代input元素的种种好处，button元素是提供了较为丰富的功能。</p>
+<p>http://particletree.com/features/rediscovering-the-button-element</p>
+<p><strong>2.4、print.css研究</strong></p>
+<p>Eric Meyer有一篇关于css实现print功能的文章，可以作为理解print.css的参考。</p>
+<p>CSS Design: Going to Print</p>
+<p>Print Different</p>
+<p><strong>2.5、compressed.css</strong></p>
+<p>compressed.css是对blueprint几个文件压缩合成包，同时也对css文件进行了压缩，去除了无用的空格、换行、注释等文本。</p>
+<p>此种方式用于在上生产系统部署时候使用，避免在页面导入多个css文件，同时也有利于提高页面性能。</p>
+<p>按照lib/screen.css中的说明，应该使用了teenage提供的css压缩服务：</p>
+<p>http://teenage.cz/acidofil/tools/cssformat.php</p>
+<p>另外类似的提供对css、javascrīpt进行优化、压缩的服务还有：</p>
+<p>http://csstidy.sourceforge.net/ （开源）</p>
+<p>http://www.cssdrive.com/index.php/main/csscompressor/</p>
+<p>http://www.cleancss.com/ （基于csstidy）</p>
+<p><strong>3、使用例子</strong></p>
+<p><strong>4、参考文档</strong></p>
+<p>http://code.google.com/p/blueprintcss/wiki/Tutorial</p>
+<p><strong>5、相关项目</strong></p>
+<p>blueprint-generator: http://kematzy.com/blueprint-generator/</p>
+<p>tripoli : http://monc.se/tripoli/</p>
+<p>推荐文章：http://www.cssdemos.com/2007/12/29/hands-on-with-blueprint-a-css-framework/</p>
+<p> </p>
+<blockquote>
+<pre>.column {<br><span>float</span>: left;<br>margin-right: 10px;<br>padding: 0;<br>}</pre>
+<pre><span>/* Use these classes to set how wide a column should be. */</span>
+.span-1   { width: 30px; }
+.span-2   { width: 70px; }
+.span-3   { width: 110px; }
+.span-4   { width: 150px; }
+...
+.span-8   { width: 310px; }
+.span-9   { width: 350px; }
+.span-10  { width: 390px; }
+...
+.span-23  { width: 910px; }
+.span-24  { width: 950px; margin: 0; }
+.span-25  { width: 200px; }
+.span-26 { width: 1150px; margin: 0; }
+<span>/* The last element in a multi-column block needs this class. */</span>
+.last     { margin-right: 0; }</pre>
+<pre> </pre>
+<pre>三栏的实现：</pre>
+<pre>&lt;div<span>class</span>=<span>&quot;container&quot;</span>&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-24&quot;</span>&gt;<br>Header<br>&lt;/div&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-4&quot;</span>&gt;<br>Left sidebar<br>&lt;/div&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-16&quot;</span>&gt;<br>Main content<br>&lt;/div&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-4 last&quot;</span>&gt;<br>Right sidebar<br>&lt;/div&gt;<br>&lt;/div&gt;</pre>
+</blockquote>
+<pre>四栏的实现：</pre>
+<blockquote>
+<pre>&lt;div<span>class</span>=<span>&quot;container&quot;</span>&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-26&quot;</span>&gt;<br>Header<br>&lt;/div&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-4&quot;</span>&gt;<br>Left sidebar<br>&lt;/div&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-3 &quot;</span>&gt;<br>Main content 0<br>&lt;/div&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-25&quot;</span>&gt;<br>Main content  1<br>&lt;/div&gt;<br>&lt;div<span>class</span>=<span>&quot;column span-4 last&quot;</span>&gt;<br>Right sidebar<br>&lt;/div&gt;<br>&lt;/div&gt;</pre>
+<pre>注意把.container中的width(定义了整个页面的width)修改为1150px</pre>
+<pre>空白栏目的实现：</pre>
+<pre>对于多栏目（例如5栏目），其中有空白栏目（例如左右两栏目为空白），可以使用.append-x和.prepend-x来填充。</pre>
+<pre>其中.append-x在栏目后（padding-right）添加空白栏目，.prepend-x在栏目前（padding-left）添加空白栏目。</pre>
+</blockquote>
+<ul>
+    <li>
+    <pre><font size="4">通用的容器定义</font></pre>
+    </li>
+</ul>
+<blockquote>
+<pre><span>/* A container should group all your columns. */</span>
+.container {
+text-align: left;
+position: relative;
+padding: 0;
+margin: 0 auto;<span>/* Centers layout */</span>
+width: 1150px;<span>/* Total width */</span>
+}</pre>
+</blockquote></div></div></body></html>

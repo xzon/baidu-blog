@@ -1,0 +1,287 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>用Java事件处理机制实现录制回放功能（续）</title></head><body><h1>用Java事件处理机制实现录制回放功能（续）</h1><div><p>用Java事件处理机制实现录制回放功能（续）</p>
+<p>然后，再在派生类中重载dispatchEvent()方法就可以截获所有的系统事件，包括用户输入事件。下面一段代码给出一个操纵EventQueue的实例：<br>
+import java.awt.*;<br>
+import java.awt.event.*;<br>
+public class GenerateEventQueue<br>
+extends Frame implements ActionListener<br>
+{<br>
+Button button1 = new Button();<br>
+TextField textField1 = new TextField();<br>
+public GenerateEventQueue()<br>
+{<br>
+try {<br>
+jbInit();<br>
+}<br>
+catch(Exception e) <br>
+{<br>
+e.printStackTrace();<br>
+}<br>
+}<br>
+public static void main(String[] args)<br>
+{<br>
+GenerateEventQueue generateEventQueue <br>
+= new GenerateEventQueue();<br>
+}<br>
+private void jbInit() throws Exception <br>
+{<br>
+button1.setLabel(&quot;button1&quot;);<br>
+button1.addActionListener(this) ;<br>
+textField1.setText(&quot;textField1&quot;);<br>
+this.add(button1, <br>
+BorderLayout.SOUTH);<br>
+this.add(textField1,<br>
+BorderLayout.CENTER);<br>
+EventQueue<br>
+eq=getToolkit().getSystemEventQueue() ;<br>
+eq.postEvent(new ActionEvent(button1,<br>
+ActionEvent.ACTION_PERFORMED,&quot;test&quot; )) ;<br>
+addWindowListener(new WinListener());<br>
+setBounds(100,100,300,200);<br>
+setVisible(true);<br>
+}<br>
+public void actionPerformed(ActionEvent e)<br>
+{<br>
+textField1.setText(&quot;event is <br>
+:&quot;+e.getActionCommand()) ;<br>
+}<br>
+}<br>
+class WinListener extends WindowAdapter<br>
+{<br>
+public void windowClosing(WindowEvent we)<br>
+{<br>
+System.exit(0) ;<br>
+}<br>
+}</p>
+<p>运行结果如下图所示： <br>
+<img class="fit-image" border="0" src="http://www.pconline.com.cn/pcedu/empolder/gj/java/0508/pic/05-08-24-java-2.jpg"></p>
+<p> </p>
+<p>在文本域中首先出现的是&quot;event is：test&quot;,这是因为首先得到处理的是EventQueue对象发送到系统事件队列上的ActionEvent。 <br>
+下面的代码简单说明了如何捕获事件：</p>
+<p>import java.awt.EventQueue;<br>
+import java.awt.*;<br>
+import java.util.*;<br>
+public class MyQueueEvent extends EventQueue<br>
+{<br>
+//定义EventQueue的子类<br>
+public MyQueueEvent()<br>
+{<br>
+}<br>
+public static void main(String[] args)<br>
+{<br>
+SimpleExample.main(new String[]{null}) ;<br>
+MyQueueEvent myQueueEvent1<br>
+= new MyQueueEvent();<br>
+Toolkit.getDefaultToolkit().<br>
+getSystemEventQueue().push(myQueueEvent1) ;<br>
+}<br>
+//在这里重载事件分发的方法<br>
+public void dispatchEvent(AWTEvent ae)<br>
+{<br>
+if(ae.getSource() <br>
+instanceof javax.swing.JButton)<br>
+System.out.println<br>
+(&quot;My apture:&quot;+((javax.swing.JButton)<br>
+ae.getSource()).getText()) ;<br>
+super.dispatchEvent(ae);<br>
+}</p>
+<p>这个程序可以打印出当前应用的所有的事件，可以将这些事件中选出你需要的事件保存当然你还需要解析该控件的特征。在上面加黑部分的代码，打印事件源控件的名称。 <br>
+除此之外，还可以通过实现java.awt.event. AWTEventListener接口实现对事件的捕获。这个侦听器接口可以接收Component or MenuComponent以及它们的派生类在整个系统范围内所分发的事件，AWTEventListeners只是被动的监控这些事件。 <br>
+如果要监控系统事件，除了要实现接口，还要用Toolkit的addAWTEventListener方法注册这个侦听器。 <br>
+下面我们来看一个实例：</p>
+<p>import java.awt.AWTEvent;<br>
+import java.awt.Frame;<br>
+import java.awt.Toolkit;<br>
+import java.awt.Window;<br>
+import java.awt.event.AWTEventListener;<br>
+import java.awt.event.WindowEvent;<br>
+import java.util.ArrayList;<br>
+import java.lang.ref.WeakReference;<br>
+public class MyAWTEventListener<br>
+implements AWTEventListener<br>
+{<br>
+private static MyAWTEventListener<br>
+s_singleton = null;<br>
+//保证该类只被初始化一次<br>
+public static <br>
+MyAWTEventListener getInstance()<br>
+{<br>
+if(s_singleton==null)<br>
+{<br>
+s_singleton=new MyAWTEventListener();<br>
+}<br>
+return s_singleton;<br>
+}<br>
+private MyAWTEventListener()<br>
+{<br>
+//注意下面这行代码，如果没有这行代码，<br>
+将无法接收到系统分发的事件<br>
+// 下面代码在注册时，<br>
+只请求了接收WINDOW_EVENT_MASK事件<br>
+//但实际上，<br>
+你可以接收其他AWTEvent中定义的事件类型<br>
+Toolkit.getDefaultToolkit().addAWTEventListener<br>
+(this,<br>
+AWTEvent.COMPONENT_EVENT_MASK<br>
+);<br>
+}<br>
+/*<br>
+这就是接口方法的实现<br>
+*/<br>
+public void eventDispatched<br>
+(final AWTEvent theEvent)<br>
+{<br>
+processEvent(theEvent);<br>
+}<br>
+private static void processEvent<br>
+(final AWTEvent theEvent)<br>
+{<br>
+System.out.println<br>
+(theEvent.getSource() ) ;<br>
+//打印事件源<br>
+switch (theEvent.getID()) <br>
+{<br>
+case WindowEvent.WINDOW_OPENED:<br>
+//System.out.println<br>
+(((Frame)theEvent.getSource()).getTitle() ) ;<br>
+case WindowEvent.WINDOW_ACTIVATED:<br>
+case WindowEvent.WINDOW_DEACTIVATED:<br>
+case WindowEvent.WINDOW_CLOSING:<br>
+default: break;<br>
+}<br>
+}<br>
+}</p>
+<p> </p>
+<p>3.3 Java事件回放 <br>
+事件的回放其实比较简单了，比如我们现在记录的是frame1下的jButton1点击事件回放。看下面一段简单的程序，只要点一下jButton1，就在控制台打印一次&quot;click me&quot;的字符串。</p>
+<p>import java.awt.*;<br>
+import javax.swing.*;<br>
+import java.awt.event.*;<br>
+public class Frame1 extends JFrame<br>
+{<br>
+private JButton jButton1 <br>
+= new JButton();<br>
+public Frame1() <br>
+{<br>
+try {<br>
+jbInit();<br>
+}<br>
+catch(Exception e) <br>
+{<br>
+e.printStackTrace();<br>
+}<br>
+}<br>
+public static void <br>
+main(String[] args) <br>
+{<br>
+Frame1 frame1 = new Frame1();<br>
+frame1.setVisible(true) ;<br>
+}<br>
+private void jbInit() <br>
+throws Exception <br>
+{<br>
+jButton1.setText(&quot;jButton1&quot;);<br>
+jButton1.addActionListener<br>
+(new java.awt.event.ActionListener()<br>
+{<br>
+public void actionPerformed<br>
+(ActionEvent e)<br>
+{<br>
+jButton1_actionPerformed(e);<br>
+}<br>
+});<br>
+this.setTitle(&quot;Test&quot;);<br>
+this.getContentPane().add(jButton1,<br>
+BorderLayout.CENTER);<br>
+}<br>
+void jButton1_actionPerformed<br>
+(ActionEvent e)<br>
+{<br>
+System.out.println(&quot;click me&quot;) ;<br>
+}<br>
+}</p>
+<p>下面是回放的程序，在下面的程序中用到了java.awt.Robot类，这个类通常用来在自动化测试或程序演示中模拟系统事件，在某些需要控制鼠标或键盘的应用程序中这个类也是很有用，这个类主要的目的就是为方便的实现Java的GUI自动化测试平台。 <br>
+在事件回放时，我们同样需要该类来模拟生成系统的事件，完成记录的操作的回放，在下面的代码中，给出了一个简单的例子。 <br>
+import java.awt.*;<br>
+import javax.swing.*;<br>
+import java.awt.event.*;<br>
+public class TestReplay extends Thread<br>
+{<br>
+public static void<br>
+main(String[] args) <br>
+{<br>
+try{<br>
+//启动要回放的应用程序<br>
+Frame1.main(new String[]{null}) ;<br>
+//等应用程序启动后延迟3秒再进行回放<br>
+Thread.currentThread().sleep(3000) ;<br>
+Robot robottest=new Robot();<br>
+robottest.waitForIdle();<br>
+//根据标题名获取当前应用的主窗体，<br>
+在本例中为&quot;test&quot;<br>
+Frame jframe=getFrame(&quot;test&quot;);;<br>
+//根据给定的窗体和窗体中要<br>
+find的控件的名称来获取控件的引用 <br>
+JButton jbtn=getButton(jframe,&quot;jButton1&quot;);<br>
+//将鼠标移到控件所在的位置<br>
+robottest.mouseMove<br>
+(jbtn.getLocationOnScreen().<br>
+x+jbtn.getWidth()/2<br>
+,jbtn.getLocationOnScreen().<br>
+y+jbtn.getHeight()/2) ;<br>
+//在控件所在位置，生成鼠标点击事件<br>
+robottest.mousePress<br>
+(InputEvent.BUTTON1_MASK ) ;<br>
+robottest.mouseRelease<br>
+(InputEvent.BUTTON1_MASK ) ;<br>
+}catch(Exception ee){<br>
+ee.printStackTrace() ;<br>
+}<br>
+}<br>
+//获得标题为title的frame<br>
+private static Frame <br>
+getFrame(String title)<br>
+{<br>
+Frame[] jframes=(Frame[])<br>
+JFrame.getFrames();<br>
+for(int i=0;i<jframes.length></jframes.length>i++)<br>
+{<br>
+if(jframes[i].getTitle().<br>
+equalsIgnoreCase(title))return jframes[i];<br>
+}<br>
+return null;<br>
+}<br>
+//获取某一个frame下的某个名为jButton1的控件<br>
+private static JButton<br>
+getButton(Frame jf,String text)<br>
+{<br>
+/*注意下面这行代码，因为实例比较简单<br>
+只有ContentPane一个Container类型的控件，<br>
+如果在JFrame中有多个Container控件<br>
+//的话，必须进行递归处理，搜索出所有的控件<br>
+*/<br>
+Component[] coms=((JFrame)jf).<br>
+getContentPane().getComponents();<br>
+for(int i=0;i<coms.length></coms.length>i++)<br>
+{<br>
+if(!(coms[i] instanceof<br>
+JButton))continue;<br>
+if(((JButton)coms[i]).<br>
+getText().equalsIgnoreCase(text))<br>
+return (JButton)coms[i];<br>
+}<br>
+return null;<br>
+}<br>
+public void run(){<br>
+}<br>
+}</p>
+<p>该程序运行完，你会发现在控制台同样打印出了： <br>
+&quot;click me&quot;的字符串说明事件被正确回放了。</p>
+<p> </p>
+<p>当然还可以通过直接操纵系统事件队列实现输入事件的回放。先通过记录下的窗口/组件名获得对应窗口引用，然后重构鼠标/键盘事件，最后将重构的事件直接放入系统事件队列，由分派线程执行后续的事件分派工作。 <br>
+还需要解决关键问题如何能根据窗口名称获得其引用。这里还是可以通过系统事件队列来实现的，因为Java程序在新建/删除一个容器时都会向系统事件队列发出一个Containerevent事件，其中包含了对该容器的引用。 <br>
+所以，事件回放器在载入被测测试程序后便监视系统队列，截获所有的Containerevent事件。如果新建容器，便获得新建Container的引用。因为所有的Container都实现了getComponets()，可以返回所有该容器所包含的组件或容器，只需要保存到一个HashMap结构中，需要时检索出来就可以了。 <br>
+该过程所用到的知识，其实在上面都有提到而且在实际引用中，既然Robot已经帮我们完成许多事情，也没有必要自己再去重构一个鼠标或键盘事件了，不过有兴趣的朋友也可以去试试。 <br>
+<strong>4、结束语</strong> <br>
+随着我国软件业的发展，软件测试技术作为软件质量保证的重要环节越来越受到重视，而在基于GUI的应用中采用自动化测试工具可以提高软件测试的有效性和效率，特别在回归测试中可以大大减少人力投入，还可以提高测试脚本的复用。 <br>
+因此，软件自动测试平台开发已经成为软件测试的一个重要领域。本文介绍了基于Java的GUI应用的自动测试平台开发需要的基本但关键的捕获、回放功能，所有相关系统开发其实都离不开本文说的方法。</p>
+<p> </p></div></body></html>

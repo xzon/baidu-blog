@@ -1,0 +1,668 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>在 Eclipse Workbench 之外使用 Eclipse GUI，第 3 部分: 添加操作、菜单和工具栏</title></head><body><h1>在 Eclipse Workbench 之外使用 Eclipse GUI，第 3 部分: 添加操作、菜单和工具栏</h1><div><h1><span style="color: #999999">在 Eclipse Workbench 之外使用 Eclipse GUI，第 3 部分: </span>添加操作、菜单和工具栏</h1>
+<p>完成简单的文件资源管理器应用程序</p>
+<p><a name="N100B4"><span class="atitle">继续使用第 2 部分的示例</span></a></p>
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/index.html"><span style="color: rgb(92, 129, 167);">上一篇文章</span></a>结束时，我们的资源管理器应用程序如图 1 所示。</p>
+<p><a name="Figure 1"><strong>图 1. 资源管理器（V8）</strong> </a><br>
+<img alt="图 1. 资源管理器(V8)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_7.gif" height="367" width="589"></p>
+<p>我们在左边窗格中使用树查看器显示文件夹和文件。当在左边窗格中选中某个文件夹时，它所包含的文件就显示在右边窗格的表查看器中。我们对右边窗格中的各项排序以便首先出现的是文件夹。我们在两个查看器中都使用图标来表示文件和文件夹。</p>
+<p>让我们给窗口添加一个简单的菜单栏。</p>
+<p><a name="N100D9"><span class="atitle">菜单</span></a></p>
+<p>JFace <a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/action/MenuManager.html"><span style="color: rgb(92, 129, 167);">MenuManager</span></a>简化了 SWT 菜单的创建和更新。菜单管理器可包含菜单项、其它菜单管理器（用于子菜单）和分隔符。一旦创建了菜单管理器，就可以用菜单栏、上下文菜单（也就是弹出菜单）或工具栏下拉菜单表示它。</p>
+<p>同查看器一样，尽管通常不需要访问 SWT 菜单本身，但菜单管理器是助手对象而不是包装器对象。在讨论菜单之前，首先看看菜单管理器能包含什么。</p>
+<p><a name="N100E9"><span class="smalltitle"><strong><span style="font-size: 16px;">操作</span></strong></span></a></p>
+<p>给菜单管理器添加操作。实际上，也可以给按钮和工具栏添加操作。其方法是：将 <a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/action/Action.html"><span style="color: rgb(92, 129, 167);">Action</span></a> 子类化，设置希望在菜单／工具栏／按钮中出现的文本，然后实现 <code><span style="font-family: NSimsun;">run()</span></code> 方法以使其做您想做的事情。</p>
+<p>让我们先看一下清单 1 中显示的示例 ExitAction：</p>
+<p><a name="code20"><strong>清单 1. ExitAction（V1）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import org.eclipse.jface.action.*;
+import org.eclipse.jface.window.*;
+public class ExitAction extends Action
+{
+  ApplicationWindow window;
+  public ExitAction(ApplicationWindow w)
+  {
+    window = w;
+    setText("E&amp;xit");
+  }
+  public void run()
+  {
+    window.close();
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>一切都相当简单。Exit 中 <strong>x</strong>前的 <strong>&amp;</strong>字符表明 <strong>x</strong>是该菜单项的 <em>键盘导航键</em>（助记符）。注：这不同于 <em>加速键</em>（热键）。很快就会看到这些……</p>
+<p>
+<table class="FCK__ShowTableBorders" align="right" border="0" cellpadding="0" cellspacing="0" width="40%">
+    <tbody>
+        <tr>
+            <td width="10"><img src="http://www.ibm.com/i/c.gif" height="1" width="10"></td>
+            <td>
+            <table border="1" cellpadding="5" cellspacing="0" width="100%">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee"><a name="N1011E"><strong>子类化操作</strong></a><br>
+                        <p>不要被 <a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/action/Action.html"><span style="color: rgb(92, 129, 167);">Action</span></a> 定义方法 <code><span style="font-family: NSimsun;">getText()</span></code> 这一事实所误导。这样做并不是要覆盖它。而是要使用 <code><span style="font-family: NSimsun;">setText(String)</span></code> ，Action 将存储它并确保用新文本更新当前使用这一操作的所有 SWT 控件。</p>
+                        <p>这适用于所有其它 Action 特性（如工具提示文本和它的启用状态等）- 稍后将讨论这些。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><a name="N10137"><span class="smalltitle"><strong><span style="font-size: 16px;">给应用程序窗口添加菜单栏</span></strong></span></a></p>
+<p>为了配置应用程序窗口使其有菜单栏，我们在 <a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/window/ApplicationWindow.html"><span style="color: rgb(92, 129, 167);">ApplicationWindow</span></a>中使用下面的方法：</p>
+<p><code><span style="font-family: NSimsun;">protected void addMenuBar()</span></code></p>
+<p>请记住：我们必须在创建 SWT shell <em>之前</em>这么做。而且，这将调用应用程序窗口方法 <code><span style="font-family: NSimsun;">createMenuManager()</span></code> ，后者会返回它稍后用来创建 SWT 菜单栏的菜单管理器。我们的实现如清单 2 所示：</p>
+<p><a name="code21"><strong>清单 2. 资源管理器 — createMenuManager</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">protected MenuManager createMenuManager()
+{
+  MenuManager bar_menu = new MenuManager("");
+  MenuManager file_menu = new MenuManager("&amp;File");
+  MenuManager edit_menu = new MenuManager("&amp;Edit");
+  MenuManager view_menu = new MenuManager("&amp;View");
+  bar_menu.add(file_menu);
+  bar_menu.add(edit_menu);
+  bar_menu.add(view_menu);
+  file_menu.add(new ExitAction(this));
+  return bar_menu;
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>资源管理器现在如图 2 所示：</p>
+<p><br>
+<a name="N10167"><strong>图 2. 资源管理器（V9）</strong></a><br>
+<img alt="图 2. 资源管理器(V9)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_8.gif" height="368" width="563"></p>
+<p>注意空菜单是被禁用的。试着用导航键 <strong>ALT+Fx</strong>关闭资源管理器应用程序。</p>
+<p>让我们稍稍改进一下“退出”操作，如清单 3 所示：</p>
+<p><a name="code2"><strong>清单 3. ExitAction（V2）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import org.eclipse.jface.action.*;
+import org.eclipse.jface.resource.*;
+import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+public class ExitAction extends Action
+{
+  ApplicationWindow window;
+  public ExitAction(ApplicationWindow w)
+  {
+    window = w;
+    setText("E&amp;xit@Ctrl+W");
+    setToolTipText("Exit the application");
+    setImageDescriptor(
+      ImageDescriptor.createFromURL(Util.newURL("file:icons/close.gif")));
+  }
+  public void run()
+  {
+    window.close();
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>我们添加了一个加速键（热键）、一条工具提示和一个图像（工具提示不会在菜单项上显示，但会在工具栏项上显示，稍后将看到这一点）。有一个可以直接设置加速键的方法，但在文本中 <strong>@</strong>字符后指定它更方便，因为用这种方法，加速键被添加到菜单项的文本中，如图 3 所示：</p>
+<p><br>
+<a name="N10194"><strong>图 3. 资源管理器（V10）</strong></a><br>
+<img alt="图 3. 资源管理器(V10)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_9.gif" height="368" width="526"></p>
+<p>眼尖的读者或许已经注意到我们直接将一个图像描述符添加到操作中。我们真正想做的是从图像注册表获取图像描述符。问题是图像注册表只提供 <em>Images</em>— 无法要求它提供 <em>ImageDescriptor</em>。这是 Eclipse 错误数据库中的 <a cmimpressionsent="1" href="http://bugs.eclipse.org/bugs/show_bug.cgi?id=23555"><span style="color: rgb(92, 129, 167);">错误 23555</span></a>。</p>
+<p><a name="N101B0"><span class="smalltitle"><strong><span style="font-size: 16px;">启动与文件关联的程序</span></strong></span></a></p>
+<p>运行与文件关联的程序非常有用。实际上使用 <a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/swt/program/Program.html"><span style="color: rgb(92, 129, 167);">Program</span></a>类来这样做也非常简单，如清单 4 所示：</p>
+<p><a name="code2"><strong>清单 4. OpenAction（V1）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.action.*;
+import org.eclipse.jface.resource.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.swt.program.*;
+public class OpenAction extends Action
+{
+  Explorer window;
+  public OpenAction(Explorer w)
+  {
+    window = w;
+    setText("Run");
+    setToolTipText("Run the associated program on a file");
+    setImageDescriptor(
+      ImageDescriptor.createFromURL(Util.newURL("file:icons/run.gif")));
+  }
+  public void run()
+  {
+    IStructuredSelection selection = window.getTableSelection();
+    if (selection.size() != 1)
+      return;
+    File selected_file = (File) selection.getFirstElement();
+    if (selected_file.isFile())
+    {
+      Program.launch(selected_file.getAbsolutePath());
+    }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>我们使用 <code><span style="font-family: NSimsun;">getTableSelection()</span></code> （稍后讨论该方法）从表获得选中的元素，然后检查是否恰好有一个元素被选中 — 请记住表现在是多选风格的表 — 然后获取元素本身，确定它确实是文件而不是文件夹，然后启动它。</p>
+<p>Program 的 <code><span style="font-family: NSimsun;">launch()</span></code> 方法负责根据文件扩展名查找关联的程序，然后运行适当的可执行文件（将绝对文件名作为参数提供）。</p>
+<p>在尝试这个操作之前，让我们先实现最后一个操作。</p>
+<p><a name="N101DB"><span class="smalltitle"><strong><span style="font-size: 16px;">使用系统剪贴板</span></strong></span></a></p>
+<p>这里简单地利用一下系统剪贴板。 <code><span style="font-family: NSimsun;">CopyFileNamesToClipboardAction</span></code> 操作将所有选中文件的绝对文件名复制到剪贴板中。</p>
+<p>我们使用 <a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/swt/dnd/Clipboard.html"><span style="color: rgb(92, 129, 167);">Clipboard</span></a>对象将文本传送到系统剪贴板。</p>
+<p>首先使 <code><span style="font-family: NSimsun;">Util</span></code> 类简单地创建一个剪贴板对象，如清单 5 所示：</p>
+<p><a name="code2"><strong>清单 5. Util（V2）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.net.*;
+import org.eclipse.jface.resource.*;
+import org.eclipse.swt.dnd.*;
+import org.eclipse.swt.widgets.*;
+public class Util
+{
+  private static ImageRegistry image_registry;
+  private static Clipboard clipboard;
+  public static URL newURL(String url_name)
+  {
+    try
+    {
+      return new URL(url_name);
+    }
+    catch (MalformedURLException e)
+    {
+      throw new RuntimeException("Malformed URL " + url_name, e);
+    }
+  }
+  public static ImageRegistry getImageRegistry()
+  {
+    if (image_registry == null)
+    {
+      image_registry = new ImageRegistry();
+      image_registry.put(
+        "folder",
+        ImageDescriptor.createFromURL(newURL("file:icons/folder.gif")));
+      image_registry.put(
+        "file",
+        ImageDescriptor.createFromURL(newURL("file:icons/file.gif")));
+    }
+    return image_registry;
+  }
+  public static Clipboard getClipboard()
+  {
+    if (clipboard == null)
+    {
+      clipboard = new Clipboard(Display.getCurrent());
+    }
+    return clipboard;
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>要将文本放入剪贴板，可对 Clipboard 使用以下方法：</p>
+<p><code><span style="font-family: NSimsun;">public void setContents(Object[] data, Transfer[] dataTypes)</span></code></p>
+<p>数据中的每个数组槽都与一个传送对象关联，传送对象告诉剪贴板数据是什么数据类型。在本例中，我们使用 <a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/swt/dnd/TextTransfer.html"><span style="color: rgb(92, 129, 167);">TextTransfer</span></a>对象，它告诉剪贴板我们所传送的是纯文本（而不是 RTF 或别的）。</p>
+<p><code><span style="font-family: NSimsun;">public void setContents(Object[] data, Transfer[] dataTypes)</span></code> 的参数是数组，因此可以一次传送几种格式的数据。例如，某个字处理应用程序可能要传送 RTF 和纯文本格式的文本。</p>
+<p>在清单 6 中展开的代码中，我们做了以下事情：</p>
+<ul>
+    <li>获取选择</li>
+    <li>确保它不为空</li>
+    <li>循环检查选择，将绝对文件名添加到字符串缓冲区</li>
+    <li>用 Text Transfer 对象将字符串传送到剪贴板</li>
+    <li>将字符串放入状态行以提供一些反馈</li>
+</ul>
+<p><a name="code2"><strong>清单 6. CopyFileNamesToClipboardAction（V1）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import java.util.*;
+import org.eclipse.jface.action.*;
+import org.eclipse.jface.resource.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.dnd.*;
+public class CopyFileNamesToClipboardAction extends Action
+{
+  Explorer window;
+  public CopyFileNamesToClipboardAction(Explorer w)
+  {
+    window = w;
+    setToolTipText("Copy absolute file names of selected files to the clipboard");
+    setText("Copy File &amp;Names@Ctrl+Shift+C");
+    setImageDescriptor(
+      ImageDescriptor.createFromURL(Util.newURL("file:icons/copy.gif")));
+  }
+  public void run()
+  {
+    Clipboard clipboard = Util.getClipboard();
+    TextTransfer text_transfer = TextTransfer.getInstance();
+    
+    IStructuredSelection selection = window.getTableSelection();
+    if (selection.isEmpty())
+    {
+      return;
+    }
+    StringBuffer string_buffer = new StringBuffer();
+    for (Iterator i = selection.iterator(); i.hasNext();)
+    {
+      File file = (File) i.next();
+      string_buffer.append(" ");
+      string_buffer.append(file.getAbsolutePath());
+    }
+    clipboard.setContents(
+      new Object[] { string_buffer.toString()},
+      new Transfer[] { text_transfer });
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>最后，更改资源管理器，添加 <code><span style="font-family: NSimsun;">getTableSelection()</span></code> 方法以及给菜单栏添加两个新操作的代码，如下所示（清单 7）：</p>
+<p><a name="code2"><strong>清单 7. 资源管理器（V10）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.action.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.custom.*;
+import org.eclipse.swt.widgets.*;
+public class Explorer extends ApplicationWindow
+{
+  private TableViewer tbv;
+  ...
+  public static void main(String[] args)
+  {
+    Explorer w = new Explorer();
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+    Util.getClipboard().dispose();
+  }
+  protected MenuManager createMenuManager()
+  {
+    MenuManager bar_menu = new MenuManager("");
+    MenuManager file_menu = new MenuManager("&amp;File");
+    MenuManager edit_menu = new MenuManager("&amp;Edit");
+    MenuManager view_menu = new MenuManager("&amp;View");
+    bar_menu.add(file_menu);
+    bar_menu.add(edit_menu);
+    bar_menu.add(view_menu);
+    file_menu.add(new ExitAction(this));
+    edit_menu.add(new CopyFileNamesToClipboardAction(this));
+    edit_menu.add(new OpenAction(this));
+    return bar_menu;
+  }
+  public IStructuredSelection getTableSelection()
+  {
+    return (IStructuredSelection) (tbv.getSelection());
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><a name="N10253"><span class="smalltitle"><strong><span style="font-size: 16px;">资源管理器实例图</span></strong></span></a></p>
+<p>于是，我们有了 3 个操作和另外 8 个类。让我们查阅资源管理器的实例图（图 4）（已实现的类以深灰色显示）。</p>
+<p><br>
+<a name="N1025E"><strong>图 4. 资源管理器（V10）及其相关对象</strong></a><br>
+<img alt="图 4. 资源管理器(V10)及其相关对象" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_instances.gif" height="351" width="587"></p>
+<p>让我们运行这一版本，看看这些操作（图 5）：</p>
+<p><br>
+<a name="N10272"><strong>图 5. 资源管理器（V10）</strong></a><br>
+<img alt="图 5. 资源管理器(V10)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_10.gif" height="358" width="600"></p>
+<p><a name="N10281"><span class="smalltitle"><strong><span style="font-size: 16px;">避免 GUI 实例层次结构的混乱</span></strong></span></a></p>
+<p>依我的经验，在设计 GUI 对象时，往往最后构建了相当庞大的实例层次结构。不同层次结构中的低层对象要相互知道对方，因此人们往往会在它们之间创建专门的交叉引用，而这会导致代码十分混乱。</p>
+<p>即使在我们这样小的示例中，也可以看到混乱的苗头。操作对象需要知道表查看器中当前选中的项。问题是：操作存储什么对象？是表查看器或 SWT 表本身，还是窗口？</p>
+<p><br>
+<a name="N1028F"><strong>图 6. 窗口、窗口小部件和操作</strong></a><br>
+<img alt="图 6. 窗口,窗口小部件和操作" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/windows_and_actions.gif" height="309" width="408"></p>
+<p>一种解决方案是让所有对窗口小部件／选择对象的访问都经过窗口。让每个操作存储创建它的窗口，然后对该窗口使用取值方法获取它所需的对象。</p>
+<p>如果希望在不同窗口间共享操作（在不同窗口中用不同的方法名称访问窗口小部件），可以把通过操作对窗口小部件的访问包装在一个方法中，然后在该操作的子类中重新实现该方法以访存正确的窗口小部件。</p>
+<p>例如，要共享访问“选择”所需的操作，可将超类中的方法 <code><span style="font-family: NSimsun;">getSelection()</span></code> 在某个子类中实现为：</p>
+<p><code><span style="font-family: NSimsun;">window.getTableSelection()</span></code></p>
+<p>而在另一个子类中（比方说）实现为</p>
+<p><code><span style="font-family: NSimsun;">window.getThirdListViewerSelection()</span></code> 。</p>
+<p><a name="N102BC"><span class="smalltitle"><strong><span style="font-size: 16px;">使操作对上下文敏感</span></strong></span></a></p>
+<p>可以对操作做的另一件事是使它们知道窗口其它地方所发生的事，并据此自动适应之。我们将使 <code><span style="font-family: NSimsun;">OpenAction</span></code> 侦听表查看器中当前选择的任何变化。当它注意到变化时，会查看新的选择并更改它的文本、工具提示和启用状态来反映这一变化。</p>
+<p><code><span style="font-family: NSimsun;">OpenAction</span></code> 对当前选中文件启动“关联的”程序。如果当时什么也没有选中，与其让它运行并报错（或干脆令人费解地什么也不干），倒不如禁用该操作。</p>
+<p>尽管我们是在为用户着想，但如果我看到菜单项被禁用却不知道原因的话，通常我会觉得困惑。所以，有这样一个办法：能不能更改工具提示以便能让用户也知道 <em>为什么</em>禁用该操作呢？</p>
+<p>我们还要确定当选择包括几个文件时要怎么做。对，我们也许可以逐一地运行所有文件，但是，由于我曾有过在 Windows 文件资源管理器中选中 300 个文件后选择打开选项的痛苦经历，所以还是暂时先禁用打开操作吧。</p>
+<p>最后，我们将检查选中的项是否为文件夹，如果是，那么也禁用打开操作。</p>
+<p>我们要使 <code><span style="font-family: NSimsun;">OpenAction</span></code> 侦听来自表查看器的 SelectionChanged 事件，因此我们将使它实现 <a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/viewers/ISelectionChangedListener.html"><span style="color: rgb(92, 129, 167);">ISelectionChangedListener</span></a>（清单 8）。</p>
+<p>我们将在 <code><span style="font-family: NSimsun;">selectionChanged()</span></code> 中这么做：</p>
+<p> </p>
+<ul>
+    <li>将文本和工具提示文本设置为缺省值</li>
+    <li>检查选择</li>
+    <li>如果选中的不是恰好一项，则禁用该操作，调整工具提示以说明为什么禁用，然后返回。</li>
+    <li>如果选择是文件（而不是文件夹），则调整文本和工具提示以反映该文件的名称并启用它。</li>
+</ul>
+<p><a name="code27"><strong>清单 8. OpenAction（V2）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.action.*;
+import org.eclipse.jface.resource.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.swt.program.*;
+public class OpenAction
+  extends Action
+  implements ISelectionChangedListener
+{
+  Explorer window;
+  public OpenAction(Explorer w)
+  {
+    window = w;
+    setText("Run");
+    setToolTipText("Run the associated program on a file");
+    setImageDescriptor(
+      ImageDescriptor.createFromURL(Util.newURL("file:icons/run.gif")));
+  }
+  public void run()
+  {
+    IStructuredSelection selection = window.getTableSelection();
+    if (selection.size() != 1)
+    {
+      return;
+    }
+    File selected_file = (File) selection.getFirstElement();
+    if (selected_file.isFile())
+    {
+      Program.launch(selected_file.getAbsolutePath());
+    }
+  }
+  public void selectionChanged(SelectionChangedEvent event)
+  {
+    setText("Run");
+    setToolTipText("Run the associated program on a file");
+    IStructuredSelection selection = window.getTableSelection();
+    if (selection.size() != 1)
+    {
+      setEnabled(false);
+      setToolTipText(
+        getToolTipText() + " (Only enabled when exactly one item is selected)");
+      return;
+    }
+    File file = (File) selection.getFirstElement();
+    if (file.isFile())
+    {
+      setEnabled(true);
+      setText("Run the associated program on " + file.getName());
+      setToolTipText(
+        "Run the program associated with "
+          + file.getName()
+          + " with this file as the argument");
+    }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>接下来，使打开操作侦听来自表查看器的 SelectionChanged 事件（清单 9）。</p>
+<p><a name="code28"><strong>清单 9. 资源管理器（V11）；省略了某些未更改的代码</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">...
+public class Explorer extends ApplicationWindow
+{
+  private TableViewer tbv;
+  private OpenAction open_action;
+  ...
+  protected Control createContents(Composite parent)
+  {
+    ...
+    tbv.addSelectionChangedListener(open_action);
+    return sash_form;
+  }
+  ...
+  protected MenuManager createMenuManager()
+  {
+    MenuManager bar_menu = new MenuManager("");
+    MenuManager file_menu = new MenuManager("&amp;File");
+    MenuManager edit_menu = new MenuManager("&amp;Edit");
+    MenuManager view_menu = new MenuManager("&amp;View");
+    bar_menu.add(file_menu);
+    bar_menu.add(edit_menu);
+    bar_menu.add(view_menu);
+    file_menu.add(new ExitAction(this));
+    edit_menu.add(new CopyFileNamesToClipboardAction(this));
+    open_action = new OpenAction(this);
+    edit_menu.add(open_action);
+    return bar_menu;
+  }
+...
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<br>
+<a name="N10320"><strong>图 7. 资源管理器（V11），显示选中一个文件时的 Edit 菜单</strong></a><br>
+<img alt="图 7. 资源管理器(V11),显示选中一个文件时的 Edit 菜单" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_11.gif" height="363" width="600"></p>
+<p>现在让我们看看已选中文件的数目如何改变打开操作（图 8）：</p>
+<p><a name="Figure 8"><strong>图 8. 资源管理器（V11），显示没有选中文件时的 Edit 菜单</strong> </a><br>
+<img alt="图 8. 资源管理器(V11),显示没有选中文件时的 Edit 菜单" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_12.gif" height="363" width="600"></p>
+<p><a name="N10341"><span class="smalltitle"><strong><span style="font-size: 16px;">工具栏和弹出菜单</span></strong></span></a></p>
+<p>最后，我们将添加工具栏和弹出（上下文）菜单。值得高兴的是，其实没有太多事情要做，因为在操作中已经完成了所有的艰巨工作。工具栏和弹出菜单只需共享这些操作。</p>
+<p>与状态行和菜单栏一样，我们配置窗口使其有一个工具栏，并且实现 <code><span style="font-family: NSimsun;">createToolBarManager()</span></code> 方法来创建它。</p>
+<p>对于弹出菜单则略有不同。我们用 <code><span style="font-family: NSimsun;">createContents()</span></code> 方法创建它，然后直接把它添加到表窗口小部件。</p>
+<p>我们还重构了代码，将这三个操作作为字段（而不是局部变量），这样我们就可以用三种方法来访问它们。让我们看看资源管理器的最终版本（清单 10）：</p>
+<p><a name="code2"><strong>清单 10. 资源管理器（V12）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.action.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.custom.*;
+import org.eclipse.swt.widgets.*;
+public class Explorer extends ApplicationWindow
+{
+  private TableViewer tbv;
+  private TreeViewer tv;
+  private OpenAction open_action;
+  private ExitAction exit_action;
+  private CopyFileNamesToClipboardAction copy_action;
+  public Explorer()
+  {
+    super(null);
+    exit_action = new ExitAction(this);
+    copy_action = new CopyFileNamesToClipboardAction(this);
+    open_action = new OpenAction(this);
+    addStatusLine();
+    addMenuBar();
+    addToolBar(SWT.FLAT | SWT.WRAP);
+  }
+  protected Control createContents(Composite parent)
+  {
+    getShell().setText("JFace File Explorer");
+    SashForm sash_form = new SashForm(parent, SWT.HORIZONTAL | SWT.NULL);
+    tv = new TreeViewer(sash_form);
+    tv.setContentProvider(new FileTreeContentProvider());
+    tv.setLabelProvider(new FileTreeLabelProvider());
+    tv.setInput(new File("C:\\"));
+    tv.addFilter(new AllowOnlyFoldersFilter());
+    tbv =
+      new TableViewer(sash_form, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
+    tbv.setContentProvider(new FileTableContentProvider());
+    tbv.setLabelProvider(new FileTableLabelProvider());
+    tbv.setSorter(new FileSorter());
+    TableColumn column = new TableColumn(tbv.getTable(), SWT.LEFT);
+    column.setText("Name");
+    column.setWidth(200);
+    column = new TableColumn(tbv.getTable(), SWT.RIGHT);
+    column.setText("Size");
+    column.setWidth(100);
+    tbv.getTable().setHeaderVisible(true);
+    tv.addSelectionChangedListener(new ISelectionChangedListener()
+    {
+      public void selectionChanged(SelectionChangedEvent event)
+      {
+        IStructuredSelection selection =
+          (IStructuredSelection) event.getSelection();
+        Object selected_file = selection.getFirstElement();
+        tbv.setInput(selected_file);
+      }
+    });
+    tbv.addSelectionChangedListener(new ISelectionChangedListener()
+    {
+      public void selectionChanged(SelectionChangedEvent event)
+      {
+        IStructuredSelection selection =
+          (IStructuredSelection) event.getSelection();
+        setStatus("Number of items selected is " + selection.size());
+      }
+    });
+    tbv.addSelectionChangedListener(open_action);
+    MenuManager menu_manager = new MenuManager();
+    tbv.getTable().setMenu(menu_manager.createContextMenu(tbv.getTable()));
+    menu_manager.add(exit_action);
+    menu_manager.add(copy_action);
+    menu_manager.add(open_action);
+    return sash_form;
+  }
+  public static void main(String[] args)
+  {
+    Explorer w = new Explorer();
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+    Util.getClipboard().dispose();
+  }
+  protected MenuManager createMenuManager()
+  {
+    MenuManager bar_menu = new MenuManager("");
+    MenuManager file_menu = new MenuManager("&amp;File");
+    MenuManager edit_menu = new MenuManager("&amp;Edit");
+    MenuManager view_menu = new MenuManager("&amp;View");
+    bar_menu.add(file_menu);
+    bar_menu.add(edit_menu);
+    bar_menu.add(view_menu);
+    file_menu.add(exit_action);
+    edit_menu.add(copy_action);
+    edit_menu.add(open_action);
+    return bar_menu;
+  }
+  public IStructuredSelection getTableSelection()
+  {
+    return (IStructuredSelection) (tbv.getSelection());
+  }
+  public void openFolder(File folder)
+  {
+    tv.setExpandedState(folder, true);
+    tv.setSelection(new StructuredSelection(folder), false);
+  }
+  
+  protected ToolBarManager createToolBarManager(int style)
+  {
+    ToolBarManager tool_bar_manager = new ToolBarManager(style);
+    tool_bar_manager.add(exit_action);
+    tool_bar_manager.add(copy_action);
+    tool_bar_manager.add(open_action);
+    return tool_bar_manager;
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>现在，让我们最后一次启动资源管理器，看看操作中的工具栏和弹出菜单（图 9 和图 10）。</p>
+<p><br>
+<a name="N1036D"><strong>图 9. 资源管理器（V12），显示选中一个文件时的弹出菜单</strong></a><br>
+<img alt="图 9. 资源管理器(V12),显示选中一个文件时的弹出菜单" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_13.gif" height="391" width="559"> <br>
+<br>
+<a name="N1037E"><strong>图 10. 资源管理器（V12），显示选中两个文件时的工具提示</strong></a><br>
+<img alt="图 10. 资源管理器(V12),显示选中两个文件时的工具提示" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/explorer_14.gif" height="390" width="592"></p>
+<p><a name="N1038D"><span class="atitle">结束语</span></a></p>
+<p>我们已经在这三篇文章中学习了许多 JFace 的知识。我们了解了如何使用相对较少的代码让可插入 JFace 窗口、查看器和菜单框架生成漂亮的用户界面。</p>
+<p>希望您已经掌握：</p>
+<ul>
+    <li>如何将应用程序窗口子类化</li>
+    <li>如何使用可插入查看器和内容提供程序</li>
+    <li>如何使用图像及图像注册表添加图标</li>
+    <li>如何使用系统剪贴板</li>
+    <li>如何启动程序</li>
+    <li>如何使用菜单和操作</li>
+    <li>操作如何使用不同的菜单容器和侦听器来生成对上下文敏感的应用程序</li>
+</ul>
+<p> </p>
+<p>不过，当然还有更多。请查阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/#resources"><span style="color: rgb(92, 129, 167);">参考资料</span></a>以获得更多信息。</p>
+<p> </p>
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+<ul>
+    <li>您可以参阅本文在 developerWorks 全球站点上的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/os-ecgui3/index.html?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><span style="color: rgb(92, 129, 167);">英文原文</span></a>.</li>
+    <li>请阅读本系列的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui1/index.html"><span style="color: rgb(92, 129, 167);">本系列的第 1 部分</span></a> 和 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/index.html"><span style="color: rgb(92, 129, 167);">本系列的第 2 部分</span></a>。</li>
+    <li>下载本文中 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/examples.zip"><span style="color: rgb(92, 129, 167);">示例的代码</span></a>。</li>
+    <li>请访问主 <a cmimpressionsent="1" href="http://www.eclipse.org/"><span style="color: rgb(92, 129, 167);">Eclipse 网站</span></a>以获得下载、文档、邮件归档和文章。在那里，您可以了解关于以下类和接口的更多信息： <code><a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/swt/program/Program.html"><span style="color: rgb(92, 129, 167); font-family: NSimsun;">Program</span></a><span style="font-family: NSimsun;">、</span><a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/swt/dnd/Clipboard.html"><span style="color: rgb(92, 129, 167); font-family: NSimsun;">Clipboard</span></a><span style="font-family: NSimsun;">、</span><a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/action/MenuManager.html"><span style="color: rgb(92, 129, 167); font-family: NSimsun;">MenuManager</span></a><span style="font-family: NSimsun;">、</span><a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/action/Action.html"><span style="color: rgb(92, 129, 167); font-family: NSimsun;">Action</span></a><span style="font-family: NSimsun;">、</span><a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/window/ApplicationWindow.html"><span style="color: rgb(92, 129, 167); font-family: NSimsun;">ApplicationWindow</span></a><span style="font-family: NSimsun;">、</span><a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/swt/dnd/TextTransfer.html"><span style="color: rgb(92, 129, 167); font-family: NSimsun;">TextTransfer</span></a><span style="font-family: NSimsun;"></span></code>和 <code><a cmimpressionsent="1" href="http://download.eclipse.org/downloads/documentation/2.0/html/plugins/org.eclipse.platform.doc.isv/reference/api/org/eclipse/jface/viewers/ISelectionChangedListener.html"><span style="color: rgb(92, 129, 167); font-family: NSimsun;">ISelectionChangedListener</span></a><span style="font-family: NSimsun;"></span></code>。</li>
+    <li>有关在 Eclipse Workbench 中使用树查看器的描述，请参阅 Eclipse 文章“ <a cmimpressionsent="1" href="http://www.eclipse.org/articles/treeviewer-cg/TreeViewerArticle.htm"><span style="color: rgb(92, 129, 167);">How to use the JFace Tree Viewer</span></a>”。</li>
+    <li>Eclipse 文章“ <a cmimpressionsent="1" href="http://www.eclipse.org/articles/Article-Using%20Images%20In%20Eclipse/Using%20Images%20In%20Eclipse.html"><span style="color: rgb(92, 129, 167);">Using Images in the Eclipse UI</span></a>”中讨论了图像处理。</li>
+    <li>要获得项目开发计划、FAQ 和有用的 SWT 代码片段列表，请查阅 <a cmimpressionsent="1" href="http://dev.eclipse.org/viewcvs/index.cgi/%7Echeckout%7E/platform-swt-home/dev.html"><span style="color: rgb(92, 129, 167);">SWT component development resources</span></a>。</li>
+    <li>在以下 <em>developerWorks</em>文章中了解有关 Eclipse 的更多信息：</li>
+    <li>在 <em>developerWorks</em>开放源码项目专区找到 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/opensource/?S_TACT=105AGX52&amp;S_CMP=cn-a-l"><span style="color: rgb(92, 129, 167);">更多开放源码参考资料</span></a>。</li>
+</ul>
+<p><a name="author"><span class="atitle">关于作者</span></a></p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td colspan="3"><img src="http://www.ibm.com/i/c.gif" height="5" width="100%"></td>
+        </tr>
+        <tr align="left" valign="top">
+            <td>
+            <p><img alt="作者照片" src="http://www.ibm.com/developerworks/cn/i/p-vanemmenis.jpg" align="left" border="0" height="80" width="64"></p>
+            </td>
+            <td><img src="http://www.ibm.com/i/c.gif" height="5" width="4"></td>
+            <td width="100%">
+            <p>A. O. Van Emmenis 是一位独立顾问，专门从事 Java/J2EE 培训和咨询工作，他在英国的剑桥工作。Van 已经在软件行业工作了约 20 年左右。他最初与对象打交道是在 CAD 行业使用 Smalltalk 的时候，他现在在工作中主要使用 Java。他对敏捷（Agile）方法和 GUI 设计特别感兴趣。您可以通过 <a cmimpressionsent="1" href="mailto:van@vanemmenis.com?cc="><span style="color: rgb(92, 129, 167);">van@vanemmenis.com</span></a>与 Van 联系。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<a href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/">http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui3/</a></div></body></html>

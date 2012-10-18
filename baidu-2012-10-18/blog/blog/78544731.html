@@ -1,0 +1,44 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>进阶：JavaClassLoader与Package机制</title></head><body><h1>进阶：JavaClassLoader与Package机制</h1><div><div class="NewsTitle"><strong><font size="3">进阶：JavaClassLoader与Package机制</font></strong></div>
+<div class="NewsInfo">
+<p><font size="3">来源：sortol.com 作者：sortol.com 发布时间：</font></p>
+<p><font size="3">JavaClassLoader与Package机制 为了深入了解Java的ClassLoader机制，我们先来做以下实验： <br>
+<br>
+package java.lang; <br>
+public class Test { <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  public static void main(String[] args) { <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  char[] c = &quot;1234567890&quot;.toCharArray(); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String s = new String(0, 10, c); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  } <br>
+} <br>
+<br>
+String类有一个Package权限的构造函数String(int offset, int length, char[] array)，按照默认的访问权限，由于Test属于java.lang包，因此理论上应该可以访问String的这个构造函数。编译通过！执行时结果如下： <br>
+<br>
+Exception in thread &quot;main&quot; java.lang.SecurityException: Prohibited package name: <br>
+java.lang <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.lang.ClassLoader.defineClass(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.security.SecureClassLoader.defineClass(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.net.URLClassLoader.defineClass(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.net.URLClassLoader.access$100(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.net.URLClassLoader$1.run(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.security.AccessController.doPrivileged(Native Method) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.net.URLClassLoader.findClass(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.lang.ClassLoader.loadClass(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at sun.misc.Launcher$AppClassLoader.loadClass(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.lang.ClassLoader.loadClass(Unknown Source) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  at java.lang.ClassLoader.loadClassInternal(Unknown Source) <br>
+<br>
+奇怪吧？要弄清为什么会有SecurityException，就必须搞清楚ClassLoader的机制。 <br>
+<br>
+Java的ClassLoader就是用来动态装载class的，ClassLoader对一个class只会装载一次，JVM使用的ClassLoader一共有4种： <br>
+<br>
+启动类装载器，标准扩展类装载器，类路径装载器和网络类装载器。 <br>
+<br>
+这4种ClassLoader的优先级依次从高到低，使用所谓的&ldquo;双亲委派模型&rdquo;。确切地说，如果一个网络类装载器被请求装载一个java.lang.Integer，它会首先把请求发送给上一级的类路径装载器，如果返回已装载，则网络类装载器将不会装载这个java.lang.Integer，如果上一级的类路径装载器返回未装载，它才会装载java.lang.Integer。 <br>
+<br>
+类似的，类路径装载器收到请求后（无论是直接请求装载还是下一级的ClassLoader上传的请求），它也会先把请求发送到上一级的标准扩展类装载器，这样一层一层上传，于是启动类装载器优先级最高，如果它按照自己的方式找到了java.lang.Integer，则下面的ClassLoader 都不能再装载java.lang.Integer，尽管你自己写了一个java.lang.Integer，试图取代核心库的java.lang.Integer是不可能的，因为自己写的这个类根本无法被下层的ClassLoader装载。 <br>
+<br>
+再说说Package权限。Java语言规定，在同一个包中的class，如果没有修饰符，默认为Package权限，包内的class都可以访问。但是这还不够准确。确切的说，只有由同一个ClassLoader装载的class才具有以上的Package权限。比如启动类装载器装载了java.lang.String，类路径装载器装载了我们自己写的java.lang.Test，它们不能互相访问对方具有Package权限的方法。这样就阻止了恶意代码访问核心类的Package权限方法。 <br>
+<br>
+<br>
+来源：赛迪网技术社区</font><a href="http://www.sortol.com/projects/2007-12-25/article19331.shtml"><font size="3">http://www.sortol.com/projects/2007-12-25/article19331.shtml</font></a></p>
+</div></div></body></html>

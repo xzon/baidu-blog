@@ -1,0 +1,77 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Spring 3.1 RC1: Environments, Comprehensive @Configuration, Cache, c: namespace, Java 7</title></head><body><h1>Spring 3.1 RC1: Environments, Comprehensive @Configuration, Cache, c: namespace, Java 7</h1><div><div><h1>Spring 3.1 RC1: Environments, Comprehensive @Configuration, Cache, c: namespace, Java 7</h1><p><a href="http://www.infoq.com/news/2011/10/spring-3.1-rc1-release">http://www.infoq.com/news/2011/10/spring-3.1-rc1-release</a></p><p>Posted by&nbsp;Bienvenido David&nbsp;on Oct 29, 2011</p><p>&nbsp;</p><p>SpringSource has&nbsp;<a href="http://www.springsource.org/node/3279" style="color: #0b59b2;">released</a>&nbsp;the first release candidate of Spring 3.1. Spring 3.1.0.RC1 contains the following new features:</p><ul><li>Environment Abstraction and Bean Profiles</li><li>Comprehensive @Configuration</li><li>Cache Abstraction</li><li>c: namespace</li><li>Enhanced MVC Support</li><li>Enhanced JPA Support</li><li>Hibernate 4.0 and Quartz 2.0 Support</li><li>Servlet 3.0 Support</li><li>Java 7 with JDBC 4.1 and ForkJoinPool</li></ul><p><span>The Spring 3.1 feature set is now complete and the Spring 3.1 GA release is planned for late November 2011. Here's a quick run down of the new features of Spring 3.1.</span></p><p></p><p><b>Environment Abstraction and Bean Profiles</b></p><p>Spring 3.1 introduces the concept of environment profiles. A common use case is the setting up of beans that are different between development, QA and production environments. A typical example is going against a standalone DataSource in development versus looking up the DataSource from JNDI in production. Another example is a beans profile for profiling that can easily be turned on or off. You can add a profile attribute on a beans element in XML or add @Profile annotation in code. Note that a Spring bean can be assigned to multiple profiles.</p><pre>	&lt;beans profile=&quot;dev&quot;&gt;
+		...
+	&lt;/beans&gt;
+</pre><pre>	@Profile(&quot;dev&quot;)
+	public class Bean {
+		...
+	}
+</pre><p><span>These profiles can be activated through the&nbsp;</span><em>spring.profiles.active</em><span>&nbsp;property which may be specified through an environment variable, a JVM system property, a Servlet &lt;init-param&gt; in web.xml or JNDI. These profiles can also be activated through code using Environment.setActiveProfiles(String ...). To make bean profiles work, nested beans elements are now allowed in the Spring XML, although constrained only at the end of the file. Note that it's recommended to keep your bean topology as close as possible between environments, so your application gets properly tested across environments.</span></p><p></p><p>You also use the Environment.containsProperty() method to search for properties across the different property sources. This property resolution also works for ${placeholder} variables in XML bean definitions.</p><p><b>Comprehensive @Configuration</b></p><p>Java-based application configuration has been enhanced and now has equivalent annotations to XML namespace functionality. @Enable annotations on @Configuration classes have been developed to match the functionality of XML namespace elements like &lt;context:component-scan/&gt;, &lt;tx:annotation-driven/&gt; and &lt;mvc:annotation-driven&gt;. Here's a list of the new annotations.</p><pre>	org.springframework.context.annotation.Configuration
+	org.springframework.context.annotation.ComponentScan
+	org.springframework.context.annotation.EnableLoadTimeWeaving
+	org.springframework.context.annotation.EnableAspectJAutoProxy
+	org.springframework.scheduling.annotation.EnableScheduling
+	org.springframework.scheduling.annotation.EnableAsync
+	org.springframework.transaction.annotation.EnableTransactionManagement
+	org.springframework.web.servlet.config.annotation.EnableWebMvc
+</pre><p><span>The TestContext framework has been overhauled with first-class support for @Configuration classes and environment profiles. The @ContextConfiguration annotation now supports using @Configuration classes for configuring the Spring TestContext. The @ActiveProfiles annotation has also been added to support declarative configuration of profiles.</span></p><pre>	@RunWith(SpringJUnit4ClassRunner.class)
+	@ContextConfiguration(loader = AnnotationConfigContextLoader.class)
+	@ActiveProfiles(&quot;dev&quot;)
+	public class Test {
+
+		@Configuration
+		static class ContextConfiguration {
+			...
+		}
+
+		...
+	}
+</pre><p></p><p><b>Cache Abstraction</b></p><p>Spring 3.1 provides support for transparently adding caching through the new @Cacheable annotation, or the &lt;cache:advice&gt; element if you prefer XML.</p><pre>	&lt;beans
+		...
+		xmlns:cache=&quot;http://www.springframework.org/schema/cache&quot;
+		http://www.springframework.org/schema/cache
+		http://www.springframework.org/schema/cache/spring-cache.xsd&quot;&gt;
+
+		&lt;cache:annotation-driven /&gt;
+
+		...
+	&lt;/beans&gt;
+
+	@Cacheable(&quot;cache&quot;)
+	public String get(String s) {
+		...
+</pre><p><span>@Cacheable applies caching to Java methods, checking each time the annotated method is invoked. If the method has already been called with the given arguments, the cached result is returned and the actual method is not executed. Of course, this only works for methods that are guaranteed to return the same result for a given set of arguments. Two caching implementations available out of the box are for JDK java.util.concurrent.ConcurrentMap and Ehcache. There is also the @CacheEvict annotation, which allows methods to trigger a cache eviction, used to remove stale or unused data in the cache. Other features of the new Caching abstraction include custom cache key generation and conditional caching.</span></p><p></p><p><b>c: namespace</b></p><p>Similar to the p: namespace, Spring 3.1 has introduced the new c: namespace which allows attributes for configuring constructor arguments rather then nested &lt;constructor-arg&gt; elements.</p><pre>	  &lt;-- constructor-arg --&gt;
+	  &lt;bean ...&gt;
+		  &lt;constructor-arg value=&quot;val&quot; /&gt;
+	  &lt;/bean&gt;
+
+	  &lt;-- c: namespace --&gt;
+	  &lt;bean ... c:arg=&quot;val&quot;&gt;
+</pre><p></p><p><b>Enhanced MVC Support</b></p><p>Spring 3.1 has revised MVC processing with flash attribute support, the new @RequestPart annotation, and REST support refinements with respect to URI templates, path variable handling and content type specification.</p><p>Flash attributes provide a way for one request to store attributes intended for use in another, most commonly used when using redirects like the Post/Redirect/Get pattern. Flash attributes are saved and made available to the request after the redirect and then removed immediately. Concurrency issues are possible with this approach, so flash attributes are associated with the path and query parameters of the target redirect URL to minimize this problem. A @RequestMapping method can accept an argument of type RedirectAttributes and use it to add flash attributes.</p><pre>	@RequestMapping(value = &quot;/&quot;, method = RequestMethod.POST)
+	public String foo(RedirectAttributes redirectAttributes) {
+		...
+	}
+</pre><p></p><p>The new @RequestPart annotation can be used to associate a &quot;multipart/form-data&quot; request part with a method argument. It allows you to have the content of a specific multipart passed through an HttpMessageConverter, taking into consideration the multipart content-type.</p><pre>	@RequestMapping(value=&quot;/&quot;, method = RequestMethod.POST)
+	public String foo(@RequestPart(&quot;file&quot;) MultipartFile file) {
+		...
+	}
+</pre><p><span>Spring 3.1 also introduces a new set of classes for processing requests with annotated controllers, namely RequestMappingHandlerMapping, RequestMappingHandlerAdapter and ExceptionHandlerExceptionResolver. These classes are replacements for DefaultAnnotationHandlerMapping, AnnotationMethodHandlerAdapter and AnnotationMethodHandlerExceptionResolver respectively. These new classes were developed to make annotation controller support classes more customizable and extensible. The use of these new classes is recommended going forward.</span></p><p></p><p>You can now narrow the request mapping by specifying a list of consumable or producible media types. For consumable media types, the request will be matched only if the Content-Type request header matches the specified type. For producible media types, the request will be matched only if the Accept request header matches the specified type.</p><pre>	@RequestMapping(value = &quot;/&quot;, method = RequestMethod.POST, consumes=&quot;application/json&quot;)
+	public void foo() {
+		...
+	}
+
+	@RequestMapping(value = &quot;/&quot;, method = RequestMethod.POST, produces=&quot;application/json&quot;)
+	public void bar() {
+		...
+	}
+</pre><p><span>There are also URI template variable enhancements. URI template variables are now used in addition to request parameters when binding a request to @ModelAttribute arguments. @PathVariable method argument values are also merged into the model before rendering. A redirect string can contain placeholders for URI variables, and a @ModelAttribute method argument can be instantiated from a URI template variable as long as there is a registered Converter or PropertyEditor.</span></p><p></p><p><b>Enhanced JPA Support</b></p><p>With Spring 3.1, the JPA EntityManagerFactory can be bootstrapped without persistence.xml or other metadata files. Using the LocalContainerEntityManagerFactoryBean packagesToScan property, you can specify the base packages to scan for @Entity classes. This is similar to AnnotationSessionFactoryBean's property of the same name for native Hibernate setup, and to Spring's component-scan feature for regular Spring beans.</p><p><b>Hibernate 4.0 and Quartz 2.x Support</b></p><p>Spring 3.1 now supports Hibernate 4.0, as well Quartz 2.x, while still preserving compatibility with older versions. For more information on Hibernate 4 support, see the Javadoc for classes within the new org.springframework.orm.hibernate4 package. The package is intentionally minimal, relying on native Hibernate builder APIs for building a SessionFactory. Quartz 2.x has converted some classes to interfaces and thus older versions of Spring are not compatible and will throw a java.lang.InstantiationError. Spring 3.1 has addressed this issue while still maintaining compatibility with Quartz 1.x.</p><p><b>Servlet 3.0 Support</b></p><p>Spring 3.1 now supports the Servlet 3.0 ServletContainerInitializer and MultipartResolver. Spring's new WebApplicationInitializer is built on top of ServletContainerInitializer to provide a programmatic alternative to web.xml. The following is an example of replacing web.xml with a WebApplicationInitializer. The link is a commit page from SpringSource's greenhouse repository.</p><p></p><p></p><p><b>Java 7 with JDBC 4.1 and ForkJoinPool</b></p><p>Initially planned for Spring 3.2, Java 7 is now supported in Spring 3.1, with JDBC 4.1 getting auto-detected and with basic support for ForkJoinPool. Spring's DataSource and RowSet adapters have been updated for compatibility with JDBC 4.1. ForkJoinPoolFactoryBean has been introduced, which is a Spring FactoryBean that builds and exposes a preconfigured ForkJoinPool.</p><p><b>Additional Features</b></p><p>Spring 3.1 now supports injection against non-standard JavaBeans setters, useful with method-chaining, where setter methods return a reference to 'this'. In earlier Spring versions, for Spring to inject against a property method, the method had to conform strictly to JavaBeans property rules, namely that the setter method must return void.</p><p>Note that conversation support has been dropped from the 3.1 feature set, due to the lack of demand, but is still under consideration for Spring 3.2. Conversation support has been called &quot;HttpSession++&quot;, a session mechanism with a more flexible lifecycle and storage options, and the ability to be associated with a browser tab.</p><p>To try out these new features, you can download the Spring 3.1 RC1 release from the&nbsp;<a href="http://www.springsource.com/download/community" style="color: #0b59b2;">Spring Community Downloads</a>&nbsp;page. If you use Maven, you can get Spring 3.1.0.RC1 from the http://maven.springframework.org/milestone Repository.</p><pre>	&lt;repository&gt;
+		&lt;id&gt;org.springframework.maven.milestone&lt;/id&gt;
+		&lt;name&gt;Spring Maven Milestone Repository&lt;/name&gt;
+		&lt;url&gt;http://maven.springframework.org/milestone&lt;/url&gt;
+	&lt;/repository&gt;
+
+	&lt;dependency&gt;
+		&lt;groupId&gt;org.springframework&lt;/groupId&gt;
+		&lt;artifactId&gt;spring-core&lt;/artifactId&gt;
+		&lt;version&gt;3.1.0.RC1&lt;/version&gt;
+	&lt;/dependency&gt;
+</pre><p><span>For more information, visit the Spring 3.1 RC1&nbsp;</span><a href="http://static.springsource.org/spring/docs/3.1.0.RC1/spring-framework-reference/html/">Reference Documentation</a><span>,&nbsp;</span><a href="http://static.springsource.org/spring/docs/3.1.0.RC1/javadoc-api/">Javadoc API</a><span>&nbsp;and&nbsp;</span><a href="http://static.springsource.org/spring/docs/3.1.0.RC1/changelog.txt">Changelog</a><span>. You can also ask questions in the&nbsp;</span><a href="http://forum.springsource.org/forumdisplay.php?f=21">Spring community forum</a><span>.</span></p><p>&nbsp;</p></div><p></p></div></body></html>

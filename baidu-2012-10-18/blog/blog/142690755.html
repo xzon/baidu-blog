@@ -1,0 +1,118 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>jdk1.5学习之RowSet（一）（二）</title></head><body><h1>jdk1.5学习之RowSet（一）（二）</h1><div><div>
+<p>jdk1.5学习之RowSet（一）（二）</p>
+<div>
+<div align="center"><span><font size="3">jdk1.5学习之RowSet（一）</font></span></div>
+<div><font size="3"><span>在</span><span>jdk1.4</span><span>的</span><span>javax.sql</span><span>包中有一个</span><span>RowSet</span><span>接口，但是没有具体实现的类。</span><span>&rdquo;Tiger&rdquo;</span><span>诞生之后，引入了</span><span>javax.sql.rowset</span><span>包中的五个子接口和</span><span>com.sun.rowset</span><span>包里面的对应的五个实现类，这样我们就可是使用功能强大的</span><span>RowSet</span><span>了。</span><span>jdk1.5</span><span>中</span><span>RowSet</span><span>的五个子接口分别是</span><span>JdbcRowSet,CachedRowSet,WebRowSet,JoinRowSet</span><span>和</span><span>FilteredRowSet</span><span>，他们为我们的数据库开发带来了强大的功能和方便的操作。</span></font></div>
+<div><font size="3"><span>我的</span><span>java</span><span>环境是</span><span>:RedHat 9</span></font></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>Jdk 1.5.1_01</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>Eclipse 3.1m4</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>MySql 4.1.10 (JDBC Driver:org.gjt.mm.mysql.Driver)<span>&nbsp;&nbsp;  </span></font></span></div>
+<div><font size="3"><span>我首先在</span><span>test</span><span>数据库里面创建了两个表用于这次的学习，下面是脚本：</span></font></div>
+<div><span><font size="3">create table table1 (id int not null , name varchar(20) not null);</font></span></div>
+<div><span><font size="3">create table table2 (id int not null, info varchar(20) not null); </font></span></div>
+<div><font size="3"><span>然后我就插入了一些数据用于测试。以下内容以我的环境示意，大家只要修改相应地方就可用于自己的测试。</span><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span></font></div>
+<div><font size="3"><span>RowSet</span><span>对象可分为两类：有连接的和无连接的。</span><span>JdbcRowSet</span><span>是唯一一个有连接的实现，和传统的</span><span>ResultSet</span><span>一个样，有连接的实现是基于</span><span>Jdbc</span><span>驱动的连接，数据库的连接是贯穿整个对数据库的操作。而无连接的实现是基于</span><span>Reader</span><span>和</span><span>Writer</span><span>流的连接，在需要读取数据和写入数据的时候才建立连接，在整个操作过程中都是断开连接的，后面四个接口对象都是无连接的实现。下面我就针对每一个接口来介绍一下它们各自的功能。</span></font></div>
+<div> </div>
+<div align="left"><font size="3"><span>JdbcRowSet</span><span>接口：</span></font></div>
+<div align="left"><font size="3"><span>我的理解是这个接口基本上和</span><span>ResultSet</span><span>有类似的功能，只不过它的结果集默认是</span><span>ResultSet.TYPE_SCROLL_INSENSITIVE</span><span>和</span><span>ResultSet.CONCUR_UPDATABLE</span><span>的，也就是说默认的结果集就是可以上下滚动和可更新的。</span></font></div>
+<div align="left"><font size="3"><span>因为本身</span><span>RowSet</span><span>接口就是</span><span>ResultSet</span><span>的子接口，所以</span><span>1.5</span><span>里面的所有</span><span>RowSet</span><span>都有</span><span>ResultSet</span><span>的方法，而</span><span>JdbcRowSet</span><span>又只是在默认的属性和</span><span>ResultSet</span><span>有区别，所以它对结果集的操作方法和</span><span>ResultSet</span><span>都是一样的，我就不具体介绍了，大家可以参考</span><span>API</span><span>。</span></font></div>
+<div align="left"><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>下面我介绍一下</span><span>JdbcRowSet</span><span>的创建方法，这有两种方法，一种是基于传统的</span><span>JDBC</span><span>连接数据库的方法：</span></font></div>
+<div align="left"><span><font size="3">Class.forName(&ldquo;org.gjt.mm.mysql.Driver&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">Connection conn=DriverManager.getConnection(&ldquo;jdbc:mydql://localhost:3306/test&rdquo;,&rdquo;root&rsquo;,&rdquo;&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">Statement stmt=conn.createStatement();</font></span></div>
+<div align="left"><span><font size="3">ResultSet rs=stamt.executeQuery(&ldquo;select * from table1&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">JdbcRowSet jrs=new JdbcRowSetImpl(rs);</font></span></div>
+<div align="left"><font size="3"><span>这样就创建了一个对象（</span><span>JdbcRowSetImpl</span><span>是</span><span>com.sun.rowset</span><span>包里面的实现类，文中的五个接口在包中都对应有一个实现类），这个对象里面的数据就是和</span><span>rs</span><span>里面的数据是一样的。还有一种创建的方法是使用默认的构造方法，然后</span><span>set</span><span>属性得到数据，个人推荐使用第二种方法：</span></font></div>
+<div align="left"><span><font size="3">JdbcRowSet jrs=new JdbcRowSetImpl();</font></span></div>
+<div align="left"><span><font size="3">jrs.setUrl(&ldquo;jdbc:mydql://localhost:3306/test&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">jrs.setUsername(&ldquo;root&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">jrs.setPassword(&ldquo;&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">jrs.setCommand(&ldquo;select * from table1&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">jrs.execute();</font></span></div>
+<div align="left"><font size="3"><span>这样创建的对象是和第一种方法是一样的结果。当然这种方法可以连接一个数据源，如果我们在上下文环境种绑定了一个数据源，</span><span>JNDI</span><span>名字是</span><span>dataSource1</span><span>，那么下面的代码就可以获得对象：</span></font></div>
+<div align="left"><span><font size="3">JdbcRowSet jrs=new JdbcRowSetImpl();</font></span></div>
+<div align="left"><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>jrs.setDataSourceName(&ldquo;dataSource1&rdquo;)</font></span></div>
+<div align="left"><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>jrs.execute();</font></span></div>
+<div align="left"><span><font size="3">得到对象之后我们就可以使用相应的方法来对数据进行遍历，更新，插入或者删除。</font></span></div>
+<div align="left"><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>我有</span><span>2</span><span>点要说明：第一，其它四个接口的对象中除了</span><span>JoinRowSet</span><span>创建方式基本都是一样的，只是接口名字和接口实现类的名字不同而已，后面我就不再说明创建对象的方法了。第二，虽然</span><span>JdbcRowSet</span><span>默认是可滚动和可更新的，但是这也是需要数据库驱动支持的，我使用的</span><span>MySql</span><span>驱动就不支持更新结果集，所以大家使用之前需要阅读驱动的说明文档。</span></font></div>
+<div> </div>
+<div><font size="3"><span>CachedRowSet</span><span>接口：</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>它继承于</span><span>RowSet</span><span>接口，而且他是无连接的</span><span>RowSet</span><span>的其他</span><span>3</span><span>个实现的父接口，也就是说其他</span><span>3</span><span>个接口都直接或者间接继承了它。从名字我们可以知道，它的原理就是读入数据保存在缓存进行相应的操作。</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;  </span></span><span>创建接口对象除了上面的两种创建方式，还有一个方法，就是在构造方法里面传递一个</span><span>SyncProvider</span><span>。之前我说过无连接的</span><span>RowSet</span><span>都是基于流读写的，那么这里所说的</span><span>SyncProvider</span><span>就是提供了特定的</span><span>Reader</span><span>和</span><span>Writer</span><span>。</span><span>jdk1.5</span><span>文档的</span><span>Sample Coder</span><span>有这样的实现：</span></font></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>String provider= &ldquo;com.fred.providers.HighAvailabilityProvider&rdquo;</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;  </span>CachedRowSet crs=new CachedRowSetImpl(provider);</font></span></div>
+<div><font size="3"><span>这样我们就为</span><span>RowSet</span><span>设置了特定的</span><span>Reader</span><span>和</span><span>Writer</span><span>，但是这是需要第三方的包支持的。而我们使用无参的构造方法创建的对象是使用了默认的</span><span>SyncProvider</span><span>，当然一般来说这对于我们就已经足够了。创建了对象之后就可以使用和</span><span>JdbcRowSet</span><span>一样的方法来进行就结果集的增删改操作了，但是唯一不同的就是在更新了结果集之后必须调用</span><span>Writer</span><span>将缓存中的数据写入数据库，而其方法就是</span><span>crs.acceptChages();</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>CachedRowSet</span><span>提供的最令人兴奋的功能就是分页功能。以前程序员很头疼的问题就是怎么处理数据分页而不影响性能，现在有了</span><span>CachedRowSet</span><span>一切都变得那么简单，请看下面的代码：</span></font></div>
+<div align="left"><span><font size="3">CachedRowSet crs=new CaehedRowSetImpl();</font></span></div>
+<div align="left"><span><font size="3">crs.setUrl(&ldquo;jdbc:mydql://localhost:3306/test&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs.setUsername(&ldquo;root&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs.setPassword(&ldquo;&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs.setCommand(&ldquo;select * from table1&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs.setPageSize(5);</font></span></div>
+<div align="left"><span><font size="3">crs.execute();</font></span></div>
+<div align="left"><span><font size="3">while(crs.nextPage()) </font></span></div>
+<div align="left"><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>while(crs.next()) </font></span></div>
+<div align="left"><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>System.out.println(crs.getInt(&ldquo;id&rdquo;+&rdquo;\t\t&rdquo;+crs.getString(&ldquo;name&rdquo;));</font></span></div>
+<div><font size="3"><span>我们在</span><span>crs.execute()</span><span>之前设置每页的数据行数，那么</span><span>Reader</span><span>读取数据的时候就只读指定的行数的数据，这样我们就避免了一次读取所有数据再进行分页操作。是不是很简单呢？</span></font></div>
+<div align="center"><font size="3"><span>jdk 1.5学习之RowSet（二）</span></font></div>
+<div><font size="3"><span>JoinRowSet</span><span>接口：</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>这个接口可以提供我们在无连接的状态下直接对结果集进行</span><span>Join</span><span>。下面的代码提供了</span><span>JoinRowSet</span><span>的实现：</span></font></div>
+<div align="left"><span><font size="3">CachedRowSet crs1=new CaehedRowSetImpl();</font></span></div>
+<div align="left"><span><font size="3">crs1.setUrl(&ldquo;jdbc:mydql://localhost:3306/test&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs1.setUsername(&ldquo;root&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs1.setPassword(&ldquo;&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs1.setCommand(&ldquo;select * from table1&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs1.execute();</font></span></div>
+<div align="left"><span><font size="3">CachedRowSet crs2=new CaehedRowSetImpl();</font></span></div>
+<div align="left"><span><font size="3">crs2.setUrl(&ldquo;jdbc:mydql://localhost:3306/test&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs2.setUsername(&ldquo;root&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs2.setPassword(&ldquo;&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs2.setCommand(&ldquo;select * from table2&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">crs2.execute();</font></span></div>
+<div align="left"><span><font size="3">JoinRowSet jrs=new JoinRowSetImpl();</font></span></div>
+<div align="left"><span><font size="3">jrs.addRowSet(crs1,&rdquo;id&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">jrs.addRowSet(crs2,&rdquo;id&rdquo;);</font></span></div>
+<div align="left"><span><font size="3">while(jrs.next()) </font></span></div>
+<div align="left"><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>System.out.println(jrs.getInt(&ldquo;id&rdquo;)+&rdquo;\t\t&rdquo;+jrs.getString(&ldquo;name&rdquo;)+&rdquo;\t\t&rdquo;+jrs.getString(&ldquo;info&rdquo;);</font></span></div>
+<div align="left"><font size="3"><span>这段代码的作用和执行</span><span>select * from table1 inner join table2 on table1.id=table2.id</span><span>语句得到的结果集是一样的。但是我个人认为与其这样复杂地使用</span><span>JoinRowSet</span><span>，不如直接使用这条</span><span>Join</span><span>语句来得到</span><span>CachedRowSet</span><span>。</span></font></div>
+<div align="left"><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>默认的</span><span>Join</span><span>是</span><span>inner join</span><span>的，接口还支持</span><span>cross join,full join,left outer join</span><span>和</span><span>right outer join</span><span>，我们通过</span><span>setJoinType()</span><span>方法来修改连接类型，当然这还是需要数据库的支持。还有一个值得注意的地方就是，在这个例子里我连接的列在两个表里面都叫</span><span>id</span><span>，那么我们取数据的时候就使用</span><span>id</span><span>这个名字，那如果两列的名字不一样呢？系统就会为这个连接列取一个默认的名字叫做</span><span>&rdquo;MergedCol&rdquo;</span><span>。</span></font></div>
+<div> </div>
+<div><font size="3"><span>FilteredRowSet</span><span>接口：</span></font></div>
+<div><font size="3"><span>.NET</span><span>的</span><span>ADO.NET</span><span>支持获取结果集使用一定的条件过滤从而得到不同的结果，那现在</span><span>jdk1.5</span><span>也能做到了，</span><span>FilterRowSet</span><span>接口让我们可以灵活地定义过滤条件达到不同的效果。</span><span>Javax.sql.rowset</span><span>包里面的</span><span>Predicate</span><span>接口就是这个过滤器，我们通过实现这个接口定义过滤条件，下面是示意代码：</span></font></div>
+<div><span><font size="3">public class Filter implements Predicate {</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>private int min;</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>private int max;</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>private String colName;</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>public Filter (int min ,int max ,String colName) {</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>this.min=min; this.max=max; this.colName=colName;</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>}</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>public boolean evaluate (RowSet rs) {</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>CachedRowSet crs=(CachedRowSet)rs;</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>if((crs.getInt(colName)&gt;min)&amp;&amp; (crs.getInt(colName)&lt;max))</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>return true;</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>else return false;</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>}</font></span></div>
+<div><span><font size="3">}</font></span></div>
+<div><font size="3"><span>下面我们就使用这个过滤器来过滤掉</span><span>id</span><span>不在</span><span>min</span><span>和</span><span>max</span><span>之间的数据：</span></font></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>FilteredRowSet frs=new FilteredRowSet();</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>……</font></span></div>
+<div><span><font size="3"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>frs.setCommand(&ldquo;select * from table1&rdquo;);</font></span></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>frs.execute();//</span><span>先获取所有数据；</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>frs.setFilter(new Filter(1,20,&rdquo;id&rdquo;);//</span><span>过滤掉</span><span>id</span><span>值不在</span><span>1</span><span>和</span><span>20</span><span>之间的数据；</span></font></div>
+<div><font size="3"><span>因为实现</span><span>Prdicate</span><span>接口里面的方法很灵活，所以我们就能很灵活地设置过滤条件，我们就可以只通过一条语句得到不同的结果。</span></font></div>
+<div> </div>
+<div><font size="3"><span>WebRowSet</span><span>接口：</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>XML</span><span>因为其平台无关性越来越受到开发者的青睐，它也是数据持久化的一个不错的选择，</span><span>WebRowSet</span><span>封装了读写</span><span>XML</span><span>的方法，我们就可以轻松地把数据库的数据持久化到</span><span>XML</span><span>或者从</span><span>XML</span><span>读取数据写入数据库。</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>写入到</span><span>XML</span><span>文件的方法是</span><span>wrs.writeXML(new FileOutputStream(&ldquo;data.xml&rdquo;));</span><span>它执行的结果是把内存中的数据写入当前目录里面的</span><span>data.xml</span><span>文件中。在这个</span><span>xml</span><span>文件里面记录了三类数据</span><span>:</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>properties</span><span>：包括</span><span>setXXX()</span><span>方法所有的属性，没有设置的就是默认属性</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>metadata</span><span>：包括数据库表的相关元数据，对应</span><span>ResultSetMetaData</span><span>里的信息</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span>data</span><span>：结果集的全部数据</span></font></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>从</span><span>xml</span><span>文件读取数据装载到</span><span>RowSet</span><span>的方法是</span><span>readXML(…);</span><span>只要是按照规范的格式写的</span><span>xml</span><span>都可以装载进来。</span></font></div>
+<div> </div>
+<div><span><font size="3">结语：</font></span></div>
+<div><font size="3"><span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>五个</span><span>RowSet</span><span>接口里面分别都还有一些方法，由于篇幅有限，我只列出了其中一些典型的方法，希望本文对大家进一步学习</span><span>jdk1.5</span><span>有所帮助！</span></font></div>
+<div><a href="http://www.bugcode.com/diary/22072">http://www.bugcode.com/diary/22072</a></div>
+<div> </div>
+<br>
+<a href="http://hi.baidu.com/li_zhongnan/blog/item/52f43b9460aaa818d31b705f.html">http://hi.baidu.com/li_zhongnan/blog/item/52f43b9460aaa818d31b705f.html</a>&nbsp;&nbsp;  <strong><font size="4">使用RowSet</font></strong></div>
+</div></div></body></html>

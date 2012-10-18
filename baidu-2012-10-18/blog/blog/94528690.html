@@ -1,0 +1,381 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>5. SOAP编码</title></head><body><h1>5. SOAP编码</h1><div><div>5. SOAP编码</div>
+<div> </div>
+<div><br>
+SOAP编码风格是基于一个简单类型系统，而这个系统是程序语言、数据库和半结构数据中类型系统的公共特性的泛化。一个类型要么是一个简单(可量化的)类型或是一个复合类型，这个复合类型由多个部分组成，每个部分是一个类型。下面会有类型的更为详细的描述。本节定义了一个编序规则，用于可类型化对象图的编序。它在两个级别上操作。首先，给出一个符号上一致化的由该类型系统描述的模式，构造一个XML语法层的模式。其次，提供一个类型系统的模式以及一个与该模式相一致的值的表示方法，构造一个XML实例层的模式。反之，先提供一个符合这些规则XML实例，然后再给出原始的模式、一个原始值表示，也是可以构造的。</div>
+<div> </div>
+<div><br>
+在本节中定义的元素和属性所用到的命名空间标识是&quot;<a href="http://www.w3.org/2001/06/soap-encoding">http://www.w3.org/2001/06/soap-encoding</a>&quot;。而这些编码的例子中假定所有命名空间声明都是在更高的元素层次上。</div>
+<div> </div>
+<div><br>
+在本节中描述的数据模型和编码风格的使用方式是被鼓励的而不是必备的，其他的数据模型和编码也是可以与SOAP联合使用的(参阅 section 4.1.1)。</div>
+<div> </div>
+<div><br>
+5.1 使用XML进行类型编码的规则</div>
+<div> </div>
+<div><br>
+XML允许非常柔性地编码数据。SOAP只定义了非常有限的编码规则。本节在一个高层次上定义编码规则，而下一节则描述明确类型的编码规则，当有更细节的需求的时候。本节中描述的编码可以与Section 7中描述的RPC调用和响应的映射联合使用。</div>
+<div> </div>
+<div><br>
+为了描述编码，以下术语将被使用:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><br>
+&ldquo;value&rdquo;值是一个字符串(string)、一个可量度对象(数字、日期、玫举)的名字、或是数个简单值的组合。所有的值都有明确的类型。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>&ldquo;simple value&rdquo;简单值是是一个不可分的值，它不包含任意可以命名的部分。简单值的离子可以是特定的字符串、证书或玫举值等。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>&ldquo;compound value&rdquo;复合值是一个值的关系的聚集。复合值的例子可以是特定的采购定单、存货报表、街道地址等。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>在一个复合值中，每一个相关的值都可以用一个角色名来区分，也可以用一个序数来区分，当然也可以同时使用两者。这被称为&ldquo;accessor&rdquo;存取标识。复合值的离子包括特定的采购定单、存货报表等。数组也是复合值。它可以被看成是具有多个相同名字的存取标识(accessor)的复合值，例如RDF。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>&ldquo;array&rdquo;数组是一个复合值，在其成员值之间仅有顺序位置不同。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>&ldquo;struct&rdquo;结构是一个复合值，在其成员值之间的区分是依靠存取标识(accessor)。同时所有存取标识的名应不同。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>&ldquo;simple type&rdquo;简单类型是简单值的类。简单类型的例子包括那些类&ldquo;string&rdquo;, &ldquo;integer&rdquo;，玫举类等。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>&ldquo;compound type&rdquo;复合类型是复合值的类。复合类型的例子包括采购定单的抽象类型，这些由该类型派生的采购定单具备相同的存取标识(shipTo, totalCost等)，当然他们有不同的值(也许对某些值还有约束)。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>在一个复合类型中，一个存取标识在本符合类型中是唯一的，如果它和其他复合类型中的某个存取标识无法相区别，则该存取标识名加上复合类型的名字才能成为唯一标识，这个名称为&quot;局部名&quot;。无论该名是直接或间接基于一个URI，如果该存取标识不用加类型名约束就已经是唯一的，那该名就成为&quot;全局名&quot;。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>值表的编序的模式中所给出的信息，是有可能能决定一些值只能关联一个存取标识的简单实例。对于其他可能的情况，则无法下这个断言。一个值被称为&rdquo;single-reference&rdquo;单引用，如果只有一个存取标识能够引用它。如果能被多个引用，无论是事实上还是潜在可能，那就是&rdquo;multi-reference&rdquo;多引用。注意有可能在一模式中有一个确定的值是单引用而其他则是多引用。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>在句法上，一个元素可以是&quot;独立的&quot;或&quot;嵌入的&quot;。一个独立的元素是作为编序中一个顶级元素出现。而其他则是嵌入元素。</div>
+<div> </div>
+<div><br>
+尽管使用xsi:type属性可以令值的表示为自描述的，也就是说即包含值的结构也包含值的类型，但编序规则允许值的类型可以仅仅引用模式(Schema)中的类型定义。而这些模式可以使用&ldquo;XML Schema Part 1: Structures&rdquo;[10]和&ldquo;XML Schema Part 2: Datatypes&rdquo;[11]中定义的规范来描述，当然也可以使用其他的模式定义来定义。注意尽管这样，但许多模式定义只支持结构(struct)和数组(array)类型，而编序规则则有可能要尝试使用结构(struct)和数组(array)类型之外的复合类型。</div>
+<div> </div>
+<div><br>
+编序规则如下:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><br>
+所有的值都应当表现为元素的内容(content)。一个多引用的值必须被表示为一个独立元素的内容。而一个单引用的值应该不如此(不过也可以如此)。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>对每个包含一个值的元素，值的类型表示必须满足以下至少一个条件：(a) 包含该值的元素实例包含一个xsi:type属性，(b) 包含该值的元素实例包含在一个具备enc: arrayType属性的元素中(可能是被设置成default的)，(c) 该元素的名带有一个类型的明确关联，而该类型由一个模式来决定。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>一个简单值应被表示为字符数据(character data)，也就是说，没有任何子元素。每一个简单值必须有一个类型，该类型要么是在XML Schema规范的DataTypes部分[11]中被罗列，要么它的源类型应当在该部分中被罗列(可参阅 section 5.2)。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>一个复合值应当被编码为一个元素序列，其中每一个存取标识由一个嵌入元素来表示，他们的名是一一对应的。若存取标识的名在包含它的型中是局部的，则它有一个未修饰的元素名，而其他则应有完全修饰的名(可参阅 section 5.4)。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>一个多引用的简单或复合值应当被编码为一个独立元素，该独立元素应包含一个局部的带有非限制名的&ldquo;id&rdquo;属性，该属性的类型为XML规范[7]中定义的ID类型。对该值的每一个存取标识是一个空元素，该空元素有一个局部的未修饰的属性&ldquo;href&rdquo;，该属性类型是XML Schema规范[11]中定义的&ldquo;uri-reference&rdquo;类型，&ldquo;href&rdquo;属性的值是一个引用该对应独立元素的URI片段标识。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>字串和字节数组被表示为多引用简单类型，不过特别的规则也允许它们在通常情况下更有效地表示(可参阅 section 5.2.1以及section 5.2.3)。一个字串或字节数组的存取标识可以有一个在XML规范[7]中定义的名为&rdquo;id&rdquo;的ID类型的属性。如果这样的话，所有其他对该同一值的存取标识可以被编码为一个空元素，该空元素应包含一个局部的带有非限制名的&ldquo;href&rdquo;属性，该属性的类型为XML Schema规范[11]中定义的&ldquo;uri-reference&rdquo;类型，&ldquo;href&rdquo;属性的值是一个引用该对应独立元素的URI片段标识。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>对一个值编码多个引用是允许的，看上去这些引用好象是引用了多个不同的值，但仅当从上下文中可得到该XML 实例的含义是未改变的的结论。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>数组是复合值(可参阅 section 5.4.2)。SOAP数组被定义为类型是&ldquo;enc:Array&rdquo;或类型是源于&ldquo;enc:Array&rdquo;。</div>
+<div> </div>
+<div><br>
+SOAP数组有一或多维，而它的成员由顺序位置区分。一个数组的值被表示为一序列反映该数组的元素，这些成员按序数从小到大顺序出现。对于多维数组，则元素维按从右到左顺序变化。没一个成员元素都被命名为一个独立元素(参阅 rule 2)。</div>
+<div> </div>
+<div><br>
+SOAP数组可以是单引用值，也可以是多引用值，从而可以被表示为一个嵌入元素或一个独立元素。</div>
+<div> </div>
+<div><br>
+SOAP数组必须包含一个&ldquo;enc:arrayType&rdquo;属性，其中定义的包含元素的值的类型与维数一起描述了该数组。&rdquo;enc:arrayType&rdquo;属性的值定义如下:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><br>
+arrayTypeValue <br>
+= <br>
+atype asize</div>
+<div> </div>
+<div><br>
+atype <br>
+= <br>
+QName *( rank )</div>
+<div> </div>
+<div><br>
+rank <br>
+= <br>
+&quot;[&quot; *( &quot;,&quot; ) &quot;]&quot;</div>
+<div> </div>
+<div><br>
+asize <br>
+= <br>
+&quot;[&quot; #length &quot;]&quot;</div>
+<div> </div>
+<div><br>
+length <br>
+= <br>
+1*DIGIT</div>
+<div> </div>
+<div><br>
+&ldquo;atype&rdquo;结构是数组所包含的元素的类型的名，首先它包含一个QName表示，QName应在XML Schema元素声明中的&ldquo;type&rdquo;属性中出现，QName是一个型约束(意味着所有其包含的元素都应宣称与该指明的类型相一致，也就是说，在enc:arrayType中引用的类型必须是所有数组元素的类型或超类型)。对于那些数组的数组或是&ldquo;jagged arrays&rdquo;，使用rank结构来表示数组的元素是一个数组，同时该数组的具体类型将在下层具体成员数组的定义时数值实例化，rank中出现零个、一个到多个逗号，表明该成员变量是一维、二维或多维数组。对于多维数组，维数定义为一个由&ldquo;,&rdquo;分隔的维数序列，每个维数的记数基数为1。</div>
+<div> </div>
+<div><br>
+&ldquo;asize&rdquo;结构包含一个由逗号分隔的由零个、一个或多个整数组成的序列指明的数组的每个维的长度。一个由零个整数组成的序列表明对数组打下并没有特别限制，不过具体的大小将由下层具体的成员来决定。</div>
+<div> </div>
+<div><br>
+例如，一个有5个成员的数组，成员类型为integer数组，它的arrayTypeValue的值就应当是 &ldquo;int[][5]&rdquo;。其中，atype的值是&ldquo;int[]&rdquo;，asize的值是&ldquo;[5]&rdquo;。类似地，一个有3个成员的数组，成员类型为integer二维数组，它的arrayTypeValue的值就应当是 &ldquo;int[,][3]&rdquo;。其中，atype的值是&ldquo;int[,]&rdquo;，asize的值是&ldquo;[3]&rdquo;。</div>
+<div> </div>
+<div><br>
+SOAP数组成员可以包含一个&ldquo;enc:offset&rdquo;属性来指明该成员在其装载的数组中的偏移量。这也可以用于指明在一个部分描述的数组中成员的偏移(参阅 section 5.4.2.1)。类似的，SOAP数组成员可以包含一个&ldquo;enc:position&rdquo;属性来指明该成员在其装载的数组中的位置。这也可以用于指明在一个稀疏描述的数组中成员的位置(参阅 section 5.4.2.2)。&ldquo;enc:offset&rdquo;和&ldquo;enc:position&rdquo;属性的值定义为:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><br>
+arrayPoint <br>
+= <br>
+&quot;[&quot; #length &quot;]&quot;</div>
+<div> </div>
+<div><br>
+他们的基数都是0。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>NULL值和默认值可以在存取标识元素中省略。NULL值可以在一个存取标识元素中使用一个值为1的属性xsi:null来指明，或者可以是其他依赖于应用程序的属性和值。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>注意rule 2允许独立元素和数组中成员元素对于包含的类型可以有不同的名。</div>
+<div> </div>
+<div><br>
+5.2 简单类型</div>
+<div> </div>
+<div><br>
+对于简单类型，SOAP采用了在&ldquo;XML Schema Part 2: Datatypes&rdquo;[11]的&ldquo;Build-in datatypes&rdquo;节中定义的所有类型，包括值和词汇空间(lexical spaces)。例子包括：</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><br>
+Type <br>
+Example</div>
+<div> </div>
+<div><br>
+int <br>
+58502</div>
+<div> </div>
+<div><br>
+float <br>
+314159265358979E+1</div>
+<div> </div>
+<div><br>
+negativeInteger <br>
+-32768</div>
+<div> </div>
+<div><br>
+string <br>
+Louis &quot;Satchmo&quot; Armstrong</div>
+<div> </div>
+<div><br>
+在XML Schema规范中声明的数据类型可以直接在元素模式中使用。而源于这些类型的类型也可以被使用。下面是一个模式片段和相应类型元素数据的例子：</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 7</div>
+<div> </div>
+<div><br>
+&lt;!-- schema document --&gt;&lt;xs:schema xmlns:xs=&quot;<a href="http://www.w3.org/2001/XMLSchema">http://www.w3.org/2001/XMLSchema</a>&quot; &gt; &lt;xs:element name=&quot;age&quot; type=&quot;xs:int&quot; /&gt; &lt;xs:element name=&quot;height&quot; type=&quot;xs:float&quot; /&gt; &lt;xs:element name=&quot;displacement&quot; type=&quot;xs:negativeInteger&quot; /&gt; &lt;xs:element name=&quot;color&quot; &gt; &lt;xs:simpleType base=&quot;xsd:string&quot;&gt; &lt;xs:restriction base=&quot;xs:string&quot; &gt; &lt;xs:enumeration value=&quot;Green&quot;/&gt; &lt;xs:enumeration value=&quot;Blue&quot;/&gt; &lt;/xs:restriction&gt; &lt;/xs:simpleType&gt; &lt;/xs:element&gt;&lt;/xs:schema&gt;</div>
+<div> </div>
+<div><br>
+Schema with simple types</div>
+<div> </div>
+<div><br>
+以下是一些合法的元素实例:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 8</div>
+<div> </div>
+<div><br>
+&lt;!-- Example instance elements --&gt;&lt;age&gt;45&lt;/age&gt;&lt;height&gt;5.9&lt;/height&gt;&lt;displacement&gt;-450&lt;/displacement&gt;&lt;color&gt;Blue&lt;/color&gt;</div>
+<div> </div>
+<div><br>
+Message fragment corresponding to the schema in Example 7</div>
+<div> </div>
+<div><br>
+无论简单值类型是在&ldquo;XML Schema Part 2: Datatypes&rdquo;规范[11]中定义，还是基于XML Schema规范所提供的类型定义机制，都必须被编码为元素的内容。</div>
+<div> </div>
+<div><br>
+如果一个简单值被编码为一个独立元素或一个异构数组的元素，这就很方便有一个对应于数据类型的元素声明。因为&ldquo;XML Schema Part 2: Datatypes&rdquo;规范[11]中包含了类型定义，但没有包含对应元素的声明，而enc模式和命名空间为每个简单数据类型声明了一个元素。这些是可以被使用的。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 9</div>
+<div> </div>
+<div><br>
+&lt;enc:int xmlns:enc=&quot;<a href="http://www.w3.org/2001/06/soap-encoding">http://www.w3.org/2001/06/soap-encoding</a>&quot; id=&quot;int1&quot;&gt;45&lt;/enc:int&gt;</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>5.2.1 字符串</div>
+<div> </div>
+<div><br>
+&ldquo;string&rdquo;数据类型在&ldquo;XML Schema Part 2: Datatypes&rdquo;[11]中被定义。值得注意的是在许多数据库或编程语言中，&ldquo;string&rdquo;类型并不是一致的，在某些特别的语言中，可能只允许一些字符能出现在&ldquo;string&rdquo;中。(这些值可能需要表示为xsd:string之外的一些数据类型)</div>
+<div> </div>
+<div><br>
+一个字串可以被编码为一个单引用或多引用值。</div>
+<div> </div>
+<div><br>
+包含string值的元素可以有一个&ldquo;id&rdquo;属性。额外的存取标识元素可以有匹配它的&ldquo;href&rdquo;属性。</div>
+<div> </div>
+<div><br>
+例如，如果有两个对同一string的存取标识出现，则可以表现为:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 10</div>
+<div> </div>
+<div><br>
+&lt;greeting id=&quot;String-0&quot;&gt;Hello&lt;/greeting&gt;&lt;salutation href=&quot;#String-0&quot;/&gt;</div>
+<div> </div>
+<div><br>
+Two accessors for the same string</div>
+<div> </div>
+<div><br>
+无论如何，事实上对一个string(或者是string的子类型)的实例加以两个引用与将他们编码成两个单引用值并没有本质的区别:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 11</div>
+<div> </div>
+<div><br>
+&lt;greeting&gt;Hello&lt;/greeting&gt;&lt;salutation&gt;Hello&lt;/salutation&gt;</div>
+<div> </div>
+<div><br>
+Two accessors for the same string</div>
+<div> </div>
+<div><br>
+对于这些例子的模式描述可能是:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 12</div>
+<div> </div>
+<div><br>
+&lt;xs:schema xmlns:xs=&quot;<a href="http://www.w3.org/2001/XMLSchema">http://www.w3.org/2001/XMLSchema</a>&quot; xmlns:enc=&quot;<a href="http://www.w3.org/2001/06/soap-encoding">http://www.w3.org/2001/06/soap-encoding</a>&quot; &gt; &lt;xs:import namespace=&quot;<a href="http://www.w3.org/2001/06/soap-encoding">http://www.w3.org/2001/06/soap-encoding</a>&quot; /&gt; &lt;xs:element name=&quot;greeting&quot; type=&quot;enc:string&quot; /&gt; &lt;xs:element name=&quot;salutation&quot; type=&quot;enc:string&quot; /&gt;&lt;/xs:schema&gt;</div>
+<div> </div>
+<div><br>
+Schema for Example 11</div>
+<div> </div>
+<div><br>
+(在这个例子中，用于描述元素类型的enc:string类型是一个方便的方法，来描述一个元素的类型是&ldquo;xsd:string&rdquo;，并且它可以附带&ldquo;id&rdquo; 和&ldquo;href&rdquo;属性。可以参阅SOAP Encoding模式来得到确切的定义。模式也可以使用这些SOAP Encoding模式中的声明，但不是必须的。)</div>
+<div> </div>
+<div><br>
+5.2.2 枚举</div>
+<div> </div>
+<div><br>
+&ldquo;XML Schema Part 2: Datatypes&rdquo;规范[11]定义了一种称为&ldquo;玫举(enumeration)&rdquo;的机制。SOAP数据模型直接采用了这个机制。可是，由于编程语言及其他语言在定义玫举上存在着一些细微的差别，因此我们在这里描述了更详细的概念，并描述了如何将一个成为玫举列表成员的值进行编码。具体的，它编码为该值的名。</div>
+<div> </div>
+<div><br>
+在概念上，&ldquo;玫举&rdquo;表示了一组不同的名。一个具体的玫举是一个符合基本类型的不同值的具体列表。例如，颜色名(&ldquo;Green&rdquo;, &ldquo;Blue&rdquo;, &ldquo;Brown&rdquo;)的集合可以被定义为一个基于内置string类型的玫举, 值(&ldquo;1&rdquo;, &ldquo;3&rdquo;, &ldquo;5&rdquo;)则可能是一个基于integer的玫举，等等。&ldquo;XML Schema Part 2: Datatypes&rdquo;规范[11]支持除boolean外所有简单类型的玫举。&ldquo;XML Schema Part 2: Structures&rdquo;规范[10]语言可以用于定义玫举类型。如果一个模式是从另一种符号体系生成过来而没有具体的基本类型可应用，那么就使用&ldquo;string&rdquo;。在下面的模式例子&ldquo;EyeColor&rdquo;被定义为一个string的玫举，其可能的值包括&ldquo;Green&rdquo;、&ldquo;Blue&rdquo;、&ldquo;Brown&rdquo;，同时实例数据也对应地给出了。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 13</div>
+<div> </div>
+<div><br>
+&lt;xs:schema xmlns:xs=&quot;<a href="http://www.w3.org/2001/XMLSchema">http://www.w3.org/2001/XMLSchema</a>&quot; xmlns:tns=&quot;<a href="http://example.org/2001/06/samples">http://example.org/2001/06/samples</a>&quot; targetNamespace=&quot;<a href="http://example.org/2001/06/samples">http://example.org/2001/06/samples</a>&quot; &gt; &lt;xs:element name=&quot;EyeColor&quot; type=&quot;tns:EyeColor&quot; /&gt; &lt;xs:simpleType name=&quot;EyeColor&quot; &gt; &lt;xs:restriction base=&quot;xs:string&quot; &gt; &lt;xs:enumeration value=&quot;Green&quot; /&gt; &lt;xs:enumeration value=&quot;Blue&quot; /&gt; &lt;xs:enumeration value=&quot;Brown&quot; /&gt; &lt;/xs:restriction&gt; &lt;/xs:simpleType&gt;&lt;/xs:schema&gt;</div>
+<div> </div>
+<div><br>
+Schema with enumeration</div>
+<div> </div>
+<div><br>
+　</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 14</div>
+<div> </div>
+<div><br>
+&lt;p:EyeColor xmlns:p=&quot;<a href="http://example.org/2001/06/samples">http://example.org/2001/06/samples</a>&quot; &gt;Brown&lt;/p:EyeColor&gt;</div>
+<div> </div>
+<div><br>
+Message fragment corresponding to the schema in Example 13</div>
+<div> </div>
+<div><br>
+5.2.3 字节数组</div>
+<div> </div>
+<div><br>
+一个Byte数组可以编码为单引用或多引用值。Byte数组的编码规则与string是类似的。</div>
+<div> </div>
+<div><br>
+特别的，包含Byte数组值的元素可以有一个&ldquo;id&rdquo;属性。额外的存取标识元素可以有一个用于匹配的&ldquo;href&rdquo;属性。</div>
+<div> </div>
+<div><br>
+对一个不透明的Byte数组的推荐表示是使用在XML Schema规范[10][11]中定义的&ldquo;base64&rdquo;编码方式，具体编码算法是在RFC 2045[13]中定义。不过，MIME中base64编码数据的数据行长度限制在SOAP中将不存在。SOAP中应使用&ldquo;enc:base64&rdquo;子类型来定义base64编码。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 15</div>
+<div> </div>
+<div><br>
+&lt;picture xmlns:xsi=&quot;<a href="http://www.w3.org/2001/XMLSchema-instance">http://www.w3.org/2001/XMLSchema-instance</a>&quot; xmlns:enc=&quot;<a href="http://www.w3.org/2001/06/soap-encoding">http://www.w3.org/2001/06/soap-encoding</a>&quot; xsi:type=&quot;enc:base64&quot; &gt; aG93IG5vDyBicm73biBjb3cNCg==&lt;/picture&gt;</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Image with base64 encoding</div>
+<div> </div>
+<div><br>
+5.3 多态存取标识</div>
+<div> </div>
+<div><br>
+许多语言允许存取标识可以多态地访问数个类型的值，在运行时刻每个类型都是可使用的。一个多态存取标识实例必须包含一个&ldquo;xsi:type&rdquo;属性以描述类型的实际值。</div>
+<div> </div>
+<div><br>
+例如，一个名为&ldquo;cost&rdquo;带有类型为&ldquo;xsd:float&rdquo;的值的多态存取标识可以编码为:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 16</div>
+<div> </div>
+<div><br>
+&lt;cost xmlns:xsi=&quot;<a href="http://www.w3.org/2001/XMLSchema-instance">http://www.w3.org/2001/XMLSchema-instance</a>&quot; xmlns:xs=&quot;<a href="http://www.w3.org/2001/XMLSchema">http://www.w3.org/2001/XMLSchema</a>&quot; xsi:type=&quot;xs:float&quot;&gt;29.95&lt;/cost&gt;</div>
+<div> </div>
+<div><br>
+Polymorphic accessor</div>
+<div> </div>
+<div><br>
+与之相对的是一个值类型不变的cost存取标识。</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>Example 17</div>
+<div> </div>
+<div><br>
+&lt;cost&gt;29.95&lt;/cost&gt;</div>
+<div> </div>
+<div><br>
+Accessor whose value type is invariant</div>
+<div> </div>
+<div><br>
+ </div></div></body></html>

@@ -1,0 +1,895 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>测量Java应用程序的CPU和内存占用率</title></head><body><h1>测量Java应用程序的CPU和内存占用率</h1><div><table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="4" width="95%">
+    <p>
+    <tbody>
+        <tr>
+            <td class="textblack"><strong>测量Java应用程序的CPU和内存占用率</strong></td>
+        </tr>
+        <tr>
+            <td class="textblack">作者： Peter V. Mikhalenko <br>
+            2006-05-29 14:46:01</td>
+        </tr>
+        <tr>
+            <td class="textgray">
+            <p><br>
+            <select style="width: 300px" name="Split_Page">
+            <option selected="selected">第1页:测量Java应用程序的CPU和内存占用率</option>
+            <option value="/2006/0529/237123.shtml">第2页：测量Java应用程序的CPU和内存占用率</option>
+            </select><br>
+            <table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" align="right">
+                <tbody>
+                    <tr>
+                        <td align="center"><img src="http://www.builder.com.cn/images/advertisement_e1.gif"></td>
+                    </tr>
+                    <tr>
+                        <td><a target="_top" href="http://ad.cn.doubleclick.net/click;h=v8/3671/0/0/%2a/w;44306;0-0;0;6694709;31-1/1;0/0/0;;~sscs=%3f"><img border="0" alt="Click here to find out more!" src="http://m1.cn.2mdn.net/viewad/817-grey.gif"></a></td>
+                    </tr>
+                </tbody>
+            </table>
+            </p>
+            <p>测量CPU和内存的占用率常常是检查<a href="http://techrepublic.com.com/5264-1-0.html?query=java">Java</a>应用程序是否达到特定性能的一个重要环节。尽管Java提供了一些重要的方法用于测量其堆栈大小，但是使用标准的API是无法测量本机Java进程的大小和CPU当前的使用率的。这种测量的结果对于开发人员来说非常重要，它会提供应用程序的实时性能和效率信息。不幸的是，这样的信息只能从操作系统直接获取，而这已经超出了Java标准的可移植能力。</p>
+            <p>一个主要的解决方案是使用操作系统自带的本机系统调用，将数据通过JNI（Java Native Interface，Java本机接口）传输给Java。与调用各个平台专用的外部命令（比如<em>ps</em>）并分析输出结果不同，这种方案始终是一种很可靠的方式。以前碰到这样的问题时，我尝试过使用<a class="content" target="_blank" href="http://www.javaworld.com/javaworld/javaqa/2002-11/cpu/01-qa-1108-cpu.zip">Vladimir Roubtsov</a>自己编写的一个很小的库，它只能在Win32系统下测量进程的CPU占用率。但是，这个库的能力十分有限，所以我需要某种方式能够同时在Windows和Solaris平台上测量CPU和内存的占用率。</p>
+            <p>我扩展了这个库的能力，在Windows和Solaris 8平台上实现了所有功能。新的库能够测量纯CPU使用时间、CPU使用的百分比、本机剩余内存和已经使用的内存、Java进程的本机内存大小、系统信息（比如操作系统的名字、补丁程序、硬件信息等）。它由三部分实现： Java通用的部分、Windows实现，以及Solaris实现。依靠操作系统的部分用纯C语言实现。</p>
+            <p><strong>编辑提示：</strong>本文可以下载，所有的源代码都以单独的文本方式列出来了。</p>
+            <p><strong>库</strong></p>
+            <p>所以，我们将创建一个简单的JNI库，用于同C层里的操作系统进行沟通，并把生成的数据提供给Java应用程序。首先，我们要创建一个<em>SystemInformation</em>类（<strong>列表</strong><strong>A</strong>），为测量和记录CPU的使用率和其他与系统相关的信息提供一个简单的API。这个类是抽象的，因为它公开的是一个完全静态的API。</p>
+            <p><strong>列表A</strong></p>
+            <p>&lt;PRE&gt;package com.vladium.utils;</p>
+            <p>public abstract class SystemInformation<br>
+            {<br>
+            // public: ................................................................<br>
+            <br>
+            /**<br>
+            * A simple class to represent data snapshots taken by {@link #makeCPUUsageSnapshot}.<br>
+            */<br>
+            public static final class CPUUsageSnapshot<br>
+            { <br>
+            public final long m_time, m_CPUTime;<br>
+            <br>
+            // constructor is private to ensure that makeCPUUsageSnapshot()<br>
+            // is used as the factory method for this class:<br>
+            private CPUUsageSnapshot (final long time, final long CPUTime)<br>
+            {<br>
+            m_time = time;<br>
+            m_CPUTime = CPUTime;<br>
+            }<br>
+            <br>
+            } // end of nested class</p>
+            <p>// Custom exception class for throwing<br>
+            public static final class NegativeCPUTime extends Exception {<br>
+            }</p>
+            <p>/**<br>
+            * Minimum time difference [in milliseconds] enforced for the inputs into<br>
+            * {@link #getProcessCPUUsage(SystemInformation.CPUUsageSnapshot,SystemInformation.CPUUsageSnapshot)}.<br>
+            * The motivation for this restriction is the fact that &lt;CODE&gt;System.currentTimeMillis()&lt;/CODE&gt;<br>
+            * on some systems has a low resolution (e.g., 10ms on win32). The current value<br>
+            * is 100 ms.<br>
+            */<br>
+            public static final int MIN_ELAPSED_TIME = 100;<br>
+            <br>
+            <br>
+            /**<br>
+            * Creates a CPU usage data snapshot by associating CPU time used with system<br>
+            * time. The resulting data can be fed into<br>
+            * {@link #getProcessCPUUsage(SystemInformation.CPUUsageSnapshot,SystemInformation.CPUUsageSnapshot)}.<br>
+            */<br>
+            public static CPUUsageSnapshot makeCPUUsageSnapshot() throws SystemInformation.NegativeCPUTime<br>
+            {<br>
+            long prCPUTime = getProcessCPUTime ();<br>
+            if (prCPUTime&amp;lt;0) throw new NegativeCPUTime();<br>
+            return new CPUUsageSnapshot (System.currentTimeMillis (), getProcessCPUTime ());<br>
+            }<br>
+            <br>
+            /**<br>
+            * Computes CPU usage (fraction of 1.0) between &lt;CODE&gt;start.m_CPUTime&lt;/CODE&gt; and<br>
+            * &lt;CODE&gt;end.m_CPUTime&lt;/CODE&gt; time points [1.0 corresponds to 100% utilization of<br>
+            * all processors].<br>
+            *<br>
+            * @throws IllegalArgumentException if start and end time points are less than<br>
+            * {@link #MIN_ELAPSED_TIME} ms apart.<br>
+            * @throws IllegalArgumentException if either argument is null;<br>
+            */<br>
+            public static double getProcessCPUUsage (final CPUUsageSnapshot start, final CPUUsageSnapshot end)<br>
+            {<br>
+            if (start == null) throw new IllegalArgumentException (&quot;null input: start&quot;);<br>
+            if (end == null) throw new IllegalArgumentException (&quot;null input: end&quot;);<br>
+            if (end.m_time &amp;lt; start.m_time + MIN_ELAPSED_TIME)<br>
+            throw new IllegalArgumentException (&quot;end time must be at least &quot; + MIN_ELAPSED_TIME + &quot; ms later than start time&quot;);<br>
+            <br>
+            return ((double)(end.m_CPUTime - start.m_CPUTime)) / (end.m_time - start.m_time);<br>
+            }<br>
+            <br>
+            /**<br>
+            * Returns the PID of the current process. The result is useful when you need<br>
+            * to integrate a Java app with external tools.<br>
+            */<br>
+            public static native int getProcessID ();</p>
+            <p>/**<br>
+            * Returns the number of processors on machine<br>
+            */<br>
+            public static native int getCPUs ();</p>
+            <p>/**<br>
+            * Returns CPU (kernel + user) time used by the current process [in milliseconds].<br>
+            * The returned value is adjusted for the number of processors in the system.<br>
+            */<br>
+            public static native long getProcessCPUTime ();</p>
+            <p>/**<br>
+            * Returns CPU (kernel + user) time used by the current process [in perecents].<br>
+            * The returned value is either CPU percentage, or zero if this is not supported by OS.<br>
+            * Currently it is supported by Solaris8, and not supported by Windows XP<br>
+            */<br>
+            public static native double getProcessCPUPercentage();</p>
+            <p>/**<br>
+            * Returns maximum memory available in the system.<br>
+            */<br>
+            public static native long getMaxMem ();</p>
+            <p>/**<br>
+            * Returns current free memory in the system.<br>
+            */<br>
+            public static native long getFreeMem ();</p>
+            <p>/**<br>
+            * Returns system name info like &quot;uname&quot; command output<br>
+            */<br>
+            public static native String getSysInfo ();</p>
+            <p>/**<br>
+            * Returns CPU usage (fraction of 1.0) so far by the current process. This is a total<br>
+            * for all processors since the process creation time.<br>
+            */<br>
+            public static native double getProcessCPUUsage ();</p>
+            <p>/**<br>
+            * Returns current space allocated for the process, in Kbytes. Those pages may or may not be in memory.<br>
+            */<br>
+            public static native long getMemoryUsage();</p>
+            <p>/**<br>
+            * Returns current process space being resident in memory, in Kbytes.<br>
+            */<br>
+            public static native long getMemoryResident();</p>
+            <p>/**<br>
+            * Sets the system native process PID for which all measurements will be done.<br>
+            * If this method is not called then the current JVM pid will act as a default.<br>
+            * Returns the native-dependent error code, or 0 in case of success.<br>
+            */<br>
+            public static native int setPid(int pid);</p>
+            <p>/**<br>
+            * Closes native-dependent process handle, if necessary.<br>
+            */<br>
+            public static native int detachProcess();</p>
+            <p>// protected: .............................................................</p>
+            <p>// package: ...............................................................</p>
+            <p>// private: ...............................................................<br>
+            <br>
+            <br>
+            private SystemInformation () {} // prevent subclassing<br>
+            <br>
+            private static final String SILIB = &quot;silib&quot;;<br>
+            <br>
+            static<br>
+            {<br>
+            // loading a native lib in a static initializer ensures that it is<br>
+            // available done before any method in this class is called:<br>
+            try<br>
+            {<br>
+            System.loadLibrary (SILIB);<br>
+            }<br>
+            catch (UnsatisfiedLinkError e)<br>
+            {<br>
+            System.out.println (&quot;native lib '&quot; + SILIB + &quot;' not found in 'java.library.path': &quot; + System.getProperty (&quot;java.library.path&quot;));<br>
+            <br>
+            throw e; // re-throw<br>
+            }<br>
+            }</p>
+            <p>} // end of class<br>
+            &lt;/PRE&gt;</p>
+            <p>最重要的方法是<em>getProcessCPUTime()</em>，它会返回当前进程的CPU时间（内核和用户）的毫秒数，或者是PID在初始化期间被传送给本机库的进程所消耗的CPU时间。返回的值应该根据系统的处理器的个数进行调整；下面我们来看看这是如何在本机代码里做到的。我们用修改符<em>native</em>来声明这个方法，这意味着它必须在JNI代码里实现。<em>getProcessCPUTime()</em>方法用来给CPU的使用率数据进行快照，方式是将经过测量的CPU时间与当前的系统时间进行关联。这样的数据库快照在<em>makeCPUUsageSnapshot()</em>方法里进行，并输出一个CPUUsageSnapshot容器对象。这样，测量CPU使用率的原理就很容易理解了：我们按照给定的时间间隔进行两次CPU快照，按1.0的分数来计算两个时间点之间的CPU使用率，方式是两点所在的CPU时间差除以两点所在系统时间差。下面就是<em>getProcessCPUUsage()</em>方法的工作原理：</p>
+            <p>public static double getProcessCPUUsage (final CPUUsageSnapshot start, final CPUUsageSnapshot end)<br>
+            &nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (start == null) throw new IllegalArgumentException (&quot;null input: start&quot;);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (end == null) throw new IllegalArgumentException (&quot;null input: end&quot;);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (end.m_time &lt; start.m_time + MIN_ELAPSED_TIME)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new IllegalArgumentException (&quot;end time must be at least &quot; + MIN_ELAPSED_TIME + &quot; ms later than start time&quot;);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return ((double)(end.m_CPUTime - start.m_CPUTime)) / (end.m_time - start.m_time);<br>
+            &nbsp;&nbsp;&nbsp;  }</p>
+            <p>只要我们知道分母里的快照之间的时间间隔，以及分子里进程花在活动状态上的CPU时间，我们就会得到所测量的时间间隔过程中进程的CPU使用率；1.0就代表所有处理器100％的使用率。</p>
+            <p>事实上这种方式可以用在所有版本的UNIX的<em>ps</em>工具和Windows的任务管理器上，这两个都是用于监视特定进程的CPU使用率的程序。很显然，时间间隔越长，我们得到的结果就越平均、越不准确。但是最小时差应该被强制输入<em>getProcessCPUUsage()</em>。这种限制的原因是某些系统上的<em>System.currentTimeMillis()</em>的解析度很低。Solaris 8操作系统提供了一个系统调用，用于从内核表里直接获得CPU使用率。出于这个目的，我们拥有的<em>getProcessCPUPercentage()</em>方法会以百分比的形式返回进程所使用的CPU时间。如果这个特性不被操作系统支持（比如在Windows下），那么JNI库就会根据我们应用程序的设计返回一个负值。</p>
+            <p>还有其他一些本机声明要在本机部分实现：</p>
+            <ul>
+                <li><em>getCPUs()</em>用来返回机器上处理器的个数</li>
+                <li><em>getMaxMem()</em>用来返回系统上可用的最大物理内存</li>
+                <li><em>getFreeMem()</em>用来返回系统上当前可用内存</li>
+                <li><em>getSysInfo()</em>用来返回系统信息，包括一些硬件和操作系统的详细信息</li>
+                <li><em>getMemoryUsage()</em>用来返回分配给进程的空间，以KB为单位（这些页面文件可能在内存里，也有可能不在内存里）</li>
+                <li><em>getMemoryResident()</em>用来返回当前进程驻留在内存里的空间，以KB为单位。</li>
+            </ul>
+            <p>所有这些方法对于不同的Java开发人员来说常常都是非常有用的。为了确保本机JNI库被调入内存并在调用任何本机方法之前被初始化，这个库被加载到一个静态初始值里：</p>
+            <p>static<br>
+            &nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.loadLibrary (SILIB);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  catch (UnsatisfiedLinkError e)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println (&quot;native lib '&quot; + SILIB + &quot;' not found in 'Java.library.path': &quot; + System.getProperty (&quot;Java.library.path&quot;));<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw e; // re-throw<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+            &nbsp;&nbsp;&nbsp;  }</p>
+            <p>在初始化一个.dll（或者.so）库之后，我们可以直接使用本机声明的方法：</p>
+            <p>final SystemInformation.CPUUsageSnapshot m_prevSnapshot =<br>
+            SystemInformation.makeCPUUsageSnapshot ();<br>
+            Thread.sleep(1000);<br>
+            final SystemInformation.CPUUsageSnapshot event = <br>
+            SystemInformation.makeCPUUsageSnapshot ();<br>
+            final long memorySize = SystemInformation.getMemoryUsage();<br>
+            final long residentSize = SystemInformation.getMemoryResident();<br>
+            long freemem = SystemInformation.getFreeMem()/1024;<br>
+            long maxmem = SystemInformation.getMaxMem()/1024;<br>
+            double receivedCPUUsage = 100.0 * SystemInformation.getProcessCPUUsage (m_prevSnapshot, event);<br>
+            System.out.println(&quot;Current CPU usage is &quot;+receivedCPUUsage+&quot;%&rdquo;);</p>
+            <p>现在让我们来分别看看针对Windows和Solaris的JNI本机实现。C头文件<em>silib.h</em>（<strong>列表</strong><strong>B</strong>）能够用JDK里的<em>Javah</em>工具生成，或者手动编写。</p>
+            <p><strong>列表B</strong></p>
+            <pre>/* DO NOT EDIT THIS FILE - it is machine generated */
+#include <jni.h></jni.h>
+/* Header for class com_vladium_utils_SystemInformation */
+
+#ifndef _Included_com_vladium_utils_SystemInformation
+#define _Included_com_vladium_utils_SystemInformation
+#ifdef __cplusplus
+extern &quot;C&quot; {
+#endif
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessID
+ * Signature: ()I
+ */
+JNIEXPORT jint
+JNICALL Java_com_vladium_utils_SystemInformation_getProcessID (JNIEnv *, jclass);
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getCPUs
+ * Signature: ()I
+ */
+JNIEXPORT jint
+JNICALL Java_com_vladium_utils_SystemInformation_getCPUs (JNIEnv *, jclass);
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessCPUTime
+ * Signature: ()J
+ */
+JNIEXPORT jlong
+JNICALL Java_com_vladium_utils_SystemInformation_getProcessCPUTime (JNIEnv *, jclass);
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessCPUUsage
+ * Signature: ()D
+ */
+JNIEXPORT jdouble
+JNICALL Java_com_vladium_utils_SystemInformation_getProcessCPUUsage (JNIEnv *, jclass);
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getPagefileUsage
+ * Signature: ()J
+ */
+JNIEXPORT jlong
+JNICALL Java_com_vladium_utils_SystemInformation_getPagefileUsage (JNIEnv *, jclass);
+
+#ifdef __cplusplus
+}
+#endif
+#endif</pre>
+            <p><strong>Windows</strong></p>
+            <p>首先我们来看看Windows的实现（<strong>列表</strong><strong>C</strong>）。</p>
+            <p><strong>列表C</strong></p>
+            <pre>/* ------------------------------------------------------------------------- */
+/*
+ * An implementation of JNI methods in com.vladium.utils.SystemInformation
+ * class. The author compiled it using Microsoft Visual C++ and GCC for Win32 but the code
+ * should be easy to use with any compiler for win32 platform.
+ *
+ * For simplicity, this implementaion assumes JNI 1.2+ and omits error handling.
+ *
+ * Enhanced by Peter V. Mikhalenko (C) 2004, Deutsche Bank [peter@mikhalenko.com]
+ * Original source (C) 2002, Vladimir Roubtsov [vlad@trilogy.com]
+ */
+/* ------------------------------------------------------------------------- */
+
+#include <windows.h></windows.h>
+#include <process.h></process.h>
+#include <winbase.h></winbase.h>
+#include <psapi.h></psapi.h>
+#include <string.h></string.h>
+#include <stdio.h></stdio.h>
+
+#include &quot;com_vladium_utils_SystemInformation.h&quot;
+
+static jint s_PID;
+static HANDLE s_currentProcess;
+static int alreadyDetached;
+static int s_numberOfProcessors;
+static SYSTEM_INFO systemInfo;
+static WORD processorArchitecture;
+static DWORD pageSize;
+static DWORD processorType;
+static WORD processorLevel;
+static WORD processorRevision;
+
+#define INFO_BUFFER_SIZE 32768
+#define BUFSIZE 2048
+
+/* ------------------------------------------------------------------------- */
+
+/*
+ * A helper function for converting FILETIME to a LONGLONG [safe from memory
+ * alignment point of view].
+ */
+static LONGLONG
+fileTimeToInt64 (const FILETIME * time)
+{
+    ULARGE_INTEGER _time;
+
+    _time.LowPart = time-&gt;dwLowDateTime;
+    _time.HighPart = time-&gt;dwHighDateTime;
+
+    return _time.QuadPart;
+}
+/* ......................................................................... */
+
+/*
+ * This method was added in JNI 1.2. It is executed once before any other
+ * methods are called and is ostensibly for negotiating JNI spec versions, but
+ * can also be conveniently used for initializing variables that will not
+ * change throughout the lifetime of this process.
+ */
+JNIEXPORT jint JNICALL
+JNI_OnLoad (JavaVM * vm, void * reserved)
+{
+        
+    s_PID = _getpid ();
+    s_currentProcess = GetCurrentProcess ();
+    externalCPUmon = 0;
+    alreadyDetached = 0;
+
+    GetSystemInfo (&amp; systemInfo);
+    s_numberOfProcessors = systemInfo.dwNumberOfProcessors;
+    processorArchitecture = systemInfo.wProcessorArchitecture;
+    pageSize = systemInfo.dwPageSize;
+    processorType = systemInfo.dwProcessorType;
+    processorLevel = systemInfo.wProcessorLevel;
+    processorRevision = systemInfo.wProcessorRevision;
+
+    return JNI_VERSION_1_2;
+}
+/* ......................................................................... */
+
+JNIEXPORT void JNICALL
+JNI_OnUnload (JavaVM * vm, void * reserved)
+{
+        
+    if (!alreadyDetached &amp;&amp; s_currentProcess!=NULL) {
+     CloseHandle(s_currentProcess);
+     printf(&quot;[JNI Unload] Detached from native process.
+&quot;);
+     fflush(stdout);
+    }
+   
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getCPUs
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_vladium_utils_SystemInformation_getCPUs (JNIEnv * env, jclass cls)
+{
+    return (jint)s_numberOfProcessors;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getSysInfo
+ * Signature: ()S
+ */
+JNIEXPORT jstring JNICALL
+Java_com_vladium_utils_SystemInformation_getSysInfo (JNIEnv * env, jclass cls)
+{
+    char buf[2048]; 
+    char buf2[512];
+    *buf=0;
+    OSVERSIONINFOEX osvi;
+    BOOL bOsVersionInfoEx;
+    TCHAR  infoBuf[INFO_BUFFER_SIZE];
+    DWORD  bufCharCount = INFO_BUFFER_SIZE;
+    
+    
+    // Try calling GetVersionEx using the OSVERSIONINFOEX structure.
+    // If that fails, try using the OSVERSIONINFO structure.
+    ZeroMemory(&amp;osvi, sizeof(OSVERSIONINFOEX));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    if( !(bOsVersionInfoEx = GetVersionEx ((OSVERSIONINFO *) &amp;osvi)) )
+    {
+       osvi.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
+       if (! GetVersionEx ( (OSVERSIONINFO *) &amp;osvi) ) {
+     // Return empty string in case of problems
+   goto next_label;
+ }
+    }
+   switch (osvi.dwPlatformId)
+   {
+      // Test for the Windows NT product family.
+      case VER_PLATFORM_WIN32_NT:
+
+         // Test for the specific product.
+         if ( osvi.dwMajorVersion == 5 &amp;&amp; osvi.dwMinorVersion == 2 )
+            strcat(buf,&quot;WinServer2003, &quot;);
+
+         if ( osvi.dwMajorVersion == 5 &amp;&amp; osvi.dwMinorVersion == 1 )
+            strcat(buf,&quot;WinXP &quot;);
+
+         if ( osvi.dwMajorVersion == 5 &amp;&amp; osvi.dwMinorVersion == 0 )
+            strcat(buf,&quot;Win2K &quot;);
+
+         if ( osvi.dwMajorVersion &lt;= 4 )
+            strcat(buf,&quot;WinNT &quot;);
+
+         // Test for specific product on Windows NT 4.0 SP6 and later.
+         if( bOsVersionInfoEx )
+         {
+            // Test for the workstation type.
+            if ( osvi.wProductType == VER_NT_WORKSTATION )
+            {
+               if( osvi.dwMajorVersion == 4 )
+                  strcat(buf,&quot;Workstation 4.0 &quot; );
+               else if( osvi.wSuiteMask &amp; VER_SUITE_PERSONAL )
+                  strcat(buf,&quot;Home Edition &quot; );
+               else
+                  strcat(buf,&quot;Professional &quot; );
+            }
+            
+            // Test for the server type.
+            else if ( osvi.wProductType == VER_NT_SERVER || 
+                      osvi.wProductType == VER_NT_DOMAIN_CONTROLLER )
+            {
+               if( osvi.dwMajorVersion == 5 &amp;&amp; osvi.dwMinorVersion == 2 )
+               {
+                  if( osvi.wSuiteMask &amp; VER_SUITE_DATACENTER )
+                     strcat(buf,&quot;Datacenter Edition &quot; );
+                  else if( osvi.wSuiteMask &amp; VER_SUITE_ENTERPRISE )
+                     strcat(buf,&quot;Enterprise Edition &quot; );
+                  else if ( osvi.wSuiteMask == VER_SUITE_BLADE )
+                     strcat(buf,&quot;Web Edition &quot; );
+                  else
+                     strcat(buf,&quot;Standard Edition &quot; );
+               }
+
+               else if( osvi.dwMajorVersion == 5 &amp;&amp; osvi.dwMinorVersion == 0 )
+               {
+                  if( osvi.wSuiteMask &amp; VER_SUITE_DATACENTER )
+                     strcat(buf,&quot;Datacenter Server &quot; );
+                  else if( osvi.wSuiteMask &amp; VER_SUITE_ENTERPRISE )
+                     strcat(buf,&quot;Advanced Server &quot; );
+                  else
+                     strcat(buf,&quot;Server &quot; );
+               }
+
+               else  // Windows NT 4.0 
+               {
+                  if( osvi.wSuiteMask &amp; VER_SUITE_ENTERPRISE )
+                     strcat(buf,&quot;Server 4.0, Enterprise Edition &quot; );
+                  else
+                     strcat(buf,&quot;Server 4.0 &quot; );
+               }
+            }
+         }
+         else  // Test for specific product on Windows NT 4.0 SP5 and earlier
+         {
+            HKEY hKey;
+            char szProductType[BUFSIZE];
+            DWORD dwBufLen=BUFSIZE;
+            LONG lRet;
+
+            lRet = RegOpenKeyEx( HKEY_LOCAL_MACHINE,
+               &quot;SYSTEMCurrentControlSetControlProductOptions&quot;,
+               0, KEY_QUERY_VALUE, &amp;hKey );
+            if( lRet != ERROR_SUCCESS ) {
+      goto next_label;
+  }
+
+            lRet = RegQueryValueEx( hKey, &quot;ProductType&quot;, NULL, NULL,
+               (LPBYTE) szProductType, &amp;dwBufLen);
+            if( (lRet != ERROR_SUCCESS) || (dwBufLen &gt; BUFSIZE) ) {
+  goto next_label;
+     }
+
+            RegCloseKey( hKey );
+
+            if ( lstrcmpi( &quot;WINNT&quot;, szProductType) == 0 )
+               strcat(buf,&quot;Workstation &quot; );
+            if ( lstrcmpi( &quot;LANMANNT&quot;, szProductType) == 0 )
+               strcat(buf,&quot;Server &quot; );
+            if ( lstrcmpi( &quot;SERVERNT&quot;, szProductType) == 0 )
+               strcat(buf,&quot;Advanced Server &quot; );
+
+            sprintf(buf2, &quot;%d.%d &quot;, (int)osvi.dwMajorVersion, (int)osvi.dwMinorVersion );
+     strcat(buf,buf2);
+         }
+
+      // Display service pack (if any) and build number.
+
+         if( osvi.dwMajorVersion == 4 &amp;&amp; 
+             lstrcmpi( osvi.szCSDVersion, &quot;Service Pack 6&quot; ) == 0 )
+         {
+            HKEY hKey;
+            LONG lRet;
+
+            // Test for SP6 versus SP6a.
+            lRet = RegOpenKeyEx( HKEY_LOCAL_MACHINE,
+               &quot;SOFTWAREMicrosoftWindows NTCurrentVersionHotfixQ246009&quot;,
+               0, KEY_QUERY_VALUE, &amp;hKey );
+            if( lRet == ERROR_SUCCESS ) {
+               sprintf(buf2, &quot;SP 6a (Build %d), &quot;, <br>(int)(osvi.dwBuildNumber &amp; 0xFFFF) );         
+        strcat(buf,buf2);
+     }
+            else // Windows NT 4.0 prior to SP6a
+            {
+               sprintf(buf2, &quot;%s (Build %d), &quot;,
+                  osvi.szCSDVersion,
+                  (int)(osvi.dwBuildNumber &amp; 0xFFFF));
+        strcat(buf,buf2);
+            }
+
+            RegCloseKey( hKey );
+         }
+         else // not Windows NT 4.0 
+         {
+            sprintf(buf2, &quot;%s (Build %d), &quot;,
+               osvi.szCSDVersion,
+               (int)(osvi.dwBuildNumber &amp; 0xFFFF));
+     strcat(buf,buf2);
+         }
+
+         break;
+
+      // Test for the Windows Me/98/95.
+      case VER_PLATFORM_WIN32_WINDOWS:
+
+         if (osvi.dwMajorVersion == 4 &amp;&amp; osvi.dwMinorVersion == 0)
+         {
+             strcat(buf,&quot;Win95 &quot;);
+             if ( osvi.szCSDVersion[1] == 'C' || osvi.szCSDVersion[1] == 'B' )
+                strcat(buf,&quot;OSR2 &quot; );
+         } 
+
+         if (osvi.dwMajorVersion == 4 &amp;&amp; osvi.dwMinorVersion == 10)
+         {
+             strcat(buf,&quot;Win98 &quot;);
+             if ( osvi.szCSDVersion[1] == 'A' )
+                strcat(buf,&quot;SE &quot; );
+         } 
+
+         if (osvi.dwMajorVersion == 4 &amp;&amp; osvi.dwMinorVersion == 90)
+         {
+             strcat(buf,&quot;WinME &quot;);
+         } 
+         break;
+
+      case VER_PLATFORM_WIN32s:
+
+         strcat(buf,&quot;Win32s &quot;);
+         break;
+   }
+     
+next_label:
+
+   strcat(buf,&quot;
+         on &quot;);
+   // Get and display the name of the computer. 
+   bufCharCount = INFO_BUFFER_SIZE;
+   if( !GetComputerName( infoBuf, &amp;bufCharCount ) )
+     goto next_label_2; 
+   strcat(buf, infoBuf ); 
+    
+next_label_2:
+    strcat(buf,&quot; (&quot;);
+    if (!(osvi.dwPlatformId==VER_PLATFORM_WIN32_WINDOWS &amp;&amp; <br>osvi.dwMajorVersion == 4 &amp;&amp; osvi.dwMinorVersion == 0)) {
+     // Win95 does not keep CPU info in registry
+     LONG lRet;
+     HKEY hKey;
+            char szOrigCPUType[BUFSIZE];
+     int i=0;
+            DWORD dwBufLen=BUFSIZE;
+            lRet = RegOpenKeyEx( HKEY_LOCAL_MACHINE,
+               &quot;HARDWAREDESCRIPTIONSystemCentralProcessor&quot;,
+               0, KEY_QUERY_VALUE, &amp;hKey );
+            if( lRet != ERROR_SUCCESS ) {
+      goto next_label_3;
+  }
+
+            lRet = RegQueryValueEx( hKey, &quot;ProcessorNameString&quot;, NULL, NULL,
+               (LPBYTE) szOrigCPUType, &amp;dwBufLen);
+            if( (lRet != ERROR_SUCCESS) || (dwBufLen &gt; BUFSIZE) ) {
+  goto next_label_3;
+     }
+            RegCloseKey( hKey );
+     if (strlen(szOrigCPUType)&gt;0) {
+  while(szOrigCPUType[i]==' ' &amp;&amp; szOrigCPUType[i]!=0) i++;
+  strcat(buf,szOrigCPUType+i);
+     } else goto next_label_3;
+    } else {
+next_label_3:
+     if (processorArchitecture==PROCESSOR_ARCHITECTURE_UNKNOWN) strcat(buf,&quot;unknown_arch&quot;);
+     else if (processorArchitecture==PROCESSOR_ARCHITECTURE_INTEL) {
+      strcat(buf,&quot;Intel &quot;);
+      sprintf(buf2,&quot;level %d &quot;,processorLevel);
+      strcat(buf,buf2);
+     } else if (processorArchitecture==PROCESSOR_ARCHITECTURE_IA64) strcat(buf,&quot;IA64 &quot;);
+     else if (processorArchitecture==PROCESSOR_ARCHITECTURE_MIPS) strcat(buf,&quot;MIPS &quot;);
+     else if (processorArchitecture==PROCESSOR_ARCHITECTURE_ALPHA) strcat(buf,&quot;Alpha &quot;);
+     else if (processorArchitecture==PROCESSOR_ARCHITECTURE_PPC) strcat(buf,&quot;PowerPC &quot;);
+     else if (processorArchitecture==PROCESSOR_ARCHITECTURE_SHX) strcat(buf,&quot;SHX &quot;);
+     else if (processorArchitecture==PROCESSOR_ARCHITECTURE_ALPHA64) strcat(buf,&quot;Alpha64 &quot;);
+     else strcat(buf,&quot;unknown_arch &quot;);
+    }
+    
+    strcat(buf,&quot;)&quot;);
+
+    jstring retval = (*env)-&gt;NewStringUTF(env,buf);
+    return retval;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessID
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_vladium_utils_SystemInformation_getProcessID (JNIEnv * env, jclass cls)
+{
+    return s_PID;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    setPid
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_vladium_utils_SystemInformation_setPid (JNIEnv * env, jclass cls, jint pid)
+{
+    DWORD errCode;
+    LPVOID lpMsgBuf;
+    s_PID = pid;
+    s_currentProcess = OpenProcess(PROCESS_ALL_ACCESS,FALSE,pid);
+    if (s_currentProcess==NULL) {
+     errCode = GetLastError();
+     FormatMessage(
+              FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+              FORMAT_MESSAGE_FROM_SYSTEM,
+              NULL,
+              errCode,
+              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+              (LPTSTR) &amp;lpMsgBuf,
+              0, NULL );
+     
+     printf(&quot;[CPUmon] Could not attach to native process.
+ <br> Error code: %ld
+  Error description: %s
+&quot;,errCode,lpMsgBuf);
+     fflush(stdout);
+     LocalFree(lpMsgBuf);
+     return errCode;
+    }
+    printf(&quot;[CPUmon] Attached to native process.
+&quot;);
+    fflush(stdout);
+    return 0;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    detachProcess
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_vladium_utils_SystemInformation_detachProcess (JNIEnv * env, jclass cls)
+{
+    if (!alreadyDetached &amp;&amp; s_currentProcess!=NULL) {
+     CloseHandle(s_currentProcess);
+     alreadyDetached = 1;
+     printf(&quot;[CPUmon] Detached from native process.
+&quot;);
+     fflush(stdout);
+    }
+    return 0;
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessCPUTime
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getProcessCPUTime (JNIEnv * env, jclass cls)
+{
+    FILETIME creationTime, exitTime, kernelTime, userTime;
+    DWORD errCode;
+    LPVOID lpMsgBuf;
+    
+    BOOL resultSuccessful = GetProcessTimes (s_currentProcess, &amp; <br>creationTime, &amp; exitTime, &amp; kernelTime, &amp; userTime);
+    if (!resultSuccessful) {
+     errCode = GetLastError();
+     FormatMessage(
+              FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+              FORMAT_MESSAGE_FROM_SYSTEM,
+              NULL,
+              errCode,
+              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+              (LPTSTR) &amp;lpMsgBuf,
+              0, NULL );
+     
+     printf(&quot;[CPUmon] An error occured while trying to get CPU time.
+ <br> Error code: %ld
+  Error description: %s
+&quot;,errCode,lpMsgBuf);
+
+     fflush(stdout);
+     LocalFree(lpMsgBuf);
+     return -1;
+    }
+
+    return (jlong) ((fileTimeToInt64 (&amp; kernelTime) + fileTimeToInt64 (&amp; userTime)) /
+        (s_numberOfProcessors * 10000));
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getMaxMem
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getMaxMem (JNIEnv * env, jclass cls)
+{
+ MEMORYSTATUS stat;
+ GlobalMemoryStatus (&amp;stat);
+        return (jlong)(stat.dwTotalPhys/1024);
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getFreeMem
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getFreeMem (JNIEnv * env, jclass cls)
+{
+        MEMORYSTATUS stat;
+ GlobalMemoryStatus (&amp;stat);
+        return (jlong)(stat.dwAvailPhys/1024);
+}
+/* ......................................................................... */
+
+/* define min elapsed time (in units of 10E-7 sec): */
+#define MIN_ELAPSED_TIME (10000)
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessCPUUsage
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL
+Java_com_vladium_utils_SystemInformation_getProcessCPUUsage (JNIEnv * env, jclass cls)
+{
+    FILETIME creationTime, exitTime, kernelTime, userTime, nowTime;   
+    LONGLONG elapsedTime;
+    DWORD errCode;
+    LPVOID lpMsgBuf;
+    
+    BOOL resultSuccessful = GetProcessTimes (s_currentProcess, &amp; <br>creationTime, &amp; exitTime, &amp; kernelTime, &amp; userTime);
+    if (!resultSuccessful) {
+     errCode = GetLastError();
+     FormatMessage(
+              FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+              FORMAT_MESSAGE_FROM_SYSTEM,
+              NULL,
+              errCode,
+              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+              (LPTSTR) &amp;lpMsgBuf,
+              0, NULL );
+     
+     printf(&quot;[CPUmon] An error occured while trying to get CPU time.
+ <br> Error code: %ld
+  Error description: %s
+&quot;,errCode,lpMsgBuf);
+     fflush(stdout);
+     LocalFree(lpMsgBuf);
+     return -1.0;
+    }
+    GetSystemTimeAsFileTime (&amp; nowTime);
+
+    /*
+        NOTE: win32 system time is not very precise [~10ms resolution], use
+        sufficiently long sampling intervals if you make use of this method.
+    */
+    
+    elapsedTime = fileTimeToInt64 (&amp; nowTime) - fileTimeToInt64 (&amp; creationTime);
+    
+    if (elapsedTime &lt; MIN_ELAPSED_TIME)
+        return 0.0;
+    else  
+        return ((jdouble) (fileTimeToInt64 (&amp; kernelTime) + fileTimeToInt64 (&amp; userTime))) /
+            (s_numberOfProcessors * elapsedTime);
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getProcessCPUPercentage
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL
+Java_com_vladium_utils_SystemInformation_getProcessCPUPercentage (JNIEnv * env, jclass cls)
+{
+ // Not implemented on Windows
+        return (jdouble)(-1.0);
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getMemoryUsage
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getMemoryUsage (JNIEnv * env, jclass cls)
+{
+    PROCESS_MEMORY_COUNTERS pmc;
+    
+    if ( GetProcessMemoryInfo( s_currentProcess, &amp;pmc, sizeof(pmc)) )
+    {
+ return (jlong)(pmc.PagefileUsage/1024);
+    } else {
+ return (jlong)(0);
+    }
+}
+/* ......................................................................... */
+
+/*
+ * Class:     com_vladium_utils_SystemInformation
+ * Method:    getMemoryResident
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_vladium_utils_SystemInformation_getMemoryResident (JNIEnv * env, jclass cls)
+{
+    PROCESS_MEMORY_COUNTERS pmc;
+    
+    if ( GetProcessMemoryInfo( s_currentProcess, &amp;pmc, sizeof(pmc)) )
+    {
+ return (jlong)(pmc.WorkingSetSize/1024);
+    } else {
+ return (jlong)(0);
+    }
+}
+
+#undef MIN_ELAPSED_TIME
+
+/* ------------------------------------------------------------------------- */
+/* end of file */</pre>
+            </td>
+        </tr>
+    </tbody>
+    </p>
+</table></div></body></html>

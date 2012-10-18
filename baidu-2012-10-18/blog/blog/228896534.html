@@ -1,0 +1,74 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Jetty 源码分析</title></head><body><h1>Jetty 源码分析</h1><div><div>
+<p>Jetty 源码分析</p>
+<p><a href="http://docs.huihoo.com/jetty/1.html">http://docs.huihoo.com/jetty/1.html</a></p>
+<h3>一、 总括</h3>
+<div align="left">&nbsp;&nbsp;&nbsp;  你了解Jetty 吗，就像我们所熟知的Tomcat一样, Jetty是一个免费的开放源码的100%纯Java的Http服务器和Servlet容器。</div>
+<center>
+<h4> </h4>
+</center>
+<p> </p>
+<p align="justify">&nbsp;&nbsp;&nbsp;  Jetty具备以下特点：</p>
+<div align="left">&nbsp;&nbsp;&nbsp;  快速高效</div>
+<p>&nbsp;&nbsp;&nbsp;  。Jetty是最快的Servlet服务器之一</p>
+<p>&nbsp;&nbsp;&nbsp;  。Jetty可以处理上千个并发连接 &nbsp;&nbsp;&nbsp;  小巧嵌入 &nbsp;&nbsp;&nbsp;  。Jetty的jar只有600多K &nbsp;&nbsp;&nbsp;  。可动态嵌入到应用程序，适合开发web2.0等应用</p>
+<p>&nbsp;&nbsp;&nbsp;  应用广泛</p>
+<p>&nbsp;&nbsp;&nbsp;  。开源项目有<a href="http://geronimo.apache.org/">Geronimo</a>, <a href="http://sourceforge.net/projects/jboss/">JBoss</a>, <a href="http://www.objectweb.org/jonas/index.html">JOnAS</a>等</p>
+<p>&nbsp;&nbsp;&nbsp;  。商业项目有IBM Tivoli, Sonic MQ and Cisco SESM等</p>
+<p>&nbsp;&nbsp;&nbsp;  可到Jetty网站<a href="http://jetty.mortbay.org/jetty/"> http://jetty.mortbay.org/jetty/</a> 查看最新信息</p>
+<p>&nbsp;&nbsp;&nbsp;  本文将通过对Jetty最新稳定版 Jetty5.1.5RC2 源码的研究，向读者展示Jetty在设计方面使用的不同设计理念, 希望对广大开发者在设计自己的系统时有所帮助。</p>
+<p>&nbsp;&nbsp;&nbsp;  Jetty按照功能可以分为四个主个主要的部分,HttpServer, HttpContext,HttpHandler,HttpListener,详见如下类图:</p>
+<p><img width="726" height="610" src="http://hiphotos.baidu.com/hxzon/pic/item/4ceeedf8a64e984fd9f9fd8a.jpg"></p>
+<p align="center">&lt;图 1-1&gt;</p>
+<p> </p>
+<h3>二、HttpServer及配置</h3>
+<p>&nbsp;&nbsp;&nbsp;  对于初次接触Jetty的人一定会对上图感到迷惑，其实在Jetty中 HttpServer是一个服务器的核心控制类, 我们可以看到，其它的组件类都是由该类扩展开来，HttpServer的作用就是在一系列的监听器类和处理器类之间搭起了一个桥梁,有效的控制着消息在系统内的传递,如下图:</p>
+<div align="center"><img width="431" height="55" src="http://hiphotos.baidu.com/hxzon/pic/item/d1e6570f67fb1e6a6059f38a.jpg"></div>
+<div align="center">&lt;图 1-2 &gt;</div>
+<p>&nbsp;&nbsp;&nbsp;  HttpServer职责是接受从HttpListener传递过来的request(请求),HttpServer通过对request的Host(主机)或Path(路径)进行匹配,然后分发给相应的HttpContext(可以理解为一个web application)。 &nbsp;&nbsp;&nbsp;  这里举个例子，假设我们现在要建立一个提供静态页面web服务,页面内容在c:\root \下,可以通过如此配置HttpServer: &nbsp;&nbsp;&nbsp;  HttpServer server = new HttpServer(); // 创建一个新的HttpServer &nbsp;&nbsp;&nbsp;  SocketListener listener = new SocketListener(); // 创建一个新监听器 &nbsp;&nbsp;&nbsp;  listener.setPort(8080);// 设置监听端口为8080 &nbsp;&nbsp;&nbsp;  server.addListener(listener);// 将监听类注册到server中 &nbsp;&nbsp;&nbsp;  HttpContext context = new HttpContext(); // 创建一个新HttpContext &nbsp;&nbsp;&nbsp;  context.setContextPath(&quot;/app/*&quot;); // 设置访问路径 &nbsp;&nbsp;&nbsp;  context.setResourceBase(&quot;c:/root/&quot;); // 设置静态资源路径 &nbsp;&nbsp;&nbsp;  context.addHandler(new ResourceHandler()); // 为这个HttpContext添加一个静态资源处理器 &nbsp;&nbsp;&nbsp;  server.addContext(context); // 将这个HttpContext注册到server中 &nbsp;&nbsp;&nbsp;  server.start();// 最后启动这个server &nbsp;&nbsp;&nbsp;  当我们要建立一个提供动态页面web服务时, 假设我们自己的 web 应用放在Jetty目录下的webapps下并打好包文件名为myapp.war, 可以通过如此配置HttpServer: &nbsp;&nbsp;&nbsp;  Server server = new Server(); // 创建一个新的HttpServer &nbsp;&nbsp;&nbsp;  SocketListener listener = new SocketListener();// 创建一个新监听器 &nbsp;&nbsp;&nbsp;  listener.setPort(8080); // 设置监听端口为8080 &nbsp;&nbsp;&nbsp;  server.addListener(listener ); // 将监听类注册到server中 &nbsp;&nbsp;&nbsp;  server.addWebApplication(&quot;myapp&quot;,&quot;./webapps/myapp/&quot;); // 将这个web应用注册到这个Server中 &nbsp;&nbsp;&nbsp;  server.start(); // 最后启动这个server &nbsp;&nbsp;&nbsp;  短短数行代码就可创建一个web服务器并启动它,这有点类似于我们windows中的即插即用的概念,需要什么就添加什么,把这些类以 HttpServer为核心组合在一起，就可以完成强大的功能。</p>
+<h3>三、Jetty Server</h3>
+<p>&nbsp;&nbsp;&nbsp;  1.上面我们探讨了HttpServer的启动,读者一定还存在这样疑问,整个Jetty 服务器是怎样启动的？ &nbsp;&nbsp;&nbsp;  首先我们可以在图 1-1 看到左下角有一个Server类,这个类实际上继承了HttpServer,当启动Jetty服务器时，具体来说，在Jetty根目录下命令行下如输入 java -jar start.jar etc/demo.xml，注意这里有一个配置文件 demo.xml做为运行参数,这个参数也可以是其它的配置文件,也可是多个xml配置文件，其实这个配置文件好比我们使用struts时的struts -config.xml文件，将运行Server需要用到的组件写在里面，比如上一节中HttpServer的配置需要的组件类都可以写在这个配置文件中。 &nbsp;&nbsp;&nbsp;  2.我们自己部署到Jetty的webapps目录下的web application,Jetty如何运行我们自己的web application? &nbsp;&nbsp;&nbsp;  首先当我们按上述方法启动Jetty Server时,就会调用Server类里面的main方法,这个入口方法首先会构造一个Server类实例(其实也就构造了一个 HttpServer),创建实例过程中就会构造XmlConfiguration类的对象来读取参数配置文件，之后再由这个配置文件产生的 XmlConfiguration对象来配置这个Server,配置过程其实是运用Java的反射机制调用Server的方法并传入配置文件中所写的参数来向这个Server添加HttpListener,HttpContext,HttpHandler,web application(对应我们自己部署的web应用)。 &nbsp;&nbsp;&nbsp;  添加我们自己的web application过程中相应的就会读取我们所熟知的/WEB-INF/web.xml来创建一个WebApplicationContext(这个类继承了HttpContext)的实例,同时也会创建WebApplicationContext自身的ServletHandler(实现了 HttpHandler接口),注意到ServletHandler中包含一组ServletHolder指向实际的Servlet,譬如说我们在 web.xml文件中配置了两个Filter和一个Servlet,这里就会有三个ServletHolder,实际处理请求时 ServeletHandler就会依次调用这三个ServletHolder传入request,response处理(实际最后交给这两个 Filter和Servlet处理),这样我们自己做好的一个 web应用就挂载到这个Server上了,可以接受客户端相应的request(请求)。</p>
+<h3>四、运行原理(请参考如下时序图)</h3>
+<p><img width="720" height="587" src="http://hiphotos.baidu.com/hxzon/pic/item/1253d12aa05bec6dd42af18a.jpg"></p>
+<p align="center">&lt;图 1-7 &gt;</p>
+<p>&nbsp;&nbsp;&nbsp;  上图展示了一个request的处理过程,首先HttpListener监听到客户端发来的请求创建一个HttpConnection实例(封装了连接细节,比如从Socket连接中获取的输入流和输出流), HttpConnection对象构建过程中会创建Jetty内部自定义的HttpRequest和HttpResponse对象,接着 HttpListener会调用这个HttpConnection实例的handle方法, HttpConnection实例就调用HttpRequest对象的read()方法读取信息,调用HttpServer的service方法以 HttpRequest,HttpResponse为参数传给HttpServer,HttpServer又将HttpRequest和 HttpResponse分发给相应的HttpCotext,HttpContext最后将HttpRequest和HttpResponse交给自身的 HttpHandler 处理,在这里HttpRequest,HttpResponse被再次封装为ServletHttpRequest和 ServletHttpResponse,其实这两个类实现了我们所熟知的HttpServletRequest和 HttpServletResponse接口。</p>
+<p> </p>
+<h3>五、高级性能</h3>
+<p>&nbsp;&nbsp;&nbsp;  1.HttpHandler:</p>
+<p>&nbsp;&nbsp;&nbsp;  该接口的实现类用于处理HttpContext分发过来的reqeust,不同的实现类的有不同的处理功能,这里介绍几常用的HttpHandler实现类: &nbsp;&nbsp;&nbsp;  ReourceHandler:用于处理静态内容,如以扩展名为.html的文件</p>
+<p>&nbsp;&nbsp;&nbsp;  SecurityHandler:提供基本的安全验证</p>
+<p>&nbsp;&nbsp;&nbsp;  ForwardHandler:转发一个request到另一个url</p>
+<p>&nbsp;&nbsp;&nbsp;  ServletHandler:用于将request交由具体的Servlet类进行处理 &nbsp;&nbsp;&nbsp;  2.当你在看图 1-2 时候会注意到HttpServer和HttpListener,HttpServer与HttpContext，HttpContext与 HttpHandler存在一对多的关系,下面就介绍一下它们之间的这种关系如何通过程序来配置.</p>
+<p>&nbsp;&nbsp;&nbsp;  HttpListener &amp; HttpServer:</p>
+<p>&nbsp;&nbsp;&nbsp;  HttpListener是所有监听器类的接口,如图中的SocketListener (基于传统的Socket技术)就实现了该接口,Jetty还有其它的实现该接口类,如SocketChannelListener(基于NIO技术)类等,HttpListener职责主要是在服务器启动后监听相应端口的来自客户端请求并建立连接(图 1-1 中所示用HttpConnection封装连接细节),监听器可在同个IP上开启多个端口为同一个HttpServer 进行监听,所以HttpListener和HttpServer是多对一的关系,如下图:</p>
+<div align="center"><img width="524" height="174" src="http://hiphotos.baidu.com/hxzon/pic/item/abf3232d1628e174349bf78a.jpg"></div>
+<p align="center">&lt;图 1-3 &gt;</p>
+<p>&nbsp;&nbsp;&nbsp;  配置代码： &nbsp;&nbsp;&nbsp;  HttpServer server = new HttpServer(); &nbsp;&nbsp;&nbsp;  HttpListenrer listener1 = new SocketChanneListener(); &nbsp;&nbsp;&nbsp;  Listener1.setPort(8080); &nbsp;&nbsp;  HttpListenrer listener1 = new SocketListener(); &nbsp;&nbsp;&nbsp;  Listener1.setPort(8443); &nbsp;&nbsp;&nbsp;  server.addListener(listener1); &nbsp;&nbsp;&nbsp;  server.addListener(listener2);</p>
+<p>&nbsp;&nbsp;&nbsp;  HttpContext &amp; HttpHandler:</p>
+<p>&nbsp;&nbsp;&nbsp;  HttpContext相当于对应客户端请求的URL或某个虚拟机, 其子类中包含若干个HttpHandler, 当接受到request(请求)时,HttpContext会依次(按某个预定的次序)把request交给这些HttpHandler处理,直到这个 request被标示处理过为止, 需要注意的是这个request可能被多个HttpHandler处理，但只能有一个HttpHandler能标示这个request已被处理过.</p>
+<p>&nbsp;&nbsp;&nbsp;  一个典型的HttpContext有用于安全处理、静态资源处理及Servlet类的 HttpHandler,如下图:</p>
+<div align="center"><img width="447" height="195" src="http://hiphotos.baidu.com/hxzon/pic/item/1f802e34f099ca7b5bb5f58a.jpg"></div>
+<div align="center">&lt;图 1-4&gt;</div>
+<p>&nbsp;&nbsp;&nbsp;  配置代码： &nbsp;&nbsp;&nbsp;  HttpContext context = new HttpContext(); &nbsp;&nbsp;&nbsp;  context.setContextPath(&ldquo;/myapp/*&rdquo;); &nbsp;&nbsp;&nbsp;  HttpHandler securitHandler = new SecurityHandler(); &nbsp;&nbsp;&nbsp;  HttpHandler resourceHandler = new ResourceHandler(); &nbsp;&nbsp;&nbsp;  HttpHandler servletHandler = new ServletHandler(); &nbsp;&nbsp;&nbsp;  context.addHandler(securitHandler); &nbsp;&nbsp;&nbsp;  context.addHandler(resourceHandler); &nbsp;&nbsp;&nbsp;  context.addHandler(servletHandler); &nbsp;&nbsp;&nbsp;  HttpServer &amp; HttpContext: &nbsp;&nbsp;&nbsp;  一般的HTTP服务器软件可以同时处理多个web application,同样一个HttpServer可以包含多个HttpContext,如下图可以通过同一个端口的监听类来映射多个 HttpContext:</p>
+<div align="center"><img width="450" height="170" src="http://hiphotos.baidu.com/hxzon/pic/item/ff31053b9db700aa15cecb8a.jpg"></div>
+<p align="center">&lt;图 1-5 &gt;</p>
+<p>&nbsp;&nbsp;&nbsp;  配置代码： &nbsp;&nbsp;&nbsp;  HttpServer server = new HttpServer(); &nbsp;&nbsp;&nbsp;  HttpContext context1 = new HttpContext(); &nbsp;&nbsp;&nbsp;  context1.setContextPath(&ldquo;/app1/*&rdquo;); &nbsp;&nbsp;&nbsp;  HttpContext context2 = new HttpContext(); &nbsp;&nbsp;&nbsp;  context2.setContextPath(&ldquo;/app2/*&rdquo;); &nbsp;&nbsp;&nbsp;  server.addContext(context1); &nbsp;&nbsp;&nbsp;  HttpServer &amp; HttpLister &amp; HttpContext:</p>
+<p>&nbsp;&nbsp;&nbsp;  另外Jetty对多网卡（多个IP地址,不同的主机名）的服务器也提供了很好的支持,每个 HttpContext都有自身的HttpServer:</p>
+<div align="center"><img src="http://hiphotos.baidu.com/hxzon/pic/item/901fcfeaddccff93d539c98a.jpg"></div>
+<p align="center">&lt;图 1-6 &gt;</p>
+<p>&nbsp;&nbsp;&nbsp;  配置代码： &nbsp;&nbsp;&nbsp;  HttpServer server1 = new HttpServer(); &nbsp;&nbsp;&nbsp;  SocketListener listener1 = new SocketListener();</p>
+<p>&nbsp;&nbsp;&nbsp;  listener1.setHost(&ldquo;www.app1.com&rdquo;);//orListener1.setHost(&ldquo;www.app2.com&rdquo;)</p>
+<p>&nbsp;&nbsp;&nbsp;  listener2.setPort(80);</p>
+<p>&nbsp;&nbsp;&nbsp;  HttpContext context1 = new HttpContext();</p>
+<p>&nbsp;&nbsp;&nbsp;  context1.setContextPath(&ldquo;/&rdquo;);</p>
+<p>&nbsp;&nbsp;&nbsp;  server1.addListener(listener1);</p>
+<p>&nbsp;&nbsp;&nbsp;  server1.addContext(context1);</p>
+<p>&nbsp;&nbsp;&nbsp;  3.Jetty对高并发的支持</p>
+<div align="center"><img width="378" height="168" src="http://hiphotos.baidu.com/hxzon/pic/item/1e93b000f6f1f3c7e950cd8a.jpg"></div>
+<div align="center">&lt;图 1-8&gt;</div>
+<p>&nbsp;&nbsp;&nbsp;  如果多用户请求服务就会涉及到多线程的管理，如图 1-8,Jetty中主要由ThreadPool负责管理多线程，注意其中Pool.PondLife是Pool的一个内部接口, ThreadPool.PoolThread是ThreadPool的一个内部线程类,我们看到Pool.PondLife和Pool存在一个聚集的关系，实际上Pool对象中存放在是一个个ThreadPool.PoolThread线程对象，当有新用户连接上Server时，ThreadPool就从Pool中取一个空闲的线程为当前用户连接服务。</p>
+<h3>六、小结</h3>
+<p>&nbsp;&nbsp;&nbsp;  本文通过图示简要介绍了Jetty整个体系架构和主要的组件类及服务器的启动执行过程,其实Jetty 通常被用来做为内嵌的Web Server来使用，一些常见的服务器软件，如Apache Cocoon、JBoss ,JOnAs等都会采用Jetty作为Web解決方案；另外由于Jetty在性能及稳定性要优于同类HTTP Server的原因，Jetty已在国外已很流行,鉴于这一点,本文作者可以预测在不久的将来Jetty同样也会在国内流行开来。</p>
+<p>附： 来源：http://blog.leiling.com/CALM/archive/2005/12/23/106662.aspx <br>
+作者联系方式：陈应刚 <a href="mailto:dycyg@yahoo.com">dycyg@yahoo.com</a> 熊红阳 <a><br>
+</a></p>
+</div></div></body></html>

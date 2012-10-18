@@ -1,0 +1,208 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>用JNI进行Java编程 高级主题</title></head><body><h1>用JNI进行Java编程 高级主题</h1><div><div>
+<h1>用JNI进行Java编程 高级主题</h1>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>概述</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 1 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>从 Java 程序内调用本机代码破坏了 Java 程序的可移植性和安全性。尽管已编译的 Java 字节码保持了很好的可移植性，但必须为您打算用来运行该应用程序的每个平台重新编译本机代码。另外，由于本机代码在 JVM 之外执行，所以约束它的安全性协议不必和 Java 代码的相同。</p>
+<p>从本机程序调用 Java 代码也很复杂。因为 Java 语言是面向对象的，所以从本机应用程序调用 Java 代码通常涉及面向对象技术。有些本机语言不支持面向对象编程或只是有限地支持面向对象编程（譬如 C），使用这些语言调用 Java 方法可能会产生问题。在本节中，我们将讨论使用 JNI 所带来的若干复杂性，并研究解决它们的方法。</p>
+</font>
+<p> </p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>Java 字符串 vs. C 字符串</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 2 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>Java 字符串是作为 16 位 Unicode 字符存储的，而 C 字符串是作为一组 8 位且以空字符为结束的字符存储的。JNI 提供了几个有用的函数，它们用于在 Java 字符串和 C 字符串之间进行转换并操作这两种字符串。下面的代码片段演示了如何将 C 字符串转换成 Java 字符串：</p>
+<pre><code style="font-size: 12px">  1. /* Convert a C string to a Java String. */  2. char[]  str  = &quot;To be or not to be.\n&quot;;  3. jstring jstr = (*env)-&gt;NewStringUTF(env, str); </code></pre>
+<p>接下来，我们研究将 Java 字符串转换成 C 字符串的代码。请注意第 5 行对 <code><font face="新宋体">ReleaseStringUTFChars()</font></code> 函数的调用。当您不再使用 Java 字符串时，应该使用这个函数来释放它们。当本机代码不再需要引用字符串时，请总是确保释放它们。不这样做可能导致内存泄漏。</p>
+<pre><code style="font-size: 12px">  1. /* Convert a Java String into a C string. */  2. char buf[128;   3. const char *newString = (*env)-&gt;GetStringUTFChars(env, jstr, 0);  4. ...  5. (*env)-&gt;ReleaseStringUTFChars(env, jstr, newString); </code></pre>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>使用数组</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 4 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>通常，处理数组时，首先想到要做的是确定其大小。为了做到这一点，应该使用 <code><font face="新宋体">GetArrayLength()</font></code> 函数，它返回一个表示数组大小的 <code><font face="新宋体">jsize</font></code>。</p>
+<p>接下来，会想要获取一个指向数组元素的指针。可以使用 <code><font face="新宋体">GetXXXArrayElement()</font></code> 和 <code><font face="新宋体">SetXXXArrayElement()</font></code> 函数（根据数组的类型替换方法名中的 <code><font face="新宋体">XXX</font></code>：<code><font face="新宋体">Object</font></code>、<code><font face="新宋体">Boolean</font></code>、<code><font face="新宋体">Byte</font></code>、<code><font face="新宋体">Char</font></code>、<code><font face="新宋体">Int</font></code>、<code><font face="新宋体">Long</font></code> 等等）来访问数组中的元素。</p>
+<p>当本机代码完成了对 Java 数组的使用时，必须调用函数 <code><font face="新宋体">ReleaseXXXArrayElements()</font></code> 来释放它。否则，可能导致内存泄漏。下面的代码段显示了如何循环遍历一个整型数组的所有元素：</p>
+<pre><code style="font-size: 12px">  1. /* Looping through the elements in an array. */  2. int* elem = (*env)-&gt;GetIntArrayElements(env, intArray, 0);  3. for (i=0; I &lt; (*env)-&gt;GetIntArrayLength(env, intArray); i++)  4.    sum += elem[i]  5. (*env)-&gt;ReleaseIntArrayElements(env, intArray, elem, 0); </code></pre>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>局部引用 vs. 全局引用</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 5 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>当使用 JNI 编程时，会需要使用对 Java 对象的引用。缺省情况下，JNI 创建局部引用以确保它们可以被垃圾收集。由于这一点，您可能会因为尝试存储一个本地引用，以便稍后重用它而无意间编写出非法代码，如下面的代码样本所示：</p>
+<pre><code style="font-size: 12px">  1. /* This code is invalid! */  2. static jmethodID mid;  3.   4. JNIEXPORT jstring JNICALL  5. Java_Sample1_accessMethod(JNIEnv *env, jobject obj)  6. {  7.    ...  8.  cls = (*env)-&gt;GetObjectClass(env, obj);  9.    if (cls != 0) 10.       mid = (*env)-&gt;GetStaticMethodID(env, cls, &quot;addInt&quot;, &quot;(I)I&quot;); 11.    ... 12. } </code></pre>
+<p>因为第 10 行的错误，所以这个代码段是非法的。<code><font face="新宋体">mid</font></code> 是 <code><font face="新宋体">methodID</font></code>，并且 <code><font face="新宋体">GetStaticMethodID()</font></code> 返回 <code><font face="新宋体">methodID</font></code>。但是，返回的 <code><font face="新宋体">methodID</font></code> 是一个局部引用，而您不应该将一个局部引用赋给全局引用。而 <code><font face="新宋体">mid</font></code> 是一个全局引用。</p>
+<p>在 <code><font face="新宋体">Java_Sample1_accessMethod()</font></code> 返回之后，<code><font face="新宋体">mid</font></code> 引用就不再有效，因为赋给它现在超出作用域以外的局部引用。尝试使用 <code><font face="新宋体">mid</font></code> 将导致错误结果或 JVM 崩溃。</p>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>创建全局引用</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 6 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>要纠正这个问题，需要创建和使用全局引用。全局引用将在显式释放之前一直有效，您必须记住去显式地释放它。没有释放引用可能导致内存泄漏。</p>
+<p>使用 <code><font face="新宋体">NewGlobalRef()</font></code> 创建全局引用，并用 <code><font face="新宋体">DeleteGlobalRef()</font></code> 删除它，如下面的代码样本所示：</p>
+<pre><code style="font-size: 12px">  1. /* This code is valid! */  2. static jmethodID mid;  3.   4. JNIEXPORT jstring JNICALL  5. Java_Sample1_accessMethod(JNIEnv *env, jobject obj)  6. {  7.    ...  8.  cls = (*env)-&gt;GetObjectClass(env, obj);  9.    if (cls != 0) 10.    { 11.       mid1 = (*env)-&gt;GetStaticMethodID(env, cls, &quot;addInt&quot;, &quot;(I)I&quot;); 12.       mid = (*env)-&gt;NewGlobalRef(env, mid1); 13.    ... 14. } </code></pre>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>错误处理</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 7 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>在 Java 程序中使用本机方法，就以某种基本的方式破坏了 Java 安全性模型。因为 Java 程序在一个受控的运行时系统（JVM）中运行，所以 Java 平台设计师决定通过检查常见运行时系统错误（如数组下标、越界错误、空指针错误）来帮助程序员。从另一方面讲，由于 C 和 C++ 不使用此类错误检查，所以本机方法程序员必须自己处理所有错误情况，而在运行时，这些错误可以在 JVM 中被捕获。</p>
+<p>例如，对于 Java 程序而言，通过抛出一个异常来向 JVM 报告出错是常见和正确的操作。C 没有异常，因此必须使用 JNI 的异常处理函数。</p>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>JNI 的异常处理函数</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 8 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>有两种方法用来在本机代码中抛出异常：可以调用 <code><font face="新宋体">Throw()</font></code> 函数或 <code><font face="新宋体">ThrowNew()</font></code> 函数。在调用 <code><font face="新宋体">Throw()</font></code> 之前，首先需要创建一个 <code><font face="新宋体">Throwable</font></code> 类型的对象。可以通过调用 <code><font face="新宋体">ThrowNew()</font></code> 跳过这一步，因为这个函数为您创建了该对象。在下面的示例代码片段中，我们使用这两个函数抛出 <code><font face="新宋体">IOException</font></code>：</p>
+<pre><code style="font-size: 12px">  1. /* Create the Throwable object. */  2. jclass cls = (*env)-&gt;FindClass(env, &quot;java/io/IOException&quot;);  3. jmethodID mid = (*env)-&gt;GetMethodID(env, cls, &quot;&lt;init&gt;&quot;, &quot;()V&quot;);  4. jthrowable e = (*env)-&gt;NewObject(env, cls, mid);  5.   6. /* Now throw the exception */  7. (*env)-&gt;Throw(env, e);  8. ...  9.  10. /* Here we do it all in one step and provide a message*/ 11. (*env)-&gt;ThrowNew(env, 12.                  (*env)-&gt;FindClass(&quot;java/io/IOException&quot;), 13.                  &quot;An IOException occurred!&quot;); </code></pre>
+<p><code><font face="新宋体">Throw()</font></code> 和 <code><font face="新宋体">ThrowNew()</font></code> 函数并不中断本机方法中的控制流。直到本机方法返回，在 JVM 中才会将异常实际抛出。在 C 中，一旦碰到错误条件，不能使用 <code><font face="新宋体">Throw()</font></code> 和 <code><font face="新宋体">ThrowNew()</font></code> 函数立即退出方法，而在 Java 中，这可以使用 throw 语句来退出方法。相反，需要在 <code><font face="新宋体">Throw()</font></code> 和 <code><font face="新宋体">ThrowNew()</font></code> 函数之后立即使用 return 语句，以便在出错点退出本机方法。</p>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>JNI 的异常捕获函数</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 9 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>当从 C 或 C++ 调用 Java 时，也可能需要捕获异常。许多 JNI 函数都能抛出希望捕获的异常。<code><font face="新宋体">ExceptionCheck()</font></code> 函数返回 <code><font face="新宋体">jboolean</font></code> 以表明是否抛出了异常，而 <code><font face="新宋体">ExceptionOccured()</font></code> 方法返回指向当前异常的 <code><font face="新宋体">jthrowable</font></code> 引用（或者返回 <code><font face="新宋体">NULL</font></code>，如果未抛出异常的话）。</p>
+<p>如果正在捕获异常，可能要处理异常，在这种情况下需要在 JVM 中清除该异常。可以使用 <code><font face="新宋体">ExceptionClear()</font></code> 函数来进行这个操作。<code><font face="新宋体">ExceptionDescribed()</font></code> 函数用来显示异常的调试消息。</p>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>本机方法中的多线程</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 10 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>在使用 JNI 工作时，您将遇到的更高级的问题之一是在本机方法中使用多线程。即使是在不需要支持多线程的系统上运行时，Java 平台也是作为多线程系统来实现的；因此您有责任确保本机函数是线程安全的。</p>
+<p>在 Java 程序中，可以通过使用 <code><font face="新宋体">synchronized</font></code> 语句实现线程安全的代码。<code><font face="新宋体">synchronized</font></code> 语句的语法使您能够获取对象上的锁。只要在 <code><font face="新宋体">synchronized</font></code> 块中，就可以执行任何数据操作，而不必担心其它线程会悄悄进入并访问您锁定的对象。</p>
+<p>JNI 使用 <code><font face="新宋体">MonitorEnter()</font></code> 和 <code><font face="新宋体">MonitorExit()</font></code> 函数提供类似的结构。对于传递到 <code><font face="新宋体">MonitorEnter()</font></code> 函数中的对象，您会得到一个用于该对象的监视器（锁），并在使用 <code><font face="新宋体">MonitorExit()</font></code> 函数释放它之前一直持有该锁。对于您锁定的对象而言，<code><font face="新宋体">MonitorEnter()</font></code> 和 <code><font face="新宋体">MonitorExit()</font></code> 函数之间的所有代码保证是线程安全的。</p>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>本机方法中的同步</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 11 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>下表显示了如何在 Java、C 和 C++ 中同步一块代码。正如您所见，这些 C 和 C++ 函数类似于 Java 代码中的 <code><font face="新宋体">synchronized</font></code> 语句。</p>
+<p> </p>
+<p>(*env)-&gt;MonitorEnter(env,obj);<br>
+/*synchronized block*/<br>
+(*env)-&gt;MonitorExit(env,obj);</p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>随本机方法一起使用 <code style="font-size: 18px">synchronized</code></strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 12 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p>确保本机方法同步的另一种方法是：当在 Java 类中声明 <code><font face="新宋体">native</font></code> 方法时使用 <code><font face="新宋体">synchronized</font></code> 关键字。</p>
+<p>使用 <code><font face="新宋体">synchronized</font></code> 关键字将确保任何时候从 Java 程序调用 <code><font face="新宋体">native</font></code> 方法，它都将是 <code><font face="新宋体">synchronized</font></code>。尽管用 <code><font face="新宋体">synchronized</font></code> 关键字来标记线程安全的本机方法是个好想法，但通常最好总是在本机方法实现中实现同步。这样做的主要原因如下：</p>
+<ul>
+    <li>C 或 C++ 代码和 Java 本机方法声明不同，因此，如果方法声明有变动（即，如果一旦除去了 <code><font face="新宋体">synchronized</font></code> 关键字），此方法可能马上不再是线程安全的了。</li>
+    <li>如果有人对使用该函数的其它本机方法（或其它 C 或 C++ 函数）进行编码，他们可能并没有意识到该本机实现不是线程安全的。</li>
+    <li>如果将函数作为普通的 C 函数在 Java 程序之外使用，则它不是线程安全的。</li>
+</ul>
+</font>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="90%"><font size="4" face="Verdana, Arial, Helvetica"><strong>其它同步技术</strong></font></td>
+            <td width="200" align="right"><font size="1" face="Verdana, Arial, Helvetica"><nobr>第 13 页（共13 页）</nobr></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<font size="2" face="Verdana, Arial, Helvetica">
+<p><code><font face="新宋体">Object.wait()</font></code>、<code><font face="新宋体">Object.notify()</font></code> 和 <code><font face="新宋体">Object.notifyAll()</font></code> 方法也支持线程同步。因为所有 Java 对象都将 <code><font face="新宋体">Object</font></code> 类作为父类，所以所有 Java 对象都有这些方法。您可以象调用其它方法一样，从本机代码调用这些方法，并以 Java 代码中相同的方式来使用它们，以实现线程同步。</p>
+</font>
+<p><font size="2" face="Verdana, Arial, Helvetica"><strong>推荐书籍</strong> </font></p>
+<ul><font size="2" face="Verdana, Arial, Helvetica">
+    <li>要了解更多关于用 C++ 编程的内容，可以从 Bjarne Stroustrup 的 <a href="http://www.amazon.com/exec/obidos/ASIN/0201889544/qid=1016664930/sr=2-1/ref=sr_2_1/104-5537164-2267918">The C++ Programming Language，第三版</a>（Addison-Wesley，1996 年）开始。</li>
+    <li>另一本出色的参考书籍是 Kris Jamsa 和 Lars Klander 的 <a href="http://www.amazon.com/exec/obidos/ASIN/1884133258/programmersheave/102-1885448-9572169">Jamsa's C/C++ Programmer's Bible</a>（Jamsa Press，1998 年）。</li>
+    <li>要更多了解面向对象方法，请参阅 Cay S. Horstmann 的 <a href="http://www.wiley.com/cda/product/0,,0471594849,00.html">Mastering Object-Oriented Design in C++</a>（John Wiley &amp; Sons Inc.，1995 年）。</li>
+    <li>Andrew C. Staugaard, Jr. 编写的 <a href="http://www.amazon.com/exec/obidos/ASIN/0134887360/qid=1016664843/sr=1-3/ref=sr_1_3/104-5537164-2267918">Structured and Object-Oriented Techniques：An Introduction using C++</a>（Prentice Hall，1997 年）。</li>
+    <li>Ken Arnold 和 James Gosling 编写的 <a href="http://cseng.aw.com/book/0,,0201704331,00.html">The Java Programming Language：第三版</a>（Addison-Wesley，2000 年）。</li>
+    <li>阅读 Sheng Liang 的 <a href="http://www.amazon.com/exec/obidos/ASIN/0201325772/102-1885448-9572169">Java Native Interface：Programmer's Guide and Specification</a>（Sun Microsystems Press，1999 年）了解更多 Java 本机接口的内容。</li>
+    <li>还可以参阅 Rob Gordon 的 <a href="http://vig.prenhall.com/catalog/academic/product/1,4096,0136798950,00.html">Essential JNI：Java Native Interface</a>（Prentice Hall，1998 年）。</li>
+    <li>David Flanagan 的 <a href="http://www.oreilly.com/catalog/javanut3/">Java in a Nutshell，第三版</a>是 Java 程序员不可或缺的读物（O'Reilly，1999 年）。</li>
+    <li>还可以参阅 Cay S. Horstmann 和 Gary Cornell 的 <a href="http://www.horstmann.com/corejava.html">Core Java 2</a> 系列（Sun Microsystems Press，2000 年）的前两卷。</li>
+    <li>Philip Heller 和 Simon Roberts 编写的 <a href="http://www.sybex.com/SybexBooks.nsf/7f45de36b094d8d4882569730065d483/104655466d48d2758825693d0057f922%21OpenDocument">Java 2 Developer's Handbook</a>（Sybex，1999 年）是一本优秀的参考资料。</li>
+    <li>要了解更多关于 Java 平台的安全性模型的内容，请参阅 Scott Oaks 的 <a href="http://www.oreilly.com/catalog/javasec2/">Java Security，第二版</a>（O'Reilly，2001 年）。</li>
+    <li>要深入研究 Java 数据结构和算法，请参阅 Robert Lafore 的 <a href="http://www.amazon.com/exec/obidos/ASIN/1571690956/qid=1016051869/sr=8-1/ref=sr_8_71_1/102-1885448-9572169">Data Structures &amp; Algorithms in Java</a>（Waite Group Press，1998 年）。</li>
+    <li>缺了 Erich Gamma、Richard Helm、Ralph Johnson 和 John Vlissides 的 <a href="http://cseng.aw.com/book/0,3828,0201633612,00.html">Design Patterns: Elements of Reusable Object-Oriented Software</a>（Addison-Wesley Professional Computing Series，1995 年），Java 程序员的书架就不能算是完整的。</li>
+    </font></ul>
+    <p> </p>
+    <p> </p>
+    <p> </p>
+    <p> </p>
+    <p> </p>
+    </font></div></div></body></html>

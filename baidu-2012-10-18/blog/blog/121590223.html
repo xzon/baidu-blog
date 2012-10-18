@@ -1,0 +1,1079 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>asp.net入门2 -数据绑定，数据库</title></head><body><h1>asp.net入门2 -数据绑定，数据库</h1><div><p>asp.net入门2 -数据绑定，数据库</p>
+<div>
+<p><strong>我们可以使用数据绑定（Data Binding）来完成带有可选项目的列表，这些可选项目来自某个导入的数据源，比如数据库、XML 文件或脚本。</strong></p>
+</div>
+<div>
+<h2>数据绑定</h2>
+<p>下面的控件是支持数据绑定的列表控件：</p>
+<ul>
+    <li>asp:RadioButtonList</li>
+    <li>asp:CheckBoxList</li>
+    <li>asp:DropDownList</li>
+    <li>asp:Listbox</li>
+</ul>
+<p>通常在一个或多个 asp:ListItem 控件中定义以上每个控件中的可选项目，类似这样：</p>
+<pre>&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;countrylist&quot; runat=&quot;server&quot;&gt;
+&lt;asp:ListItem value=&quot;C&quot; text=&quot;China&quot; /&gt;
+&lt;asp:ListItem value=&quot;S&quot; text=&quot;Sweden&quot; /&gt;
+&lt;asp:ListItem value=&quot;F&quot; text=&quot;France&quot; /&gt;
+&lt;asp:ListItem value=&quot;I&quot; text=&quot;Italy&quot; /&gt;
+&lt;/asp:RadioButtonList&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>不过，我们可以使用某种独立的源进行数据绑定，比如数据库、XML 文件或脚本来完成带有可选项目的列表。</p>
+<p>通过使用导入的源，数据从 HTML 分离了出来，并且对项目的任何改变都是在独立的数据源中完成的。</p>
+<p>在下面的三节中，我们将描述如何从脚本化的数据源中绑定数据。</p>
+<div>
+<p><strong>ArrayList 对象是包含单一数据值的项目的集合。</strong></p>
+</div>
+<div>
+<h2>实例</h2>
+<p>例子 1 - ArrayList RadioButtonList</p>
+<p>例子 2 - ArrayList DropDownList</p>
+</div>
+<div>
+<h2>创建 ArrayList</h2>
+<p>ArrayList 对象是包含单一数据值的项目的集合。</p>
+<p>通过 Add() 方法向 ArrayList 添加项目。</p>
+<p>下面的代码创建了一个新的 ArrayList 对象，名为 mycountries，并添加了四个项目：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+Sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New ArrayList
+  mycountries.Add(&quot;China&quot;)
+  mycountries.Add(&quot;Sweden&quot;)
+  mycountries.Add(&quot;France&quot;)
+  mycountries.Add(&quot;Italy&quot;)
+end if
+end sub
+&lt;/script&gt;</pre>
+<p>默认地，一个 ArrayList 对象包含 16 个条目。可通过 TrimToSize() 方法把 ArrayList 调整为最终尺寸：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+Sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New ArrayList
+  mycountries.Add(&quot;China&quot;)
+  mycountries.Add(&quot;Sweden&quot;)
+  mycountries.Add(&quot;France&quot;)
+  mycountries.Add(&quot;Italy&quot;)
+  <code>mycountries.TrimToSize()</code>
+end if
+end sub
+&lt;/script&gt;</pre>
+<p>通过 Sort() 方法，ArrayList 也能够按照字母顺序或者数字顺序进行排序：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+Sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New ArrayList
+  mycountries.Add(&quot;China&quot;)
+  mycountries.Add(&quot;Sweden&quot;)
+  mycountries.Add(&quot;France&quot;)
+  mycountries.Add(&quot;Italy&quot;)
+  mycountries.TrimToSize()
+  <code>mycountries.Sort()</code>
+end if
+end sub
+&lt;/script&gt;</pre>
+<p>要实现颠倒的排序，请在 Sort() 方法后应用 Reverse() 方法：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+Sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New ArrayList
+  mycountries.Add(&quot;China&quot;)
+  mycountries.Add(&quot;Sweden&quot;)
+  mycountries.Add(&quot;France&quot;)
+  mycountries.Add(&quot;Italy&quot;)
+  mycountries.TrimToSize()
+  mycountries.Sort()
+  <code>mycountries.Reverse()</code>
+end if
+end sub
+&lt;/script&gt;</pre>
+</div>
+<div>
+<h2>把数据绑定到 ArrayList</h2>
+<p>ArrayList 对象可向下面这些控件自动地生成文本和值：</p>
+<ul>
+    <li>asp:RadioButtonList</li>
+    <li>asp:CheckBoxList</li>
+    <li>asp:DropDownList</li>
+    <li>asp:Listbox</li>
+</ul>
+<p>如需把数据绑定到一个 RadioButtonList 控件，首先请在一个 .aspx 页面中创建 RadioButtonList 控件（请注意，没有任何 asp:ListItem 元素）：</p>
+<pre>&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot; /&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后添加构建列表的脚本，并把列表中的值绑定到该 RadioButtonList 控件：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+Sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New ArrayList
+  mycountries.Add(&quot;China&quot;)
+  mycountries.Add(&quot;Sweden&quot;)
+  mycountries.Add(&quot;France&quot;)
+  mycountries.Add(&quot;Italy&quot;)
+  mycountries.TrimToSize()
+  mycountries.Sort()
+  <code>rb.DataSource=mycountries
+  rb.DataBind()</code>
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot; /&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>RadioButtonList 控件的 DataSource 属性被设置为该 ArrayList，它定义了这个 RadioButtonList 控件的数据源。RadioButtonList 控件的 DataBind() 方法把 RadioButtonList 控件与数据源绑定在一起。</p>
+<p class="note"><span>注释：</span>数据值作为控件的 Text 和 Value 属性来使用。如需添加不同于 Text 的 Value，既可以使用 Hashtable 对象，也可以使用 SortedList 对象。</p>
+<div>
+<p><strong>Hashtable 对象包含用键/值对表示的项目。</strong></p>
+</div>
+<div>
+<h2>实例</h2>
+<p>例子 1 - Hashtable RadioButtonList</p>
+<p>例子 2 - Hashtable RadiobuttonList</p>
+<p>例子 3 - Hashtable DropDownList</p>
+</div>
+<div>
+<h2>创建 Hashtable</h2>
+<p>Hashtable 对象包含用键/值对表示的项目。键被用作索引，通过搜索其键，可以实现对值的快速搜索。</p>
+<p>通过 Add() 方法向 Hashtable 添加项目。</p>
+<p>下面的代码创建一个名为 mycountries 的 Hashtable，并添加了四个元素：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+Sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New Hashtable
+  mycountries.Add(&quot;C&quot;,&quot;China&quot;)
+  mycountries.Add(&quot;S&quot;,&quot;Sweden&quot;)
+  mycountries.Add(&quot;F&quot;,&quot;France&quot;)
+  mycountries.Add(&quot;I&quot;,&quot;Italy&quot;)
+end if
+end sub
+&lt;/script&gt;</pre>
+</div>
+<div>
+<h2>数据绑定</h2>
+<p>Hashtable 对象可为下面这些控件自动地生成文本和值：</p>
+<ul>
+    <li>asp:RadioButtonList</li>
+    <li>asp:CheckBoxList</li>
+    <li>asp:DropDownList</li>
+    <li>asp:Listbox</li>
+</ul>
+<p>如需把数据绑定到某个 RadioButtonList 控件，首先请在一个 .aspx 页面中创建 RadioButtonList 控件（没有任何 asp:ListItem 元素）</p>
+<pre>&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot; AutoPostBack=&quot;True&quot; /&gt;
+
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后添加构建列表的脚本：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New Hashtable
+  mycountries.Add(&quot;C&quot;,&quot;China&quot;)
+  mycountries.Add(&quot;S&quot;,&quot;Sweden&quot;)
+  mycountries.Add(&quot;F&quot;,&quot;France&quot;)
+  mycountries.Add(&quot;I&quot;,&quot;Italy&quot;)
+  rb.DataSource=mycountries
+  rb.DataValueField=&quot;Key&quot;
+  rb.DataTextField=&quot;Value&quot;
+  rb.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot; AutoPostBack=&quot;True&quot; /&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后我们添加一个子例程，该例程会在用户点击 RadioButtonList 控件中的某个项目时被执行。当某个单选按钮被点击，label 中会出现一条文本：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New Hashtable
+  mycountries.Add(&quot;C&quot;,&quot;China&quot;)
+  mycountries.Add(&quot;S&quot;,&quot;Sweden&quot;)
+  mycountries.Add(&quot;F&quot;,&quot;France&quot;)
+  mycountries.Add(&quot;I&quot;,&quot;Italy&quot;)
+  rb.DataSource=mycountries
+  rb.DataValueField=&quot;Key&quot;
+  rb.DataTextField=&quot;Value&quot;
+  rb.DataBind()
+end if
+end sub
+
+<code>sub displayMessage(s as Object,e As EventArgs)</code>
+lbl1.text=&quot;Your favorite country is: &quot; &amp; rb.SelectedItem.Text
+<code>end sub</code>
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot;
+AutoPostBack=&quot;True&quot; onSelectedIndexChanged=&quot;displayMessage&quot; /&gt;
+&lt;p&gt;&lt;asp:label id=&quot;lbl1&quot; runat=&quot;server&quot; /&gt;&lt;/p&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p class="note"><span>注释：</span>您无法选择添加到 Hashtable 的项目的排序方式。如需对项目进行字母排序或数字排序，请使用 SortedList 对象。</p>
+<div>
+<p><strong>SortedList 对象兼有 ArrayList 和 Hashtable 对象的特性。</strong></p>
+</div>
+<div class="example">
+<h2>实例</h2>
+<dl><dt>例子 1 - SortedList RadioButtonList </dt><dt>例子 2 - SortedList RadiobuttonList </dt><dt>例子 3 - SortedList DropDownList </dt></dl></div>
+<div>
+<h2>SortedList 对象</h2>
+<p>SortedList 对象包含用键/值对表示的项目。SortedList 对象可按照字符顺序或数字顺序自动地对项目进行排序。</p>
+<p>通过 Add() 方法向 SortedList 添加项目。SortedList 可通过 TrimToSize() 方法调整为最终尺寸。</p>
+<p>下面的代码创建了一个名为 mycountries 的 SortedList，并添加了四个元素：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New SortedList
+  mycountries.Add(&quot;C&quot;,&quot;China&quot;)
+  mycountries.Add(&quot;S&quot;,&quot;Sweden&quot;)
+  mycountries.Add(&quot;F&quot;,&quot;France&quot;)
+  mycountries.Add(&quot;I&quot;,&quot;Italy&quot;)
+end if
+end sub
+&lt;/script&gt;</pre>
+</div>
+<div>
+<h2>数据绑定</h2>
+<p>SortedList 对象可自动地为下面的控件生成文本和值：</p>
+<ul>
+    <li>asp:RadioButtonList</li>
+    <li>asp:CheckBoxList</li>
+    <li>asp:DropDownList</li>
+    <li>asp:Listbox</li>
+</ul>
+<p>如需把数据绑定到 RadioButtonList 控件，首先请在 aspx 文件中创建一个 RadioButtonList 控件（没有任何 asp:ListItem 元素）：</p>
+<pre>&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot; AutoPostBack=&quot;True&quot; /&gt;
+
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后添加构建列表的脚本：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New SortedList
+  mycountries.Add(&quot;C&quot;,&quot;China&quot;)
+  mycountries.Add(&quot;S&quot;,&quot;Sweden&quot;)
+  mycountries.Add(&quot;F&quot;,&quot;France&quot;)
+  mycountries.Add(&quot;I&quot;,&quot;Italy&quot;)
+  rb.DataSource=mycountries
+  rb.DataValueField=&quot;Key&quot;
+  rb.DataTextField=&quot;Value&quot;
+  rb.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot; AutoPostBack=&quot;True&quot; /&gt;
+
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后我们添加一个子例程，该子例程会在用户点击 RadioButtonList 控件中的项目时执行。当单选按钮被点击时，文本将出现在 label 中：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New SortedList
+  mycountries.Add(&quot;C&quot;,&quot;China&quot;)
+  mycountries.Add(&quot;S&quot;,&quot;Sweden&quot;)
+  mycountries.Add(&quot;F&quot;,&quot;France&quot;)
+  mycountries.Add(&quot;I&quot;,&quot;Italy&quot;)
+  rb.DataSource=mycountries
+  rb.DataValueField=&quot;Key&quot;
+  rb.DataTextField=&quot;Value&quot;
+  rb.DataBind()
+end if
+end sub
+
+sub displayMessage(s as Object,e As EventArgs)
+lbl1.text=&quot;Your favorite country is: &quot; &amp; rb.SelectedItem.Text
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot;
+AutoPostBack=&quot;True&quot; onSelectedIndexChanged=&quot;displayMessage&quot; /&gt;
+&lt;p&gt;&lt;asp:label id=&quot;lbl1&quot; runat=&quot;server&quot; /&gt;&lt;/p&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+
+<div><p><strong>我们可以把 XML 文件绑定到列表控件。</strong></p></div><div class="example"><h2>实例</h2><dl><dt>例子 1 - XML RadiobuttonList </dt></dl></div><div><h2>一个 XML 文件</h2><p>这里有一个名为 &quot;countries.xml&quot; 的 XML 文件：</p><pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+
+&lt;countries&gt;
+
+&lt;country&gt;
+&lt;text&gt;China&lt;/text&gt;
+&lt;value&gt;C&lt;/value&gt;
+&lt;/country&gt;
+
+&lt;country&gt;
+&lt;text&gt;Sweden&lt;/text&gt;
+&lt;value&gt;S&lt;/value&gt;
+&lt;/country&gt;
+
+&lt;country&gt;
+&lt;text&gt;France&lt;/text&gt;
+&lt;value&gt;F&lt;/value&gt;
+&lt;/country&gt;
+
+&lt;country&gt;
+&lt;text&gt;Italy&lt;/text&gt;
+&lt;value&gt;I&lt;/value&gt;
+&lt;/country&gt;
+
+&lt;/countries&gt;</pre>
+<p>请查看该文件：countries.xml</p>
+</div>
+<div>
+<h2>把 DataSet 绑定到 List 控件</h2>
+<p>首先，导入 &quot;System.Data&quot; 命名空间。我们需要该命名空间与 DataSet 对象一起工作。把下面这条指令包含在 .aspx 页面的顶部：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;</pre>
+<p>接下来，为这个 XML 文件创建一个 DataSet，并在页面首先加载时把这个 XML 文件载入该 DataSet：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New DataSet
+  mycountries.ReadXml(MapPath(&quot;countries.xml&quot;))
+end if
+end sub</pre>
+<p>如需把该 DataSet 绑定到 RadioButtonList 控件，首先请在 .aspx 页面中创建一个 RadioButtonList 控件（没有任何 asp:ListItem 元素）：</p>
+<pre>&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot;
+AutoPostBack=&quot;True&quot; /&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后添加构建这个 XML DataSet 的脚本：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New DataSet
+  mycountries.ReadXml(MapPath(&quot;countries.xml&quot;))
+  rb.DataSource=mycountries
+  rb.DataValueField=&quot;value&quot;
+  rb.DataTextField=&quot;text&quot;
+  rb.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot;
+AutoPostBack=&quot;True&quot; onSelectedIndexChanged=&quot;displayMessage&quot; /&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后，我们添加一个子例程，该子例程会在用户点击 RadioButtonList 控件中的项目时执行。当用户点击某个单选按钮时，label 中会出现一条文本：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycountries=New DataSet
+  mycountries.ReadXml(MapPath(&quot;countries.xml&quot;))
+  rb.DataSource=mycountries
+  rb.DataValueField=&quot;value&quot;
+  rb.DataTextField=&quot;text&quot;
+  rb.DataBind()
+end if
+end sub
+
+sub displayMessage(s as Object,e As EventArgs)
+lbl1.text=&quot;Your favorite country is: &quot; &amp; rb.SelectedItem.Text
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:RadioButtonList id=&quot;rb&quot; runat=&quot;server&quot;
+AutoPostBack=&quot;True&quot; onSelectedIndexChanged=&quot;displayMessage&quot; /&gt;
+&lt;p&gt;&lt;asp:label id=&quot;lbl1&quot; runat=&quot;server&quot; /&gt;&lt;/p&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+
+<div><p><strong>Repeater 控件用于显示重复的项目列表，这些项目被限制在该控件。</strong></p></div><div class="example"><h2>实例</h2><dl><dt>Repeater 控件 </dt><dt>带有 &lt;AlternatingItemTemplate&gt; 的 Repeater 控件 </dt><dt>带有 &lt;SeparatorTemplate&gt; Repeater 控件 </dt></dl></div><div><h2>把 DataSet 绑定到 Repeater 控件</h2><p>Repeater 空间用于显示重复的项目列表，这些项目被限制在该控件。Repeater 控件可被绑定到数据库表、XML 文件或者其他项目列表。这里，我们将展示如何把 XML 文件绑定到一个 Repeater 控件。</p><p>我们将在例子中使用下面的 XML 文件(&quot;cdcatalog.xml&quot;)：</p><pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+
+&lt;catalog&gt;
+&lt;cd&gt;
+&lt;title&gt;Empire Burlesque&lt;/title&gt;
+&lt;artist&gt;Bob Dylan&lt;/artist&gt;
+&lt;country&gt;USA&lt;/country&gt;
+&lt;company&gt;Columbia&lt;/company&gt;
+&lt;price&gt;10.90&lt;/price&gt;
+&lt;year&gt;1985&lt;/year&gt;
+&lt;/cd&gt;
+&lt;cd&gt;
+&lt;title&gt;Hide your heart&lt;/title&gt;
+&lt;artist&gt;Bonnie Tyler&lt;/artist&gt;
+&lt;country&gt;UK&lt;/country&gt;
+&lt;company&gt;CBS Records&lt;/company&gt;
+&lt;price&gt;9.90&lt;/price&gt;
+&lt;year&gt;1988&lt;/year&gt;
+&lt;/cd&gt;
+&lt;cd&gt;
+&lt;title&gt;Greatest Hits&lt;/title&gt;
+&lt;artist&gt;Dolly Parton&lt;/artist&gt;
+&lt;country&gt;USA&lt;/country&gt;
+&lt;company&gt;RCA&lt;/company&gt;
+&lt;price&gt;9.90&lt;/price&gt;
+&lt;year&gt;1982&lt;/year&gt;
+&lt;/cd&gt;
+&lt;cd&gt;
+&lt;title&gt;Still got the blues&lt;/title&gt;
+&lt;artist&gt;Gary Moore&lt;/artist&gt;
+&lt;country&gt;UK&lt;/country&gt;
+&lt;company&gt;Virgin records&lt;/company&gt;
+&lt;price&gt;10.20&lt;/price&gt;
+&lt;year&gt;1990&lt;/year&gt;
+&lt;/cd&gt;
+&lt;cd&gt;
+&lt;title&gt;Eros&lt;/title&gt;
+&lt;artist&gt;Eros Ramazzotti&lt;/artist&gt;
+&lt;country&gt;EU&lt;/country&gt;
+&lt;company&gt;BMG&lt;/company&gt;
+&lt;price&gt;9.90&lt;/price&gt;
+&lt;year&gt;1997&lt;/year&gt;
+&lt;/cd&gt;
+&lt;/catalog&gt;</pre>
+<p>请查看该 XML 文件：cdcatalog.xml</p>
+<p>首先，导入 &quot;System.Data&quot; 命名空间。我们需要此命名空间与 DataSet 对象一同工作。在 .aspx 页面的顶部包含下面这条指令：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;</pre>
+<p>接下来，为这个 XML 文件创建一个 DataSet，并把此 XML 文件在页面首次加载时载入 DataSet：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycdcatalog=New DataSet
+  mycdcatalog.ReadXml(MapPath(&quot;cdcatalog.xml&quot;))
+end if
+end sub</pre>
+<p>然后我们在 .aspx 页面中创建一个 Repeater 控件。&lt;HeaderTemplate&gt; 元素中的内容在输出中仅出现一次，而 &lt;ItemTemplate&gt; 元素的内容会对应 DataSet 中的 &quot;record&quot; 重复出现，最后，&lt;FooterTemplate&gt; 的内容在输出中仅出现一次：</p>
+<pre>&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:Repeater id=&quot;cdcatalog&quot; runat=&quot;server&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+...
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+...
+&lt;/ItemTemplate&gt;
+
+&lt;FooterTemplate&gt;
+...
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:Repeater&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后我们添加可创建 DataSet 的脚本，并把这个 mycdcatalog DataSet 绑定到 Repeater 控件。我们同样用 HTML 标签来填充这个 Repeater 控件，并通过 &lt;%#Container.DataItem(&quot;fieldname&quot;)%&gt; 方法把数据项目绑定到 &lt;ItemTemplate&gt; 部分内的单元格：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycdcatalog=New DataSet
+  mycdcatalog.ReadXml(MapPath(&quot;cdcatalog.xml&quot;))
+  cdcatalog.DataSource=mycdcatalog
+  cdcatalog.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:Repeater id=&quot;cdcatalog&quot; runat=&quot;server&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+&lt;table border=&quot;1&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;
+&lt;th&gt;Title&lt;/th&gt;
+&lt;th&gt;Artist&lt;/th&gt;
+&lt;th&gt;Country&lt;/th&gt;
+&lt;th&gt;Company&lt;/th&gt;
+&lt;th&gt;Price&lt;/th&gt;
+&lt;th&gt;Year&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;title&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;artist&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;country&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;company&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;price&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;year&quot;)%&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/ItemTemplate&gt;
+
+&lt;FooterTemplate&gt;
+&lt;/table&gt;
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:Repeater&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<div>
+<h2>使用 &lt;AlternatingItemTemplate&gt;</h2>
+<p>您可以在 &lt;ItemTemplate&gt; 元素后添加 &lt;AlternatingItemTemplate&gt; 元素，这样就可以描述交替行的外观了。在下面的例子中，该表格中每隔一行就会显示为浅灰色的背景：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycdcatalog=New DataSet
+  mycdcatalog.ReadXml(MapPath(&quot;cdcatalog.xml&quot;))
+  cdcatalog.DataSource=mycdcatalog
+  cdcatalog.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:Repeater id=&quot;cdcatalog&quot; runat=&quot;server&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+&lt;table border=&quot;1&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;
+&lt;th&gt;Title&lt;/th&gt;
+&lt;th&gt;Artist&lt;/th&gt;
+&lt;th&gt;Country&lt;/th&gt;
+&lt;th&gt;Company&lt;/th&gt;
+&lt;th&gt;Price&lt;/th&gt;
+&lt;th&gt;Year&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;title&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;artist&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;country&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;company&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;price&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;year&quot;)%&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/ItemTemplate&gt;
+
+<code>&lt;AlternatingItemTemplate&gt;</code>
+&lt;tr bgcolor=&quot;#e8e8e8&quot;&gt;
+
+&lt;td&gt;&lt;%#Container.DataItem(&quot;title&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;artist&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;country&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;company&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;price&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;year&quot;)%&gt;&lt;/td&gt;
+&lt;/tr&gt;
+<code>&lt;/AlternatingItemTemplate&gt;</code>
+
+&lt;FooterTemplate&gt;
+&lt;/table&gt;
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:Repeater&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<div>
+<h2>使用 &lt;SeparatorTemplate&gt;</h2>
+<p>&lt;SeparatorTemplate&gt; 元素能够用于描述每个记录之间的分隔符。下面的例子在每个表格行之间插入了一条水平线：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycdcatalog=New DataSet
+  mycdcatalog.ReadXml(MapPath(&quot;cdcatalog.xml&quot;))
+  cdcatalog.DataSource=mycdcatalog
+  cdcatalog.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:Repeater id=&quot;cdcatalog&quot; runat=&quot;server&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+&lt;table border=&quot;0&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;
+&lt;th&gt;Title&lt;/th&gt;
+&lt;th&gt;Artist&lt;/th&gt;
+&lt;th&gt;Country&lt;/th&gt;
+&lt;th&gt;Company&lt;/th&gt;
+&lt;th&gt;Price&lt;/th&gt;
+&lt;th&gt;Year&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;title&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;artist&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;country&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;company&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;price&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;year&quot;)%&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/ItemTemplate&gt;
+
+<code>&lt;SeparatorTemplate&gt;</code>
+&lt;tr&gt;
+&lt;td colspan=&quot;6&quot;&gt;&lt;hr /&gt;&lt;/td&gt;
+&lt;/tr&gt;
+<code>&lt;/SeparatorTemplate&gt;</code>
+
+&lt;FooterTemplate&gt;
+&lt;/table&gt;
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:Repeater&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+
+<div><p><strong>DataList 控件，类似于 Repeater 控件，用于显示限制于该控件的项目的重复列表。不过，DataList 控件会默认地在数据项目上添加表格。</strong></p></div><div class="example"><h2>实例</h2><dl><dt>DataList 控件 </dt><dt>带有样式的 DataList 控件 </dt><dt>带有 &lt;AlternatingItemTemplate&gt; 的 DataList 控件 </dt></dl></div><div><h2>把 DataSet 绑定到 DataList 控件</h2><p>DataList 控件，类似于 Repeater 控件，用于显示限制于该控件的项目的重复列表。不过，DataList 控件会默认地在数据项目上添加表格。DataList 控件可被绑定到数据库表、XML 文件或者其他项目列表。这里，我们将展示如何把 XML 文件绑定到一个 DataList 控件。</p><p>我们将在例子中使用下面的 XML 文件 (&quot;cdcatalog.xml&quot;)：</p><pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+
+&lt;catalog&gt;
+&lt;cd&gt;
+&lt;title&gt;Empire Burlesque&lt;/title&gt;
+&lt;artist&gt;Bob Dylan&lt;/artist&gt;
+&lt;country&gt;USA&lt;/country&gt;
+&lt;company&gt;Columbia&lt;/company&gt;
+&lt;price&gt;10.90&lt;/price&gt;
+&lt;year&gt;1985&lt;/year&gt;
+&lt;/cd&gt;
+&lt;cd&gt;
+&lt;title&gt;Hide your heart&lt;/title&gt;
+&lt;artist&gt;Bonnie Tyler&lt;/artist&gt;
+&lt;country&gt;UK&lt;/country&gt;
+&lt;company&gt;CBS Records&lt;/company&gt;
+&lt;price&gt;9.90&lt;/price&gt;
+&lt;year&gt;1988&lt;/year&gt;
+&lt;/cd&gt;
+&lt;cd&gt;
+&lt;title&gt;Greatest Hits&lt;/title&gt;
+&lt;artist&gt;Dolly Parton&lt;/artist&gt;
+&lt;country&gt;USA&lt;/country&gt;
+&lt;company&gt;RCA&lt;/company&gt;
+&lt;price&gt;9.90&lt;/price&gt;
+&lt;year&gt;1982&lt;/year&gt;
+&lt;/cd&gt;
+&lt;cd&gt;
+&lt;title&gt;Still got the blues&lt;/title&gt;
+&lt;artist&gt;Gary Moore&lt;/artist&gt;
+&lt;country&gt;UK&lt;/country&gt;
+&lt;company&gt;Virgin records&lt;/company&gt;
+&lt;price&gt;10.20&lt;/price&gt;
+&lt;year&gt;1990&lt;/year&gt;
+&lt;/cd&gt;
+&lt;cd&gt;
+&lt;title&gt;Eros&lt;/title&gt;
+&lt;artist&gt;Eros Ramazzotti&lt;/artist&gt;
+&lt;country&gt;EU&lt;/country&gt;
+&lt;company&gt;BMG&lt;/company&gt;
+&lt;price&gt;9.90&lt;/price&gt;
+&lt;year&gt;1997&lt;/year&gt;
+&lt;/cd&gt;
+&lt;/catalog&gt;</pre>
+<p>请查看该 XML 文件：cdcatalog.xml</p>
+<p>首先，导入 &quot;System.Data&quot; 命名空间。我们需要此命名空间与 DataSet 对象一同工作。在 .aspx 页面的顶部包含下面这条指令：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;</pre>
+<p>接下来，为这个 XML 文件创建一个 DataSet，并把此 XML 文件在页面首次加载时载入 DataSet：</p>
+<pre>&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycdcatalog=New DataSet
+  mycdcatalog.ReadXml(MapPath(&quot;cdcatalog.xml&quot;))
+end if
+end sub</pre>
+<p>然后我们在 .aspx 页面中创建一个 DataList 控件。&lt;HeaderTemplate&gt; 元素中的内容在输出中仅出现一次，而 &lt;ItemTemplate&gt; 元素的内容会对应 DataSet 中的 &quot;record&quot; 重复出现，最后，&lt;FooterTemplate&gt; 的内容在输出中仅出现一次：</p>
+<pre>&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:DataList id=&quot;cdcatalog&quot; runat=&quot;server&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+...
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+...
+&lt;/ItemTemplate&gt;
+
+&lt;FooterTemplate&gt;
+...
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:DataList&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<p>然后我们添加可创建 DataSet 的脚本，并把这个 mycdcatalog DataSet 绑定到 DataList 控件。我们同样使用这些元素来填充该 DataList 控件：包含表头的 &lt;HeaderTemplate&gt;，包含要显示的数据项的 &lt;ItemTemplate&gt;，以及包含文本的 &lt;FooterTemplate&gt;。请注意，DataList 的 gridlines 属性被设置为 &quot;both&quot;，以显示表格边框：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycdcatalog=New DataSet
+  mycdcatalog.ReadXml(MapPath(&quot;cdcatalog.xml&quot;))
+  cdcatalog.DataSource=mycdcatalog
+  cdcatalog.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:DataList id=&quot;cdcatalog&quot;
+gridlines=&quot;both&quot; runat=&quot;server&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+My CD Catalog
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+&quot;&lt;%#Container.DataItem(&quot;title&quot;)%&gt;&quot; of
+&lt;%#Container.DataItem(&quot;artist&quot;)%&gt; -
+$&lt;%#Container.DataItem(&quot;price&quot;)%&gt;
+&lt;/ItemTemplate&gt;
+
+&lt;FooterTemplate&gt;
+Copyright w3school.com.cn
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:DataList&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<div>
+<h2>使用样式</h2>
+<p>您也可以向 DataList 控件添加样式，让它更加时髦：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+  dim mycdcatalog=New DataSet
+  mycdcatalog.ReadXml(MapPath(&quot;cdcatalog.xml&quot;))
+  cdcatalog.DataSource=mycdcatalog
+  cdcatalog.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:DataList id=&quot;cdcatalog&quot;
+runat=&quot;server&quot;
+cellpadding=&quot;2&quot;
+cellspacing=&quot;2&quot;
+borderstyle=&quot;inset&quot;
+backcolor=&quot;#e8e8e8&quot;
+width=&quot;100%&quot;
+headerstyle-font-name=&quot;Verdana&quot;
+headerstyle-font-size=&quot;12pt&quot;
+headerstyle-horizontalalign=&quot;center&quot;
+headerstyle-font-bold=&quot;true&quot;
+itemstyle-backcolor=&quot;#778899&quot;
+itemstyle-forecolor=&quot;#ffffff&quot;
+footerstyle-font-size=&quot;9pt&quot;
+footerstyle-font-italic=&quot;true&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+My CD Catalog
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+&quot;&lt;%#Container.DataItem(&quot;title&quot;)%&gt;&quot; of
+&lt;%#Container.DataItem(&quot;artist&quot;)%&gt; -
+$&lt;%#Container.DataItem(&quot;price&quot;)%&gt;
+&lt;/ItemTemplate&gt;
+
+&lt;FooterTemplate&gt;
+Copyright w3school.com.cn
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:DataList&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<div>
+<h2>使用 &lt;AlternatingItemTemplate&gt;</h2>
+<p>您可以在 &lt;ItemTemplate&gt; 元素后添加 &lt;AlternatingItemTemplate&gt; 元素，这样就可以描述交替行的外观了。您可以在 DataList 控件内部对 &lt;AlternatingItemTemplate&gt; 部分的数据进行样式化处理：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+if Not Page.IsPostBack then
+dim mycdcatalog=New DataSet
+mycdcatalog.ReadXml(MapPath(&quot;cdcatalog.xml&quot;))
+cdcatalog.DataSource=mycdcatalog
+cdcatalog.DataBind()
+end if
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:DataList id=&quot;cdcatalog&quot;
+runat=&quot;server&quot;
+cellpadding=&quot;2&quot;
+cellspacing=&quot;2&quot;
+borderstyle=&quot;inset&quot;
+backcolor=&quot;#e8e8e8&quot;
+width=&quot;100%&quot;
+headerstyle-font-name=&quot;Verdana&quot;
+headerstyle-font-size=&quot;12pt&quot;
+headerstyle-horizontalalign=&quot;center&quot;
+headerstyle-font-bold=&quot;True&quot;
+itemstyle-backcolor=&quot;#778899&quot;
+itemstyle-forecolor=&quot;#ffffff&quot;
+alternatingitemstyle-backcolor=&quot;#e8e8e8&quot;
+alternatingitemstyle-forecolor=&quot;#000000&quot;
+footerstyle-font-size=&quot;9pt&quot;
+footerstyle-font-italic=&quot;True&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+My CD Catalog
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+&quot;&lt;%#Container.DataItem(&quot;title&quot;)%&gt;&quot; of
+&lt;%#Container.DataItem(&quot;artist&quot;)%&gt; -
+$&lt;%#Container.DataItem(&quot;price&quot;)%&gt;
+&lt;/ItemTemplate&gt;
+
+&lt;AlternatingItemTemplate&gt;
+&quot;&lt;%#Container.DataItem(&quot;title&quot;)%&gt;&quot; of
+&lt;%#Container.DataItem(&quot;artist&quot;)%&gt; -
+$&lt;%#Container.DataItem(&quot;price&quot;)%&gt;
+&lt;/AlternatingItemTemplate&gt;
+
+&lt;FooterTemplate&gt;
+&amp;copy; w3school.com.cn
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:DataList&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+
+<div><p><strong>ADO.NET 同样是 .NET 框架的组成部分。ADO.NET 的职能是处理数据访问。通过 ADO.NET，您就可以操作数据库了。</strong></p></div><div class="example"><h2>实例</h2><dl><dt>数据库连接 - 绑定到 Repeater 控件 </dt><dt>数据库连接 - 绑定到 DataList 控件 </dt></dl></div><div><h2>什么是 ADO.NET？</h2><ul><li>ADO.NET 是 .NET 框架的组成部分</li><li>ADO.NET 由一系列用于操作数据访问的类组成</li><li>ADO.NET 完全基于 XML</li><li>ADO.NET 没有 Recordset 对象，这一点与 ADO 不同</li></ul></div><div><h2>创建数据库连接</h2><p>我们计划使用曾经使用过的 Northwind 数据库。</p><p>首先，导入命名空间 &quot;System.Data.OleDb&quot;。我们需要该命名空间，以便可以操作 Microsoft Access 以及其他的 OLE DB 数据库提供者。我们将在 Page_Load 子例程中创建对此数据库的连接。我们创建了一个 dbconn 变量，并把新的 OleDbConnection 类赋值给这个变量，这个 OleDbConnection 类带有一个连接字符串，可以指示 OLE DB 以及数据库的位置。然后我们打开此数据库连接：</p><pre>&lt;%@ Import Namespace=&quot;System.Data.OleDb&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+dim dbconn
+<code>dbconn=New OleDbConnection(&quot;Provider=Microsoft.Jet.OLEDB.4.0;
+data source=&quot; &amp; server.mappath(&quot;northwind.mdb&quot;))</code>
+dbconn.Open()
+end sub
+&lt;/script&gt;</pre>
+<p class="note"><span>注释：</span>这个连接字符串必须是没有折行的连续字符串！</p>
+</div>
+<div>
+<h2>创建数据库命令</h2>
+<p>为了指定需从数据库取回的记录，我们将创建一个 dbcomm 变量，并为其赋值一个新的 OleDbCommand。这个 OleDbCommand 类用于发出针对数据库表的 SQL 查询：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data.OleDb&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+dim dbconn,sql,dbcomm
+dbconn=New OleDbConnection(&quot;Provider=Microsoft.Jet.OLEDB.4.0;
+data source=&quot; &amp; server.mappath(&quot;northwind.mdb&quot;))
+dbconn.Open()
+sql=&quot;SELECT * FROM customers&quot;
+<code>dbcomm=New OleDbCommand(sql,dbconn)</code>
+end sub
+&lt;/script&gt;</pre>
+</div>
+<div>
+<h2>创建 DataReader</h2>
+<p>OleDbDataReader 类用于从数据源中读取记录流。通过调用 OleDbCommand 对象的 ExecuteReader 方法，就可以创建 DataReader：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data.OleDb&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+dim dbconn,sql,dbcomm,dbread
+dbconn=New OleDbConnection(&quot;Provider=Microsoft.Jet.OLEDB.4.0;
+data source=&quot; &amp; server.mappath(&quot;northwind.mdb&quot;))
+dbconn.Open()
+sql=&quot;SELECT * FROM customers&quot;
+dbcomm=New OleDbCommand(sql,dbconn)
+<code>dbread=dbcomm.ExecuteReader()</code>
+end sub
+&lt;/script&gt;</pre>
+</div>
+<div>
+<h2>绑定到 Repeater 控件</h2>
+<p>然后，我们把这个 DataReader 绑定到一个 Repeater 控件：</p>
+<pre>&lt;%@ Import Namespace=&quot;System.Data.OleDb&quot; %&gt;
+
+&lt;script runat=&quot;server&quot;&gt;
+sub Page_Load
+dim dbconn,sql,dbcomm,dbread
+dbconn=New OleDbConnection(&quot;Provider=Microsoft.Jet.OLEDB.4.0;
+data source=&quot; &amp; server.mappath(&quot;northwind.mdb&quot;))
+dbconn.Open()
+sql=&quot;SELECT * FROM customers&quot;
+dbcomm=New OleDbCommand(sql,dbconn)
+dbread=dbcomm.ExecuteReader()
+<code>customers.DataSource=dbread
+customers.DataBind()</code>
+dbread.Close()
+dbconn.Close()
+end sub
+&lt;/script&gt;
+
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;form runat=&quot;server&quot;&gt;
+&lt;asp:Repeater id=&quot;customers&quot; runat=&quot;server&quot;&gt;
+
+&lt;HeaderTemplate&gt;
+&lt;table border=&quot;1&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;
+&lt;th&gt;Companyname&lt;/th&gt;
+&lt;th&gt;Contactname&lt;/th&gt;
+&lt;th&gt;Address&lt;/th&gt;
+&lt;th&gt;City&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/HeaderTemplate&gt;
+
+&lt;ItemTemplate&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;companyname&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;contactname&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;address&quot;)%&gt;&lt;/td&gt;
+&lt;td&gt;&lt;%#Container.DataItem(&quot;city&quot;)%&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/ItemTemplate&gt;
+
+&lt;FooterTemplate&gt;
+&lt;/table&gt;
+&lt;/FooterTemplate&gt;
+
+&lt;/asp:Repeater&gt;
+&lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<div>
+<h2>关闭数据库连接</h2>
+<p>在不在需要访问数据库后，请记得始终将 DataReader 和数据库连接关闭：</p>
+<pre>dbread.Close()
+dbconn.Close()</pre>
+</div>
+</pre>
+</div>
+</pre>
+</div>
+</pre>
+</div>
+</pre>
+</div>
+</div>
+</div>
+</div></div></body></html>

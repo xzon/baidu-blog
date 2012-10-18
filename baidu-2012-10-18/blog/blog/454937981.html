@@ -1,0 +1,90 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>TimingFramework源码概览 -hxzon</title></head><body><h1>TimingFramework源码概览 -hxzon</h1><div><p>TimingFramework源码概览 -hxzon</p><p>TimingFramework源码品读 TimingFramework-3.0</p><p>本文：<a href="http://hi.baidu.com/hxzon/blog/item/fe80c05c6df54e58faf2c0f7.html">http://hi.baidu.com/hxzon/blog/item/fe80c05c6df54e58faf2c0f7.html</a></p><p>参考阅读：<a href="http://hi.baidu.com/hxzon/blog/item/b921411079f189f1c2ce79ff.html">http://hi.baidu.com/hxzon/blog/item/b921411079f189f1c2ce79ff.html</a></p><p>==========================================</p><p>Animator(long duration, TimeUnit durationTimeUnit, EndBehavior endBehavior, Interpolator interpolator,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RepeatBehavior repeatBehavior, long repeatCount, Direction startDirection, TimingSource timingSource) {<br>&nbsp;&nbsp;&nbsp; f_duration = duration;//动画总时间<br>&nbsp;&nbsp;&nbsp; f_durationTimeUnit = durationTimeUnit;//动画时间单位<br>&nbsp;&nbsp;&nbsp; f_endBehavior = endBehavior;//动画终点行为，保持终点状态或重设为起点状态<br>&nbsp;&nbsp;&nbsp; f_interpolator = interpolator;//中间值插补器<br>&nbsp;&nbsp;&nbsp; f_repeatBehavior = repeatBehavior;//动画重复类型，从新循环或回滚循环<br>&nbsp;&nbsp;&nbsp; f_repeatCount = repeatCount;//动画重复次数<br>&nbsp;&nbsp;&nbsp; f_startDirection = f_currentDirection = startDirection;//动画方向，向前或后退<br>&nbsp;&nbsp;&nbsp; f_timingSource = timingSource;//时钟源<br>&nbsp; }</p><p>public void Animator.addTarget(TimingTarget target) 添加定时动作</p><br><p>=========================================</p><p>public interface TimingTarget {<br><br>&nbsp; /**<br>&nbsp;&nbsp; * Called when the animation begins. This provides a chance for targets to<br>&nbsp;&nbsp; * perform any setup required at animation start time.<br>&nbsp;&nbsp; * <br>&nbsp;&nbsp; * @param source<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the animation.<br>&nbsp;&nbsp; */<br>&nbsp; public void begin(Animator source);<br><br>&nbsp; /**<br>&nbsp;&nbsp; * Called when the animation ends.<br>&nbsp;&nbsp; * <br>&nbsp;&nbsp; * @param source<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the animation.<br>&nbsp;&nbsp; */<br>&nbsp; public void end(Animator source);<br><br>&nbsp; /**<br>&nbsp;&nbsp; * Called when the animation repeats the animation cycle. This method will be<br>&nbsp;&nbsp; * invoked {@link Animator#getRepeatCount()} - 1 times, unless<br>&nbsp;&nbsp; * {@link Animator#getRepeatCount()} == {@link Animator#INFINITE} in which<br>&nbsp;&nbsp; * case it will be invoked until the animation is manually stopped.<br>&nbsp;&nbsp; * <br>&nbsp;&nbsp; * @param source<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the animation.<br>&nbsp;&nbsp; */<br>&nbsp; public void repeat(Animator source);<br><br>&nbsp; /**<br>&nbsp;&nbsp; * Called when a running animation is reversed via<br>&nbsp;&nbsp; * {@link Animator#reverseNow()}. This method is not invoked when<br>&nbsp;&nbsp; * {@link Animator#startReverse()} is called&amp;mdash;it is only used as a<br>&nbsp;&nbsp; * notification when a running animation is reversed.<br>&nbsp;&nbsp; * <br>&nbsp;&nbsp; * @param source<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the animation.<br>&nbsp;&nbsp; */<br>&nbsp; public void reverse(Animator source);<br><br>&nbsp; /**<br>&nbsp;&nbsp; * This method will receive all of the timing events during an animation. The<br>&nbsp;&nbsp; * fraction is the percent elapsed (0 to 1) of the current animation cycle.<br>&nbsp;&nbsp; * <br>&nbsp;&nbsp; * @param source<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the animation.<br>&nbsp;&nbsp; * @param fraction<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the fraction of completion between the start and end of the<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; current cycle. Note that on reversing cycles (<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {@link Animator.Direction#BACKWARD}) the fraction decreases from<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.0 to 0 on backwards-running cycles. Note also that animations<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; with a duration of {@link Animator#INFINITE INFINITE} will have an<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; undefined value for the fraction, since there is no fraction that<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; makes sense if the animation has no defined length.<br>&nbsp;&nbsp; */<br>&nbsp; public void timingEvent(Animator source, double fraction);<br>}</p><p>定时动作，如PropertySetterTimingTarget，PropertySetterToTimingTarget。（父类KeyFramesTimingTarget&lt;T&gt;）</p><p>==============================</p><p>public interface Trigger {<br><br>&nbsp; /**<br>&nbsp;&nbsp; * Disables this trigger. If the event that fires this trigger occurs<br>&nbsp;&nbsp; * subsequently it will be ignored.<br>&nbsp;&nbsp; */<br>&nbsp; void disarm();<br><br>&nbsp; /**<br>&nbsp;&nbsp; * Gets if this trigger is armed.<br>&nbsp;&nbsp; * <br>&nbsp;&nbsp; * @return {@code true} indicates that this trigger is armed, {@code false}<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; indicates that it has been disarmed with a call to<br>&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {@link #disarm()}.<br>&nbsp;&nbsp; */<br>&nbsp; boolean isArmed();<br>}</p><p>动画触发器，如FocusTriggerHelper，MouseTriggerHelper，ActionTriggerHelper，TimingTriggerHelper。</p><p>==================================</p><p>/**<br>
+&nbsp;* This interface provides a mechanism for animating object properties between<br>
+&nbsp;* different values. It defines the single {@link #interpolate(double)} method.<br>
+&nbsp;* &lt;p&gt;<br>
+&nbsp;* This interface is implemented by built-in interpolators. Applications may<br>
+&nbsp;* choose to implement their own interpolator to get custom interpolation<br>
+&nbsp;* behavior.<br>
+&nbsp;* <br>
+&nbsp;* @author Chet Haase<br>
+&nbsp;* <br>
+&nbsp;* @see AccelerationInterpolator<br>
+&nbsp;* @see DiscreteInterpolator<br>
+&nbsp;* @see LinearInterpolator<br>
+&nbsp;* @see SplineInterpolator<br>
+&nbsp;*/<br>
+@Immutable<br>
+public interface Interpolator {<br><br>
+&nbsp; /**<br>
+&nbsp;&nbsp; * This function takes an input value between 0 and 1 and returns another<br>
+&nbsp;&nbsp; * value, also between 0 and 1. The purpose of the function is to define how<br>
+&nbsp;&nbsp; * time (represented as a (0-1) fraction of the duration of an animation) is<br>
+&nbsp;&nbsp; * altered to derive different value calculations during an animation.<br>
+&nbsp;&nbsp; * <br>
+&nbsp;&nbsp; * @param fraction<br>
+&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a value between 0 and 1, inclusive, representing the elapsed<br>
+&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fraction of a time interval.<br>
+&nbsp;&nbsp; * @return a value between 0 and 1, inclusive. Values outside of this boundary<br>
+&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; may be clamped to the interval [0,1] and cause undefined results.<br>
+&nbsp;&nbsp; */<br>
+&nbsp; public double interpolate(double fraction);<br>
+}</p><p>中间值插补器，如线性插补器，如下，</p><p>public final class LinearInterpolator implements Interpolator {<br><br>
+&nbsp; /**<br>
+&nbsp;&nbsp; * This method always returns the value it was given, which will cause callers<br>
+&nbsp;&nbsp; * to calculate a linear interpolation between boundary values.<br>
+&nbsp;&nbsp; * <br>
+&nbsp;&nbsp; * @param fraction<br>
+&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; a value between 0 and 1, representing the elapsed fraction of a<br>
+&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; time interval (either an entire animation cycle or an interval<br>
+&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; between two KeyTimes, depending on where this {@link Interpolator}<br>
+&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; has been set)<br>
+&nbsp;&nbsp; * @return the value passed in as the &lt;code&gt;fraction&lt;/code&gt; parameter.<br>
+&nbsp;&nbsp; */<br>
+&nbsp; public double interpolate(double fraction) {<br>
+&nbsp;&nbsp;&nbsp; return fraction;<br>
+&nbsp; }<br>
+}</p><p>===================================</p><p>Evaluator&lt;T&gt; 求值子</p><p>&nbsp;&nbsp; /**<br>&nbsp;&nbsp; * Evaluates between two boundary values. Typically implementations use linear<br>&nbsp;&nbsp; * parametric evaluation:<br>&nbsp;&nbsp; * <br>&nbsp;&nbsp; * &lt;pre&gt;<br>&nbsp;&nbsp; * v = v0 + (v1 - v0) * fraction<br>&nbsp;&nbsp; * &lt;/pre&gt;<br>&nbsp;&nbsp; * <br>&nbsp;&nbsp; * Implementations of {@link Evaluator} will need to override this method and<br>&nbsp;&nbsp; * do something similar for their own types.<br>&nbsp;&nbsp; * &lt;p&gt;<br>&nbsp;&nbsp; * Note that this mechanism may be used to create non-linear interpolators for<br>&nbsp;&nbsp; * specific value types, although it may be simpler to just use the<br>&nbsp;&nbsp; * linear/parametric interpolation technique here and perform non-linear<br>&nbsp;&nbsp; * interpolation through a custom {@link Interpolator} rather than perform<br>&nbsp;&nbsp; * custom calculations in this method. The point of this class is to allow<br>&nbsp;&nbsp; * calculations with new/unknown types, not to provide another mechanism for<br>&nbsp;&nbsp; * non-linear interpolation.<br>&nbsp;&nbsp; */<br>&nbsp; T evaluate(T v0, T v1, double fraction);</p><p>新值 x= x0+(x1-x0)*timeFraction，其中 timeFraction为时间逝去分数，timeFraction=(currentTime-startTime)/animationDuration。</p><p>如颜色求值子，如下，</p><p>public final class EvaluatorColor implements Evaluator&lt;Color&gt; {<br><br>
+&nbsp; @Override<br>
+&nbsp; public Color evaluate(Color v0, Color v1, double fraction) {<br>
+&nbsp;&nbsp;&nbsp; int r = v0.getRed() + (int) ((v1.getRed() - v0.getRed()) * fraction + 0.5f);<br>
+&nbsp;&nbsp;&nbsp; int g = v0.getGreen() + (int) ((v1.getGreen() - v0.getGreen()) * fraction + 0.5f);<br>
+&nbsp;&nbsp;&nbsp; int b = v0.getBlue() + (int) ((v1.getBlue() - v0.getBlue()) * fraction + 0.5f);<br>
+&nbsp;&nbsp;&nbsp; int a = v0.getAlpha() + (int) ((v1.getAlpha() - v0.getAlpha()) * fraction + 0.5f);<br>
+&nbsp;&nbsp;&nbsp; Color value = new Color(r, g, b, a);<br>
+&nbsp;&nbsp;&nbsp; return value;<br>
+&nbsp; }<br><br>
+&nbsp; @Override<br>
+&nbsp; public Class&lt;Color&gt; getEvaluatorClass() {<br>
+&nbsp;&nbsp;&nbsp; return Color.class;<br>
+&nbsp; }<br>
+}</p><p>====================================</p><p>KeyFrames&lt;T&gt; 帧系列</p><p>Frame 帧</p><p>&nbsp;&nbsp;&nbsp; /**<br>
+&nbsp;&nbsp;&nbsp;&nbsp; * Constructs a new key frame.<br>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param value<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the value of this key frame. Client code should &lt;i&gt;never&lt;/i&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mutate values that have been passed into an instance.<br>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param atTimeFraction<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the time fraction in the range [0,1] when the value should<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; occur. A negative value indicates, to the<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {@link KeyFramesBuilder} that this instance is passed to, that<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the time fraction when this fame occurs should be calculated,<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; linearly, from the previous and next specified time fractions.<br>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param interpolator<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the interpolator that should be used between the previous key<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame and this one. A {@code null} value indicates, to the<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {@link KeyFramesBuilder} that this instance is passed to, that<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; either the interpolator set with<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {@link KeyFramesBuilder#setInterpolator(Interpolator)} or the<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; default {@link LinearInterpolator} should be used for this key<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.<br>
+&nbsp;&nbsp;&nbsp;&nbsp; * <br>
+&nbsp;&nbsp;&nbsp;&nbsp; * @throws IllegalArgumentException<br>
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if &lt;tt&gt;value&lt;/tt&gt; is {@code null}.<br>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br>
+&nbsp;&nbsp;&nbsp; public Frame(T value, double atTimeFraction, Interpolator interpolator) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (value == null)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IllegalArgumentException(I18N.err(1, "value"));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; f_value = value;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; f_timeFraction = atTimeFraction;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; f_interpolator = interpolator;<br>
+&nbsp;&nbsp;&nbsp; }</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p></p></div></body></html>

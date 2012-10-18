@@ -1,0 +1,56 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>子类对象的实例化过程</title></head><body><h1>子类对象的实例化过程</h1><div><div>子类对象的实例化过程</div>
+<div> </div>
+<div>问题：</div>
+<div> </div>
+<div>public class Parent <br>
+{ <br>
+&nbsp;&nbsp;&nbsp;  public void test() <br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;&nbsp;  public Parent() <br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  test();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;&nbsp;  public static void main(String[] args) <br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new Child();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+<br>
+class Child extends Parent <br>
+{<br>
+&nbsp;&nbsp;&nbsp;  private int instanceValue = 20;<br>
+&nbsp;&nbsp;&nbsp;  public void test() <br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;instance value is: &quot; + instanceValue);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+各位先猜猜打印的结果是多少呢？为什么呢？<br>
+----------------------------------------------------------------<br>
+答案：下面是摘自本人编写的《Java就业培训教程》中的一段讲述，请大家注意第（4）步和第（5）步的讲解，调用完父类的构造方法后，接着才进行成员变量的显式初始化操作，上面代码中的private int instanceValue = 20;定义应看成两部分：第一部分是定义变量，第二部分是给变量赋值，变量定义位于父类构造方法之前，变量赋值位于父类构造方法之后。在父类的构造方法执行时，根据多态性，它会去调用子类中定义的test()方法，可是，这时候，子类中的成员变量还没执行显式初始化操作， 对于private int instanceValue = 20;定义，instanceValue 的值为默认的初始化值0，所以，这时候在test方法中打印出的值为0。<br>
+<br>
+4.1.3子类对象的实例化过程<br>
+对于许多Java老手来说，子类对象的实例化过程也不见得非常清楚，你可能并不需要完全了解子类对象的实例化过程，但了解后还是有好处的。<br>
+对象中的成员变量的初始化是按下述步骤进行的：<br>
+（1）分配成员变量的存储空间并进行默认的初始化，就是用new关键字产生对象后，对类中的成员变量按第三章的表3.1中的对应关系对对象中的成员变量进行初始化赋值。<br>
+（2）绑定构造方法参数，就是new Person（实际参数列表)中所传递进的参数赋值给构造方法中的形式参数变量。<br>
+（3）如有this()调用，则调用相应的重载构造方法（被调用的重载构造方法又从步骤2开始执行这些流程），被调用的重载构造方法的执行流程结束后，回到当前构造方法，当前构造方法直接跳转到步骤（6）执行。（反正要去调用父类的构造函数，如果调用this，那么this指向的构造函数就会去调用父类的构造函数，我这个构造函数本身就不用再调用父类的构造函数了，如果没有调用this，那我这个构造函数就必须去调用父类的构造函数）<br>
+（4）如有没有this()调用，显式或隐式追溯调用父类的构造方法(一直到Object类为止，Object是所有Java类的最顶层父类，/*在本章后面部分有详细讲解*/)，父类的构造方法又从步骤2开始对父类执行这些流程，父类的构造方法的执行流程结束后，回到当前构造方法，当前构造方法继续往下执行。<br>
+（5）进行成员变量的显式初始化操作，也就是执行在定义成员变量时就对其进行赋值的语句，如：<br>
+public Student extends Person<br>
+{<br>
+&nbsp;&nbsp;&nbsp;  String school = &rdquo;it315&rdquo;;// 显式初始化<br>
+&nbsp;&nbsp;&nbsp;  ……<br>
+}<br>
+将&ldquo;it315&rdquo;赋值给school成员变量。<br>
+（6）执行当前构造方法的方法体中的程序代码，如：<br>
+public Student extends Person<br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public Student(String name,int age,String school)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super(name,age);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.school = school;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+}</div></div></body></html>

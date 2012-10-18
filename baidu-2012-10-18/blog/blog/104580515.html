@@ -1,0 +1,299 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>分页技术（结合Struts,Hibernate） -mldn学习笔记 -hxzon -gcode</title></head><body><h1>分页技术（结合Struts,Hibernate） -mldn学习笔记 -hxzon -gcode</h1><div><div>分页技术（结合Struts,Hibernate） -mldn学习笔记 -hxzon -gcode</div>
+<div> </div>
+<div><br>
+StrutsSPDemo2 (原StrtsSPDemo的包路径设置有问题)<br>
+//---------PersonDAOImpl.java ，直接HQL语句--------------------------------------------<br>
+//分页查询<br>
+public List queryByLike(String cond, int currentPage, int lineSize)<br>
+&nbsp;&nbsp;&nbsp;  throws Exception {<br>
+&nbsp;&nbsp;  List&lt;Person&gt; all = new ArrayList&lt;Person&gt;();<br>
+&nbsp;&nbsp;  String <font color="#ff0000">hql = &quot;FROM Person AS p WHERE p.uid LIKE ? OR p.name LIKE ?&quot;;</font><br>
+&nbsp;&nbsp;  Query q = this.session.createQuery(hql);<br>
+&nbsp;&nbsp;  q.setString(0, &quot;%&quot; + cond + &quot;%&quot;);<br>
+&nbsp;&nbsp;  q.setString(1, &quot;%&quot; + cond + &quot;%&quot;);<br>
+<font color="#ff0000">&nbsp;&nbsp;  q.setFirstResult((currentPage - 1) * lineSize);<br>
+&nbsp;&nbsp;  q.setMaxResults(lineSize);<br>
+</font>&nbsp;&nbsp;  all = q.list();<br>
+&nbsp;&nbsp;  this.session.close();<br>
+&nbsp;&nbsp;  return all;<br>
+}<br>
+<font color="#ff0000">//hxzon 通过q.setFirstResult()和q.setMaxResults()完成查询限制（只查一个分页的数据）。</font><br>
+//模糊查询记录数<br>
+public int getByLikeCount(String cond) throws Exception {<br>
+&nbsp;&nbsp;  int count = 0;<br>
+&nbsp;&nbsp;  String <font color="#ff0000">hql = &quot;SELECT COUNT(p.id) from Person AS p WHERE p.uid LIKE ? OR p.name LIKE ?&quot;;</font><br>
+&nbsp;&nbsp;  Query q = this.session.createQuery(hql);<br>
+&nbsp;&nbsp;  q.setString(0, &quot;%&quot; + cond + &quot;%&quot;);<br>
+&nbsp;&nbsp;  q.setString(1, &quot;%&quot; + cond + &quot;%&quot;);<br>
+&nbsp;&nbsp;  List all = q.list();<br>
+&nbsp;&nbsp;  if (all.size() &gt; 0) {<br>
+&nbsp;&nbsp;&nbsp;  <font color="#ff0000">count = (Integer) all.get(0);<br>
+</font>&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  return count;<br>
+}<br>
+//---------PersonAction.java----------------------------------------------<br>
+public ActionForward selectlike(ActionMapping mapping, ActionForm form,<br>
+&nbsp;&nbsp;&nbsp;  HttpServletRequest request, HttpServletResponse response) {<br>
+&nbsp;&nbsp;  PersonForm personForm = (PersonForm) form;<br>
+&nbsp;&nbsp;  // 接收查询关键字<br>
+&nbsp;&nbsp;  String keyWord = null;<br>
+&nbsp;&nbsp;  // 每页显示10行记录<br>
+&nbsp;&nbsp;  int lineSize = 10;<br>
+&nbsp;&nbsp;  // 当前是第几页<br>
+&nbsp;&nbsp;  int currentPage = 1;<br>
+&nbsp;&nbsp;  // 全部的记录数<br>
+&nbsp;&nbsp;  int allRecorders = 0;<br>
+&nbsp;&nbsp;  // 全部的记录数<br>
+&nbsp;&nbsp;  List all = null;<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  keyWord = request.getParameter(&quot;kw&quot;);<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  PersonDAO pdao = DAOFactory.getPersonDAOInstance();<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  // 每次需要接收currentPage --&gt; cp<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  currentPage = Integer.parseInt(request.getParameter(&quot;cp&quot;));<br>
+&nbsp;&nbsp;  } catch (Exception e) {<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  // 求出全部的记录数<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  allRecorders = pdao.getByLikeCount(keyWord);<br>
+&nbsp;&nbsp;&nbsp;  all = pdao.queryByLike(keyWord, currentPage, lineSize);<br>
+&nbsp;&nbsp;  } catch (Exception e) {<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  // 将数据保存到页面中进行显示<br>
+&nbsp;&nbsp;  request.setAttribute(&quot;currentPage&quot;, currentPage);<br>
+&nbsp;&nbsp;  request.setAttribute(&quot;lineSize&quot;, lineSize);<br>
+&nbsp;&nbsp;  request.setAttribute(&quot;allRecorders&quot;, allRecorders);<br>
+&nbsp;&nbsp;  request.setAttribute(&quot;keyWord&quot;, keyWord);<br>
+&nbsp;&nbsp;  request.setAttribute(&quot;all&quot;, all);<br>
+&nbsp;&nbsp;  return mapping.findForward(&quot;list&quot;);<br>
+}<br>
+//---------list_person.jsp 查询结果列表--------------------------------------------------<br>
+&lt;%@ page language=&quot;java&quot; pageEncoding=&quot;GBK&quot;%&gt;<br>
+&lt;%@ taglib uri=&quot;<a href="http://struts.apache.org/tags-bean">http://struts.apache.org/tags-bean</a>&quot; prefix=&quot;bean&quot;%&gt;<br>
+&lt;%@ taglib uri=&quot;<a href="http://struts.apache.org/tags-html">http://struts.apache.org/tags-html</a>&quot; prefix=&quot;html&quot;%&gt;<br>
+&lt;%@ taglib uri=&quot;<a href="http://struts.apache.org/tags-logic">http://struts.apache.org/tags-logic</a>&quot; prefix=&quot;logic&quot;%&gt;<br>
+&lt;%@ taglib uri=&quot;<a href="http://struts.apache.org/tags-tiles">http://struts.apache.org/tags-tiles</a>&quot; prefix=&quot;tiles&quot;%&gt;<br>
+&lt;html:html lang=&quot;true&quot;&gt;<br>
+&lt;head&gt;<br>
+&lt;title&gt;分页显示&lt;/title&gt;<br>
+&lt;/head&gt;<br>
+&lt;%!<br>
+final String jspUrl = &quot;person.do&quot; ;<br>
+%&gt;<br>
+&lt;body&gt;<br>
+&lt;center&gt;<br>
+&nbsp;&nbsp;  &lt;h1&gt;<br>
+&nbsp;&nbsp;&nbsp;  分页显示<br>
+&nbsp;&nbsp;  &lt;/h1&gt;<br>
+&nbsp;&nbsp;  &lt;hr&gt;<br>
+&nbsp;&nbsp;  &lt;logic:present name=&quot;all&quot; scope=&quot;request&quot;&gt;<br>
+<font color="#ff0000">&nbsp;&nbsp;  &lt;!-- 导入分页组件（其实是一个模板页面），显示首页尾页，上下页，选择页按钮 --&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;jsp:include page=&quot;split_page.jsp&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;jsp:param name=&quot;jspUrl&quot; value=&quot;&lt;%=jspUrl%&gt;&quot; /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;jsp:param name=&quot;lineSize&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  value=&quot;&lt;%=request.getAttribute(&quot;lineSize&quot;)%&gt;&quot; /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;jsp:param name=&quot;allRecorders&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  value=&quot;&lt;%=request.getAttribute(&quot;allRecorders&quot;)%&gt;&quot; /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;jsp:param name=&quot;keyWord&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  value=&quot;&lt;%=request.getAttribute(&quot;keyWord&quot;)%&gt;&quot; /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;jsp:param name=&quot;currentPage&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  value=&quot;&lt;%=request.getAttribute(&quot;currentPage&quot;)%&gt;&quot; /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;jsp:param name=&quot;searchFlag&quot; value=&quot;True&quot; /&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/jsp:include&gt;<br>
+</font>&nbsp;&nbsp;&nbsp;  &lt;table border=&quot;1&quot; width=&quot;80%&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;tr&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  编号<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  用户ID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  姓名<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  密码<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/tr&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;logic:iterate id=&quot;per&quot; name=&quot;all&quot; scope=&quot;request&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;tr&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ${per.id}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ${per.uid}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ${per.name}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ${per.password}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/td&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/tr&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/logic:iterate&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/table&gt;<br>
+&nbsp;&nbsp;  &lt;/logic:present&gt;<br>
+&nbsp;&nbsp;  &lt;logic:notPresent name=&quot;all&quot; scope=&quot;request&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;h2&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  没有任何数据！！！<br>
+&nbsp;&nbsp;&nbsp;  &lt;/h2&gt;<br>
+&nbsp;&nbsp;  &lt;/logic:notPresent&gt;<br>
+&lt;/center&gt;<br>
+&lt;/body&gt;<br>
+&lt;/html:html&gt;<br>
+//------------split_page.jsp&nbsp;&nbsp;  上下页表单（按钮），当作一个组件来使用--------------------------------------------<br>
+&lt;%@ page contentType=&quot;text/html;charset=gb2312&quot;%&gt;<br>
+&lt;%<br>
+// 进行乱码处理<br>
+request.setCharacterEncoding(&quot;GB2312&quot;) ;<br>
+%&gt;<br>
+&lt;%<br>
+// 页面连接路径<br>
+String jspUrl = null ;<br>
+// 定义如下分页变量<br>
+// 1、定义每页要显示的记录数，默认是10条每页<br>
+int lineSize = 10 ;<br>
+// 2、定义一个当前是第几页<br>
+int currentPage = 1 ;<br>
+// 计算出总页数<br>
+int pageSize = 0 ;<br>
+// 总记录数 / 每页显示的记录数<br>
+int allRecorders = 0 ;<br>
+// 加入查询关键字变量<br>
+String keyWord = null ;<br>
+// 加入一个检索标记，布尔值<br>
+String searchFlag = &quot;Flase&quot; ;<br>
+%&gt;<br>
+&lt;%<br>
+// 需要从外面接收以下参数--------------------------------------------<br>
+// 当前页、每页显示的记录数、总记录数、查询关键字、连接地址<br>
+jspUrl = request.getParameter(&quot;jspUrl&quot;) ;<br>
+keyWord = request.getParameter(&quot;keyWord&quot;) ;<br>
+searchFlag = request.getParameter(&quot;searchFlag&quot;) ;<br>
+try<br>
+{<br>
+&nbsp;&nbsp;  lineSize = Integer.parseInt(request.getParameter(&quot;lineSize&quot;)) ;<br>
+&nbsp;&nbsp;  currentPage = Integer.parseInt(request.getParameter(&quot;currentPage&quot;)) ;<br>
+&nbsp;&nbsp;  allRecorders = Integer.parseInt(request.getParameter(&quot;allRecorders&quot;)) ;<br>
+}<br>
+catch(Exception e)<br>
+{}<br>
+// 计算总页数<br>
+pageSize = (allRecorders+lineSize-1)/lineSize ;<br>
+%&gt;<br>
+<font color="#ff0000">&lt;script language=&quot;javaScript&quot;&gt;<br>
+function openPage(curpage)<br>
+{<br>
+&nbsp;&nbsp;  document.spage.cp.value = curpage ;<br>
+&nbsp;&nbsp;  // alert(cupage) ;<br>
+&nbsp;&nbsp;  document.spage.submit() ;<br>
+}<br>
+function selOpenPage()<br>
+{<br>
+&nbsp;&nbsp;  document.spage.cp.value = document.spage.selpage.value ;<br>
+&nbsp;&nbsp;  document.spage.submit() ;<br>
+}<br>
+&lt;/script&gt;<br>
+</font>&lt;form name=&quot;spage&quot; action=&quot;&lt;%=jspUrl%&gt;&quot;&gt;<br>
+&lt;input type=&quot;hidden&quot; name=&quot;method&quot; value=&quot;&lt;%=&quot;True&quot;.equals(searchFlag)?&quot;selectlike&quot;:&quot;selectall&quot;%&gt;&quot;&gt;<br>
+&lt;%<br>
+if(&quot;True&quot;.equals(searchFlag))<br>
+{<br>
+%&gt;<br>
+输入查询关键字：&lt;input type=&quot;text&quot; name=&quot;kw&quot; value=&quot;&lt;%=keyWord.equals(&quot;null&quot;)?&quot;&quot;:keyWord%&gt;&quot;&gt;<br>
+&lt;input type=&quot;submit&quot; value=&quot;查询&quot;&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;%<br>
+}<br>
+%&gt;<br>
+&lt;%<br>
+if(allRecorders&gt;0)<br>
+{<br>
+%&gt; <br>
+&lt;input type=&quot;button&quot; value=&quot;首页&quot; onClick=&quot;openPage(1)&quot; &lt;%=currentPage==1?&quot;disabled&quot;:&quot;&quot;%&gt;&gt;<br>
+&lt;input type=&quot;button&quot; value=&quot;上一页&quot; onClick=&quot;openPage(&lt;%=currentPage-1%&gt;)&quot; &lt;%=currentPage==1?&quot;disabled&quot;:&quot;&quot;%&gt;&gt;<br>
+&lt;input type=&quot;button&quot; value=&quot;下一页&quot; onClick=&quot;openPage(&lt;%=currentPage+1%&gt;)&quot; &lt;%=currentPage==pageSize?&quot;disabled&quot;:&quot;&quot;%&gt;&gt;<br>
+&lt;input type=&quot;button&quot; value=&quot;尾页&quot; onClick=&quot;openPage(&lt;%=pageSize%&gt;)&quot; &lt;%=currentPage==pageSize?&quot;disabled&quot;:&quot;&quot;%&gt;&gt;<br>
+&lt;input type=&quot;hidden&quot; name=&quot;cp&quot; value=&quot;&quot;&gt;<br>
+&lt;font color=&quot;red&quot; size=&quot;5&quot;&gt;&lt;%=currentPage%&gt;&lt;/font&gt;<br>
+/<br>
+&lt;font color=&quot;red&quot; size=&quot;5&quot;&gt;&lt;%=pageSize%&gt;&lt;/font&gt;<br>
+跳转到<br>
+&nbsp;&nbsp;  &lt;select name=&quot;selpage&quot; onChange=&quot;selOpenPage()&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;%<br>
+&nbsp;&nbsp;&nbsp;  for(int x=1;x&lt;=pageSize;x++)<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;  %&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;option value=&quot;&lt;%=x%&gt;&quot; &lt;%=currentPage==x?&quot;selected&quot;:&quot;&quot;%&gt;&gt;&lt;%=x%&gt;&lt;/option&gt;<br>
+&nbsp;&nbsp;  &lt;%<br>
+&nbsp;&nbsp;&nbsp;  } <br>
+&nbsp;&nbsp;  %&gt;<br>
+&nbsp;&nbsp;  &lt;/select&gt;<br>
+页<br>
+&lt;%<br>
+}<br>
+%&gt;<br>
+&lt;/form&gt;<br>
+=====================================================================<br>
+=====================================================================<br>
+这个是没有使用hibernate，直接JDBC语句的PersonDAOImpl.java<br>
+//分页查询<br>
+public List queryByLike(String cond,int currentPage,int lineSize) throws Exception<br>
+{<br>
+&nbsp;&nbsp;  List&lt;Person&gt; all = new ArrayList&lt;Person&gt;() ;<br>
+&nbsp;&nbsp;  String <font color="#ff0000">sql = &quot;SELECT id,uid,name,password FROM person WHERE uid LIKE ? OR name LIKE ? limit &quot;+(currentPage-1)*lineSize+&quot;,&quot;+lineSize ;&nbsp;&nbsp;&nbsp;&nbsp;  //使用 MySql 提供的 limit 函数。<br>
+</font>&nbsp;&nbsp;  PreparedStatement pstmt = null ;<br>
+&nbsp;&nbsp;  try<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;  pstmt = this.dbc.getConnection().prepareStatement(sql) ;<br>
+&nbsp;&nbsp;&nbsp;  pstmt.setString(1,&quot;%&quot;+cond+&quot;%&quot;) ;<br>
+&nbsp;&nbsp;&nbsp;  pstmt.setString(2,&quot;%&quot;+cond+&quot;%&quot;) ;<br>
+&nbsp;&nbsp;&nbsp;  ResultSet rs = pstmt.executeQuery() ;<br>
+&nbsp;&nbsp;&nbsp;  while(rs.next())<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Person p = new Person() ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  p.setId(rs.getInt(1)) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  p.setUid(rs.getString(2)) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  p.setName(rs.getString(3)) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  p.setPassword(rs.getString(4)) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  all.add(p) ;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  rs.close() ;<br>
+&nbsp;&nbsp;&nbsp;  pstmt.close() ;<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  catch (Exception e)<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;  throw e ;<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  finally<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;  this.dbc.close() ;<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  return all ;<br>
+}<br>
+//模糊查询<br>
+public int getByLikeCount(String cond) throws Exception {<br>
+&nbsp;&nbsp;  int count = 0;<br>
+&nbsp;&nbsp;  String <font color="#ff0000">sql = &quot;SELECT COUNT(id) from person WHERE uid LIKE ? OR name LIKE ?&quot;;<br>
+</font>&nbsp;&nbsp;  PreparedStatement pstmt = null;<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  pstmt = this.dbc.getConnection().prepareStatement(sql);<br>
+&nbsp;&nbsp;&nbsp;  pstmt.setString(1, &quot;%&quot; + cond + &quot;%&quot;);<br>
+&nbsp;&nbsp;&nbsp;  pstmt.setString(2, &quot;%&quot; + cond + &quot;%&quot;);<br>
+&nbsp;&nbsp;&nbsp;  ResultSet rs = pstmt.executeQuery();<br>
+&nbsp;&nbsp;&nbsp;  if (rs.next()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  count = rs.getInt(1);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  pstmt.close();<br>
+&nbsp;&nbsp;&nbsp;  rs.close();<br>
+&nbsp;&nbsp;  } catch (Exception e) {<br>
+&nbsp;&nbsp;&nbsp;  throw e;<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  return count;<br>
+}<br>
+=====================================================================</div></div></body></html>

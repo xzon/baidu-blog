@@ -1,0 +1,154 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>C/C++语言void及void指针深层探索</title></head><body><h1>C/C++语言void及void指针深层探索</h1><div><p><u><font color="#810081">C/C++语言void及void指针深层探索 </font></u></p>
+<p>1.概述<br>
+　　许多初学者对C/C++语言中的void及void指针类型不甚理解，因此在使用上出现了一些错误。本文将对void关键字的深刻含义进行解说，并详述void及void指针类型的使用方法与技巧。<br>
+<br>
+　　2.void的含义<br>
+　　void的字面意思是&ldquo;无类型&rdquo;，void *则为&ldquo;无类型指针&rdquo;，void *可以指向任何类型的数据。<br>
+<br>
+　　void几乎只有&ldquo;注释&rdquo;和限制程序的作用，因为从来没有人会定义一个void变量，让我们试着来定义：<br>
+<br>
+<br>
+void a;<br>
+<br>
+　　这行语句编译时会出错，提示&ldquo;illegal use of type 'void'&rdquo;。不过，即使void a的编译不会出错，它也没有任何实际意义。<br>
+<br>
+　　void真正发挥的作用在于：<br>
+　　（1） 对函数返回的限定；<br>
+　　（2） 对函数参数的限定。<br>
+<br>
+　　我们将在第三节对以上二点进行具体说明。<br>
+<br>
+　　众所周知，如果指针p1和p2的类型相同，那么我们可以直接在p1和p2间互相赋值；如果p1和p2指向不同的数据类型，则必须使用强制类型转换运算符把赋值运算符右边的指针类型转换为左边指针的类型。 <br>
+<br>
+　　例如：<br>
+float *p1;<br>
+int *p2;<br>
+p1 = p2;<br>
+<br>
+　　其中p1 = p2语句会编译出错，提示&ldquo;'=' : cannot convert from 'int *' to 'float *'&rdquo;，必须改为：<br>
+p1 = (float *)p2;<br>
+<br>
+　　而void *则不同，任何类型的指针都可以直接赋值给它，无需进行强制类型转换：<br>
+void *p1;<br>
+int *p2;<br>
+p1 = p2;<br>
+<br>
+　　但这并不意味着，void *也可以无需强制类型转换地赋给其它类型的指针。因为&ldquo;无类型&rdquo;可以包容&ldquo;有类型&rdquo;，而&ldquo;有类型&rdquo;则不能包容&ldquo;无类型&rdquo;。道理很简单，我们可以说&ldquo;男人和女人都是人&rdquo;，但不能说&ldquo;人是男人&rdquo;或者&ldquo;人是女人&rdquo;。下面的语句编译出错：<br>
+void *p1;<br>
+int *p2;<br>
+p2 = p1;<br>
+<br>
+　　提示&ldquo;'=' : cannot convert from 'void *' to 'int *'&rdquo;。<br>
+<br>
+3.void的使用<br>
+<br>
+　　下面给出void关键字的使用规则：<br>
+　　规则一 如果函数没有返回值，那么应声明为void类型<br>
+<br>
+　　在C语言中，凡不加返回值类型限定的函数，就会被编译器作为返回整型值处理。但是许多程序员却误以为其为void类型。例如：<br>
+add ( int a, int b )<br>
+{<br>
+return a + b;<br>
+}<br>
+int main(int argc, char* argv[])<br>
+{<br>
+printf ( &quot;2 + 3 = %d&quot;, add ( 2, 3) );<br>
+}<br>
+<br>
+　　程序运行的结果为输出：<br>
+　　2 + 3 = 5<br>
+　　这说明不加返回值说明的函数的确为int函数。<br>
+<br>
+　 　林锐博士《高质量C/C++编程》中提到：&ldquo;C++语言有很严格的类型安全检查，不允许上述情况（指函数不加类型声明）发生&rdquo;。可是编译器并不一定这么 认定，譬如在Visual C++6.0中上述add函数的编译无错也无警告且运行正确，所以不能寄希望于编译器会做严格的类型检查。<br>
+<br>
+　 　因此，为了避免混乱，我们在编写C/C++程序时，对于任何函数都必须一个不漏地指定其类型。如果函数没有返回值，一定要声明为void类型。这既是程 序良好可读性的需要，也是编程规范性的要求。另外，加上void类型声明后，也可以发挥代码的&ldquo;自注释&rdquo;作用。代码的&ldquo;自注释&rdquo;即代码能自己注释自己。<br>
+<br>
+　　规则二 如果函数无参数，那么应声明其参数为void<br>
+<br>
+　　在C++语言中声明一个这样的函数：<br>
+int function(void)<br>
+{<br>
+return 1;<br>
+}<br>
+<br>
+　　则进行下面的调用是不合法的：<br>
+function(2);<br>
+<br>
+　　因为在C++中，函数参数为void的意思是这个函数不接受任何参数。<br>
+<br>
+　　我们在Turbo C 2.0中编译：<br>
+#include &quot;stdio.h&quot;<br>
+fun()<br>
+{<br>
+return 1;<br>
+}<br>
+main()<br>
+{<br>
+printf(&quot;%d&quot;,fun(2));<br>
+getchar();<br>
+}<br>
+<br>
+　 　编译正确且输出1，这说明，在C语言中，可以给无参数的函数传送任意类型的参数，但是在C++编译器中编译同样的代码则会出错。在C++中，不能向无参 数的函数传送任何参数，出错提示&ldquo;'fun' : function does not take 1 parameters&rdquo;。<br>
+<br>
+　　所以，无论在C还是C++中，若函数不接受任何参数，一定要指明参数为void。<br>
+<br>
+　　规则三 小心使用void指针类型<br>
+<br>
+　　按照ANSI(American National Standards Institute)标准，不能对void指针进行算法操作，即下列操作都是不合法的：<br>
+void * pvoid;<br>
+pvoid++; //ANSI：错误<br>
+pvoid += 1; //ANSI：错误<br>
+//ANSI标准之所以这样认定，是因为它坚持：进行算法操作的指针必须是确定知道其指向数据类型大小的。<br>
+//例如：<br>
+int *pint;<br>
+pint++; //ANSI：正确<br>
+<br>
+　　pint++的结果是使其增大sizeof(int)。<br>
+<br>
+　　但是大名鼎鼎的GNU(GNU's Not Unix的缩写)则不这么认定，它指定void *的算法操作与char *一致。<br>
+<br>
+　　因此下列语句在GNU编译器中皆正确：<br>
+pvoid++; //GNU：正确<br>
+pvoid += 1; //GNU：正确<br>
+<br>
+　　pvoid++的执行结果是其增大了1。<br>
+<br>
+　　在实际的程序设计中，为迎合ANSI标准，并提高程序的可移植性，我们可以这样编写实现同样功能的代码：<br>
+void * pvoid;<br>
+(char *)pvoid++; //ANSI：正确；GNU：正确<br>
+(char *)pvoid += 1; //ANSI：错误；GNU：正确<br>
+<br>
+　　GNU和ANSI还有一些区别，总体而言，GNU较ANSI更&ldquo;开放&rdquo;，提供了对更多语法的支持。但是我们在真实设计时，还是应该尽可能地迎合ANSI标准。<br>
+<br>
+　　规则四 如果函数的参数可以是任意类型指针，那么应声明其参数为void *<br>
+<br>
+　　典型的如内存操作函数memcpy和memset的函数原型分别为：<br>
+void * memcpy(void *dest, const void *src, size_t len);<br>
+void * memset ( void * buffer, int c, size_t num );<br>
+<br>
+　 　这样，任何类型的指针都可以传入memcpy和memset中，这也真实地体现了内存操作函数的意义，因为它操作的对象仅仅是一片内存，而不论这片内存 是什么类型。如果memcpy和memset的参数类型不是void *，而是char *，那才叫真的奇怪了！这样的memcpy和memset明显不是一个&ldquo;纯粹的，脱离低级趣味的&rdquo;函数！<br>
+<br>
+　　下面的代码执行正确：<br>
+//示例：memset接受任意类型指针<br>
+int intarray[100];<br>
+memset ( intarray, 0, 100*sizeof(int) ); //将intarray清0<br>
+<br>
+//示例：memcpy接受任意类型指针<br>
+int intarray1[100], intarray2[100];<br>
+memcpy ( intarray1, intarray2, 100*sizeof(int) ); //将intarray2拷贝给intarray1<br>
+<br>
+　　有趣的是，memcpy和memset函数返回的也是void *类型，标准库函数的编写者是多么地富有学问啊！<br>
+<br>
+　　规则五 void不能代表一个真实的变量<br>
+<br>
+　　下面代码都企图让void代表一个真实的变量，因此都是错误的代码：<br>
+void a; //错误<br>
+function(void a); //错误<br>
+<br>
+　　void体现了一种抽象，这个世界上的变量都是&ldquo;有类型&rdquo;的，譬如一个人不是男人就是女人（还有人妖？）。<br>
+<br>
+　　void的出现只是为了一种抽象的需要，如果你正确地理解了面向对象中&ldquo;抽象基类&rdquo;的概念，也很容易理解void数据类型。正如不能给抽象基类定义一个实例，我们也不能定义一个void（让我们类比的称void为&ldquo;抽象数据类型&rdquo;）变量。<br>
+<br>
+4.总结<br>
+　　小小的void蕴藏着很丰富的设计哲学，作为一名程序设计人员，对问题进行深一个层次的思考必然使我们受益匪浅。&nbsp;&nbsp;<br>
+<a href="http://blog.csdn.net/qianling3439/archive/2008/03/20/2199150.aspx">http://blog.csdn.net/qianling3439/archive/2008/03/20/2199150.aspx</a></p></div></body></html>

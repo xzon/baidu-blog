@@ -1,0 +1,161 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JUnit Gossip: TestSuite、TestCase、Failure、Error</title></head><body><h1>JUnit Gossip: TestSuite、TestCase、Failure、Error</h1><div><p> </p>
+<p>JUnit Gossip: TestSuite、TestCase、Failure、Error</p>
+<div>
+<h1><a href="http://caterpillar.onlyfun.net/Gossip/JUnit/JUnitGossip.htm">JUnit Gossip: TestSuite</a></h1>
+<p> </p>
+您定義自己的TestCase，並使用TestRunner來運行測試，事實上TestRunner並不直接運行 TestCase上的單元方法，而是透過TestSuite，TestSuite與TestCase都實作了Test介面，TestSuite可以將數個TestCase組合在一起，這是 <a href="http://caterpillar.onlyfun.net/Gossip/DesignPattern/CompositePattern.htm">Composite 模式</a>，這讓每個TestCase保持簡單。<br>
+<br>
+來看看一個例子： <br>
+<ul>
+    <li>MathToolTest.java</li>
+</ul>
+<pre>package onlyfun.caterpillar.test;<br><br>import onlyfun.caterpillar.MathTool;<br>import junit.framework.TestCase;<br><br>public class MathToolTest extends TestCase {<br>    public MathToolTest(String testMethod) {<br>        super(testMethod);<br>    }<br><br>    public void testGcd() {<br>        assertEquals(5, MathTool.gcd(10, 5));<br>    }<br>    <br>    public static void main(String[] args) {<br>        junit.textui.TestRunner.run(MathToolTest.class);<br>    }<br>}</pre>
+<br>
+JUnit並沒有規定您一定要使用testXXX()這樣的方式來命名您的測試方法，如果您要提供自己的方法（當然JUnit 鼓勵您使用testXXX()這樣的方法名稱），則可以如上撰寫，為了要能夠使用建構式提供測試方法名稱，您的TestCase必須提供如下的建構式：<br>
+<div>public MathToolTest(String testMethod) {<br>
+&nbsp;&nbsp;&nbsp;  super(testMethod);<br>
+}</div>
+<br>
+在這個例子中，您並沒有看到任何的TestSuite，這是因為TestRunner的run()方法中會建立TestSuite：<br>
+<div>static public void run(Class testClass) {<br>
+&nbsp;&nbsp;  run(new TestSuite(testClass));<br>
+}</div>
+<br>
+在TestSuite的建構式中，會使用反射（reflection）自動找出testXXX()方法，並加入為待執行的測試方法。TestRunner的run()方法中會去執行TestSuite上的run()方法，然後TestSuite會將之委託給Test上的run()方法，而該run()方法中執行每一個testXXX()方法。簡而言之，上例的寫法，所有MathToolTest中的testXXX()方法都會被執行。<br>
+<br>
+如果您使用上面範例的run()方法，則TestRunner就會像上面這樣自動為您建立一個TestSuite，並找出testXXX()方法，您也自行定義suite()方法，組合想要進行的測試：<br>
+<div>public static Test suite() {<br>
+TestSuite suite = new TestSuite();<br>
+&nbsp;&nbsp;  // 這邊可以加入指定的測試方法名稱<br>
+&nbsp;&nbsp;&nbsp;  suite.addTest(new MathToolTest(&quot;otherTest&quot;));<br>
+&nbsp;&nbsp;&nbsp;  return suite;<br>
+}</div>
+<br>
+然後使用TestRunner的另一個版本run()方法來執行測試：<br>
+<div>junit.textui.TestRunner.run(MathToolTest.suite());</div>
+<br>
+如果要加入更多的測試方法，使用addTest()就可以了，您還可以將數個TestSuite組合在一起，例如在一個TestAll類別中如下定義suite()：<br>
+<div>public static Test suite() { <br>
+&nbsp;&nbsp;&nbsp;  TestSuite suite= new TestSuite(); <br>
+&nbsp;&nbsp;&nbsp;  suite.addTestSuite(TestCase1.class);<br>
+&nbsp;&nbsp;&nbsp;  suite.addTestSuite(TestCase2.class); <br>
+&nbsp;&nbsp;&nbsp;  return suite; <br>
+}</div>
+<br>
+addTestSuite()方法定義如下，一樣的，這個執行結果是找出每個TestCase中的testXXX()方法：<br>
+<div>public void addTestSuite(Class testClass) {<br>
+addTest(new TestSuite(testClass));<br>
+}</div>
+<br>
+如此之來，您可以一次運行所有的測試，而不必個別的運行每一個測試案例，例如：<br>
+<div>junit.textui.TestRunner.run(TestAll.suite());</div>
+<br>
+TestCase與TestSuite都實作了Test介面，其運行方式為 <a href="http://caterpillar.onlyfun.net/Gossip/DesignPattern/CommandPattern.htm">Command 模式</a> 的一個實例，而TestSuite可以組合數個TestSuite或TestCase，這是 <a href="http://caterpillar.onlyfun.net/Gossip/DesignPattern/CompositePattern.htm">Composite 模式</a> 的一個實例。<br>
+<br>
+<img src="http://caterpillar.onlyfun.net/Gossip/JUnit/images/TestSuite-1.jpg">
+<h1><a href="http://caterpillar.onlyfun.net/Gossip/JUnit/JUnitGossip.htm">JUnit Gossip: TestCase</a></h1>
+<p>使用JUnit時，您主要都是透過繼承TestCase類別來撰寫測試案例，預設上您可以使用testXXX() 名稱來撰寫單元測試。<br>
+<br>
+在測試一個單元方法時，有時您會需要給它一些物件作為運行時的資料，例如您撰寫下面這個測試案例：</p>
+<ul>
+    <li>MaxMinTest.java</li>
+</ul>
+<pre>package onlyfun.caterpillar.test;<br><br>import onlyfun.caterpillar.MaxMinTool;<br>import junit.framework.TestCase;<br> <br>public class MaxMinTest extends TestCase {<br>    public void testMax() {<br>        int[] arr = {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5};<br>        assertEquals(5, MaxMinTool.getMax(arr));<br>    }<br><br>    public void testMin() {<br>        int[] arr = {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5};<br>        assertEquals(-5, MaxMinTool.getMin(arr));<br>    }<br>    <br>    public static void main(String[] args) {<br>        junit.swingui.TestRunner.run(MaxMinTest.class);<br>    }<br>}</pre>
+<p><br>
+您將設計的MaxMinTool包括靜態方法getMax()與getMin()，當您給它一個整數陣列，它們將個別傳回陣列中的最大值與最小值，顯然的，您所準備的陣列重複出現在兩個單元測試之中，重複的程式碼在設計中可以減少就儘量減少，在這兩個單元測試中，整數陣列的準備是單元方法所需要的資源，我們稱之為fixture，也就是一個測試時所需要的資源集合。<br>
+<br>
+fixture必須與上下文（Context）無關，也就是與程式執行前後無關，這樣才符合單元測試的意涵，為此，通常將所需的fixture撰寫在單元方法之中，如此在單元測試開始時創建fixture，並於結束後銷毀fixture。<br>
+<br>
+然而對於重複出現在各個單元測試中的fixture，您可以集中加以管理，您可以在繼承TestCase之後，重新定義setUp()與tearDown()方法，將數個單元測試所需要的fixture在setUp()中創建，並在tearDown()中銷毀，例如：</p>
+<ul>
+    <li>MaxMinTest.java</li>
+</ul>
+<pre>package onlyfun.caterpillar.test;<br><br>import onlyfun.caterpillar.MaxMinTool;<br>import junit.framework.TestCase;<br><br>public class MaxMinTest extends TestCase {<br>    private int[] arr;<br><br>    protected void setUp() throws Exception {<br>        super.setUp();<br>        arr = new int[]{-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5};<br>    }<br><br>    protected void tearDown() throws Exception {<br>        super.tearDown();<br>        arr = null;<br>    }<br>    <br>    public void testMax() {<br>        assertEquals(5, MaxMinTool.getMax(arr));<br>    }<br><br>    public void testMin() {<br>        assertEquals(-5, MaxMinTool.getMin(arr));<br>    }<br>    <br>    public static void main(String[] args) {<br>        junit.swingui.TestRunner.run(MaxMinTest.class);<br>    }<br>}</pre>
+<p><br>
+setUp()方法會在每一個單元測試testXXX()方法開始前被呼叫，因而整數陣列會被建立，而tearDown()會在每一個單元測試 testXXX()方法結束後被呼叫，因而整數陣列參考名稱將會參考至null，如此一來，您可以將fixture的管理集中在 setUp()與tearDown()方法之後。<br>
+<br>
+最後按照測試案例的內容，您完成MaxMinTool類別：</p>
+<ul>
+    <li>MaxMinTool.java</li>
+</ul>
+<pre>package onlyfun.caterpillar;<br><br>public class MaxMinTool {<br>    public static int getMax(int[] arr) {<br>        int max = Integer.MIN_VALUE;<br>        <br>        for(int i = 0; i &lt; arr.length; i++) {<br>            if(arr[i] &gt; max)<br>                max = arr[i];<br>        }<br>        <br>        return max;<br>    }<br>    <br>    public static int getMin(int[] arr) {<br>        int min = Integer.MAX_VALUE;<br>        <br>        for(int i = 0; i &lt; arr.length; i++) {<br>            if(arr[i] &lt; min)<br>                min = arr[i];<br>        }<br>        <br>        return min;<br>    }<br>}</pre>
+<p><br>
+Swing介面的TestRunner在測試失敗時會顯示紅色的棒子，而在測試成功後會顯示綠色的棒子，而 &quot;Keep the bar green to keep the code clean.&quot; 正是JUnit的名言，也是測試的最終目的。</p>
+</div>
+<h1><a href="http://caterpillar.onlyfun.net/Gossip/JUnit/JUnitGossip.htm">JUnit Gossip: Failure、Error</a></h1>
+<p>在運行TestRunner執行您的測試時，您會發現到有Failure與Error兩種測試尚未通過的訊息。<br>
+<br>
+Failure指的是預期的結果與實際運行單元的結果不同所導致，例如當您使用assertEquals()或其它assertXXX()方法斷言失敗時，就會回報Failure，這時候您要檢查您的單元方法中的邏輯設計是否有誤。<br>
+<br>
+Error指的是您程式沒有考慮到的情況，在斷言之前程式就因為某種錯誤引發例外而終止，例如在單元中存取某個陣列，因為存取超出索引而引發 ArrayIndexOutOfBoundsException，這會使得單元方法無法正確完成，在測試運行到asertXXXX()前就提前結束，這時候您要檢查您的單元方法中是否有未考慮到的情況而引發流程突然中斷。<br>
+<br>
+來看個實際的例子，如果您設計了下面的測試案例：</p>
+<ul>
+    <li>ObjectArrayTest.java</li>
+</ul>
+<pre>package onlyfun.caterpillar.test;<br><br>import onlyfun.caterpillar.ObjectArray;<br>import junit.framework.TestCase;<br><br>public class ObjectArrayTest extends TestCase {<br>    public void testAdd() {<br>        ObjectArray objArr = new ObjectArray();<br>        Object testObj = new Object();<br>        Object obj = objArr.setObject(0, testObj);<br>        assertEquals(testObj, obj);<br>    }<br><br>    public static void main(String[] args) {<br>        junit.textui.TestRunner.run(ObjectArrayTest.class);<br>    }<br>}</pre>
+<p><br>
+然後根據這個測試案例，您撰寫了ObjectArray類別：</p>
+<ul>
+    <li>ObjectArray.java</li>
+</ul>
+<pre>package onlyfun.caterpillar;<br><br>public class ObjectArray {<br>    private Object[] objs;<br>    <br>    public Object setObject(int i, Object o) {<br>        return objs[i];<br>    }<br>}</pre>
+<p><br>
+接下來運行TestRunner，您發現程式回報了Error：<br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="2" cellpadding="2">
+    <tbody>
+        <tr>
+            <td>.E<br>
+            Time: 0<br>
+            There was 1 error:<br>
+            1) testAdd(onlyfun.caterpillar.test.ObjectArrayTest)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  java.lang.NullPointerException<br>
+            ....<br>
+            ....<br>
+            FAILURES!!!<br>
+            Tests run: 1, Failures: 0, Errors: 1</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+仔細看一下您所設計的ObjectArray類別，顯然程式撰寫的太勿忙，忘了初始化Object陣列了，因而引發了 NullPointerException，這是程式設計上的錯誤，使得尚未進行斷言之前就引發例外中斷，所以修正一下ObjectArray，提供一個建構函式，預設產生長度為10的陣列：</p>
+<ul>
+    <li>ObjectArray.java</li>
+</ul>
+<pre>package onlyfun.caterpillar;<br><br>public class ObjectArray {<br>    private Object[] objs;<br>    <br>    public ObjectArray() {<br>        objs = new Object[10];<br>    }<br>    <br>    public Object setObject(int i, Object o) {<br>        return objs[i];<br>    }<br>}</pre>
+<p><br>
+再運行一次TestRunner，這次Error沒了，但是有Failure：<br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="2" cellpadding="2">
+    <tbody>
+        <tr>
+            <td>.F<br>
+            Time: 0<br>
+            There was 1 failure:<br>
+            1) testAdd(onlyfun.caterpillar.test.ObjectArrayTest)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;  junit.framework.AssertionFailedError:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  expected:&lt;java.lang.Object@10b30a7&gt; but was:&lt;null&gt;<br>
+            ....<br>
+            ....<br>
+            FAILURES!!!<br>
+            Tests run: 1, Failures: 1, Errors: 0</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+這表示可以執行到assertEquals()完畢，但是斷言失敗，所以再設計程式以消除Failure：</p>
+<ul>
+    <li>ObjectArray.java</li>
+</ul>
+<pre>package onlyfun.caterpillar;<br><br>public class ObjectArray {<br>    private Object[] objs;<br>    <br>    public ObjectArray() {<br>        objs = new Object[10];<br>    }<br>    <br>    public Object setObject(int i, Object o) {<br>        objs[i] = o;<br>        return objs[i];<br>    }<br>}</pre>
+<p><br>
+再次運行TestRunner，這次應該可以通過測試了。<br>
+<br>
+如果您的單元在執行時，使用throws聲明會丟出某些例外，例如IOException，您希望可以在testXXXX()中測試例外是否真的被丟出，您可以使用try.....catch來處理，下面這個程式是個實例，假設java.io.FileReader是您所設計的類別，您提供一個測試檔案 test.txt：</p>
+<ul>
+    <li>FileReaderTest.java</li>
+</ul>
+<pre>package onlyfun.caterpillar.test;<br> <br>import java.io.*; <br>import junit.framework.TestCase; <br><br>public class FileReaderTest extends TestCase { <br>    public void testClose() throws IOException {<br>        FileReader reader = new FileReader(&quot;test.txt&quot;);<br>        reader.close(); <br>        try { <br>            reader.read(); <br>            fail(&quot;reading file after closed&quot; + <br>                 &quot; and didn't throw IOException&quot;); <br>        } <br>        catch(IOException e) {<br>            assertTrue(true);<br>        } <br>    } <br><br>    public static void main(String[] args) { <br>        junit.textui.TestRunner.run(FileReaderTest.class); <br>    } <br>}</pre>
+<p><br>
+您所測試的可能是一個預期會丟出的例外，您想要看看當錯誤的情況成立時，是不是真會丟出例外，例如 testClose() 測試FileReader 在close()之後如果再read()，是不是會如期丟出IOException，您先行在方法中用try....catch捕捉了這個例外，如果沒有如期丟出例外，則不會被catch捕捉，而程式流程繼續往下，執行到 fail() 陳述，這表示例外處理沒有發生，此時主動丟出一個Failure，表示程式的執行並不如您所預期的。</p>
+<p><a href="http://caterpillar.onlyfun.net/Gossip/JUnit/JUnitGossip.htm">http://caterpillar.onlyfun.net/Gossip/JUnit/JUnitGossip.htm</a></p>
+<h1>開源框架: JUnit Gossip</h1></div></body></html>

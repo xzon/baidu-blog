@@ -1,0 +1,50 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JarJar: solves class loading conflicts</title></head><body><h1>JarJar: solves class loading conflicts</h1><div><p> </p>
+<p>JarJar: solves class loading conflicts</p>
+<p><a href="http://code.google.com/p/jarjar/">http://code.google.com/p/jarjar/</a></p>
+<p>Sometimes you're faced with a conflict between two versions of the same JAR in your classpath that cannot be resolved. Here's an example:</p>
+<p>Weblogic uses Antlr (the Java compiler-compiler) for parsing EJB-QL queries. Hibernate 3 uses Antlr to parse HQL queries. The Weblogic kernel only sees its own Antlr version through its ClassLoader. Hibernate however sees Weblogic's version and its own. It cannot use Weblogic's version, however this is the one that will get loaded (it has priority in the ClassLoader hierarchy). More details on this issue can be found here.</p>
+<p>Weblogic has an option to change the class loading priorities but this may cause other class loading issues like LinkageError. So is there no solution?</p>
+<p>Enter JarJar, a lovely little Ant task that not only makes one jar out of many, it can also change package names of certain classes in byte-code! This effectively solved the titanic Weblogic/Hibernate clash we were facing.</p>
+<p>Here's the Ant script we used to create a modified Hibernate JAR that also contains renamed Antlr classes:</p>
+<div class="syntaxhighlighter ">
+<div class="bar">
+<p>&lt;project name=&quot;jarjar-to-the-rescue&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;jarfile&quot; value=&quot;hibernate-3.2.5.ga-jarjar.jar&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;path id=&quot;classpath&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;pathelement location=&quot;jarjar-1.0rc6.jar&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;pathelement location=&quot;asm-2.2.3.jar&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/path&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;taskdef name=&quot;jarjar&quot; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  classname=&quot;com.tonicsystems.jarjar.JarJarTask&quot; classpathref=&quot;classpath&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;delete file=&quot;${jarfile}&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;jarjar destfile=&quot;${jarfile}&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;zipfileset src=&quot;hibernate-3.2.5.ga.jar&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;zipfileset src=&quot;antlr-2.7.6.jar&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;rule pattern=&quot;antlr.**&quot; result=&quot;org.hibernate.jarjar.antlr.@1&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/jarjar&gt;<br>
+&lt;/project&gt;</p>
+<p>This script will create a new JAR file (hibernate-3.2.5.ga-jarjar.jar) that contains the contents of both Hibernate and Antlr jars. I will change the package name of all Antlr classes from <code><font face="新宋体">antlr.*</font></code> to <code><font face="新宋体">org.hibernate.jarjar.antlr.*</font></code>. It will also change this package in all Hibernate classes that depend on Antlr classes.</p>
+</div>
+</div>
+<p>With this modified Hibernate JAR file there are still two Antlr versions on the class path. Since Hibernate no longer loads the <code><font face="新宋体">antlr.*</font></code> classes the conflict is effectively resolved. Example project and modified Hibernate JAR file attached.</p>
+<p>Happy coding!</p>
+<p>
+<table class="sticky-enabled FCK__ShowTableBorders">
+    <thead>
+        <tr>
+            <th>Attachment</th>
+            <th>Size</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr class="odd">
+            <td>jarjar-example.zip</td>
+            <td>2.51 MB</td>
+        </tr>
+        <tr class="even">
+            <td>hibernate-3.2.5.ga-jarjar.jar</td>
+            <td>2.59 MB</td>
+        </tr>
+    </tbody>
+</table>
+</p></div></body></html>

@@ -1,0 +1,39 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>minGW 命令行 编译JNI -hxzon动手 -gdo</title></head><body><h1>minGW 命令行 编译JNI -hxzon动手 -gdo</h1><div><div>minGW 命令行 编译JNI -hxzon动手 -gdo</div>
+<div> </div>
+<div>1，g++ -I&quot;%java_home%\include&quot; -I&quot;%java_home%\include\win32&quot; -Wl,--add-stdcall-alias -shared -o GooseParser.dll hxzon_jni_GooseParser.cpp<br>
+编译成功，在当前目录下生成dll文件，Java运行成功。<br>
+2，出错1，多了-c参数，编译成功，Java运行时提示不是正常win32程序。<br>
+3，出错2，<a href="http://blog.chinajavaworld.com/entry/7302/1/">http://blog.chinajavaworld.com/entry/7302/1/</a></div>
+<div> </div>
+<div>最近项目中用到了jni，于是安装了eclipse的cdt和MinGW来用，以前没怎么动过C语言，网上找了下教程，倒是挺容易的，一路弄下来也没提示什么错误，但是在最后调用本地方法时却遇到了大麻烦，总是提示找不到方法。即使一个简单的HelloWorld，也是一样 <br>
+Exception in thread &quot;main&quot; java.lang.UnsatisfiedLinkError: HelloWorld.print()V <br>
+奇怪了，loadLibrary()没有问题，怎么会找不到方法呢？用dll export viewer察看，导出的方法为 <br>
+函数名 地址 偏移量 <br>
+<a href="mailto:Java_HelloWorld_print@8">Java_HelloWorld_print@8</a> 0x67741250 0x00001250</div>
+<div> </div>
+<div>实在没办法了，只好安装庞大的visual studio重新来编译，调用成功了！ <br>
+再次用dll export viewer查看，发现函数名的前面多了一条下划线 <br>
+函数名 地址 偏移量 <br>
+<a href="mailto:_Java_HelloWorld_print@8">_Java_HelloWorld_print@8</a> 0x67741250 0x00001250 <br>
+看来是给MinGW少传了某个参数，经过网上查阅资料，终于找到一个解决方案：给MinGW的ld命令指定一个参数--kill-at即可 <br>
+gcc -Wl, --kill-at -shared -o jnihello.dll HelloWorld.c <br>
+再次用dll export viewer查看，发现导出的函数名称变为 <br>
+函数名 地址 偏移量 <br>
+Java_HelloWorld_print 0x67741250 0x00001250</div>
+<div> </div>
+<div>
+<p>--kill-at指令去掉了函数名称后缀的@，并没有像msvc那样添加前缀的下划线 。</p>
+<p> </p>
+</div>
+<div> </div>
+<div>参考资料：<br>
+Stdcall and DLL tools of MSVC and MinGW<br>
+<a href="http://www.geocities.com/yongweiwu/stdcall.htm">http://www.geocities.com/yongweiwu/stdcall.htm</a> -good<br>
+<a href="http://www.geocities.com/yongweiwu/index.htm">http://www.geocities.com/yongweiwu/index.htm</a>  <br>
+hxzon：按照提示，并不能编译成功。无法理解--kill-at选项。<br>
+4，解决<br>
+参数：-Wl,--add-stdcall-alias 可以为函数加上标准调用前缀(stdcall @nn)。 <br>
+这样编译出的dll就可以了。都知道win32中dll中的函数要求有标准调用前缀，在JNI中不方便手动处理这个，Sun又没说清楚这事由编译器办。<br>
+<a href="http://zhidao.baidu.com/question/86383863.html">http://zhidao.baidu.com/question/86383863.html</a><br>
+5，对比VC6编译<br>
+cl -I&quot;%java_home%\include&quot; -I&quot;%java_home%\include\win32&quot; -LD hxzon_jni_GooseParser.cpp -FeGooseParser.dll</div></div></body></html>

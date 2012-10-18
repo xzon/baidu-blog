@@ -1,0 +1,213 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>自定义布局管理器-FormLayout</title></head><body><h1>自定义布局管理器-FormLayout</h1><div><p>自定义布局管理器-<span style="font-size: 12px;">FormLayout</span></p><p>http://www.blogjava.net/javagui/archive/2007/11/24/FormLayout.html 本文<br>http://www.blogjava.net/javagui/archive/2007/11/03/157948.html&nbsp; 打造专业外观-九宫图<br>http://blogs.sun.com/Swing/&nbsp; 一月 11, 2008<br>http://blog.sina.com.cn/swingjava&nbsp; <span>2007-08-31</span></p>
+<p><span style="font-size: 12px;">在java.awt包与javax.swing包下有许多现成的布局类，比如BorderLayout、FlowLayout，还有较为复杂的、用于精确定位的布局类GridBagLayout、SpringLayout等。起初我刚刚从事gooey时（06年中），企图依靠JDK自带的布局类进行布局，但是实际不可能或者说很难做到。对于复杂的GridBagLayout、SpringLayout来说又望而生畏，而且使用GridBagLayout、SpringLayout来完成布局的话工作量相当可观，因此当时放弃了布局管理器，采用ComponentListener等尺寸监听事件来布局组件。虽然这种做法没有工具支持、采用手工coding，但是自由度上升了很多，而且熟悉了以后编码效率也大幅其高。与此同时，我开始接触SWT，发现org.eclipse.swt.layout.FormLayout布局很强大、用起来爱不释手、要多好有多好、要多强有多强......。于是当时我的布局组件的方式采用ComponentListener监听与FormLayout结合的方式，也是在同期，我领悟到了</span><a title="九宫图" href="http://www.blogjava.net/javagui/archive/2007/11/03/157948.html"><span style="font-size: 12px;">九宫图</span></a><span style="font-size: 12px;">这种专业布局，因此之后九宫图的实现也都采用上述两种方法。随着对SWT的不断了解外加IM软件界面的专业性，我发现SWT并不非常适合做专业外观，也因为此我逐渐将精力转向Swing。</span></p>
+<p><span style="font-size: 12px;">在介绍如何编写自定义布局管理器前，我想先把SWT体系下的FormLayout布局特点做个简要介绍。<br>
+SWT体系下的FormLayout是非常灵活、精确的布局，FormLayout布局组件的特点是采用百分比+偏移量的方式。前者可以应付容器尺寸变化时内部组件跟着调整；后者以应付精确的布局。这一特征是通过org.eclipse.swt.layout.FormData和org.eclipse.swt.layout.FormAttachment两个类来实现。<br>
+1、FormAttachment类的用法<br>
+FormAttachment是在FormData之下，更进一步地布局数据类。<br>
+下面给出一段示例程序<br>
+shell.setLayout(new FormLayout());<br>
+final Button button = new Button(shell, SWT.NONE);<br>
+button.setText("button");<br>
+final FormData formData = new FormData();<br>
+formData.top = new FormAttachment(20, 0);<br>
+formData.left = new FormAttachment(50, 0);<br>
+formData.bottom = new FormAttachment(20, 30);<br>
+formData.right = new FormAttachment(50, 50);<br>
+button.setLayoutData(formData);<br>
+<br>
+<img src="http://hiphotos.baidu.com/hxzon/pic/item/f06d993d8f5c5556bba167e5.jpg"><br>
+<br></span></p>
+<p><span style="font-size: 12px;">通常使用FormLayout来定位一个组件要确定4个FormAttachment对象：top、bottom、left、right，而且通常是使用FormAttachment(int numerator,int offset)这个构造器，也就是百分比+偏移量。当然FormAttachment不只这一种，但是都是可选的，如果想深入研究FormLayout可以参阅SWT相关的介绍。<br>
+<br>
+FormLayout很强大、灵活，但是AWT、Swing包中却没有，但是不等于说不能实现，学习了</span><a title="上文" href="http://www.blogjava.net/javagui/archive/2007/11/18/Layout.html"><span style="font-size: 12px;">上文</span></a><span style="font-size: 12px;">之后当然可以自定义一个，SWT有的AWT同样也可以拥有。<br>
+<br></span></p>
+<p><span style="font-size: 12px;">SWT中使用FormLayout还要结合FormData与FormAttachment。下面给出这两个类的实现</span></p>
+<pre style="border-right: black 1px solid; padding-right: 4px; border-top: black 1px solid; padding-left: 4px; padding-bottom: 4px; border-left: black 1px solid; padding-top: 4px; border-bottom: black 1px solid; background-color: #ededed"><div><span style="font-size: 12px;"><span style="color: #0000ff">public</span><span style="color: #000000"> final </span><span style="color: #0000ff">class</span></span><span style="font-size: 12px;"><span style="color: #000000"> FormAttachment {
+</span><span style="color: #0000ff">float</span></span><span style="font-size: 12px;"><span style="color: #000000"> percentage;
+</span><span style="color: #0000ff">int</span></span><span style="font-size: 12px;"><span style="color: #000000"> offset;
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> FormAttachment(</span><span style="color: #0000ff">float</span><span style="color: #000000"> percentage, </span><span style="color: #0000ff">int</span></span><span style="font-size: 12px;"><span style="color: #000000"> offset) {
+</span><span style="color: #0000ff">this</span><span style="color: #000000">.percentage </span><span style="color: #000000">=</span></span><span style="font-size: 12px;"><span style="color: #000000"> percentage;
+</span><span style="color: #0000ff">this</span><span style="color: #000000">.offset </span><span style="color: #000000">=</span></span><span style="font-size: 12px;"><span style="color: #000000"> offset;
+}
+}
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">class</span></span><span style="font-size: 12px;"><span style="color: #000000"> FormData {
+</span><span style="color: #0000ff">public</span></span><span style="font-size: 12px;"><span style="color: #000000"> FormAttachment left;
+</span><span style="color: #0000ff">public</span></span><span style="font-size: 12px;"><span style="color: #000000"> FormAttachment right;
+</span><span style="color: #0000ff">public</span></span><span style="font-size: 12px;"><span style="color: #000000"> FormAttachment top;
+</span><span style="color: #0000ff">public</span></span><span style="color: #000000"><span style="font-size: 12px;">FormAttachment bottom;
+}</span></span></div></pre>
+<p><span style="font-size: 12px;">你应该了解坐标系的概念，Java中的坐标系以向右、向下为正方向。因此对于offset，正值是向右、向下偏移；负值是向左、向上偏移。与SWT的FormAttachment稍有不同的是，我自定义的构造器第一个参数是float类型，它代表的意思与“FormAttachment(int numerator,int offset)”相同，都是表示百分比，只不过前者用整数表示，后者用小数表示。例如SWT中“new FormAttachment(20,0);”用后者表示就是“new FormAttachment(0.2f,0);”。<br>
+在FormLayout布局中，定位一个组件需要最多4个FormAttachment对象，但是可以不必全部指定，稍后可以看到缺省的行为。<br>
+如果你的布局管理器比较简单，可以实现LayoutManager接口。但是正如上文所述，LayoutManager的addLayoutComponent(String name, Component comp)方法是必须通过java.awt.Container类的“Component add(String name, Component comp)”方法触发调用，其中的字符串参数指定了布局信息。但是字符串表达方式很有限，因此应当采用LayoutManager2接口，这样，addLayoutComponent(Component comp, Object constraints)方法被调用时，“Object constraints”可以是任何类型的对象，很方便。下面逐步实现这个类。<br>
+首先搭建的原型如下<br>
+<br></span></p>
+<pre style="border-right: black 1px solid; padding-right: 4px; border-top: black 1px solid; padding-left: 4px; padding-bottom: 4px; border-left: black 1px solid; padding-top: 4px; border-bottom: black 1px solid; background-color: #ededed"><div><span style="font-size: 12px;"><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">class</span></span><span style="font-size: 12px;"><span style="color: #000000"> FormLayout implements LayoutManager2 {
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">void</span></span><span style="font-size: 12px;"><span style="color: #000000"> addLayoutComponent(Component comp, Object constraints) {
+}
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">float</span></span><span style="font-size: 12px;"><span style="color: #000000"> getLayoutAlignmentX(Container target) {
+</span><span style="color: #0000ff">return</span><span style="color: #000000"> </span><span style="color: #000000">0</span></span><span style="font-size: 12px;"><span style="color: #000000">;
+}
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">float</span></span><span style="font-size: 12px;"><span style="color: #000000"> getLayoutAlignmentY(Container target) {
+</span><span style="color: #0000ff">return</span><span style="color: #000000"> </span><span style="color: #000000">0</span></span><span style="font-size: 12px;"><span style="color: #000000">;
+}
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">void</span></span><span style="font-size: 12px;"><span style="color: #000000"> invalidateLayout(Container target) {
+}
+</span><span style="color: #0000ff">public</span></span><span style="font-size: 12px;"><span style="color: #000000"> Dimension maximumLayoutSize(Container target) {
+</span><span style="color: #0000ff">return</span><span style="color: #000000"> </span><span style="color: #0000ff">null</span></span><span style="font-size: 12px;"><span style="color: #000000">;
+}
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">void</span></span><span style="font-size: 12px;"><span style="color: #000000"> addLayoutComponent(String name, Component comp) {
+}
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">void</span></span><span style="font-size: 12px;"><span style="color: #000000"> layoutContainer(Container parent) {
+}
+</span><span style="color: #0000ff">public</span></span><span style="font-size: 12px;"><span style="color: #000000"> Dimension minimumLayoutSize(Container parent) {
+</span><span style="color: #0000ff">return</span><span style="color: #000000"> </span><span style="color: #0000ff">null</span></span><span style="font-size: 12px;"><span style="color: #000000">;
+}
+</span><span style="color: #0000ff">public</span></span><span style="font-size: 12px;"><span style="color: #000000"> Dimension preferredLayoutSize(Container parent) {
+</span><span style="color: #0000ff">return</span><span style="color: #000000"> </span><span style="color: #0000ff">null</span></span><span style="font-size: 12px;"><span style="color: #000000">;
+}
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">void</span></span><span style="color: #000000"><span style="font-size: 12px;">removeLayoutComponent(Component comp) {
+}
+}</span></span></div></pre>
+<p><span style="font-size: 12px;">再声明一个保存组件与布局信息对应关系的映射：private Map&lt;Component, FormData&gt; componentMap;<br>
+同时在构造器中赋值<br>
+public FormLayout() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  componentMap = new HashMap&lt;Component, FormData&gt;();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+接着完成addLayoutComponent方法的实现。在完成编写之前我们看一下怎样去使用FormLayout以做到心中有数。下面的一段代码是调用FormLayout示例：<br>
+<br></span></p>
+<pre style="border-right: black 1px solid; padding-right: 4px; border-top: black 1px solid; padding-left: 4px; padding-bottom: 4px; border-left: black 1px solid; padding-top: 4px; border-bottom: black 1px solid; background-color: #ededed"><div><span style="font-size: 12px;"><span style="color: #000000">getContentPane().setLayout(</span><span style="color: #0000ff">new</span></span><span style="font-size: 12px;"><span style="color: #000000"> FormLayout());
+JButton button </span><span style="color: #000000">=</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span></span><span style="font-size: 12px;"><span style="color: #000000"> JButton();
+button.setText(</span><span style="color: #000000">"</span><span style="color: #000000">button</span><span style="color: #000000">"</span></span><span style="font-size: 12px;"><span style="color: #000000">);
+FormData formData </span><span style="color: #000000">=</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span></span><span style="font-size: 12px;"><span style="color: #000000"> FormData();
+formData.top </span><span style="color: #000000">=</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span><span style="color: #000000"> FormAttachment(</span><span style="color: #000000">0.2f</span><span style="color: #000000">, </span><span style="color: #000000">0</span></span><span style="font-size: 12px;"><span style="color: #000000">);
+formData.left </span><span style="color: #000000">=</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span><span style="color: #000000"> FormAttachment(</span><span style="color: #000000">0.5f</span><span style="color: #000000">, </span><span style="color: #000000">0</span></span><span style="font-size: 12px;"><span style="color: #000000">);
+formData.bottom </span><span style="color: #000000">=</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span><span style="color: #000000"> FormAttachment(</span><span style="color: #000000">0.2f</span><span style="color: #000000">, </span><span style="color: #000000">30</span></span><span style="font-size: 12px;"><span style="color: #000000">);
+formData.right </span><span style="color: #000000">=</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span><span style="color: #000000"> FormAttachment(</span><span style="color: #000000">0.5f</span><span style="color: #000000">, </span><span style="color: #000000">50</span></span><span style="color: #000000"><span style="font-size: 12px;">);
+getContentPane().add(button,formData);</span></span></div></pre>
+<p><span style="font-size: 12px;">如上所示，当调用“getContentPane().add(button,formData);”时，布局类的 public void addLayoutComponent(Component comp, Object constraints)方法便会调用，constraints参数就是FormData对象。所以在addLayoutComponent方法中需要做的就是把组件与布局信息关联起来。下面是完整实现：<br>
+<br></span></p>
+<pre style="border-right: black 1px solid; padding-right: 4px; border-top: black 1px solid; padding-left: 4px; padding-bottom: 4px; border-left: black 1px solid; padding-top: 4px; border-bottom: black 1px solid; background-color: #ededed"><div><span style="font-size: 12px;"><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">void</span></span><span style="font-size: 12px;"><span style="color: #000000"> addLayoutComponent(Component comp,
+Object constraints) {
+</span><span style="color: #0000ff">if</span><span style="color: #000000"> (constraints </span><span style="color: #000000">==</span><span style="color: #000000"> </span><span style="color: #0000ff">null</span></span><span style="font-size: 12px;"><span style="color: #000000">) {
+</span><span style="color: #0000ff">throw</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span><span style="color: #000000"> IllegalArgumentException(</span><span style="color: #000000">"</span><span style="color: #000000">constraints can't be null</span><span style="color: #000000">"</span></span><span style="font-size: 12px;"><span style="color: #000000">);
+} </span><span style="color: #0000ff">else</span><span style="color: #000000"> </span><span style="color: #0000ff">if</span><span style="color: #000000"> (</span><span style="color: #000000">!</span></span><span style="font-size: 12px;"><span style="color: #000000">(constraints instanceof FormData)) {
+</span><span style="color: #0000ff">throw</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span><span style="color: #000000"> IllegalArgumentException(</span><span style="color: #000000">"</span><span style="color: #000000">constraints must be a</span><span style="color: #000000">"</span></span><span style="color: #000000">
+<span style="font-size: 12px;"></span></span><span style="font-size: 12px;"><span style="color: #000000">+</span><span style="color: #000000"> FormData.</span><span style="color: #0000ff">class</span><span style="color: #000000">.getName() </span><span style="color: #000000">+</span><span style="color: #000000"> </span><span style="color: #000000">"</span><span style="color: #000000">instance</span><span style="color: #000000">"</span></span><span style="font-size: 12px;"><span style="color: #000000">);
+} </span><span style="color: #0000ff">else</span></span><span style="font-size: 12px;"><span style="color: #000000"> {
+synchronized (comp.getTreeLock()) {
+FormData formData </span><span style="color: #000000">=</span></span><span style="font-size: 12px;"><span style="color: #000000"> (FormData) constraints;
+</span><span style="color: #0000ff">if</span><span style="color: #000000"> (formData.left </span><span style="color: #000000">==</span><span style="color: #000000"> </span><span style="color: #0000ff">null</span><span style="color: #000000"> </span><span style="color: #000000">||</span><span style="color: #000000"> formData.top </span><span style="color: #000000">==</span><span style="color: #000000"> </span><span style="color: #0000ff">null</span></span><span style="font-size: 12px;"><span style="color: #000000">) {
+</span><span style="color: #0000ff">throw</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span></span><span style="font-size: 12px;"><span style="color: #000000"> IllegalArgumentException(
+</span><span style="color: #000000">"</span><span style="color: #000000">left FormAttachment and top FormAttachment can't be null</span><span style="color: #000000">"</span></span><span style="color: #000000"><span style="font-size: 12px;">);
+}
+componentMap.put(comp, (FormData) constraints);
+}
+}
+}</span></span></div></pre>
+<p><span style="font-size: 12px;">前面的合法性检查是必需的，为什么都明白。然后比较重要的就是“synchronized (comp.getTreeLock()) ”，这是保障在多线程的环境下能安全执行，如果你察看JDK源码布局类的实现，会发现这个同步多次用到，我这么用也是参考JDK的实现。关于getTreeLock的实现在JDK6.0源码中是这样实现的。<br>
+<br></span></p>
+<pre style="border-right: black 1px solid; padding-right: 4px; border-top: black 1px solid; padding-left: 4px; padding-bottom: 4px; border-left: black 1px solid; padding-top: 4px; border-bottom: black 1px solid; background-color: #ededed"><div><span style="font-size: 12px;"><span style="color: #000000">...
+</span><span style="color: #0000ff">public</span><span style="color: #000000"> </span><span style="color: #0000ff">abstract</span><span style="color: #000000"> </span><span style="color: #0000ff">class</span></span><span style="font-size: 12px;"><span style="color: #000000"> Component implements ImageObserver, MenuContainer,
+Serializable{
+...
+</span><span style="color: #0000ff">static</span><span style="color: #000000"> final Object LOCK </span><span style="color: #000000">=</span><span style="color: #000000"> </span><span style="color: #0000ff">new</span></span><span style="font-size: 12px;"><span style="color: #000000"> AWTTreeLock();
+</span><span style="color: #0000ff">static</span><span style="color: #000000"> </span><span style="color: #0000ff">class</span></span><span style="font-size: 12px;"><span style="color: #000000"> AWTTreeLock {}
+...
+</span><span style="color: #0000ff">public</span></span><span style="font-size: 12px;"><span style="color: #000000"> final Object getTreeLock() {
+</span><span style="color: #0000ff">return</span></span><span style="color: #000000"><span style="font-size: 12px;">LOCK;
+}
+...
+}</span></span></div></pre>
+<p><span style="font-size: 12px;">还要注意的是传入的FormData实例的left、top FormAttachment必须要给出，因为这两个FormAttachment代表的是Location（位置）信息，因此必须指定。对于right、bottom可以不指定，但是如果不指定的话，必须能从getPreferredSize()中得到信息，否则组件的尺寸将无法确定。<br>
+<br>
+对于addLayoutComponent(String name, Component comp)方法，由于通过查看源码发现“实现了LayoutManager2 接口的布局类该方法永远不会被调用”（未来的JDK版本如何实现不能保证），所以该方法空实现，并在注视上作@deprecated标记。<br>
+/**<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  * @deprecated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  */<br>
+&nbsp;&nbsp;&nbsp;  public void addLayoutComponent(String name, Component comp) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+除了layoutContainer方法，其余方法均很简单。一并给出：<br>
+public float getLayoutAlignmentX(Container target) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return 0;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  public float getLayoutAlignmentY(Container target) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return 0;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  public void invalidateLayout(Container target) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized (target.getTreeLock()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  componentMap.clear();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  public Dimension maximumLayoutSize(Container target) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return target.getMaximumSize();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+public Dimension minimumLayoutSize(Container target) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return target.getMinimumSize();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  public Dimension preferredLayoutSize(Container target) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return target.getPreferredSize();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  public void removeLayoutComponent(Component comp) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized (comp.getTreeLock()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  componentMap.remove(comp);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+根据</span><a title="上文" href="http://www.blogjava.net/javagui/archive/2007/11/18/Layout.html"><span style="font-size: 12px;">上文</span></a><span style="font-size: 12px;">所述，这些方法不难理解。其实对于FormLayout来说，...LayoutSize(Container target)、getLayoutAlignmentX等方法不是很重要。重要的是public void layoutContainer(Container target)的实现，也是所有布局类最重要的一个类。<br>
+首先该方法的第一步也要套上 synchronized (target.getTreeLock()) {}，接下来是：<br>
+int w = target.getWidth();<br>
+int h = target.getHeight();<br>
+Component[] components = target.getComponents();<br>
+for (Component component : components) {<br>
+}<br>
+不难理解，是要首先获取容器的长、高，然后<span style="color: red">遍历容器内的所有组件逐一进行布局</span>。下面的工作就是在for循环体中做文章了。<br>
+FormData formData = componentMap.get(component);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (formData == null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  continue;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+因为在addLayoutComponent(Component comp, Object constraints)方法中已经关联了组件与布局信息，所以可以通过componentMap.get(component)这一行得到组件的布局信息，加上空值判断确保代码万无一失。<br>
+接下来取出4个FormAttachment对象。<br>
+<br>
+FormAttachment left = formData.left;<br>
+FormAttachment right = formData.right;<br>
+FormAttachment top = formData.top;<br>
+FormAttachment bottom = formData.bottom;</span></p>
+<p><br>
+<span style="font-size: 12px;">然后计算Location信息，x、y：<br>
+int x = (int) (left.percentage * w) + left.offset;<br>
+int y = (int) (top.percentage * h) + top.offset;<br>
+计算方法就是FormLayout的布局方式：(百分比*容器尺寸)+偏移量。</span></p>
+<p><span style="font-size: 12px;">然后计算组件的长、高，width、height：</span></p>
+<p><span style="font-size: 12px;">int width = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int height = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (right == null || bottom == null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Dimension size = component.getPreferredSize();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (size == null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new RuntimeException(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  "if right FormAttachment or bottom FormAttachment is null,the component must have preferred-size");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  width = component.getPreferredSize().width;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  height = component.getPreferredSize().height;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int x2 = (int) (right.percentage * w) + right.offset;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int y2 = (int) (bottom.percentage * h) + bottom.offset;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  width = x2 - x;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  height = y2 - y;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+component.setBounds(x, y, width, height);</span></p>
+<p><span style="font-size: 12px;">计算时根据给出right与bottom布局分为两种情况，如果未给出，那么根据组件的getPreferredSize方法得到组件的最佳大小，然后以这个大小决定组件的尺寸。<span style="color: #ff0000">作为规范，布局类布局组件不是调用组件的getSize而是调用get...Size来决定组件的尺寸，所有布局管理器也都是这么实现的。所以如果你为组件setSize()企图希望再布局管理器中生效是不可能的，所以你应该视图调用组件的setPreferredSize方法</span>。如果right和bottom都不是null，那么计算组件尺寸将忽略getPreferredSize，方法与Location一样，只不过对于尺寸的获取要两个坐标相减。最后调用组件的setBounds进行最终定位，可见对于布局管理器，其布局原理与使用绝对布局一样，调用setBounds实现，没什么特别之处。只不过是把布局单独抽出成一个类来实现罢了。</span></p>
+<p><span style="font-size: 12px;">作为FormLayout需要补充的是，在进行最终布局“component.setBounds(x, y, width, height);”之前，未进行逻辑判断，所以x、y可能会超出了容器的范围而width、height也可能是负值，这都会导致组件“莫名其妙”地不可见，这都不是布局管理器的问题。例如以下两行代码：<br>
+formData.left = new FormAttachment(0.5f, 30);<br>
+formData.right = new FormAttachment(0.5f, 20);<br>
+就会使组件永远不能显示，因为对于left的定位，是位于容器50%处向右30像素处，而right是位于容器50%处向右20像素处，这样组件的长度就是-10，怎么能显示出来呢？<br>
+<br>
+FormLayout就介绍到这里，因为发帖只能在周末，加上最近一段时间还有别的事，能挤出一点时间真不容易。请关注下一篇CenterLayout的实现。</span></p>
+<div style="display: none"> </div></div></body></html>

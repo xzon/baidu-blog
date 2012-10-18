@@ -1,0 +1,90 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>LinkedList的局限</title></head><body><h1>LinkedList的局限</h1><div>LinkedList的局限<br>
+<br><p>
+http://www.tech-q.cn/viewthread.php?tid=11949<br>http://rdc.taobao.com/team/jm/archives/322</p>
+<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td class="t_msgfont">java.util.LinkedList是双向链表，这个大家都知道，比如<span class="t_tag" href="tag.php?name=Java">Java</span>的<span class="t_tag" href="tag.php?name=%BB%F9%B4%A1">基础</span>面试题喜欢问ArrayList和LinkedList的区别，在什么场景下用。大家都会说LinkedList随机增删多的场景比较合适，而ArrayList的随机访问多的场景比较合适。更进一步，我有时候会问，LinkedList.remove(Object)方法的时间复杂度是什么？有的人回答对了，有的人回答错了。回答错的应该是没有读过<span class="t_tag" href="tag.php?name=%D4%B4%C2%EB">源码</span>。<br>
+            <br>
+            理论上说，双向链表的删除的时间复杂度是O(1)，你只需要将要删除的节点的前节点和后节点相连，然后将要删除的节点的前节点和后节点置为null即可，<br>
+            //伪<span class="t_tag" href="tag.php?name=%B4%FA%C2%EB">代码</span><br>
+            node.prev.next=node.next;<br>
+            node.next.prev=node.prev;<br>
+            node.prev=node.next=null;<br>
+            <br>
+            这个操作的时间复杂度可以认为是O(1)级别的。但是LinkedList的实现是一个通用的<span class="t_tag" href="tag.php?name=%CA%FD%BE%DD">数据</span>结构，因此没有暴露内部的节点Entry<span class="t_tag" href="tag.php?name=%B6%D4%CF%F3">对象</span>，remove(Object)传入的Object其实是节点存储的value，这里还需要一个查找过程：<br>
+            public boolean remove(Object o) {<br>
+            if (o==null) {<br>
+            for (Entry&lt;E&gt; e = header.next; e != header; e = e.next) {<br>
+            if (e.element==null) {<br>
+            remove(e);<br>
+            return true;<br>
+            }<br>
+            }<br>
+            } else {<br>
+            //查找节点Entry<br>
+            for (Entry&lt;E&gt; e = header.next; e != header; e = e.next) {<br>
+            if (o.equals(e.element)) {<br>
+            //删除节点<br>
+            remove(e);<br>
+            return true;<br>
+            }<br>
+            }<br>
+            }<br>
+            return false;<br>
+            }<br>
+            <br>
+            删除节点的操作就是刚才伪代码描述的：<br>
+            private E remove(Entry&lt;E&gt; e) {<br>
+            E result = e.element;<br>
+            e.previous.next = e.next;<br>
+            e.next.previous = e.previous;<br>
+            e.next = e.previous = null;<br>
+            e.element = null;<br>
+            size--;<br>
+            modCount++;<br>
+            return result;<br>
+            }<br>
+            <br>
+            因此，显然，LinkedList.remove(Object)方法的时间复杂度是O(n)+O(1)，结果仍然是O(n)的时间复杂度,而非推测的O(1)复杂度。最坏情况下要删除的元素是最后一个，你都要比较N-1次才能找到要删除的元素。<br>
+            <br>
+            既然如此，说LinkedList适合随机删减有个前提，链表的大小不能太大，如果链表元素非常多，调用remove(Object)去删除一个元素的效率肯定有影响，一个简单测试，插入100万数据，随机删除1000个元素：<br>
+            final List&lt;Integer&gt; list = new LinkedList&lt;Integer&gt;();<br>
+            final int count = 1000000;<br>
+            for (int i = 0; i &lt; count; i++) {<br>
+            list.add(i);<br>
+            }<br>
+            final Random rand=new Random();<br>
+            long start=System.nanoTime();<br>
+            for(int i=0;i&lt;1000;i++){<br>
+            //这里要强制转型为Integer，否则调用的是remove(int)<br>
+            list.remove((Integer)rand.nextInt(count));<br>
+            }<br>
+            System.out.println((System.nanoTime()-start)/Math.pow(10, 9));<br>
+            <br>
+            在我的机器上耗时近9.5秒，删除1000个元素耗时9.5秒，是不是很恐怖？注意到上面的注释，产生的随机数强制转为Integer对象，否则调用的是remove(int)方法，而非remove(Object)。如果我们调用remove(int)根据索引来删除:<br>
+            for(int i=0;i&lt;1000;i++){<br>
+            list.remove(rand.nextInt(list.size()-1));<br>
+            }<br>
+            <br>
+            随机数范围要递减，防止数组越界，换成remove(int)效率提高不少，但是仍然需要2.2秒左右（包括了随机数产生开销）。这是因为remove(int)的实现很有<span class="t_tag" href="tag.php?name=%BC%BC%C7%C9">技巧</span>，它首先判断索引位置在链表的前半部分还是后半部分，如果是前半部分则从head往前查找，如果在后半部分，则从head往后查找（LinkedList的实现是一个环）：<br>
+            Entry&lt;E&gt; e = header;<br>
+            if (index &lt; (size &gt;&gt; 1)) {<br>
+            //前一半，往前找<br>
+            for (int i = 0; i &lt;= index; i++)<br>
+            e = e.next;<br>
+            } else {<br>
+            //后一半，往后找<br>
+            for (int i = size; i &gt; index; i--)<br>
+            e = e.previous; <br>
+            }<br>
+            <br>
+            最坏情况下要删除的节点在中点左右，查找的次数仍然达到n/2次，但是注意到这里没有比较的开销，并且比remove(Object)最坏情况下n次查找还是好很多。<br>
+            <br>
+            总结下，LinkedList的两个remove方法，remove(Object)和remove(int)的时间复杂度都是O(n)，在链表元素很多并且没有索引可用的情况下，LinkedList也并不适合做随机增删元素。在对<span class="t_tag" href="tag.php?name=%D0%D4%C4%DC">性能</span>特别敏感的场景下，还是需要自己实现专用的双向链表结构，真正实现O(1)级别的随机增删。更进一步，jdk5引入的ConcurrentLinkedQueue是一个非阻塞的线程安全的双向队列实现，同样有本文提到的问题，有兴趣可以测试一下在大量元素情况下的并发随机增删，效率跟自己实现的特定类型的线程安全的链表差距是惊人的。<br>
+            <br>
+            题外，ArrayList比LinkedList更不适合随机增删的原因是多了一个数组移动的动作，假设你删除的元素在m，那么除了要查找m次之外，还需要往前移动n-m-1个元素。</td>
+        </tr>
+    </tbody>
+</table></div></body></html>

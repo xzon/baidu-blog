@@ -1,0 +1,189 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Hibernate 延迟加载剖析与代理模式应用</title></head><body><h1>Hibernate 延迟加载剖析与代理模式应用</h1><div><div><p></p><div><h1>Hibernate 延迟加载剖析与代理模式应用</h1><p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-hibernatelazy/index.html?ca=drs-">http://www.ibm.com/developerworks/cn/java/j-lo-hibernatelazy/index.html?ca=drs-</a></p><p><a rel="#authortip1" href="http://www.ibm.com/developerworks/cn/java/j-lo-hibernatelazy/index.html?ca=drs-#author1" title="">李 刚</a>, 自由撰稿人</p><p>发布日期：&nbsp;2011 年 11 月 17 日</p><p>简介：&nbsp;Hibernate 的延迟加载（lazy load）是一个被广泛使用的技术。这种延迟加载保证了应用只有在需要时才去数据库中抓取相应的记录。通过延迟加载技术可以避免过多、过早地加载数据表里的数据，从而降低应用的内存开销。Hibernate 的延迟加载本质上就是代理模式的应用，当程序通过 Hibernate 装载一个实体时，默认情况下，Hibernate 并不会立即抓取它的集合属性、关联实体所以对应的记录，而是通过生成一个代理来表示这些集合属性、关联实体，这就是代理模式应用带来的优势。</p><p>&nbsp;</p><p>Hibernae 的延迟加载是一个非常常用的技术，实体的集合属性默认会被延迟加载，实体所关联的实体默认也会被延迟加载。Hibernate 通过这种延迟加载来降低系统的内存开销，从而保证 Hibernate 的运行性能。</p><p>下面先来剖析 Hibernate 延迟加载的“秘密”。</p><p><a name="major1.1">集合属性的延迟加载</a></p><p>当 Hibernate 从数据库中初始化某个持久化实体时，该实体的集合属性是否随持久化类一起初始化呢？如果集合属性里包含十万，甚至百万的记录，在初始化持久化实体的同时，完成所有集合属性的抓取，将导致性能急剧下降。完全有可能系统只需要使用持久化类集合属性中的部分记录，而完全不是集合属性的全部，这样，没有必要一次加载所有的集合属性。</p><p>对于集合属性，通常推荐使用延迟加载策略。所谓延迟加载就是等系统需要使用集合属性时才从数据库装载关联的数据。</p><p>例如下面 Person 类持有一个集合属性，该集合属性里的元素的类型为 Address，该 Person 类的代码片段如下：</p><br /><a name="listing1">清单 1. Person.java</a><br /><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>				 
+ public class Person 
+ { 
+ // 标识属性
+ private Integer id; 
+ // Person 的 name 属性
+ private String name; 
+ // 保留 Person 的 age 属性
+ private int age; 
+ // 使用 Set 来保存集合属性
+ private Set&lt;Address&gt; addresses = new HashSet&lt;Address&gt;(); 
+ // 下面省略了各属性的 setter 和 getter 方法
+ ... 
+ } 
+</pre></td></tr></tbody></table><br /><p>为了让 Hibernate 能管理该持久化类的集合属性，程序为该持久化类提供如下映射文件：</p><br /><a name="listing2">清单 2. Person.hbm.xml</a><br /><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>				 
+ &lt;?xml version=&quot;1.0&quot; encoding=&quot;GBK&quot;?&gt; 
+ &lt;!DOCTYPE hibernate-mapping PUBLIC 
+&quot;-//Hibernate/Hibernate Mapping DTD 3.0//EN&quot;
+&quot;http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd&quot;&gt; 
+ &lt;hibernate-mapping package=&quot;org.crazyit.app.domain&quot;&gt; 
+ &lt;!-- 映射 Person 持久化类 --&gt; 
+ &lt;class name=&quot;Person&quot; table=&quot;person_inf&quot;&gt; 
+ &lt;!-- 映射标识属性 id --&gt; 
+ &lt;id name=&quot;id&quot; column=&quot;person_id&quot;&gt; 
+ &lt;!-- 定义主键生成器策略 --&gt; 
+ &lt;generator class=&quot;identity&quot;/&gt; 
+ &lt;/id&gt; 
+ &lt;!-- 用于映射普通属性 --&gt; 
+ &lt;property name=&quot;name&quot; type=&quot;string&quot;/&gt; 
+ &lt;property name=&quot;age&quot; type=&quot;int&quot;/&gt; 
+ &lt;!-- 映射集合属性  --&gt; 
+ &lt;set name=&quot;addresses&quot; table=&quot;person_address&quot; lazy=&quot;true&quot;&gt; 
+ &lt;!-- 指定关联的外键列 --&gt; 
+ &lt;key column=&quot;person_id&quot;/&gt; 
+ &lt;composite-element class=&quot;Address&quot;&gt; 
+ &lt;!-- 映射普通属性 detail --&gt; 
+ &lt;property name=&quot;detail&quot;/&gt; 
+ &lt;!-- 映射普通属性 zip --&gt; 
+ &lt;property name=&quot;zip&quot;/&gt; 
+ &lt;/composite-element&gt; 
+ &lt;/set&gt; 
+ &lt;/class&gt; 
+ &lt;/hibernate-mapping&gt; 
+</pre></td></tr></tbody></table><br /><p>从上面映射文件的代码可以看出，Person 的集合属性中的 Address 类只是一个普通的 POJO。该 Address 类里包含 detail、zip 两个属性。由于 Address 类代码非常简单，故此处不再给出该类的代码。</p><p>上面映射文件中 &lt;set.../&gt; 元素里的代码指定了 lazy=&quot;true&quot;（对于 &lt;set.../&gt; 元素来说，lazy=&quot;true&quot;是默认值），它指定 Hibernate 会延迟加载集合属性里 Address 对象。</p><p>例如通过如下代码来加载 ID 为 1 的 Person 实体：</p><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre> Session session = sf.getCurrentSession(); 
+ Transaction tx = session.beginTransaction(); 
+ Person p = (Person) session.get(Person.class, 1);  //&lt;1&gt; 
+ System.out.println(p.getName()); 
+</pre></td></tr></tbody></table><br /><p>上面代码只是需要访问 ID 为 1 的 Person 实体，并不想访问这个 Person 实体所关联的 Address 对象。此时有两种情况：</p><ul><li>如果不延迟加载，Hibernate 就会在加载 Person 实体对应的数据记录时立即抓取它关联的 Address 对象。</li><li>如果采用延迟加载，Hibernate 就只加载 Person 实体对应的数据记录。</li></ul><p>很明显，第二种做法既能减少与数据库的交互，而且避免了装载 Address 实体带来的内存开销——这也是 Hibernate 默认启用延迟加载的原因。</p><p>现在的问题是，延迟加载到底是如何实现的呢？ Hibernate 在加载 Person 实体时，Person 实体的 addresses 属性值是什么呢？</p><p>为了解决这个问题，我们在&nbsp;&lt;1&gt;号代码处设置一个断点，在 Eclipse 中进行 Debug，此时可以看到 Eclipse 的 Console 窗口有如图 1 所示的输出：</p><br /><a name="fig1">图 1. 延迟加载集合属性的 Console 输出</a><br /><img src="http://hiphotos.baidu.com/hxzon/pic/item/3d8e6d600c338744cd3a4e3b510fd9f9d62aa020.jpg" />&nbsp;<br /><p>正如图 1 输出所看到的，此时 Hibernate 只从 Person 实体对应的数据表中抓取数据，并未从 Address 对象对应的数据表中抓取数据，这就是延迟加载。</p><p>那么 Person 实体的 addresses 属性是什么呢？此时可以从 Eclipse 的 Variables 窗口看到如图 2 所示的结果：</p><br /><a name="fig2">图 2. 延迟加载的集合属性值</a><br /><img src="http://hiphotos.baidu.com/hxzon/pic/item/1ab975f082025aaf68bd1f8cfbedab64024f1a10.jpg" />&nbsp;<br /><p>从图 2 的方框里的内容可以看出，这个 addresses 属性并不是我们熟悉的 HashSet、TreeSet 等实现类，而是一个 PersistentSet 实现类，这是 Hibernate 为 Set 接口提供的一个实现类。</p><p>PersistentSet 集合对象并未真正抓取底层数据表的数据，因此自然也无法真正去初始化集合里的 Address 对象。不过 PersistentSet 集合里持有一个 session 属性，这个 session 属性就是 Hibernate Session，当程序需要访问 PersistentSet 集合元素时，PersistentSet 就会利用这个 session 属性去抓取实际的 Address 对象对应的数据记录。</p><p>那么到底抓取那些 Address 实体对应的数据记录呢？这也难不倒 PersistentSet，因为 PersistentSet 集合里还有一个 owner 属性，该属性就说明了 Address 对象所属的 Person 实体，Hibernate 就会去查找 Address 对应数据表中外键值参照到该 Person 实体的数据。</p><p>例如我们单击图 2 所示窗口中 addresses 行，也就是告诉 Eclipse 要调试、输出 addresses 属性，这就是要访问 addresses 属性了，此时就可以在 Eclipse 的 Console 窗口看到输出如下 SQL 语句：</p><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>    select 
+        addresses0_.person_id as person1_0_0_, 
+        addresses0_.detail as detail0_, 
+        addresses0_.zip as zip0_ 
+    from 
+        person_address addresses0_ 
+    where 
+        addresses0_.person_id=? 
+</pre></td></tr></tbody></table><br /><p>这就是 PersistentSet 集合跟据 owner 属性去抓取特定 Address 记录的 SQL 语句。此时可以从 Eclipse 的 Variables 窗口看到图 3 所示的输出：</p><br /><a name="fig3">图 3. 已加载的集合属性值</a><br /><img src="http://hiphotos.baidu.com/hxzon/pic/item/a0ca0a338744ebf83d8e0578d9f9d72a6159a720.jpg" />&nbsp;<br /><p>从图 3 可以看出，此时的 addresses 属性已经被初始化了，集合里包含了 2 个 Address 对象，这正是 Person 实体所关联的两个 Address 对象。</p><p>通过上面介绍可以看出，Hibernate 对于 Set 属性延迟加载关键就在于 PersistentSet 实现类。在延迟加载时，开始 PersistentSet 集合里并不持有任何元素。但 PersistentSet 会持有一个 Hibernate Session，它可以保证当程序需要访问该集合时“立即”去加载数据记录，并装入集合元素。</p><p>与 PersistentSet 实现类类似的是，Hibernate 还提供了 PersistentList、PersistentMap、PersistentSortedMap、PersistentSortedSet 等实现类，它们的功能与 PersistentSet 的功能大致类似。</p><p>熟悉 Hibernate 集合属性读者应该记得：Hibernate 要求声明集合属性只能用 Set、List、Map、SortedSet、SortedMap 等接口，而不能用 HashSet、ArrayList、HashMap、TreeSet、TreeMap 等实现类，其原因就是因为 Hibernate 需要对集合属性进行延迟加载，而 Hibernate 的延迟加载是依靠 PersistentSet、PersistentList、PersistentMap、PersistentSortedMap、PersistentSortedSet 来完成的——也就是说，Hibernate 底层需要使用自己的集合实现类来完成延迟加载，因此它要求开发者必须用集合接口、而不是集合实现类来声明集合属性。</p><p>Hibernate 对集合属性默认采用延迟加载，在某些特殊的情况下，为 &lt;set.../&gt;、&lt;list.../&gt;、&lt;map.../&gt; 等元素设置 lazy=&quot;false&quot;属性来取消延迟加载。</p><p>&nbsp;</p><p>&nbsp;</p><p><a name="major1.2">关联实体的延迟加载</a></p><p>默认情况下，Hibernate 也会采用延迟加载来加载关联实体，不管是一对多关联、还是一对一关联、多对多关联，Hibernate 默认都会采用延迟加载。</p><p>对于关联实体，可以将其分为两种情况：</p><ul><li>关联实体是多个实体时（包括一对多、多对多）：此时关联实体将以集合的形式存在，Hibernate 将使用 PersistentSet、PersistentList、PersistentMap、PersistentSortedMap、PersistentSortedSet 等集合来管理延迟加载的实体。这就是前面所介绍的情形。</li><li>关联实体是单个实体时（包括一对一、多对一）：当 Hibernate 加载某个实体时，延迟的关联实体将是一个动态生成代理对象。</li></ul><p>当关联实体是单个实体时，也就是使用 &lt;many-to-one.../&gt; 或 &lt;one-to-one.../&gt; 映射关联实体的情形，这两个元素也可通过 lazy 属性来指定延迟加载。</p><p>下面例子把 Address 类也映射成持久化类，此时 Address 类也变成实体类，Person 实体与 Address 实体形成一对多的双向关联。此时的映射文件代码如下：</p><br /><a name="listing3">清单 3. Person.hbm.xml</a><br /><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>				 
+ &lt;?xml version=&quot;1.0&quot; encoding=&quot;GBK&quot;?&gt; 
+ &lt;!-- 指定 Hibernate 的 DTD 信息 --&gt; 
+ &lt;!DOCTYPE hibernate-mapping PUBLIC 
+&quot;-//Hibernate/Hibernate Mapping DTD 3.0//EN&quot;
+&quot;http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd&quot;&gt; 
+ &lt;hibernate-mapping package=&quot;org.crazyit.app.domain&quot;&gt; 
+ &lt;!-- 映射 Person 持久化类 --&gt; 
+ &lt;class name=&quot;Person&quot; table=&quot;person_inf&quot;&gt; 
+ &lt;!-- 映射标识属性 id --&gt; 
+ &lt;id name=&quot;id&quot; column=&quot;person_id&quot;&gt; 
+ &lt;!-- 定义主键生成器策略 --&gt; 
+ &lt;generator class=&quot;identity&quot;/&gt; 
+ &lt;/id&gt; 
+ &lt;!-- 用于映射普通属性 --&gt; 
+ &lt;property name=&quot;name&quot; type=&quot;string&quot;/&gt; 
+ &lt;property name=&quot;age&quot; type=&quot;int&quot;/&gt; 
+ &lt;!-- 映射集合属性，集合元素是其他持久化实体
+没有指定 cascade 属性，指定不控制关联关系 --&gt; 
+ &lt;set name=&quot;addresses&quot; inverse=&quot;true&quot;&gt; 
+ &lt;!-- 指定关联的外键列 --&gt; 
+ &lt;key column=&quot;person_id&quot;/&gt; 
+ &lt;!-- 用以映射到关联类属性 --&gt; 
+ &lt;one-to-many class=&quot;Address&quot;/&gt; 
+ &lt;/set&gt; 
+ &lt;/class&gt; 
+
+ &lt;!-- 映射 Address 持久化类 --&gt; 
+ &lt;class name=&quot;Address&quot; table=&quot;address_inf&quot;&gt; 
+ &lt;!-- 映射标识属性 addressId --&gt; 
+ &lt;id name=&quot;addressId&quot; column=&quot;address_id&quot;&gt; 
+ &lt;!-- 指定主键生成器策略 --&gt; 
+ &lt;generator class=&quot;identity&quot;/&gt; 
+ &lt;/id&gt; 
+ &lt;!-- 映射普通属性 detail --&gt; 
+ &lt;property name=&quot;detail&quot;/&gt; 
+ &lt;!-- 映射普通属性 zip --&gt; 
+ &lt;property name=&quot;zip&quot;/&gt; 
+ &lt;!-- 必须指定列名为 person_id, 
+与关联实体中 key 元素的 column 属性值相同 --&gt; 
+ &lt;many-to-one name=&quot;person&quot; class=&quot;Person&quot;
+ column=&quot;person_id&quot; not-null=&quot;true&quot;/&gt; 
+ &lt;/class&gt; 
+ &lt;/hibernate-mapping&gt; 
+</pre></td></tr></tbody></table><br /><p>接下来程序通过如下代码片段来加载 ID 为 1 的 Person 实体：</p><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre> // 打开上下文相关的 Session 
+ Session session = sf.getCurrentSession(); 
+ Transaction tx = session.beginTransaction(); 
+ Address address = (Address) session.get(Address.class , 1); //&lt;1&gt; 
+ System.out.println(address.getDetail()); 
+</pre></td></tr></tbody></table><br /><p>为了看到 Hibernate 加载 Address 实体时对其关联实体的处理，我们在&nbsp;&lt;1&gt;号代码处设置一个断点，在 Eclipse 中进行 Debug，此时可以看到 Eclipse 的 Console 窗口输出如下 SQL 语句：</p><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>    select 
+        address0_.address_id as address1_1_0_, 
+        address0_.detail as detail1_0_, 
+        address0_.zip as zip1_0_, 
+        address0_.person_id as person4_1_0_ 
+    from 
+        address_inf address0_ 
+    where 
+        address0_.address_id=? 
+</pre></td></tr></tbody></table><br /><p>从这条 SQL 语句不难看出，Hibernate 加载 Address 实体对应的数据表抓取记录，并未从 Person 实体对应的数据表中抓取记录，这是延迟加载发挥了作用。</p><p>从 Eclipse 的 Variables 窗口看到如图 4 所示的输出：</p><br /><a name="fig4">图 4. 延迟加载的实体</a><br /><img src="http://hiphotos.baidu.com/hxzon/pic/item/c7998144ebf81a4c79cd8d8ed72a6059242da620.jpg" />&nbsp;<br /><p>从图 4 可以清楚地看到，此时 Address 实体所关联的 Person 实体并不是 Person 对象，而是一个 Person_$$_javassist_0 类的实例，这个类是 Hibernate 使用 Javassist 项目动态生成的代理类——当 Hibernate 延迟加载关联实体时，将会采用 Javassist 生成一个动态代理对象，这个代理对象将负责代理“暂未加载”的关联实体。</p><p>只要应用程序需要使用“暂未加载”的关联实体，Person_$$_javassist_0 代理对象会负责去加载真正的关联实体，并返回实际的关联实体——这就是最典型的代理模式。</p><p>单击图 4 所示 Variables 窗口中的 person 属性（也就是在调试模式下强行使用 person 属性），此时看到 Eclipse 的 Console 窗口输出如下的 SQL 语句：</p><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>    select 
+        person0_.person_id as person1_0_0_, 
+        person0_.name as name0_0_, 
+        person0_.age as age0_0_ 
+    from 
+        person_inf person0_ 
+    where 
+        person0_.person_id=? 
+</pre></td></tr></tbody></table><br /><p>上面 SQL 语句就是去抓取“延迟加载”的关联实体的语句。此时可以看到 Variables 窗口输出图 5 所示的结果：</p><br /><a name="fig5">图 5. 已加载的实体</a><br /><img src="http://hiphotos.baidu.com/hxzon/pic/item/4ceeedf81a4c510ff03b835d6059252dd52aa520.jpg" />&nbsp;<br /><p>Hibernate 采用“延迟加载”管理关联实体的模式，其实就在加载主实体时，并未真正去抓取关联实体对应数据，而只是动态地生成一个对象作为关联实体的代理。当应用程序真正需要使用关联实体时，代理对象会负责从底层数据库抓取记录，并初始化真正的关联实体。</p><p>在 Hibernate 的延迟加载中，客户端程序开始获取的只是一个动态生成的代理对象，而真正的实体则委托给代理对象来管理——这就是典型的代理模式。</p><p>&nbsp;</p><p>&nbsp;</p><p><a name="major1.3">代理模式</a></p><p>代理模式是一种应用非常广泛的设计模式，当客户端代码需要调用某个对象时，客户端实际上也不关心是否准确得到该对象，它只要一个能提供该功能的对象即可，此时我们就可返回该对象的代理（Proxy）。</p><p>在这种设计方式下，系统会为某个对象提供一个代理对象，并由代理对象控制对源对象的引用。代理就是一个 Java 对象代表另一个 Java 对象来采取行动。在某些情况下，客户端代码不想或不能够直接调用被调用者，代理对象可以在客户和目标对象之间起到中介的作用。</p><p>对客户端而言，它不能分辨出代理对象与真实对象的区别，它也无须分辨代理对象和真实对象的区别。客户端代码并不知道真正的被代理对象，客户端代码面向接口编程，它仅仅持有一个被代理对象的接口。</p><p>总而言之，只要客户端代码不能或不想直接访问被调用对象——这种情况有很多原因，比如需要创建一个系统开销很大的对象，或者被调用对象在远程主机上，或者目标对象的功能还不足以满足需求……，而是额外创建一个代理对象返回给客户端使用，那么这种设计方式就是代理模式。</p><p>下面示范一个简单的代理模式，程序首先提供了一个 Image 接口，代表大图片对象所实现的接口，该接口代码如下：</p><br /><a name="listing4">清单 3. Image.java</a><br /><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>				 
+ public interface Image 
+ { 
+ void show(); 
+ } 
+</pre></td></tr></tbody></table><br /><p>该接口提供了一个实现类，该实现类模拟了一个大图片对象，该实现类的构造器使用 Thread.sleep() 方法来暂停 3s。下面是该 BigImage 的程序代码。</p><br /><a name="listing5">清单 4. BigImage.java</a><br /><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>				 
+ // 使用该 BigImage 模拟一个很大图片
+ public class BigImage implements Image 
+ { 
+ public BigImage() 
+ { 
+ try 
+ { 
+ // 程序暂停 3s 模式模拟系统开销 
+				 Thread.sleep(3000); 
+ System.out.println(&quot;图片装载成功 ...&quot;); 
+ } 
+ catch (InterruptedException ex) 
+ { 
+ ex.printStackTrace(); 
+ } 
+ } 
+ // 实现 Image 里的 show() 方法
+ public void show() 
+ { 
+ System.out.println(&quot;绘制实际的大图片&quot;); 
+ } 
+ } 
+</pre></td></tr></tbody></table><br /><p>上面的程序代码暂停了 3s，这表明创建一个 BigImage 对象需要 3s 的时间开销——程序使用这种延迟来模拟装载此图片所导致的系统开销。如果不采用代理模式，当程序中创建 BigImage 时，系统将会产生 3s 的延迟。为了避免这种延迟，程序为 BigImage 对象提供一个代理对象，BigImage 类的代理类如下所示。</p><br /><a name="listing6">清单 5. ImageProxy.java</a><br /><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>				 
+ public class ImageProxy implements Image 
+ { 
+ // 组合一个 image 实例，作为被代理的对象
+ private Image image; 
+ // 使用抽象实体来初始化代理对象
+ public ImageProxy(Image image) 
+ { 
+ this.image = image; 
+ } 
+ /** 
+ * 重写 Image 接口的 show() 方法
+ * 该方法用于控制对被代理对象的访问，
+ * 并根据需要负责创建和删除被代理对象
+ */ 
+ public void show() 
+ { 
+ // 只有当真正需要调用 image 的 show 方法时才创建被代理对象
+ if (image == null) 
+ { 
+  image = new BigImage(); 
+  } 
+ image.show(); 
+ } 
+ } 
+</pre></td></tr></tbody></table><br /><p>上面的 ImageProxy 代理类实现了与 BigImage 相同的 show() 方法，这使得客户端代码获取到该代理对象之后，可以将该代理对象当成 BigImage 来使用。</p><p>在 ImageProxy 类的 show() 方法中增加了控制逻辑，这段控制逻辑用于控制当系统真正调用 image 的 show() 时，才会真正创建被代理的 BigImage 对象。下面程序需要使用 BigImage 对象，但程序并不是直接返回 BigImage 实例，而是先返回 BigImage 的代理对象，如下面程序所示。</p><br /><a name="listing7">清单 6. BigImageTest.java</a><br /><table cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><pre>				 
+ public class BigImageTest 
+ { 
+ public static void main(String[] args) 
+ { 
+ long start = System.currentTimeMillis(); 
+ // 程序返回一个 Image 对象，该对象只是 BigImage 的代理对象
+ Image image = new ImageProxy(null); 
+ System.out.println(&quot;系统得到 Image 对象的时间开销 :&quot; + 
+ (System.currentTimeMillis() - start)); 
+ // 只有当实际调用 image 代理的 show() 方法时，程序才会真正创建被代理对象。
+ image.show(); 
+ } 
+ } 
+</pre></td></tr></tbody></table><br /><p>上面程序初始化 image 非常快，因为程序并未真正创建 BigImage 对象，只是得到了 ImageProxy 代理对象——直到程序调用 image.show() 方法时，程序需要真正调用 BigImage 对象的 show() 方法，程序此时才真正创建 BigImage 对象。运行上面程序，看到如图 6 所示的结果。</p><br /><a name="fig6">图 6. 使用代理模式提高性能</a><br /><img src="http://hiphotos.baidu.com/hxzon/pic/item/20521c4c510fd9f9fde8342e252dd42a2934a420.jpg" />&nbsp;<br /><p>看到如图 6 所示的运行结果，读者应该能认同：使用代理模式提高了获取 Image 对象的系统性能。但可能有读者会提出疑问：程序调用 ImageProxy 对象的 show() 方法时一样需要创建 BigImage 对象啊，系统开销并未真正减少啊？只是这种系统开销延迟了而已啊？</p><p>我们可以从如下两个角度来回答这个问题：</p><ul><li>把创建 BigImage 推迟到真正需要它时才创建，这样能保证前面程序运行的流畅性，而且能减少 BigImage 在内存中的存活时间，从宏观上节省了系统的内存开销。</li><li>有些情况下，也许程序永远不会真正调用 ImageProxy 对象的 show() 方法——意味着系统根本无须创建 BigImage 对象。在这种情形下，使用代理模式可以显著地提高系统运行性能。</li></ul><p>与此完全类似的是，Hibernate 也是通过代理模式来“推迟”加载关联实体的时间，如果程序并不需要访问关联实体，那程序就不会去抓取关联实体了，这样既可以节省系统的内存开销，也可以缩短 Hibernate 加载实体的时间。</p><p>&nbsp;</p><p>&nbsp;</p><p><a name="major2">小结</a></p><p>Hibernate 的延迟加载（lazy load）本质上就是代理模式的应用，我们在过去的岁月里就经常通过代理模式来降低系统的内存开销、提升应用的运行性能。Hibernate 充分利用了代理模式的这种优势，并结合了 Javassist 或 CGLIB 来动态地生成代理对象，这更加增加了代理模式的灵活性，Hibernate 给这种用法一个新名称：延迟加载。无论怎样，充分分析、了解这些开源框架的实现可以更好的感受经典设计模式的优势所在。</p><p>&nbsp;</p><p>&nbsp;</p><p><a name="resources">参考资料</a></p><p>学习</p><ul><li>李刚编著&nbsp;<a href="http://www.crazyit.org/thread-5083-1-1.html">《轻量级 Java EE 企业应用实战 ( 第三版 ) 》</a>，本书全面介绍了 Struts 2.2、Spring 3.0、Hibernate 3.6 整合开发的知识，并通过实际案例介绍了 3 大框架在实际项目中应用。&nbsp;<br /><br /></li><li><a href="http://docs.jboss.org/hibernate/core/3.6/reference/en-US/html/">HIBERNATE - Relational Persistence for Idiomatic Java</a>，全面介绍 Hibernate 框架功能和用法的参考手册。&nbsp;<br /><br /></li><li><a href="http://docs.jboss.org/hibernate/core/3.6/javadocs/">Hibernate JavaDoc</a>：介绍 Hibernate 3.6 所有 API 功能和用法的参考文档。&nbsp;<br /><br /></li><li>“<a href="http://www.ibm.com/developerworks/cn/websphere/techjournal/1008_col_sutter/1008_col_sutter.html">评论专栏：真的，为什么要用 Hibernate ？</a>”（developerWorks，2010 年 10 月）：IBM WebSphere Application Server 提供一个基于 Apache OpenJPA 项目的完整 JPA 解决方案。尽管使用其他 JPA 提供者（比如 Hibernate JPA）也是可行的，但问题是：“为什么要选择 Hibernate JPA ？”本文解释为何使用 WebSphere JPA 解决方案总是最明智的选择。<br /><br /></li><li>“<a href="http://www.ibm.com/developerworks/cn/opensource/os-hibernatesaas/">针对 SaaS 应用程序的基于 Hibernate 框架的数据库分片</a>”（developerWorks，2010 年 11 月）：扩展共享数据库的一个最简单的技术是基于租户 ID 通过数据分片启用多租户数据架构。在本文中，我们探究如何使用 Hibernate 分片来解决 SaaS 应用程序的数据库伸缩问题。<br /><br /></li><li>“<a href="http://www.ibm.com/developerworks/cn/java/j-lo-ssh/">Struts2、Spring、Hibernate 高效开发的最佳实践</a>”（developerWorks，2011 年 8 月）：Struts2、Spring、Hibernate（SSH）是最常用的 Java EE Web 组件层的开发技术搭配，网络中和许多 IT 技术书籍中都有它们的开发教程，但是通常的教程都会让很多程序员陷入痛苦的配置与修改配置的过程。本文利用 SSH 中的技术特性，利用 Java 反射技术，按照规约优于配置的原理，基于 SSH 设定编写了一个通用开发框架，这使得开发者可以专注于业务逻辑的开发，而不用随着业务增加而添加或修改任何配置，并且对于权限控制和日志记录也提供了方便的接口。<br /><br /></li><li>“<a href="http://www.ibm.com/developerworks/cn/java/j-lo-hibernate3/">Hibernate 3 深度解析</a>”（developerWorks，2011 年 8 月）：Hibernate 的重要性，我想各位一定很清楚 . 那么 Hibernate 的一些重要功能项大家是否真的很了解呢，是否明白它的执行逻辑呢？本文章将会带领大家深入到 Hibernate 的内部，深度解析下重要功能项或是关键属性的工作原理。</li></ul><p>&nbsp;</p><p>李刚，从事 Java EE 应用开发近 10 年。曾任 LITEON 公司的 J2EE 技术主管，负责该公司的企业信息化平台的架构设计。曾任广州电信、广东龙泉科技等公司的技术培训教师。 疯狂 Java 联盟（http://www.crazyit.org）站长。疯狂 Java 实训营创始人，疯狂 Java 体系图书作者，曾任东方标准广州中心软件教学总监，曾兼任广东技术师范学院计算机科学系的兼职副教授。国内知名IT技术作家，已出版《疯狂 Java 讲义》、《轻量级 Java EE 企业应用实战》、《疯狂 Ajax 讲义》、《Struts 2.1 权威指南》、《Ruby On Rails 敏捷开发最佳实践》等著作。</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p></div><p></p></div><p></p></div></body></html>

@@ -1,0 +1,65 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Never, never, never use String in Java (or at least less often :-)</title></head><body><h1>Never, never, never use String in Java (or at least less often :-)</h1><div><p>Never, never, never use String in Java (or at least less often :-)</p><p><a href="http://codemonkeyism.com/never-never-never-use-string-in-java-or-at-least-less-often/">http://codemonkeyism.com/never-never-never-use-string-in-java-or-at-least-less-often/</a></p><p><a href="http://codemonkeyism.com/generation-java-programming-style/">http://codemonkeyism.com/generation-java-programming-style/</a></p><p><span>May 2, 2008 by&nbsp;</span><a href="http://www.codemonkeyism.com/about/">Stephan Schmidt</a></p><p></p><p>Never, never, never use (unwrapped) String or long or int. Why? Those primitive types have no semantic meaning. They are hard to understand, hard to maintain, and hard to extend. I’ve been evangelizing this concept for some time, the essay&nbsp;<a href="http://stephan.reposita.org/archives/2008/04/25/review-of-the-thoughtworks-anthology-essays-on-software-technology/" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">“Object calisthenics”</a>&nbsp;finally prompted be to write this post. Suppose we have an example of a cinema ticket booking service.</p><p><b>Update:</b>&nbsp;<em>If you just want to drop a comment telling me how revolting you find the idea, well, just don’t. I appreciate your comment, but sit back, think some time about it and move on coding. When you read someone else code withString id&nbsp;and you wonder what on earth the&nbsp;id&nbsp;is, come back and read this post.</em></p><p>Compare</p>public void bookTicket(
+  String name,
+  String firstName,
+  String film,
+  int count,
+  String cinema);
+<p>with (and I know one would introduce an&nbsp;Order&nbsp;object for real code):</p>public void bookTicket(
+  Name name,
+  FirstName firstName,
+  Film film,
+  Count count,
+  Cinema cinema);
+<p>The second one is much easier to understand, especially when your IDE is one that tells you during autocompletion of a method call&nbsp;bookTicket(String arg0, String arg1, String arg2, int arg3, String arg4)&nbsp;versusbookTicket(Name arg0, FirstName arg1, Film arg2, Count arg3, Cinema arg4). The second one is also much easier to read. Compare</p>void book(String orderId);
+<p>with</p>void book(OrderId order);
+<p>In the first case the developer seeing the code wonders&nbsp;<strong>a.)</strong>&nbsp;where to get an orderId and&nbsp;<strong>b.)</strong>&nbsp;what an orderId really is,&nbsp;"1212",&nbsp;"ABC-123"&nbsp;or&nbsp;"12-34-45-SCHWEINEBACKE". In the second case he can search for the usage of theOrderId&nbsp;class, how it is used, read the javadoc and only pass validated and correct order ids into an application. You might think an orderId is just an orderId, easy to find. Legacy systems will&nbsp;<a href="http://www.javaworld.com/community/?q=node/572" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">change the id</a>, the naming and semantics in often inconsistent ways. I’ve seen systems that name an order ID in serveral ways as “orderId”, “AuftragsId”, “id” and several other names and&nbsp;<b>all meaning the same thing!</b></p><p>It’s easier to have a class with semantics than a domain-less String. Developers cannot as easily mess up. If you rely on static typing and use a startic type language (both object and reference) then maximize your benefits and create more classes. In the future an&nbsp;OrderId&nbsp;class can also easily be changed to hold long instead of an int, hold validation or id generation logic. It’s much harder to extend the initial&nbsp;String&nbsp;based version.</p>Implementation with a fluent interface<p>The classes should be implemented as simple Domain classes, sometimes as immutable value objects, which just wrap&nbsp;String&nbsp;and attach some semantic meaning to the&nbsp;String.</p>public class Name {
+   public Name(String name) {
+      ...
+   }
+   public static Name name(String name) {
+     return new Name(name);
+   }
+}
+<p>One would wonder if the solution is too noisy. Assuming</p>new Customer(new FirstName("Stephan"), new Name("Schmidt"));
+<p>is certainly noiser than a String argument:</p>new Customer("Stephan", "Schmidt");
+<p>The first is easier to understand though, and with static methods can be changed to</p>new Customer(firstName("Stephan"), name("Schmidt"));
+<p>This also solves the problems that with many arguments developers from reading the code don’t understand what each parameter means, especially in longer (refactor to parameter object!) parameter lists. This is another approach to<a href="http://stephan.reposita.org/archives/2007/10/10/fluent-interface-and-reflection-for-object-building-in-java/" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">Fluent Interface builders</a>.</p><p>My last post on&nbsp;<a href="http://stephan.reposita.org/archives/2008/04/28/mutable-immutable-and-generics/" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">how to use generics with immutable objects</a>&nbsp;could also be extended with value objects instead of primitives.</p>new Point(10,10);
+
+new Point(x(10), y(10));
+<p>where&nbsp;x(10)&nbsp;and&nbsp;y(10)&nbsp;create Xpos and Ypos value objects.</p>Domain objects vs. primitivs in interview questions<p>One of the interview questions I like is to ask people about an interface for a price search. I usually give them</p>... searchByPrice(...)
+<p>and let candidates fill in the missing parts. Some will write</p>Vector searchByPrice(double start, double end)
+<p>which is bad code from several points of view (using double for money, no domain objects, untyped Vector).</p><p>Others with more domain based thinking write</p>List&lt;Product&gt; searchByPriceRange(Price start, Price end)
+<p>or even us the&nbsp;<a href="http://www.martinfowler.com/ap2/range.html" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">Range pattern by Fowler</a>:</p>List&lt;Product&gt; searchByPriceRange(PriceRange priceToSearch)
+<p>The last solution is easy to extend and understand. Answering this question often starts an interesting discussion on interface design, maintainablity and domain modelling. Whatever you think about this interview question, don’t forget to<a href="http://stephan.reposita.org/archives/2008/01/11/once-and-for-all-do-not-use-double-for-money/" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">once and for all: Do not use double for money</a>.</p><p>Thanks for listening and don’t use String, int and long (or double for money).</p><p><b>Update:</b><br>If you find the usage of Classes instead of Strings repulsive, look at another example, zip code. Most people I’ve seen in lots of code use a primitive for zip code which creates a lot of problems when going i18n.</p>Customer {
+   String name;
+   String street;
+   String city;
+   String zip;
+}
+<p>(some will have used&nbsp;int&nbsp;for the zip code but get faster into trouble than theString&nbsp;users)<br>instead of</p>Customer {
+   String name;
+   Address address;
+} 
+
+Address {
+   ZipCode code;
+}
+<p>Still think Strings are a good idea in your code or&nbsp;<i>“the simplest thing that could possibly work”</i>?</p><p>======================================</p><p>Bending Java: More readable code with methods that do nothing?</p><p><a href="http://codemonkeyism.com/bending-java-more-readable-code-with-methods-that-do-nothing/">http://codemonkeyism.com/bending-java-more-readable-code-with-methods-that-do-nothing/</a></p><p><span >May 9, 2008 by&nbsp;</span><a href="http://www.codemonkeyism.com/about/" >Stephan Schmidt</a></p><p><p>From the category&nbsp;<i>“Bending Java near it’s Breaking Point”</i>&nbsp;or&nbsp;<i>“What a stupid but interesting idea”</i>. I like to explore ideas in Java that are inside the language spec but outside of common usage or style guides. I think Java has a lot more to give than what people did the last ten years. Before dumping Java perhaps we should reconsider some of the “common wisdoms” about how to do things in Java.</p><p>My last post on&nbsp;<a href="http://stephan.reposita.org/archives/2008/05/02/never-never-never-use-string-in-java-or-at-least-less-often/" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">beautiful Java, and why to never use String ;-)</a>&nbsp;got me flamed like I haven’t been flamed since&nbsp;alt.amiga.advocacy&nbsp;times. The idea was to provide wrappers around&nbsp;String&nbsp;like&nbsp;Name&nbsp;to achieve several things: Have better typed method signatures, have a&nbsp;<a href="http://stephan.reposita.org/archives/2007/10/10/fluent-interface-and-reflection-for-object-building-in-java/" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">fluent interface</a>&nbsp;and to better convey meaning.</p>Customer customer = new Customer( name("Stephan") );
+...
+Customer(Name name) {
+...
+}
+...
+public Name name(String value) {
+...
+}
+<p>The flames were mostly about creating lots of small objects, which people claimed are&nbsp;<a href="http://blogs.concedere.net:8080/blog/discipline/software+engineering/?permalink=Modelling-the-World.html" style="padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; font-style: inherit; font-family: inherit; vertical-align: baseline; color: rgb(0, 0, 153); ">unnecessary and unmaintainable</a>.</p><p>An alternative implementation would be:</p>Customer customer = new Customer( name("Stephan") );
+...
+Customer(String name) {
+...
+}
+...
+public String name(String value) {
+ return value;
+}
+<p>This implementation doesn’t achieve the same things as the solution before, but there is no new object necessary, only a new method.</p><p>But still the line&nbsp;Customer customer = new Customer( name("Stephan") );&nbsp;is more readable than&nbsp;Customer customer = new Customer( "stephan" );. The Hotspot JIT should optimize the method calls away so there is no performance penalty.</p><p>A better idea? Or still too repulsive.</p><p>Thanks for listening.</p></p><p></p><p></p></div></body></html>

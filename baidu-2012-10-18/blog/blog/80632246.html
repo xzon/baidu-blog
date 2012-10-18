@@ -1,0 +1,163 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>XSL语法介绍；＜xsl:template match=&amp;#34;/&amp;#34;＞</title></head><body><h1>XSL语法介绍；＜xsl:template match=&amp;#34;/&amp;#34;＞</h1><div><div>
+<h1>XSL语法介绍</h1>
+</div>
+<div><span>2001-04-23 09:24 </span><span>作者： 胡朝晖 </span><span>出处： yesky </span><span>责任编辑： </span></div>
+<div class="topadbg"><span>
+<div> </div>
+</span></div>
+<div>
+<div class="guanggao"> </div>
+<p><br>
+　　例子已经放在上面，下面我们可以来仔细的分析其中的语法结果和关键所在：<br>
+<br>
+　　首先注意到的是，XSL文件本身即是一份 XML文件，所以在XSL文件的开头，一样有和XML文件相同的声明。W3C这个XML的标准机构为XSL定义了很多标记（元素），XSL文件就是这些标记和HTML标记的组合。在XSL文件中，必须有如下一行的代码：<br>
+<br>
+　　＜xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/TR/WD-xsl&quot;＞<br>
+<br>
+　　这里，xsl:stylesheet是XSL文件的根元素，在根元素中包含了所有的排版样式，样式表就是由这些排版样式组合成的；xmlns:xsl=&quot;http://www.w3.org/TR/WD-xsl&quot;这一句主要用来说明该XSL样式表是使用W3C所制定的XSL，设定值就是XSL规范所在的URL地址。<br>
+<br>
+　　实际上，这里&quot;http://www.w3.org/TR/WD-xsl&quot;就是一个名字空间（namespace），我们在上面关于XML Schema语法介绍的时候已经进行过介绍。这是一个标准的名字空间。&quot;stylesheet&quot;，&quot;template&quot;，&quot;for-each&quot;等等关键字都是这个名字空间所定义的。<br>
+<br>
+　　当然在xsl:stylesheet还可以设定其他的属性，其他的属性有：<br>
+<br>
+　　　1． default-space：决定是否保留XML文件中的空白，仅当值为&quot;default&quot;时保留。 <br>
+<br>
+　　　2． indent-result：决定是否保留XSL文件中的空白，值为&quot;yes&quot;时保留。 <br>
+<br>
+　　　3． language：设定在XSL文件中使用的脚本语言。<br>
+<br>
+　　然后，我们在上面的代码中看到有如下的代码：<br>
+<br>
+　　＜xsl:template match=&quot;/&quot;＞<br>
+　　　 ………<br>
+　　＜/xsl:template＞<br>
+<br>
+　　这里实际上是表示了XSL解析器对XML文档的处理过程，它从根节点（由match=&quot;/&quot;决定，这里&quot;/&quot;就表示根节点）开始，对XML文档进行遍历，并根据具体的代码从XML文档中取出相关的内容。这里关于属性match的取值是一个比较复杂的问题。它实际上表示的含义是从XML文档中取出一个特定的节点集合（XML文档可以被看成一个树的结构，这个在后面关于XML解析器分析中有详细的介绍）。这里，我们通过几个简单的例子来说明属性match的取值。<br>
+<br>
+　　比如下面一行代码：<br>
+<br>
+　　＜xsl:template match=&quot;/&quot;＞<br>
+<br>
+　　这行代码的意思是告诉XSL解析程序，当前需要处理的节点是根节点下的内容（用&quot;/&quot;来表示根节点），其实这里的match值内容的编写是要符合XPath的语意。关于XPath我们在后面的章节中会进行详细的介绍。<br>
+<br>
+　　再举一个例子：<br>
+<br>
+　　＜xsl:template match=&quot;shoppingcart/item&quot;＞<br>
+<br>
+　　这行代码要匹配的是shoppingcart元素下的item元素。而不管shoppingcart在XML文档结构树下的哪一个位置。比如XML文档的其中一段是这样的。<br>
+<br>
+　　＜shoppingcart＞<br>
+　　＜item＞<br>
+　　＜itemNo＞3333＜/itemNo＞<br>
+　　＜itemName＞屠龙刀＜/itemName＞<br>
+　　＜/item＞<br>
+　　＜item＞<br>
+　　＜itemNo＞4444＜/itemNo＞<br>
+　　＜itemName＞离别钩＜/itemName＞<br>
+　　＜/item＞<br>
+　　＜/shoppingcart＞<br>
+<br>
+　　那么它匹配的内容就是<br>
+　　　＜item＞<br>
+　　　＜itemNo＞3333＜/itemNo＞<br>
+　　　＜itemName＞屠龙刀＜/itemName＞<br>
+　　　＜/item＞<br>
+　　　＜item＞<br>
+　　　＜itemNo＞4444＜/itemNo＞<br>
+　　　＜itemName＞离别钩＜/itemName＞<br>
+　　　＜/item＞<br>
+<br>
+　　而下面这个例子：<br>
+<br>
+　　＜xsl:template match=&quot;/shoppingcart/item&quot;＞<br>
+<br>
+表示只匹配XML文档根节点下的shoppingcart这个节点下的所有item元素。也就是说如果shoppingcart不是直接在根节点下的，它就不符合这个匹配条件。<br>
+<br>
+　　再看一个例子：<br>
+<br>
+　　＜xsl:template match=&quot;price[@unit='USD']&quot;＞<br>
+<br>
+这个例子说明要匹配的是这样的节点：一个带unit属性的元素price，而且unit的值必须为&quot;USD&quot;。比如一段XML代码是这样的。<br>
+<br>
+　　＜price＞<br>
+　　　＜unit＞USD＜/unit＞<br>
+　　　＜amount＞100＜/amount＞<br>
+　　＜/price＞<br>
+　　＜price＞<br>
+　　　＜unit＞RMB＜/unit＞<br>
+　　　＜amount＞300＜/amount＞<br>
+　　＜/price＞<br>
+<br>
+　　那么它匹配的内容就是：<br>
+<br>
+　　＜price＞<br>
+　　　＜unit＞USD＜/unit＞<br>
+　　　＜amount＞100＜/amount＞<br>
+　　＜/price＞<br>
+<br>
+　　实际上，存在许多各种符号用来表示匹配规则，我们在XPath语法介绍中会详细涉及到。现在知道这么一个大概的概念就可以了。<br>
+<br>
+　　我们用＜xsl:template match=&quot;具体匹配表达式&quot;＞这条语句找到了一些节点集合以后，我们就要从这个集合中找到特定的元素或者元素属性的值，那么采用什么语句呢？就是用xsl:value-of select = &quot;&quot;这样的语句来寻找特定的内容。<br>
+<br>
+　　比如下面的例子中＜xsl:value-of select=&quot;名称&quot;/＞这行代码就是表示定位XML文档中的名称元素的内容。在指定集合中可能存在多个名字元素，如果我们需要把它们一一列举出来进行处理的话，就需要用到语句xsl:for-each select = &quot;&quot;，注意这里涉及到一个作用范围的概念，也就是说xsl:for-each select = &quot;&quot;这条语句是在一个指定的集合空间中执行的。比如上面例子中如下的代码<br>
+<br>
+　　这里的＜xsl:for-each select=&quot;词语&quot;＞是在＜xsl:template match=&quot;网络用语集合&quot;＞所指定的集合空间里面寻找元素&quot;词语&quot;的。<br>
+<br>
+　　同时，我们需要注意的是上面的代码中，出现了一条语句<br>
+<br>
+　　　＜xsl:apply-templates select=&quot;网络用语集合&quot; /＞<br>
+<br>
+　　它表示什么意思呢，它实际上相当于C++中的一个过程调用，当XSL解析器执行到该语句的时候，它就会在代码中寻找以＜?xml:namespace prefix = xsl /＞＜xsl:template match=&quot;网络用语集合&quot;＞开头的代码，所以在上面的例子程序中，以下的代码可以看成是过程的实现。<br>
+<br>
+　　<br>
+　　把<xsl:template match="网络用语集合">看成是一个过程调用，把＜xsl:template match=&quot;网络用语集合&quot;＞ <br>
+<br>
+　　…….<br>
+　　＜/xsl:template＞<br>
+<br>
+　　看成是过程的实现，有助于我们对XSL解析器执行过程的理解。这里match=&quot;网络用语集合&quot;可以理解为是传递给过程的参数，它表示过程实现体的集合范围是该match所匹配的节点集合空间（&quot;网络用语集合&quot;）。<br>
+<br>
+　　如果我们要对表格中的元素进行排序该什么办呢？比如说，在上面的例子中，我们需要按照名称进行排序。很简单对<xsl:for-each select="词语">，改写为如下的形式即可：<br>
+<br>
+　　＜xsl:for-each select=&quot;词语&quot; order-by=&quot;+名称&quot;＞，其中&quot;+&quot;表示按降序排列；&quot;-&quot;表示按升序排列。&quot;order-by&quot;是XSL语法中的关键字。<br>
+<br>
+　　如果我们只想在列表中取出某几行该怎么操作呢？比如我们只想取出名称为&quot;恐龙&quot;的行，见下面的代码：<br>
+<br>
+　　这里有一个新的句法为：＜xsl:template match=&quot;网络用语集合&quot;＞ <br>
+　　＜table Border=&quot;1&quot;＞<br>
+　　　＜xsl:for-each select=&quot;词语&quot; order-by=&quot;-名称&quot;＞<br>
+　　　＜xsl:if test=&quot;.[名称='恐龙']&quot;＞<br>
+　　　＜tr＞<br>
+　　　　＜td＞＜xsl:value-of select=&quot;名称&quot;/＞＜/td＞<br>
+　　　　＜td＞＜xsl:value-of select=&quot;含义&quot;/＞＜/td＞<br>
+　　　＜/xsl:if＞<br>
+　　　＜/xsl:for-each＞ <br>
+　　＜/table＞<br>
+　　＜/xsl:template＞<br>
+<br>
+　　</xsl:for-each></xsl:template><xsl:template match="网络用语集合"><xsl:for-each select="词语"><br>
+<br>
+　　它表示如果&quot;.[名称='恐龙']&quot;为真（TRUE）的话，就执行该段里面的语句，要是为假（FALSE）的话就不执行。它和C++中的if语句的概念基本是一样的。<br>
+<br>
+　　前面我们用＜xsl:value-of select=&quot;&quot;/＞取出的都是一个元素的值，但是我们要取出元素某一个属性的值该怎么做呢？采用下面的形式：<br>
+<br>
+　　＜xsl:value-of select=&quot;元素名称/@属性名称&quot;/＞<br>
+<br>
+　　比如一段XML代码是这样的：<br>
+<br>
+　　＜王朔 网址=&quot;www.wangshuo.com&quot;＞知名作家加著名评论家王朔先生的地方＜/王朔＞<br>
+<br>
+　　我们可以用＜xsl:value-of select=&quot;王朔/@网址&quot;/＞来得到值&quot;www.wangshuo.com&quot;。<br>
+<br>
+　　以上包括了XSL的大多数基本的语法，更加详细和完整的介绍需要参看W3C相关的最新的文档，可以在WWW.W3C.ORG/TR下找到。<br>
+<br>
+　　根据上面的分析，我们可以看到XSL实际上采用的是一种转换的思想，它最终将XML文档转换为另一种可用于输出的文档，而CSS则没有任何转换动作，在整个过程中没有任何新码产生。 另外，在XSL中90%的样式规定在CSS中都有定义，但仍然有一些效果是CSS无法描述的，必须使用XSL不可。这些功能包括文本的置换、根据文本内容决定显示方式、文档内容排序等，都是XSL所独有的。再者，XSL遵从XML的语法，而CSS的语法自成体系。 <br>
+<br>
+　　选择样式单还要考虑不同浏览器对样式单的支持程度。目前IE5与Netscape的最新版本都支持CSS，但支持的程度都有限。至今为止，IE5尚不能完全支持CSS1，即便是支持的部分也存在很多错误，对于CSS2也只提供部分支持。Netscape在对CSS的支持上已经优于IE5，它采用新一代的Raptor/Gecko引擎技术，已经能够完全支持CSS1，但对CSS2的支持计划尚不明朗。而对XSLT而言，只有IE5支持，Netscape5并不支持。 <br>
+<br>
+==========================================================</xsl:for-each></xsl:template></p>
+<p><xsl:template match="网络用语集合">&lt;xsl:template match=&quot;member[starts-with(@name,T:)]&quot;&gt;中的member[…]是什么用法、意思？</xsl:template></p>
+<p><xsl:template match="网络用语集合">就是tag名为member的结点，后面的约束是属性name以t:开头。&nbsp;&nbsp;  <br>
+也就是name属性以t:开头的member结点。</xsl:template></p>
+<p><xsl:template match="网络用语集合"></xsl:template></p>
+</div></div></body></html>

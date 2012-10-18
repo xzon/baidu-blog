@@ -1,0 +1,117 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>在Java中模拟多重继承--扩展多个类的技巧</title></head><body><h1>在Java中模拟多重继承--扩展多个类的技巧</h1><div><p><a class="postTitle2" href="http://www.blogjava.net/hsith/archive/2006/05/16/46368.html">在Java中模拟多重继承--扩展多个类的技巧</a></p>
+<p><font color="#ffa500">摘要：</font>虽然Java不允许多重继承，但是有些情况却允许其使用。本文将阐述在一个Web应用中模拟多重继承的技术。<br>
+<br>
+在一般的开发中，Java的单继承限制一般不会引起什么问题。实际上，需要使用多重继承往往意味着糟糕的设计。然而还是存在一些情况，程序员们希望能够继承多个类。虽然Java不允许继承多个类，但是有些技巧能够模拟多重继承。<br>
+<br>
+我在Swing应用程序和Web应用中都使用过这个技巧。Swing应用打包并部署服务到应用服务器上。这种情况下，因为我希望在不同组件间拖放对象而这些GUI组件共享同一个拖放方法，这样的话，所有GUI组件需要扩展两个类：GUI组件本身(JTree或JList)和通用的拖放类(drag-and-drop class)。本文中介绍的技术简化了拖放类的实现。<br>
+<br>
+为了更好的阐述Java中多重继承的技术，让我们先来如何在一个Web应用中使用它。在这个Web应用中，Servlet类和其他类需要被扩展。我的这个应用很简单，是一个基于文本的信息传递系统，能够通过移动电话、PDA或者其他网络终端设备传递信息给另一个移动电话。<br>
+<img height="185" alt="jw-1024-multiple.jpg" width="438" border="0" src="http://www.blogjava.net/images/blogjava_net/hsith/jw-1024-multiple.jpg"><br>
+如上图所示，这个系统的核心是一个能够从客户端接受信息然后传递给移动电话的服务。为了简化客户端开发，我写了一个MessageClient类来包含所有用于与服务通信的通用方法。因为这个类可以最为基类被所有可能的终端设备使用，因此能够简化客户端开发。<br>
+MessageClient类的源代码如下：</p>
+<p><code><font face="NSimsun">import java.rmi.Naming;</font></code></p>
+<p><code><font face="NSimsun">public abstract class MessageClient<br>
+{<br>
+&nbsp;&nbsp;  private MessageServer messageServer;</font></code></p>
+<p><code><font face="NSimsun">&nbsp;&nbsp;  public MessageClient()<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Initializing Message Client&quot;);<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  /** *//**<br>
+&nbsp;&nbsp;&nbsp;  * Method used to connect to the message server<br>
+&nbsp;&nbsp;&nbsp;  *<br>
+&nbsp;&nbsp;&nbsp;  * @param serverName name of the server that contains the message server<br>
+&nbsp;&nbsp;&nbsp;  */<br>
+&nbsp;&nbsp;  protected void connectToServer()<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String serverName = getServerName();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String name = &quot;//&quot; + serverName + &quot;/MessageServer&quot;;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  messageServer = ((MessageServer) Naming.lookup(name));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  catch(Exception e)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Error connecting to Message Server. Exception is &quot; + e);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }</font></code></p>
+<p><code><font face="NSimsun">&nbsp;&nbsp;  /** *//**<br>
+&nbsp;&nbsp;&nbsp;  * Method used to send message to server<br>
+&nbsp;&nbsp;&nbsp;  *<br>
+&nbsp;&nbsp;&nbsp;  * @param phoneNum phone number to send message to<br>
+&nbsp;&nbsp;&nbsp;  * @param message message to send<br>
+&nbsp;&nbsp;&nbsp;  */<br>
+&nbsp;&nbsp;  public boolean sendMessage(String phoneNum, String message)<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return(messageServer.sendMessage(phoneNum,message));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  catch(Exception e)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Error Sending Message. Exception is &quot; + e);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return(false);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }</font></code></p>
+<p><code><font face="NSimsun">&nbsp;&nbsp;  public abstract String getServerName();<br>
+} <br>
+这个类包含3个方法：<br>
+<strong>sendMessage()</strong>方法将实际信息发送到服务器；<br>
+<strong>connectServer()</strong>方法负责连接服务。在本例中，服务是一个RMI服务；<br>
+<strong>getServerName()</strong>是一个抽象类，因为不同设备决定服务名字的方式不同。也就是说，任何继承自MessageClient的类都必须实现getServerName()方法。<br>
+<br>
+在开发与信息服务通信的客户端程序时，我们需要多重继承。我们的网络客户端是一个简单的用来接收来自表单的信息并将其传送到服务器的Servlet。为了完成上述任务，这个Servlet必须既继承<strong>HttpServlet</strong>又继承<strong>MessageClient</strong>。由于Java不允许这种继承行为，我让主类继承<strong>HttpServlet</strong>，让主类中的内部类继承<strong>MessageClient</strong>，然后外部类创建了内部类的一个实例。代码如下：<br>
+</font></code><font face="Verdana">public class SendMessageServlet extends HttpServlet{</font>
+<p> </p>
+</p>
+<p> </p>
+<p><font face="Verdana">&nbsp;&nbsp;  private MessageClient m_messageClient;<br>
+&nbsp;&nbsp;  private String m_serverName;</font></p>
+<p><font face="Verdana">&nbsp;&nbsp;  public void doGet(HttpServletRequest request, HttpServletResponse response)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throws ServletException, IOException{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //Get server name<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_serverName = request.getServerName();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;ServerName is &quot; + m_serverName);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //Create message client to communicate with message server<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_messageClient = new ServletMessageClient();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Created Message Client&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_messageClient.connectToServer();</font></p>
+<p><font face="Verdana">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //Get message and phone number<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String phoneNum = (String) request.getParameter(&quot;PhoneNum&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String message = (String) request.getParameter(&quot;Message&quot;);</font></p>
+<p><font face="Verdana">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //Send message<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_messageClient.sendMessage(phoneNum,message);</font></p>
+<p><font face="Verdana">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //Display page to tell user message was sent<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  response.setContentType(&quot;text/html&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  RequestDispatcher dispatcher = getServletContext().getRequestDispatcher(&quot;/SendMessageForm.jsp&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  dispatcher.include(request, response);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }catch (Exception e){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  } </font></p>
+<p><font face="Verdana">&nbsp;&nbsp;  public void doPost(HttpServletRequest request, HttpServletResponse response)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throws ServletException, IOException&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  doGet(request, response);<br>
+&nbsp;&nbsp;  }</font></p>
+<p><font face="Verdana">&nbsp;&nbsp;&nbsp;  /** *//** Inner class used to extend MessageClient&nbsp;&nbsp;&nbsp;&nbsp;  */<br>
+&nbsp;&nbsp;&nbsp;  public class ServletMessageClient extends MessageClient {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public ServletMessageClient(){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public String getServerName(){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Returning ServerName &quot; + m_serverName);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return(m_serverName);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+} </font></p>
+<p><font face="Verdana">这种方法并不是真正的多重继承，因为我们使用了代理(例如：MessageClient被很多外部类继承，但并不是外部类本身)，但是效果是一样的。虽然MessageClient能被单独的类扩展，但是使用内部类允许它访问外部类中的所有成员和方法。这让两个类之间的交互变得很容易。<br>
+<br>
+这个例子只扩展了两个类，你当然可以使用这种技术扩展任意多类。<br>
+<br>
+当然，其实这个信息传递服务的例子不用多重继承也能实现。如果MessageClient有一个能够接收服务服务名字的构造函数，那么getServerName()方法就可以不是抽象的。这意味着Web客户端可以不必继承MessageClient类。<br>
+<br>
+最后提醒开发者，只有在有明确的理由，确定要使用上面技术时才使用，并且使用时要小心。因为多重继承使设计变得复杂，并且很容易被误用。 </font></p>
+<div class="postDesc">posted on 2006-05-16 11:40 <a href="http://www.blogjava.net/hsith/"><font color="#1a8bc8">学二的猫</font></a> <a href="http://www.blogjava.net/hsith/archive/2006/05/16/46368.html">http://www.blogjava.net/hsith/archive/2006/05/16/46368.html</a></div></div></body></html>

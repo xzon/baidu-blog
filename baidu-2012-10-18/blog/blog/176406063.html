@@ -1,0 +1,292 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>java异常处理详解 -good</title></head><body><h1>java异常处理详解 -good</h1><div><p>java异常处理详解 -good</p><p>java基础进阶</p>
+<p>第一部分选择checked or unchecked</p>
+<p>这里需要对异常的理解。什么算异常？java的异常处理机制是用来干什么的？异常和错误有什么区别？</p>
+<p>异常机制就是java的错误处理机制！java中的异常意味着2点：第一，让错误处理代码更有条理。这使得正常代码和错误处理代码分离。第二，引入了context的概念，认为有些错误是可以被处理的。问题就出在这儿了。</p>
+<p>java的checked异常指的就是在当前context不能被处理的错误！</p>
+<p>这句话其实是对上面2点的总结。首先checked异常是一种错误，其次这种错误可以被处理（或修复）。</p>
+<p>checked异常就是可以被处理（修复）的错误，unchecked异常其实就是无法处理（修复）的错误。</p>
+<p>说到这儿，应该清楚了。别的语言没有checked异常，就是说它们认为错误都无法被修复，至少在语言级不提供错误修复的支持。java的catch clause干的就是错误修复的事。</p>
+<p>我的理解是，用好java的异常，其实就是搞清楚什么时候该用checked异常。应该把unchecked异常当作缺省行为。unchecked异常的意思是：当我做这件事时，不可思议的情况发生了，我没办法正常工作下去！然后抛出一个unchecked异常，程序挂起。而checked异常的意思是：当我做这件事时，有意外情况发生，可以肯定的是，活是没法干了，但是要不要挂起程序，我这个函数没法做主，我只能汇报上级！</p>
+<p>其实，从上面的分析可以看出，java引入checked异常只是让程序员多了一个选择，它并不强迫你使用checked异常。</p>
+<p>如果你对什么时候应该使用checked异常感到迷惑，那么最简单的办法就是，不要使用checked异常！这里包括2个方面：</p>
+<p>第一，你自己不必创建新的异常类，也不必在你的代码中抛出checked异常，错误发生后只管抛出unchecked异常； <br>
+第二，对已有API的checked异常统统catch后转为unchecked异常！</p>
+<p>使用unchecked异常是最省事的办法。用这种方法也可以享受“正常代码和错误处理代码分离”的好处。因为我们在调用方法时，不用根据其返回值判断是否有错误出现，只管调用，只管做正事就ok了。如果出现错误，程序自然会知道并挂起。这样的效果是怎样的呢？</p>
+<p>第一，我们的业务代码很清晰，基本都是在处理业务问题，而没有一大堆判断是否有错的冗余代码。（想想看，如果没有 throw异常的机制，你只能通过函数的返回值来判断错误，那么你在每个调用函数的地方都会有判断代码！） <br>
+第二，我们的代码假设一切正常，如果确实如此，那么它工作良好。但是一旦出现任何错误，程序就会挂起停止运行。当然，你可以查看日志找到错误信息。</p>
+<p>那么使用checked异常又是怎样的呢？</p>
+<p>第一，你需要考虑更多的问题。首先在设计上就会更加复杂，其次就是代码更加冗长。设计上复杂体现在以下方面：</p>
+<p>1 对异常（错误）的抽象和理解。你得知道什么情况才能算checked异常，使得上级确实能够处理（修复）这种异常，并且让整个程序从这种设计中确实得到好处。</p>
+<p>2 对整个自定义checked异常继承体系的设计。正如那篇文章所说，总不能在一个方法后面抛出20个异常吧！设计自定义checked异常，就要考虑方法签名问题，在合适的时候抛出合适的异常（不能一味的抛出最具体的异常，也不能一味抛出最抽象的异常）</p>
+<p>第二，业务代码相比较使用unchecked的情况而言，不够直接了当了。引入了throws签名和catch clause，代码里有很多catch，方法签名也和异常绑定了。</p>
+<p>第三，有了更强的错误处理能力。如果发生了checked异常，我们有能力处理（修复）它。表现在不是任何错误都会导致程序挂起，出现了checked异常，程序可能照样运行。整个程序更加健壮，而代价就是前面2条。</p>
+<p><br>
+第二部分使用checked异常的最佳实践</p>
+<p>现在假设有些错误我们确定为checked异常，那么我们针对这些checked异常要怎样编码才合理呢？</p>
+<p>1 不要用checked异常做流程控制。无论如何，checked异常也是一种错误。只是我们可以处理（修复）它而已。这种错误和普通业务流程还是有区别的，而且从效率上来说，用异常控制业务流程是不划算的。其实这个问题有时候很难界定，因为checked异常“可以修复”，那么就是说修复后程序照常运行，这样一来真的容易跟普通业务流程混淆不清。比如注册用户时用户名已经存在的问题。这个时候我们要考虑，为什么要用checked异常？这和使用业务流程相比，给我带来了什么好处？（注意checked异常可以修复，这是和unchecked异常本质的区别）照我的理解，checked异常应该是介于正常业务流程和unchecked异常（严重错误）之间的一种比较严重的错误。出现了这种错误，程序无法完成正常的功能是肯定的了，但我们可以通过其他方式弥补（甚至修复），总之不会让程序挂起就是。其实这一点也是设计checked异常时要考虑的问题，也是代价之一吧。</p>
+<p>2 对checked异常的封装。这里面包括2个问题：</p>
+<p>第一，如果要创建新的checked异常，尽量包含多一点信息，如果只是一条message，那么用Exception好了。当然，用Exception会失去异常的型别信息，让客户端无法判断具体型别，从而无法针对特定异常进行处理。</p>
+<p>第二，不要让你要抛出的checked exception升级到较高的层次。例如，不要让SQLException延伸到业务层。这样可以避免方法签名后有太多的throws。在业务层将持久层的所有异常统统归为业务层自定义的一种异常。</p>
+<p>3 客户端调用含有throws的方法要注意：</p>
+<p>第一，不要忽略异常。既然是checked异常，catch clause里理应做些有用的事情??修复它！catch里为空白或者仅仅打印出错信息都是不妥的！为空白就是假装不知道甚至瞒天过海，但是，出来混迟早要还的，迟早会报unchecked异常并程序挂起！非典就是个例子。打印出错信息也好不到哪里去，和空白相比除了多几行信息没啥区别。如果checked异常都被这么用，那真的不如当初都改成unchecked好了，大家都省事！</p>
+<p>第二，不要捕获顶层的Exception。你这么干，就是在犯罪！因为unchecked异常也是一种Exception！你把所有异常都捕获了??不是我不相信你的能力，你根本就不知道该如何处理！这样做的直接的后果就是，你的程序一般来说是不会挂起了，但是出现错误的时候功能废了，表面上却看不出什么！当然，深究起来，这也不是什么罪大恶极，如果你在catch里打印了信息，这和上面那条的情况是差不多的。而这2条的共同点就是，没有正确使用checked异常！费了那么大劲设计的checked异常就是给你们上级（客户端）用的，结果你们不会用！真的不如用unchecked干脆利落了！</p>
+<p>参考资料：<a href="http://www.jspcn.net/htmlnews/11453815669531884.html">http://www.jspcn.net/htmlnews/11453815669531884.html</a></p>
+<p> </p>
+<p> </p>
+<p><br>
+1 引子 <br>
+try…catch…finally恐怕是大家再熟悉不过的语句了，而且感觉用起来也是很简单，逻辑上似乎也是很容易理解。不过，我亲自体验的“教训”告诉我，这个东西可不是想象中的那么简单、听话。不信？那你看看下面的代码，“猜猜”它执行后的结果会是什么？不要往后看答案、也不许执行代码看真正答案哦。如果你的答案是正确，那么这篇文章你就不用浪费时间看啦。</p>
+<p>package myExample.testException; <br>
+public class TestException { <br>
+public TestException() { <br>
+} <br>
+boolean testEx() throws Exception{ <br>
+boolean ret = true; <br>
+try{ <br>
+ret = testEx1(); <br>
+}catch (Exception e){ <br>
+System.out.println("testEx, catch exception"); <br>
+ret = false; <br>
+throw e; <br>
+}finally{ <br>
+System.out.println("testEx, finally; return value="+ret); <br>
+return ret; <br>
+} <br>
+} <br>
+boolean testEx1() throws Exception{ <br>
+boolean ret = true; <br>
+try{ <br>
+ret = testEx2(); <br>
+if (!ret){ <br>
+return false; <br>
+} <br>
+System.out.println("testEx1, at the end of try"); <br>
+return ret; <br>
+}catch (Exception e){ <br>
+System.out.println("testEx1, catch exception"); <br>
+ret = false; <br>
+throw e; <br>
+} <br>
+finally{ <br>
+System.out.println("testEx1, finally; return value="+ret); <br>
+return ret; <br>
+} <br>
+} <br>
+boolean testEx2() throws Exception{ <br>
+boolean ret = true; <br>
+try{ <br>
+int b=12; <br>
+int c; <br>
+for (int i=2;i&gt;=-2;i--){ <br>
+c=b/i; <br>
+System.out.println("i="+i); <br>
+} <br>
+return true; <br>
+}catch (Exception e){ <br>
+System.out.println("testEx2, catch exception"); <br>
+ret = false; <br>
+throw e; <br>
+} <br>
+finally{ <br>
+System.out.println("testEx2, finally; return value="+ret); <br>
+return ret; <br>
+} <br>
+}</p>
+<p>public static void main(String[] args) { <br>
+TestException testException1 = new TestException(); <br>
+try{ <br>
+testException1.testEx(); <br>
+}catch(Exception e){ <br>
+e.printStackTrace(); <br>
+} <br>
+} <br>
+} <br>
+你的答案是什么？是下面的答案吗？</p>
+<p>i=2 <br>
+i=1 <br>
+testEx2, catch exception <br>
+testEx2, finally; return value=false <br>
+testEx1, catch exception <br>
+testEx1, finally; return value=false <br>
+testEx, catch exception <br>
+testEx, finally; return value=false</p>
+<p>如果你的答案真的如上面所说，那么你错啦。^_^，那就建议你仔细看一看这篇文章或者拿上面的代码按各种不同的情况修改、执行、测试，你会发现有很多事情不是原来想象中的那么简单的。</p>
+<p>现在公布正确答案： <br>
+i=2 <br>
+i=1 <br>
+testEx2, catch exception <br>
+testEx2, finally; return value=false <br>
+testEx1, finally; return value=false <br>
+testEx, finally; return value=false</p>
+<p> </p>
+<p><br>
+2 基础知识 <br>
+2.1 相关概念 <br>
+例外是在程序运行过程中发生的异常事件，比如除0溢出、数组越界、文件找不到等，这些事件的发生将阻止程序的正常运行。为了加强程序的鲁棒性，程序设计时，必须考虑到可能发生的异常事件并做出相应的处理。C语言中，通过使用if语句来判断是否出现了例外，同时，调用函数通过被调用函数的返回值感知在被调用函数中产生的例外事件并进行处理。全程变量ErroNo常常用来反映一个异常事件的类型。但是，这种错误处理机制会导致不少问题。</p>
+<p>Java通过面向对象的方法来处理例外。在一个方法的运行过程中，如果发生了例外，则这个方法生成代表该例外的一个对象，并把它交给运行时系统，运行时系统寻找相应的代码来处理这一例外。我们把生成例外对象并把它提交给运行时系统的过程称为抛弃(throw)一个例外。运行时系统在方法的调用栈中查找，从生成例外的方法开始进行回朔，直到找到包含相应例外处理的方法为止，这一个过程称为捕获(catch)一个例外。</p>
+<p>2.2 Throwable类及其子类 <br>
+用面向对象的方法处理例外，就必须建立类的层次。类 Throwable位于这一类层次的最顶层，只有它的后代才可以做为一个例外被抛弃。图1表示了例外处理的类层次。</p>
+<p>从图中可以看出，类Throwable有两个直接子类：Error和Exception。Error类对象（如动态连接错误等），由Java虚拟机生成并抛弃（通常，Java程序不对这类例外进行处理）；Exception类对象是Java程序处理或抛弃的对象。它有各种不同的子类分别对应于不同类型的例外。其中类RuntimeException代表运行时由Java虚拟机生成的例外，如算术运算例外ArithmeticException(由除0错等导致)、数组越界例外ArrayIndexOutOfBoundsException等；其它则为非运行时例外，如输入输出例外IOException等。Java编译器要求Java程序必须捕获或声明所有的非运行时例外，但对运行时例外可以不做处理。</p>
+<p>图1 例外处理的类层次</p>
+<p>2.3 异常处理关键字 <br>
+Java的异常处理是通过5个关键字来实现的：try，catch，throw，throws，finally。JB的在线帮助中对这几个关键字是这样解释的：</p>
+<p>Throws: Lists the exceptions a method could throw.</p>
+<p>Throw: Transfers control of the method to the exception handler.</p>
+<p>Try： Opening exception-handling statement.</p>
+<p>Catch： Captures the exception.</p>
+<p>Finally： Runs its code before terminating the program.</p>
+<p>2.3.1 try语句 <br>
+try语句用大括号{}指定了一段代码，该段代码可能会抛弃一个或多个例外。</p>
+<p>2.3.2 catch语句 <br>
+catch语句的参数类似于方法的声明，包括一个例外类型和一个例外对象。例外类型必须为Throwable类的子类，它指明了catch语句所处理的例外类型，例外对象则由运行时系统在try所指定的代码块中生成并被捕获，大括号中包含对象的处理，其中可以调用对象的方法。</p>
+<p>catch语句可以有多个，分别处理不同类的例外。Java运行时系统从上到下分别对每个catch语句处理的例外类型进行检测，直到找到类型相匹配的catch语句为止。这里，类型匹配指catch所处理的例外类型与生成的例外对象的类型完全一致或者是它的父类，因此，catch语句的排列顺序应该是从特殊到一般。</p>
+<p>也可以用一个catch语句处理多个例外类型，这时它的例外类型参数应该是这多个例外类型的父类，程序设计中要根据具体的情况来选择catch语句的例外处理类型。</p>
+<p>2.3.3 finally语句 <br>
+try所限定的代码中，当抛弃一个例外时，其后的代码不会被执行。通过finally语句可以指定一块代码。无论try所指定的程序块中抛弃或不抛弃例外，也无论catch语句的例外类型是否与所抛弃的例外的类型一致，finally所指定的代码都要被执行，它提供了统一的出口。通常在finally语句中可以进行资源的清除工作。如关闭打开的文件等。</p>
+<p>2.3.4 throws语句 <br>
+throws总是出现在一个函数头中，用来标明该成员函数可能抛出的各种异常。对大多数Exception子类来说，Java 编译器会强迫你声明在一个成员函数中抛出的异常的类型。如果异常的类型是Error或 RuntimeException， 或它们的子类，这个规则不起作用， 因为这在程序的正常部分中是不期待出现的。 如果你想明确地抛出一个RuntimeException，你必须用throws语句来声明它的类型。</p>
+<p>2.3.5 throw语句 <br>
+throw总是出现在函数体中，用来抛出一个异常。程序会在throw语句后立即终止，它后面的语句执行不到，然后在包含它的所有try块中（可能在上层调用函数中）从里向外寻找含有与其匹配的catch子句的try块。</p>
+<p>3 关键字及其中语句流程详解 <br>
+3.1 try的嵌套 <br>
+你可以在一个成员函数调用的外面写一个try语句，在这个成员函数内部，写另一个try语句保护其他代码。每当遇到一个try语句，异常的框架就放到堆栈上面，直到所有的try语句都完成。如果下一级的try语句没有对某种异常进行处理，堆栈就会展开，直到遇到有处理这种异常的try语句。下面是一个try语句嵌套的例子。</p>
+<p>class MultiNest { <br>
+static void procedure() { <br>
+try { <br>
+int a = 0; <br>
+int b = 42/a; <br>
+} catch(java.lang.ArithmeticException e) { <br>
+System.out.println("in procedure, catch ArithmeticException: " + e); <br>
+} <br>
+}</p>
+<p>public static void main(String args[]) { <br>
+try { <br>
+procedure(); <br>
+} catch(java.lang. Exception e) {</p>
+<p>System.out.println("in main, catch Exception: " + e); <br>
+} <br>
+} <br>
+}</p>
+<p>这个例子执行的结果为：</p>
+<p>in procedure, catch ArithmeticException: java.lang.ArithmeticException: / by zero</p>
+<p>成员函数procedure里有自己的try/catch控制，所以main不用去处理 ArrayIndexOutOfBoundsException；当然如果如同最开始我们做测试的例子一样，在procedure中catch到异常时使用throw e;语句将异常抛出，那么main当然还是能够捕捉并处理这个procedure抛出来的异常。例如在procedure函数的catch中的System.out语句后面增加throw e;语句之后，执行结果就变为：</p>
+<p>in procedure, catch ArithmeticException: java.lang.ArithmeticException: / by zero</p>
+<p> </p>
+<p>in main, catch Exception: java.lang.ArithmeticException: / by zero</p>
+<p>3.2 try-catch程序块的执行流程以及执行结果 <br>
+相对于try-catch-finally程序块而言，try-catch的执行流程以及执行结果还是比较简单的。</p>
+<p>首先执行的是try语句块中的语句，这时可能会有以下三种情况：</p>
+<p>1． 如果try块中所有语句正常执行完毕，那么就不会有其他的“动做”被执行，整个try-catch程序块正常完成。</p>
+<p>2． 如果try语句块在执行过程中碰到异常V，这时又分为两种情况进行处理：</p>
+<p>2 如果异常V能够被与try相应的catch块catch到，那么第一个catch到这个异常的catch块（也是离try最近的一个与异常V匹配的catch块）将被执行；如果catch块执行正常，那么try-catch程序块的结果就是“正常完成”；如果该catch块由于原因R突然中止，那么try-catch程序块的结果就是“由于原因R突然中止（completes abruptly）”。</p>
+<p>2 如果异常V没有catch块与之匹配，那么这个try-catch程序块的结果就是“由于抛出异常V而突然中止（completes abruptly）”。</p>
+<p>3． 如果try由于其他原因R突然中止（completes abruptly），那么这个try-catch程序块的结果就是“由于原因R突然中止（completes abruptly）”。</p>
+<p>3.3 try-catch-finally程序块的执行流程以及执行结果 <br>
+try-catch-finally程序块的执行流程以及执行结果比较复杂。</p>
+<p>首先执行的是try语句块中的语句，这时可能会有以下三种情况：</p>
+<p>1． 如果try块中所有语句正常执行完毕，那么finally块的居于就会被执行，这时分为以下两种情况：</p>
+<p>2 如果finally块执行顺利，那么整个try-catch-finally程序块正常完成。</p>
+<p>2 如果finally块由于原因R突然中止，那么try-catch-finally程序块的结局是“由于原因R突然中止（completes abruptly）”</p>
+<p>2． 如果try语句块在执行过程中碰到异常V，这时又分为两种情况进行处理：</p>
+<p>2 如果异常V能够被与try相应的catch块catch到，那么第一个catch到这个异常的catch块（也是离try最近的一个与异常V匹配的catch块）将被执行；这时就会有两种执行结果：</p>
+<p>2 如果catch块执行正常，那么finally块将会被执行，这时分为两种情况：</p>
+<p>2 如果finally块执行顺利，那么整个try-catch-finally程序块正常完成。</p>
+<p>2 如果finally块由于原因R突然中止，那么try-catch-finally程序块的结局是“由于原因R突然中止（completes abruptly）”</p>
+<p>2 如果catch块由于原因R突然中止，那么finally模块将被执行，分为两种情况：</p>
+<p>2 如果如果finally块执行顺利，那么整个try-catch-finally程序块的结局是“由于原因R突然中止（completes abruptly）”。</p>
+<p>2 如果finally块由于原因S突然中止，那么整个try-catch-finally程序块的结局是“由于原因S突然中止（completes abruptly）”，原因R将被抛弃。</p>
+<p><span style=";color:#ff0000;;">（注意，这里就正好和我们的例子相符合，虽然我们在testEx2中使用throw e抛出了异常，但是由于testEx2中有finally块，而finally块的执行结果是complete abruptly的（别小看这个用得最多的return，它也是一种导致complete abruptly的原因之一啊——后文中有关于导致complete abruptly的原因分析），所以整个try-catch-finally程序块的结果是“complete abruptly”，所以在testEx1中调用testEx2时是捕捉不到testEx1中抛出的那个异常的，而只能将finally中的return结果获取到。</span></p>
+<p>如果在你的代码中期望通过捕捉被调用的下级函数的异常来给定返回值，那么一定要注意你所调用的下级函数中的finally语句，它有可能会使你throw出来的异常并不能真正被上级调用函数可见的。当然这种情况是可以避免的，以testEx2为例：如果你一定要使用finally而且又要将catch中throw的e在testEx1中被捕获到，那么你去掉testEx2中的finally中的return就可以了。</p>
+<p> </p>
+<p>这个事情已经在OMC2.0的MIB中出现过啦：服务器的异常不能完全被反馈到客户端。）</p>
+<p>2 如果异常V没有catch块与之匹配，那么finally模块将被执行，分为两种情况：</p>
+<p>2 如果finally块执行顺利，那么整个try-catch-finally程序块的结局就是“由于抛出异常V而突然中止（completes abruptly）”。</p>
+<p>2 如果finally块由于原因S突然中止，那么整个try-catch-finally程序块的结局是“由于原因S突然中止（completes abruptly）”，异常V将被抛弃。</p>
+<p>3． 如果try由于其他原因R突然中止（completes abruptly），那么finally块被执行，分为两种情况：</p>
+<p>2 如果finally块执行顺利，那么整个try-catch-finally程序块的结局是“由于原因R突然中止（completes abruptly）”。</p>
+<p>2 如果finally块由于原因S突然中止，那么整个try-catch-finally程序块的结局是“由于原因S突然中止（completes abruptly）”，原因R将被抛弃。</p>
+<p>3.4 try-catch-finally程序块中的return <br>
+从上面的try-catch-finally程序块的执行流程以及执行结果一节中可以看出无论try或catch中发生了什么情况，finally都是会被执行的，那么写在try或者catch中的return语句也就不会真正的从该函数中跳出了，它的作用在这种情况下就变成了将控制权（语句流程）转到finally块中；这种情况下一定要注意返回值的处理。</p>
+<p>例如，在try或者catch中return false了，而在finally中又return true，那么这种情况下不要期待你的try或者catch中的return false的返回值false被上级调用函数获取到，上级调用函数能够获取到的只是finally中的返回值，因为try或者catch中的return语句只是转移控制权的作用。</p>
+<p>3.5 如何抛出异常 <br>
+如果你知道你写的某个函数有可能抛出异常，而你又不想在这个函数中对异常进行处理，只是想把它抛出去让调用这个函数的上级调用函数进行处理，那么有两种方式可供选择：</p>
+<p>第一种方式：直接在函数头中throws SomeException，函数体中不需要try/catch。比如将最开始的例子中的testEx2改为下面的方式，那么testEx1就能捕捉到testEx2抛出的异常了。</p>
+<p>boolean testEx2() throws Exception{</p>
+<p>boolean ret = true; <br>
+int b=12; <br>
+int c; <br>
+for (int i=2;i&gt;=-2;i--){ <br>
+c=b/i; <br>
+System.out.println("i="+i); <br>
+} <br>
+return true; <br>
+}</p>
+<p>第二种方式：使用try/catch，在catch中进行一定的处理之后（如果有必要的话）抛出某种异常。例如上面的testEx2改为下面的方式，testEx1也能捕获到它抛出的异常：</p>
+<p>boolean testEx2() throws Exception{</p>
+<p>boolean ret = true; <br>
+try{ <br>
+int b=12; <br>
+int c; <br>
+for (int i=2;i&gt;=-2;i--){ <br>
+c=b/i; <br>
+System.out.println("i="+i); <br>
+} <br>
+return true; <br>
+}catch (Exception e){ <br>
+System.out.println("testEx2, catch exception"); <br>
+Throw e; <br>
+} <br>
+}</p>
+<p>第三种方法：使用try/catch/finally，在catch中进行一定的处理之后（如果有必要的话）抛出某种异常。例如上面的testEx2改为下面的方式，testEx1也能捕获到它抛出的异常：</p>
+<p>boolean testEx2() throws Exception{</p>
+<p>boolean ret = true; <br>
+try{ <br>
+int b=12; <br>
+int c; <br>
+for (int i=2;i&gt;=-2;i--){ <br>
+c=b/i; <br>
+System.out.println("i="+i); <br>
+throw new Exception("aaa"); <br>
+} <br>
+return true; <br>
+}catch (java.lang.ArithmeticException e){ <br>
+System.out.println("testEx2, catch exception"); <br>
+ret = false; <br>
+throw new Exception("aaa"); <br>
+}finally{ <br>
+System.out.println("testEx2, finally; return value="+ret); <br>
+} <br>
+}</p>
+<p>4 关于abrupt completion <br>
+前面提到了complete abruptly（暂且理解为“突然中止”或者“异常结束”吧），它主要包含了两种大的情形：abrupt completion of expressions and statements，下面就分两种情况进行解释。</p>
+<p>4.1 Normal and Abrupt Completion of Evaluation <br>
+每一个表达式（expression）都有一种使得其包含的计算得以一步步进行的正常模式，如果每一步计算都被执行且没有异常抛出，那么就称这个表达式“正常结束（complete normally）”；如果这个表达式的计算抛出了异常，就称为“异常结束（complete abruptly）”。异常结束通常有一个相关联的原因（associated reason），通常也就是抛出一个异常V。</p>
+<p>与表达式、操作符相关的运行期异常有：</p>
+<p>2 A class instance creation expression, array creation expression , or string concatenation operatior expression throws an OutOfMemoryError if there is insufficient memory available.</p>
+<p>2 An array creation expression throws a NegativeArraySizeException if the value of any dimension expression is less than zero.</p>
+<p>2 A field access throws a NullPointerException if the value of the object reference expression is null.</p>
+<p>2 A method invocation expression that invokes an instance method throws a NullPointerException if the target reference is null.</p>
+<p>2 An array access throws a NullPointerException if the value of the array reference expression is null.</p>
+<p>2 An array access throws an ArrayIndexOutOfBoundsException if the value of the array index expression is negative or greater than or equal to the length of the array.</p>
+<p>2 A cast throws a ClassCastException if a cast is found to be impermissible at run time.</p>
+<p>2 An integer division or integer remainder operator throws an ArithmeticException if the value of the right-hand operand expression is zero.</p>
+<p>2 An assignment to an array component of reference type throws an ArrayStoreException when the value to be assigned is not compatible with the component type of the array.</p>
+<p>4.2 Normal and Abrupt Completion of Statements <br>
+正常情况我们就不多说了，在这里主要是列出了abrupt completion的几种情况：</p>
+<p>2 break, continue, and return 语句将导致控制权的转换，从而使得statements不能正常地、完整地执行。</p>
+<p>2 某些表达式的计算也可能从java虚拟机抛出异常，这些表达式在上一小节中已经总结过了；一个显式的的throw语句也将导致异常的抛出。抛出异常也是导致控制权的转换的原因（或者说是阻止statement正常结束的原因）。</p>
+<p>如果上述事件发生了，那么这些statement就有可能使得其正常情况下应该都执行的语句不能完全被执行到，那么这些statement也就是被称为是complete abruptly.</p>
+<p>导致abrupt completion的几种原因：</p>
+<p>2 A break with no label</p>
+<p>2 A break with a given label</p>
+<p>2 A continue with no label</p>
+<p>2 A continue with a given label</p>
+<p>2 A return with no value</p>
+<p>2 A return with a given value A</p>
+<p>2 throw with a given value, including exceptions thrown by the Java virtual machine</p>
+<p>5 关于我们的编程的一点建议 <br>
+弄清楚try-catch-finally的执行情况后我们才能正确使用它。</p>
+<p>如果我们使用的是try-catch-finally语句块，而我们又需要保证有异常时能够抛出异常，那么在finally语句中就不要使用return语句了（finally语句块的最重要的作用应该是释放申请的资源），因为finally中的return语句会导致我们的throw e被抛弃，在这个try-catch-finally的外面将只能看到finally中的返回值（除非在finally中抛出异常）。（我们需要记住：不仅throw语句是abrupt completion 的原因，return、break、continue等这些看起来很正常的语句也是导致abrupt completion的原因。）<br>
+参考资料：<a href="http://www.5ivb.net/Info/121/Info37187/">http://www.5ivb.net/Info/121/Info37187/</a></p>
+<p><br>
+Trackback: <a href="http://tb.blog.csdn.net/TrackBack.aspx?PostId=1585447">http://tb.blog.csdn.net/TrackBack.aspx?PostId=1585447</a></p></div></body></html>

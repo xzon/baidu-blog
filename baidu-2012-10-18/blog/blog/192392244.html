@@ -1,0 +1,57 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Relational DB vs. Key-Value store</title></head><body><h1>Relational DB vs. Key-Value store</h1><div><p>Relational DB vs. Key-Value store</p><p>http://blog.csdn.net/historyasamirror/archive/2009/04/29/4135859.aspx</p>
+<p>在我还在上学的时候，key-value这个词更多的还是和hash表联系在一起的。而现在，当我看见key-value这个词，马上联想到的就是 BigTable，SimpleDB和云计算。当下，key-value store（或者叫key-value Database，云存储等等）是个非常时髦的词汇，越来越多的开发人员（特别是互联网企业）开始关注和尝试key-value的存储形式。这年头如果你还和别人聊关系型数据库，貌似你都不好意思和人打招呼。</p>
+<p>可是，key-value store真的有这么神奇吗？毕竟，关系型数据库已经主导市场三十多年了。<br>
+<br>
+<strong>背景</strong></p>
+<p>key-value形式的存储并不是凭空想出来的。在我看来，是两个问题导致了key-value这种存储方式的崛起：</p>
+<p><br>
+1. 大规模的互联网应用。对于google，ebay这样的互联网企业，每时每刻都有无数的用户在使用它们提供的互联网服务，这些服务带来的就是大量的数据吞吐量，在同一时间，会并发的有成千上万的连接对数据库进行操作。在这种情况下，单台服务器或者几台服务器远远不能满足这些数据处理的需求，简单的升级服务器性能这样的scale up的方式也不行，所以唯一可以采用的办法就是scale out了。scale out的方法有很多种，但大致分为两类：一类仍然采用RDBMS，然后通过对数据库的垂直和水平切割将整个数据库部署到一个集群上，这种方法的优点在于可以采用RDBMS这种熟悉的技术，但缺点在于它是针对特定应用的，就是说，由于应用的不同，切割的方法是不一样的。关于数据库的垂直和水平切割的具体细节可以查看文献【2】。<br>
+还有一类就是google所采用的方法，抛弃RDBMS，采用key-value形式的存储，这样可以极大的增强系统的可扩展性（scalability），如果要处理的数据持续增大，多加机器就可以了。事实上，key-value的存储就是由于BigTable等相关论文的发表慢慢进入人们的视野的。<br>
+<br>
+2. 云存储。如果说上一个问题还有可以替代的解决方案（切割数据库）的话，那么对于云存储来说，也许key-value的store就是唯一的解决方案了。云存储简单点说就是构建一个大型的存储平台给别人用，这也就意味着在这上面运行的应用其实是不可控的。如果其中某个客户的应用随着用户的增长而不断增长时，云存储供应商是没有办法通过数据库的切割来达到scale的，因为这个数据是客户的，供应商不了解这个数据自然就没法作出切割。在这种情况下，key-value的store就是唯一的选择了，因为这种条件下的scalability必须是自动完成的，不能有人工干预。这也是为什么几乎所有的现有的云存储都是key-value形式的，例如Amazon的smipleDB，底层实现就是key-value，还有google的 GoogleAppEngine，采用的是BigTable的存储形式。也许唯一可能例外的是MS的解决方案，我在Qcon大会上听说MS的Azure平台的下一个版本中就会推出基于RDBMS的云存储，尽管我本人仍然对此保持怀疑。<br>
+<br>
+可以看出，以上两个问题强调的都是 scalability。其实，正如文献【1】中所说，“Today, we are in a slightly different situation. For an increasing number of applications, one of these benefits is becoming more and more critical; and while still considered a niche, it is rapidly becoming mainstream, so much so that for an increasing number of database users this requirement is beginning to eclipse others in importance. That benefit is scalability.” 。正是由于现在出现的很多应用非常强调scalability，才导致了key-value存储的出现。key-value store作为一种RDBMS的可能的替代方案，牺牲了部分RDBMS的优势（这点在下文中会慢慢看到），从而确保了系统的可扩展性（scalability）。<br>
+<br>
+那么，key-value store和RDBMS实现机制上有什么区别呢？<br>
+<br>
+<strong>data model上的区别</strong><br>
+<br>
+</p>
+<div style="text-align: left"><img style="width: 610px; height: 346px" src="http://docs.google.com/File?id=dhk98xpb_166dv5kc7gn_b"></div>
+<p>这里引用了一副文献【1】中的图。从图中可以看到，key-value存储相比RDBMS，一个很大的区别就是它没有schema。在RDBMS 中，schema所代表的其实就是对数据的约束，包括数据之间的关系（relationship），和数据的完整性（integrity），比如 RDBMS中对于某个数据属性会要求它的数据类型是确定的（整数或者字符串等等），数据的范围也是确定的（0~255等等），而这些在key-value store中都没有。在key-value存储中，对于某个key，value可以是任意的数据类型。正如图中所说，“No relationships are explicitly defined”。<br>
+<br>
+<strong>data processing上的区别</strong></p>
+<p>上面所提的两种data model之间的差异是非常显而易见的，而这里的区别却并不常被提及。在RDBMS中，数据的处理都是一个个的事务（transaction），遵循 ACID的原则。而在很多的key-value存储系统中，并不支持事务的处理。在解释这一点前，先介绍一下Brewer和他的CAP理论。<br>
+Brewer 现在是UC Berkeley的一个教授，不过他的历史可就牛了。在google出现之前，最牛的搜索引擎公司叫做Inktomi，而Brewer就是这家公司的 Founder。Inktomi也是在一个大的计算机集群上构建搜索引擎的，而Brewer根据Inktomi的经验总结出了CAP理论，就是下面这幅图（来自文献【3】）：</p>
+<div style="text-align: left">
+<div style="text-align: left"><img src="http://docs.google.com/File?id=dhk98xpb_168gszkxhgc_b" height="293" width="414"></div>
+</div>
+<p><br>
+这幅图的内容就是，对于一个系统，consistency(数据一致性)，Availability(可用性)，Partitions(网络可分性)这三者只能同时满足其中的两个。用CAP理论来解释RDBMS，它满足了Consistency和Availability，但正是因为如此，所以它在 Partition上就很难做得好。而对于很多的key-value形式的存储系统而言，它更强调的是Availability和Network Partition，所以在Consistency上做了弱化。例如，Amazon的Dynamo(SimpleDB的底层系统)，它就不支持事务，为了高可用性而牺牲了数据的一致性“Dynamo targets applications that operate with weaker consistency (the “C” in ACID) if this results in high availability”（见文献【4】）。当然，需要指出的是，CAP理论并不是一个被证明了的定理，它只是一个经验型的结论，在这里是用CAP来更容易的解释为什么很多key-value store不提供ACID。关于CAP更多的信息见<a title="Brewer的个人网站" href="http://www.eecs.berkeley.edu/%7Ebrewer/">Brewer的个人网站</a> 和文献【3】。<br>
+另外需要指出的是，并非所有的key-value store都不支持事务，还是有部分系统支持ACID的，只是它已经不再是一个标准了。<br>
+<br>
+<strong>接口层的区别</strong></p>
+<p>这也是一个相对显而易见的区别。在所有RDBMS中，采用的都是SQL语言对数据进行访问。一方面，SQL对于数据的查询功能非常的强大，另一方面，由于所有的RDBMS都支持SQL查询，所以可移植性很强。而在key-value store中，对于数据的操作使用的都是自定义的一些API，而且支持的查询也比较简单。<br>
+<br>
+<br>
+<strong>优势和劣势</strong><br>
+<br>
+正如前面所反复提及的，key-value store最大的特点就是它的可扩展性（scalability），这也就是它最大的优势。所谓的scalability，在我看来这里包括了两方面内容。一方面，是指key-value store可以支持极大的数据的存储，它的分布式的架构决定了只要有更多的机器，就能够保证存储更多的数据。另一方面，是指它可以支持数量很多的并发的查询。对于RDBMS，一般几百个并发的查询就可以让它很吃力了，而一个key-value store，可以很轻松的支持上千的并发查询。<br>
+至于 key-value store的缺陷，文献【1】提出了几点，我认为还是很中肯的。例如，由于key-value store中没有schema，所以它是不提供数据之间的关系和数据的完备性的，所有的这些东西都落到了应用程序一端，其实也就是开发人员的头上。这无疑加重了开发人员的负担。在比如，在RDBMS中，需要设定每个表和表之间的关系，这其实是一个数据建模的过程（data modeling process）。当数据建模完成后，其实这个数据库就和应用程序是独立的了（application-independent），这就意味着别的程序可以在不改变数据模型的前提下使用相同的数据集。但在key-value store中，由于没有这么一个数据模型，不同的应用程序需要重复进行这个过程。 <br>
+此外，我认为key-value store最大的一个缺点在于它的接口是不熟悉的。这阻碍了开发人员可以很快就顺利的用上它。当然，现在有种做法，就是在key-value store上再加上一个类SQL语句的抽象接口层，从而使得开发人员可以用他们熟悉的方式（SQL）来操作key-value store。但由于毕竟RDBMS和key-value store的底层实现有着很大的不同，这种抽象接口层或多或少的还是受到了限制。<br>
+<br>
+<strong>结语</strong><br>
+<br>
+文献【7】中给出了当前比较常见的key-value的存储系统，并逐一简要介绍了它们各自的特点。感兴趣的人可以去看看，这里就不罗列了。<br>
+总的来说，我认为key-value store是未来的一种趋势，但它并不足以完全取代RDBMS。只有当你的系统对于存储的可扩展性要求很高时，才应该去考虑使用key-value这种解决方案。对于一般的应用，RDBMS还是最好的选择。<br>
+<br>
+<br>
+<strong>参考文献：</strong><br>
+【1】<a title="Is the Relational Database Doomed?" href="http://www.readwriteweb.com/archives/is_the_relational_database_doomed.php">Is the Relational Database Doomed?</a> <br>
+【2】<a title="Database Sharding at Netlog, with MySQL and PHP" href="http://www.jurriaanpersyn.com/archives/2009/02/12/database-sharding-at-netlog-with-mysql-and-php/">Database Sharding at Netlog, with MySQL and PHP</a><br>
+【3】<a title="Towards Robust Distributed Systems" href="http://www.cs.berkeley.edu/%7Ebrewer/cs262b-2004/PODC-keynote.pdf">Towards Robust Distributed Systems</a><br>
+【4】Dynamo: Amazon’s Highly Available Key-value Store <br>
+【5】<a title="关系数据库的死期到了?" href="http://www.yeeyan.com/articles/view/%E5%8D%9A%E8%B4%A4/29756">关系数据库的死期到了？</a> <br>
+【6】<a title="Top 10 Reasons to Avoid the SimpleDB Hype" href="http://www.ryanpark.org/2008/04/top-10-avoid-the-simpledb-hype.html">Top 10 Reasons to Avoid the SimpleDB Hype</a><br>
+【7】<a title="Anti-RDBMS: A list of distributed key-value stores" href="http://www.metabrew.com/article/anti-rdbms-a-list-of-distributed-key-value-stores/">Anti-RDBMS: A list of distributed key-value stores</a></p>
+<p>本文 <a href="http://blog.csdn.net/historyasamirror">http://blog.csdn.net/historyasamirror</a></p></div></body></html>

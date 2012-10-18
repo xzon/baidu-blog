@@ -1,0 +1,267 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>DLL(Dynamic Link Libraries)专题</title></head><body><h1>DLL(Dynamic Link Libraries)专题</h1><div><div>DLL(Dynamic Link Libraries)专题<br>
+<br>
+目录 <br>
+[list]<br>
+[*]引言 <br>
+[*]调用方式 <br>
+[*]MFC中的DLL <br>
+[*]DLL入口函数 <br>
+[*]关于调用约定 <br>
+[*]关于DLL的函数 <br>
+[*]模块定义文件(.DEF) <br>
+[*]DLL程序和调用其输出函数的程序的关系<br>
+[/list]</div>
+<div> </div>
+<div>引言<br>
+　　比较大的应用程序都由很多模块组成，这些模块分别完成相对独立的功能，它们彼此协作来完成整个软件系统的工作。可能存在一些模块的功能较为通用，在构造其它软件系统时仍会被使用。在构造软件系统时，如果将所有模块的源代码都静态编译到整个应用程序 EXE 文件中，会产生一些问题：一个缺点是增加了应用程序的大小，它会占用更多的磁盘空间，程序运行时也会消耗较大的内存空间，造成系统资源的浪费；另一个缺点是，在编写大的 EXE 程序时，在每次修改重建时都必须调整编译所有源代码，增加了编译过程的复杂性，也不利于阶段性的单元测试。<br>
+　　Windows 系统平台上提供了一种完全不同的较有效的编程和运行环境，你可以将独立的程序模块创建为较小的 DLL (Dynamic Linkable Library) 文件，并可对它们单独编译和测试。在运行时，只有当 EXE 程序确实要调用这些 DLL 模块的情况下，系统才会将它们装载到内存空间中。这种方式不仅减少了 EXE 文件的大小和对内存空间的需求，而且使这些 DLL 模块可以同时被多个应用程序使用。Windows 自己就将一些主要的系统功能以 DLL 模块的形式实现。<br>
+　　一般来说，DLL 是一种磁盘文件，以.dll、.DRV、.FON、.SYS 和许多以 .EXE 为扩展名的系统文件都可以是 DLL。它由全局数据、服务函数和资源组成，在运行时被系统加载到 调用进程的虚拟空间中，成为调用进程的一部分。如果与其它 DLL 之间没有冲突，该文件通常映射到进程虚拟空间的同一地址上。DLL 模块中包含各种导出函数，用于向外界提供服务。DLL 可以有自己的数据段，但没有自己的堆栈，使用与调用它的应用程序相同的堆栈模式；一个 DLL 在内存中只有一个实例；DLL 实现了代码封装性；DLL 的编制与具体的编程语言及编译器无关。 <br>
+　　在 Win32 环境中，每个进程都复制了自己的读/写全局变量。如果想要与其它进程共享内存，必须使用内存映射文件或者声明一个共享数据段。DLL 模块需要的堆栈内存都是从运行进程的堆栈中分配出来的。Windows 在加载 DLL 模块时将进程函数调用与 DLL 文件的导出函数相匹配。Windows 操作系统对 DLL 的操作仅仅是把 DLL 映射到需要它的进程的虚拟地址空间里去。DLL 函数中的代码所创建的任何对象（包括变量）都归调用它的线程或进程所有。</div>
+<div> </div>
+<div>调用方式<br>
+1、静态调用方式：由编译系统完成对 DLL 的加载和应用程序结束时 DLL 卸载的编码（如还有其它程序使用该 DLL，则 Windows 对 DLL 的应用记录减1，直到所有相关程序都结束对该 DLL 的使用时才释放它，简单实用，但不够灵活，只能满足一般要求。<br>
+　　隐式的调用：需要把产生动态连接库时产生的 .LIB 文件加入到应用程序的工程中，想使用 DLL 中的函数时，只须说明一下。隐式调用不需要调用 LoadLibrary() 和 FreeLibrary()。程序员在建立一个 DLL 文件时，链接程序会自动生成一个与之对应的 LIB 导入文件。该文件包含了每一个 DLL 导出函数的符号名和可选的标识号，但是并不含有实际的代码。LIB 文件作为 DLL 的替代文件被编译到应用程序项目中。<br>
+　　当程序员通过静态链接方式编译生成应用程序时，应用程序中的调用函数与 LIB 文件中导出符号相匹配，这些符号或标识号进入到生成的 EXE 文件中。LIB 文件中也包含了对应的 DL L文件名（但不是完全的路径名），链接程序将其存储在 EXE 文件内部。<br>
+　　当应用程序运行过程中需要加载 DLL 文件时，Windows 根据这些信息发现并加载 DLL，然后通过符号名或标识号实现对 DLL 函数的动态链接。所有被应用程序调用的 DLL 文件都会在应用程序 EXE&nbsp;&nbsp;  文件加载时被加载在到内存中。可执行程序链接到一个包含 DLL 输出函数信息的输入库文件(.LIB文件)。操作系统在加载使用可执行程序时加载 DLL。可执行程序直接通过函数名调用 DLL 的输出函数，调用方法和程序内部其 它的函数是一样的。</div>
+<div> </div>
+<div>2、动态调用方式：是由编程者用 API 函数加载和卸载 DLL 来达到调用 DLL 的目的，使用上较复杂，但能更加有效地使用内存，是编制大型应用程序时的重要方式。<br>
+　　显式的调用：是指在应用程序中用 LoadLibrary 或 MFC 提供的 AfxLoadLibrary 显式的将自己所做的动态连接库调进来，动态连接库的文件名即是上面两个函数的参数，再用 GetProcAddress() 获取想要引入的函数。自此，你就可以象使用如同本应用程序自定义的函数一样来调用此引入函数了。在应用程序退出之前，应该用 FreeLibrary 或 MFC 提供的 AfxFreeLibrary 释放动态连接库。直接调用 Win32 的 LoadLibary 函数，并指定 DLL 的路径作为参数。LoadLibary 返回 HINSTANCE 参数，应用程序在调用 GetProcAddress 函数时使用这一参数。GetProcAddress 函数将符号名或标识号转换为 DLL 内部的地址。程序员可以决定 DLL 文件何时加载或不加载，显式链接在运行时决定加载哪个 DLL 文件。使用 DLL 的程序在使用之前必须加载（LoadLibrary）加载DLL从而得到一个DLL模块的句柄，然后调用 GetProcAddress 函数得到输出函数的指针，在退出之前必须卸载DLL(FreeLibrary)。</div>
+<div> </div>
+<div>Windows将遵循下面的搜索顺序来定位 DLL：</div>
+<div> </div>
+<div>包含EXE文件的目录 <br>
+进程的当前工作目录 <br>
+Windows系统目录 <br>
+Windows目录 <br>
+列在 Path 环境变量中的一系列目录 <br>
+MFC中的DLL</div>
+<div> </div>
+<div>Non-MFC DLL：指的是不用 MFC 的类库结构，直接用 C 语言写的 DLL，其输出的函数一般用的是标准 C 接口，并能被 非 MFC 或 MFC 编写的应用程序所调用。 <br>
+Regular DLL：和下述的 Extension DLLs 一样，是用 MFC 类库编写的。明显的特点是在源文件里有一个继承 CWinApp 的类。其又可细分成静态连接到 MFC 和动态连接到 MFC 上的。<br>
+　　静态连接到 MFC 的动态连接库只被 VC 的专业 版和企业版所支持。该类 DLL 应用程序里头的输出函数可以被任意 Win32 程序使用，包括使用 MFC 的应用程序。输入函数有如下形式：</div>
+<div> </div>
+<div>extern &quot;C&quot; EXPORT YourExportedFunction();<br>
+如果没有 extern &quot;C&quot; 修饰，输出函数仅仅能从 C++ 代码中调用。<br>
+DLL 应用程序从 CWinApp 派生，但没有消息循环。<br>
+　　动态链接到 MFC 的 规则 DLL 应用程序里头的输出函数可以被任意 Win32 程序使用，包括使用 MFC 的应用程序。但是，所有从 DLL 输出的函数应该以如下语句开始：</div>
+<div> </div>
+<div>AFX_MANAGE_STATE(AfxGetStaticModuleState( ))</div>
+<div> </div>
+<div>此语句用来正确地切换 MFC 模块状态。</div>
+<div> </div>
+<div>　　Regular DLL能够被所有支持 DLL 技术的语言所编写的应用程序所调用。在这种动态连接库中，它必须有一个从 CWinApp 继承下来的类，DLLMain 函数被 MFC 所提供，不用自己显式的写出来。</div>
+<div> </div>
+<div>Extension DLL：用来实现从 MFC 所继承下来的类的重新利用，也就是说，用这种类型的动态连接库，可以用来输出一个从 MFC 所继承下来的类。它输出的函数仅可以被使用 MFC 且动态链接到 MFC 的应用程序使用。可以从 MFC 继承你所想要的、更适于你自己用的类，并把它提供给你的应用程序。你也可随意的给你的应用程序提供 MFC 或 MFC 继承类的对象指针。Extension DLL使用 MFC 的动态连接版本所创建的，并且它只被用 MFC 类库所编写的应用程序所调用。Extension DLLs 和 Regular DLLs 不一样，它没有从 CWinApp 继承而来的类的对象，所以，你必须为自己 DLLMain 函数添加初始化代码和结束代码。</div>
+<div> </div>
+<div>和规则 DLL 相比，有以下不同：</div>
+<div> </div>
+<div>1、它没有从 CWinApp 派生的对象；<br>
+2、它必须有一个 DLLMain 函数；<br>
+3、DLLMain 调用 AfxInitExtensionModule 函数，必须检查该函数的返回值，如果返回0，DLLMmain 也返回 0；<br>
+4、如果它希望输出 CRuntimeClass 类型的对象或者资源，则需要提供一个初始化函数来创建一个 CDynLinkLibrary 对象。并且，有必要把初始化函数输出；<br>
+5、使用扩展 DLL 的 MFC 应用程序必须有一个从 CWinApp 派生的类，而且，一般在InitInstance 里调用扩展 DLL 的初始化函数。</div>
+<div> </div>
+<div>DLL入口函数<br>
+1、每一个 DLL 必须有一个入口点，DLLMain 是一个缺省的入口函数。DLLMain 负责初始化和结束工作，每当一个新的进程或者该进程的新的线程访问 DLL 时，或者访问 DLL 的每一个进程或者线程不再使用DLL或者结束时，都会调用 DLLMain。但是，使用 TerminateProcess 或 TerminateThread 结束进程或者线程，不会调用 DLLMain。</div>
+<div> </div>
+<div>DLLMain的函数原型：</div>
+<div> </div>
+<div>BOOL APIENTRY DLLMain(HANDLE hModule,DWORD ul_reason_for_call,LPVOID <br>
+lpReserved)<br>
+{<br>
+switch(ul_reason_for_call) <br>
+{<br>
+case DLL_PROCESS_ATTACH:<br>
+.......<br>
+case DLL_THREAD_ATTACH:<br>
+.......<br>
+case DLL_THREAD_DETACH:<br>
+.......<br>
+case DLL_PROCESS_DETACH:<br>
+.......<br>
+return TRUE;<br>
+}<br>
+}</div>
+<div> </div>
+<div>参数：</div>
+<div> </div>
+<div>hMoudle：是动态库被调用时所传递来的一个指向自己的句柄(实际上，它是指向_DGROUP段的一个选择符)；<br>
+ul_reason_for_call：是一个说明动态库被调原因的标志。当进程或线程装入或卸载动态连接库的时候，操作系统调用入口函数，并说明动态连接库被调用的原因。它所有的可能值为：<br>
+DLL_PROCESS_ATTACH: 进程被调用；<br>
+DLL_THREAD_ATTACH: 线程被调用；<br>
+DLL_PROCESS_DETACH: 进程被停止；<br>
+DLL_THREAD_DETACH: 线程被停止；</div>
+<div> </div>
+<div>lpReserved：是一个被系统所保留的参数；</div>
+<div> </div>
+<div>2、_DLLMainCRTStartup</div>
+<div> </div>
+<div>　　为了使用 &quot;C&quot; 运行库 (CRT，C Run time Library) 的 DLL 版本（多线程），一个 DLL 应用程序必须指定 _DLLMainCRTStartup 为入口函数，DLL 的初始化函数必须是 DLLMain。<br>
+　　_DLLMainCRTStartup 完成以下任务：当进程或线程捆绑(Attach) 到 DLL 时为 &quot;C&quot; 运行时的数据 (C Runtime Data) 分配空间和初始化并且构造全局 &quot;C++&quot;对象，当进程或者线程终止使用DLL(Detach) 时，清理 C Runtime Data 并且销毁全局 &quot;C++&quot; 对象。它还调用 DLLMain 和 RawDLLMain 函数。<br>
+　　RawDLLMain 在 DLL 应用程序动态链接到 MFC DLL 时被需要，但它是静态链接到 DLL 应用程序的。在讲述状态管理时解释其原因。</div>
+<div> </div>
+<div>关于调用约定</div>
+<div> </div>
+<div>　　动态库输出函数的约定有两种：调用约定和名字修饰约定。</div>
+<div> </div>
+<div>1)调用约定(Calling convention)：决定函数参数传送时入栈和出栈的顺序，由调用者还是被调用者把参数弹出栈，以及编译器用来识别函数名字的修饰约定。</div>
+<div> </div>
+<div>函数调用约定有多种，这里简单说一下：</div>
+<div> </div>
+<div>1、__stdcall 调用约定相当于16位动态库中经常使用的 PASCAL 调用约定。在32位的 VC++5.0 中PASCAL 调用约定不再被支持（实际上它已被定义为__stdcall。除了__pascal 外，__fortran 和__syscall也不被支持），取而代之的是 __stdcall 调用约定。两者实质上是一致的，即函数的参数自右向左通过栈传递，被调用的函数在返回前清理传送参数的内存栈，但不同的是函数名的修饰部分（关于函数名的修饰部分在后面将详细说明）。<br>
+　　_stdcall 是 Pascal 程序的缺省调用方式，通常用于 Win32 API 中，函数采用从右到左的压栈方式，自己在退出时清空堆栈。VC 将函数编译后会在函数名前面加上下划线前缀，在函数名后加上 &quot;@&quot; 和参数的字节数。<br>
+2、C 调用约定（即用__cdecl 关键字说明）按从右至左的顺序压参数入栈，由调用者把参数弹出栈。对于传送参数的内存栈是由调用者来维护的（正因为如此，实现可变参数的函数只能使用该调用约定）。另外，在函数名修饰约定方面也有所不同。<br>
+　　_cdecl 是 C 和 C++ 程序缺省的调用方式。每一个调用它的函数都包含清空堆栈的代码，所以产生的可执行文件大小会比调用 _stdcall 函数的大。函数采用从右到左的压栈方式。VC 将函数编译后会在函数名前面加上下划线前缀。 它是 MFC 缺省调用约定。<br>
+3、__fastcall 调用约定是 &quot;人&quot; 如其名，它的主要特点就是快，因为它是通过寄存器来传送参数的（实际上，它用 ECX 和 EDX 传送前两个双字（DWORD）或更小的参数，剩下的参数仍旧自右向左压栈传送，被调用的函数在返回前清理传送参数的内存栈），在函数名修饰约定方面，它和前两者均不同。<br>
+　　_fastcall方式的函数采用寄存器传递参数，VC 将函数编译后会在函数名前面加上&quot;@&quot;前缀，在函数名后加上&quot;@&quot;和参数的字节数。<br>
+4、thiscall 仅仅应用于 &quot;C++&quot; 成员函数。this 指针存放于 CX 寄存器，参数从右到左压。thiscall 不是关键词，因此不能被程序员指定。<br>
+5、naked call采用 1-4 的调用约定时，如果必要的话，进入函数时编译器会产生代码来保存ESI，EDI，EBX，EBP寄存器，退出函数时则产生代码恢复这些寄存器的内容。<br>
+naked call不产生这样的代码。naked call不是类型修饰符，故必须和_declspec 共同使用。<br>
+　　关键字 __stdcall、__cdecl 和 __fastcall 可以直接加在要输出的函数前，也可以在编译环境的 Setting...\C/C++ \Code Generation 项选择。当加在输出函数前的关键字与编译环境中的选择不同时，直接加在输出函数前的关键字有效。它们对应的命令行参数分别为/Gz、/Gd 和 /Gr。缺省状态为/Gd，即__cdecl。<br>
+　　要完全模仿 PASCAL 调用约定首先必须使用 __stdcall 调用约定，至于函数名修饰约定，可以通过其它方法模仿。还有一个值得一提的是 WINAPI 宏，Windows.h 支持该宏，它可以将出函数翻译成适当的调用约定，在 WIN32 中，它被定义为 __stdcall。使用 WINAPI 宏可以创建自己的 APIs。</div>
+<div> </div>
+<div>2)名字修饰约定</div>
+<div> </div>
+<div>1、修饰名(Decoration name)<br>
+　　&quot;C&quot; 或者 &quot;C++&quot; 函数在内部（编译和链接）通过修饰名识别。修饰名是编译器在编译函数定义或者原型时生成的字符串。有些情况下使用函数的修饰名是必要的，如在模块定义文件里头指定输出&quot;C++&quot;重载函数、构造函数、析构函数，又如在汇编代码里调用&quot;C&quot;&quot;或&quot;C++&quot;函数等。<br>
+　　修饰名由函数名、类名、调用约定、返回类型、参数等共同决定。</div>
+<div> </div>
+<div>2、名字修饰约定随调用约定和编译种类(C或C++)的不同而变化。函数名修饰约定随编译种类和调用约定的不同而不同，下面分别说明。</div>
+<div> </div>
+<div>a、C编译时函数名修饰约定规则：<br>
+　　__stdcall 调用约定在输出函数名前加上一个下划线前缀，后面加上一个&quot;@&quot;符号和其参数的字节数，格式为 <a href="mailto:_functionname@number">_functionname@number</a>。<br>
+　　__cdecl调用约定仅在输出函数名前加上一个下划线前缀，格式为 _functionname。<br>
+　　__fastcall调用约定在输出函数名前加上一个&quot;@&quot;符号，后面也是一个&quot;@&quot;符号和其参数的字节数，格式为@functionname@number。<br>
+　　它们均不改变输出函数名中的字符大小写，这和PASCAL调用约定不同，PASCAL约定输出的函数名无任何修饰且全部大写。</div>
+<div> </div>
+<div>b、C++编译时函数名修饰约定规则：</div>
+<div> </div>
+<div>__stdcall调用约定：</div>
+<div> </div>
+<div>1、以&quot;?&quot;标识函数名的开始，后跟函数名；<br>
+2、函数名后面以&quot;@@YG&quot;标识参数表的开始，后跟参数表；<br>
+3、参数表以代号表示：</div>
+<div> </div>
+<div>X&mdash;&mdash;void，<br>
+D&mdash;&mdash;char，<br>
+E&mdash;&mdash;unsigned char，<br>
+F&mdash;&mdash;short，<br>
+H&mdash;&mdash;int，<br>
+I&mdash;&mdash;unsigned int，<br>
+J&mdash;&mdash;long，<br>
+K&mdash;&mdash;unsigned long，<br>
+M&mdash;&mdash;float，<br>
+N&mdash;&mdash;double，<br>
+_N&mdash;&mdash;bool，<br>
+....</div>
+<div> </div>
+<div>　　PA&mdash;&mdash;表示指针，后面的代号表明指针类型，如果相同类型的指针连续出现，以&quot;0&quot;代替，一个&quot;0&quot;代表一次重复；<br>
+4、参数表的第一项为该函数的返回值类型，其后依次为参数的数据类型,指针标识在其所指数据类型前； <br>
+5、参数表后以&quot;@Z&quot;标识整个名字的结束，如果该函数无参数，则以&quot;Z&quot;标识结束。<br>
+　　其格式为&quot;<a href="mailto:?functionname@@YG*****@Z">?functionname@@YG*****@Z</a>&quot;或&quot;<a href="mailto:?functionname@@YG*XZ">?functionname@@YG*XZ</a>&quot;，<br>
+例如</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int Test1（char *var1,unsigned long）<a href="mailto:-----&ldquo;?Test1@@YGHPADK@Z">-----&ldquo;?Test1@@YGHPADK@Z</a>&rdquo;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  void Test2（）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <a href="mailto:-----&ldquo;?Test2@@YGXXZ">-----&ldquo;?Test2@@YGXXZ</a>&rdquo;</div>
+<div> </div>
+<div>__cdecl调用约定：<br>
+　　规则同上面的_stdcall调用约定，只是参数表的开始标识由上面的&quot;@@YG&quot;变为&quot;@@YA&quot;。</div>
+<div> </div>
+<div>__fastcall调用约定：<br>
+　　规则同上面的_stdcall调用约定，只是参数表的开始标识由上面的&quot;@@YG&quot;变为&quot;@@YI&quot;。</div>
+<div> </div>
+<div>VC++对函数的省缺声明是&quot;__cedcl&quot;,将只能被C/C++调用。</div>
+<div> </div>
+<div>关于DLL的函数</div>
+<div> </div>
+<div>　　动态链接库中定义有两种函数：导出函数(export function)和内部函数(internal function)。导出函数可以被其它模块调用，内部函数在定义它们的DLL程序内部使用。</div>
+<div> </div>
+<div>输出函数的方法有以下几种：</div>
+<div> </div>
+<div>1、传统的方法</div>
+<div> </div>
+<div>　　在模块定义文件的 EXPORT 部分指定要输入的函数或者变量。语法格式如下：</div>
+<div> </div>
+<div>entryname[=internalname] [@ordinal[NONAME]] [DATA] [PRIVATE]</div>
+<div> </div>
+<div>其中：</div>
+<div> </div>
+<div>entryname 是输出的函数或者数据被引用的名称；<br>
+internalname 同 entryname;<br>
+@ordinal 表示在输出表中的顺序号(index)；<br>
+NONAME 仅仅在按顺序号输出时被使用（不使用 entryname ）；<br>
+DATA 表示输出的是数据项，使用 DLL 输出数据的程序必须声明该数据项为 _declspec(DLLimport)。</div>
+<div> </div>
+<div>上述各项中，只有 entryname 项是必须的，其他可以省略。</div>
+<div> </div>
+<div>　　对于&quot;C&quot;函数来说，entryname 可以等同于函数名；但是对 &quot;C++&quot; 函数（成员函数、非成员函数）来说，entryname 是修饰名。可以从 .map 映像文件中得到要输出函数的修饰名，或者使用DUMPBIN /SYMBOLS 得到，然后把它们写在 .def 文件的输出模块。DUMPBIN 是VC提供的一个工具。</div>
+<div> </div>
+<div>如果要输出一个 &quot;C++&quot; 类，则把要输出的数据和成员的修饰名都写入 .def 模块定义文件。</div>
+<div> </div>
+<div>2、在命令行输出</div>
+<div> </div>
+<div>对链接程序 LINK 指定 /EXPORT 命令行参数，输出有关函数。</div>
+<div> </div>
+<div>3、使用 MFC 提供的修饰符号 _declspec(DLLexport)</div>
+<div> </div>
+<div>　　在要输出的函数、类、数据的声明前加上 _declspec(DLLexport) 修饰符表示输出。__declspec(DLLexport) 在 C 调用约定、C 编译情况下可以去掉输出函数名的下划线前缀。extern &quot;C&quot; 使得在 C++ 中使用 C 编译方式成为可能。在&quot;C++&quot;下定义&quot;C&quot;函数需要加 extern &quot;C&quot; 关键词。用 extern &quot;C&quot; 来指明该函数使用 C 编译方式。输出的 &quot;C&quot; 函数可以从 &quot;C&quot; 代码里调用。</div>
+<div> </div>
+<div>例如，在一个 C++ 文件中，有如下函数：</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;  extern &quot;C&quot; {void&nbsp;&nbsp;  __declspec(DLLexport) __cdecl Test(int var);}</div>
+<div> </div>
+<div>其输出函数名为：Test</div>
+<div> </div>
+<div>MFC提供了一些宏，就有这样的作用。</div>
+<div> </div>
+<div>AFX_CLASS_IMPORT：__declspec(DLLexport) <br>
+AFX_API_IMPORT：__declspec(DLLexport) <br>
+AFX_DATA_IMPORT：__declspec(DLLexport) <br>
+AFX_CLASS_EXPORT：__declspec(DLLexport) <br>
+AFX_API_EXPORT：__declspec(DLLexport) <br>
+AFX_DATA_EXPORT：__declspec(DLLexport)<br>
+AFX_EXT_CLASS： #ifdef _AFXEXT <br>
+AFX_CLASS_EXPORT<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  #else<br>
+AFX_CLASS_IMPORT</div>
+<div> </div>
+<div>AFX_EXT_API：#ifdef _AFXEXT<br>
+AFX_API_EXPORT<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  #else<br>
+AFX_API_IMPORT</div>
+<div> </div>
+<div>AFX_EXT_DATA：#ifdef _AFXEXT<br>
+&nbsp;&nbsp;  AFX_DATA_EXPORT<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  #else<br>
+&nbsp;&nbsp;  AFX_DATA_IMPORT</div>
+<div> </div>
+<div>　　像 AFX_EXT_CLASS 这样的宏，如果用于 DLL 应用程序的实现中，则表示输出（因为_AFX_EXT被定义，通常是在编译器的标识参数中指定该选项 /D_AFX_EXT）；如果用于使用DLL的应用程序中，则表示输入（_AFX_EXT没有定义）。<br>
+　　要输出整个的类，对类使用_declspec(_DLLexpot)；要输出类的成员函数，则对该函数使用_declspec(_DLLexport)。如：</div>
+<div> </div>
+<div>class AFX_EXT_CLASS CTextDoc : public CDocument<br>
+{<br>
+…<br>
+}</div>
+<div> </div>
+<div>extern &quot;C&quot; AFX_EXT_API void WINAPI InitMYDLL();</div>
+<div> </div>
+<div>　　这几种方法中，最好采用第三种，方便好用；其次是第一种，如果按顺序号输出，调用效率会高些；最次是第二种。</div>
+<div> </div>
+<div>模块定义文件(.DEF) <br>
+　　模块定义文件(.DEF)是一个或多个用于描述 DLL 属性的模块语句组成的文本文件，每个DEF文件至少必须包含以下模块定义语句：</div>
+<div> </div>
+<div>第一个语句必须是LIBRARY语句，指出DLL的名字； <br>
+EXPORTS 语句列出被导出函数的名字；将要输出的函数修饰名罗列在 EXPORTS 之下，这个名字必须与定义函数的名字完全一致，如此就得到一个没有任何修饰的函数名了。 <br>
+可以使用DESCRIPTION语句描述DLL的用途(此句可选)； <br>
+&quot;;&quot;对一行进行注释(可选)。 <br>
+DLL程序和调用其输出函数的程序的关系<br>
+1、DLL与进程、线程之间的关系</div>
+<div> </div>
+<div>DLL模块被映射到调用它的进程的虚拟地址空间。 <br>
+DLL使用的内存从调用进程的虚拟地址空间分配，只能被该进程的线程所访问。 <br>
+DLL的句柄可以被调用进程使用；调用进程的句柄可以被DLL使用。 <br>
+DLL使用调用进程的栈。 <br>
+2、关于共享数据段</div>
+<div> </div>
+<div>　　DLL定义的全局变量可以被调用进程访问；DLL可以访问调用进程的全局数据。使用同一DLL的每一个进程都有自己的DLL全局变量实例。如果多个线程并发访问同一变量，则需要使用同步机制；对一个DLL的变量，如果希望每个使用DLL的线程都有自己的值，则应该使用线程局部存储(TLS，Thread Local Strorage)。<br>
+　　在程序里加入预编译指令，或在开发环境的项目设置里也可以达到设置数据段属性的目的.必须给这些变量赋初值,否则编译器会把没有赋初始值的变量放在一个叫未被初始化的数据段中。</div></div></body></html>

@@ -1,0 +1,198 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>2.3  全程开发Rails应用</title></head><body><h1>2.3  全程开发Rails应用</h1><div><p style="margin: 11.25pt 0cm" class="11">2.3 全程开发Rails应用</p>
+<p style="text-indent: 20pt" class="MsoNormal">编写R4RMusic应用的步骤，基本上就是在本章开始的时候所列出的那三个步骤，它反映了MVC概念&mdash;&mdash;或者说关于起初我们如何下手的MCV概念，即为领域建模，为各种可能的动作编程，设计可访问的视图。现在的目标是实现一个基本的东西，使得我们可以在其上逐步地增加功能。这常常是Rails应用演化的方式。</p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">注释&nbsp;&nbsp;&nbsp;  从本书的Web站点下载音乐店应用的代码和SQL　你可以从<em>Ruby for Rails</em>的Web站点（http://www.manning.com/books/black）下载R4Rmusic完整的应用代码（本章开发的版本和第四部分开发的修订版本都可以），以及包含用来生成数据库表和向其中添加示例数据的SQL命令的文件。这么做可以节省你自己键入代码的时间。你仍然需要按照后面的步骤来生成数据库并且设置权限。但是如果你使用来自Web站点的预先编写好的文件，定义表格和填入示例数据会很容易。</p>
+</div>
+<p style="margin: 12.75pt 0cm 7.5pt" class="111">2.3.1 介绍音乐店应用&mdash;&mdash;R4Rmusic</p>
+<p style="text-indent: 20pt" class="MsoNormal">音乐店的具体功能会在我们开发的过程中逐步展开。但是一些事先的建议和指示可以帮助你把握好方向。</p>
+<p style="text-indent: 20pt" class="MsoNormal">在音乐店开发的第一遍迭代中，我们将只实现几个功能，这些功能主要是让访问者可以在线地浏览所有在售的作品。我们将基于作品生成视图，并且让访问者可以按作者来查看作品。目前我们不实现任何购物功能&mdash;&mdash;在第四部分中，当我们再次改进该应用时才会实现此功能。我们将注意力集中在查看和浏览音乐店存货的功能上。</p>
+<p style="text-indent: 20pt" class="MsoNormal">该例子使用MySQL做为它后端的关系数据库。你将生成和初始化一个MySQL数据库&mdash;&mdash;实际上是三个数据库，分别对应于Rails所期望得到的产品、开发和测试数据库。你也可以改写这些SQL例子使其可用于Rails支持的其他数据库系统（常用PostgreSQL和SQLite来替换MySQL）。</p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">注释&nbsp;&nbsp;&nbsp;  Rails移植　Rails提供了半自动生成和更新数据库表及字段的设施&mdash;&mdash;移植。移植使你可以通过使用Ruby代码而不是SQL来确定你想要的表的结构；移植引擎负责生成SQL。移植也允许跟踪数据库设计的改变，甚至逆转设计改变。长期来看，使用移植而不是手写SQL可以使长而复杂的开发过程变得容易些。同时，移植也引入了自身的复杂性。在本书中我们不使用移植，是因为它们的复杂性，也是因为写出SQL可以更好地达到保持Rails应用的整体层次清晰的目的。但你应该自己研究与你的Rails工作相关的移植。</p>
+</div>
+<p style="text-indent: 20pt" class="MsoNormal">应用的数据库将被命名为<em>r4rmusic1_production</em>、<em>r4rmusic1_development</em>和<em>r4rmusic1_test</em><em>。</em>在让Rails为应用生成目录时，如果你调用r4rmusic1让Rails生成该应用的目录，那么这些数据库名会自动地出现在应用的数据库配置文件（应用的config子目录下的database.yml文件）中。生成数据库所需要做的事取决于你所使用的数据库系统（更多的细节，特别是针对MySQL的将在下一节讨论）。</p>
+<p style="margin: 11.25pt 0cm" class="111">2.3.2 为音乐店领域的第一遍迭代建模</p>
+<p style="text-indent: 20pt" class="MsoNormal">开发的第一个阶段是为领域建模。模型，广义来说，不仅仅意味着定义和描述应用中的实体，也意味着定义和生成应用将使用的数据库。从Rails这方面来说，它也意味着准备好ActiveRecord子系统（与数据库记录和通过Ruby代码操纵这些记录有关的库）使用的文件和程序代码。</p>
+<p style="text-indent: 20pt" class="MsoNormal">为了简单并且可运行，我们将建立三个实体的模型：</p>
+<p class="a2">WORK（即音乐作品，work是一个方便简短的词）；</p>
+<p class="a2">COMPOSER（作曲家）；</p>
+<p class="a2">EDITION（版本）。</p>
+<p style="text-indent: 20pt" class="MsoNormal">如果仅仅建模WORK，而不是为WORK和EDITION都建模，会比较简单。但是稍微思考一下就会发现，将作品和版本分离是有道理的。一首交响曲并不包含出版商或者价格信息，这些信息属于一个具体的已出版的版本。将作品和版本分离也意味着可以在将来扩展数据库设计，即在活页乐谱之外，增加对CD和其他格式的支持。</p>
+<p style="text-indent: 20pt" class="4">1．用图表示领域</p>
+<p style="text-indent: 20pt" class="MsoNormal">许多领域建模的工作可以归结为这样一个事实：领域由实体（事物）构成，实体由属性（文本串和数值；简单的普通标量数值，如作品的标题或出版的年份）和其他实体组合形成。</p>
+<p style="text-indent: 20pt" class="MsoNormal">有很多可视化地展现领域模型的方式。一个最简单的、没有图形软件也可以使用的方式是列出领域中的实体，在每个实体下列出实体的属性。有些情况下，实体的属性是另一个实体；举例来说，音乐作品有一个作曲者属性，而作曲者本身是一个实体。用大写字母表示实体，它们就很容易辨识，不管它们是出现在图的顶层，还是作为实体的属性嵌入在该实体下面。</p>
+<p style="text-indent: 20pt" class="MsoNormal">使用这个方法的领域是这样的：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="81" height="22" src="http://book.csdn.net/BookFiles/393/img/image106.jpg"></p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="82" height="184" src="http://book.csdn.net/BookFiles/393/img/image107.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">EDITION实体的description属性将包含字符串值，如针对第二版本的&ldquo;Second&rdquo;，或针对复印版本的&ldquo;Facsimile&rdquo;。</p>
+<p style="text-indent: 20pt" class="MsoNormal">图2-2是同一个领域的图形表示。</p>
+<p style="margin-top: 7.5pt" class="aa"><img width="393" height="81" src="http://book.csdn.net/BookFiles/393/img/image108.jpg"></p>
+<p style="text-indent: -30.6pt; margin: 7.5pt 0cm 7.5pt 30.6pt" align="center">图2-2 R4RMusic的实体及其属性的图示</p>
+<p style="text-indent: 20pt" class="MsoNormal">请注意实体关系是环形的：一个WORK有一个或多个EDITION，每个EDITION有一个WORK。为了能够用Rails的术语来表达这些关系，我们需要对有（has）的两个含义做一个微妙但是重要的区分。当你看到像这样的一到多的关系时，你实际上看到的是这样一个关系：事物X有一个或多个事物Y，事物Y属于事物X。</p>
+<p style="text-indent: 20pt" class="MsoNormal">就WORK/EDITION来说，一个WORK有一个或多个EDITION（零个在逻辑上是不可能的），且一个EDITION属于一个WORK。类似地，每一个WORK属于一个COMPOSER，且每一个COMPOSER有一个或多个WORK。</p>
+<p style="text-indent: 20pt" class="MsoNormal">在数据库生成和实体建模接下来的过程中，将一直使用这种看问题的方式。</p>
+<p style="text-indent: 20pt" class="4">2．初始化数据库</p>
+<p style="text-indent: 20pt" class="MsoNormal">为生成应用的数据库，你需要初始化系统中的数据库。如何初始化取决于你使用的后端数据库。在本书的例子中，数据库系统是MySQL（关于其他数据库系统使用的说明和讨论，包括MySQL、PostgreSQL及SQLite，大量存在于各种Ruby on Rails Web站点和讨论组中）。</p>
+<p style="text-indent: 20pt" class="MsoNormal">遵循Rails的实践，我们将初始化三个数据库：一个用于开发，一个用于最终产品，一个用于测试。因为我们把应用命名为r4rmusic1，所以我们把数据库分别命名为<em>r4rmusic1_development</em>、<em>r4rmusic1_production</em>和<em>r4rmusic1_test</em>。你必须初始化这三个数据库，并且为它们生成一个有完全的读写权限的用户及其密码。</p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">警告&nbsp;&nbsp;&nbsp;  生成自己的密码　在示例中密码<em>railzrulez</em>所在的地方，你必须将其替换为自己的密码。否则，每一个看过本书的人都会知道你的数据库密码。</p>
+</div>
+<p style="text-indent: 0cm" class="MsoNormal">在MySQL中，你在控制台会话中这样做了之后，它是这样的：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="340" height="76" src="http://book.csdn.net/BookFiles/393/img/image110.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">然后你对另外的两个数据库<em>r4rmusic1_production</em>和<em>r4rmusic1_test</em>也这样做。</p>
+<p style="text-indent: 20pt" class="MsoNormal">现在，你需要设定Rails使用该用户名和密码来访问数据库。这需要在config子目录下的database.yml文件中完成。此文件中有针对MySQL数据库的活动配置区（live configuration section），以及针对其他数据库系统的样板配置区（sample section）。在每一个你使用的配置区（如果你和示例一样使用MySQL，那么总共有三个MySQL配置区。）中，你需要根据你已经生成的数据库的权限设置来修改用户名和密码所在的行。</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="127" height="22" src="http://book.csdn.net/BookFiles/393/img/image111.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">此文件中的数据库的名字必须和你已经生成的数据库的名字一样（如果不是这样，你可能在生成数据库时键入了错误的数据库名，或你在生成应用时键入了错误的应用名。在你继续做下去之前，你需要修正它们）。</p>
+<p style="text-indent: 20pt" class="4">3．设计和生成数据库表</p>
+<p style="text-indent: 20pt" class="MsoNormal">在音乐店领域中有三个模型实体，因此我们需要三个数据库表。在较为复杂的领域中&mdash;&mdash;甚至就在形式稍复杂的音乐店领域中&mdash;&mdash;实体和表并不总是一对一关系。某些时候需要一些附加的表来保存实体间的关系而不是特定实体的信息。不过目前在音乐店领域中，只有实体和表间一对一的关系。</p>
+<p style="text-indent: 20pt" class="MsoNormal">将领域模型翻译为SQL总的说来是直接翻译的，只要记住你必须编写Rails友好的SQL。沿着这个路子，Rails将与数据库协作&mdash;&mdash;不仅从其中提取记录（record），也检查表的设计，并且把该设计作为出发点为你提供很多的编程功能。你所要做的是，用一种合适的方式设置事物，使得Rails用于解释表结构的各种技术都可以正常工作。</p>
+<p style="text-indent: 20pt" class="MsoNormal">从实践角度来说（也即就这三个表来说），这意味着你要遵循以下规则：</p>
+<p class="a2">对于每一个实体（例如EDITION），数据库中都有一个以它的名字命名的表，但是用的是复数形式（<em>editions</em>）。</p>
+<p class="a2">每一个与实体相对应的表中都有一个名为<em>id</em>的字段，对每一个插入到表中的记录，该字段都有不同的整数值。</p>
+<p class="a2">给定实体x和实体y，如果实体y属于实体x，那么表<em>y</em>有一个叫做<em>x_id</em>的字段。</p>
+<p class="a2">在任何一个表中，大多数字段保存实体的简单属性值（数值或字符串）。</p>
+<p style="text-indent: 20pt" class="MsoNormal">第三个规则有一点晦涩。就目前这个例子来说，它意味着<em>editions</em>表有一个名为<em>work_id</em>的字段。这对应于每一个版本属于一个特定的作品这样一个概念。当一个版本记录被插入表时，它的<em>work_id</em>字段将被赋予一个值，这个值与包含它的作品的<em>id</em>字段的值相同。这样，每一个版本记录就打上了某种属性标记的标签，将它标识为一个特定作品的属性。（因为<em>id</em>值是唯一的&mdash;&mdash;它们是主键&mdash;&mdash;所以一个整数就足以清楚地标识版本及其所属作品）。</p>
+<p style="text-indent: 20pt" class="MsoNormal">也可以抛开这些解释，认为每一个作品有一个或多个版本。have关系和belongs to关系是指同一件事，只是从不同的角度来表达而已。关于&ldquo;作品/版本&rdquo;关系的认识同样适用于领域模型中的&ldquo;作曲者/作品&rdquo;关系。</p>
+<p style="text-indent: 20pt" class="MsoNormal">实现领域图以及对SQL的需求和约束，请看代码清单2-1中的SQL命令：</p>
+<p style="text-indent: 18pt; margin: 11.25pt 2pt 7.5pt" class="ad">代码清单2-1 用于生成音乐店基本数据库表的SQL命令</p>
+<p style="margin: 6pt 0.5pt 0pt 1.4pt" class="a1"><img width="231" height="373" src="http://book.csdn.net/BookFiles/393/img/image114.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal"> </p>
+<p style="text-indent: 20pt" class="MsoNormal">可以把这些SQL命令保存在文件中来生成数据库表。或者更好的方法是直接使用r4rmusic1. sql文件，它作为R4RMusic应用包的一部分，可以从本书相关网站（http:// www.manning.com/ books/black）下载。下面将SQL文件提交给MySQL执行（在提示下输入密码）：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="209" height="9" src="http://book.csdn.net/BookFiles/393/img/image116.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal"><em>r4rmusic1_development</em>数据库现在包含了表；如果你使用从本书的Web站点下载的预编写的文件，那它还包含了示例数据。现在，让我们编写与数据库相关的Rails应用程序代码。</p>
+<p style="text-indent: 20pt" class="4">4．编写Rails模型文件</p>
+<p style="text-indent: 20pt" class="MsoNormal">现在开始，编写Rails应用代码&mdash;&mdash;确切地说，编写两个模型文件：work.rb和edition.rb。首先，我们必须生成这些模型。Rails可以半自动地完成这个工作。在应用目录的顶层执行下面的命令：</p>
+<p style="margin: 6.75pt 0.5pt 6.75pt 1.4pt" class="a1"><img width="235" height="36" src="http://book.csdn.net/BookFiles/393/img/image118.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">你会在app/models目录下发现你需要的三个文件。work.rb是这样的：</p>
+<p style="margin: 6.75pt 0.5pt 6.75pt 1.4pt" class="a1"><img width="195" height="20" src="http://book.csdn.net/BookFiles/393/img/image119.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">composer.rb和edition.rb看起来也基本如此。你看到的（如果在此阶段有一点黑盒子综合症，不用担心）是Ruby类的空定义（它们并不像看起来那样是空的；它们有设置和检索所有实体属性的功能：<em>title</em>，<em>composer</em>，<em>publisher</em>，等等。Rails通过检查数据库表的字段名，自动地赋予它们这些功能）。你需要往其中加入指令来告诉Rails实体间的各种关联（association）&mdash;&mdash;即has和belongs to关系的具体信息。</p>
+<p style="text-indent: 20pt" class="MsoNormal">关联是一个描述性术语，同时也是一个技术术语。关联是ActiveRecord数据库操作库的一部分。它们是一种实体间关系模型子系统，通过它告诉Rails实体间的关系，假设选择的表和字段名与已经声明过的相吻合，Rails将提供一系列的编程特性让你轻松地处理这些关系。</p>
+<p style="text-indent: 20pt" class="MsoNormal">为了设置此功能，需要告诉Rails你想要在数据系统中建立什么样的关系。为此，将work.rb修改如下：</p>
+<p style="margin: 6.75pt 0.5pt 6.75pt 1.4pt" class="a1"><img width="195" height="47" src="http://book.csdn.net/BookFiles/393/img/image120.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">将edition.rb修改如下：</p>
+<p style="margin: 6.75pt 0.5pt 6.75pt 1.4pt" class="a1"><img width="214" height="34" src="http://book.csdn.net/BookFiles/393/img/image121.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">对作曲者也作相似处理，composer.rb看起来应该是这样的：</p>
+<p style="margin: 6.75pt 0.5pt 6.75pt 1.4pt" class="a1"><img width="220" height="34" src="http://book.csdn.net/BookFiles/393/img/image123.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal">因为我们遵循了如何在数据库中为<em>id</em>相关的字段命名的规则，这样在那些属于某一特定的作品的版本中加入新版本就很容易，甚至修改某一版本所归属的作品也很容易（这是有可能发生的情况）。</p>
+<p style="text-indent: 20pt" class="4">5．往数据库中加入记录</p>
+<p style="text-indent: 20pt" class="MsoNormal">往数据库中加入记录有很多办法，例如通过Web表单来进行。在这里，我们将采用一种原始的方式：使用SQL。这个权宜之计可以让我们尽快地能够用数据做一些事。</p>
+<p style="text-indent: 20pt" class="MsoNormal">将代码清单2-2中的SQL命令发送给音乐店开发（music store_devetopment）数据库，会生成少量的记录，我们以后就可以在这些记录上操作。你可以自由地为任意的作品（真实的或假想的）加入任意多的记录。</p>
+<p style="text-indent: 18pt; margin: 11.25pt 2pt 7.5pt" class="ad">代码清单2-2 产生音乐店示例库存数据的SQL命令</p>
+<p style="margin: 6pt 0.5pt 0pt 1.4pt" class="a1"><img width="438" height="262" src="http://book.csdn.net/BookFiles/393/img/image124.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal"> </p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 0cm 0cm 11.25pt 28.5pt" class="aff4">注释&nbsp;&nbsp;&nbsp;  从本书的Web站点获取　SQL数据你可以从本书相关网站（http://www.manning.com/ books/black）下载例子或种子数据，以及应用的源代码。</p>
+</div>
+<p style="text-indent: 20pt" class="MsoNormal">请注意每个版本记录的第二个字段与特定作品的第一个字段&mdash;&mdash;<em>id</em>字段相匹配。因此，头两个版本都属于勃拉姆斯奏鸣曲，第三个版本属于德彪西弦乐四重奏。</p>
+<p style="text-indent: 20pt" class="MsoNormal">现在，我们完成了领域建模阶段，可以开始定义动作了。</p>
+<p style="margin: 7.5pt 0cm" class="111">2.3.3 动作的识别和编程</p>
+<p style="text-indent: 20pt" class="MsoNormal">现在，需要考虑我们希望在领域中发生的各种活动场景（scenario）。这种可能性是无穷的，取决于你的应用。在该应用的这次迭代中，可能性相对要少，但是足以让我们成功地通过此阶段并进入下一个阶段。</p>
+<p style="text-indent: 20pt" class="MsoNormal">我们将定义以下动作：</p>
+<p class="a2">用一个有现货作品的所有作曲者的列表欢迎访问者。</p>
+<p class="a2">允许访问者点击任一作曲者的名字，然后显示该作曲者的所有作品。</p>
+<p class="a2">允许访问者点击作品的名字，然后显示该作品的所有版本。</p>
+<p class="a2">允许访问者点击任一版本，然后显示该版本的详细信息。</p>
+<p style="text-indent: 20pt" class="MsoNormal">对于每一个场景，我们需要标识（并生成，因为它们还不存在）一个合适的控制器，并且在相应的控制器文件中定义合适的动作。对于每一个控制器/动作对，我们还需要定义一个视图；这将在下一节介绍。</p>
+<p style="text-indent: 20pt" class="4">1．欢迎访问者</p>
+<p style="text-indent: 20pt" class="MsoNormal">大多数控制器直接对应于实体模型：如果有一个&ldquo;work&rdquo;控制器，那么很有可能有一个&ldquo;work&rdquo;模型。尽管如此，我们将从一个有点不同的控制器开始。欢迎某人来到一个站点的动作逻辑上不与任何实体相关。所以，将欢迎定义为由work控制器或edition控制器执行的动作没有意义（尽管这在逻辑上是可能的）。相反，我们将生成另外一个无实体的控制器&mdash;&mdash;执行动作但不对应于任何特定实体的控制器，并且将welcome动作定义为该控制器的动作。我们把这个控制器命名为main。</p>
+<p style="text-indent: 20pt" class="MsoNormal">生成控制器的过程总是一样的，而且它很像我们用来生成模型的过程。但是，确切的命令语法，还是有一些不同：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="292" height="10" src="http://book.csdn.net/BookFiles/393/img/image128.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">该命令完成以下几个任务：</p>
+<p class="a2">生成一个名为app/controllers/main_controller.rb的文件。</p>
+<p class="a2">在此文件中插入一个为welcome动作定义的空方法。</p>
+<p class="a2">生成一个名为app/views/main/welcome.rhtml的文件，你将在此文件中放置视图的ERb模板代码。</p>
+<p style="text-indent: 20pt" class="4">2．welcome动作</p>
+<p style="text-indent: 20pt" class="MsoNormal">如果查看main_controller.rb，你将看到：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="277" height="60" src="http://book.csdn.net/BookFiles/393/img/image129.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">这是一个控制器文件，它定义了一个动作&mdash;&mdash;尽管这个定义是空的。我们下一步要决定在此定义中放入什么。</p>
+<p style="text-indent: 20pt" class="MsoNormal">我们先不对编程层次进行分离，而是开始思考视图&mdash;&mdash;不是详细地而是从数据交换的角度思考视图。动作的目的是往Ruby变量中填充数据，从而使得视图文件中的ERb代码可以获取数据并显示。所以，我们需要预测视图需要什么样的数据。</p>
+<p style="text-indent: 20pt" class="MsoNormal">欢迎屏幕将包含一个有现货作品的所有作曲者的列表。这很容易实现，只需在welcome动作中加入一行：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="212" height="34" src="http://book.csdn.net/BookFiles/393/img/image130.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">该代码请求<em>Composer</em>实体模型（不是某个特定的作曲者，而是模型本身&mdash;&mdash;这么说吧，该模型的代表）传递回一个所有已知的作曲者的列表。我们应该做一下排序，这样可以让列表看上去好一些，所以我们将方法修改如下：</p>
+<p style="margin: 4.5pt 0.5pt 4.5pt 1.4pt" class="a1"><img width="478" height="34" src="http://book.csdn.net/BookFiles/393/img/image132.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">（你将在第11章学习对象集合排序。现在请注意，调用sort_by方法将依据作曲者的姓进行排序，然后在姓相同的情况下依据他们的名进行排序。）</p>
+<p style="text-indent: 20pt" class="4">3．显示作品、版本或作曲者</p>
+<p style="text-indent: 20pt" class="MsoNormal">我们需要版本、作品、作曲者所对应的控制器文件，每一个控制器文件都有一个show动作。执行下列命令生成这几个控制器文件：</p>
+<p style="margin: 4.5pt 0.5pt 4.5pt 1.4pt" class="a1"><img width="299" height="36" src="http://book.csdn.net/BookFiles/393/img/image133.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">你将在app/controllers子目录下找到三个新的控制器文件，分别是以work、edition和composer来命名的。因为我们在生成控制器时提供了show参数，所以每一个控制器文件中就出现了一个空的show方法。现在需要往这些空方法中加入代码。</p>
+<p style="text-indent: 20pt" class="MsoNormal">work的show动作和edition的show动作都将使用一个常用的Rails的惯用法：获取CGI变量id的值并用它作为索引去查找相关实体的正确的实例。换句话说，如果你在work控制器中执行show动作，且CGI变量id的值是2，这表示你想要显示索引值为2的作品。被索引（indexed）（数值怎么转换到产生出的相应作品）的准确含义取决于模型。但一般的情况是，2将被看作是合适的数据库表中id字段的值。</p>
+<p style="text-indent: 20pt" class="MsoNormal">在wrok_controller.rb中的合适的位置上，该惯用法应当是下面这样的：</p>
+<p style="margin: 3.75pt 0.5pt 4.5pt 1.4pt" class="a1"><img width="199" height="34" src="http://book.csdn.net/BookFiles/393/img/image134.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">在edition_controller.rb中应该是这样的：</p>
+<p style="margin: 3.75pt 0.5pt 4.5pt 1.4pt" class="a1"><img width="237" height="34" src="http://book.csdn.net/BookFiles/393/img/image135.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">遵循同样的模式，在composer_controller.rb中是这样的：</p>
+<p style="margin: 3.75pt 0.5pt 4.5pt 1.4pt" class="a1"><img width="249" height="34" src="http://book.csdn.net/BookFiles/393/img/image136.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">composer控制器在变量@composer中保存了一个特定的作曲者（edition和work也是如此）。视图中的ERb代码可以访问各自变量中的值&mdash;&mdash;现在就可以看到这一点。</p>
+<p style="margin: 5.25pt 0cm" class="111">2.3.4 设计视图</p>
+<p style="text-indent: 20pt" class="MsoNormal">视图是一个ERb程序，它通过可共同访问的变量与控制器共享数据。这与第1章中的ERb例子不同，在那个例子中，你将所有的东西&mdash;&mdash;变量赋值和HTML模板信息，都放到一个文件中，然后将该文件提交给ERb执行（你可以把控制器风格的代码，例如计算和数据筛选操作，放到视图文件中，但这样做被认为是失衡的。应该在控制器中执行计算然后让视图使用计算结果）。</p>
+<p style="text-indent: 20pt" class="MsoNormal">如果查看音乐店应用程序的app/views目录，会看到每一个我们生成的控制器在此都有一个对应的子目录：main、composer、edition和work。当用generate脚本生成同名的控制器时，这些子目录会自动产生。[你还会看到一个layouts子目录。下一小节中我们将创建一个默认的布局（layout）。]</p>
+<p style="text-indent: 20pt" class="MsoNormal">对于每一个在控制器文件生成时指定的动作（main控制器文件中的welcome方法和其他控制器文件中的三个show方法），你会看到一个与该动作名字相匹配的ERb模板文件。举例来说，app/views/work目录包含一个名为show.rhtml的文件。这个文件是一个模板，在应用程序接收到一个对work控制器的show动作的请求时，该文件将呈现给用户。</p>
+<p style="text-indent: 20pt" class="MsoNormal">控制器动作和视图模板文件通过命名约定相互关联：对main/welcome动作的输入请求会触发main控制器中welcome方法的执行，然后在视图区域呈现main/welcome.rhtml文件。你可以覆盖此默认的行为：可以指示一个动作呈现一个不同名字的模板文件，也可以将多个部分模板文件合成为一个视图，这样动作和模板文件之间就不再是一对一的关系了（在本书的第四部分，音乐店应用的第2次迭代中，我们将使用部分模板文件）。但是在基本的情况下，控制器准备数据并将其保存在变量中，在该动作所对应的ERb文件中会用到这些变量。</p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 5.25pt 0cm 5.25pt 28.5pt" class="aff4">注释&nbsp;&nbsp;&nbsp;  ERb替代方案　ERb提供了一个从数据+模板产生HTML的机制，但并不是唯一的机制。另一个可选的方法叫Builder，它由Jim Weirich开发并引入Rails框架。在此，我们将只介绍采用ERb例子，但你应该意识到：至少有一种替代方法可以用来处理Rails应用的这个阶段的工作。</p>
+</div>
+<p style="text-indent: 20pt" class="MsoNormal">我们已经定义了四种可能的控制器动作，那么就有四个视图需要设计：一个welcome屏幕，以及针对composer、edition和work模型的三个show屏幕。我们现在要设计这些视图。但首先，我们需要定义一个默认的布局。这个布局将封装每个视图都要显示的公共的内容。然后我们再继续设计这四个视图。</p>
+<p style="text-indent: 20pt" class="4">1．设计默认的布局</p>
+<p style="text-indent: 20pt" class="MsoNormal">布局就像元模板。它们包含通用的模板代码，这些模板代码包围一个或多个视图的特定的模板代码。一般的默认视图可能包含一个菜单条、一个版权通告以及其他适用于整个站点的元素，将这些元素单独插入到每一个模板文件是一件麻烦的事。</p>
+<p style="text-indent: 20pt" class="MsoNormal">布局在你希望插入特定视图的位置上使用了一个特殊的&ldquo;魔法&rdquo;变量（magic variable）@content_for_layout。音乐店的基本布局见代码清单2-3，在视图上面显示了一个条幅（banner），在页面的底部显示了一个版权通告。基本布局也包含了合适的XML声明&mdash;&mdash;又一次避免了将它们放到每一个模板文件中去的麻烦。</p>
+<p style="text-indent: 18pt; margin: 5.25pt 2pt 7.5pt" class="ad">代码清单2-3 R4RMusic的基本布局</p>
+<p style="margin: 6pt 0.5pt 0pt 1.4pt" class="a1"><img width="501" height="38" src="http://book.csdn.net/BookFiles/393/img/image139.jpg"></p>
+<p style="margin: 6pt 0.5pt 0pt 1.4pt" class="a1"><img width="555" height="172" src="http://book.csdn.net/BookFiles/393/img/image140.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal">为了按默认方式使用该视图，将它放到app/views/layouts目录下一个命名合理（如base.rhtml）的文件中，并且在文件app/controllers/application.rb中加入下面一行：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="327" height="34" src="http://book.csdn.net/BookFiles/393/img/image141.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">application.rb是一个伞（umbrella）控制器文件，你在其中写入的任意代码不仅仅控制着与某个特定的控制器（例如composer控制器）有关的事，而且控制整个应用范围内的所有动作。所以，在此文件中确定一个默认的布局可正确地包装所有的视图。</p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">提示&nbsp;&nbsp;&nbsp;  默认布局的默认名字　如果将默认布局命名为application.rhtml，你甚至不需要在application.rb中指定它（但是知道如何指定默认布局还是有好处的）。</p>
+</div>
+<p style="text-indent: 20pt" class="4">2．main/welcome视图</p>
+<p style="text-indent: 20pt; vertical-align: baseline" class="MsoNormal">welcome视图利用变量@composers中的信息来生成作曲者列表。列表中的每一个条目是一个指向该作曲者的show动作的超链接。</p>
+<p style="text-indent: 20pt" class="MsoNormal">代码清单2-4显示了main/welcome视图，它保存在文件app/views/main/welcome. rhtml中（如果在此文件或其他模板文件中发现任何自动生成的占位行，在键入模板代码之前删除它们）。</p>
+<p style="text-indent: 18pt; margin: 11.25pt 2pt 7.5pt" class="ad">代码清单2-4 main/welcome.rhtml，main/welcome动作的视图</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="408" height="142" src="http://book.csdn.net/BookFiles/393/img/image145.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal">这里的主要动作是一个循环，一次一个地遍历作曲者列表（这是each方法<img width="15" height="13" src="http://book.csdn.net/BookFiles/393/img/image147.jpg">的关键）。每循环一次，就生成一个列表条目，完成由内建的Rails的辅助方法link_to产生的超链接。用这种方式自动生成链接列表的好处是它可以扩展：一旦你已经编写好了该模板，还有首先填充@composers变量的控制器（总共只需要两行代码），你就不必再修改它，不管你的数据库中有3个还是300个作曲者（当然如果有300个作曲者，你可能会想要以一种不同的方式展示它们&mdash;&mdash;可能是给出一个字母列表，每个字母链接到一个次级的动作和模板，该模板会显示所有姓氏以该字母开头的作曲者。但是一旦你已经编写了需要的模板，该字母列表会自己处理交给它们的任何数据）。</p>
+<p style="text-indent: 20pt" class="4">3．show视图</p>
+<p style="text-indent: 20pt" class="MsoNormal">我们有三个实体&mdash;&mdash;WORK、EDITION和COMPOSER。并且为其中的每一个实体都定义一个名为show的场景。每一个show会有些许不同，这是因为三个实体中的每一个实体都有不同的属性：</p>
+<p class="a2">显示一个作品意味着列出该作品所有在售的版本。</p>
+<p class="a2">显示一个版本意味着显示它的出版商、出版日期和价格。</p>
+<p class="a2">显示一个作曲者意味着显示该作曲者的所有作品。</p>
+<p style="text-indent: 0cm" class="MsoNormal">我们将尽可能地使得这些显示是相互超链接的。</p>
+<p style="text-indent: 20pt" class="MsoNormal">每一个show场景需要一个视图文件。所以我们需要三个文件：</p>
+<p class="a2">app/views/work/show.rhtml；</p>
+<p class="a2">app/views/edition/show.rhtml；</p>
+<p class="a2">app/views/composer/show.rhtml。</p>
+<p style="text-indent: 0cm" class="MsoNormal">这三个模板文件分别如代码清单2-5、代码清单2-6和代码清单2-7所示。</p>
+<p style="text-indent: 18pt; margin: 11.25pt 2pt 7.5pt" class="ad">代码清单2-5 work/show.rhtml，work/show动作的视图</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="416" height="209" src="http://book.csdn.net/BookFiles/393/img/image149.jpg"></p>
+<p style="margin: 6pt 0.5pt 0pt 1.4pt" class="a1"><img width="416" height="51" src="http://book.csdn.net/BookFiles/393/img/image150.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal"> </p>
+<p style="text-indent: 20pt" class="MsoNormal">和在main/welcome模板中一样，在work/show.rhtml模板中，each指令执行一个循环，遍历一个列表&mdash;&mdash;这一次是通过方法调用@work.editions<img width="15" height="13" src="http://book.csdn.net/BookFiles/393/img/image147.jpg">得到的一个列表。请注意我们没有在任何文件中定义一个叫editions的方法。因为我们已经声明一个作品有多个版本，所以Rails自动提供这个方法。</p>
+<p style="text-indent: 18pt; margin: 11.25pt 2pt 7.5pt" class="ad">代码清单2-6 edition/show动作的模板edition/show.rhtml</p>
+<p style="margin: 6pt 0.5pt 0pt 1.4pt" class="a1"><img width="353" height="248" src="http://book.csdn.net/BookFiles/393/img/image153.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal"> </p>
+<p style="text-indent: 20pt" class="MsoNormal">请注意在edition/show.rhtml模板中，有很多对对象@edition的方法调用，包括紧紧相连的两个连续的方法调用，如@edition.work.title，它们被用来抽取完成一个视图所必需的信息。再次重申，这些方法中没有一个需要人工定义。其中的一些作为模型文件中指令的结果而存在&mdash;&mdash;特别地如edition.rb文件中的指令belongs_to :work。另一些如year和price的存在，是因为数据库中的editions表中有同名的字段。承蒙ActiveRecord的帮助，这些方法就自动产生了，于是你可以使用简单的Ruby方法调用的语法，在数据库记录和你的程序之间来回地传递信息。</p>
+<p style="text-indent: 18pt; margin: 11.25pt 2pt 7.5pt" class="ad">代码清单2-7 composer/show视图的模板composer/show.rhtml</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="428" height="79" src="http://book.csdn.net/BookFiles/393/img/image155.jpg"></p>
+<p style="margin: 6pt 0.5pt 0pt 1.4pt" class="a1"><img width="428" height="24" src="http://book.csdn.net/BookFiles/393/img/image157.jpg"></p>
+<p style="margin: 3pt 0.5pt 0pt 1.4pt" class="a1"><img width="264" height="48" src="http://book.csdn.net/BookFiles/393/img/image158.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal"> </p>
+<p style="text-indent: 20pt" class="MsoNormal">composer/show.rhtml模板展示了某个作曲者所有作品的一个平面列表。列表中的每一个条目都链接到该作品的show视图。必须承认，对于有很多在售作品的作曲者来说，这个列表可能很长。如果它变得太长，将它分成几个页面是相对容易的。将程序功能进行MVC分层的一个好处就是：可以在视图一级做改动，而不需要改变数据结构。</p>
+<p style="text-indent: 20pt" class="MsoNormal">到此，我们准备好了来启动一个应用并连接到该应用。我们有了一个数据库，它反映了领域模型的当前状态并且有少量数据。我们也有了ActiveRecord模型文件，它包含关联指令（association directive）：belongs_to和has_many，这些关联指令会指示Rails实现你需要的实体间的关系。视图模板已经就绪，等待填充；控制器文件也在等待提供视图所需要的数据。</p>
+<p style="text-indent: 20pt" class="MsoNormal">现在，我们将连接该应用。</p>
+<p style="margin: 7.5pt 0cm" class="111">2.3.5 连接应用程序</p>
+<p style="text-indent: 20pt" class="MsoNormal">我们将使用Ruby免费提供的Web服务器WEBrick来运行应用。（你也可以使用Apache或别的服务器，但是使用WEBrick更容易，因为它不需要很多事先的配置，并且安装了Ruby的同时就安装了WEBrick。）在此之前，让我们完成最后的任务：将应用的默认页面设置为welcome页面。</p>
+<p style="text-indent: 20pt" class="4">1．用路由指定默认的顶层页面</p>
+<p style="text-indent: 20pt" class="MsoNormal">我们需要定义一个路由（route）：即一个翻译规则，用于翻译Rails应用的输入请求的URL。在当前情况下，我们需要将一个空的URL（即域名）翻译为对main控制器的welcome动作的一个调用。</p>
+<p style="text-indent: 20pt" class="MsoNormal">路由在文件config/routes.rb中定义。在文件中加入下面这一行，它必须是该文件中的第一个map.connect行：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="376" height="9" src="http://book.csdn.net/BookFiles/393/img/image160.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">该行建立了一个规则，用来恰当地翻译一个空的URL。</p>
+<p style="text-indent: 20pt" class="MsoNormal">为了使这个默认的页面能正确地工作，还需要删除默认的默认页面&mdash;&mdash;即文件public/ index.html。可以删除该文件，也可以将其改为其他的名字（如index.html.hidden），这样，它就不会去和main/welcome动作竞争顶层页面了。</p>
+<p style="text-indent: 20pt" class="4">2. 启动WEBrick并且连接应用</p>
+<p style="text-indent: 20pt" class="MsoNormal">用下面的命令启动WEBrick服务器（和其他命令一样，从应用目录的顶层开始执行）：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="303" height="10" src="http://book.csdn.net/BookFiles/393/img/image162.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">-b和&ndash;p标志是可选的（由它们被放在方括号中可以看出来）。如果服务器没有正确启动，可以使用它们来指定值。</p>
+<p style="text-indent: 20pt" class="MsoNormal">现在，将浏览器指向http://localhost:3000（如果使用了可选标志，那么使用指定的值）。你将看到欢迎屏幕&mdash;&mdash;如果一切顺利，还可看到作品列表。</p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">注释&nbsp;&nbsp;&nbsp;  检查开发日志文件　如果运行有问题，而你又找不出错误，请检查log/development.log文件。在此文件中你会看到错误消息，告诉你可能遇到的语法错误和其他错误。修正所有错误的命名或拼写，再试一次。如果发生的是一个语法错误，你可以在同一个服务器会话中试着重新连接一次。如果是一个影响到数据库连接的问题，就可能需要停止服务器（使用Ctrl-C或kill命令）并重新启动它（如果不能确定是什么问题，重新启动不会有什么影响）。</p>
+</div>
+<p style="text-indent: 20pt" class="MsoNormal">我们已经完成了整个过程：应用正在运行。可以随意地试用站点。可以加入新的数据库记录，随意在视图中移动元素。请保存这个原始的应用的一个副本，因为你将用它作为一个参考点，也将用作本书后面进一步开发的起点。如果愿意，也完全可以将它用做学习过程中中间结果的暂存器。</p>
+<p style="text-indent: 20pt" class="MsoNormal">现在，我们已经完成了一个可运行的应用，将利用这个机会深入探讨，一个成功的Rails会话中所发生的事情。</p></div></body></html>

@@ -1,0 +1,141 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>使用poi操作Excel的几点注意事项</title></head><body><h1>使用poi操作Excel的几点注意事项</h1><div><span><strong>使用poi操作Excel的几点注意事项</strong></span><br>
+<p>首先说说现在我所知道的java编辑Excel文件的两大开源工具：jakarta poi和JavaExcelAPI（简称JXL），这两套工具我都试用了一这段时间，感觉各有优劣吧。poi在某些细节有些小Bug并且不支持写入图片，其他方面都挺不错的；JXL就惨了，除了支持写入图片外，我暂时看不到它比POI好的地方，我碰到的主要的问题就是对公式支持不是很好，很多带有公式的 Excel文件用JXL打开后，公式就丢失了（比如now(),today()），在网上看到其他大虾评论说JXL写入公式也有问题，另外，JXL操作 Excel文件的效率比POI低一点。经过比较后，我选择了poi开发我的项目。<br>
+现在我要做的东西基本完成啦，我把这段时间使用poi的一些心得总结出来，希望能对和我遇到相同问题的朋友有所帮助，少熬几个夜，多点时间陪MM：），至于poi基本的使用方法，自己去看文档吧。</p>
+<p>1、设置分页符的bug。<br>
+poi里的HSSFSheet类提供了setRowBreak方法可以设置Sheet的分页符。<br>
+Bug：如果你要设置分页符的Sheet是本来就有的，并且你没有在里面插入过分页符，那么调用setRowBreak时POI会抛出空指针的异常。<br>
+解决方法：在Excel里给这个sheet插入一个分页符，用POI打开后再把它删掉，然后你就可以随意插入分页符了。<br>
+如果sheet是由poi生成的则没有这个问题。我跟踪了setRowBreak的源代码，发现是Sheet.java下的PageBreakRecord rowBreaks这个变量在搞鬼，如果Sheet里原来没有分页符，开发这个模块的那位兄台忘了为这个对象new实例，所以只能我们先手工给Excel 插入一个分页符来触发poi为rowBreaks创建实例。</p>
+<p>2、如何拷贝行。<br>
+我在gmane.org的poi用户论坛翻遍了每个相关的帖子，找遍了api，也没看到一个拷贝行的方法，没办法，只能自己写：</p>
+<p>//注：this.fWorkbook是一个HSSHWorkbook，请自行在外部new<br>
+public void copyRows(String pSourceSheetName, String pTargetSheetName, int pStartRow, int pEndRow, int pPosition)<br>
+{<br>
+HSSFRow sourceRow = null;<br>
+HSSFRow targetRow = null;<br>
+HSSFCell sourceCell = null;<br>
+HSSFCell targetCell = null;<br>
+HSSFSheet sourceSheet = null;<br>
+HSSFSheet targetSheet = null;<br>
+Region region = null;<br>
+int cType;<br>
+int i;<br>
+short j;<br>
+int targetRowFrom;<br>
+int targetRowTo;<br>
+<br>
+if ((pStartRow == -1) || (pEndRow == -1))<br>
+{<br>
+return;<br>
+}<br>
+sourceSheet = this.fWorkbook.getSheet(pSourceSheetName);<br>
+targetSheet = this.fWorkbook.getSheet(pTargetSheetName);<br>
+//拷贝合并的单元格<br>
+for (i = 0; i &lt; sourceSheet.getNumMergedRegions(); i++)<br>
+{<br>
+region = sourceSheet.getMergedRegionAt(i);<br>
+if ((region.getRowFrom() &gt;= pStartRow) &amp;&amp; (region.getRowTo() &lt;= pEndRow))<br>
+{<br>
+targetRowFrom = region.getRowFrom() - pStartRow + pPosition;<br>
+targetRowTo = region.getRowTo() - pStartRow + pPosition;<br>
+region.setRowFrom(targetRowFrom);<br>
+region.setRowTo(targetRowTo);<br>
+targetSheet.addMergedRegion(region);<br>
+}<br>
+} <br>
+//设置列宽<br>
+for (i = pStartRow; i &lt;= pEndRow; i++)<br>
+{<br>
+sourceRow = sourceSheet.getRow(i);<br>
+if (sourceRow != null)<br>
+{<br>
+for (j = sourceRow.getFirstCellNum(); j &lt; sourceRow.getLastCellNum(); j++)<br>
+{<br>
+targetSheet.setColumnWidth(j, sourceSheet.getColumnWidth(j));<br>
+}<br>
+break;<br>
+}<br>
+}<br>
+//拷贝行并填充数据<br>
+for (;i &lt;= pEndRow; i++)<br>
+{<br>
+sourceRow = sourceSheet.getRow(i);<br>
+if (sourceRow == null)<br>
+{<br>
+continue;<br>
+}<br>
+targetRow = targetSheet.createRow(i - pStartRow + pPosition);<br>
+targetRow.setHeight(sourceRow.getHeight());<br>
+for (j = sourceRow.getFirstCellNum(); j &lt; sourceRow.getLastCellNum(); j++)<br>
+{<br>
+sourceCell = sourceRow.getCell(j);<br>
+if (sourceCell == null)<br>
+{<br>
+continue;<br>
+}<br>
+targetCell = targetRow.createCell(j);<br>
+targetCell.setEncoding(sourceCell.getEncoding());<br>
+targetCell.setCellStyle(sourceCell.getCellStyle());<br>
+cType = sourceCell.getCellType();<br>
+targetCell.setCellType(cType);<br>
+switch (cType)<br>
+{<br>
+case HSSFCell.CELL_TYPE_BOOLEAN: <br>
+targetCell.setCellValue(sourceCell.getBooleanCellValue());<br>
+break;<br>
+case HSSFCell.CELL_TYPE_ERROR:<br>
+targetCell.setCellErrorValue(sourceCell.getErrorCellValue());<br>
+break; <br>
+case HSSFCell.CELL_TYPE_FORMULA:<br>
+//parseFormula这个函数的用途在后面说明<br>
+targetCell.setCellFormula(parseFormula(sourceCell.getCellFormula()));<br>
+break;<br>
+case HSSFCell.CELL_TYPE_NUMERIC:<br>
+targetCell.setCellValue(sourceCell.getNumericCellValue());<br>
+break;<br>
+case HSSFCell.CELL_TYPE_STRING:<br>
+targetCell.setCellValue(sourceCell.getStringCellValue());<br>
+break;<br>
+}<br>
+}<br>
+}<br>
+}</p>
+<p>这个函数有两个问题暂时无法解决：<br>
+a、只能在同一个Workbook里面使用，跨Workbook总是拷不过去，不知道为什么？<br>
+b、由于在拷贝行时也把行高也拷过去了，如果往这些单元格里写入的数据长度超过单元格长度，那么他们不会自动调整行高！<br>
+有哪位大侠知道上面两个问题任意一个的解决方法，请第一时间通知我！！！</p>
+<p>3、公式的问题。<br>
+POI 对Excel公式的支持是相当好的，但是我发现一个问题，如果公式里面的函数不带参数，比如now()或today()，那么你通过 getCellFormula()取出来的值就是now(ATTR(semiVolatile))和 today(ATTR(semiVolatile))，这样的值写入Excel是会出错的，这也是我上面copyRow的函数在写入公式前要调用 parseFormula的原因，parseFormula这个函数的功能很简单，就是把ATTR(semiVolatile)删掉，我把它的代码贴出来：<br>
+private String parseFormula(String pPOIFormula)<br>
+{<br>
+final String cstReplaceString = "ATTR(semiVolatile)"; //$NON-NLS-1$<br>
+StringBuffer result = null;<br>
+int index;<br>
+<br>
+result = new StringBuffer();<br>
+index = pPOIFormula.indexOf(cstReplaceString);<br>
+if (index &gt;= 0)<br>
+{<br>
+result.append(pPOIFormula.substring(0, index));<br>
+result.append(pPOIFormula.substring(index + cstReplaceString.length()));<br>
+}<br>
+else<br>
+{<br>
+result.append(pPOIFormula);<br>
+}<br>
+<br>
+return result.toString();<br>
+}<br>
+至于为什么会出现ATTR(semiVolatile)，希望哪位大侠现身跟我解释一下。</p>
+<p>4、向Excel写入图片的问题。<br>
+我上poi论坛查相关帖子，得到两种结论：1、不支持写入图片；2、支持写入图片，通过EscherGraphics2d这个Class实现。于是我就去查 EscherGraphics2d这个Class，发现这个Class提供了N个drawImage方法，喜出望外的我开始写代码，结果调了一天，一直看不到效果，黔驴技穷的我在万般无奈下只好跟踪进drawImage这个函数内部，经过N个函数调用后在最底层函数发现了最终答案（偶当场暴走！！！<img title="点击图片可在新窗口打开" style="cursor: pointer" src="http://blog.csdn.net/Emoticons/hitwall.gif">）：<br>
+public boolean drawImage(Image image, int dx1, int dy1, int dx2, int dy2, int sx1, int sy1,<br>
+int sx2, int sy2, Color bgColor, ImageObserver imageobserver)<br>
+{<br>
+if (logger.check( POILogger.WARN ))<br>
+logger.log(POILogger.WARN,"drawImage() not supported");<br>
+return true;<br>
+}<br>
+所以我强烈建议大家，以后使用第三方开发包一定尽量下载它的源代码，这样你在碰到问题时，看看它的的内部是怎么实现的，很多时候就可以不必重蹈我的覆辙了。既然POI不能写入图片，那我们只能把目光投向JXL，我用JXL写入图片功能是实现了，付出的代价是now()和today()这些函数丢失掉了，鱼与熊掌不能兼得吧，至于怎么解决JXL公式的问题，到下面这个帖子里和我一起守株待兔吧：<br>
+<a href="http://community.csdn.net/Expert/topic/3569/3569340.xml?temp=.8480646">http://community.csdn.net/Expert/topic/3569/3569340.xml?temp=.8480646</a></p>
+<p>好了我所知道得就这些，我接触poi也才几星期时间，上面有些内容可能说得并不正确，希望各位大虾砸砖指正！</p></div></body></html>

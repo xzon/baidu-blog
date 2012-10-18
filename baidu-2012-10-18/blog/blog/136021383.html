@@ -1,0 +1,492 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 17. 电子邮件 -seam满江红</title></head><body><h1>Chapter 17. 电子邮件 -seam满江红</h1><div><div class="titlepage">
+<div>
+<div>
+<h2 class="title">Chapter 17. 电子邮件 -seam满江红</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam现在包含了一个用于模板和发送邮件的可选组件。</p>
+<p>邮件支持是由 <tt class="literal"><font face="新宋体">jboss-seam-mail.jar</font></tt> 提供的。 这个JAR包包括用于创建邮件的mail JSF控件，以及 <tt class="literal"><font face="新宋体">mailSession</font></tt> 管理组件。</p>
+<p>examples/mail项目包括一份实用的email支持示例。该例子示范了恰当的打包方式，并且包含了一些当前支持的关键特性。</p>
+<p>你也可以使用Seam的集成测试环境来测试你的mail程序，参见 <a title="31.3.2.&nbsp;Seam Mail集成测试" href="http://www.redsaga.com/opendoc/Seam2.0/html/testing.html#testing.mail">Section 31.3.2, &ldquo;Seam Mail集成测试&rdquo;</a>。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e11160"></a>17.1. 创建一条消息</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>为了使用Seam Mail，你并不需要完整的学习一门模板语言&mdash;一封邮件仅仅是一个facelet！【Facelet是用来建立JSF应用程序时的一个可供选择的表现层技术】</p>
+<pre class="programlisting">&lt;m:message xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+    xmlns:m=&quot;http://jboss.com/products/seam/mail&quot;
+    xmlns:h=&quot;http://java.sun.com/jsf/html&quot;&gt;
+
+    &lt;m:from name=&quot;Peter&quot; address=&quot;peter@example.com&quot; /&gt;
+    &lt;m:to name=&quot;#{person.firstname} #{person.lastname}&quot;&gt;#{person.address}&lt;/m:to&gt;
+    &lt;m:subject&gt;Try out Seam!&lt;/m:subject&gt;
+
+    &lt;m:body&gt;
+        &lt;p&gt;&lt;h:outputText value=&quot;Dear #{person.firstname}&quot; /&gt;,&lt;/p&gt;
+        &lt;p&gt;You can try out Seam by visiting
+        &lt;a href=&quot;http://labs.jboss.com/jbossseam&quot;&gt;http://labs.jboss.com/jbossseam&lt;/a&gt;.&lt;/p&gt;
+        &lt;p&gt;Regards,&lt;/p&gt;
+        &lt;p&gt;Pete&lt;/p&gt;
+    &lt;/m:body&gt;
+
+&lt;/m:message&gt;</pre>
+<p><tt class="literal"><font face="新宋体">&lt;m:message&gt;</font></tt> 标签包装整个消息，并且通知Seam开始渲染一封邮件。 在这个 <tt class="literal"><font face="新宋体">&lt;m:message&gt;</font></tt> 标签内，我们使用标签 <tt class="literal"><font face="新宋体">&lt;m:from&gt;</font></tt> 来设置这个消息是来自谁， 使用标签 <tt class="literal"><font face="新宋体">&lt;m:to&gt;</font></tt> 来标识发送者（注意我们就和在普通的facelet里一样使用EL），和 <tt class="literal"><font face="新宋体">&lt;m:subject&gt;</font></tt> 标签。</p>
+<p><tt class="literal"><font face="新宋体">&lt;m:body&gt;</font></tt> 标签包装邮件的主体。你可以像JSF组件那样将正规的HTML标签用在邮件主体内。</p>
+<p>好，现在你已经有了email的模板，你将如何发送它呢？ 在 <tt class="literal"><font face="新宋体">m:message</font></tt> 的结尾，<tt class="literal"><font face="新宋体">mailSession</font></tt> 将被调用，用于发送邮件。 所以，你所有要做的仅仅是请求Seam渲染这个视图：</p>
+<pre class="programlisting">@In(create=true)
+private Renderer renderer;
+
+public void send() {
+    try {
+       renderer.render(&quot;/simple.xhtml&quot;);
+       facesMessages.add(&quot;Email sent successfully&quot;);
+   }
+   catch (Exception e) {
+       facesMessages.add(&quot;Email sending failed: &quot; + e.getMessage());
+   }
+}</pre>
+<p>假如：你输入了一个无效的email地址，将会抛出一个异常。该异常将被捕捉并显示给用户。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e11201"></a>17.1.1. 附件</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam中邮件添加附件的操作变得轻而易举。在处理文件时，它支持绝大多数的标准Java类型。</p>
+<p>如果你想通过邮件发送 <tt class="literal"><font face="新宋体">jboss-seam-mail.jar</font></tt>：</p>
+<pre class="programlisting">&lt;m:attachment value=&quot;/WEB-INF/lib/jboss-seam-mail.jar&quot;/&gt;</pre>
+<p>Seam将通过classpath加载文件，并将其附件加入到到邮件中。 默认情况下，它将被像 <tt class="literal"><font face="新宋体">jboss-seam-mail.jar</font></tt> 一样加载； 如果你想为它添加别名，只需要添加 <tt class="literal"><font face="新宋体">fileName</font></tt> 属性即可。</p>
+<pre class="programlisting">&lt;m:attachment value=&quot;/WEB-INF/lib/jboss-seam-mail.jar&quot; fileName=&quot;this-is-so-cool.jar&quot;/&gt;</pre>
+<p>你同样可以附加 <tt class="literal"><font face="新宋体">java.io.File</font></tt>、<tt class="literal"><font face="新宋体">java.net.URL</font></tt>：</p>
+<pre class="programlisting">&lt;m:attachment value=&quot;#{numbers}&quot;/&gt;</pre>
+<p>也可以是 <tt class="literal"><font face="新宋体">byte[]</font></tt> 或是 <tt class="literal"><font face="新宋体">java.io.InputStream</font></tt>：</p>
+<pre class="programlisting">&lt;m:attachment value=&quot;#{person.photo}&quot; contentType=&quot;image/png&quot;/&gt;</pre>
+<p>你会注意到对于 <tt class="literal"><font face="新宋体">byte[]</font></tt> 和 <tt class="literal"><font face="新宋体">java.io.InputStream</font></tt>， 你需要指定附件的MIME类型（因为这两种文件不带此类信息。）</p>
+<p>更好的是，你可以附Seam产生的PDF或任意标准的JSF视图，只需将你使用的普通标签用 <tt class="literal"><font face="新宋体">&lt;m:attachment&gt;</font></tt> 封装起来即可：</p>
+<pre class="programlisting">&lt;m:attachment fileName=&quot;tiny.pdf&quot;&gt;
+    &lt;p:document&gt;
+        A very tiny PDF
+    &lt;/p:document&gt;
+&lt;/m:attachment&gt;</pre>
+<p>如果你想将多个文件添加到附件中（例如从数据库加载的一套照片），你只需要使用 <tt class="literal"><font face="新宋体">&lt;ui:repeat&gt;</font></tt>：</p>
+<pre class="programlisting">&lt;ui:repeat value=&quot;#{people}&quot; var=&quot;person&quot;&gt;
+    &lt;m:attachment value=&quot;#{person.photo}&quot; contentType=&quot;image/jpeg&quot; fileName=&quot;#{person.firstname}_#{person.lastname}.jpg&quot;/&gt;
+&lt;/ui:repeat&gt;</pre>
+<p>如果你想直接显示一个附上的图片：</p>
+<pre class="programlisting">&lt;m:attachment
+    value=&quot;#{person.photo}&quot;
+    contentType=&quot;image/jpeg&quot;
+    fileName=&quot;#{person.firstname}_#{person.lastname}.jpg&quot;
+    status=&quot;personPhoto&quot;
+    disposition=&quot;inline&quot; /&gt;
+&lt;img src=&quot;cid:#{personPhoto.contentId}&quot; /&gt;</pre>
+<p>你可能会问 <tt class="literal"><font face="新宋体">cid:#{...}</font></tt> 的作用是什么。 是这样的，IETF明确规定将这个标签加入作为你图片的src（源文件），当试着定位图片（<tt class="literal"><font face="新宋体">Content-ID</font></tt>必须匹配）时，它就能够被查找到。&mdash; 多么神奇！</p>
+<p>在访问状态对象之前你必须声明附件。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e11279"></a>17.1.2. HTML/Text 交替部分</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>尽管现在绝大多数的邮件查看器都支持HTML格式的邮件，但还是有一些不支持，所以你可以在邮件体里添加一个无格式的文本作为替换。</p>
+<pre class="programlisting">&lt;m:body&gt;
+    &lt;f:facet name=&quot;alternative&quot;&gt;Sorry, your email reader can't show our fancy email,
+please go to http://labs.jboss.com/jbossseam to explore Seam.&lt;/f:facet&gt;
+&lt;/m:body&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e11286"></a>17.1.3. 多个收件人</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>很多时候你希望向一个收件组（比如你的用户们）发送邮件。 所有的收件人标签可以被放在一个 <tt class="literal"><font face="新宋体">&lt;ui:repeat&gt;</font></tt> 标签中：</p>
+<pre class="programlisting">&lt;ui:repeat value=&quot;#{allUsers} var=&quot;user&quot;&gt;
+    &lt;m:to name=&quot;#{user.firstname} #{user.lastname}&quot; address=&quot;#{user.emailAddress}&quot; /&gt;
+&lt;/ui:repeat&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e11296"></a>17.1.4. 多条信息</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>有时候，你需要向每一个收件人发送一条稍微有差别的信（例如：重设密码）。 最好的方法就是将整个信息放在 <tt class="literal"><font face="新宋体">&lt;ui:repeat&gt;</font></tt> 标签中：</p>
+<pre class="programlisting">&lt;ui:repeat value=&quot;#{people}&quot; var=&quot;p&quot;&gt;
+    &lt;m:message&gt;
+        &lt;m:from name=&quot;#{person.firstname} #{person.lastname}&quot;&gt;#{person.address}&lt;/m:from&gt;
+        &lt;m:to name=&quot;#{p.firstname}&quot;&gt;#{p.address}&lt;/m:to&gt;
+            ...
+    &lt;/m:message&gt;
+&lt;/ui:repeat&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e11306"></a>17.1.5. 模板</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>邮件模板示例显示（facelets模板）可以和Seam的mail标签很好的结合。</p>
+<p>我们的 <tt class="literal"><font face="新宋体">template.xhtml</font></tt> 包括：</p>
+<pre class="programlisting">&lt;m:message&gt;
+   &lt;m:from name=&quot;Seam&quot; address=&quot;do-not-reply@jboss.com&quot; /&gt;
+   &lt;m:to name=&quot;#{person.firstname} #{person.lastname}&quot;&gt;#{person.address}&lt;/m:to&gt;
+   &lt;m:subject&gt;#{subject}&lt;/m:subject&gt;
+   &lt;m:body&gt;
+       &lt;html&gt;
+           &lt;body&gt;
+               &lt;ui:insert name=&quot;body&quot;&gt;This is the default body, specified by the template.&lt;/ui:insert&gt;
+           &lt;/body&gt;
+       &lt;/html&gt;
+   &lt;/m:body&gt;
+&lt;/m:message&gt;</pre>
+<p>我们的 <tt class="literal"><font face="新宋体">templating.xhtml</font></tt> 包括：</p>
+<pre class="programlisting">&lt;ui:param name=&quot;subject&quot; value=&quot;Templating with Seam Mail&quot;/&gt;
+&lt;ui:define name=&quot;body&quot;&gt;
+    &lt;p&gt;This example demonstrates that you can easily use &lt;i&gt;facelets templating&lt;/i&gt; in email!&lt;/p&gt;
+&lt;/ui:define&gt;</pre>
+<p>你也可以在你的邮件中使用facelet的源标签，但你必须将它们置于一个jar包中并放在 <tt class="literal"><font face="新宋体">WEB-INF/lib</font></tt> 目录下 － 当使用Seam Mail从 <tt class="literal"><font face="新宋体">web.xml</font></tt> 引用 <tt class="literal"><font face="新宋体">.taglib.xml</font></tt> 并不可靠。 （因为如果你异步的发送你的邮件，Seam Mail无法访问到完整的JSF或Servlet上下文，所以并不知道　<tt class="literal"><font face="新宋体">web.xml</font></tt> 的配置参数）</p>
+<p>发送邮件时，如果你需要更多的配置Facelets或JSF，你需要重载Renderer组件，并且编程式地做配置工作 － 仅限于高级用户。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e11341"></a>17.1.6. 国际化</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam支持发送国际化的信息。默认情况下，使用JSF提供的编码，但也可以由如下的模板重写：</p>
+<pre class="programlisting">&lt;m:message charset=&quot;UTF-8&quot;&gt;
+   ...
+&lt;/m:message&gt;</pre>
+<p>邮件内容、主题和收件人（和发件人）的名称都会被编码。通过设置模板的编码，你需要确认facelets是否使用了正确的编码方式来解析你的页面。</p>
+<pre class="programlisting">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e11352"></a>17.1.7. 其它的标识头</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>有时候你会想在邮件上添加其他的头信息。Seam提供了一部分支持（请看 <a title="17.5.&nbsp;标签" href="http://www.redsaga.com/opendoc/Seam2.0/html/mail.html#mail.tags">Section 17.5, &ldquo;标签&rdquo;</a>）。 例如：我们可以设置邮件的重要程度，或着请求一个阅读回执。</p>
+<pre class="programlisting">&lt;m:message xmlns:m=&quot;http://jboss.com/products/seam/mail&quot;
+    importance=&quot;low&quot;
+    requestReadReceipt=&quot;true&quot;/&gt;</pre>
+<p>另外你也可以通过使用 <tt class="literal"><font face="新宋体">&lt;m:header&gt;</font></tt> 标签，为消息添加其它任意的头信息。</p>
+<pre class="programlisting">&lt;m:header name=&quot;X-Sent-From&quot; value=&quot;JBoss Seam&quot;/&gt;</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e11368"></a>17.2. 接收邮件</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>如果你正在使用EJB，你可以使用MDB（消息驱动Bean:Message Driven Bean）来接收消息。 JBoss提供JCA适配器 &mdash;<tt class="literal"><font face="新宋体">mail-ra.rar</font></tt> 但是跟随JBoss发布的版本有一定的限制（某些版本没有做捆绑）。 因此我们建议采用跟随推荐的Seam发布的 <tt class="literal"><font face="新宋体">mail-ra.rar</font></tt>（不在Seam包的 <tt class="literal"><font face="新宋体">mail</font></tt> 目录）。 <tt class="literal"><font face="新宋体">mail-ra.rar</font></tt> 应该被放置在 <tt class="literal"><font face="新宋体">$JBOSS_HOME/server/default/deploy</font></tt> 目录下； 如果你正在使用的JBoss版本已经有了这个文件，就替换了它。</p>
+<p>您可以向这样配置：</p>
+<pre class="programlisting">@MessageDriven(activationConfig={
+    @ActivationConfigProperty(propertyName=&quot;mailServer&quot;, propertyValue=&quot;localhost&quot;),
+    @ActivationConfigProperty(propertyName=&quot;mailFolder&quot;, propertyValue=&quot;INBOX&quot;),
+    @ActivationConfigProperty(propertyName=&quot;storeProtocol&quot;, propertyValue=&quot;pop3&quot;),
+    @ActivationConfigProperty(propertyName=&quot;userName&quot;, propertyValue=&quot;seam&quot;),
+    @ActivationConfigProperty(propertyName=&quot;password&quot;, propertyValue=&quot;seam&quot;)
+})
+@ResourceAdapter(&quot;mail-ra.rar&quot;)
+@Name(&quot;mailListener&quot;)
+public class MailListenerMDB implements MailListener {
+
+    @In(create=true)
+    private OrderProcessor orderProcessor;
+
+    public void onMessage(Message message) {
+       // Process the message
+       orderProcessor.process(message.getSubject());
+    }
+
+}</pre>
+<p>每一个接收到的消息都将导致 <tt class="literal"><font face="新宋体">onMessage(Message message)</font></tt> 被调用。 大多数Seam的注释将会在MDB内部运行，但你不可以访问持久上下文。</p>
+<p>在链接 <a target="_top" href="http://wiki.jboss.org/wiki/Wiki.jsp?page=InboundJavaMail">http://wiki.jboss.org/wiki/Wiki.jsp?page=InboundJavaMail</a> 的 <tt class="literal"><font face="新宋体">mail-ra.rar</font></tt> 上你可以找到更多的信息。</p>
+<p>如果你没有使用JBoss，你依然可以使用 <tt class="literal"><font face="新宋体">mail-ra.rar</font></tt>，或许你可以在你的程序服务器上找到类似的适配器。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e11410"></a>17.3. 配置</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>为了在你的应用程序中能够使用电子邮件，要确保 <tt class="literal"><font face="新宋体">jboss-seam-mail.jar</font></tt> 包含在 <tt class="literal"><font face="新宋体">WEB-INF/lib</font></tt> 目录中。 如果你在使用JBoss AS，则使用Seam的邮件支持不需要做更多的配置工作了。 否则你可能需要确认你是否有JavaMail的API，一个可供使用的JavaMail API的实现（JBoss AS中使用的API和实现正如作为 <tt class="literal"><font face="新宋体">lib/mail.jar</font></tt> 跟随Seam发布的包），和一份Java Activation Framework的拷贝（作为 <tt class="literal"><font face="新宋体">lib/activation.jar</font></tt> 跟随Seam发布）。</p>
+<p>Seam的Email模块需要Facelets作为视图技术。将来库的版本可能会添加对JSP的支持。另外，它需要用到seam-ui包。</p>
+<p><tt class="literal"><font face="新宋体">mailSession</font></tt> 组件使用JavaMail就像与'真实的'SMTP服务器通讯。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e11434"></a>17.3.1. <tt class="literal"><font face="新宋体">mailSession</font></tt></h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>如果你在使用JEE环境工作，可以通过JNDI查找可用的JavaMail Session，你也可以使用Seam配置好的Session。</p>
+<p>在 <a title="28.8.&nbsp;与邮件相关的组件" href="http://www.redsaga.com/opendoc/Seam2.0/html/components.html#components.mail">Section 28.8, &ldquo;与邮件相关的组件&rdquo;</a> 中有关于邮件会话组件属性的详细介绍。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e11446"></a>17.3.1.1. 在JBoss AS中查找JNDI</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>JBossAS <tt class="literal"><font face="新宋体">deploy/mail-service.xml</font></tt> 配置JavaMail会话捆绑到JNDI。 你需要修改默认的服务配置再应用到你的网络中。这里描述了更加详细的服务 <a target="_top" href="http://wiki.jboss.org/wiki/Wiki.jsp?page=JavaMail">http://wiki.jboss.org/wiki/Wiki.jsp?page=JavaMail</a></p>
+<pre class="programlisting">&lt;components xmlns=&quot;http://jboss.com/products/seam/components&quot;
+    xmlns:core=&quot;http://jboss.com/products/seam/core&quot;
+    xmlns:mail=&quot;http://jboss.com/products/seam/mail&quot;&gt;
+
+    &lt;mail:mail-session session-jndi-name=&quot;java:/Mail&quot;/&gt;
+
+&lt;/components&gt;</pre>
+<p>这里我们告诉Seam在JNDI中是通过 <tt class="literal"><font face="新宋体">java:/Mail</font></tt> 来获得邮件Session的。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e11464"></a>17.3.1.2. Seam配置会话</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>邮件会话可以通过 <tt class="literal"><font face="新宋体">components.xml</font></tt> 配置来访问的。 这里我们告诉Seam使用 <tt class="literal"><font face="新宋体">smtp.example.com</font></tt> 作为SMTP服务器。</p>
+<pre class="programlisting">&lt;components xmlns=&quot;http://jboss.com/products/seam/components&quot;
+    xmlns:core=&quot;http://jboss.com/products/seam/core&quot;
+    xmlns:mail=&quot;http://jboss.com/products/seam/mail&quot;&gt;
+
+    &lt;mail:mail-session host=&quot;smtp.example.com&quot;/&gt;
+
+&lt;/components&gt;</pre>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e11477"></a>17.4. Meldware</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam的邮件示例采用Meldware（来自 <a target="_top" href="http://buni.org/">buni.org</a>）作为邮件服务器。 Meldware是提供　<tt class="literal"><font face="新宋体">SMTP</font></tt>、<tt class="literal"><font face="新宋体">POP3</font></tt>、<tt class="literal"><font face="新宋体">IMAP</font></tt>、WebMail、共享日历和图形化的管理工具的于一身的软件； 它是作为一个JEE应用程序编写的，因此可以和你的Seam程序一起部署到JBoss上。</p>
+<p>和Seam一起分发的Meldware的版本（在文件夹<tt class="literal"><font face="新宋体">mail/buni-meldware</font></tt>）为了开发都被特别修改过 － 邮箱、用户和别名（邮件地址）在每次程序部署的时候创建。 如果你希望在产品中不仅仅使用Meldware发送邮件，建议你使用vanilla拷贝。 你也可以使用 <tt class="literal"><font face="新宋体">meldware</font></tt> 组件来创建邮箱，用户和别名等。</p>
+<pre class="programlisting">&lt;components xmlns=&quot;http://jboss.com/products/seam/components&quot;
+    xmlns:core=&quot;http://jboss.com/products/seam/core&quot;
+    xmlns:mail=&quot;http://jboss.com/products/seam/mail&quot;&gt;
+
+    &lt;mail:mail-session host=&quot;smtp.example.com&quot;/&gt;
+
+    &lt;mail:meldware&gt;
+        &lt;mail:users&gt;
+            &lt;value&gt;#{duke}&lt;/value&gt;
+            &lt;value&gt;#{root}&lt;/value&gt;
+     &lt;/mail:users&gt;
+    &lt;/mail:meldware&gt;
+
+    &lt;mail:meldware-user name=&quot;duke&quot; username=&quot;duke&quot; password=&quot;duke&quot;&gt;
+        &lt;mail:aliases&gt;
+            &lt;value&gt;duke@jboss.org&lt;/value&gt;
+            &lt;value&gt;duke@jboss.com&lt;/value&gt;
+        &lt;/mail:aliases&gt;
+    &lt;mail:meldware-user name=&quot;root&quot; username=&quot;root&quot; password=&quot;root&quot; administrator=&quot;true&quot; /&gt;
+&lt;/components&gt;</pre>
+<p>这里我们创建了两个用户，拥有两个邮件地址的 <tt class="literal"><font face="新宋体">duke</font></tt> 和名为 <tt class="literal"><font face="新宋体">root</font></tt> 的管理员。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="mail.tags"></a>17.5. 标签</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>邮件通过使用命名空间 <tt class="literal"><font face="新宋体">http://jboss.com/products/seam/mail</font></tt> 的标签生成。 文档中在消息的根部通常应该有 <tt class="literal"><font face="新宋体">message</font></tt> 标签，message标签使Seam准备生成一封邮件。</p>
+<p>标准的facelets的模板标签可以如同往常一样地来使用。 你可以在主体内部使用任何JSF标签；如果需要访问外部资源（stylesheets、javascript），那么就要确认是否设置了 <tt class="literal"><font face="新宋体">urlBase</font></tt>。</p>
+<div class="variablelist"><dl><dt><span class="term">&lt;m:message&gt;</span> </dt><dd>
+<p>邮件消息的根标签</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">importance</font></tt> &mdash; 低、正常或是高。默认是正常，这是设置邮件消息重要程度的标签。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">precedence</font></tt> &mdash; 设置消息的优先级（例如：突出）</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">requestReadReceipt</font></tt> &mdash;默认是false，如果设置，将会添加阅读回执，阅读回执将会被发给 <tt class="literal"><font face="新宋体">From:</font></tt> 地址。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">urlBase</font></tt> &mdash; 如果设置，预设的 <tt class="literal"><font face="新宋体">requestContextPath</font></tt> 将允许你在邮件中使用形如 <tt class="literal"><font face="新宋体">&lt;h:graphicImage&gt;</font></tt> 的组件。</p>
+    </li>
+</ul>
+</div>
+</dd><dt><span class="term">&lt;m:from&gt;</span> </dt><dd>
+<p>设置邮件的发件地址。每封邮件只允许有一个这样的值。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">name</font></tt> &mdash; 邮件应该来自的名称。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">address</font></tt> &mdash; 邮件应该来自的地址。</p>
+    </li>
+</ul>
+</div>
+</dd><dt><span class="term">&lt;m:replyTo&gt;</span> </dt><dd>
+<p>设置回复地址给邮件。每封邮件同样只能有一个这样的值。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">address</font></tt> &mdash; 邮件来源的地址。</p>
+    </li>
+</ul>
+</div>
+</dd><dt><span class="term">&lt;m:to&gt;</span> </dt><dd>
+<p>添加一个收件人到邮件。有多个收件人时使用复合的&lt;m:to&gt;标签。 这个标签可以被安全的放置在重复标签&lt;ui:repeat&gt;之类中。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">name</font></tt> &mdash; 收件人的名字。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">address</font></tt> &mdash; 收件人的地址。</p>
+    </li>
+</ul>
+</div>
+</dd><dt><span class="term">&lt;m:cc&gt;</span> </dt><dd>
+<p>添加抄送地址到邮件。有多个抄送地址时使用复合的&lt;m:cc&gt;标签。这个标签可以被安全的放置在重复标签&lt;ui:repeat&gt;之类中。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">name</font></tt> &mdash; 收件人的名字。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">address</font></tt> &mdash; 收件人的邮件地址。</p>
+    </li>
+</ul>
+</div>
+</dd><dt><span class="term">&lt;m:bcc&gt;</span> </dt><dd>
+<p>添加一个秘文抄送人到邮件。有多个秘密抄送地址时使用复合的&lt;m:bcc&gt;标签。 这个标签可以被安全的放置在重复标签&lt;ui:repeat&gt;之类中。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">name</font></tt> &mdash; 收件人的名字。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">address</font></tt> &mdash; 收件人的邮件地址。</p>
+    </li>
+</ul>
+</div>
+</dd><dt><span class="term">&lt;m:header&gt;</span> </dt><dd>
+<p>向邮件添加一个头（例如：<tt class="literal"><font face="新宋体">X-Sent-From: JBoss Seam</font></tt>）。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">name</font></tt> &mdash; 要添加的头的名字（例如：<tt class="literal"><font face="新宋体">X-Sent-From</font></tt>）。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">value</font></tt> &mdash; 要添加的头的值（例如：<tt class="literal"><font face="新宋体">JBoss Seam</font></tt>）。</p>
+    </li>
+</ul>
+</div>
+</dd><dt><span class="term">&lt;m:attachment&gt;</span> </dt><dd>
+<p>添加一个附件到邮件。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">value</font></tt> &mdash; 要添加的附件：</p>
+    <div class="itemizedlist">
+    <ul type="circle">
+        <li>
+        <p><tt class="literal"><font face="新宋体">String</font></tt> &mdash; 在classpath中一个 <tt class="literal"><font face="新宋体">String</font></tt> 作为到文件的路径被解析。</p>
+        </li>
+        <li>
+        <p><tt class="literal"><font face="新宋体">java.io.File</font></tt> &mdash;一个指向 <tt class="literal"><font face="新宋体">File</font></tt> 对象的EL表达式。</p>
+        </li>
+        <li>
+        <p><tt class="literal"><font face="新宋体">java.net.URL</font></tt> &mdash; 一个指向<tt class="literal"><font face="新宋体">URL</font></tt>对象的EL表达式。</p>
+        </li>
+        <li>
+        <p><tt class="literal"><font face="新宋体">java.io.InputStream</font></tt> &mdash; 一个指向 <tt class="literal"><font face="新宋体">InputStream</font></tt> 类型的EL表达式。 这种情况下，<tt class="literal"><font face="新宋体">fileName</font></tt> 和 <tt class="literal"><font face="新宋体">contentType</font></tt> 都必须指定。</p>
+        </li>
+        <li>
+        <p><tt class="literal"><font face="新宋体">byte[]</font></tt> &mdash; 一个指向 <tt class="literal"><font face="新宋体">byte[]</font></tt> 类型的EL表达式。 这种情况下，<tt class="literal"><font face="新宋体">fileName</font></tt> 和 <tt class="literal"><font face="新宋体">contentType</font></tt> 都必须指定。</p>
+        </li>
+    </ul>
+    </div>
+    <p>如果值属性被省略：</p>
+    <div class="itemizedlist">
+    <ul type="circle">
+        <li>
+        <p>如果这个标签包含一个 <tt class="literal"><font face="新宋体">&lt;p:document&gt;</font></tt> 标签，这个被描述的文档将会被生成并且附加到邮件上。 <tt class="literal"><font face="新宋体">fileName</font></tt> 应该被指定。</p>
+        </li>
+        <li>
+        <p>如果这个标签包含其它的JSF标签，将会通过它们生成HTML文档并附加到邮件。<tt class="literal"><font face="新宋体">fileName</font></tt>应该被指定。</p>
+        </li>
+    </ul>
+    </div>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">fileName</font></tt> &mdash; 指定可供使用的已经被附上的文件。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">contentType</font></tt> &mdash;指定已附上的文件的MIME类型。</p>
+    </li>
+</ul>
+</div>
+</dd><dt><span class="term">&lt;m:subject&gt;</span> </dt><dd>
+<p>设置邮件主题。</p>
+</dd><dt><span class="term">&lt;m:body&gt;</span> </dt><dd>
+<p>设置邮件主体。支持 <tt class="literal"><font face="新宋体">alternative</font></tt> facet。 比如生成的一个HTML邮件可能包含针对不支持html的阅读器的备选的文本。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">type</font></tt> &mdash; 如果设为 <tt class="literal"><font face="新宋体">plain</font></tt>，将会生成一份简单文本邮件，否则将会生成一份HTML邮件。</p>
+    </li>
+</ul>
+</div>
+</dd></dl></div>
+</div></div></body></html>

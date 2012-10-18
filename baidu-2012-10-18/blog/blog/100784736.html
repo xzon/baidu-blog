@@ -1,0 +1,409 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>VC最常用操作程序20项列举</title></head><body><h1>VC最常用操作程序20项列举</h1><div><p><strong><font color="#339900">VC最常用操作程序20项列举</font></strong></p>
+<p><font color="#339900"><font color="#000000">　　<strong>一、打开CD-ROM</strong> <br>
+<br>
+　　mciSendString(&quot;Set cdAudio door open wait&quot;,NULL,0,NULL); <br>
+<br>
+　　<strong>二、关闭CD_ROM</strong> <br>
+<br>
+　　mciSendString(&quot;Set cdAudio door closed wait&quot;,NULL,0,NULL); <br>
+</font></font></p>
+<p clear="both"> </p>
+<p><br>
+<strong>　　三、关闭计算机 <br>
+</strong></p>
+<p class="code"><br>
+<strong>OSVERSIONINFO OsVersionInfo; //包含操作系统版本信息的数据结构 <br>
+OsVersionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO); <br>
+GetVersionEx(&amp;OsVersionInfo); //获取操作系统版本信息 <br>
+if(OsVersionInfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS) <br>
+{ <br>
+//Windows98,调用ExitWindowsEx()函数重新启动计算机 <br>
+<br>
+DWORD dwReserved; <br>
+ExitWindowsEx(EWX_REBOOT,dwReserved); //可以改变第一个参数，实现注销用户、 <br>
+//关机、关闭电源等操作 <br>
+// 退出前的一些处理程序 <br>
+}</strong></p>
+<p><br>
+<br>
+<strong>　　四、重启计算机<br>
+</strong></p>
+<p class="code"><br>
+<strong>typedef int (CALLBACK *SHUTDOWNDLG)(int); //显示关机对话框函数的指针 <br>
+HINSTANCE hInst = LoadLibrary(&quot;shell32.dll&quot;); //装入shell32.dll <br>
+SHUTDOWNDLG ShutDownDialog; //指向shell32.dll库中显示关机对话框函数的指针 <br>
+if(hInst != NULL) <br>
+{ <br>
+//获得函数的地址并调用之 <br>
+ShutDownDialog = (SHUTDOWNDLG)GetProcAddress(hInst,(LPSTR)60); <br>
+<br>
+(*ShutDownDialog)(0); <br>
+}</strong></p>
+<p><br>
+<br>
+<strong>　　五、枚举所有字体 <br>
+</strong></p>
+<p class="code"><strong>LOGFONT lf; <br>
+lf.lfCharSet = DEFAULT_CHARSET; // Initialize the LOGFONT structure <br>
+strcpy(lf.lfFaceName,&quot;&quot;); <br>
+CClientDC dc (this); <br>
+// Enumerate the font families <br>
+::EnumFontFamiliesEx((HDC) dc,&amp;lf, <br>
+(FONTENUMPROC) EnumFontFamProc,(LPARAM) this,0); <br>
+//枚举函数 <br>
+int CALLBACK EnumFontFamProc(LPENUMLOGFONT lpelf, <br>
+LPNEWTEXTMETRIC lpntm,DWORD nFontType,long lparam) <br>
+<br>
+{ <br>
+// Create a pointer to the dialog window <br>
+CDay7Dlg* pWnd = (CDay7Dlg*) lparam; <br>
+// add the font name to the list box <br>
+pWnd -&gt;m_ctlFontList.AddString(lpelf -&gt;elfLogFont.lfFaceName); <br>
+// Return 1 to continue font enumeration <br>
+return 1; <br>
+} <br>
+其中m_ctlFontList是一个列表控件变量</strong></p>
+<p><br>
+　　<strong>六、一次只运行一个程序实例，如果已运行则退出</strong> <br>
+　　if( FindWindow(NULL,&quot;程序标题&quot;)) exit(0);<br>
+<br>
+　　<strong>七、得到当前鼠标所在位置</strong> <br>
+　　CPoint pt; <br>
+　　GetCursorPos(&amp;pt); //得到位置 <br>
+<br>
+　　<strong>八、上下文菜单事件触发事件：OnContextMenu事件</strong> <br>
+<br>
+　　<strong>九、显示和隐藏程序菜单</strong></p>
+<p class="code"><br>
+CWnd *pWnd=AfxGetMainWnd(); <br>
+if(b_m) //隐藏菜单 <br>
+{ <br>
+pWnd-&gt;SetMenu(NULL); <br>
+pWnd-&gt;DrawMenuBar(); <br>
+b_m=false; <br>
+} <br>
+else <br>
+{ <br>
+CMenu menu; <br>
+menu.LoadMenu(IDR_MAINFRAME); ////显示菜单 也可改变菜单项 <br>
+pWnd-&gt;SetMenu(&amp;menu); <br>
+pWnd-&gt;DrawMenuBar(); <br>
+b_m=true; <br>
+menu.Detach(); <br>
+}</p>
+<p><br>
+<br>
+　　<strong>十、获取可执行文件的图标</strong></p>
+<p class="code"><br>
+HICON hIcon=::ExtractIcon(AfxGetInstanceHandle(),_T(&quot;NotePad.exe&quot;),0); <br>
+if (hIcon &amp;&amp;hIcon!=(HICON)-1) <br>
+{ <br>
+pDC-&gt;DrawIcon(10,10,hIcon); <br>
+<br>
+} <br>
+DestroyIcon(hIcon);</p>
+<p><br>
+　　<strong>十一、窗口自动靠边程序演示</strong></p>
+<p class="code"><br>
+BOOL AdjustPos(CRect* lpRect) <br>
+{//自动靠边 <br>
+int iSX=GetSystemMetrics(SM_CXFULLSCREEN); <br>
+int iSY=GetSystemMetrics(SM_CYFULLSCREEN); <br>
+RECT rWorkArea; <br>
+BOOL bResult = SystemParametersInfo(SPI_GETWORKAREA, sizeof(RECT), &amp;rWorkAre <br>
+a, 0); <br>
+CRect rcWA; <br>
+if(!bResult) <br>
+{//如果调用不成功就利用GetSystemMetrics获取屏幕面积 <br>
+rcWA=CRect(0,0,iSX,iSY); <br>
+} <br>
+else <br>
+rcWA=rWorkArea; <br>
+int iX=lpRect-&gt;left; <br>
+int iY=lpRect-&gt;top; <br>
+<br>
+if(iX &lt; rcWA.left + DETASTEP &amp;&amp; iX!=rcWA.left) <br>
+{//调整左 <br>
+//pWnd-&gt;SetWindowPos(NULL,rcWA.left,iY,0,0,SWP_NOSIZE); <br>
+lpRect-&gt;OffsetRect(rcWA.left-iX,0); <br>
+AdjustPos(lpRect); <br>
+return TRUE; <br>
+} <br>
+if(iY &lt; rcWA.top + DETASTEP &amp;&amp; iY!=rcWA.top) <br>
+{//调整上 <br>
+//pWnd-&gt;SetWindowPos(NULL ,iX,rcWA.top,0,0,SWP_NOSIZE); <br>
+lpRect-&gt;OffsetRect(0,rcWA.top-iY); <br>
+AdjustPos(lpRect); <br>
+return TRUE; <br>
+} <br>
+if(iX + lpRect-&gt;Width() &gt; rcWA.right - DETASTEP &amp;&amp; iX !=rcWA.right-lpRect-&gt;W <br>
+<br>
+idth()) <br>
+{//调整右 <br>
+//pWnd-&gt;SetWindowPos(NULL ,rcWA.right-rcW.Width(),iY,0,0,SWP_NOSIZE); <br>
+lpRect-&gt;OffsetRect(rcWA.right-lpRect-&gt;right,0); <br>
+AdjustPos(lpRect); <br>
+return TRUE; <br>
+} <br>
+if(iY + lpRect-&gt;Height() &gt; rcWA.bottom - DETASTEP &amp;&amp; iY !=rcWA.bottom-lpRect <br>
+-&gt;Height()) <br>
+{//调整下 <br>
+//pWnd-&gt;SetWindowPos(NULL ,iX,rcWA.bottom-rcW.Height(),0,0,SWP_NOSIZE); <br>
+lpRect-&gt;OffsetRect(0,rcWA.bottom-lpRect-&gt;bottom); <br>
+return TRUE; <br>
+} <br>
+return FALSE; <br>
+} <br>
+//然后在ONMOVEING事件中使用所下过程调用 <br>
+<br>
+CRect r=*pRect; <br>
+AdjustPos(&amp;r); <br>
+*pRect=(RECT)r;</p>
+<p><br>
+　　<strong>十二、给系统菜单添加一个菜单项</strong> <br>
+<br>
+　　给系统菜单添加一个菜单项需要进行下述三个步骤：<br>
+<br>
+　　首先，使用Resource Symbols对话（在View菜单中选择Resource Symbols．．．可以显示该对话）定义菜单项ID，该ID应大于0x0F而小于0xF000；<br>
+<br>
+　　其次，调用CWnd::GetSystemMenu获取系统菜单的指针并调用CWnd:: Appendmenu将菜单项添加到菜单中。下例给系统菜单添加两个新的</p>
+<p class="code"><br>
+int CMainFrame:: OnCreate (LPCREATESTRUCT lpCreateStruct) <br>
+{ <br>
+… <br>
+//Make sure system menu item is in the right range. <br>
+<br>
+ASSERT(IDM_MYSYSITEM&lt;0xF000); <br>
+//Get pointer to system menu. <br>
+CMenu* pSysMenu=GetSystemMenu(FALSE); <br>
+ASSERT_VALID(pSysMenu); <br>
+//Add a separator and our menu item to system menu. <br>
+CString StrMenuItem(_T (&quot;New menu item&quot;)); <br>
+pSysMenu-&gt;AppendMenu(MF_SEPARATOR); <br>
+pSysMenu-&gt;AppendMenu(MF_STRING, IDM_MYSYSITEM, StrMenuItem); <br>
+… <br>
+}</p>
+<p><br>
+<br>
+　　<strong>十三、运行其它程序</strong><br>
+<br>
+　　1、运行EMAIL或网址</p>
+<p class="code">char szMailAddress[80]; <br>
+strcpy(szMailAddress,&quot;mailto:netvc@21cn.com&quot;); <br>
+ShellExecute(NULL, &quot;open&quot;, szMailAddress, NULL, NULL, SW_SHOWNORMAL);</p>
+<p><br>
+<br>
+　　2、运行可执行程序</p>
+<p class="code">WinExec(&quot;notepad.exe&quot;,SW_SHOW); //运行计事本</p>
+<p><br>
+　　<strong>十四、动态增加或删除菜单</strong><br>
+<br>
+　　1、 增加菜单</p>
+<p class="code"><br>
+//添加 <br>
+CMenu *mainmenu; <br>
+mainmenu=AfxGetMainWnd()-&gt;GetMenu(); //得到主菜单 <br>
+(mainmenu-&gt;GetSubMenu (0))-&gt;AppendMenu (MF_SEPARATOR);//添加分隔符 <br>
+(mainmenu-&gt;GetSubMenu (0))-&gt;AppendMenu(MF_STRING,ID_APP_ABOUT,_T(&quot;Always on <br>
+&amp;Top&quot;)); //添加新的菜单项 <br>
+DrawMenuBar(); //重画菜单</p>
+<p><br>
+<br>
+　　2、 删除菜单</p>
+<p class="code"><br>
+//删除 <br>
+CMenu *mainmenu; <br>
+mainmenu=AfxGetMainWnd()-&gt;GetMenu(); //得到主菜单 <br>
+<br>
+CString str ; <br>
+for(int i=(mainmenu-&gt;GetSubMenu (0))-&gt;GetMenuItemCount()-1;i&gt;=0;i--) //取得菜 <br>
+单的项数。 <br>
+{ <br>
+(mainmenu-&gt;GetSubMenu (0))-&gt;GetMenuString(i,str,MF_BYPOSITION); <br>
+//将指定菜单项的标签拷贝到指定的缓冲区。MF_BYPOSITION的解释见上。 <br>
+if(str==&quot;Always on &amp;Top&quot;) //如果是刚才我们增加的菜单项，则删除。 <br>
+{ <br>
+(mainmenu-&gt;GetSubMenu (0))-&gt;DeleteMenu(i,MF_BYPOSITION); <br>
+break; <br>
+}</p>
+<p><br>
+<br>
+　　<strong>十五、改变应用程序的图标</strong><br>
+<br>
+　　静态更改： 修改图标资源IDR_MAINFRAME。它有两个图标，一个是16*16的，另一个是32*32的，注意要一起修改。<br>
+<br>
+　　动态更改： 向主窗口发送WM_SETICON消息.代码如下：</p>
+<p class="code"><br>
+HICON hIcon=AfxGetApp()-&gt;LoadIcon(IDI_ICON); <br>
+ASSERT(hIcon); <br>
+AfxGetMainWnd()-&gt;SendMessage(WM_SETICON,TRUE,(LPARAM)hIcon);</p>
+<p><br>
+　　<strong>十六、另一种改变窗口标题的方法</strong> <br>
+<br>
+使用语句 CWnd* m_pCWnd = AfxGetMainWnd( )，然后，再以如下形式调用SetWindowText()函数： <br>
+SetWindowText( *m_pCWnd,(LPCTSTR)m_WindowText)；// m_WindowText可以是一个CString类的变量。 <br>
+<br>
+　　<strong>十七、剪切板上通过增强元文件拷贝图像数据</strong> <br>
+<br>
+　　下面代码拷贝通过元文件拷贝图像数据到任何应用程序，其可以放置在CView派生类的函数中。</p>
+<p class="code"><br>
+CMetaFileDC * m_pMetaDC = new CMetaFileDC(); <br>
+m_pMetaDC-&gt;CreateEnhanced(GetDC(),NULL,NULL,&quot;whatever&quot;); <br>
+//draw meta file <br>
+//do what ever you want to do: bitmaps, lines, text... <br>
+//close meta file dc and prepare for clipboard; <br>
+HENHMETAFILE hMF = m_pMetaDC-&gt;CloseEnhanced(); <br>
+//copy to clipboard <br>
+OpenClipboard(); <br>
+EmptyClipboard(); <br>
+::SetClipboardData(CF_ENHMETAFILE,hMF); <br>
+CloseClipboard(); <br>
+<br>
+//DeleteMetaFile(hMF); <br>
+delete m_pMetaDC;</p>
+<p><br>
+<br>
+　　<strong>十八、剪切板上文本数据的传送</strong> <br>
+<br>
+　　把文本放置到剪接板上：</p>
+<p class="code"><br>
+CString source; <br>
+//put your text in source <br>
+if(OpenClipboard()) <br>
+{ <br>
+HGLOBAL clipbuffer; <br>
+char * buffer; <br>
+EmptyClipboard(); <br>
+clipbuffer = GlobalAlloc(GMEM_DDESHARE, source.GetLength()+1); <br>
+buffer = (char*)GlobalLock(clipbuffer); <br>
+strcpy(buffer, LPCSTR(source)); <br>
+GlobalUnlock(clipbuffer); <br>
+SetClipboardData(CF_TEXT,clipbuffer); <br>
+CloseClipboard(); <br>
+}</p>
+<p><br>
+<br>
+从剪接板上获取文本：</p>
+<p class="code"><br>
+char * buffer; <br>
+if(OpenClipboard()) <br>
+{ <br>
+buffer = (char*)GetClipboardData(CF_TEXT); <br>
+//do something with buffer here <br>
+//before it goes out of scope <br>
+} <br>
+CloseClipboard();</p>
+<p><br>
+　　<strong>十九、将捕捉屏幕图像到剪切版中</strong></p>
+<p class="code"><br>
+void CShowBmpInDlgDlg::OnCutScreen() <br>
+{ <br>
+ShowWindow(SW_HIDE); <br>
+RECT r_bmp={0,0,::GetSystemMetrics(SM_CXSCREEN), <br>
+::GetSystemMetrics(SM_CYSCREEN)}; <br>
+HBITMAP hBitmap; <br>
+hBitmap=CopyScreenToBitmap(&amp;r_bmp); <br>
+<br>
+//hWnd为程序窗口句柄 <br>
+if (OpenClipboard()) <br>
+{ <br>
+EmptyClipboard(); <br>
+SetClipboardData(CF_BITMAP, hBitmap); <br>
+CloseClipboard(); <br>
+} <br>
+ShowWindow(SW_SHOW); <br>
+} <br>
+HBITMAP CShowBmpInDlgDlg::CopyScreenToBitmap(LPRECT lpRect) <br>
+{ <br>
+//lpRect 代表选定区域 <br>
+{ <br>
+HDC hScrDC, hMemDC; <br>
+// 屏幕和内存设备描述表 <br>
+HBITMAP hBitmap, hOldBitmap; <br>
+// 位图句柄 <br>
+int nX, nY, nX2, nY2; <br>
+// 选定区域坐标 <br>
+int nWidth, nHeight; <br>
+// 位图宽度和高度 <br>
+int xScrn, yScrn; <br>
+// 屏幕分辨率 <br>
+<br>
+// 确保选定区域不为空矩形 <br>
+if (IsRectEmpty(lpRect)) <br>
+return NULL; <br>
+//为屏幕创建设备描述表 <br>
+hScrDC = CreateDC(&quot;DISPLAY&quot;, NULL, NULL, NULL); <br>
+//为屏幕设备描述表创建兼容的内存设备描述表 <br>
+hMemDC = CreateCompatibleDC(hScrDC); <br>
+// 获得选定区域坐标 <br>
+nX = lpRect-&gt;left; <br>
+nY = lpRect-&gt;top; <br>
+nX2 = lpRect-&gt;right; <br>
+nY2 = lpRect-&gt;bottom; <br>
+// 获得屏幕分辨率 <br>
+xScrn = GetDeviceCaps(hScrDC, HORZRES); <br>
+yScrn = GetDeviceCaps(hScrDC, VERTRES); <br>
+//确保选定区域是可见的 <br>
+if (nX&lt;0) <br>
+<br>
+nX = 0; <br>
+if (nY&lt;0) <br>
+nY = 0; <br>
+if (nX2&gt;xScrn) <br>
+nX2 = xScrn; <br>
+if (nY2&gt;yScrn) <br>
+nY2 = yScrn; <br>
+nWidth = nX2 - nX; <br>
+nHeight = nY2 - nY; <br>
+// 创建一个与屏幕设备描述表兼容的位图 <br>
+hBitmap = CreateCompatibleBitmap <br>
+(hScrDC, nWidth, nHeight); <br>
+// 把新位图选到内存设备描述表中 <br>
+hOldBitmap =(HBITMAP)SelectObject(hMemDC, hBitmap); <br>
+// 把屏幕设备描述表拷贝到内存设备描述表中 <br>
+BitBlt(hMemDC, 0, 0, nWidth, nHeight, <br>
+hScrDC, nX, nY, SRCCOPY); <br>
+//得到屏幕位图的句柄 <br>
+hBitmap = (HBITMAP)SelectObject(hMemDC, hOldBitmap); <br>
+<br>
+//清除 <br>
+DeleteDC(hScrDC); <br>
+DeleteDC(hMemDC); <br>
+// 返回位图句柄 <br>
+return hBitmap; <br>
+} <br>
+}</p>
+<p><br>
+　　<strong>二十、如何将位图缩放显示在Static控件中</strong><br>
+<br>
+　　//在Staic控件内显示位图</p>
+<p class="code"><br>
+void CShowBmpInDlgDlg::ShowBmpInStaic() <br>
+{ <br>
+CBitmap hbmp; <br>
+HBITMAP hbitmap; <br>
+//将pStatic指向要显示的地方 <br>
+CStatic *pStaic; <br>
+pStaic=(CStatic*)GetDlgItem(IDC_IMAGE); <br>
+//装载资源 MM.bmp是我的一个文件名，用你的替换 <br>
+hbitmap=(HBITMAP)::LoadImage (::AfxGetInstanceHandle(),&quot;MM.bmp&quot;, <br>
+IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION); <br>
+<br>
+hbmp.Attach(hbitmap); <br>
+//获取图片格式 <br>
+BITMAP bm; <br>
+hbmp.GetBitmap(&amp;bm); <br>
+CDC dcMem; <br>
+dcMem.CreateCompatibleDC(GetDC()); <br>
+CBitmap *poldBitmap=(CBitmap*)dcMem.SelectObject(hbmp); <br>
+CRect lRect; <br>
+pStaic-&gt;GetClientRect(&amp;lRect); <br>
+//显示位图 <br>
+pStaic-&gt;GetDC()-&gt;StretchBlt(lRect.left ,lRect.top ,lRect.Width(),lRect.Heigh <br>
+t(), <br>
+&amp;dcMem,0 ,0,bm.bmWidth,bm.bmHeight,SRCCOPY); <br>
+dcMem.SelectObject(&amp;poldBitmap); <br>
+}</p>
+<p><br clear="all">
+<a href="http://www.pconline.com.cn/pcedu/empolder/gj/vc/0506/638220_7.html">http://www.pconline.com.cn/pcedu/empolder/gj/vc/0506/638220_7.html</a></p>
+<p><font color="#339900"><a href="http://pcedu.pconline.com.cn/empolder/gj/vc/index_3.html">http://pcedu.pconline.com.cn/empolder/gj/vc/index_3.html</a></font></p></div></body></html>

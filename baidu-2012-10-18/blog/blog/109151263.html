@@ -1,0 +1,144 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>hibernate注解</title></head><body><h1>hibernate注解</h1><div><div>
+<p>hibernate注解<br>
+转自<a href="http://blog.csdn.net/mealietree/archive/2007/04/12/1561685.aspx">http://blog.csdn.net/mealietree/archive/2007/04/12/1561685.aspx</a></p>
+<p><br>
+表明转载，即是对原创的尊重，也是对版权的维护。<br>
+　现在EJB3实体Bean是纯粹的POJO。实际上表达了和Hibernate持久化实体对象同样的概念。他们的映射都通过JDK5.0注释来定义(EJB3规范中的XML描述语法至今还没有定下来)。注释分为两个部分，分别是逻辑映射注释和物理映射注释，通过逻辑映射注释可用描述对象模型，类之间的关系等等，而物理映射注释则描述了物理的schema，表，列，索引等等。下面外面在代码中将混合使用这两种类型的注释</p>
+</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>(一)声明实体</div>
+<div> </div>
+<div>@Entity</div>
+<div> </div>
+<div>POJO用@Entity进行实体注释</div>
+<div> </div>
+<div>@Table</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  @Table是类的一级注释，通过它可用为实体指定表(Table)，目录(Catalog)，和schema的名字，如果没有@Table，那么系统自动使用默认值：实体的短类名（不带包名）</div>
+<div> </div>
+<div>@Version</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  可用在实体Bean中使用@Version添加乐观锁支持。</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  根据EJB3规范，Version列可以使用numeric类型（推荐方式）也可以使用timestamp类型。Hibernate支持任何自定义类型，只要该类型实现了UserVersionType.</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><br>
+(二)映射简单属性</div>
+<div> </div>
+<div>实体Bean中的所有非static、非transient的属性都可以被持久化。同时使用@Transient对属性进行注解同样不不会被持久化。</div>
+<div> </div>
+<div><br>
+@Column</div>
+<div> </div>
+<div>使用@Column可将属性映射到列。</div>
+<div> </div>
+<div>@Column(name = &ldquo;列名&rdquo; length = 长度)</div>
+<div> </div>
+<div><br>
+例如：</div>
+<div> </div>
+<div>&nbsp;&nbsp;  @Column(name = &ldquo;NAME&rdquo; length = 20)</div>
+<div> </div>
+<div>&nbsp;&nbsp;  public String getName() {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;  return this.name;</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div><br>
+注意：</div>
+<div> </div>
+<div>　　当POJO用有属性不需要映射的时候一定要用@Transient修饰　　</div>
+<div> </div>
+<div><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  @Lob注解表示将属性持久化为Blob或者Clob类型，具体取决于属性的类型，java.sql.Clob,Character[ ]和 char[] 和 java.lang.String这些属性都被持久化为Clob类型，而java.sql.Blob,Byte[],byte[] 和 serializable类型在被持久化为Blob类型</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>(三)映射主键属性</div>
+<div> </div>
+<div>@Id</div>
+<div> </div>
+<div>使用@Id注解可以将实体Bean中的某个属性定为为标识符(identifier)。该属性值可以通过应用自身创建，也可以通过Hibernate生成（推荐）。使用@GeneratedValue注释利用定义标识符的生产策略：</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>*AUTO&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  可以是一下三种任意一种类型，取决于地层数据库的不同</div>
+<div> </div>
+<div>*TABLE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  使用表保存id值</div>
+<div> </div>
+<div>*IDENTITY&nbsp;&nbsp;&nbsp;  identity column</div>
+<div> </div>
+<div>*SEQUENCE&nbsp;&nbsp;  sequence</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>@Id</div>
+<div> </div>
+<div>@GeneratedValue(strategy = GenerationType.IDENTITy)</div>
+<div> </div>
+<div>Public Integer getId() {… …}</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>在Hibernate的应用中提供了更加丰富的主键生产策略。</div>
+<div> </div>
+<div>@org.hibernate.annotations.GenericGeneracor允许定义一个Hibernate特定的id生成器。</div>
+<div> </div>
+<div>例:</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>@Id <br>
+@GeneratedValue(generator = &quot;system-uuid&quot;)[该属性名自定义]<br>
+@GenericGenerator(name = &quot; system-uuid &quot;, strategy = &quot;uuid&quot;)<br>
+[name可自定义，但是strategy属性必须是Hibernate中有效的主键策略]<br>
+@Column (name = &quot;user_id&quot;)<br>
+private Integer userId;</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<div>@Id <br>
+@GeneratedValue(generator = &quot;hilo&quot;)<br>
+@GenericGenerator(name = &quot;hilo&quot;, strategy = &quot;hilo&quot;)<br>
+@Column (name = &quot;user_id&quot;)<br>
+private Integer userId;</div>
+<div> </div>
+<div>2、id的配置<br>
+非常简单，在id的getter上面加个<a href="mailto:&ldquo;@Id">&ldquo;@Id</a>&rdquo;就可以了。此时采用的id策略是javax.persistence.GenerationType.AUTO，也可以再加上<a href="mailto:&ldquo;@GeneratedValue(generator">&ldquo;@GeneratedValue(generator</a> =GenerationType.IDENTITY|GenerationType.SEQUENCE|GenerationType.TABLE)&rdquo;换成其它策略。<br>
+我的应用采用的是hibernate的uuid策略，就不得不在这儿使用hibernate的扩展了</div>
+<div> </div>
+<div>@Id<br>
+@Column(length = 32)<br>
+@GeneratedValue(generator = &quot;system-uuid&quot;)<br>
+@GenericGenerator(name = &quot;system-uuid&quot;, strategy = &quot;uuid&quot;)</div>
+<div> </div>
+<div>3、级联策略<br>
+在ejb3-persistence.jar中只定义了ALL、MERGE、PERSIST、REFRESH、REMOVE，比较恶心的就是，删除对象的时候，并不会级联删除关联对象，而是用update xx set parent_id=null where parent_id=?这类语句把关系干掉了事。不得已，在这儿用了hibernate的DELETE_ORPHAN。</div>
+<div> </div>
+<div>@OneToMany(targetEntity = Attachment.class)<br>
+@Cascade(value = {org.hibernate.annotations.CascadeType.DELETE_ORPHAN,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  org.hibernate.annotations.CascadeType.ALL})<br>
+@JoinColumn(name = &quot;info_id&quot;)<br>
+4、CACHE<br>
+ejb3-persistence.jar里面没有找到cache的配置，继续请出hibernate来干活</div>
+<div> </div>
+<div>import org.hibernate.annotations.Cache;<br>
+import org.hibernate.annotations.CacheConcurrencyStrategy;</div>
+<div> </div>
+<div>@Entity<br>
+@Table(name = &quot;T_INFO&quot;)<br>
+@Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)<br>
+5、自定义字段类型<br>
+我的POJO中有一个private String content;的属性，按ejb3配成@Lob后，被处理成了text类型，text 64k的存储容量还是比较可怜了。</div>
+<div> </div>
+<div>@Lob<br>
+@Column(columnDefinition = &quot;LongText&quot;)</div>
+<div> </div>
+<div> </div></div></body></html>

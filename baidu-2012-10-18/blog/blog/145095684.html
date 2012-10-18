@@ -1,0 +1,233 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Java API的Date, Calendar日期处理相关类分析</title></head><body><h1>Java API的Date, Calendar日期处理相关类分析</h1><div><div>
+<p> </p>
+<div>Java API的Date, Calendar日期处理相关类分析</div>
+<div><span>Making Sense of Java's Dates</span></div>
+<div> </div>
+<div align="left"><span>by <a href="http://www.onjava.com/pub/au/933"><font color="#336699">Philipp K. Janert, Ph.D.</font></a> translated by <a href="mailto:humx_hn@hotmail.com?subject=Making%20Sense%20Of%20Java s%20Dates"><font color="#336699">humx</font></a></span><span><br>
+</span><span>06/04/2003</span></div>
+<div align="left"><strong><span>简介</span></strong></div>
+<div align="left"><span>在计算机程序中精确的处理日期是困难的。不仅有显而易见的</span><span>(</span><span>英语</span><span>: January, </span><span>法语</span><span>: Janvier, </span><span>德语</span><span>: Januar, </span><span>等</span><span>)</span><span>国际化需求</span><span>, </span><span>而且得考虑不同的日期系统</span><span>(</span><span>并非所有的文化都用基督耶稣的生日作为纪年的开始</span><span>)</span><span>。如有高精度或非常大规模的时间需要被处理</span><span>, </span><span>就有额外的方面需要被注意</span><span>,</span><span>比如闰秒或时间系统的变化。</span><span>(</span><span>公历</span><span>(</span><span>阳历</span><span>, </span><span>格里高利历法</span><span>)</span><span>在西方被普遍接受是在</span><span>1582</span><span>年</span><span>,</span><span>但并非所有的国家在同一天接受</span><span>!)</span></div>
+<div align="left"><span>尽管有关于闰秒</span><span>, </span><span>时区</span><span>, </span><span>夏令时</span><span>, </span><span>阴历的问题</span><span>, </span><span>度量时间却是一个非常简单的概念</span><span>: </span><span>时间的进行是线性的很容易被忽略。一旦时间轴的区域被定义</span><span>, </span><span>任何时间点被从起点时间的流逝就可以确定。这和地理位置或当地时区是独立的</span><span>&ndash; </span><span>对任意指定的时间点</span><span>, </span><span>对任意地区</span><span>, </span><span>从起点的过程是相同的</span><span>(</span><span>忽略相对论的矫正</span><span>)</span><span>。</span></div>
+<div align="center"><span><hr align="center" color="#808080" size="1" width="70%" noshade="noshade">
+</span></div>
+<div align="left"><span>可当我们试图根据某些日历解释这一时间点的时候困难来了</span><span>, </span><span>比如</span><span>, </span><span>根据月</span><span>, </span><span>日</span><span>, </span><span>或者年来表示它。在这一步上地理信息变得相关</span><span>: </span><span>在时间上的同一个点对应不同的天的某一时间</span><span>, </span><span>依赖于区域</span><span>(</span><span>比如</span><span>: </span><span>时区</span><span>)</span><span>。基于解释日期<span>的修正</span>经常是必要的</span><span>(</span><span>今天一个月以后是哪一天</span><span>?) </span><span>并且增加了额外的困难</span><span>: </span><span>上溢和下溢</span><span>(12</span><span>月</span><span>15</span><span>号的后一个月是下一年</span><span>), </span><span>且不明确</span><span>(1</span><span>月</span><span>30</span><span>号后的一个月是哪一天</span><span>?).</span></div>
+<div align="left"><span>在最初的</span><span>JDK 1.0, </span><span>一个时间点</span><span>, </span><span>通过把它解释为</span><span>java.util.Date</span><span>类</span><span>,</span><span>它<span>被计算在一起来表示</span></span><span>. </span><span>虽然相对容易处理</span><span>, </span><span>但它并不支持国际化</span><span>; </span><span>从</span><span>JDK 1.1.4 </span><span>或</span><span>JDK 1.1.5, </span><span>多样的负责处理日期的职责被分配到以下类中</span><span>:</span></div>
+<div>
+<table border="1" cellpadding="0">
+    <tbody>
+        <tr>
+            <td width="302">
+            <p align="left"><span>java.util.Date</span></p>
+            <div> </div>
+            </td>
+            <td>
+            <div align="left"><span>代表一个时间点</span><span>.</span></div>
+            </td>
+        </tr>
+        <tr>
+            <td width="302">
+            <div align="left"><span>abstract java.util.Calendar</span><span><br>
+            </span><span>java.util.GregorianCalendar extends java.util.Calendar</span></div>
+            </td>
+            <td>
+            <div align="left"><span>解释和处理</span><span>Date</span><span>.</span></div>
+            </td>
+        </tr>
+        <tr>
+            <td width="302">
+            <div align="left"><span>abstract java.util.TimeZone</span><span><br>
+            </span><span>java.util.SimpleTimeZone extends java.util.TimeZone</span></div>
+            </td>
+            <td>
+            <div align="left"><span>代表一个任意的从格林威治的偏移量</span><span>, </span><span>也包含了适用于夏令时</span><span>(daylight savings rules)</span><span>的信息</span><span>.</span></div>
+            </td>
+        </tr>
+        <tr>
+            <td width="302">
+            <div align="left"><span>abstract java.text.DateFormat extends java.text.Format</span><span> <br>
+            </span><span>java.text.SimpleDateFormat extends java.text.DateFormat</span></div>
+            </td>
+            <td>
+            <div align="left"><span>变形到格式良好的</span><span>, </span><span>可打印的</span><span>String</span><span>, </span><span>反之亦然</span><span>.</span></div>
+            </td>
+        </tr>
+        <tr>
+            <td width="302">
+            <div align="left"><span>java.text.DateFormatSymbols</span></div>
+            </td>
+            <td>
+            <div align="left"><span>月份</span><span>, </span><span>星期等的翻译</span><span>, </span><span>作为从</span><span>Locale</span><span>取得信息<span>的一种替代选择</span></span><span>. </span></div>
+            </td>
+        </tr>
+        <tr>
+            <td width="302">
+            <div align="left"><span>java.sql.Date extends java.util.Date</span><span><br>
+            </span><span>java.sql.Time extends java.util.Date</span><span><br>
+            </span><span>java.sql.Timestamp extends java.util.Date</span></div>
+            </td>
+            <td>
+            <div align="left"><span>代表时间点</span><span>, </span><span>同时为了在</span><span>sql</span><span>语句中使用也包含适当的格式</span><span>.</span></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p> </p>
+<div align="left"><span>注意</span><span>: </span><span>DateFormat</span><span>和相关的类在</span><span>java.text.*</span><span>包</span><span>. </span><span>所有的</span><span>java.sql.*</span><span>包中<span>日期处理相关类继承了</span></span><span>java.util.Date</span><span>类</span><span>. </span><span>所有的其它类在</span><span>java.util.*</span><span>包中</span><span>.</span></div>
+<div align="left"><span>这些</span><span>&quot;</span><span>新</span><span>&quot;</span><span>类来自三个分离的继承层次</span><span>, </span><span>其顶层类</span><span>(</span><span>Calendar</span><span>, </span><span>TimeZone</span><span>, and </span><span>DateFormat</span><span>)</span><span>是抽象的</span><span>. </span><span>针对每一个抽象类</span><span>, Java</span><span>标准类库提供了一个具体的实现</span><span>.</span></div>
+<div align="left"><strong><span>java.util.Date</span></strong></div>
+<div align="left"><span>类</span><span>java.util.Date</span><span>代表一个时间点</span><span>. </span><span>在许多应用中</span><span>, </span><span>此种抽象被称为</span><span>&quot;TimeStamp.&quot; </span><span>在标准的</span><span>Java</span><span>类库实现中</span><span>, </span><span>这个时间点代表</span><span>Unix</span><span>纪元</span><span>January 1, 1970, 00:00:00 GMT</span><span>开始的毫秒数</span><span>. </span><span>因而概念上来说</span><span>, </span><span>这个类是</span><span>long</span><span>的简单封装</span><span>.</span></div>
+<div align="left"><span>根据此种解释</span><span>, </span><span>类中仅有的没有过期的</span><span>(</span><span>除了那些毫秒数的</span><span>get</span><span>和</span><span>set</span><span>方法</span><span>)</span><span>是那些排序方法</span><span>.</span></div>
+<div align="left"><span>这个类依靠</span><span>System.currentTimeMillis()</span><span>来取得当前的时间点</span><span>. </span><span>因此它的准确度和精度由</span><span>System</span><span>的实现和它所调用底层</span><span>(</span><span>本质是操作系统</span><span>)</span><span>决定</span><span>.</span></div>
+<div>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="8" cellpadding="0" width="220" align="right">
+    <tbody>
+        <tr>
+            <td valign="top" width="220">
+            <p align="left"><strong><span>The </span></strong><strong><span>java.util.Date</span></strong><strong><span> API</span></strong></p>
+            <div> </div>
+            <div align="left"><span>在最初的</span><span> Date</span><span>类使用<span>中名字和约定引起了无尽的混淆</span></span><span>. </span><span>然而用</span><span>0-11</span><span>计算月</span><span>, </span><span>从</span><span>1900</span><span>计算年的决定模仿了</span><span>C</span><span>标准类库的习惯</span><span>, </span><span>调用函数</span><span> getTime()</span><span>返回起始于</span><span>Unix</span><span>纪元的毫秒数和</span><span> getDate()</span><span>返回星期的决定显然是</span><span>Java</span><span>类设计者自己的</span><span>.</span></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p> </p>
+<div align="left"><strong><span>java.util.Calendar</span></strong></div>
+<div align="left"><strong><span>语义</span></strong></div>
+<div align="left"><span>Calendar</span><span>代表一个时间点</span><span>(</span><span>一个</span><span>&quot;</span><span>Date</span><span>&quot;), </span><span>用以在特定的区域和时区适当的解释器</span><span>. </span><span>每一个</span><span>Calendar</span><span>实例有一个包含了自纪元开始的代表时间点的</span><span>long</span><span>变量</span><span>.</span></div>
+<div align="left"><span>这意味着</span><span>Calendar</span><span>不是一个</span><span>(</span><span>无状态</span><span>) </span><span>变换者或解释器</span><span>, </span><span>也不是一个修改</span><span>dates</span><span>的工厂</span><span>. </span><span>它不支持如下方式</span><span>:</span></div>
+<div align="left"><span>Month Interpreter.getMonth(inputDate) </span><span>or</span></div>
+<div align="left"><span>Date Factory.addMonth(inputDate)</span></div>
+<div align="left"><em><span>Instead</span></em><span>, </span><span>Calendar</span><span>实例必须被初始化到特定的</span><span>Date</span><span>. </span><span>此</span><span>Calendar</span><span>实例可以被修改或查询</span><span>interpreted</span><span>属性</span><span>.</span></div>
+<div align="left"><span>奇怪的是</span><span>, </span><span>此类的</span><span>instances </span><span>总是被初始化为当前时间</span><span>. </span><span>获得一个初始化为任意</span><span>Date</span><span>的</span><span>Calendar</span><span>实例是不可能的</span><span>&mdash;API</span><span>强制程序员通过一系列的在实例上的方法调用</span><span>, </span><span>比如</span><span>setTime(date)</span><span>来显式的设置日期</span><span>.</span></div>
+<div align="left"><strong><span>访问</span></strong><strong><span>Interpreted </span></strong><strong><span>字段和类常量</span></strong></div>
+<div align="left"><span>Calendar</span><span>类遵从一不常用的方式来访问</span><span>interpreted date</span><span>实例的</span><span>单个字段</span><span>. </span><span>而不是提供一些</span><em><span>dedicated</span></em><span>属性</span><span> getters</span><span>和</span><span>setters</span><span>方法</span><span>(</span><span>比如</span><span>getMonth()</span><span>), </span><span>它仅提供了一个</span><span>, </span><span>使用一个标示作为参数来获取请求的属性的方法</span><span>:</span></div>
+<div align="left"><span>int get(Calendar.MONTH)</span><span>等等</span><span>.</span></div>
+<div align="left"><span>注意这个函数总是返回一个</span><span>int</span><span>!</span></div>
+<div align="left"><span>这些字段的标示符被定义为</span><span>Calendar</span><span>类的</span><span>public static final</span><span>变量</span><span>. (</span><span>这些</span><span>identifiers</span><span>是</span><em><span>raw</span></em><span>的整数</span><span>, </span><span>没有被封装为一个枚举抽象</span><span>.)</span></div>
+<div align="left"><span>除了对应这些字段标示</span><span>(</span><span>键值</span><span>), </span><span>Calendar</span><span>类定义了许多附加的</span><span>public static final</span><span>变量来保存这些字段的值</span><span>. </span><span>因此</span><span>, </span><span>为测试某一特定</span><span>date (</span><span>由</span><span>Calendar</span><span>的实例</span><span>calendar</span><span>表示</span><span>) </span><span>是否在一年的第一个月</span><span>, </span><span>会有像如下的代码</span><span>:</span></div>
+<div align="left"><span>if (calendar.get(Calendar.MONTH) == Calendar.JANUARY) {...}</span></div>
+<div align="left"><span>注意月份被叫做</span><span>JANUARY</span><span>, </span><span>FEBRUARY</span><span>, </span><span>等等</span><span>, </span><span>不管</span><span>location(</span><span>相对更中性的名字比如</span><span>: </span><span>MONTH_1</span><span>, </span><span>MONTH_2</span><span>, </span><span>等等</span><span>). </span><span>也有一个字段</span><span>UNDECIMBER</span><span>, </span><span>被一些</span><span>(</span><span>非公历</span><span>(</span><span>阳历</span><span>, </span><span>格里高利历法</span><span>))</span><span>日历使用</span><span>, </span><span>代表一年的第十三个月</span><span>.</span></div>
+<div align="left"><span>不幸的是</span><span>, </span><span>键值和值既没有通过名字也没分组成嵌套的</span><span>inerface</span><span>来区分</span><span>.</span></div>
+<div align="left"><strong><span>处理</span></strong></div>
+<div align="left"><span>Calendar</span><span>提供了三种办法来修改当前实例代表的日期</span><span>: </span><span>set()</span><span>, </span><span>add()</span><span>, </span><span>和</span><span>roll()</span><span>. </span><span>set()</span><span>方法简单的设置特定的字段为期望的值</span><span>. </span><span>add()</span><span>和</span><span>roll()</span><span>的不同在于它们处理</span><span>over- and underflows: </span><span>add()</span><span>传递变更到</span><span>&quot;</span><span>较小</span><span>&quot;</span><span>或</span><span>&quot;</span><span>较大</span><span>&quot;</span><span>的字段</span><span>, </span><span>而</span><span>roll()</span><span>不影响其它字段</span><span>. </span><span>比如</span><span>, </span><span>当给代表</span><span>12</span><span>月</span><span>15</span><span>号的</span><span>Calendar</span><span>实例增加一个月</span><span>, </span><span>当</span><span>add()</span><span>使用年会增加</span><span>, </span><span>但使用</span><span>roll()</span><span>不会发生任何变化</span><span>. </span><span>为每一种</span><span>case</span><span>对应一个函数的决定的动机是</span><span>, </span><span>它们可能在</span><span>GUI</span><span>中不同的使用情形</span><span>.</span></div>
+<div align="left"><span>由于</span><span>Calendar</span><span>的<span>实现的方式</span></span><span>, </span><span>它包含冗余的数据</span><span>: </span><span>所有的字段都可以从给定的时区和纪元开始的毫秒数计算出来</span><span>,</span><span>反之亦然</span><span>. </span><span>这个类为这些操作分别定义了抽象方法</span><span>computeFields()</span><span>和</span><span>computeTime()</span><span>, </span><span>又定义了</span><span>complete()</span><span>方法执行完全的<span>来回旅程</span></span><span>. </span><span>因为有两套冗余的数据</span><span>, </span><span>这两套数据可能不同步</span><span>. </span><span>根据类的</span><span>JavaDoc</span><span>文档</span><span>, </span><span>当发生变更的时候依赖的数据以</span><em><span>lazily</span></em><span>的方式重新计算</span><span>. </span><span>当重新计算需要的时候</span><span>, </span><span>子类必须维护一套脏数据标志作为符号</span><span>.</span></div>
+<div align="center"><span><hr align="center" color="#808080" size="1" width="70%" noshade="noshade">
+</span></div>
+<div>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="8" cellpadding="0" width="216" align="right">
+    <tbody>
+        <tr>
+            <td valign="top" width="200">
+            <p><strong><span>实现的</span></strong><strong><span>Leakage</span></strong></p>
+            <div> </div>
+            <div><span>对于一个</span><span>&rdquo;</span><span>新</span><span>&rdquo;</span><span>的日期相关处理类</span><span>, </span><span>不得不说实现的细节在某种程度上被泄漏到了</span><span>API</span><span>中</span><span>. </span><span>在这点上</span><span>, </span><span>这是它们有意用作基类的自定义开发的反映</span><span>, </span><span>但它也偶然看出是不充分清晰设计一个公共接口的结果</span><span>.</span><span>Calendar</span><span>抽象是否维护两个冗余数据集合完全是一个实现的细节</span><span>, </span><span>因而应当对客户类隐藏</span><span>. </span><span>这也包括打算通过继承来重用此类</span><span>.</span></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p> </p>
+<div align="left"><strong><span>附加的功能</span></strong></div>
+<div><span>Calendar</span><span>基类提供的附加功能分成三类</span><span>. </span><span>几个静态的工厂方法来获得用任意时区和</span><span>locales</span><span>初始化的实例</span><span>. </span><span>如前面提到的</span><span>, </span><span>所有以这种方式获得实例已经被初始化为当前时间</span><span>. </span><span>没有工厂方法被提供来获得初始化为任意时间点的实例</span><span>.</span></div>
+<div><span>第二组包含</span><span>before(Object)</span><span>和</span><span>after(Object)</span><span>方法</span><span>. </span><span>它们接受</span><span>Object</span><span>类型<span>的参数</span></span><span>, </span><span>因而允许这些方法被子类以任意类型的参数覆盖掉</span><span>.</span></div>
+<div><span>最后</span><span>, </span><span>有许多附加的方法来获得设置附加的属性</span><span>, </span><span>比如当前的时区</span><span>. </span><span>当中有几个用以查询特定字段在当前</span><span>Calendar</span><span>实现下<span>的可能和实际的最大、最小值</span></span><span>.</span></div>
+<div> </div>
+<div><strong><span>java.util.GregorianCalendar</span></strong></div>
+<div> </div>
+<div><span>GregorianCalendar</span><span>是仅有可用的</span><span>Calendar</span><span>的</span><span>子类</span><span>. </span><span>它提供了基础</span><span>Calendar</span><span>抽象适合于根据在西方的习惯解释日期的实现</span><span>. </span><span>它增加了许多</span><span>public</span><span>的构造函数</span><span>, </span><span>也有针对于</span><span>Gregorian Calendars</span><span>的方法</span><span>, </span><span>比如</span><span>isLeapYear()</span><span>.</span></div>
+<div> </div>
+<div><strong><span>java.util.TimeZone</span></strong><strong><span>和</span></strong><strong><span>java.util.SimpleTimeZone</span></strong></div>
+<div> </div>
+<div><span>TimeZone</span><span>类和其子类是辅助类</span><span>, </span><span>被</span><span>Calendar</span><span>用以<span>根据选择的时区来解释日期</span></span><span>. </span><span>按字面意思来说</span><span>, </span><span>一个时区表示加到</span><span>GMT</span><span>上后到当前时区的一定的偏移</span><span>. </span><span>显然</span><span>, </span><span>这个偏移在夏令时有效的时候会发生变化</span><span>. </span><span>因而为了计算对于给定日期和时间的本地时间</span><span>, </span><span>TimeZone</span><span>抽象不仅需要明白当</span><span>DST</span><span>有效时的额外偏移</span><span>, </span><span>而且还需明白什么时候</span><span>DST</span><span>有效的规则</span><span>.</span></div>
+<div> </div>
+<div><span>抽象基类</span><span>TimeZone</span><span>提供了基本的处理</span><span>&quot;raw&quot;(</span><span>没有考虑夏令时</span><span>)</span><span>实际偏移</span><span>(</span><span>用毫秒数</span><span>!)</span><span>的方法</span><span>, </span><span>但任何关于</span><span>DST</span><span>规则的功能实现被留给了子类</span><span>, </span><span>比如</span><span>SimpleTimeZone</span><span>. </span><span>后者提供了许多方法来指定控制</span><span>DST</span><span>开始和结束的规则</span><span>, </span><span>比如在一个月中明确的某一天或某一天随后的周几</span><span>. </span><span>每一个</span><span>TimeZone</span><span>有一个可读的</span><span>, </span><span>本地无关的显示名</span><span>. </span><span>显示名以两种风格</span><span>: </span><span>LONG</span><span>和</span><span>SHORT</span><span>呈现</span><span>.</span></div>
+<div>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="8" cellpadding="0" width="220" align="right">
+    <tbody>
+        <tr>
+            <td valign="top" width="204">
+            <p align="left"><strong><span>星期的开始</span></strong><strong><span>?</span></strong></p>
+            <div> </div>
+            <div align="left"><span>Calendar</span><span>的文档投入了相当的文字来正确的计算月或年中的</span><span>weeks. weekday </span><span>被认为是一周的开始在因国家的不同而不同</span><span>. </span><span>在美国</span><span>, </span><span>一周通常被认为从周日开始</span><span>. </span><span>在部分欧洲国家一周从周一开始结束于周日</span><span>.</span><span>这将影响到哪一周被认为是在一年</span><span>(</span><span>或月</span><span>)</span><span>第一个完整的周</span><span>, </span><span>和计算一年的周数</span><span>.</span></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p> </p>
+<div align="left"><span>时区由一标示字符串明确的决定</span><span>. </span><span>基类提供静态方法</span><span>String[] getAvailableIDs()</span><span>来获得所有已知安装</span><span>(JDK</span><span>内带有</span><span>)</span><span>的标准时区</span><span>. (</span><span>在我的安装内有</span><span>557</span><span>个</span><span>, JDK1.4.1) </span><span>假如需要</span><span>, JavaDoc </span><span>定义了严格的建立自定义时区标示符的语法</span><span>. </span><span>也提供了静态工厂方法用以获取</span><span>&mdash; </span><span>指定</span><span>ID</span><span>或缺省的当前时区的</span><span>TimeZone</span><span>实例</span><span>. </span><span>SimpleTimeZone</span><span>提供了一些公有的构造函数</span><span>, </span><span>奇怪的是对于一个抽象类</span><span>, </span><span>如</span><span>TimeZone</span><span>. (JavaDoc </span><span>写到</span><span> &quot;</span><span>子类构造函数调用</span><span>.&quot; </span><span>显然</span><span>, </span><span>应该声明为</span><span>protected</span><span>.)</span></div>
+<div align="left"><strong><span>java.text.DateFormat</span></strong></div>
+<div align="left"><span>尽管</span><span>Calendar</span><span>和相关类处理</span><span>locale-specific</span><span>日期的解释</span><span>,</span><span>仍有</span><span>DateFormat</span><span>类辅助日期和</span><span>(</span><span>人类</span><span>)</span><span>可阅读字符串之间的变换</span><span>. </span><span>表示一个时间点时</span><span>, </span><span>会出现附加的本地化问题</span><span>: </span><span>不仅仅在语言</span><span>, </span><span>而且日期格式是地区独立的</span><span>(</span><span>美国</span><span>: Month/Day/Year,</span><span>德国</span><span>: Day.Month.Year, </span><span>等等</span><span>). </span><span>DateFormat</span><span>尽力地为程序员管理这些不同</span><span>.</span></div>
+<div align="left"><span>抽象基类</span><span>DateFormat</span><span>不需要</span><span>(</span><span>且不允许</span><span>) </span><span>任意的</span><span>, </span><span>程序员定义的日期格式</span><span>. </span><span>作为替代</span><span>, </span><span>它定义了四种格式化风格</span><span>: </span><span>SHORT</span><span>, </span><span>MEDIUM</span><span>, </span><span>LONG</span><span>, </span><span>和</span><span>FULL</span><span> (</span><span>以冗余增加的顺序</span><span>).</span><span>对一给定</span><span>locale</span><span>和</span><span>style, </span><span>程序员可依靠此类获取适当的日期格式</span><span>.</span></div>
+<div align="left"><span>抽象基类</span><span>DateFormat</span><span>没有定义静态方法来完成文本和日期之间的格式化和转换</span><span>. </span><span>作为替代</span><span>, </span><span>它定义了几个静态工厂方法来获取被初始化为给定</span><span>locale</span><span>和选定</span><span>style</span><span>的实例</span><span>. </span><span>既然标准的格式化总是包含日期和时间</span><span>, </span><span>附加工厂方法可用来获取仅处理时间或日期部分的实例</span><span>. </span><span>String format(Date)</span><span>和</span><span>Date parse(String)</span><span>方法然后执行变形</span><span>. </span><span>注意具体的子类可以选择打破这种习惯</span><span>.</span></div>
+<div align="left"><span>在其内部使用</span><span>, </span><span>解释日期的</span><span>Calendar</span><span>对象是可访问和修改的</span><span>, </span><span>TimeZone</span><span>和</span><span>NumberFormat</span><span>对象<span>也同样</span></span><span>. </span><span>然而</span><span>, </span><span>一旦</span><span>DateFormat</span><span>被实例化</span><span>locale</span><span>和</span><span>style</span><span>就不能再修改</span><span>.</span></div>
+<div align="left"><span>亦有可用的</span><span>(</span><span>抽象的</span><span>)</span><span>用以拼接的字符串解析和格式化的方法</span><span>, </span><span>分别接受额外的</span><span>ParsePosition</span><span>或</span><span>FieldPosition</span><span>参数</span><span>. </span><span>这些方法的每一个都有两个版本</span><span>. </span><span>一个接受或返回</span><span>Date</span><span>实例另一个接受或返回普通的</span><span>Object</span><span>, </span><span>来允许在子类中有选择性的处理</span><span>Date</span><span>. </span><span>它定义了一些以</span><span>_FIELD</span><span>结尾的</span><span>public static</span><span>变量来标示多种可能和</span><span>FieldPosition</span><span>一起使用的变量</span><span>(cf. </span><span>java.util.Format</span><span>的</span><span>Javadoc<span>).</span></span></div>
+<div align="left"><span>仅有且最常用的</span><span>DateFormat</span><span>类的</span><span>具体实现<span>是</span></span><span>SimpleDateFormat</span><span>. </span><span>它提供了所有上述的功能</span><span>, </span><span>且允许定义任意的时间格式</span><span>. </span><span>有一套丰富语法来指定格式化模式</span><span>; JavaDoc</span><span>提供了所有细节</span><span>. </span><span>模式可以被指定为构造函数的参数或显式的设置</span><span>.</span></div>
+<div align="center">
+<table class="FCK__ShowTableBorders" border="0" cellspacing="8" cellpadding="0" width="614">
+    <tbody>
+        <tr>
+            <td valign="top" width="598">
+            <div align="left"><strong><span>Printing a Timestamp: A Cut-and-Paste Example</span></strong></div>
+            <div align="left"><span>想象你要用用户定义的格式打印当前的时间</span><span>; </span><span>比如</span><span>, </span><span>到</span><span>log</span><span>文件</span><span>. </span><span>以下就是做这些的</span><span>: </span></div>
+            <div align="left"><span>// </span><span>创建以下格式的模式</span><span>: Hour(0-23):Minute:Second</span></div>
+            <div align="left"><span>SimpleDateFormat formatter = new SimpleDateFormat( &quot;HH:mm:ss&quot; ); </span></div>
+            <div align="left"><span>Date now = new Date();</span></div>
+            <div align="left"><span>String logEntry = formatter.format(now);</span></div>
+            <div align="left"> </div>
+            <div align="left"><span>// </span><span>从后端读入</span></div>
+            <div align="left"><span>try {</span></div>
+            <div align="left"><span><span>&nbsp;&nbsp;&nbsp;  </span>Date sometime = formatter.parse(logEntry);</span></div>
+            <div align="left"><span>} catch ( ParseException exc ) {</span></div>
+            <div align="left"><span><span>&nbsp;&nbsp;&nbsp;  </span>exc.printStackTrace();</span></div>
+            <div align="left"><span>}</span></div>
+            <div align="left"><span>注意需要被</span><span>catch</span><span>的</span><span>ParseException</span><span>. </span><span>当输入的字符串不能被</span><span>parse</span><span>的时候被抛出</span><span>.</span></div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<div align="left"><strong><span>java.sql.*</span></strong><strong><span>相关类</span></strong></div>
+<div align="left"><span>在</span><span>java.sql.*</span><span>包<span>中的日期时间处理类都继承了</span></span><span>java.util.Date</span><span>. </span><span>事实上它们三个反映了三种标准</span><span>SQL92</span><span>模型的类型需要</span><span>DATE</span><span>, </span><span>TIME</span><span>, and </span><span>TIMESTAMP</span><span>.</span></div>
+<div align="left"><span>像</span><span>java.util.Date</span><span>, SQL</span><span>包中的这三个类是表示一个时间点的数字的简单封装</span><span>. </span><span>分别地</span><span>Date</span><span>和</span><span>Time</span><span>类忽略关于一天中的时间或日历的日期</span><span>.</span></div>
+<div align="left"><span>可</span><span>Timestamp</span><span>类</span><span>, </span><span>不仅包含到毫秒精度</span><span>, </span><span>通常的时间和日期</span><span>, </span><span>而且允许存储附加的精确到纳秒精度的时间点的数据</span><span>. (</span><span>纳秒是一秒的十亿分之一</span><span>)</span></div>
+<div align="left"><span>除了影射对应的</span><span>SQL</span><span>数据类型</span><span>, </span><span>这些类处理与</span><span>SQL</span><span>一致的字符串表示的转换</span><span>. </span><span>在这一点</span><span>, </span><span>这三个类中的每一个覆盖了</span><span>toString()</span><span>方法</span><span>. </span><span>此外</span><span>, </span><span>每个类提供了静态的工厂方法</span><span>, </span><span>valueOf(String)</span><span>, </span><span>返回被初始化为传递参数字符串表示的时间的当前调用类的实例</span><span>. </span><span>这三个方法的字符串表示的格式已被</span><span>SQL</span><span>标准选定</span><span>, </span><span>且不能被程序员改变</span><span>.</span></div>
+<div align="left"><span>存储纳秒需要的额外数据</span><span>, </span><span>没有很好的与在</span><span>Timestamp</span><span>中<span>其它通常的时间和日期信息的表示一致</span></span><span>. </span><span>比如</span><span>, </span><span>在</span><span>Timestamp</span><span>实例上<span>调用</span></span><span>getTime()</span><span>将返回自</span><span>Unix</span><span>纪元开始的毫秒数</span><span>,</span><span>忽略了纳秒数据</span><span>. </span><span>简单地</span><span>, </span><span>根据</span><span>JavaDoc</span><span>文档</span><span>, </span><span>hashCode()</span><span>方法在子类中没有被覆盖</span><span>, </span><span>因而也忽略了纳秒数据</span><span>.</span></div>
+<div align="left"><span>java.sql.Timestamp</span><span>的</span><span>JavaDoc</span><span>指出</span><span>&quot;inheritance relationship (...) </span><span>实际表示实现的继承</span><span>, </span><span>而不是类型继承</span><span>(</span><span>这违反了继承的初衷</span><span>). </span><span>但即使这句话是错误的</span><span>, </span><span>既然</span><span>Java</span><span>没有私有继承的概念</span><span>(</span><span>也即继承实现</span><span>). </span><span>所有</span><span>java.sql.*</span><span>包中<span>的类应该被设计为封装一个</span></span><span>java.util.Date</span><span>对象</span><span>, </span><span>而不是继承它</span><span>, </span><span>仅暴露需要的方法</span><span>&mdash; </span><span>最起码</span><span>, </span><span>方法比如</span><span>hashCode()</span><span>应该被适当的覆盖</span><span>.</span></div>
+<div align="left"><span>最后一个评论是关于数据库引擎的时区的处理</span><span>. </span><span>在</span><span>java.sql.*</span><span>包中的类不允许显式的设置时区</span><span>. </span><span>数据库服务器</span><span>(</span><span>或驱动</span><span>) </span><span>可自由的依据服务器</span><span>server</span><span>的当地时区解释这些信息</span><span>, </span><span>且其可能被影响而变化</span><span>(</span><span>比如</span><span>, </span><span>因为夏令时</span><span>).</span></div>
+<div align="left"><strong><span>总结</span></strong></div>
+<div align="left"><span>通过前面的讨论</span><span>, </span><span>很清楚</span><span>, Java</span><span>的日期处理相关类并非很复杂</span><span>, </span><span>但是没有被很好设计</span><span>. </span><span>封装被疏漏</span><span>, APIs</span><span>结构复杂且没有被很好的组织</span><span>, </span><span>且非常见的思路经常被无缘由的使用</span><span>. </span><span>实现更有其它的莫名奇妙</span><span>(</span><span>提议看看</span><span>Calendar.getInstance(Locale)</span><span>对于所有可用</span><span>locale</span><span>实际返回对象的类型</span><span>!) </span><span>另一方面</span><span>, the classes manage to treat all of the difficulties inherent in internationalized date handling and, in any case, are here to stay. </span><span>希望这篇文章对帮助你搞清它们的用法有所帮助</span><span>.</span></div>
+<div>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="8" cellpadding="0" width="220" align="right">
+    <tbody>
+        <tr>
+            <td valign="top" width="220">
+            <p align="left"><strong><span>Call Me By My True Names</span></strong></p>
+            <div> </div>
+            <div align="left"><span>As a last example of the wonderful consistency and orthogonality of Java's APIs, I would like to list three (maybe there are more!) different methods to obtain the number of milliseconds since the start of the Unix epoch:</span></div>
+            <ul type="disc">
+                <li><span>long java.util.Date.getTime()</span></li>
+                <li><span>long java.util.Calendar.getTimeInMillis()</span><span> (New with JDK 1.4.1. Note that </span><span>java.util.Calendar.getTime()</span><span> returns a </span><span>Date</span><span> object!) </span></li>
+                <li><span>long java.lang.System.currentTimeMillis()</span></li>
+            </ul>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p> </p>
+<div align="left"><strong><span>感谢</span></strong></div>
+<div align="left"><span>作者非常感谢</span><span>Wilhelm Fitzpatrick (</span><span>西雅图</span><span>) </span><span>细心的阅读原稿和有价值的意见</span><span>.</span></div>
+<div align="left"><strong><span>References</span></strong></div>
+<ul type="disc">
+    <li><span><a href="http://oss.software.ibm.com/icu/docs/papers/international_calendars_in_java.html"><font color="#336699">International Calendars in Java at IBM</font></a> : A detailed white paper by one of the original authors on the genesis and intended usage of Java's date-handling classes. Highly recommended. </span></li>
+    <li><span><a href="http://www.alphaworks.ibm.com/tech/calendars"><font color="#336699">IBM alphaWorks: International Calendars</font></a>: Additional subclasses of </span><span>Calendar</span><span> for Buddhist, Hebrew, Muslim, and Japanese calendars used to be available at IBM's alphaWorks. Unfortunately, they seem to be temporarily unavailable. </span></li>
+    <li><span><a href="http://emr.cs.iit.edu/~reingold/calendars.shtml"><font color="#336699">Reingold on Calendars</font></a>: Web site of Edward M. Reingold, author of <em>Calendrical Calculations</em>, the standard reference on calendars. </span></li>
+    <li><span><a href="http://web.meson.org/calendars/calinfo.html"><font color="#336699">About the Calendars</font></a>: A brief overview of some of the more common international calendars. </span></li>
+    <li><span><a href="http://www.javalobby.com/thread.jsp?forum=61&amp;thread=4758"><font color="#336699">Thread on JavaLobby</font></a>: A brief, but interesting, thread on JavaLobby. Apparently, some people considered the APIs of Java's date classes to be so bad that they filed an official bug-report to have them changed. Unfortunately, the request has been rejected. </span></li>
+</ul>
+<div align="left"><em><span><a href="http://www.onjava.com/pub/au/933"><font color="#336699">Philipp K. Janert, Ph.D.</font></a> is a Software Project Consultant, server programmer, and architect. </span></em></div>
+<div align="left"><span><a href="http://blog.csdn.net/yulchina/archive/2004/12/08/208751.aspx">http://blog.csdn.net/yulchina/archive/2004/12/08/208751.aspx</a></span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></div></body></html>

@@ -1,0 +1,759 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 25. Seam配置和Seam应用程序打包 -seam满江红</title></head><body><h1>Chapter 25. Seam配置和Seam应用程序打包 -seam满江红</h1><div><div class="titlepage">
+<div>
+<div>
+<h2 class="title">Chapter 25. Seam配置和Seam应用程序打包 -seam满江红</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>配置是一个非常枯燥的话题，也是一种极其乏味的消遣。不幸的是，为了将Seam集成到你的JSF实现和Servlet容器中，有些XML语句是必须的。 你不必再被以下部分拖延时间了；你将永远不必亲自键入以下任何内容，因为你可以从示例应用程序中拷贝和粘帖。</p>
+<div class="sect1">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title" style="clear: both"><a name="d0e13833"></a>25.1. Seam基本配置</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>首先，让我们看看每当将Seam和JSF一起使用时所需要的基本配置。</p>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e13838"></a>25.1.1. 将Seam与JSF和servlet容器集成</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>当然，你需要一个Faces Servlet！</p>
+<pre class="programlisting">&lt;servlet&gt;
+    &lt;servlet-name&gt;Faces Servlet&lt;/servlet-name&gt;
+    &lt;servlet-class&gt;javax.faces.webapp.FacesServlet&lt;/servlet-class&gt;
+    &lt;load-on-startup&gt;1&lt;/load-on-startup&gt;
+&lt;/servlet&gt;
+
+&lt;servlet-mapping&gt;
+    &lt;servlet-name&gt;Faces Servlet&lt;/servlet-name&gt;
+    &lt;url-pattern&gt;*.seam&lt;/url-pattern&gt;
+&lt;/servlet-mapping&gt;</pre>
+<p>（你可以调整URL模式以适合你的需要。）</p>
+<p>另外，Seam需要在你的 <tt class="literal"><font face="新宋体">web.xml</font></tt> 文件中有以下项：</p>
+<pre class="programlisting">&lt;listener&gt;
+    &lt;listener-class&gt;org.jboss.seam.servlet.SeamListener&lt;/listener-class&gt;
+&lt;/listener&gt;</pre>
+<p>这个listener负责引导Seam，以及销毁会话和应用程序。</p>
+<p>有些JSF实现在服务器端状态保持方面实现得很差，它们会与Seam的对话传播发生冲突。 如果你在表单提交时遇到了对话传播的问题，就尝试着切换到客户端状态保持。在你的 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中需要有这些：</p>
+<pre class="programlisting">&lt;context-param&gt;
+    &lt;param-name&gt;javax.faces.STATE_SAVING_METHOD&lt;/param-name&gt;
+    &lt;param-value&gt;client&lt;/param-value&gt;
+&lt;/context-param&gt;</pre>
+</div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e13863"></a>25.1.2. 使用Facelets</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>如果你愿意听从我们的建议，使用Facelets代替JSP，就需要在 <tt class="literal"><font face="新宋体">faces-config.xml</font></tt> 中增加以下几行：</p>
+<pre class="programlisting">&lt;application&gt;
+    &lt;view-handler&gt;com.sun.facelets.FaceletViewHandler&lt;/view-handler&gt;
+&lt;/application&gt;</pre>
+<p>并将以下几行加到 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中：</p>
+<pre class="programlisting">&lt;context-param&gt;
+    &lt;param-name&gt;javax.faces.DEFAULT_SUFFIX&lt;/param-name&gt;
+    &lt;param-value&gt;.xhtml&lt;/param-value&gt;
+&lt;/context-param&gt;</pre>
+</div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e13880"></a>25.1.3. Seam Resource Servlet</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam Resource Servlet提供资源，这些资源被Seam Remoting、captchas（请参考&ldquo;安全&rdquo;章节）和一些JSF UI控件所使用。 配置Seam Resource Servlet时，需要在 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中有以下项：</p>
+<pre class="programlisting">&lt;servlet&gt;
+  &lt;servlet-name&gt;Seam Resource Servlet&lt;/servlet-name&gt;
+  &lt;servlet-class&gt;org.jboss.seam.servlet.SeamResourceServlet&lt;/servlet-class&gt;
+&lt;/servlet&gt;
+
+&lt;servlet-mapping&gt;
+  &lt;servlet-name&gt;Seam Resource Servlet&lt;/servlet-name&gt;
+  &lt;url-pattern&gt;/seam/resource/*&lt;/url-pattern&gt;
+&lt;/servlet-mapping&gt;</pre>
+</div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e13890"></a>25.1.4. Seam Servlet过滤器</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam的基本操作不需要任何Servlet过滤器。可是，有些功能依赖于过滤器的使用。 为了让一切对你来说更容易，Seam让你可以增加和配置Servlet过滤器，就像你配置其他内建Seam组件一样。 为了利用这个特性，我们必须首先在 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中装载一个主过滤器：</p>
+<pre class="programlisting">&lt;filter&gt;
+    &lt;filter-name&gt;Seam Filter&lt;/filter-name&gt;
+    &lt;filter-class&gt;org.jboss.seam.servlet.SeamFilter&lt;/filter-class&gt;
+&lt;/filter&gt;
+
+&lt;filter-mapping&gt;
+    &lt;filter-name&gt;Seam Filter&lt;/filter-name&gt;
+    &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+&lt;/filter-mapping&gt;</pre>
+<p>Seam主过滤器 <span class="emphasis"><em>必须</em></span> 是在 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中指定的第一个过滤器。这样就能保证它首先运行。</p>
+<p>为了取消内建的过滤器，你可以在一个特定的过滤器中设置 <tt class="literal"><font face="新宋体">disabled=&quot;true&quot;</font></tt></p>
+<p>增加主过滤器使得以下内建过滤器可用。</p>
+<div class="sect3">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e13915"></a>25.1.4.1. 异常处理</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>这个过滤器在 <tt class="literal"><font face="新宋体">pages.xml</font></tt> 中提供异常映射功能（几乎所有的应用程序都需要这个）。 当未捕获的异常发生时，它也负责回滚未提交的事务。 （根据Java EE规范，Web容器应该能自动做到这一点，但我们发现在所有应用程序服务器中，都不支持这一行为。 当然在普通Servlet引擎如Tomcat中，它并不是必需的。）</p>
+<p>默认情况下，异常处理过滤器将处理所有请求，但是这种行为可以通过增加一个 <tt class="literal"><font face="新宋体">&lt;web:exception-filter&gt;</font></tt> 项到 <tt class="literal"><font face="新宋体">components.xml</font></tt> 文件来进行调整，如下面的例子所示：</p>
+<pre class="programlisting">&lt;components xmlns=&quot;http://jboss.com/products/seam/components&quot;
+            xmlns:web=&quot;http://jboss.com/products/seam/web&quot;&gt;
+
+    &lt;web:exception-filter url-pattern=&quot;*.seam&quot;/&gt;
+
+&lt;/components&gt;</pre>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">url-pattern</font></tt> &mdash; 被用来指定过滤哪些请求，默认是所有请求。</p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e13940"></a>25.1.4.2. 通过重定向传播对话</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>这个过滤器允许Seam通过浏览器重定向来传播对话上下文。 它拦截任何浏览器重定向，并增加一个指定Seam对话标识符的请求参数。</p>
+<p>默认情况下，重定向过滤器将处理所有的请求，但这个行为也可以在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 文件中进行调整：</p>
+<pre class="programlisting">&lt;web:redirect-filter url-pattern=&quot;*.seam&quot;/&gt;</pre>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">url-pattern</font></tt> &mdash; 被用来指定过滤哪些请求，默认是所有请求。</p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e13959"></a>25.1.4.3. 多重表单提交</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>当使用Seam文件上传JSF控件时，这个特性很有必要。它依据多重表单/数据规范（RFC-2388）检测并处理多重表单请求。 要覆盖默认设置，向 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中增加以下项：</p>
+<pre class="programlisting">&lt;web:multipart-filter create-temp-files=&quot;true&quot;
+                      max-request-size=&quot;1000000&quot;
+                      url-pattern=&quot;*.seam&quot;/&gt;</pre>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">create-temp-files</font></tt> &mdash; 如果设置为 <tt class="literal"><font face="新宋体">true</font></tt>，加载的文件被写到临时文件中（而不是保留在内存中）。 如果期望加载大文件，这个设置可能是一个很重要的考虑因素。默认的设置是 <tt class="literal"><font face="新宋体">false</font></tt>。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">max-request-size</font></tt> &mdash; 如果加载请求中的文件大小（由读取请求中 <tt class="literal"><font face="新宋体">Content-Length</font></tt> 头的的值决定）超过这个值，该请求将被中止。默认设置是0（大小不限）。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">url-pattern</font></tt> &mdash; 被用来指定过滤哪些请求，默认是所有请求。</p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e13997"></a>25.1.4.4. 字符编码</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>设置被提交的表单数据的字符编码</p>
+<p>默认没有装载这个过滤器，它需要由 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中的一个项来启用：</p>
+<pre class="programlisting">&lt;web:character-encoding-filter encoding=&quot;UTF-16&quot;
+                               override-client=&quot;true&quot;
+                               url-pattern=&quot;*.seam&quot;/&gt;</pre>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">encoding</font></tt> &mdash; 要使用的编码</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">override-client</font></tt> &mdash; 如果它被设置为 <tt class="literal"><font face="新宋体">true</font></tt>，则请求中的编码将被设置为 <tt class="literal"><font face="新宋体">encoding</font></tt> 指定的任何值，而不管请求中是否已经指定一种编码。 如果设置为 <tt class="literal"><font face="新宋体">false</font></tt>，当请求中没有指定任何一种编码时，才会设置请求编码。默认设置是 <tt class="literal"><font face="新宋体">false</font></tt></p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">url-pattern</font></tt> &mdash; 被用来指定过滤哪些请求，默认是所有请求。</p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e14040"></a>25.1.4.5. RichFaces</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>如果在你的工程中使用了Ajax4jsf，Seam会确保在装载其他所有内建过滤器之前，为你装载Ajax4jsf过滤器。 你不必亲自在 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中装载Ajax4jsf过滤器。</p>
+<p>只有当你的工程中有RichFaces jar包时，才会安装RichFaces Ajax过滤器。</p>
+<p>为了覆盖默认的设置，要在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中增加以下项。这些选项与RichFaces开发者指南中指定的一样：</p>
+<pre class="programlisting">&lt;web:ajax4jsf-filter force-parser=&quot;true&quot;
+                     enable-cache=&quot;true&quot;
+                     log4j-init-file=&quot;custom-log4j.xml&quot;
+                     url-pattern=&quot;*.seam&quot;/&gt;</pre>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">force-parser</font></tt> &mdash; 强制Richfaces的XMl语法检验器去验证所有的JSF页面。 如果为 <tt class="literal"><font face="新宋体">false</font></tt>，则只有AJAX响应才被验证并被转换成合适的XML。 设置<tt class="literal"><font face="新宋体">force-parser</font></tt> 为 <tt class="literal"><font face="新宋体">false</font></tt> 可以提高性能，但会在AJAX更新时提供可视化的工件。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">enable-cache</font></tt> &mdash; 启用框架生成资源的缓存（如，JavaScript，CSS，Images等）。 当开发定制的JavaScript或CSS时，设置为true以阻止浏览器缓存这些资源。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">log4j-init-file</font></tt> &mdash; 被用于安装 per-application 记录。 应该提供一个相对于web程序上下文的log4j.xml配置文件路径。</p>
+    </li>
+    <li>
+    <p><tt class="literal"><font face="新宋体">url-pattern</font></tt> &mdash; 用来指定过滤哪些请求，默认是所有请求。</p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e14091"></a>25.1.4.6. Identity Logging</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>这个过滤器将被验证的用户名添加到log4j映射诊断上下文中，以便如果喜欢，可能通过在模式中添加%X{username}，使它能够被包含在格式化过的日志输出中。</p>
+<p>默认情况下，记录过虑器会处理所有请求，但是这一行为可以通过在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中添加 <tt class="literal"><font face="新宋体">&lt;web:logging-filter&gt;</font></tt> 项来进行调整，如下面的例子所示：</p>
+<pre class="programlisting">&lt;components xmlns=&quot;http://jboss.com/products/seam/components&quot;
+            xmlns:web=&quot;http://jboss.com/products/seam/web&quot;&gt;
+    &lt;web:logging-filter url-pattern=&quot;*.seam&quot;/&gt;
+&lt;/components&gt;</pre>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">url-pattern</font></tt> &mdash; Used to specify which requests the filter is active for. The default is all requests. <tt class="literal"><font face="新宋体">url-pattern</font></tt> &mdash;用来指定该过滤器是为哪些请求而激活的。默认是所有请求。</p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e14116"></a>25.1.4.7. 定制Servlet的上下文管理</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>直接发送到某些Servlet而不是JSF Servlet的请求不在JSF生命周期中被处理，因此Seam提供了一个Servlet过滤器供其他的Servlet使用，这些Servlet需要访问Seam组件。</p>
+<p>这个过滤器允许定制的Servlet与Seam上下文交互。它在每个请求的开始设立Seam上下文，并在请求结束时卸掉它们。 你必须确保这个过滤器 <span class="emphasis"><em>永远不</em></span> 被用于JSF <tt class="literal"><font face="新宋体">FacesServlet</font></tt>。 Seam在JSF请求中为上下文管理使用阶段监听器（phase listener）。</p>
+<p>默认没有装载这个过滤器，它需要由 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中的一个项来启用：</p>
+<pre class="programlisting">&lt;web:context-filter url-pattern=&quot;/media/*&quot;/&gt;</pre>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p><tt class="literal"><font face="新宋体">url-pattern</font></tt> &mdash; 被用来指定过滤哪些请求，默认是所有请求。 如果上下文过滤器的URL模式已指定，则将启用该过滤器（除非明确取消）。</p>
+    </li>
+</ul>
+</div>
+<p>上下文过滤器期望在名称为 <tt class="literal"><font face="新宋体">conversationId</font></tt> 的请求参数中，找到所有对话上下文的对话id。 你要负责确保对话ID在请求中被发送。</p>
+<p>你还需要负责确保将所有新的对话id传送回客户端。Seam将对话id作为内建的 <tt class="literal"><font face="新宋体">conversation</font></tt> 组件的一个属性暴露出来。</p>
+</div>
+<div class="sect3">
+<div class="titlepage">
+<div>
+<div>
+<h4 class="title"><a name="d0e14153"></a>25.1.4.8. 增加定制的过滤器</h4>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam能为你装载过滤器，允许你指定过滤器要放在过滤器链中的 <span class="emphasis"><em>什么位置</em></span> （如果你在 <tt class="literal"><font face="新宋体">web.xml</font></tt> 中指定自己的过滤器，servlet规范就没有提供一个定义良好的顺序）。 只需要给你的Seam组件加上 <tt class="literal"><font face="新宋体">@Filter</font></tt> 注解（你的Seam组件必须实现 <tt class="literal"><font face="新宋体">javax.servlet.Filter</font></tt>）。</p>
+<pre class="programlisting">@Startup
+@Scope(APPLICATION)
+@Name(&quot;org.jboss.seam.web.multipartFilter&quot;)
+@BypassInterceptors
+@Filter(within=&quot;org.jboss.seam.web.ajax4jsfFilter&quot;)
+public class MultipartFilter extends AbstractFilter {</pre>
+<p>增加 <tt class="literal"><font face="新宋体">@Startup</font></tt> 注解意味着该组件在Seam启动时有效；双向注入（bijection）在这里无效（<tt class="literal"><font face="新宋体">@BypassInterceptors</font></tt>）； 并且该过滤器在链中应该比Ajax4jsf过滤器（<tt class="literal"><font face="新宋体">@Filter(within=&quot;org.jboss.seam.web.ajax4jsfFilter&quot;)</font></tt>）更靠后一些。</p>
+</div>
+</div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e14183"></a>25.1.5. 将Seam与你的EJB容器集成</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们需要将 <tt class="literal"><font face="新宋体">SeamInterceptor</font></tt> 用于我们的Seam组件。 在整个程序中完成这个的最简单方式是在 <tt class="literal"><font face="新宋体">ejb-jar.xml</font></tt> 中增加以下拦截器配置：</p>
+<pre class="programlisting">&lt;interceptors&gt;
+    &lt;interceptor&gt;
+        &lt;interceptor-class&gt;org.jboss.seam.ejb.SeamInterceptor&lt;/interceptor-class&gt;
+    &lt;/interceptor&gt;
+&lt;/interceptors&gt;
+
+&lt;assembly-descriptor&gt;
+    &lt;interceptor-binding&gt;
+        &lt;ejb-name&gt;*&lt;/ejb-name&gt;
+        &lt;interceptor-class&gt;org.jboss.seam.ejb.SeamInterceptor&lt;/interceptor-class&gt;
+    &lt;/interceptor-binding&gt;
+&lt;/assembly-descriptor&gt;</pre>
+<p>Seam需要知道在JNDI中到哪里去寻找会话Bean。其中一种方法是在每个会话Bean Seam组件中指定 <tt class="literal"><font face="新宋体">@JndiName</font></tt>注解。 然而，这样相当乏味。更好的一种方式是指定一种模式，Seam可以根据这个模式从EJB名称里推算出JNDI的名称。 不幸的是，在EJB3规范里面，没有定义到全局JNDI的标准映射，所以这个映射是特定于供应商的。 我们通常在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中指定这个选项。</p>
+<p>对于JBoss AS，以下的模式是正确的：</p>
+<pre class="programlisting">&lt;core:init jndi-name=&quot;myEarName/#{ejbName}/local&quot; /&gt;</pre>
+<p><tt class="literal"><font face="新宋体">myEarName</font></tt>就是部署Bean所在EAR的名称。</p>
+<p>在一个EAR的外面（当使用嵌入式的JBoss的EJB3容器时），以下模式就是要用到的那个：</p>
+<pre class="programlisting">&lt;core:init jndi-name=&quot;#{ejbName}/local&quot; /&gt;</pre>
+<p>你不得不尝试着去找到其他应用程序服务器的正确配置。 注意有些服务器（比如GlassFish）要求你为所有EJB组件直接（而且很乏味地）指定JNDI名称。 在这种情况下，你可以选择你自己的模式。:-)</p>
+<p>在一个EJB3的环境中，我们建议给事务管理使用一个特殊的内建组件，它完全知道容器事务，并且可以正确地处理用 <tt class="literal"><font face="新宋体">Events</font></tt> 组件注册的事务成功事件。 如果你没有在你的 <tt class="literal"><font face="新宋体">components.xml</font></tt> 文件中增加这几行，Seam就不会知道容器管理的事务什么时候结束:</p>
+<pre class="programlisting">&lt;transaction:ejb-transaction/&gt;</pre>
+</div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e14229"></a>25.1.6. 切记！</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>还有最后一点你要知道的。你必须在部署你的Seam组件的每个压缩文档中（即使空的属性文件也要这样），放置一个 <tt class="literal"><font face="新宋体">seam.properties</font></tt>、<tt class="literal"><font face="新宋体">META-INF/seam.properties</font></tt> 或<tt class="literal"><font face="新宋体">META-INF/components.xml</font></tt>文件。 在启动时，Seam将会根据 <tt class="literal"><font face="新宋体">seam.properties</font></tt> 文件扫描所有压缩档案寻找Seam组件。</p>
+<p>在一个Web压缩档案（WAR）文件中，如果在 <tt class="literal"><font face="新宋体">WEB-INF/classes</font></tt> 目录下，包含有任何Seam组件，你必须在该目录中放置一个 <tt class="literal"><font face="新宋体">seam.properties</font></tt>文件。</p>
+<p>这就是为什么所有的Seam示例程序都有一个空的 <tt class="literal"><font face="新宋体">seam.properties</font></tt> 文件的原因。 你不能删掉这些文件，还期待一切仍然正常运行！</p>
+<p>你可能会觉得这很愚蠢，并且框架的设计者做一个空文件来影响他们的软件该是多么的白痴啊？ 当然，这是针对Java虚拟机的限制所采取的一种权宜之计 &mdash; 如果我们不使用这个机制，那么我们的下一个最佳选项将逼迫你显式地在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中列出所有的组件，就像其他某些竞争框架所做的那样！我想你会喜欢更喜欢我们这种方式。</p>
+</div>
+</div>
+<div class="sect1">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title" style="clear: both"><a name="d0e14264"></a>25.2. 在Java EE 5中配置Seam</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/ee5.png"></div>
+<p>如果你是在Java EE 5的环境下运行，这就是开始使用Seam所需的全部配置！</p>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e14274"></a>25.2.1. 打包</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>一旦你将所有这些东西都打包到一个EAR文件中，该压缩文档看起来就会像这样：</p>
+<pre class="programlisting">my-application.ear/
+    jboss-seam.jar
+    lib/
+        jboss-el.jar
+    META-INF/
+        MANIFEST.MF
+        application.xml
+    my-application.war/
+        META-INF/
+            MANIFEST.MF
+        WEB-INF/
+            web.xml
+            components.xml
+            faces-config.xml
+            lib/
+                jsf-facelets.jar
+                jboss-seam-ui.jar
+        login.jsp
+        register.jsp
+        ...
+    my-application.jar/
+        META-INF/
+            MANIFEST.MF
+            persistence.xml
+        seam.properties
+        org/
+            jboss/
+                myapplication/
+                    User.class
+                    Login.class
+                    LoginBean.class
+                    Register.class
+                    RegisterBean.class
+                    ...</pre>
+<p>你要在 <tt class="literal"><font face="新宋体">META-INF/application.xml</font></tt> 中将 <tt class="literal"><font face="新宋体">jboss-seam.jar</font></tt> 声明为一个EJB模块。 <tt class="literal"><font face="新宋体">jboss-el.jar</font></tt> 应该被放置在EAR的lib目录下（将它放在EAR的classpath中）。</p>
+<p>如果你想使用jBPM或Drools，你必须在EAR的lib目录下包含所需要的jar文件。</p>
+<p>如果你想使用Facelets（我们建议使用），你必须在WAR的 <tt class="literal"><font face="新宋体">WEB-INF/lib</font></tt> 目录下包含 <tt class="literal"><font face="新宋体">jsf-facelets.jar</font></tt></p>
+<p>如果你想使用Seam标签库（大多数Seam应用程序都这么做），你就必须在WAR的 <tt class="literal"><font face="新宋体">WEB-INF/lib</font></tt> 目录下包含 <tt class="literal"><font face="新宋体">jboss-seam-ui.jar</font></tt>。 如果你想用PDF或者Email标签库，则需要在 <tt class="literal"><font face="新宋体">WEB-INF/lib</font></tt> 目录下放置 <tt class="literal"><font face="新宋体">jboss-seam-pdf.jar</font></tt> 或 <tt class="literal"><font face="新宋体">jboss-seam-mail.jar</font></tt>。</p>
+<p>如果你想要使用Seam调试页面（只在使用Facelets的应用程序中有效），你必须在WAR的 <tt class="literal"><font face="新宋体">WEB-INF/lib</font></tt> 目录下包含<tt class="literal"><font face="新宋体">jboss-seam-debug.jar</font></tt></p>
+<p>Seam发行时包括几个示例程序，他们能在任何支持EJB 3.0的Java EE容器中部署。</p>
+<p>我真的希望这就是配置专题所要说的全部内容，可惜的是，我们只涉及到了它的三分之一。 如果你实在无法忍受所有这些关于配置的废话，尽管放心地跳过本节剩下的部分，以后再回来这里。</p>
+</div>
+</div>
+<div class="sect1">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title" style="clear: both"><a name="d0e14331"></a>25.3. 在J2EE中配置Seam</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam很有用，即使你还没有冒险尝试EJB 3.0。在这种情况下，你可以使用Hibernate3或者JPA代替EJB 3.0持久化技术，并用简单的JavaBeans代替会话Bean。 你可能会错过会话bean的某些很好的特性，但是当你准备好时，这将会很容易迁移到EJB 3.0，同时，你将能利用Seam独特的声明式状态管理架构。</p>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/hibernate-ee.png"></div>
+<p>Seam JavaBean组件不会像会话Bean那样提供声明式事务划分。你 <span class="emphasis"><em>可以</em></span> 使用 JTA <tt class="literal"><font face="新宋体">UserTransaction</font></tt> 手动管理你的事务，或者使用Seam的 <tt class="literal"><font face="新宋体">@Transactional</font></tt> 标注声明。 但是当与JavaBean一起使用Hibernate时，大部分应用程序只会用到由Seam管理的事务。</p>
+<p>Seam发行包里包括预订示例程序的一种使用Hibernate3和JavaBeans而不是EJB3的版本，以及另一种使用JPA和JavaBeans的版本。 这些示例程序可以随时部署到任何J2EE应用程序服务器中。</p>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e14354"></a>25.3.1. 在Seam中引导Hibernate</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>如果你装载了一个内建的组件，Seam将会从你的 <tt class="literal"><font face="新宋体">hibernate.cfg.xml</font></tt> 文件中引导一个 Hibernate <tt class="literal"><font face="新宋体">SessionFactory</font></tt>：</p>
+<pre class="programlisting">&lt;persistence:hibernate-session-factory name=&quot;hibernateSessionFactory&quot;/&gt;</pre>
+<p>如果你想要通过注入得到一个由Seam管理的Hibernate <tt class="literal"><font face="新宋体">Session</font></tt>，还需要配置一个 <span class="emphasis"><em>managed session</em></span>。</p>
+<pre class="programlisting">&lt;persistence:managed-hibernate-session name=&quot;hibernateSessionFactory&quot;
+                            session-factory=&quot;#{hibernateSessionFactory}&quot;/&gt;</pre>
+</div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e14377"></a>25.3.2. 在Seam中引导JPA</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>如果你装载了一个内建的组件，Seam将会从你的 <tt class="literal"><font face="新宋体">persistence.xml</font></tt> 文件中引导一个 JPA <tt class="literal"><font face="新宋体">EntityManagerFactory</font></tt>：</p>
+<pre class="programlisting">&lt;persistence:entity-manager-factory name=&quot;entityManagerFactory&quot;/&gt;</pre>
+<p>如果你想要通过注入得到一个由Seam管理的JPA <tt class="literal"><font face="新宋体">EntityManager</font></tt>，还需要配置一个 <span class="emphasis"><em>managed persistence context</em></span>。</p>
+<pre class="programlisting">&lt;persistence:managed-persistence-context name=&quot;entityManager&quot;
+                            entity-manager-factory=&quot;#{entityManagerFactory}&quot;/&gt;</pre>
+</div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e14400"></a>25.3.3. 打包</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们可以将我们的应用程序按照以下结构打包成一个WAR文件：</p>
+<pre class="programlisting">my-application.war/
+    META-INF/
+        MANIFEST.MF
+    WEB-INF/
+        web.xml
+        components.xml
+        faces-config.xml
+        lib/
+            jboss-seam.jar
+            jboss-seam-ui.jar
+            jboss-el.jar
+            jsf-facelets.jar
+            hibernate3.jar
+            hibernate-annotations.jar
+            hibernate-validator.jar
+            ...
+            my-application.jar/
+                META-INF/
+                   MANIFEST.MF
+                seam.properties
+                hibernate.cfg.xml
+                org/
+                    jboss/
+                        myapplication/
+                            User.class
+                            Login.class
+                            Register.class
+                            ...
+    login.jsp
+    register.jsp
+    ...</pre>
+<p>如果我们想要将Hibernate部署在一个非EE的环境中（如Tomcat或TestNG），我们需要多做一些工作。</p>
+</div>
+</div>
+<div class="sect1">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title" style="clear: both"><a name="d0e14409"></a>25.4. 在Java SE中配置Seam，没有内嵌JBoss</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>完全在一个EE环境之外使用Seam是有可能的。在这种情况下，你需要告诉Seam怎样去管理事务，因为没有JTA可用。 如果你在使用JPA，就可以告诉Seam去使用JPA本地资源的事务，如 <tt class="literal"><font face="新宋体">EntityTransaction</font></tt>，像这样：</p>
+<pre class="programlisting">&lt;transaction:entity-transaction entity-manager=&quot;#{entityManager}&quot;/&gt;</pre>
+<p>如果你在使用Hibernate，就可以告诉Seam像下面这样使用Hibernate事务API：</p>
+<pre class="programlisting">&lt;transaction:hibernate-transaction session=&quot;#{session}&quot;/&gt;</pre>
+<p>当然，你还需要去定义一个数据源。</p>
+<p>一种更好的替代方案是使用嵌入式的JBoss去访问EE的API。</p>
+</div>
+<div class="sect1">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title" style="clear: both"><a name="d0e14427"></a>25.5. 用嵌入式的JBoss在Java SE中配置Seam</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>嵌入式的JBoss让你可以在Java EE 5应用程序服务器的上下文的外面运行EJB3组件。这个不但对测试有用，而且是特别有用。</p>
+<p>Seam的booking示例程序包括一个通过 <tt class="literal"><font face="新宋体">SeamTest</font></tt> 在嵌入式的JBoss上运行的TestNG集成测试套件。</p>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/testng.png"></div>
+<p>booking示例程序甚至可以在Tomcat上部署。</p>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/e-ejb3.png"></div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="config.install.embedded"></a>25.5.1. 安装嵌入式的JBoss</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>为了让Seam应用程序在Tomcat上正确运行，必须将嵌入式JBoss装载到Tomcat中。 嵌入式的JBoss可以在 <a target="_top" href="http://sourceforge.net/project/showfiles.php?group_id=22866&amp;package_id=228977">这里</a> 下载。将嵌入式的JBoss安装到Tomcat 6的过程非常简单。首先，你必须将嵌入式JBoss的JAR和配置文件都拷贝到Tomcat中。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>将嵌入式JBoss的 <tt class="literal"><font face="新宋体">bootstrap</font></tt> 和 <tt class="literal"><font face="新宋体">lib</font></tt> 目录下的所有文件和目录，除了 <tt class="literal"><font face="新宋体">jndi.properties</font></tt> 文件之外，都拷贝到Tomcat的 <tt class="literal"><font face="新宋体">lib</font></tt> 目录下。</p>
+    </li>
+    <li>
+    <p>从Tomcat的 <tt class="literal"><font face="新宋体">lib</font></tt> 目录中移除 <tt class="literal"><font face="新宋体">annotations-api.jar</font></tt> 文件。</p>
+    </li>
+</ul>
+</div>
+<p>接下来，需要更新两个配置文件，用来增加嵌入式JBoss特有的功能。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>将嵌入式JBoss listener增加到 <tt class="literal"><font face="新宋体">conf/server.xml</font></tt> 中。它在文件中应该排列在所有其他listener的后面。</p>
+    <pre class="programlisting">&lt;Listener className=&quot;org.jboss.embedded.tomcat.EmbeddedJBossBootstrapListener&quot; /&gt;</pre>
+    </li>
+    <li>
+    <p>应该通过增加一个listener到 <tt class="literal"><font face="新宋体">conf/context.xml</font></tt> 文件中来启用WAR文件扫描功能。</p>
+    <pre class="programlisting">&lt;Listener className=&quot;org.jboss.embedded.tomcat.WebinfScanner&quot; /&gt;</pre>
+    </li>
+</ul>
+</div>
+<p>关于更多的配置选项，请参考Tomcat集成嵌入式JBoss <a target="_top" href="http://wiki.jboss.org/wiki/Wiki.jsp?page=EmbeddedAndTomcat">Wiki条目</a>。</p>
+</div>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e14506"></a>25.5.2. 打包</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>一个在Servlet引擎（如Tomcat）中基于WAR部署的压缩文档，它的结构有时看起来像这样：</p>
+<pre class="programlisting">my-application.war/
+    META-INF/
+        MANIFEST.MF
+    WEB-INF/
+        web.xml
+        components.xml
+        faces-config.xml
+        lib/
+            jboss-seam.jar
+            jboss-seam-ui.jar
+            jboss-el.jar
+            jsf-facelets.jar
+            jsf-api.jar
+            jsf-impl.jar
+            ...
+            my-application.jar/
+                META-INF/
+                    MANIFEST.MF
+                    persistence.xml
+                seam.properties
+                org/
+                    jboss/
+                        myapplication/
+                            User.class
+                            Login.class
+                            LoginBean.class
+                            Register.class
+                            RegisterBean.class
+                            ...
+    login.jsp
+    register.jsp
+    ...</pre>
+<p>绝大部分Seam示例程序可以通过运行 <tt class="literal"><font face="新宋体">ant deploy.tomcat</font></tt> 部署到Tomcat中。</p>
+</div>
+</div>
+<div class="sect1">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title" style="clear: both"><a name="d0e14518"></a>25.6. 在Seam中配置jBPM</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam的jBPM集成没有被默认装载，因此你需要通过装载一个内建的组件来启用jBPM。你还需要显式地列出你的流程和页面流定义。 在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 文件中：</p>
+<pre class="programlisting">&lt;bpm:jbpm&gt;
+    &lt;bpm:pageflow-definitions&gt;
+        &lt;value&gt;createDocument.jpdl.xml&lt;/value&gt;
+        &lt;value&gt;editDocument.jpdl.xml&lt;/value&gt;
+        &lt;value&gt;approveDocument.jpdl.xml&lt;/value&gt;
+    &lt;/bpm:pageflow-definitions&gt;
+    &lt;bpm:process-definitions&gt;
+        &lt;value&gt;documentLifecycle.jpdl.xml&lt;/value&gt;
+    &lt;/bpm:process-definitions&gt;
+&lt;/bpm:jbpm&gt;</pre>
+<p>如果你只有页面流，就不需要更多特殊的配置。如果你的确有业务流程定义，就需要为jBPM提供一个jBPM配置和一个Hibernate配置。 Seam的DVD Store Demo包括了与Seam共同工作的 <tt class="literal"><font face="新宋体">jbpm.cfg.xml</font></tt> 和 <tt class="literal"><font face="新宋体">hibernate.cfg.xml</font></tt> 文件的例子：</p>
+<pre class="programlisting">&lt;jbpm-configuration&gt;
+
+  &lt;jbpm-context&gt;
+    &lt;service name=&quot;persistence&quot;&gt;
+       &lt;factory&gt;
+          &lt;bean class=&quot;org.jbpm.persistence.db.DbPersistenceServiceFactory&quot;&gt;
+             &lt;field name=&quot;isTransactionEnabled&quot;&gt;&lt;false/&gt;&lt;/field&gt;
+          &lt;/bean&gt;
+       &lt;/factory&gt;
+    &lt;/service&gt;
+    &lt;service name=&quot;tx&quot; factory=&quot;org.jbpm.tx.TxServiceFactory&quot; /&gt;
+    &lt;service name=&quot;message&quot; factory=&quot;org.jbpm.msg.db.DbMessageServiceFactory&quot; /&gt;
+    &lt;service name=&quot;scheduler&quot; factory=&quot;org.jbpm.scheduler.db.DbSchedulerServiceFactory&quot; /&gt;
+    &lt;service name=&quot;logging&quot; factory=&quot;org.jbpm.logging.db.DbLoggingServiceFactory&quot; /&gt;
+    &lt;service name=&quot;authentication&quot;
+             factory=&quot;org.jbpm.security.authentication.DefaultAuthenticationServiceFactory&quot; /&gt;
+  &lt;/jbpm-context&gt;
+
+&lt;/jbpm-configuration&gt;</pre>
+<p>在这儿需要注意的最重要事情是JBPM事务处理控制功能是禁用的。Seam或EJB3应该控制JTA事务。</p>
+<div class="sect2">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e14540"></a>25.6.1. 打包</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>对于jBPM配置和流程／页面流定义文件，还没有任何明确的打包格式。 在Seam的示例程序中，我们决定简单地将所有这些文件打包到EAR的根目录下。在以后，我们可能设计其他一些标准的打包格式。 因此EAR看起来有点像这样：</p>
+<pre class="programlisting">my-application.ear/
+    jboss-seam.jar
+    lib/
+       jboss-el.jar
+       jbpm-3.1.jar
+    META-INF/
+        MANIFEST.MF
+        application.xml
+    my-application.war/
+        META-INF/
+            MANIFEST.MF
+        WEB-INF/
+            web.xml
+            components.xml
+            faces-config.xml
+            lib/
+                jsf-facelets.jar
+                jboss-seam-ui.jar
+        login.jsp
+        register.jsp
+        ...
+    my-application.jar/
+        META-INF/
+            MANIFEST.MF
+            persistence.xml
+        seam.properties
+        org/
+            jboss/
+                myapplication/
+                    User.class
+                    Login.class
+                    LoginBean.class
+                    Register.class
+                    RegisterBean.class
+                    ...
+    jbpm.cfg.xml
+    hibernate.cfg.xml
+    createDocument.jpdl.xml
+    editDocument.jpdl.xml
+    approveDocument.jpdl.xml
+    documentLifecycle.jpdl.xml</pre>
+</div>
+</div>
+<div class="sect1">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title" style="clear: both"><a name="d0e14547"></a>25.7. 在Portal中配置Seam</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>要将Seam程序作为一个portlet运行，你需要提供某些portlet元数据（<tt class="literal"><font face="新宋体">portlet.xml</font></tt>，等）作为对通常Java EE元数据的补充。 参考 <tt class="literal"><font face="新宋体">examples/portal</font></tt> 目录，作为booking demo预配置以便在JBoss Portal上运行的一个例子。</p>
+</div>
+<div class="sect1">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title" style="clear: both"><a name="d0e14558"></a>25.8. 在JBoss AS中配置SFSB和会话超时</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>将有状态会话Bean的超时值设置得比HTTP的超时值高一些是很重要的，否则SFSB可能在HTTP会话结束前已经超时。 JBoss程序服务器有一个30分钟的默认会话Bean超时值，它在 <tt class="literal"><font face="新宋体">server/default/conf/standardjboss.xml</font></tt>（用你自己的配置取代 <span class="emphasis"><em>default</em></span>）中配置。</p>
+<p>默认的SFSB超时值可以通过修改 <tt class="literal"><font face="新宋体">LRUStatefulContextCachePolicy</font></tt> 缓存配置中 <tt class="literal"><font face="新宋体">max-bean-life</font></tt> 的值得到调整。</p>
+<pre class="programlisting">&lt;container-cache-conf&gt;
+    &lt;cache-policy&gt;org.jboss.ejb.plugins.LRUStatefulContextCachePolicy&lt;/cache-policy&gt;
+    &lt;cache-policy-conf&gt;
+        &lt;min-capacity&gt;50&lt;/min-capacity&gt;
+        &lt;max-capacity&gt;1000000&lt;/max-capacity&gt;
+        &lt;remover-period&gt;1800&lt;/remover-period&gt;
+
+        &lt;!-- SFSB timeout in seconds; 1800 seconds == 30 minutes --&gt;
+        &lt;max-bean-life&gt;1800&lt;/max-bean-life&gt;
+
+        &lt;overager-period&gt;300&lt;/overager-period&gt;
+        &lt;max-bean-age&gt;600&lt;/max-bean-age&gt;
+        &lt;resizer-period&gt;400&lt;/resizer-period&gt;
+        &lt;max-cache-miss-period&gt;60&lt;/max-cache-miss-period&gt;
+        &lt;min-cache-miss-period&gt;1&lt;/min-cache-miss-period&gt;
+        &lt;cache-load-factor&gt;0.75&lt;/cache-load-factor&gt;
+    &lt;/cache-policy-conf&gt;
+&lt;/container-cache-conf&gt;</pre>
+<p>可以为JBoss 4.0.x在 <tt class="literal"><font face="新宋体">server/default/deploy/jbossweb-tomcat55.sar/conf/web.xml</font></tt> 中修改，或者为JBoss 4.2.x在 <tt class="literal"><font face="新宋体">server/default/deploy/jboss-web.deployer/conf/web.xml</font></tt> 中修改默认的HTTP会话超时值。 这个文件中的以下项控制着所有Web应用程序的默认会话超时值：</p>
+<pre class="programlisting">&lt;session-config&gt;
+    &lt;!-- HTTP Session timeout, in minutes --&gt;
+    &lt;session-timeout&gt;30&lt;/session-timeout&gt;
+&lt;/session-config&gt;</pre>
+<p>要为你自己的应用程序覆盖这个值，只需在你应用程序自己的 <tt class="literal"><font face="新宋体">web.xml</font></tt> 文件中包含这个项。</p>
+</div></div></body></html>

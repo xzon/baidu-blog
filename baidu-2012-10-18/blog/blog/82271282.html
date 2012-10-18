@@ -1,0 +1,411 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>用Java SWT实现MSN风格的下拉框</title></head><body><h1>用Java SWT实现MSN风格的下拉框</h1><div><h1>用Java SWT实现MSN风格的下拉框</h1>
+<p>　　<strong><u><span style="color: rgb(0, 0, 0);">SWT</span></u></strong>一个所谓的优点是它的本地化外观，因为它是通过JNI调用<span style="color: rgb(0, 51, 153);">操作系统</span>的组件，从而可以保证外观上适合大多数用户的需求，但是一些IM类软件商往往希望它们的产品有着一套独特的外观，这对SWT这种原生组件来说就有些力不从心了，严格来说如果你的用户对外观要求比较苛刻，那么Swing是首选，因为L&amp;F机制可以确保你做到这一点，另外Swing还有着许多SWT不具备的优点，例如半透明组件、渲染等，但是少数的这些特性用SWT还是可以模拟的，本文就向大家介绍如何通过自定义组件实现<span style="color: rgb(0, 51, 153);">MSN</span>风格的下拉框。<br>
+<br>
+　　通常来说，SWT提供的组件集基本上能满足大多数用户的需求，而自定义组件通常分为2种，一种是将若干基本组件组合成一个复合组件（如日历组件）；第二是对现有组件改善外观从而符合客户的要求；或者将这两种混合使用。利用SWT实现自定义组件通常要继承Composite或Canvas来实现，但是绝大多数采用继承Composite实现，如果你查看SWT的源代码，你会发现很多SWT高级组件（如ExpandBar）都是直接继承Composite来实现的。<br>
+<br>
+　　如果要模拟MSN的用户名输入组件，你需要采集一些数据，分别是：正常、禁用两种状态下边框的颜色；正常、禁用两种状态下的背景色；右边下拉按钮的图标。现在将这几组数据给出。<br>
+<br>
+　　正常状态下边框的颜色：RGB 170,183,199<br>
+　　禁用状态下边框的颜色：RGB 208,215,229<br>
+　　正常状态下的背景色：RGB 254, 254, 254<br>
+　　禁用状态下的背景色：RGB 238, 241, 249<br>
+<br>
+　　下拉按钮的图标：<br>
+<br>
+　　接下来创建一个类叫做ComboSelector继承自Composite。需要指出的是，这个自定义组件SWT组件库支持，在<span style="color: rgb(0, 51, 153);">Eclipse</span>下如果有VE、swt-designer这样的插件可以借助向导将必要的库导入到工程的classpath下，此外如果部署SWT应用程序还需要一个动态库，关于如何部署本文不作阐述。<br>
+<br>
+　　创建以上这些数据常量<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>private final Color ENABLED_LINE_COLOR = new Color(Display.getCurrent(), 170, 183, 199); <br>
+            private final Color DISABLED_LINE_COLOR = new Color(Display.getCurrent(), 208, 215, 229); <br>
+            <br>
+            private final Color ENABLED_BG = new Color(Display.getCurrent(), 254, 254, 254); <br>
+            <br>
+            private final Color DISABLED_BG = new Color(Display.getCurrent(), 238, 241, 249); <br>
+            <br>
+            private final Image COMBO_ICON = new Image(Display.getDefault(), "combo.png");</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　另外你还需要一个基本文本组件用于输入、一个菜单显示保存的数据。<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>private Text inputText; <br>
+            <br>
+            private Menu selectorMenu;</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　以上这些是和显示相关的变量，但是除了这些还要保存临时的数据，分别是当前用户选择了的那一项、下拉框所有数据项的集合。为了实现通用性和移植性这两组数据均用Object保存。<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>private Object selectedItem; <br>
+            <br>
+            private Vector dataSet = new Vector();</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　接着定义构造函数。<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>public ComboSelector(Composite parent) {...}</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　需要注意的是，与Swing组件不同，任何SWT组件的构造器一定要有一个不为null的指向其父组件的参数，也就是说，SWT组件一旦被创建，就和它的父组件绑定了，其父组件不会提供任何add(...)、remove(...)方法添加或者移除组件，除非子组件调用dispose()方法销毁自身。而Swing组件构造时无需指父组件，而是通过父组件调用add(Component comp)将组件加进来，从这一点来说，Swing复合JavaBean规范，这个优势是SWT所无法比拟的。<br>
+<br>
+　　在完成构造函数之前，我们先定义一个辅助函数，用来获取该组件在屏幕中的坐标，其思想是循环调用getParent()方法获取父组件，直到为null为止，因为这样循环调用getParent()总会找到最外层的窗口Shell对象。然后将各个子组件在其父组件上的坐标依次相加。<br>
+<br>
+　　方法如下：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>private Point getScreemLocation() {<br>
+            Control control = this; <br>
+            int width = control.getLocation().x; <br>
+            int height = control.getLocation().y; <br>
+            while (control.getParent() != null) {<br>
+            control = control.getParent(); <br>
+            width += control.getLocation().x; <br>
+            height += control.getLocation().y; <br>
+            }<br>
+            return new Point(width, height); <br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　现在让我们完成构造函数<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>super(parent, SWT.FLAT); <br>
+            inputText = new Text(this, SWT.FLAT); <br>
+            selectorMenu = new Menu(this); <br>
+            setMenu(selectorMenu);</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　首先实现父组件的构造器，注意，将风格设置为FLAT或者NONE。如果为BORDER，那么运行时会发现组件是凹陷下去的外观（WindowsXP以前就是这种外观），通常对于自定义的外观都需要将风格设置为SWT.FLAT或者SWT.NONE。然后创建基本文本、菜单。对于菜单需要注意的是除了在构造时候要指定父组外，还要调用setMenu将菜单加进来。<br>
+<br>
+　　接下来一步很关键，是要进行自定义绘制。绘制包括边框和下拉按钮的图标。<br>
+<br>
+　　完整代码如下：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>addPaintListener(new PaintListener() {<br>
+            public void paintControl(PaintEvent e) {<br>
+            GC gc = e.gc; <br>
+            gc.setForeground(isEnabled() ? ENABLED_LINE_COLOR<br>
+            : DISABLED_LINE_COLOR); <br>
+            gc.drawRectangle(0, 0, getSize().x - 1, getSize().y - 1); <br>
+            gc.drawImage(COMBO_ICON, getSize().x<br>
+            - COMBO_ICON.getBounds().width - 5,<br>
+            (getSize().y - COMBO_ICON.getBounds().height) / 2); <br>
+            }<br>
+            });</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　首先根据组件是否可用决定边框的颜色。调用drawRectangle完成绘制边框的操作。<br>
+<br>
+　　然后绘制图标，注意，drawImage后两个参数是绘制的坐标，也就是从哪里开始画起，模拟MSN用户名输入组件时，下拉按钮右端点x坐标取距离组件最右端x坐标（getSize().x）5像素处为最佳，因此计算得出下拉按钮左端点x坐标为getSize().x- COMBO_ICON.getBounds().width - 5。（左端点x坐标与右端点x坐标相差COMBO_ICON.getBounds().width应该很容易理解，另外读者对坐标系的概念应该有一定了解）；对于按钮的y坐标，计算思想是使按钮的垂直位置居中，因此计算y坐标公式为(getSize().y - COMBO_ICON.getBounds().height) / 2)。<br>
+<br>
+　　接下来一步是确定基本文本组件的位置，完整代码如下：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>addControlListener(new ControlAdapter() {<br>
+            @Override<br>
+            public void controlResized(ControlEvent e) {<br>
+            inputText.setBounds(1, 1, getSize().x<br>
+            - COMBO_ICON.getBounds().width - 15, getSize().y - 2); <br>
+            }<br>
+            });</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　给该组件注册Control监听器时，当该组件尺寸发生变化，会触发controlResized方法，在该方法内对基本文本组件的位置进行调整。模拟MSN用户名输入组件原则是，基本文本组件的边框被隐藏（构造时候通过将Style设为SWT.FLAT），左端点x坐标为1（为0的话会遮挡边框线的左端），长度是整个组件长度减去下拉按钮的长度再减15像素为最佳，从而保证与下拉按钮之间有一段距离，高度是整个组件的高度减2像素，过高会遮挡边框线。<br>
+<br>
+　　接着我们要重写setEnabled方法，代码如下：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>public void setEnabled(boolean enabled) {<br>
+            super.setEnabled(enabled); <br>
+            setBackground(enabled ? ENABLED_BG : DISABLED_BG); <br>
+            inputText.setEnabled(enabled); <br>
+            redraw(); <br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　第一行的super.setEnabled(enabled); 表示保持父类enable属性不变化，之后是设置背景，并设置inputText的enabled属性，最后调用redraw方法通知组件重绘。需要阐明的是，redraw方法会调用PaintListener中的方法，也就是说会调用到构造函数中public void paintControl(PaintEvent e){...}这段代码，如果组件添加了多个绘制监听器，那么redraw会依次调用每个监听器的paintControl方法，这与swing的事件机制是相同的。在redraw方法中根据isEnabled()的值决定边框的颜色，所以每当setEnable方法被调用都应该执行重绘。<br>
+<br>
+　　还需要指出，通过添加绘制监听器来实现个性化的外观，并在调用影响外观的操作（比如setEnable）时调用redraw方法强制组件重绘，这是自定义组件常用的实现手段。你会看到接下来的很多方法会经常调用redraw通知组件重绘。<br>
+<br>
+　　除了setEnabled方法，还有一些方法需要补充，一并列出：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>public void setEditable(boolean editable) {<br>
+            inputText.setEditable(editable); <br>
+            }<br>
+            <br>
+            public String getText() {<br>
+            return inputText.getText(); <br>
+            }<br>
+            <br>
+            public void setText(String text) {<br>
+            inputText.setText(text); <br>
+            }<br>
+            <br>
+            public void setTextLimit(int limit) {<br>
+            inputText.setTextLimit(limit); <br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　这些方法简单易懂，不作解释，以上列举的只是最基本的方法，如果觉得功能不够还可以定义其他方法，例如可以对用户的输入作验证。<br>
+<br>
+　　接下来回到构造函数中来，QQ、MSN等一些软件的登录除了点击登录按钮执行还可以在用户名、口令输入框上单击回车来实现，为了实现这一功能，需要为基本文本组件添加一个选择监听器。<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>inputText.addSelectionListener(new SelectionAdapter() {<br>
+            @Override<br>
+            public void widgetDefaultSelected(SelectionEvent e) {<br>
+            commit(); <br>
+            }<br>
+            });</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　这样，当用户在文本组件上单击回车，会执行commit方法。下面是commit方法的定义：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>protected void commit() {};</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　它不作任何事情，因为组件不知道实际会应用在何种场合，即回车操作具体作什么，这应该通过继承该组件重写commit方法实现具体功能。<br>
+<br>
+　　然后为组件添加鼠标监听器，实现用户单击下拉按钮时菜单的弹出。完整代码如下：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>addMouseListener(new MouseAdapter() {<br>
+            @Override<br>
+            public void mouseUp(MouseEvent e) {<br>
+            if (e.x ＞ getBounds().width - COMBO_ICON.getBounds().width - 15<br>
+            &amp;&amp; e.x ＜ getBounds().width &amp;&amp; e.y ＞ 0<br>
+            &amp;&amp; e.y ＜ getBounds().height) {<br>
+            selectorMenu.setLocation(getScreemLocation().x + 3,<br>
+            getScreemLocation().y + getSize().y + 23); <br>
+            selectorMenu.setVisible(true); <br>
+            }<br>
+            }<br>
+            });</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　if条件句子是判断鼠标指针的落点是否位于下拉三角的区域内，计算方法读者可以自己思考，之后设置弹出菜单出现的位置，根据前面定义的getScreemLocation方法可方便得出，需要提出的是计算x坐标的“+3”和y坐标的“+23”，为什么要再加上这个整数呢？是因为Windows窗口的标题栏高20像素，而getScreemLocation是无法自动计算出的，有些窗口可通过设置将标题栏去掉（SWT的Shell通过指定SWT.NO_TRIM样式实现）“+3是使菜单弹出的位置不至于遮挡组件边框线，因此偏移3像素为最佳位置”。调用setVisible显示菜单，不过前提条件是必须添加了菜单项。构造函数最后是一步是设置组件为可用，虽然任何SWT/Swing组件在构造时默认都是可用的，但是正如前面所述，重写setEnabled并不止设置是否被禁用，重要的是组件在两态下的外观，所以在构造函数最后添加setEnabled(true); <br>
+<br>
+　　以上讲述过多的是如何装饰组件的外观，接下来的重点将介绍如何用该组件缓存数据，使用MSN时候会发现，单击登录用户名的下拉按钮时候，会弹出所有在本机登录过的用户名列表（如果保存的话），下面讲述如何实现这一功能。<br>
+<br>
+　　我们的数据均保存在Vector这个集合中，由于实际应用变化万千，组件不可能知道实际保存何种类型的数据，因此Vector的元素类型统一设置为Object，这也实在是一个不错的<span style="color: rgb(0, 51, 153);">设计</span>，因为它不强制使用者去实现某某接口，或基类，假如设计成Vector中的元素必须是实现某一特定接口IElement，<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>private Vector dataSet = new Vector();</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　这样的话，使用者就必须将其POJO作更改，以适应于此组件，而Object作为所有类的基类，因此可容纳任何类型的数据。接下来的一步很重要，是将数据与菜单关联起来。定义如下方法public void loadMenuItems(Object[] objects)，顾名思义是一次性读取一组元素，完整的代码如下：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>public void loadMenuItems(Object[] objects) {<br>
+            dataSet.clear(); <br>
+            MenuItem[] items = selectorMenu.getItems(); <br>
+            for (MenuItem item : items) {<br>
+            item.removeSelectionListener(this); <br>
+            item.dispose(); <br>
+            }<br>
+            for (int i = 0; i ＜ objects.length; i++) {<br>
+            dataSet.add(objects[i]); <br>
+            MenuItem item = new MenuItem(selectorMenu, SWT.PUSH); <br>
+            item.setText(objects[i].toString()); <br>
+            item.setData(objects[i]); <br>
+            item.addSelectionListener(this); <br>
+            }<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　因为是load所有数据，所以第一步是将已有的数据清空，包括Vector中的数据和菜单中的菜单项。然后是对传入的Object数组作遍历，对于每一项，将之添加进集合然后创建一个菜单项，下一步item.setText(objects[i].toString()); 是设置菜单项的文字，toString()方法是Object的固有方法，但是实际应用时必须重写该方法的实现。接下来是item.setData(objects[i]); 为菜单项设置数据，这一步非常重要，SWT的每一个组件都具有public void setData (Object data)和public Object getData ()方法。还有Hash结构的public void setData (String key, Object value)和public Object getData (String key)。稍后会看到通过item.getData(); 取出创建时存入的数据。最后一行是为菜单项添加事件监听器，并使组件本身作为监听器，使组件本身实现SelectionListener接口，然后添加下面两个方法：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>public final void widgetDefaultSelected(SelectionEvent e)<br>
+            <br>
+            public final void widgetSelected(SelectionEvent e)</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　其中widgetDefaultSelected在单击回车时触发，对文本框这样的组件适用，widgetSelected是鼠标单击时触发适用于按钮、菜单项。因此我们只处理widgetSelected。<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>public final void widgetSelected(SelectionEvent e) {<br>
+            MenuItem item = (MenuItem) e.getSource(); <br>
+            selectedItem = item.getData(); <br>
+            String text = item.getData().toString(); <br>
+            inputText.setText(text); <br>
+            inputText.setSelection(0, text.length()); <br>
+            selected(item.getData()); <br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　首先取得事件源即单击的菜单项，然后更新selectedItem引用指向这个菜单项保存的数据（先前通过setData方法添加的），接下来的代码不作解释，很容易理解。值得注意的是最后一行selected(item.getData()); 作用是当用户选中菜单某一项时，根据当前选择的那个数据自动执行相应的操作，selected方法定义如下：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>protected void selected(Object object) {};</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　与commit方法一样，是需要根据实际情况自定义处理逻辑的。<br>
+<br>
+　　最后添加如下2个方法：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>public void select(int index) {<br>
+            MenuItem[] items = selectorMenu.getItems(); <br>
+            if (index ＜ 0 || index ＞= items.length) {<br>
+            throw new ArrayIndexOutOfBoundsException(<br>
+            "the index value must between " + 0 + "and "<br>
+            + (items.length - 1)); <br>
+            }<br>
+            selectedItem = items[index].getData(); <br>
+            inputText.setText(items[index].getText()); <br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　select用来设置当前选择第几个项，getSelectedItem返回当前用户选择的数据。<br>
+<br>
+　　到此为止，ComboSelector已经完成，可以作为API使用了，下面我们编写一个程序测试该组件。<br>
+<br>
+　　首先编写一个POJO，如下：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>package swt.custom; <br>
+            <br>
+            public class Person {<br>
+            private String userName; <br>
+            <br>
+            private String password; <br>
+            <br>
+            public Person(String userName, String password) {<br>
+            this.userName = userName; <br>
+            this.password = password; <br>
+            }<br>
+            <br>
+            public String getPassword() {<br>
+            return password; <br>
+            }<br>
+            <br>
+            public String getUserName() {<br>
+            return userName; <br>
+            }<br>
+            <br>
+            @Override<br>
+            public String toString() {<br>
+            return userName; <br>
+            }<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　简单至极的一个类，注意它的toString方法，返回用户名属性作为显示。<br>
+<br>
+　　接下来通过一个demo看看实际运行效果。<br>
+<br>
+　　用swt-designer工具创建一个Shell，在createContents方法体内添加如下代码：<br>
+<br>
+<table class="FCK__ShowTableBorders" align="center" bgcolor="#cccccc" width="90%">
+    <tbody>
+        <tr>
+            <td>final ComboSelector selector = new ComboSelector(this) {<br>
+            @Override<br>
+            protected void commit() {<br>
+            System.out.println("current data is "<br>
+            + ((Person) getSelectedItem()).getUserName()); <br>
+            }<br>
+            @Override<br>
+            protected void selected(Object object) {<br>
+            System.out.println(((Person) object).getPassword()); <br>
+            }<br>
+            }; <br>
+            selector.setBounds(114, 78, 200, 20); <br>
+            Person[] persons = new Person[] {<br>
+            new Person("play_station3@sina.com", "111111"),<br>
+            new Person("rehte@hotmail.com", "222222"),<br>
+            new Person("yitong.liu@bea.com", "password"),<br>
+            new Person("使用其他Windows Live ID 登录", "no") }; <br>
+            selector.loadMenuItems(persons); <br>
+            selector.select(1);</td>
+        </tr>
+    </tbody>
+</table>
+</p></div></body></html>

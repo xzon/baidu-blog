@@ -1,0 +1,249 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>hibernate集合映射inverse和cascade详解</title></head><body><h1>hibernate集合映射inverse和cascade详解</h1><div><h4 class="TextColor1" style="margin-bottom: 0px" align="center"><font size="2">hibernate集合映射inverse和cascade详解</font></h4>
+<p><font size="2">１、到底在哪用cascade=&quot;...&quot;？</font></p>
+<p><font size="2">cascade属性并不是多对多关系一定要用的，有了它只是让我们在插入或删除对像时更方便一些，只要在 cascade的源头上插入或是删除，所有cascade的关系就会被自己动的插入或是删除。便是为了能正确的cascade，unsaved- value是个很重要的属性。Hibernate通过这个属性来判断一个对象应该save还是update，如果这个对象的id是unsaved- value的话，那说明这个对象不是persistence object要save（insert)；如果id是非unsaved-value的话，那说明这个对象是persistence object（数据库中已存在），只要update就行了。saveOrUpdate方法用的也是这个机制。</font></p>
+<p><font size="2">２、到底在哪用inverse=&quot;ture&quot;?</font></p>
+<p><font size="2">inverse属性默认是false的，就是说关系的两端都来维护关系。这个意思就是说，如有一个Student, Teacher和TeacherStudent表，Student和Teacher是多对多对多关系，这个关系由TeacherStudent这个表来表现。那么什么时候插入或删除TeacherStudent表中的记录来维护关系呢？在用hibernate时，我们不会显示的对 TeacherStudent表做操作。对TeacherStudent的操作是hibernate帮我们做的。hibernate就是看hbm文件中指定的是&quot;谁&quot;维护关系，那个在插入或删除&quot;谁&quot;时，就会处发对关系表的操作。前提是&quot;谁&quot;这个对象已经知道这个关系了，就是说关系另一头的对象已经set 或是add到&quot;谁&quot;这个对象里来了。前面说过inverse默认是false，就是关系的两端都维护关系，对其中任一个操作都会处发对表系表的操作。当在关系的一头，如Student中的bag或set中用了inverse＝&quot;true&quot;时，那就代表关系是由另一关维护的（Teacher）。就是说当这插入Student时，不会操作TeacherStudent表，即使Student已经知道了关系。只有当Teacher插入或删除时才会处发对关系表的操作。所以，当关系的两头都用inverse=&quot;true&quot;是不对的，就会导致任何操作都不处发对关系表的操作。当两端都是 inverse=&quot;false&quot;或是default值是，在代码对关系显示的维护也是不对的，会导致在关系表中插入两次关系。</font></p>
+<p><font size="2">在一对多关系中inverse就更有意义了。在多对多中，在哪端inverse=&quot;true&quot;效果差不多（在效率上）。但是在一对多中，如果要一方维护关系，就会使在插入或是删除&quot;一&quot;方时去update&quot;多&quot;方的每一个与这个&quot;一&quot;的对象有关系的对象。而如果让&quot; 多&quot;方面维护关系时就不会有update操作，因为关系就是在多方的对象中的，直指插入或是删除多方对象就行了。当然这时也要遍历&quot;多&quot;方的每一个对象显示的操作修关系的变化体现到DB中。不管怎样说，还是让&quot;多&quot;方维护关系更直观一些。</font></p>
+<p><font size="2">３、cascade和inverse有什么区别？</font></p>
+<p><font size="2">可以这样理解，cascade定义的是关系两端对象到对象的级联关系；而inverse定义的是关系和对象的级联关系。</font></p>
+<p> </p>
+<p> </p>
+<font size="2">all : 所有情况下均进行关联操作。 <br>
+none：所有情况下均不进行关联操作。这是默认值。 <br>
+save-update:在执行save/update/saveOrUpdate时进行关联操作。 <br>
+delete：在执行delete时进行关联操作。 </font>
+<p> </p>
+<p><font size="2">all的意思是save-update + delete <br>
+all-delete-orphan 的意思是当对象图中产生孤儿节点时,在数据库中删除该节点 <br>
+all比较好理解,举个例子说一下all-delete-orphan: <br>
+Category与Item是一对多的关系,也就是说Category类中有个Set类型的变量items. <br>
+举个例子,现items中存两个Item, item1,item2,如果定义关系为all-delete-orphan <br>
+当items中删除掉一个item(比如用remove()方法删除item1),那么被删除的Item类实例 <br>
+将变成孤儿节点,当执行category.update(),或session.flush()时 <br>
+hibernate同步缓存和数据库,会把数据库中item1对应的记录删掉 </font></p>
+<p><font size="2">//////////////////////////////////////////////////////////////////////////////////////////////////////////</font></p>
+<p><font size="2">///////////////////////////////////////////////////////////////////////////////////////////////////////////</font></p>
+<div class="bvMsg"><span dir="ltr"><span><font size="2">&#65279;4. hibernate如何根据pojo来更新数据库<br>
+<br>
+4.0 在commit/flush之前，hibernate不会对pojo对象作神秘的处理。<br>
+4.0.1 在select查询出pojo时，hibernate根据&ldquo;字段--属性&rdquo;的对应关系，用字段的值填充pojo的属性；<br>
+然后根据&ldquo;关系标记&rdquo;生成sql语句从relationTable中查询出满足条件的relationPojo，并把这些relatinPojo<br>
+放到&ldquo;关系属性&rdquo;中。这个过程是机械的。<br>
+<br>
+4.0.2 在pojo对象被查出来后，到commit(或flush)之前，它将是一个普通的java对象，hibernate不会做额外的手脚。<br>
+比如，不会限制你设置一个属性的值为null或其它任何值<br>
+在集合类Set的add(object)操作时， 不会改变object的值，不会检查参数object是否是一个pojo对象<br>
+设置mainPojo的一个&ldquo;桥属性&rdquo;的值，不会自动设置relationPojo的对应的&ldquo;桥属性&rdquo;的值。<br>
+执行session.delete(pojo)时，pojo本身没有变化，他的属性值也没有变化。<br>
+执行session.save(pojo)时，如果pojo的id不是hibernate或数据库生成,则它的值没有变化。<br>
+如果pojo的id是hibernate或数据库生成，则hibernate会把id给pojo设上去。<br>
+<br>
+extend: 对lazy=true的set，hibernate在进行set的操作(调用java.util.Set中声明的方法)时<br>
+会先inialize这个set，仅此而已。而inialize仅仅是从数据库中捞出set的数据。 <br>
+如果一个set已经被inialize了，那么对它进行的操作就是java.util.Set接口中定义的语义。<br>
+<br>
+另外，如果id由hibernate来生成，那么在save(pojo)时，hibernate会改变该pojo，会设置它的id，这<br>
+可能改变该pojo的hashCode，详细地讨论见帖《》<br>
+<br>
+mapping文件中标记的某些属性及pojo对象的操作会对数据库操作产生影响，这些影响都是在commit时才会起作用。<br>
+而在commit前pojo的状态不受它们的影响。<br>
+<br>
+不过，待commit之时，将由hibernate完全掌控，它好像知道pojo对象从创建到commit这中间的所有变化。<br>
+<br>
+<br>
+4.01. 关联更新<br>
+&quot;关系标记&quot;对应的属性是一个pojo或一个pojo的集合，修改&ldquo;关系属性&rdquo;的值能会导致更新mainTable表，也可能会更新relationTable表。<br>
+<br>
+这种更新暂叫&ldquo;关联更新&rdquo;。<br>
+<br>
+<br>
+4.1.inverse属性的作用（假定没有设置cascade属性） <br>
+4.1.1 &ldquo;只有集合标记（set/map/list/array/bag）才有inverse属性&rdquo;。<br>
+&mdash;&mdash;&mdash;&mdash;不妨以标记set为例，具体为&ldquo;一个地区（Address表）的学校（School表）&rdquo; -- address.schoolSet。<br>
+<br>
+4.1.2 &ldquo;set的inverse属性决定是否把对set的改动反映到数据库中去。<br>
+inverse=false&mdash;&mdash;&mdash;&mdash;反映；inverse=true&mdash;&mdash;&mdash;&mdash;不反映&rdquo;<br>
+inverse属性默认为false<br>
+<br>
+对&lt;one-to-many&gt;和&lt;many-to-many&gt;子标记，这两条都适用。<br>
+不管是对set做什么操作，4.1.2都适用。<br>
+<br>
+4.1.3当inverse=false时，hibernate如何将对set的改动反映到数据库中：<br>
+<br>
+对set的操作主要有：（1）新增元素 address.getSchoolSet().add(oneSchool);<br>
+（2）删除元素 address.getSchoolSet().remove(oneSchool);<br>
+（3）删除set address.setSchoolSet(null);<br>
+（4）设新set address.setSchoolSet( newSchoolSet);<br>
+（5）转移set otherSchoolSet = otherAddress.getSchoolSet();<br>
+otherAddress.setSchoolSet(null);<br>
+address.setSchoolSet(otherSchoolSet);<br>
+（6）改变set中元素的属性的值 如果是改变key属性，这会导致异常<br>
+如果改变的是普通的属性，则hibernate认为set没有变化（在后面可以看出缘由）。<br>
+所以这种情形不予考虑。<br>
+<br>
+改变set后，hibernate对数据库的操作根据是&lt;one-to-many&gt;关系还是&lt;many-to-many&gt;关系而有不同。<br>
+<br>
+对one-to-many，对school set的改动，会改变表SCHOOL中的数据:<br>
+#SCHOOL_ID是school表的主键，SCHOOL_ADDRESS是school表中的地址栏位<br>
+#表School的外键为SCHOOL_ADDRESS，它对应表Address的主键ADDRESS_ID<br>
+（11）insert oneSchool&mdash;&mdash;&mdash;&mdash; sqlInsertRowString: <br>
+update SCHOOL set SCHOOL_ADDRESS=? where SCHOOL_ID=? <br>
+(仅仅update foreign-key的值。)<br>
+（22）delete oneSchool&mdash;&mdash;&mdash;&mdash; sqlDeleteRowString: <br>
+update SCHOOL set SCHOOL_ADDRESS=null where SCHOOL_ID=?<br>
+（很奇怪，把foreign-key设置为null不知道有什么实际意义？）<br>
+（33）delete 属于某一address的所有school &mdash;&mdash;&mdash;&mdash;sqlDeleteString：<br>
+update SCHOOL set SCHOOL_ADDRESS=null where SCHOOL_ADDRESS=?<br>
+（44）update &mdash;&mdash;&mdash;&mdash;sqlUpdateRowString：&quot;&quot;， no need<br>
+<br>
+对many-to-many，对school set的改动，会改变关系表ADDRESS_SCHOOL中的数据:<br>
+#&ldquo;地区&mdash;&mdash;&mdash;&mdash;学校&rdquo;的关系为多对多的关系有点牵强，只是为了方便与上面的one-to-many作比较<br>
+#假设有一个关系表ADDRESS_SCHOOL，有两个字段ADDRESS_ID, SCHOOL_ID，<br>
+#这两个字段分别对应ADDRESS和SCHOOL两表的key<br>
+（11）insert的SQL语句为： insert into ADDRESS_SCHOOL(ADDRESS_ID, SCHOOL_ID) <br>
+values(?,?)<br>
+（22）delete的SQL语句为： delete from ADDRESS_SCHOOL <br>
+where ADDRESS_ID=? AND SCHOOL_ID=?<br>
+（33）delete all的SQL语句为： delete from ADDRESS_SCHOOL<br>
+where ADDRESS_ID=?<br>
+（44）update的sql语句为 &mdash;&mdash;&mdash;&mdash;sqlUpdateRowString：<br>
+update ADDRESS_SCHOOL set ADDRESS_ID=?<br>
+where ADDRESS_ID=? AND SCHOOL_ID=?<br>
+<br>
+对set的操作(1),hibernate会执行(11)sqlInsertRowString<br>
+对set的操作(2),hibernate会执行(22)sqlDeleteRowString<br>
+对set的操作(3),hibernate会执行(33)sqlDeleteString<br>
+对set的操作(4),老的schoolSet因为没有所属的address,所以被全部delete掉，即先执行(33)sqlDeleteString<br>
+然后新增新的schoolSet,即再执行sqlInsertRowString<br>
+对set的操作(5)，实际上就是将set从一个pojo转移到另一pojo：<br>
+首先，执行sqlDeleteString，删除掉otherAddress所属的school<br>
+然后，执行sqlDeleteString，删除掉address原先的school<br>
+最后，执行sqlInsertRowString，将otherSchoolSet新增给address<br>
+<br>
+总结：（1）对one-to-many而言，改变set，会让hibernate执行一系列的update语句， 不会delete/insert数据<br>
+（2）对many-to-many而言，改变set,只修改关系表的数据，不会影响many-to-many的另一方。<br>
+（3）虽然one-to-many和many-to-many的数据库操作不一样，但目的都是一个：维护数据的一致性。执行的sql都<br>
+只涉及到&ldquo;桥字段&rdquo;，不会考虑或改变其他的字段，所以对set的操作(6)是没有效果地。<br>
+extend:对list,可能还会维护index字段。<br>
+<br>
+4.1.4 &ldquo;inverse与cascade没有什么关系，互无牵扯。&rdquo;<br>
+commit后，这两个属性发挥作用的时机不同，hibernate会根据对pojo对象的改动，及cascade属性的设置，<br>
+生成一系列的Action，比如UpdateAction,DeleteAction,InsertAction等，每个Action都有execute方法以执行对应的sql语句。<br>
+待所有这些Action都生成好了后，hibernate再一起执行它们，在执行sql前，inverse属性起作用，<br>
+当inverse=true时，不执行sql；当inverse=false时，执行sql。<br>
+<br>
+4.1.5 inverse的默认值为false，所以inverse属性默认会进行&ldquo;关联更新&rdquo;。<br>
+<br>
+4.1.6 建议：只对set + many-to-many设置inverse=false，其他的标记不考虑inverse属性。<br>
+&nbsp;&nbsp;  糟糕的是，不设置inverse属性时，inverse默认为false。<br>
+<br>
+4.2. 级联（cascade）属性的作用： <br>
+4.2.1 只有&ldquo;关系标记&rdquo;才有cascade属性：many-to-one，one-to-one ，any, <br>
+set(map, bag, idbag, list, array) + one-to-many(many-to-many)<br>
+<br>
+4.2.2 级联指的是当主控方执行操作时，关联对象（被动方）是否同步执行同一操作。<br>
+pojo和它的关系属性的关系就是&ldquo;主控方 -- 被动方&rdquo;的关系，如果关系属性是一个set，那么被动方就是set中的一个一个元素，。<br>
+比如：学校（School）有三个属性：地区(Address),校长（TheMaster）和学生(Set， 元素为Student)<br>
+执行session.delete(school)时，级联决定是否执行session.delete(Address),session.delete(theMaster)，<br>
+是否对每个aStudent执行session.delete(aStudent)。<br>
+<br>
+extend:这点和inverse属性是有区别的。见4.3.<br>
+<br>
+4.2.3 一个操作因级联cascade可能触发多个关联操作。前一个操作叫&ldquo;主控操作&rdquo;，后一个操作叫&ldquo;关联操作&rdquo;。<br>
+cascade属性的可选值：<br>
+all : 所有情况下均进行关联操作。<br>
+none：所有情况下均不进行关联操作。这是默认值。<br>
+save-update:在执行save/update/saveOrUpdate时进行关联操作。<br>
+delete：在执行delete时进行关联操作。 <br>
+<br>
+具体执行什么&ldquo;关联操作&rdquo;是根据&ldquo;主控操作&rdquo;来的：<br>
+&ldquo;主控操作&rdquo;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &ldquo;关联操作&rdquo;<br>
+session.saveOrUpdate --&gt; session.saveOrUpdate (执行saveOrUpdate实际上会执行save或者update)<br>
+session.save ----&gt; session.saveOrUpdate<br>
+session.udpate --&gt; session.saveOrUpdate<br>
+session.delete --&gt; session.delete<br>
+<br>
+4.2.4 主控操作和关联操作的先后顺序是&ldquo;先保存one，再保存many；先删除many，再删除one；先update主控方，再update被动方&rdquo;<br>
+对于one-to-one，当其属性constrained=&quot;false&quot;（默认值）时，它可看作one-to-many关系；<br>
+&nbsp;&nbsp;  当其属性constrained=&quot;true&quot;时，它可看作many-to-one关系；<br>
+对many-to-many，它可看作one-to-many。<br>
+<br>
+比如：学校（School）有三个属性：地区(Address),校长（TheMaster，其constrained=&quot;false&quot;）和学生(Set， 元素为Student) <br>
+当执行session.save(school)时，<br>
+实际的执行顺序为：session.save(Address);<br>
+session.save(school);<br>
+session.save(theMaster);<br>
+for( 对每一个student ){<br>
+session.save(aStudent);<br>
+}<br>
+<br>
+当执行session.delete(school)时，<br>
+实际的执行顺序为：session.delete(theMaster);<br>
+for( 对每一个student ){<br>
+session.delete(aStudent);<br>
+}<br>
+session.delete(school);<br>
+session.delete(Address);<br>
+<br>
+当执行session.update(school)时，<br>
+实际的执行顺序为：session.update(school);<br>
+session.saveOrUpdate(Address);<br>
+session.saveOrUpdate(theMaster);<br>
+for( 对每一个student ){<br>
+session.saveOrUpdate(aStudent);<br>
+}<br>
+注意：update操作因级联引发的关联操作为saveOrUpdate操作，而不是update操作。<br>
+saveOrUpdate与update的区别是：前者根据操作对象是保存了还是没有保存，而决定执行update还是save<br>
+<br>
+extends: 实际中，删除学校不会删除地区，即地区的cascade一般设为false<br>
+另外，many-to-many关系很少设置cascade=true，而是设置inverse=false。这个反映了cascade和inverse的区别。见4.3<br>
+<br>
+4.2.6 cascade的默认值为false，所以inverse属性默认会进行&ldquo;关联更新&rdquo;。<br>
+<br>
+4.2.7 总结：级联（cascade）就是操作一个对象时，对它的属性（其cascade=true）也进行这个操作。<br>
+<br>
+<br>
+4.3 inverse和cascade的比较<br>
+这两个属性本身互不影响，但起的作用有些类似，都能引发对关系表的更新。<br>
+<br>
+4.3.1 inverse只对set+one-to-many(或many-to-many)有效，对many-to-one, one-to-one无效。<br>
+cascade对关系标记都有效。<br>
+<br>
+4.3.2 inverse对集合对象整体起作用，cascade对集合对象中的一个一个元素起作用，如果集合为空，那么cascade不会引发关联操作。<br>
+比如将集合对象置为null， school.setStudentSet(null)<br>
+inverse导致hibernate执行:udpate STUDENT set SCHOOL_ID=null where SCHOOL_ID=?<br>
+cascade则不会执行对STUDENT表的关联更新， 因为集合中没有元素。<br>
+<br>
+再比新增一个school, session.save(school)<br>
+inverse导致hibernate执行：<br>
+for( 对(school的每一个student ){<br>
+udpate STUDENT set SCHOOL_ID=? where STUDENT_ID=? //将学生的school_id改为新的school的id<br>
+}<br>
+cascade导致hibernate执行：<br>
+for( 对school的每一个student ){<br>
+session.save(aStudent); //对学生执行save操作<br>
+}<br>
+<br>
+extends:如果改变集合中的部分元素（比如新增一个元素），<br>
+inverse: hibernate先判断哪些元素改变了，对改变的元素执行相应的sql<br>
+cascade: 它总是对集合中的每个元素执行关联操作。<br>
+（在关联操作中，hibernate会判断操作的对象是否改变）<br>
+<br>
+4.3.2 两个起作用的时机不同：<br>
+cascade：在对主控方操作时，级联发生。<br>
+inverse: 在flush时（commit会自动执行flush)，对session中的所有set，hibernate判断每个set是否有变化，<br>
+对有变化的set执行相应的sql，执行之前，会有个判断：if( inverse == true ) return;<br>
+<br>
+可以看出cascade在先，inverse在后。<br>
+<br>
+4.3.3 inverse 对set + one-to-many 和 set + many-to-many 起的作用不同。hibernate生成的sql不同。<br>
+对one-to-many，hibernate对many方的数据库表执行update语句。<br>
+对many-to-many, hibernate对关系表执行insert/update/delte语句，注意不是对many方的数据库表而是关系表。<br>
+<br>
+cascase 对set都是一致的，不管one-to-many还是many-to-many。都简单地把操作传递到set中的每个元素。所以它总是更新many<br>
+方的数据库表。<br>
+<br>
+4.3.4 建议：只对set + many-to-many设置inverse=false，其他的标记不考虑inverse属性，都设为inverse=true。<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  对cascade，一般对many-to-one，many-to-many，constrained=true的one-to-one 不设置级联删除。</font></span></span></div>
+<div class="bvMsg"> </div></div></body></html>

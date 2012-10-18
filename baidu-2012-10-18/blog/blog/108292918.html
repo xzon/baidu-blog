@@ -1,0 +1,441 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>全面挖掘 Java Excel API 使用方法</title></head><body><h1>全面挖掘 Java Excel API 使用方法</h1><div><p>全面挖掘 Java Excel API 使用方法</p>
+<p>使用Windows操作系统的朋友对Excel（电子表格）一定不会陌生，但是要使用<font class="intellitextLink">Java</font>语言来<font style="border-bottom-width: 1px" class="intellitextLink">操纵</font>Excel文件并不是一件容易的事。在Web应用日益盛行的今天，通过Web来操作Excel文件的需求越来越强烈，目前较为流行的操作是在JSP或Servlet 中创建一个CSV （comma separated values）文件，并将这个文件以MIME，text/csv类型返回给浏览器，接着浏览器调用Excel并且显示CSV文件。这样只是说可以访问到Excel文件，但是还不能真正的操纵Excel文件，本文将给大家一个<font class="intellitextLink">惊喜</font>，向大家介绍一个开放<font style="border-bottom-width: 1px" class="intellitextLink">源码</font>项目，Java Excel API，使用它大家就可以方便地操纵Excel文件了。<br>
+<br>
+<span>　　Java Excel API简介</span><br>
+<br>
+<span>　 　Java Excel是一开放源码项目，通过它Java开发人员可以读取Excel文件的内容、创建新的Excel文件、更新已经存在的Excel文件。使用该 API非Windows操作系统也可以通过纯Java应用来处理Excel数据表。因为是使用Java编写的，所以我们在Web应用中可以通过JSP、 Servlet来调用API实现对Excel数据表的访问。</span><br>
+<br>
+<span>　　现在发布的稳定版本是V2.0，提供以下功能：</span><br>
+<br>
+<span>　　　从Excel 95、97、2000等格式的文件中读取数据； </span><br>
+<span>　　　读取Excel公式（可以读取Excel 97以后的公式）； </span><br>
+<span>　　　生成Excel数据表（格式为Excel 97）； </span><br>
+<span>　　　支持字体、数字、日期的格式化； </span><br>
+<span>　　　支持单元格的阴影操作，以及颜色操作； </span><br>
+<span>　　　修改已经存在的数据表； </span><br>
+<br>
+<span>　　现在还不支持以下功能，但不久就会提供了：</span><br>
+<br>
+<span>　　　不能够读取图表信息； </span><br>
+<span>　　　可以读，但是不能生成公式，任何类型公式最后的计算值都可以读出； </span><br>
+　<br>
+<span>　　 应用示例</span><br>
+<br>
+<span>　　1、从Excel文件读取数据表</span><br>
+<br>
+<span>　　Java Excel API既可以从本地文件系统的一个文件(.xls)，也可以从输入流中读取Excel数据表。读取Excel数据表的第一步是创建Workbook(术语：工作薄)，下面的代码片段举例说明了应该如何操作：(完整代码见ExcelReading.java)</span><br>
+<br>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>import java.io.*;</span><br>
+            <span>import jxl.*;</span><br>
+            <span>… … … …</span><br>
+            <span>try</span><br>
+            {<br>
+            <span>//构建Workbook对象, 只读Workbook对象</span><br>
+            <span>//直接从本地文件创建Workbook</span><br>
+            <span>//从输入流创建Workbook</span><br>
+            <span>InputStream is = new FileInputStream(sourcefile);</span><br>
+            <span>jxl.Workbook rwb = Workbook.getWorkbook(is);</span><br>
+            }<br>
+            <span>catch (Exception e)</span><br>
+            {<br>
+            <span>e.printStackTrace();</span><br>
+            }</font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　一旦创建了Workbook，我们就可以通过它来访问Excel Sheet(术语：工作表)。参考下面的代码片段：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>//获取第一张Sheet表</span><br>
+            <span>Sheet rs = rwb.getSheet(0);</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　我们既可能通过Sheet的名称来访问它，也可以通过下标来访问它。如果通过下标来访问的话，要注意的一点是下标从0开始，就像数组一样。</span><br>
+<br>
+<span>　　一旦得到了Sheet，我们就可以通过它来访问Excel Cell(术语：单元格)。参考下面的代码片段：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>//获取第一行，第一列的值</span><br>
+            <span>Cell c00 = rs.getCell(0, 0);</span><br>
+            <span>String strc00 = c00.getContents();</span><br>
+            <br>
+            <span>//获取第一行，第二列的值</span><br>
+            <span>Cell c10 = rs.getCell(1, 0);</span><br>
+            <span>String strc10 = c10.getContents();</span><br>
+            <br>
+            <span>//获取第二行，第二列的值</span><br>
+            <span>Cell c11 = rs.getCell(1, 1);</span><br>
+            <span>String strc11 = c11.getContents();</span><br>
+            <br>
+            <span>System.out.println(&quot;Cell(0, 0)&quot; + &quot; value : &quot; + strc00 + &quot;; type : &quot; + c00.getType());</span><br>
+            <span>System.out.println(&quot;Cell(1, 0)&quot; + &quot; value : &quot; + strc10 + &quot;; type : &quot; + c10.getType());</span><br>
+            <span>System.out.println(&quot;Cell(1, 1)&quot; + &quot; value : &quot; + strc11 + &quot;; type : &quot; + c11.getType());</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　如果仅仅是取得Cell的值，我们可以方便地通过getContents()方法，它可以将任何类型的Cell值都作为一个字符串返回。示例代码中Cell(0, 0)是文本型，Cell(1, 0)是数字型，Cell(1,1)是日期型，通过getContents()，三种类型的返回值都是字符型。</span><br>
+<br>
+<span>　　如果有需要知道Cell内容的确切类型，API也提供了一系列的方法。参考下面的代码片段：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>String strc00 = null;</span><br>
+            <span>double strc10 = 0.00;</span><br>
+            <span>Date strc11 = null;</span><br>
+            <br>
+            <span>Cell c00 = rs.getCell(0, 0);</span><br>
+            <span>Cell c10 = rs.getCell(1, 0);</span><br>
+            <span>Cell c11 = rs.getCell(1, 1);</span><br>
+            <br>
+            <span>if(c00.getType() == CellType.LABEL)</span><br>
+            {<br>
+            <span>LabelCell labelc00 = (LabelCell)c00;</span><br>
+            <span>strc00 = labelc00.getString();</span><br>
+            }<br>
+            <span>if(c10.getType() == CellType.NUMBER)</span><br>
+            {<br>
+            <span>NmberCell numc10 = (NumberCell)c10;</span><br>
+            <span>strc10 = numc10.getvalue();</span><br>
+            }<br>
+            <span>if(c11.getType() == CellType.DATE)</span><br>
+            {<br>
+            <span>DateCell datec11 = (DateCell)c11;</span><br>
+            <span>strc11 = datec11.getDate();</span><br>
+            }<br>
+            <br>
+            <span>System.out.println(&quot;Cell(0, 0)&quot; + &quot; value : &quot; + strc00 + &quot;; type : &quot; + c00.getType());</span><br>
+            <span>System.out.println(&quot;Cell(1, 0)&quot; + &quot; value : &quot; + strc10 + &quot;; type : &quot; + c10.getType());</span><br>
+            <span>System.out.println(&quot;Cell(1, 1)&quot; + &quot; value : &quot; + strc11 + &quot;; type : &quot; + c11.getType());</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　 　在得到Cell对象后，通过getType()方法可以获得该单元格的类型，然后与API提供的基本类型相匹配，强制转换成相应的类型，最后调用相应的 取值方法getXXX()，就可以得到确定类型的值。API提供了以下基本类型，与Excel的数据格式相对应，如下图所示：</span><br>
+<br>
+<span>　　每种类型的具体意义，请参见Java Excel API document．</span><br>
+<br>
+<span>　　当你完成对Excel电子表格数据的处理后，一定要使用close()方法来关闭先前创建的对象，以释放读取数据表的过程中所占用的内存空间，在读取大量数据时显得尤为重要。参考如下代码片段：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>//操作完成时，关闭对象，释放占用的内存空间</span><br>
+            <span>rwb.close();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><br>
+<span><font size="3">　　Java Excel API提供了许多访问Excel数据表的方法，在这里我只简要地介绍几个常用的方法，其它的方法请参考附录中的Java Excel API document．</font></span></p>
+<p><font size="3"><span>&nbsp;&nbsp;&nbsp;  Workbook类提供的方法</span><br>
+<br>
+<span>　　1. int getNumberOfSheets()</span><br>
+<br>
+<span>　　获得工作薄（Workbook）中工作表（Sheet）的个数，示例：</span><br>
+<br>
+</font></p>
+<p>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>int sheets = rwb.getNumberOfSheets();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　2. Sheet[] getSheets()</span><br>
+<br>
+<span>　　返回工作薄（Workbook）中工作表（Sheet）对象数组，示例：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>Sheet[] sheets = rwb.getSheets();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　3. String getVersion()</span><br>
+<br>
+<span>　　返回正在使用的API的版本号，好像是没什么太大的作用。</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>String apiVersion = rwb.getVersion();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　Sheet接口提供的方法</span><br>
+<br>
+<span>　　1) String getName()</span><br>
+<br>
+<span>　　获取Sheet的名称，示例：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>jxl.Sheet rs = rwb.getSheet(0);</span><br>
+            <span>String sheetName = rs.getName();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　2) int getColumns()</span><br>
+<br>
+<span>　　获取Sheet表中所包含的总列数，示例：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>jxl.Sheet rs = rwb.getSheet(0);</span><br>
+            <span>int rsColumns = rs.getColumns();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　3) <font class="intellitextLink">Cell</font>[] getColumn(int column)</span><br>
+<br>
+<span>　　获取某一列的所有<font class="intellitextLink">单元</font>格，返回的是单元格对象数组，示例：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>jxl.Sheet rs = rwb.getSheet(0);</span><br>
+            <span>Cell[] cell = rs.getColumn(0);</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　4) int getRows()</span><br>
+<br>
+<span>　　获取Sheet表中所包含的总行数，示例：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>jxl.Sheet rs = rwb.getSheet(0);</span><br>
+            <span>int rsRows = rs.getRows();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　5) Cell[] getRow(int row)</span><br>
+<br>
+<span>　　获取某一行的所有单元格，返回的是单元格对象数组，示例子：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>jxl.Sheet rs = rwb.getSheet(0);</span><br>
+            <span>Cell[] cell = rs.getRow(0);</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　6) Cell getCell(int column, int row)</span><br>
+<br>
+<span>　　获取指定单元格的对象<font class="intellitextLink">引用</font>，需要注意的是它的两个参数，第一个是列数，第二个是行数，这与通常的行、列组合有些不同。</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>jxl.Workbook rwb = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <span>jxl.Sheet rs = rwb.getSheet(0);</span><br>
+            <span>Cell cell = rs.getCell(0, 0);</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　2、生成新的Excel工作薄</span><br>
+<br>
+<span>　　下面的代码主要是向大家介绍如何生成简单的Excel工作表，在这里单元格的内容是不带任何<font class="intellitextLink">修饰</font>的(如：字体，颜色等等)，所有的内容都作为字符串写入。(完整代码见ExcelWriting.java)</span><br>
+<br>
+<span>　 　与读取Excel工作表相似，首先要使用Workbook类的工厂方法创建一个可写入的工作薄(Workbook)对象，这里要注意的是，只能通过 API提供的工厂方法来创建Workbook，而不能使用WritableWorkbook的构造函数，因为类WritableWorkbook的构造函 数为protected类型。示例代码片段如下：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>import java.io.*;</span><br>
+            <span>import jxl.*;</span><br>
+            <span>import jxl.write.*;</span><br>
+            <span>… … … …</span><br>
+            <span>try</span><br>
+            {<br>
+            <span>//构建Workbook对象, 只读Workbook对象</span><br>
+            <span>//Method 1：创建可写入的Excel工作薄</span><br>
+            <span>jxl.write.WritableWorkbook wwb = Workbook.createWorkbook(new File(targetfile));</span><br>
+            <br>
+            <span>//Method 2：将WritableWorkbook直接写入到输出流</span><br>
+            <span>/*</span><br>
+            <span>OutputStream os = new FileOutputStream(targetfile);</span><br>
+            <span>jxl.write.WritableWorkbook wwb = Workbook.createWorkbook(os);</span><br>
+            <span>*/</span><br>
+            }<br>
+            <span>catch (Exception e)</span><br>
+            {<br>
+            <span>e.printStackTrace();</span><br>
+            }</font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　 　API提供了两种方式来处理可写入的输出流，一种是直接生成本地文件，如果文件名不带全路径的话，缺省的文件会定位在当前目录，如果文件名带有全路径的 话，则生成的Excel文件则会定位在相应的目录；另外一种是将Excel对象直接写入到输出流，例如：用户通过浏览器来访问Web服务器，如果HTTP 头设置正确的话，浏览器自动调用客户端的Excel应用程序，来显示动态生成的Excel电子表格。</span><br>
+<br>
+<span>　　接下来就是要创建工作表，创建工作表的方法与创建工作薄的方法几乎一样，同样是通过工厂模式方法获得相应的对象，该方法需要两个参数，一个是工作表的名称，另一个是工作表在工作薄中的位置，参考下面的代码片段：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>//创建Excel工作表</span><br>
+            <span>jxl.write.WritableSheet ws = wwb.createSheet(&quot;Test Sheet 1&quot;, 0);</span><br>
+            <br>
+            <span>&quot;这锅也支好了，材料也准备齐全了，可以开始下锅了！&quot;，现在要做的只是实例化API所提供的Excel基本数据类型，并将它们添加到工作表中就可以了，参考下面的代码片段：</span><br>
+            <span>//1.添加Label对象</span><br>
+            <span>jxl.write.Label labelC = new jxl.write.Label(0, 0, &quot;This is a Label cell&quot;);</span><br>
+            <span>ws.addCell(labelC);</span><br>
+            <br>
+            <span>//添加带有字型Formatting的对象</span><br>
+            <span>jxl.write.WritableFont wf = new jxl.write.WritableFont(WritableFont.TIMES, 18, WritableFont.BOLD, true);</span><br>
+            <span>jxl.write.WritableCellFormat wcfF = new jxl.write.WritableCellFormat(wf);</span><br>
+            <span>jxl.write.Label labelCF = new jxl.write.Label(1, 0, &quot;This is a Label Cell&quot;, wcfF);</span><br>
+            <span>ws.addCell(labelCF);</span><br>
+            <br>
+            <span>//添加带有字体颜色Formatting的对象</span><br>
+            <span>jxl.write.WritableFont wfc = new jxl.write.WritableFont(WritableFont.ARIAL, 10, WritableFont.NO_BOLD, false,</span><br>
+            <span>Underlinestyle.NO_UNDERLINE, jxl.format.Colour.RED);</span><br>
+            <span>jxl.write.WritableCellFormat wcfFC = new jxl.write.WritableCellFormat(wfc);</span><br>
+            <span>jxl.write.Label labelCFC = new jxl.write.Label(1, 0, &quot;This is a Label Cell&quot;, wcfFC);</span><br>
+            <span>ws.addCell(labelCF);</span><br>
+            <br>
+            <span>//2.添加Number对象</span><br>
+            <span>jxl.write.Number labelN = new jxl.write.Number(0, 1, 3.1415926);</span><br>
+            <span>ws.addCell(labelN);</span><br>
+            <br>
+            <span>//添加带有formatting的Number对象</span><br>
+            <span>jxl.write.NumberFormat nf = new jxl.write.NumberFormat(&quot;#.##&quot;);</span><br>
+            <span>jxl.write.WritableCellFormat wcfN = new jxl.write.WritableCellFormat(nf);</span><br>
+            <span>jxl.write.Number labelNF = new jxl.write.Number(1, 1, 3.1415926, wcfN);</span><br>
+            <span>ws.addCell(labelNF);</span><br>
+            <br>
+            <span>//3.添加Boolean对象</span><br>
+            <span>jxl.write.Boolean labelB = new jxl.write.Boolean(0, 2, false);</span><br>
+            <span>ws.addCell(labelB);</span><br>
+            <br>
+            <span>//4.添加DateTime对象</span><br>
+            <span>jxl.write.DateTime labelDT = new jxl.write.DateTime(0, 3, new java.util.Date());</span><br>
+            <span>ws.addCell(labelDT);</span><br>
+            <br>
+            <span>//添加带有formatting的DateFormat对象</span><br>
+            <span>jxl.write.DateFormat df = new jxl.write.DateFormat(&quot;dd MM yyyy hh:mm:ss&quot;);</span><br>
+            <span>jxl.write.WritableCellFormat wcfDF = new jxl.write.WritableCellFormat(df);</span><br>
+            <span>jxl.write.DateTime labelDTF = new jxl.write.DateTime(1, 3, new java.util.Date(), wcfDF);</span><br>
+            <span>ws.addCell(labelDTF);</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　这里有两点大家要引起大家的注意。第一点，在构造单元格时，单元格在工作表中的位置就已经确定了。一旦创建后，单元格的位置是不能够变更的，尽管单元格的内容是可以改变的。第二点，单元格的定位是按照下面这样的规律(column, row)，而且下标都是从0开始，例如，A1被存储在(0, 0)，B1被存储在(1, 0)。</span><br>
+<br>
+<span>　　最后，不要忘记关闭打开的Excel工作薄对象，以释放占用的内存，参见下面的代码片段：</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>//写入Exel工作表</span><br>
+            <span>wwb.write();</span><br>
+            <br>
+            <span>//关闭Excel工作薄对象</span><br>
+            <span>wwb.close();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　　这可能与读取Excel文件的操作有少少不同，在关闭Excel对象之前，你必须要先调用write()方法，因为先前的操作都是存储在缓存中的，所以要通过该方法将操作的内容保存在文件中。如果你先关闭了Excel对象，那么只能得到一张空的工作薄了。</span><br>
+<br>
+<span>　　3、拷贝、更新Excel工作薄</span><br>
+<br>
+<span>　　接下来简要介绍一下如何更新一个已经存在的工作薄，主要是下面二步操作，第一步是构造只读的Excel工作薄，第二步是利用已经创建的Excel工作薄创建新的可写入的Excel工作薄，参考下面的代码片段：(完整代码见ExcelModifying.java)</span><br>
+<br>
+</font>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e8e9e0" align="center">
+    <tbody>
+        <tr>
+            <td><font size="3"><span>//创建只读的Excel工作薄的对象</span><br>
+            <span>jxl.Workbook rw = jxl.Workbook.getWorkbook(new File(sourcefile));</span><br>
+            <br>
+            <span>//创建可写入的Excel工作薄对象</span><br>
+            <span>jxl.write.WritableWorkbook wwb = Workbook.createWorkbook(new File(targetfile), rw);</span><br>
+            <br>
+            <span>//读取第一张工作表</span><br>
+            <span>jxl.write.WritableSheet ws = wwb.getSheet(0);</span><br>
+            <br>
+            <span>//获得第一个单元格对象</span><br>
+            <span>jxl.write.WritableCell wc = ws.getWritableCell(0, 0);</span><br>
+            <br>
+            <span>//判断单元格的类型, 做出相应的转化</span><br>
+            <span>if(wc.getType() == CellType.LABEL)</span><br>
+            {<br>
+            <span>Label l = (Label)wc;</span><br>
+            <span>l.setString(&quot;The value has been modified.&quot;);</span><br>
+            }<br>
+            <br>
+            <span>//写入Excel对象</span><br>
+            <span>wwb.write();</span><br>
+            <br>
+            <span>//关闭可写入的Excel对象</span><br>
+            <span>wwb.close();</span><br>
+            <br>
+            <span>//关闭只读的Excel对象</span><br>
+            <span>rw.close();</span></font></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<font size="3"><span>　 　之所以使用这种方式构建Excel对象，完全是因为效率的原因，因为上面的示例才是API的主要应用。为了提高性能，在读取工作表时，与数据相关的一些 输出信息，所有的格式信息，如：字体、颜色等等，是不被处理的，因为我们的目的是获得行数据的值，既使没有了修饰，也不会对行数据的值产生什么影响。唯一 的不利之处就是，在内存中会同时保存两个同样的工作表，这样当工作表体积比较大时，会占用相当大的内存，但现在好像内存的大小并不是什么关键因素了。</span><br>
+<br>
+<span>　　一旦获得了可写入的工作表对象，我们就可以对单元格对象进行更新的操作了，在这里我们不必调用API提供的add()方法，因为单元格已经于工作表当中，所以我们只需要调用相应的setXXX()方法，就可以完成更新的操作了。</span><br>
+<br>
+<span>　　尽单元格原有的格式化修饰是不能去掉的，我们还是可以将新的单元格修饰加上去，以使单元格的内容以不同的形式表现。</span><br>
+<br>
+<span>　　新生成的工作表对象是可写入的，我们除了更新原有的单元格外，还可以添加新的单元格到工作表中，这与示例2的操作是完全一样的。</span><br>
+<br>
+<span>　　最后，不要忘记调用write()方法，将更新的内容写入到文件中，然后关闭工作薄对象，这里有两个工作薄对象要关闭，一个是只读的，另外一个是可写入的。</span><br>
+hxzon：</font><a href="http://sourceforge.net/project/showfiles.php?group_id=79926"><font color="#fd83c9" size="3">http://sourceforge.net/project/showfiles.php?group_id=79926</font></a> jxl<br>
+<a href="http://www.jxcell.net/features.htm">http://www.jxcell.net/features.htm</a> jxcell</p></div></body></html>

@@ -1,0 +1,170 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>关于URI is hierarchical错误的解决方案</title></head><body><h1>关于URI is hierarchical错误的解决方案</h1><div><div>关于URI is hierarchical错误的解决方案</div>
+<div> </div>
+<div>getResourceAsStream()<br>
+=============================<br>
+从类路径加载(一)<br>
+关键字: 类路径 ClassLoader <br>
+JAR文件是打包基于JAVA技术的解决方案的标准方法。它允许开发者将所有相关内容（.class、图片、声音、及所有支持的文件）打包到一个文件中。JAR格式支持压缩、认证、版本号及其他很多特性。 <br>
+　　<br>
+　　从JAR文件中读取文件是很麻烦的事情，但是也不一定全是这样。本文将告诉你如何从JAR文件中读取文件，首先，得到JAR文件中的文件目录，然后在进行具体的某一个文件的操作。 <br>
+　　<br>
+　　如果你对于常用的ZIP格式比较熟悉的话，JAR文件也就差不多。JAR文件提供一种将多个文件打包到一个文件中的方法，其中每一个文件可能独立地被压缩。JAR文件所增加的内容是manifest，它允许开发者可以提供附加的关于内容的信息。例如，manifest表明JAR文件中的哪个文件是用来运行一个程序的，或者库的版本号等 <br>
+　　<br>
+　　J2SEDK提供了一个jar工具，你可以用它从控制台读写JAR文件。然而，如果你需要在程序中代码读写JAR文件，可能需要一点时间（本文只包含如何在程序中读写JAR文件）。好消息是你可以做到这一点，而且你不用担心解压的事，因为类库将帮助你完成这些。你所需要的类文件位于java.util.jar包中。这里主要的类是JarFile，它是.jar文件自身的一个引用。较大文件中的每一个单独的文件是通过一个JarEntry引用的。 <br>
+　　<br>
+　　首先，通过把将JAR文件位置传给构造函数，创建一个JarFile的实例，位置可能是String或File的形式，如下： <br>
+　　　 JarFile jarFile = new JarFile(&quot;thefile.jar&quot;); <br>
+　　<br>
+　　或者： <br>
+　　<br>
+　　　 File file = new File(&quot;thefile.jar&quot;); <br>
+　　　 JarFile jarFile = new JarFile(file); <br>
+　　<br>
+　　<br>
+　　你可能注意到当文件不在class path中时，JarFile类对于从JAR中读取文件文件是很有用的。 <br>
+　　当你想指定目标JAR文件时，JarFile类对于从JAR中读取文件同样也很有用。当然，如果JAR文件在class path中，从其中读取文件的方法比较简单，你可以用下面的方法： <br>
+　　<br>
+　　　URL url = ClassLoader.getSystemResource(name); <br>
+　　或者 <br>
+　　<br>
+　　　InputStream stream = <br>
+　　　　 ClassLoader.getSystemResourceAsStream(name); <br>
+　　<br>
+　　这种技术允许你从在class path中的JAR文件里读取文件。你不必指定JAR文件名。 <br>
+　　<br>
+　　<br>
+　　还有其他的构造函数，如认证支持，标志要删除的文件等。这些构造函数在这儿不做说明。 <br>
+　　<br>
+　　当你有了该JAR文件的一个引用之后，你就可以读取其文件内容中的目录信息了。JarFile的entries方法返回所有entries的枚举集合(Enumeration)。通过每一个entry，你可以从它的manifest文件得到它的属性，任何认证信息，以及其他任何该entry的信息，如它的名字或者大小等。 <br>
+　　<br>
+　　 Enumeration enum = jarFile.entries(); <br>
+　　 while (enum.hasMoreElements()) { <br>
+　　　 process(enum.nextElement()); <br>
+　　 } <br>
+　　<br>
+　　正如前面提到的，每一个entry是一个JarEntry。该类有getName，getSize，getCompressedSize等方法。 <br>
+　　<br>
+　　下面，让我们举例说明在程序中如何使用这些特性。下面的程序显示你指定的JAR文件中内容的名称，大小，压缩大小等（这有点类似于在使用jar命令时，指定&quot;t&quot;和&quot;v&quot;选项）。 <br>
+　　<br>
+　　　import java.io.*; <br>
+　　　import java.util.*; <br>
+　　　import java.util.jar.*; <br>
+　　<br>
+　　　public class JarDir { <br>
+　　　　public static void main (String args[]) <br>
+　　　　　　throws IOException { <br>
+　　　　　if (args.length != 1) { <br>
+　　　　　　System.out.println( <br>
+　　　　　　　 &quot;Please provide a JAR filename&quot;); <br>
+　　　　　　System.exit(-1); <br>
+　　　　　} <br>
+　　　　　JarFile jarFile = new JarFile(args[0]); <br>
+　　　　　Enumeration enum = jarFile.entries(); <br>
+　　　　　while (enum.hasMoreElements()) { <br>
+　　　　　　process(enum.nextElement()); <br>
+　　　　　} <br>
+　　　　} <br>
+　　<br>
+　　　　private static void process(Object obj) { <br>
+　　　　　JarEntry entry = (JarEntry)obj; <br>
+　　　　　String name = entry.getName(); <br>
+　　　　　long size = entry.getSize(); <br>
+　　　　　long compressedSize = entry.getCompressedSize(); <br>
+　　　　　System.out.println( <br>
+　　　　　　　name + &quot;\t&quot; + size + &quot;\t&quot; + compressedSize); <br>
+　　　　} <br>
+　　　} <br>
+　　<br>
+　　如果你用J2SE1.4.1中的jce.jar作为参数运行上面的JarDir程序，你将看到类似于下面的输出（...部分为省略掉的输出）： <br>
+　　<br>
+　　META-INF/MANIFEST.MF　　5315　　1910 <br>
+　　META-INF/4JCEJARS.SF　　5368　　1958 <br>
+　　META-INF/4JCEJARS.DSA　 2207　　1503 <br>
+　　META-INF/　　　 0　　　 2 <br>
+　　javax/　0　　　 0 <br>
+　　javax/crypto/　 0　　　 0 <br>
+　　javax/crypto/interfaces/　　　　0　　　 0 <br>
+　　javax/crypto/interfaces/DHKey.class　　 209　　 185 <br>
+　　javax/crypto/interfaces/DHPublicKey.class　　　 265　　 215 <br>
+　　javax/crypto/interfaces/DHPrivateKey.class　　　267　　 215 <br>
+　　javax/crypto/interfaces/PBEKey.class　　268　　 224 <br>
+　　javax/crypto/SecretKey.class　　167　　 155 <br>
+　　... <br>
+　　<br>
+　　注意输出最开始的META-INF行。这是manifest和安全认证信息。0字节的entries不是文件，但是有点相当于目录。 <br>
+　　<br>
+　　为了从JAR文件中真正读取一个指定的文件，你必须到其entry的InputStream。这和JarEntry不一样。这是因为JarEntry只是包含该entry的有关信息，但是并不实际包含该entry的内容。这和File和FileInputStream的区别有点儿相似。访问文件没有打开文件，它只是从目录中读取了该文件的信息。下面是如何得到entry的InputStream： <br>
+　　<br>
+　　　InputStream input = jarFile.getInputStream(entry); <br>
+　　<br>
+　　当你有了输入流，你就可以像读取其他流一样读取它。在文本流中(text stream)，记得使用读取器(Reader)从流中取得字符。对于面向字节的流，如图片文件，直接读取就行了。 <br>
+　　<br>
+　　下面的程序演示如何从JAR文件中读取文件。指定JAR文件的名称，要读取的文件的名称（打包JAR文件中的某一个文件）作为参数来调用该程序。要读取的文件应该有一个文本类型的。 <br>
+　　<br>
+　　　import java.io.*; <br>
+　　　import java.util.jar.*; <br>
+　　<br>
+　　　public class JarRead { <br>
+　　　　public static void main (String args[]) <br>
+　　　　　　throws IOException { <br>
+　　　　　if (args.length != 2) { <br>
+　　　　　　System.out.println( <br>
+　　　　　　　&quot;Please provide a JAR filename and file to read&quot;); <br>
+　　　　　　System.exit(-1); <br>
+　　　　　} <br>
+　　　　　JarFile jarFile = new JarFile(args[0]); <br>
+　　　　　JarEntry entry = jarFile.getJarEntry(args[1]); <br>
+　　　　　InputStream input = jarFile.getInputStream(entry); <br>
+　　　　　process(input); <br>
+　　　　　jarFile.close(); <br>
+　　　　} <br>
+　　<br>
+　　　　private static void process(InputStream input) <br>
+　　　　　　throws IOException { <br>
+　　　　　InputStreamReader isr = <br>
+　　　　 new InputStreamReader(input); <br>
+　　　　　BufferedReader reader = new BufferedReader(isr); <br>
+　　　　　String line; <br>
+　　　　　while ((line = reader.readLine()) != null) { <br>
+　　　　　　System.out.println(line); <br>
+　　　　　} <br>
+　　　　　reader.close(); <br>
+　　　　} <br>
+　　　} <br>
+　　<br>
+　　假设在myfiles.jar文件中有一个spider.txt文件，spider文件的内容如下： <br>
+　　<br>
+　　　The itsy bitsy spider <br>
+　　　Ran up the water spout <br>
+　　　Down came the rain and <br>
+　　　Washed the spider out <br>
+　　<br>
+　　你可以通过下面的命令来显示该文本文件的内容： <br>
+　　<br>
+　　　java JarRead myfiles.jar spider.txt　<br>
+==========================</div>
+<div> </div>
+<div>在Java的程序发布中，很多人会选择采用二进制的jar的格式进行发布，怎么样读取Jar里面的资源呢？<br>
+主要是采用ClassLoader的下面几个方法来实现：<br>
+public URL getResource(String name)；<br>
+public InputStream getResourceAsStream(String name)</div>
+<div> </div>
+<div>public static InputStream getSystemResourceAsStream(String name)<br>
+public static URL getSystemResource(String name)</div>
+<div> </div>
+<div>后两个方法可以看出是静态的方法，这几个方法都可以从Jar中读取图片资源，但是对与动画的gif文件，笔者在尝试过程中发现，存在一些差异。</div>
+<div> </div>
+<div>String gifName为Gif文件在Jar中的相对路径。<br>
+(1)使用了两个静态方法<br>
+BufferedImage image=ImageIO.read（ClassLoader.getSystemResourceAsStream(gifName));</div>
+<div> </div>
+<div>或者</div>
+<div> </div>
+<div>Image image=Toolkit.getDefaultToolkit().getImage(ClassLoader.getSystemResource(gifName));</div>
+<div> </div>
+<div>这两种方式可以成功地读取gif文件，但是对于gif动画，显示出来地是静态的。</div>
+<div> </div>
+<div>(2)使用其他两个方法<br>
+Image image=Toolkit.getDefaultToolkit().getImage(this.getClass.getClassLoader().getResource(gifName));</div>
+<div> </div>
+<div>再这种方式下动画可以正常显示了。</div></div></body></html>

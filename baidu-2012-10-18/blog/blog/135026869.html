@@ -1,0 +1,305 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 8. Seam和对象/关系映射 -seam满江红</title></head><body><h1>Chapter 8. Seam和对象/关系映射 -seam满江红</h1><div><div class="chapter">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title"><a name="persistence"></a>Chapter 8. Seam和对象/关系映射 -seam满江红</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam给两个最流行的Java持久化架构：Hibernate3和由EJB 3.0引入的Java Persistence API提供了广泛支持。 Seam独有的状态管理架构允许任意web应用框架与大多数成熟的ORM进行集成。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e6053"></a>8.1. 简介</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam是从Hibernate团队试图生成典型的无状态Java应用架构的挫折中成长起来的。 上一代Java应用程序的无状态特性让Hibernate团队饱受挫折，Seam吸取了他们的经验。 Seam的状态管理架构最早是用来解决持久化冲突相关问题的，特别是 <span class="emphasis"><em>乐观事务处理</em></span> 相关的问题。可扩展的在线应用经常使用乐观事务。 一个原子(database/JTA)级的事务不应该跨用户交互，除非系统设计时就是只支撑很少量的并发客户端。 但几乎所有涉及到的工作都是先将数据展现给用户，没多久后更新这个数据。所以Hibernate是依据支持一种跨乐观事务的持久化上下文的思想设计的。</p>
+<p>不幸的是这个先于Seam和EJB3.0出现的所谓&ldquo;无状态&rdquo;架构并不对乐观事务进行支持。而相反，这些架构提供对于原子事务级的持久化上下文的支持。 这当然给用户带来了很多麻烦，这也是用户抱怨排名第一的Hibernate的 <tt class="literal"><font face="新宋体">LazyInitializationException</font></tt> 问题的原因。 我们需要的是在应用层构建对于乐观事务的支持。</p>
+<p>EJB3.0认识到了此问题，并且也引入了有状态组件（有状态会话bean）的思想，它使用一个 <span class="emphasis"><em>扩展持久化上下文</em></span>来跟踪组件的生命周期。 这是该问题的部分解决方案（对它自身而言也是一个有用的构想），然而还有两个问题：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>有状态会话bean的生命周期必须在Web层通过代码手动管理（这是个麻烦的问题，而且实践起来比听上去更复杂）。</p>
+    </li>
+    <li>
+    <p>在同一个乐观事务的不同有状态组件间，传播持久化上下文是可行的，但很困难。</p>
+    </li>
+</ul>
+</div>
+<p>Seam通过提供对话(Conversation)和对话期间的有状态Session Bean组件来解决第一个问题（大多数会话实际上在数据层支持乐观事务）。 这对于很多不需要传递持久化上下文的简单应用（比如Seam的订阅演示程序）已经足够了。 对于更复杂的在每一个对话中的有很多松耦合组件的应用来说，组件间传播持久化上下文就成为一个重要的问题了。 所以Seam扩展了EJB 3.0的持久化上下文管理模型，以此来提供对话作用域的扩展持久化上下文。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="persistence.seam-managed-transactions"></a>8.2. Seam管理的事务</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>EJB会话Bean有声明式事务管理功能。当Bean被调用时，EJB容器能够透明地开始一个事务，在调用结束时关闭此事务。 如果我们写了一个作为JSF动作监听器的会话Bean方法，我们就可以在一个事务内处理所有与此action相关的工作，并且当我们完成此动作处理时事务必须被提交或回滚。 这是一个很棒的功能，在很多Seam应用程序中这是必需的。</p>
+<p>但是，此方法还是有问题。Seam应用可能无法在对会话Bean的一次方法调用请求中完成所有的数据访问。</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>此请求可能由几个松耦合组件处理，Web层独立地调用每一个组件。在Seam中，Web层的一个请求对EJB组件发起几次甚至多次调用的现象是很常见的。</p>
+    </li>
+    <li>
+    <p>视图渲染可能需要延迟关联获取（lazy fetching of associations）。</p>
+    </li>
+</ul>
+</div>
+<p>每个请求的事务量越多，当我们的应用处理大量并发请求时越可能碰到原子和隔离问题。当然，所有的写操作要在一个事务中执行。</p>
+<p>Hibernate用户开发了 <span class="emphasis"><em>&quot;Open Session in View&quot;</em></span> 模式来解决该问题。 在Hibernate社区，&quot;Open Session in View&quot;曾经非常重要，这是因为像Spring这样的框架使用了事务作用域持久化上下文。 所以当未获得的关联被访问时渲染视图将引起 <tt class="literal"><font face="新宋体">LazyInitializationException</font></tt> 异常。</p>
+<p>这个模式通常作为一个跨越整个请求的事务来实现。 此实现方式会有几个问题，其中最严重的是只有我们提交了事务才能确认它成功完成&mdash;&mdash;但在&quot;Open Session in View&quot;的事务提交时，视图已经完全渲染了，甚至渲染好的应答可能已经刷新到客户端。我们怎样才能通知用户他们的事务已失败呢？</p>
+<p>Seam在解决&quot;Open Session in View&quot;问题时，也解决了事务隔离和关联获取问题。该方案有有两个部分：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>使用使用已扩展持久化上下文，可以覆盖一个会话作用域而不是单个事务作用域。</p>
+    </li>
+    <li>
+    <p>每次请求使用两个事务；第一个从更新模型值的起始阶段到应用程序调用结束；第二个跨越渲染响应阶段。</p>
+    </li>
+</ul>
+</div>
+<p>下一节，我们将会告诉你如何安装一个会话作用域的持久化上下文。但首先我们需要你知道如何启用Seam事务管理。 注意你可以脱离Seam的事务管理来使用会话作用域持久化上下文。当你不使用Seam管理的持久化上下文时，你也有很多使用Seam事务管理的理由。 然而这两种功能被设计为一起使用的，一起使用时效果最好。</p>
+<p>即使你使用EJB 3.0容器管理事务上下文，Seam事务管理也是很有用的。如果你在Java EE 5环境外使用Seam，或者在任何你想使用Seam管理的持久化上下文时，它同样很有用的。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e6119"></a>8.2.1. 关闭Seam管理的事务</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>所有的JSF请求默认开启Seam事务管理。如果你想 <span class="emphasis"><em>关闭</em></span> 该功能，你能在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 文件中做如下设置：</p>
+<pre class="programlisting">&lt;core:init transaction-management-enabled=&quot;false&quot;/&gt;
+
+&lt;transaction:no-transaction /&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e6132"></a>8.2.2. 配置Seam事务管理器</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam为事务的开始，提交，回滚，同步提供了一个事务管理抽象。默认情况下，Seam使用一个JTA事务组件，它同容器管理的EJB和编程式EJB事务集成。</p>
+<p>Seam还为以下事务API提供事务组件：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li><tt class="literal"><font face="新宋体">javax.persistence.EntityTransaction</font></tt> 接口提供的JPA RESOURCE_LOCAL事务。</li>
+    <li><tt class="literal"><font face="新宋体">org.hibernate.Transaction</font></tt> 接口提供的Hibernate管理的事务。</li>
+    <li><tt class="literal"><font face="新宋体">org.springframework.transaction.PlatformTransactionManager</font></tt> 接口提供的Spring管理的事务。</li>
+    <li>显式关闭Seam管理的事务。</li>
+</ul>
+</div>
+<p>向components.xml文件增加以下项来配置JPA RESOURCE_LOCAL事务，在配置文件中，<tt class="literal"><font face="新宋体">#{entityManager}</font></tt> 是 <tt class="literal"><font face="新宋体">persistence:managed-persistence-context</font></tt> 组件的名称。（参考 <a title="8.3.&nbsp;Seam管理的持久化上下文" href="http://www.redsaga.com/opendoc/Seam2.0/html/persistence.html#persistence.seam-managed-persistence-contexts">Seam管理的持久化上下文</a>。）</p>
+<pre class="programlisting">&lt;transaction:entity-transaction entity-manager=&quot;#{entityManager}&quot;/&gt;</pre>
+<p>向你的components.xml文件声明以下项来配置Hibernate管理的事务，在配置文件中，<tt class="literal"><font face="新宋体">#{hiberanteSession}</font></tt> 是项目中 <tt class="literal"><font face="新宋体">persistence:managed-hibernate-session</font></tt> 组件的名称。（参考<a title="8.3.&nbsp;Seam管理的持久化上下文" href="http://www.redsaga.com/opendoc/Seam2.0/html/persistence.html#persistence.seam-managed-persistence-contexts">Seam管理的持久化上下文</a>）</p>
+<pre class="programlisting">&lt;transaction:hibernate-transaction session=&quot;#{hiberanteSession}&quot;/&gt;</pre>
+<p>在components.xml中声明以下内容来显式地关闭Seam管理的事务：</p>
+<pre class="programlisting">&lt;transaction:no-transaction /&gt;</pre>
+<p>参考 <a title="23.5.&nbsp;使用Spring PlatformTransactionManagement" href="http://www.redsaga.com/opendoc/Seam2.0/html/spring.html#spring-transactions">使用Spring PlatformTransactionManagement</a> 来配置Spring管理的事务。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e6189"></a>8.2.3. 事务同步</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>事务同步为各种各样的事务相关事件提供了回调功能，例如 <tt class="literal"><font face="新宋体">beforeCompletion()</font></tt> 和 <tt class="literal"><font face="新宋体">afterCompletion()</font></tt> 事件。 默认情况下，Seam使用它自己的事务同步组件，一个事务被提交时，需要显式地使用Seam事务组件以确保同步回调被正确执行。 如果在Java EE 5环境里，应该在components.xml文件中声明 <tt class="literal"><font face="新宋体">&lt;transaction:ejb-transaction/&gt;</font></tt>，从而保证容器在Seam的可预见范围外提交事务时，Seam同步回调被正确调用。</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="persistence.seam-managed-persistence-contexts"></a>8.3. Seam管理的持久化上下文</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>如果你是在Java EE 5环境外使用Seam，你不能依靠容器来为你管理持久化上下文生命周期。 即使在Java EE 5 环境中，你可能有一个很多松耦合组件在会话作用域内相互协作的复杂应用，这种情况下你可能发现在组件间传递持久化上下文既困难又容易出错。</p>
+<p>在任何一种情况下，你都需要在你的组件中使用一个 <span class="emphasis"><em>受管持久化上下文</em></span>（在JPA中）或者一个 <span class="emphasis"><em>受管会话</em></span>（Hibernate中）。一个Seam管理的持久化上下文是在会话上下文中管理一个 <tt class="literal"><font face="新宋体">EntityManager</font></tt> 实例或者 <tt class="literal"><font face="新宋体">Session</font></tt> 实例的内置Seam组件。你可以使用 <tt class="literal"><font face="新宋体">@In</font></tt> 注入它。</p>
+<p>Seam管理的持久化上下文在集群环境中尤其有效。EJB 3.0规范中不允许容器使用容器管理的扩展持久化上下文，Seam能够对此进行优化。 Seam支持扩展持久化上下文的透明故障恢复，而无需在节点间复制持久化上下文状态。（我们希望在EJB规范的下个版本中修复此漏洞。）</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e6227"></a>8.3.1. 在Seam管理的持久化上下文中使用JPA</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>配置一个Seam管理的持久化上下文很简单，在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中加上：</p>
+<pre class="programlisting">&lt;persistence:managed-persistence-context name=&quot;bookingDatabase&quot;
+                                  auto-create=&quot;true&quot;
+                   persistence-unit-jndi-name=&quot;java:/EntityManagerFactories/bookingData&quot;/&gt;</pre>
+<p>这个配置创建了一个名为 <tt class="literal"><font face="新宋体">bookingDatabase</font></tt> 的对话作用范围Seam组件，它管理给持久化单元（<tt class="literal"><font face="新宋体">EntityManagerFactory</font></tt> 实例）使用的 <tt class="literal"><font face="新宋体">EntityManager</font></tt> 实例的生命周期。 其JNDI名为 <tt class="literal"><font face="新宋体">java:/EntityManagerFactories/bookingData</font></tt>。</p>
+<p>当然，你需要确认已经在JNDI中绑定了 <tt class="literal"><font face="新宋体">EntityManagerFactory</font></tt>。 在JBoss中，你能在 <tt class="literal"><font face="新宋体">persistence.xml</font></tt> 中通过增加以下属性设置来绑定它。</p>
+<pre class="programlisting">&lt;property name=&quot;jboss.entity.manager.factory.jndi.name&quot;
+          value=&quot;java:/EntityManagerFactories/bookingData&quot;/&gt;</pre>
+<p>现在我们能用以下方式来注入 <tt class="literal"><font face="新宋体">EntityManager</font></tt> 了：</p>
+<pre class="programlisting">@In EntityManager bookingDatabase;</pre>
+<p>如果你正在使用EJB3，并且你的类或者方法上加了 <tt class="literal"><font face="新宋体">@TransactionAttribute(REQUIRES_NEW)</font></tt>，那么事务和持久化上下文不应该被传播到这个对象的方法调用上。 但是Seam管理的持久化上下文会被传播到会话内的所有组件上，它也会被传播到标有<tt class="literal"><font face="新宋体">REQUIRES_NEW</font></tt>的方法上。 因此，如果你标记了一个<tt class="literal"><font face="新宋体">REQUIRES_NEW</font></tt>方法，那么就应该用@PersistenceContext来访问实体管理器。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e6279"></a>8.3.2. 使用Seam管理的Hibernate会话</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam管理的Hibernate sessions和前者很相似。在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 中加入如下内容：</p>
+<pre class="programlisting">&lt;persistence:hibernate-session-factory name=&quot;hibernateSessionFactory&quot;/&gt;
+
+&lt;persistence:managed-hibernate-session name=&quot;bookingDatabase&quot;
+                                auto-create=&quot;true&quot;
+                  session-factory-jndi-name=&quot;java:/bookingSessionFactory&quot;/&gt;</pre>
+<p><tt class="literal"><font face="新宋体">java:/bookingSessionFactory</font></tt> 是在 <tt class="literal"><font face="新宋体">hibernate.cfg.xml</font></tt> 中配置的会话工厂名。</p>
+<pre class="programlisting">&lt;session-factory name=&quot;java:/bookingSessionFactory&quot;&gt;
+    &lt;property name=&quot;transaction.flush_before_completion&quot;&gt;true&lt;/property&gt;
+    &lt;property name=&quot;connection.release_mode&quot;&gt;after_statement&lt;/property&gt;
+    &lt;property name=&quot;transaction.manager_lookup_class&quot;&gt;org.hibernate.transaction.JBossTransactionManagerLookup&lt;/property&gt;
+    &lt;property name=&quot;transaction.factory_class&quot;&gt;org.hibernate.transaction.JTATransactionFactory&lt;/property&gt;
+    &lt;property name=&quot;connection.datasource&quot;&gt;java:/bookingDatasource&lt;/property&gt;
+    ...
+&lt;/session-factory&gt;</pre>
+<p>注意：Seam并没有清空此会话，所以你应启用 <tt class="literal"><font face="新宋体">hibernate.transaction.flush_before_completion</font></tt>，确保在JTA事务提交前会话被自动地清空缓存。</p>
+<p>现在我们可以用以下代码向JavaBean组件中注入一个受管Hibernate <tt class="literal"><font face="新宋体">Session</font></tt>了：</p>
+<pre class="programlisting">@In Session bookingDatabase;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e6311"></a>8.3.3. Seam管理的持久化上下文和原子会话</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>会话期间的持久化上下文让你能编写跨越多个服务器请求的乐观事务，而且无需使用<tt class="literal"><font face="新宋体">merge()</font></tt>操作，也不需要在每次请求开始时重载数据，也不需要处理 <tt class="literal"><font face="新宋体">LazyInitializationException</font></tt> 异常或 <tt class="literal"><font face="新宋体">NonUniqueObjectException</font></tt> 异常。</p>
+<p>对任何乐观事务管理来说，事务隔离性和一致性可以使用乐观锁来获得。 幸运的是，Hibernate和EJB 3.0都通过使用 <tt class="literal"><font face="新宋体">@Version</font></tt> 注解来使用乐观锁。</p>
+<p>默认情况下，持久化上下文在每个事务结束时会清空缓存（与数据库同步）。有时这是我们期望的方式。 但经常我们希望所有的改变在内存中保存，且只有在会话成功结束时写回数据库。这对于正真的原子会话来说是允许的。 作为非JBoss，非Sun，非Sybase的EJB 3.0专家组成员的愚蠢和短视决策的结果，使用EJB 3.0持久化还不能简单、有效和方便的实现原子会话。 但是Hibernate通过扩展规范定义的 <tt class="literal"><font face="新宋体">FlushModeType</font></tt> 提供了这个功能，我们也期望其它的厂商能尽快提供类似扩展。</p>
+<p>Seam允许你在开始会话时指定<tt class="literal"><font face="新宋体">FlushModeType.MANUAL</font></tt>参数。 目前，只有Hibernate作为持久化底层提供者时它才能正常工作，但是我们计划支持其它同类计算机厂商扩展。</p>
+<pre class="programlisting">@In EntityManager em; //a Seam-managed persistence context
+
+@Begin(flushMode=MANUAL)
+public void beginClaimWizard() {
+    claim = em.find(Claim.class, claimId);
+}</pre>
+<p>现在 <tt class="literal"><font face="新宋体">claim</font></tt> 对象仍然在其余会话中被持久化上下文管理。我们能对此claim进行一些修改：</p>
+<pre class="programlisting">public void addPartyToClaim() {
+    Party party = ....;
+    claim.addParty(party);
+}</pre>
+<p>除非我们进行显式的强制提交，否则这些改变不会被写到数据库中。</p>
+<pre class="programlisting">@End
+public void commitClaim() {
+    em.flush();
+}</pre>
+<p>当然你可以在pages.xml文件中将 <tt class="literal"><font face="新宋体">flushMode</font></tt> 值设置为 <tt class="literal"><font face="新宋体">MANUAL</font></tt>，例如在一个导航规则中写入：</p>
+<pre class="programlisting">&lt;begin-conversation flush-mode=&quot;MANUAL&quot; /&gt;</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e6363"></a>8.4. 使用JPA &ldquo;代理（delegate）&rdquo;</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p><tt class="literal"><font face="新宋体">EntityManager</font></tt> 接口能让你通过使用 <tt class="literal"><font face="新宋体">getDelegate()</font></tt> 方法访问某个厂商特定的API。 很自然地，最让人感兴趣的厂商是Hibernate，其最强大的代理接口是 <tt class="literal"><font face="新宋体">org.hibernate.Session</font></tt>。 你不必再用别的东西，相信我，我没有任何偏见。</p>
+<p>不管你使用Hibernate（明智！）还是其他的东西（受虐狂，或者说不太聪明），你当然想在你的Seam组件中经常使用代理。下面是一个方法：</p>
+<pre class="programlisting">@In EntityManager entityManager;
+
+@Create
+public void init() {
+    ( (Session) entityManager.getDelegate() ).enableFilter(&quot;currentVersions&quot;);
+}</pre>
+<p>但类型转化毫无疑问是Java语言中最难看的语法。因此大家都应尽可能避免使用它们。这有另一个获得代理的方法。 首先将下列语句加到 <tt class="literal"><font face="新宋体">components.xml</font></tt> 文件中：</p>
+<pre class="programlisting">&lt;factory name=&quot;session&quot;
+         scope=&quot;STATELESS&quot;
+         auto-create=&quot;true&quot;
+         value=&quot;#{entityManager.delegate}&quot;/&gt;</pre>
+<p>现在我们可以直接注入此会话：</p>
+<pre class="programlisting">@In Session session;
+
+@Create
+public void init() {
+    session.enableFilter(&quot;currentVersions&quot;);
+}</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e6392"></a>8.5. 在EJB-QL/HQL中使用EL</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>无论你使用一个Seam管理的持久化上下文还是用 <tt class="literal"><font face="新宋体">@PersistenceContext</font></tt> 注入一个容器管理的持久化上下文。 Seam都代理 <tt class="literal"><font face="新宋体">EntityManager</font></tt> 或者 <tt class="literal"><font face="新宋体">Session</font></tt> 对象，这使你能在查询语句中安全有效地使用EL表达式。例如这个例子：</p>
+<pre class="programlisting">User user = em.createQuery(&quot;from User where username=#{user.username}&quot;)
+         .getSingleResult();</pre>
+<p>和下面等价：</p>
+<pre class="programlisting">User user = em.createQuery(&quot;from User where username=:username&quot;)
+         .setParameter(&quot;username&quot;, user.getUsername())
+         .getSingleResult();</pre>
+<p>当然你不要写成下面这样：</p>
+<pre class="programlisting">User user = em.createQuery(&quot;from User where username=&quot; + user.getUsername()) //BAD!
+         .getSingleResult();</pre>
+<p>（这在遭受SQL注入攻击时会变得低效且不堪一击。）</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e6418"></a>8.6. 使用Hibernate过滤器</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Hibernate最酷最独特的功能就是 <span class="emphasis"><em>过滤器（filter）</em></span>。过滤器能让你提供一个数据库中数据的受限视图。 但是应该有一个将过滤器合并到Seam应用中的简便方法，让它和Seam应用框架能工作得很好。</p>
+<p>Seam管理的持久化上下文可以定义一系列的过滤器，这些过滤器在一个 <tt class="literal"><font face="新宋体">EntityManager</font></tt> 或者 Hibernate <tt class="literal"><font face="新宋体">Session</font></tt> 被创建时启用。（当然，它们只能在Hibernate做持久化底层时使用）</p>
+<pre class="programlisting">&lt;persistence:filter name=&quot;regionFilter&quot;&gt;
+    &lt;persistence:name&gt;region&lt;/persistence:name&gt;
+    &lt;persistence:parameters&gt;
+        &lt;key&gt;regionCode&lt;/key&gt;
+        &lt;value&gt;#{region.code}&lt;/value&gt;
+    &lt;/persistence:parameters&gt;
+&lt;/persistence:filter&gt;
+
+&lt;persistence:filter name=&quot;currentFilter&quot;&gt;
+    &lt;persistence:name&gt;current&lt;/persistence:name&gt;
+    &lt;persistence:parameters&gt;
+        &lt;key&gt;date&lt;/key&gt;
+        &lt;value&gt;#{currentDate}&lt;/value&gt;
+    &lt;/persistence:parameters&gt;
+&lt;/persistence:filter&gt;
+
+&lt;persistence:managed-persistence-context name=&quot;personDatabase&quot;
+    persistence-unit-jndi-name=&quot;java:/EntityManagerFactories/personDatabase&quot;&gt;
+    &lt;core:filters&gt;
+        &lt;value&gt;#{regionFilter}&lt;/value&gt;
+        &lt;value&gt;#{currentFilter}&lt;/value&gt;
+    &lt;/core:filters&gt;
+&lt;/persistence:managed-persistence-context&gt;</pre>
+</div>
+</div></div></body></html>

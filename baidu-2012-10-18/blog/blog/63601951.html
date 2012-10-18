@@ -1,0 +1,256 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>SQL Server2000+JDBC常见问题及解决</title></head><body><h1>SQL Server2000+JDBC常见问题及解决</h1><div><table class="buttomBorder FCK__ShowTableBorders" border="0" cellspacing="3" cellpadding="3" width="100%">
+    <tbody>
+        <tr>
+            <td class="contentTitle" align="center">SQL Server2000+JDBC常见问题及解决 <hr width="70%">
+            </td>
+        </tr>
+        <tr>
+            <td align="center">2005-06-09 来源:matrix 作者:potsmart</td>
+        </tr>
+        <tr>
+            <td class="content" valign="top" align="left">　　SQL Server 2000 是当今网络编程中使用的比较多的一个数据库系统，java是目前最流行的编程语言，在编程中涉及的比较多也比较重要的就是数据库问题，java自身提供了对各类主流数据库系统的支持，通过java.sql 库，提供了统一的接口，使得可以在java环境下不必对程序作大规模的修改，只要更改相应的驱动程序，即可实现对各类数据库的操作，从而提高软件的生存周期和降低软件的开发成本和维护费用，在这种情况下SQL Server 2000 和java 的融合问题就显得比较重要了，本文简要地阐述一下SQL Server 2000 和jdk的融合问题。 <br>
+            <br>
+            　　系统需求：<br>
+            <br>
+            　　　数据库：SQL Server 2000 sp3<br>
+            　　　驱动程序：SQL Server driver for jdbc <br>
+            　　　java版本：jdk1.2以上<br>
+            <br>
+            　　1：我们首先使用jdbc-odbc桥来实现数据库的连接，这个相对简单。<br>
+            　　<br>
+            　　首先使用SQL Server 企业管理其建立一个数据库test，并建立一个简单的表 first_table<br>
+            <br>
+            　　建立odbc数据源 ，各步骤采用默认操作即可<br>
+            <br>
+            　　编写一个简单的测试程序，该程序主要实现数据库的连接，以及一个简单的sql操作 ,代码如下：<br>
+            <br>
+            <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center">
+                <tbody>
+                    <tr>
+                        <td>/***********************************************<br>
+                        /*<br>
+                        /*DbTest.java<br>
+                        /*<br>
+                        /******************************************* */<br>
+                        <br>
+                        import java.sql.*;<br>
+                        <br>
+                        public class DbTest {<br>
+                        <br>
+                        　Connection con;<br>
+                        　Statement sta;<br>
+                        　ResultSet rs;<br>
+                        <br>
+                        　String driver;<br>
+                        　String url;<br>
+                        　String user;<br>
+                        　String pwd;<br>
+                        　public DbTest()<br>
+                        　{<br>
+                        　　driver = &quot;sun.jdbc.odbc.JdbcOdbcDriver&quot;;<br>
+                        　　url = &quot;jdbc:odbc:store_manager&quot;;<br>
+                        　　user = &quot;share&quot;;<br>
+                        　　pwd = &quot;share&quot;;<br>
+                        　　init();<br>
+                        　}<br>
+                        　public void init()<br>
+                        　{<br>
+                        　　try{<br>
+                        　　　Class.forName(driver);<br>
+                        　　　System.out.println(&quot;driver is ok&quot;);<br>
+                        　　　con = DriverManager.getConnection(url,user,pwd);<br>
+                        　　　System.out.println(&quot;conection is ok&quot;);<br>
+                        　　　sta = con.createStatement();<br>
+                        　　　rs = sta.executeQuery(&quot;select * from room&quot;);<br>
+                        　　　while(rs.next())<br>
+                        　　　　System.out.println(rs.getInt(&quot;roomNum&quot;)); <br>
+                        　　}catch(Exception e)<br>
+                        　　{<br>
+                        　　　e.printStackTrace();<br>
+                        　　}<br>
+                        　}<br>
+                        <br>
+                        　public static void main(String args ［］)//自己替换［］<br>
+                        　{<br>
+                        　　new DbTest();<br>
+                        　}<br>
+                        }</td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            　　运行结果如下：<br>
+            <br>
+            <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center">
+                <tbody>
+                    <tr>
+                        <td>driver is ok<br>
+                        conection is ok<br>
+                        1001<br>
+                        1002<br>
+                        1003<br>
+                        1004<br>
+                        1005<br>
+                        1006<br>
+                        Press any key to continue...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            　　顺利通过测试<br>
+            　　2、我们这次不通过odbc桥来操作数据库，我们采用SQL Server driver 来实现对SQL Server数据库的操作， 这将是我们这篇文章的重点，因为jdbc-odbc桥是一种常见的操作windows系统数据库的常用方法，但它存在的缺点很多，所以现在很多开发者都侧重于使用sqlserver driver来操作，在这里我们通过一步步的调试，来加深读者对这种连接的理解<br>
+            <br>
+            　　在通常的理解下，只要我们装了sqlserver driver for jdbc 我们便可进行数据库编程，事实则不然，首先我们看下边的代码：<br>
+            <br>
+            <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center">
+                <tbody>
+                    <tr>
+                        <td>/***********************************************<br>
+                        /*<br>
+                        /*DbTest.java<br>
+                        /*<br>
+                        /******************************************* */<br>
+                        <br>
+                        import java.sql.*;<br>
+                        <br>
+                        public class DbTest {<br>
+                        <br>
+                        　Connection con;<br>
+                        　Statement sta;<br>
+                        　ResultSet rs;<br>
+                        <br>
+                        　String driver;<br>
+                        　String url;<br>
+                        　String user;<br>
+                        　String pwd;<br>
+                        　public DbTest()<br>
+                        　{<br>
+                        　　driver = &quot;com.microsoft.jdbc.sqlserver.SQLServerDriver&quot;;;<br>
+                        　　url = &quot;jdbc:microsoft:sqlserver://localhost:1433;DatabaseName =StoreManager&quot;;<br>
+                        　　user = &quot;sa&quot;;<br>
+                        　　pwd = &quot;potsmart10&quot;;<br>
+                        　　init();<br>
+                        　}<br>
+                        　public void init()<br>
+                        　{<br>
+                        　　try{<br>
+                        　　　Class.forName(driver);<br>
+                        　　　System.out.println(&quot;driver is ok&quot;);<br>
+                        　　　con = DriverManager.getConnection(url,user,pwd);<br>
+                        　　　System.out.println(&quot;conection is ok&quot;);<br>
+                        　　　sta = con.createStatement();<br>
+                        　　　rs = sta.executeQuery(&quot;select * from room&quot;);<br>
+                        　　　while(rs.next())<br>
+                        　　　System.out.println(rs.getInt(&quot;roomNum&quot;)); <br>
+                        　　}catch(Exception e)<br>
+                        　　{<br>
+                        　　　e.printStackTrace();<br>
+                        　　}<br>
+                        　}<br>
+                        <br>
+                        　public static void main(String args ［］)//自己替换［］<br>
+                        　{<br>
+                        　　new DbTest();<br>
+                        　}<br>
+                        }</td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            　　这段代码跟上变得代码是一样的，差别在于驱动，还有url,这是在使用sqlserver driver for jdbc 中遇到的困惑。按道理讲，上边这段代码应该没错，可首先我们来看一下，如果SQL Server服务器没有升级到sp3（在使用jdbc时，如果系统是xp或者2003务必要把sqlserver 升级到sp3,往上到处都有下的），我们看看运行结果<br>
+            <br>
+            <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center">
+                <tbody>
+                    <tr>
+                        <td>driver is ok<br>
+                        java.sql.SQLException: [Microsoft][SQLServer 2000 Driver for JDBC]Error establis<br>
+                        hing socket.<br>
+                        at com.microsoft.jdbc.base.BaseExceptions.createException(Unknown Source<br>
+                        )<br>
+                        at com.microsoft.jdbc.base.BaseExceptions.getException(Unknown Source)<br>
+                        at com.microsoft.jdbc.base.BaseExceptions.getException(Unknown Source)<br>
+                        at com.microsoft.jdbc.sqlserver.tds.TDSConnection.&lt;init&gt;(Unknown Source)<br>
+                        <br>
+                        at com.microsoft.jdbc.sqlserver.SQLServerImplConnection.open(Unknown Sou<br>
+                        rce)<br>
+                        at com.microsoft.jdbc.base.BaseConnection.getNewImplConnection(Unknown S<br>
+                        ource)<br>
+                        at com.microsoft.jdbc.base.BaseConnection.open(Unknown Source)<br>
+                        at com.microsoft.jdbc.base.BaseDriver.connect(Unknown Source)<br>
+                        at java.sql.DriverManager.getConnection(DriverManager.java:523)<br>
+                        at java.sql.DriverManager.getConnection(DriverManager.java:171)<br>
+                        at DbTest.init(DbTest.java:32)<br>
+                        at DbTest.&lt;init&gt;(DbTest.java:25)<br>
+                        at DbTest.main(DbTest.java:46)<br>
+                        Press any key to continue...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            　　出现上边错误的主要原因是默认的数据库服务器端口 1433没有打开，无法直接连接 。<br>
+            <br>
+            　　如果升级到sp3则这个问题可以结决，我们再来看看升级之后，程序运行的结果<br>
+            <br>
+            <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center">
+                <tbody>
+                    <tr>
+                        <td>driver is ok<br>
+                        conection is ok<br>
+                        java.sql.SQLException: [Microsoft][SQLServer 2000 Driver for JDBC][SQLServer]对<br>
+                        象名 'room' 无效。<br>
+                        at com.microsoft.jdbc.base.BaseExceptions.createException(Unknown Source<br>
+                        )<br>
+                        at com.microsoft.jdbc.base.BaseExceptions.getException(Unknown Source)<br>
+                        at com.microsoft.jdbc.sqlserver.tds.TDSRequest.processErrorToken(Unknown<br>
+                        Source)<br>
+                        at com.microsoft.jdbc.sqlserver.tds.TDSRequest.processReplyToken(Unknown<br>
+                        Source)<br>
+                        at com.microsoft.jdbc.sqlserver.tds.TDSExecuteRequest.processReplyToken(<br>
+                        Unknown Source)<br>
+                        at com.microsoft.jdbc.sqlserver.tds.TDSRequest.processReply(Unknown Sour<br>
+                        ce)<br>
+                        at com.microsoft.jdbc.sqlserver.SQLServerImplStatement.getNextResultType<br>
+                        (Unknown Source)<br>
+                        at com.microsoft.jdbc.base.BaseStatement.commonTransitionToState(Unknown<br>
+                        Source)<br>
+                        at com.microsoft.jdbc.base.BaseStatement.postImplExecu<br>
+                        te(Unknown Source)<br>
+                        <br>
+                        at com.microsoft.jdbc.base.BaseStatement.commonExecute(Unknown Source)<br>
+                        at com.microsoft.jdbc.base.BaseStatement.executeQueryInternal(Unknown So<br>
+                        urce)<br>
+                        at com.microsoft.jdbc.base.BaseStatement.executeQuery(Unknown Source)<br>
+                        at DbTest.init(DbTest.java:35)<br>
+                        at DbTest.&lt;init&gt;(DbTest.java:25)<br>
+                        at DbTest.main(DbTest.java:46)<br>
+                        Press any key to continue...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            　　在这儿，用户已经登陆上去，但是却不能访问里边的数据表，出现这个问题的原因在于sa用户为系统用户，它虽然能够登陆数据库，但是storeManager数据库里边却没有这个用户的访问权限，所以，我们现在为这个数据库重新建立一个用户share ,建立过程如下：在storeManager数据库中选重用户 ---〉新建用户 -- 〉名称选择（这一步中有两个关键点 1：身份验证选sql身份验证，默认数据库选StoreManager）-〉建立新教色share ,此时更改程序，将用户登陆名和密码修改一下，重新运行程序<br>
+            <br>
+            <table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#dadacf" align="center">
+                <tbody>
+                    <tr>
+                        <td>driver is ok<br>
+                        conection is ok<br>
+                        1001<br>
+                        1002<br>
+                        1003<br>
+                        1004<br>
+                        1005<br>
+                        1006<br>
+                        Press any key to continue...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            　　这次顺利通过测试<br>
+            <br>
+            　　总结：<br>
+            <br>
+            　　SQL Server和jdbc 的融合问题，关键涉及到sp3补丁（端口开放）还有用户问题，解决这两个问题之后，剩余的便是sqlserver 操作问题了，还有一点在远程操作的时候，要把sqlserver 组设置一下，在安全性里边亦将身份验证更改为SQL Server 验证即可。</td>
+        </tr>
+    </tbody>
+</table></div></body></html>

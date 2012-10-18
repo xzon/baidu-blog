@@ -1,0 +1,478 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>使用 Spring 2.5 基于注解驱动的 Spring MVC</title></head><body><h1>使用 Spring 2.5 基于注解驱动的 Spring MVC</h1><div><div>
+<h1>使用 Spring 2.5 基于注解驱动的 Spring MVC</h1>
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring25-mvc/">http://www.ibm.com/developerworks/cn/java/j-lo-spring25-mvc/</a></p>
+<p>级别： 初级</p>
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring25-mvc/#author">陈 雄华</a> (<a href="mailto:quickselect@163.com?subject=%E4%BD%BF%E7%94%A8%20Spring%202.5%20%E5%9F%BA%E4%BA%8E%E6%B3%A8%E8%A7%A3%E9%A9%B1%E5%8A%A8%E7%9A%84%20Spring%20MVC">quickselect@163.com</a>), 技术总监, 宝宝淘网络科技有限公司</p>
+<p>2008 年 3 月 14 日</p>
+<blockquote>基于注解的配置有越来越流行的趋势，Spring 2.5 顺应这种趋势，为 Spring MVC 提供了完全基于注解的配置。本文将介绍 Spring 2.5 新增的 Sping MVC 注解功能，讲述如何使用注解配置替换传统的基于 XML 的 Spring MVC 配置。</blockquote>
+<p> </p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>继 Spring 2.0 对 Spring MVC 进行重大升级后，Spring 2.5 又为 Spring MVC 引入了注解驱动功能。现在你无须让 Controller 继承任何接口，无需在 XML 配置文件中定义请求和 Controller 的映射关系，仅仅使用注解就可以让一个 POJO 具有 Controller 的绝大部分功能 &mdash;&mdash; Spring MVC 框架的易用性得到了进一步的增强.在框架灵活性、易用性和扩展性上，Spring MVC 已经全面超越了其它的 MVC 框架，伴随着 Spring 一路高唱猛进，可以预见 Spring MVC 在 MVC 市场上的吸引力将越来越不可抗拒。</p>
+<p>本文将介绍 Spring 2.5 新增的 Sping MVC 注解功能，讲述如何使用注解配置替换传统的基于 XML 的 Spring MVC 配置。</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>使用过低版本 Spring MVC 的读者都知道：当创建一个 Controller 时，我们需要直接或间接地实现 org.springframework.web.servlet.mvc.Controller 接口。一般情况下，我们是通过继承 SimpleFormController 或 MultiActionController 来定义自己的 Controller 的。在定义 Controller 后，一个重要的事件是在 Spring MVC 的配置文件中通过 HandlerMapping 定义请求和控制器的映射关系，以便将两者关联起来。</p>
+<p>来看一下基于注解的 Controller 是如何定义做到这一点的，下面是使用注解的 BbtForumController：</p>
+<p><br>
+<img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"><br>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">package com.baobaotao.web;
+
+import com.baobaotao.service.BbtForumService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import java.util.Collection;
+
+@Controller                   //&lt;&mdash;&mdash;①
+@RequestMapping(&quot;/forum.do&quot;)
+public class BbtForumController {
+
+    @Autowired
+    private BbtForumService bbtForumService;
+
+    @RequestMapping //&lt;&mdash;&mdash;②
+    public String listAllBoard() {
+        bbtForumService.getAllBoard();
+        System.out.println(&quot;call listAllBoard method.&quot;);
+        return &quot;listBoard&quot;;
+    }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>从上面代码中，我们可以看出 BbtForumController 和一般的类并没有区别，它没有实现任何特殊的接口，因而是一个地道的 POJO。让这个 POJO 与众不同的魔棒就是 Spring MVC 的注解！</p>
+<p>在 ① 处使用了两个注解，分别是 @Controller 和 @RequestMapping。在&ldquo;<a href="http://www.ibm.com/developerworks/cn/java/j-lo-spring25-ioc/">使用 Spring 2.5 基于注解驱动的 IoC</a>&rdquo; 这篇文章里，笔者曾经指出过 @Controller、@Service 以及 @Repository 和 @Component 注解的作用是等价的：将一个类成为 Spring 容器的 Bean。由于 Spring MVC 的 Controller 必须事先是一个 Bean，所以 @Controller 注解是不可缺少的。</p>
+<p>真正让 BbtForumController 具备 Spring MVC Controller 功能的是 @RequestMapping 这个注解。@RequestMapping 可以标注在类定义处，将 Controller 和特定请求关联起来；还可以标注在方法签名处，以便进一步对请求进行分流。在 ① 处，我们让 BbtForumController 关联&ldquo;/forum.do&rdquo;的请求，而 ② 处，我们具体地指定 listAllBoard() 方法来处理请求。所以在类声明处标注的 @RequestMapping 相当于让 POJO 实现了 Controller 接口，而在方法定义处的 @RequestMapping 相当于让 POJO 扩展 Spring 预定义的 Controller（如 SimpleFormController 等）。</p>
+<p>为了让基于注解的 Spring MVC 真正工作起来，需要在 Spring MVC 对应的 xxx-servlet.xml 配置文件中做一些手脚。在此之前，还是先来看一下 web.xml 的配置吧：</p>
+<p><br>
+<img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"><br>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;web-app xmlns=&quot;http://java.sun.com/xml/ns/javaee&quot;
+    xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+    xsi:schemaLocation=&quot;http://java.sun.com/xml/ns/javaee
+    http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd&quot; version=&quot;2.5&quot;&gt;
+    &lt;display-name&gt;Spring Annotation MVC Sample&lt;/display-name&gt;
+    &lt;!--  Spring 服务层的配置文件 --&gt;
+    &lt;context-param&gt;
+        &lt;param-name&gt;contextConfigLocation&lt;/param-name&gt;
+        &lt;param-value&gt;classpath:applicationContext.xml&lt;/param-value&gt;
+    &lt;/context-param&gt;
+     
+    &lt;!--  Spring 容器启动监听器 --&gt;
+    &lt;listener&gt;
+        &lt;listener-class&gt;org.springframework.web.context.ContextLoaderListener
+        &lt;/listener-class&gt;
+    &lt;/listener&gt;
+
+    &lt;!--  Spring MVC 的Servlet，它将加载WEB-INF/annomvc-servlet.xml 的
+    配置文件，以启动Spring MVC模块--&gt;
+    &lt;servlet&gt;
+        &lt;servlet-name&gt;annomvc&lt;/servlet-name&gt;
+        &lt;servlet-class&gt;org.springframework.web.servlet.DispatcherServlet
+        &lt;/servlet-class&gt;
+        &lt;load-on-startup&gt;2&lt;/load-on-startup&gt;
+    &lt;/servlet&gt;
+
+    &lt;servlet-mapping&gt;
+        &lt;servlet-name&gt;annomvc&lt;/servlet-name&gt;
+        &lt;url-pattern&gt;*.do&lt;/url-pattern&gt;
+    &lt;/servlet-mapping&gt;
+&lt;/web-app&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>web.xml 中定义了一个名为 annomvc 的 Spring MVC 模块，按照 Spring MVC 的契约，需要在 WEB-INF/annomvc-servlet.xml 配置文件中定义 Spring MVC 模块的具体配置。annomvc-servlet.xml 的配置内容如下所示：</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;beans 
+    xmlns=&quot;http://www.springframework.org/schema/beans&quot; 
+    xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+    xmlns:p=&quot;http://www.springframework.org/schema/p&quot; 
+    xmlns:context=&quot;http://www.springframework.org/schema/context&quot;
+    xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+    http://www.springframework.org/schema/context 
+    http://www.springframework.org/schema/context/spring-context-2.5.xsd&quot;&gt;
+     
+    &lt;!-- ①：对web包中的所有类进行扫描，以完成Bean创建和自动依赖注入的功能 --&gt;
+    &lt;context:component-scan base-package=&quot;com.baobaotao.web&quot;/&gt;
+
+    &lt;!-- ②：启动Spring MVC的注解功能，完成请求和注解POJO的映射 --&gt;
+    &lt;bean class=&quot;org.springframework.web.servlet.mvc.annotation.
+        AnnotationMethodHandlerAdapter&quot;/&gt;
+
+    &lt;!--  ③：对模型视图名称的解析，即在模型视图名称添加前后缀 --&gt;
+    &lt;bean class=&quot;org.springframework.web.servlet.view.InternalResourceViewResolver&quot; 
+        p:prefix=&quot;/WEB-INF/jsp/&quot; p:suffix=&quot;.jsp&quot;/&gt;
+&lt;/beans&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>因为 Spring 所有功能都在 Bean 的基础上演化而来，所以必须事先将 Controller 变成 Bean，这是通过在类中标注 @Controller 并在 annomvc-servlet.xml 中启用组件扫描机制来完成的，如 ① 所示。</p>
+<p>在 ② 处，配置了一个 AnnotationMethodHandlerAdapter，它负责根据 Bean 中的 Spring MVC 注解对 Bean 进行加工处理，使这些 Bean 变成控制器并映射特定的 URL 请求。</p>
+<p>而 ③ 处的工作是定义模型视图名称的解析规则，这里我们使用了 Spring 2.5 的特殊命名空间，即 p 命名空间，它将原先需要通过 &lt;property&gt; 元素配置的内容转化为 &lt;bean&gt; 属性配置，在一定程度上简化了 &lt;bean&gt; 的配置。</p>
+<p>启动 Tomcat，发送 http://localhost/forum.do URL 请求，BbtForumController 的 listAllBoard() 方法将响应这个请求，并转向 WEB-INF/jsp/listBoard.jsp 的视图页面。</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>在低版本的 Spring MVC 中，我们可以通过继承 MultiActionController 让一个 Controller 处理多个 URL 请求。使用 @RequestMapping 注解后，这个功能更加容易实现了。请看下面的代码：</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">package com.baobaotao.web;
+
+import com.baobaotao.service.BbtForumService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller
+public class BbtForumController {
+    @Autowired
+    private BbtForumService bbtForumService;
+
+    @RequestMapping(&quot;/listAllBoard.do&quot;) // &lt;&mdash;&mdash; ①
+    public String listAllBoard() {
+        bbtForumService.getAllBoard();
+        System.out.println(&quot;call listAllBoard method.&quot;);
+        return &quot;listBoard&quot;;
+    }
+
+    @RequestMapping(&quot;/listBoardTopic.do&quot;) // &lt;&mdash;&mdash; ②
+    public String listBoardTopic(int topicId) {
+        bbtForumService.getBoardTopics(topicId);
+        System.out.println(&quot;call listBoardTopic method.&quot;);
+        return &quot;listTopic&quot;;
+    }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>在这里，我们分别在 ① 和 ② 处为 listAllBoard() 和 listBoardTopic() 方法标注了 @RequestMapping 注解，分别指定这两个方法处理的 URL 请求，这相当于将 BbtForumController 改造为 MultiActionController。这样 /listAllBoard.do 的 URL 请求将由 listAllBoard() 负责处理，而 /listBoardTopic.do?topicId=1 的 URL 请求则由 listBoardTopic() 方法处理。</p>
+<p>对于处理多个 URL 请求的 Controller 来说，我们倾向于通过一个 URL 参数指定 Controller 处理方法的名称（如 method=listAllBoard），而非直接通过不同的 URL 指定 Controller 的处理方法。使用 @RequestMapping 注解很容易实现这个常用的需求。来看下面的代码：</p>
+<p><br>
+<img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"><br>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">package com.baobaotao.web;
+
+import com.baobaotao.service.BbtForumService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller
+@RequestMapping(&quot;/bbtForum.do&quot;)  // &lt;&mdash;&mdash; ① 指定控制器对应URL请求
+public class BbtForumController {
+
+    @Autowired
+    private BbtForumService bbtForumService;
+
+    // &lt;&mdash;&mdash; ② 如果URL请求中包括&quot;method=listAllBoard&quot;的参数，由本方法进行处理
+    @RequestMapping(params = &quot;method=listAllBoard&quot;) 
+    public String listAllBoard() {
+        bbtForumService.getAllBoard();
+        System.out.println(&quot;call listAllBoard method.&quot;);
+        return &quot;listBoard&quot;;
+    }
+
+    // &lt;&mdash;&mdash; ③ 如果URL请求中包括&quot;method=listBoardTopic&quot;的参数，由本方法进行处理
+    @RequestMapping(params = &quot;method=listBoardTopic&quot;)
+    public String listBoardTopic(int topicId) {
+        bbtForumService.getBoardTopics(topicId);
+        System.out.println(&quot;call listBoardTopic method.&quot;);
+        return &quot;listTopic&quot;;
+    }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>在类定义处标注的 @RequestMapping 让 BbtForumController 处理所有包含 /bbtForum.do 的 URL 请求，而 BbtForumController 中的请求处理方法对 URL 请求的分流规则在 ② 和 ③ 处定义分流规则按照 URL 的 method 请求参数确定。所以分别在类定义处和方法定义处使用 @RequestMapping 注解，就可以很容易通过 URL 参数指定 Controller 的处理方法了。</p>
+<p>@RequestMapping 注解中除了 params 属性外，还有一个常用的属性是 method，它可以让 Controller 方法处理特定 HTTP 请求方式的请求，如让一个方法处理 HTTP GET 请求，而另一个方法处理 HTTP POST 请求，如下所示：</p>
+<p><br>
+<img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"><br>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">package com.baobaotao.web;
+
+import com.baobaotao.service.BbtForumService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+@Controller
+@RequestMapping(&quot;/bbtForum.do&quot;)  
+public class BbtForumController {
+
+    @RequestMapping(params = &quot;method=createTopic&quot;,method = RequestMethod.POST)
+    public String createTopic(){
+        System.out.println(&quot;call createTopic method.&quot;);
+        return &quot;createTopic&quot;;
+    }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>这样只有当 /bbtForum.do?method=createTopic 请求以 HTTP POST 方式提交时，createTopic() 方法才会进行处理。</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>Controller 的方法标注了 @RequestMapping 注解后，它就能处理特定的 URL 请求。我们不禁要问：请求处理方法入参是如何绑定 URL 参数的呢？在回答这个问题之前先来看下面的代码：</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">@RequestMapping(params = &quot;method=listBoardTopic&quot;)
+    //&lt;&mdash;&mdash; ① topicId入参是如何绑定URL请求参数的？
+    public String listBoardTopic(int topicId) { 
+        bbtForumService.getBoardTopics(topicId);
+        System.out.println(&quot;call listBoardTopic method.&quot;);
+        return &quot;listTopic&quot;;
+    }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>当我们发送 http://localhost//bbtForum.do?method=listBoardTopic&amp;topicId=10 的 URL 请求时，Spring 不但让 listBoardTopic() 方法处理这个请求，而且还将 topicId 请求参数在类型转换后绑定到 listBoardTopic() 方法的 topicId 入参上。而 listBoardTopic() 方法的返回类型是 String，它将被解析为逻辑视图的名称。也就是说 Spring 在如何给处理方法入参自动赋值以及如何将处理方法返回值转化为 ModelAndView 中的过程中存在一套潜在的规则，不熟悉这个规则就不可能很好地开发基于注解的请求处理方法，因此了解这个潜在规则无疑成为理解 Spring MVC 框架基于注解功能的核心问题。</p>
+<p>我们不妨从最常见的开始说起：请求处理方法入参的类型可以是 Java 基本数据类型或 String 类型，这时方法入参按参数名匹配的原则绑定到 URL 请求参数，同时还自动完成 String 类型的 URL 请求参数到请求处理方法参数类型的转换。下面给出几个例子：</p>
+<ul>
+    <li>listBoardTopic(int topicId)：和 topicId URL 请求参数绑定；</li>
+    <li>listBoardTopic(int topicId,String boardName)：分别和 topicId、boardName URL 请求参数绑定；</li>
+</ul>
+<p>&#61548;</p>
+<p>特别的，如果入参是基本数据类型（如 int、long、float 等），URL 请求参数中一定要有对应的参数，否则将抛出 TypeMismatchException 异常，提示无法将 null 转换为基本数据类型。</p>
+<p>另外，请求处理方法的入参也可以一个 JavaBean，如下面的 User 对象就可以作为一个入参：</p>
+<p><br>
+<img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"><br>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">package com.baobaotao.web;
+
+public class User {
+    private int userId;
+    private String userName;
+    //省略get/setter方法
+    public String toString(){
+        return this.userName +&quot;,&quot;+this.userId;
+    }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>下面是将 User 作为 listBoardTopic() 请求处理方法的入参：</p>
+<p><br>
+<img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"><br>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">@RequestMapping(params = &quot;method=listBoardTopic&quot;)
+    public String listBoardTopic(int topicId,User user) {
+        bbtForumService.getBoardTopics(topicId);
+        System.out.println(&quot;topicId:&quot;+topicId);
+        System.out.println(&quot;user:&quot;+user);
+        System.out.println(&quot;call listBoardTopic method.&quot;);
+        return &quot;listTopic&quot;;
+    }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>这时，如果我们使用以下的 URL 请求：http://localhost/bbtForum.do?method=listBoardTopic&amp;topicId=1&amp;userId=10&amp;userName=tom</p>
+<p>topicId URL 参数将绑定到 topicId 入参上，而 userId 和 userName URL 参数将绑定到 user 对象的 userId 和 userName 属性中。和 URL 请求中不允许没有 topicId 参数不同，虽然 User 的 userId 属性的类型是基本数据类型，但如果 URL 中不存在 userId 参数，Spring 也不会报错，此时 user.userId 值为 0。如果 User 对象拥有一个 dept.deptId 的级联属性，那么它将和 dept.deptId URL 参数绑定。</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>如果我们想改变这种默认的按名称匹配的策略，比如让 listBoardTopic(int topicId,User user) 中的 topicId 绑定到 id 这个 URL 参数，那么可以通过对入参使用 @RequestParam 注解来达到目的：</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">package com.baobaotao.web;
+
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+…
+
+@Controller
+@RequestMapping(&quot;/bbtForum.do&quot;)
+public class BbtForumController {
+ 
+    @RequestMapping(params = &quot;method=listBoardTopic&quot;)
+    public String listBoardTopic(@RequestParam(&quot;id&quot;) int topicId,User user) {
+        bbtForumService.getBoardTopics(topicId);
+        System.out.println(&quot;topicId:&quot;+topicId);
+        System.out.println(&quot;user:&quot;+user);
+        System.out.println(&quot;call listBoardTopic method.&quot;);
+        return &quot;listTopic&quot;;
+    }
+…
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>这里，对 listBoardTopic() 请求处理方法的 topicId 入参标注了 @RequestParam(&quot;id&quot;) 注解，所以它将和 id 的 URL 参数绑定。</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>Spring 2.0 定义了一个 org.springframework.ui.ModelMap 类，它作为通用的模型数据承载对象，传递数据供视图所用。我们可以在请求处理方法中声明一个 ModelMap 类型的入参，Spring 会将本次请求模型对象引用通过该入参传递进来，这样就可以在请求处理方法内部访问模型对象了。来看下面的例子：</p>
+<p><br>
+<img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"><br>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">@RequestMapping(params = &quot;method=listBoardTopic&quot;)
+ public String listBoardTopic(@RequestParam(&quot;id&quot;)int topicId,
+ User user,ModelMap model) {
+     bbtForumService.getBoardTopics(topicId);
+     System.out.println(&quot;topicId:&quot; + topicId);
+     System.out.println(&quot;user:&quot; + user);
+     //① 将user对象以currUser为键放入到model中
+     model.addAttribute(&quot;currUser&quot;,user); 
+     return &quot;listTopic&quot;;
+ }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>对于当次请求所对应的模型对象来说，其所有属性都将存放到 request 的属性列表中。象上面的例子，ModelMap 中的 currUser 属性将放到 request 的属性列表中，所以可以在 JSP 视图页面中通过 request.getAttribute(&ldquo;currUser&rdquo;) 或者通过 ${currUser} EL 表达式访问模型对象中的 user 对象。从这个角度上看， ModelMap 相当于是一个向 request 属性列表中添加对象的一条管道，借由 ModelMap 对象的支持，我们可以在一个不依赖 Servlet API 的 Controller 中向 request 中添加属性。</p>
+<p>在默认情况下，ModelMap 中的属性作用域是 request 级别是，也就是说，当本次请求结束后，ModelMap 中的属性将销毁。如果希望在多个请求中共享 ModelMap 中的属性，必须将其属性转存到 session 中，这样 ModelMap 的属性才可以被跨请求访问。</p>
+<p>Spring 允许我们有选择地指定 ModelMap 中的哪些属性需要转存到 session 中，以便下一个请求属对应的 ModelMap 的属性列表中还能访问到这些属性。这一功能是通过类定义处标注 @SessionAttributes 注解来实现的。请看下面的代码：</p>
+<p><br>
+<img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"><br>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">package com.baobaotao.web;
+
+…
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.SessionAttributes;
+
+@Controller
+@RequestMapping(&quot;/bbtForum.do&quot;)
+@SessionAttributes(&quot;currUser&quot;) //①将ModelMap中属性名为currUser的属性
+//放到Session属性列表中，以便这个属性可以跨请求访问
+public class BbtForumController {
+…
+    @RequestMapping(params = &quot;method=listBoardTopic&quot;)
+    public String listBoardTopic(@RequestParam(&quot;id&quot;)int topicId, User user,
+ModelMap model) {
+        bbtForumService.getBoardTopics(topicId);
+        System.out.println(&quot;topicId:&quot; + topicId);
+        System.out.println(&quot;user:&quot; + user);
+        model.addAttribute(&quot;currUser&quot;,user); //②向ModelMap中添加一个属性
+        return &quot;listTopic&quot;;
+    }
+
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>我们在 ② 处添加了一个 ModelMap 属性，其属性名为 currUser，而 ① 处通过 @SessionAttributes 注解将 ModelMap 中名为 currUser 的属性放置到 Session 中，所以我们不但可以在 listBoardTopic() 请求所对应的 JSP 视图页面中通过 request.getAttribute(&ldquo;currUser&rdquo;) 和 session.getAttribute(&ldquo;currUser&rdquo;) 获取 user 对象，还可以在下一个请求所对应的 JSP 视图页面中通过 session.getAttribute(&ldquo;currUser&rdquo;) 或 ModelMap#get(&ldquo;currUser&rdquo;) 访问到这个属性。</p>
+<p>这里我们仅将一个 ModelMap 的属性放入 Session 中，其实 @SessionAttributes 允许指定多个属性。你可以通过字符串数组的方式指定多个属性，如 @SessionAttributes({&ldquo;attr1&rdquo;,&rdquo;attr2&rdquo;})。此外，@SessionAttributes 还可以通过属性类型指定要 session 化的 ModelMap 属性，如 @SessionAttributes(types = User.class)，当然也可以指定多个类，如 @SessionAttributes(types = {User.class,Dept.class})，还可以联合使用属性名和属性类型指定：@SessionAttributes(types = {User.class,Dept.class},value={&ldquo;attr1&rdquo;,&rdquo;attr2&rdquo;})。</p>
+<p>上面讲述了如何往ModelMap中放置属性以及如何使ModelMap中的属性拥有Session域的作用范围。除了在JSP视图页面中通过传统的方法访问 ModelMap中的属性外，读者朋友可能会问：是否可以将ModelMap中的属性绑定到请求处理方法的入参中呢？答案是肯定的。Spring为此提供了一个@ModelAttribute的注解，下面是使用@ModelAttribute注解的例子：</p>
+<p><img class="cke_anchor" alt="锚点" src="http://ckeditor.com/apps/ckeditor/3.1/images/spacer.gif?t=A067"></p>
+<p>
+<table class="cke_show_border FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">package com.baobaotao.web;
+
+import com.baobaotao.service.BbtForumService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.bind.annotation.ModelAttribute;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+@Controller
+@RequestMapping(&quot;/bbtForum.do&quot;)
+@SessionAttributes(&quot;currUser&quot;) //①让ModelMap的currUser属性拥有session级作用域
+public class BbtForumController {
+
+    @Autowired
+private BbtForumService bbtForumService;
+
+    @RequestMapping(params = &quot;method=listBoardTopic&quot;)
+    public String listBoardTopic(@RequestParam(&quot;id&quot;)int topicId, User user,
+ModelMap model) {
+        bbtForumService.getBoardTopics(topicId);
+        System.out.println(&quot;topicId:&quot; + topicId);
+        System.out.println(&quot;user:&quot; + user);
+        model.addAttribute(&quot;currUser&quot;,user); //②向ModelMap中添加一个属性
+        return &quot;listTopic&quot;;
+    }
+
+    @RequestMapping(params = &quot;method=listAllBoard&quot;)
+   //③将ModelMap中的
+public String listAllBoard(@ModelAttribute(&quot;currUser&quot;) User user) { 
+//currUser属性绑定到user入参中。
+        bbtForumService.getAllBoard();
+        System.out.println(&quot;user:&quot;+user);
+        return &quot;listBoard&quot;;
+    }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>在 ② 处，我们向 ModelMap 中添加一个名为 currUser 的属性，而 ① 外的注解使这个 currUser 属性拥有了 session 级的作用域。所以，我们可以在 ③ 处通过 @ModelAttribute 注解将 ModelMap 中的 currUser 属性绑定以请求处理方法的 user 入参中。</p>
+<p>所以当我们先调用以下 URL 请求： http://localhost/bbtForum.do?method=listBoardTopic&amp;id=1&amp;userName=tom&amp;dept.deptId=12</p>
+<p>以执行listBoardTopic()请求处理方法，然后再访问以下URL： http://localhost/sample/bbtForum.do?method=listAllBoard</p>
+<p>你将可以看到 listAllBoard() 的 user 入参已经成功绑定到 listBoardTopic() 中注册的 session 级的 currUser 属性上了。</p>
+<p> </p>
+</div></div></body></html>

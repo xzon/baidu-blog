@@ -1,0 +1,228 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>如果我是国王：关于解决 Java编程语言线程问题的建议（续）</title></head><body><h1>如果我是国王：关于解决 Java编程语言线程问题的建议（续）</h1><div><p> </p>
+<p>如果我是国王：关于解决 Java编程语言线程问题的建议（续）</p>
+<p><a name="N10436"><span class="atitle">线程间的协作</span></a></p>
+<p>应在语言中加入更多的功能以支持线程间的相互通信。目前， <code>PipedInputStream</code> 和 <code>PipedOutputStream</code> 类可用于这个目的。但是对于大多数应用程序，它们太弱了。我建议向 <code>Thread</code> 类加入下列函数：</p>
+<ol>
+    <li>增加一个 <code>wait_for_start()</code> 方法，它通常处于阻塞状态，直到一个线程的 <code>run()</code> 方法启动。(如果等待的线程在调用 run 之前被释放，这没有什么问题）。用这种方法，一个线程可以创建一个或多个辅助线程，并保证在创建线程继续执行操作之前，这些辅助线程会处于运行状态。</li>
+    <li>（向 <code>Object</code> 类）增加 <code>$send (Object o)</code> 和 <code>Object=$receive()</code> 方法，它们将使用一个内部阻断队列在线程之间传送对象。阻断队列应作为第一个 <code>$send()</code> 调用的副产品被自动创建。 <code>$send()</code> 调用会把对象加入队列。 <code>$receive()</code> 调用通常处于阻塞状态，直到有一个对象被加入队列，然后它返回此对象。这种方法中的变量应支持设定入队和出队的操作超时能力： <code>$send (Object o, long timeout)</code> 和 <code>$receive (long timeout)。</code></li>
+</ol>
+<p><a name="N1047C"><span class="atitle">对于读写锁的内部支持</span></a></p>
+<p>读写锁的概念应内置到 Java 编程语言中。读写器锁在&ldquo; <em>Taming Java Threads</em> &rdquo;（和其它地方）中有详细讨论，概括地说：一个读写锁支持多个线程同时访问一个对象，但是在同一时刻只有一个线程可以修改此对象，并且在访问进行时不能修改。读写锁的语法可以借用 <code>synchronized</code> <code>关键字： </code></p>
+<div>&nbsp;&nbsp;&nbsp;  static Object global_resource;<br>
+&nbsp;&nbsp;&nbsp;  //...<br>
+&nbsp;&nbsp;&nbsp;  public void a()<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $reading( global_resource )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  // While in this block, other threads requesting read<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // access to global_resource will get it, but threads<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // requesting write access will block.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public void b()<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $writing( global_resource )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  // Blocks until all ongoing read or write operations on<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // global_resource are complete. No read or write<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // operation or global_resource can be initiated while<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // within this block.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public $reading void c()<br>
+&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  // just like $reading(this)...<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public $writing void d()<br>
+&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  // just like $writing(this)...<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div><br>
+对于一个对象，应该只有在 <code>$writing</code> <code>块中没有线程时，才支持多个线程进入 <code>$reading</code> 块。在进行读操作时，一个试图进入 <code>$writing</code> 块的线程会被阻断，直到读线程退出 <code>$reading</code> 块。 当有其它线程处于 <code>$writing</code> 块时，试图进入 <code>$reading</code> 或 <code>$writing</code> 块的线程会被阻断，直到此写线程退出 <code>$writing</code> <code>块。 </code></code></div>
+<p>如果读和写线程都在等待，缺省情况下，读线程会首先进行。但是，可以使用 <code>$writer_priority</code> 属性修改类的定义来改变这种缺省方式。如：</p>
+<div>$write_priority class IO<br>
+{&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  $writing write( byte[] data )<br>
+&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  //...<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  $reading byte[] read( )<br>
+&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  //...<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<p><a name="N104C7"><span class="atitle">访问部分创建的对象应是非法的</span></a></p>
+<p>当前情况下，JLS 允许访问部分创建的对象。例如，在一个构造函数中创建的线程可以访问正被创建的对象，既使此对象没有完全被创建。下面代码的结果无法确定：</p>
+<div>&nbsp;&nbsp;&nbsp;  class Broken<br>
+&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  private long x;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Broken()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  new Thread()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  public void run()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  x = -1;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }.start();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  x = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div> </div>
+<div> </div>
+<p>设置 <code>x</code> 为 -1 的线程可以和设置 <code>x</code> 为 0 的线程同时进行。所以，此时 <code>x</code> 的值无法预测。</p>
+<p>对此问题的一个解决方法是，在构造函数没有返回之前，对于在此构造函数中创建的线程，既使它的优先级比调用 <code>new</code> 的线程高，也要禁止运行它的 <code>run()</code> 方法。</p>
+<p>这就是说，在构造函数返回之前， <code>start()</code> 请求必须被推迟。</p>
+<p>另外，Java 编程语言应可允许构造函数的同步。换句话说，下面的代码（在当前情况下是非法的）会象预期的那样工作：</p>
+<p>&nbsp;&nbsp;&nbsp;  class Illegal<br>
+&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  private long x;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized Broken()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  new Thread()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  public void run()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  { <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized( Illegal.this )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  { x = -1;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }.start();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  x = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>我认为第一种方法比第二种更简洁，但实现起来更为困难。</p>
+<p><a name="N1050A"><span class="atitle">volatile 关键字应象预期的那样工作 </span></a></p>
+<p>JLS 要求保留对于 volatile 操作的请求。大多数 Java 虚拟机都简单地忽略了这部分内容，这是不应该的。在多处理器的情况下，许多主机都出现了这种问题，但是它本应由 JLS 加以解决的。如果您对这方面感兴趣，马里兰大学的 Bill Pugh 正在致力于这项工作（请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-king/#resources"><font color="#5c81a7">参考资料</font></a>）。</p>
+<p><a name="N1051B"><span class="atitle">访问的问题</span></a></p>
+<p>如果缺少良好的访问控制，会使线程编程非常困难。大多数情况下，如果能保证线程只从同步子系统中调用，不必考虑线程安全(threadsafe)问题。我建议对 Java 编程语言的访问权限概念做如下限制；</p>
+<ol>
+    <li>应精确使用 <code>package</code> 关键字来限制包访问权。我认为当缺省行为的存在是任何一种计算机语言的一个瑕疵，我对现在存在这种缺省权限感到很迷惑（而且这种缺省是&ldquo;包(package)&rdquo;级别的而不是&ldquo;私有(private)&rdquo;）。在其它方面，Java 编程语言都不提供等同的缺省关键字。虽然使用显式的 <code>package</code> 的限定词会破坏现有代码，但是它将使代码的可读性更强，并能消除整个类的潜在错误 (例如，如果访问权是由于错误被忽略，而不是被故意忽略)。</li>
+    <li>重新引入 <code>private protected</code> ，它的功能应和现在的 <code>protected</code> 一样，但是不应允许包级别的访问。</li>
+    <li>允许 <code>private private</code> 语法指定&ldquo;实现的访问&rdquo;对于所有外部对象是私有的，甚至是当前对象是的同一个类的。对于&ldquo;.&rdquo;左边的唯一引用（隐式或显式）应是 <code>this</code> 。</li>
+    <li>扩展 <code>public</code> 的语法，以授权它可制定特定类的访问。例如，下面的代码应允许 <code>Fred</code> 类的对象可调用 <code>some_method()</code> ，但是对其它类的对象，这个方法应是私有的。 <br>
+    &nbsp;&nbsp;&nbsp;  public(Fred) void some_method()<br>
+    &nbsp;&nbsp;&nbsp;  {<br>
+    &nbsp;&nbsp;&nbsp;  }</li>
+    <li>这种建议不同于 C++ 的 &quot;friend&quot; 机制。 在 &quot;friend&quot; 机制中，它授权一个类访问另一个类的 <em>所有</em>私有部分。在这里，我建议对有限的方法集合进行严格控制的访问。用这种方法，一个类可以为另一个类定义一个接口，而这个接口对系统的其余类是不可见的。一个明显的变化是：&nbsp;&nbsp;&nbsp;&nbsp;  public(Fred, Wilma) void some_method()<br>
+    &nbsp;&nbsp;&nbsp;  {<br>
+    &nbsp;&nbsp;&nbsp;  }</li>
+    <li>除非域引用的是真正不变(immutable)的对象或 <code>static final</code> 基本类型，否则所有域的定义应是 <code>private</code> 。对于一个类中域的直接访问违反了 OO 设计的两个基本规则：抽象和封装。从线程的观点来看，允许直接访问域只使对它进行非同步访问更容易一些。</li>
+    <li>
+    <p>增加 <code>$property</code> 关键字。带有此关键字的对象可被一个&ldquo;bean 盒&rdquo;应用程序访问，这个程序使用在 <code>Class</code> 类中定义的反射操作(introspection) API，否则与 private private 同效。 <code>$property</code> 属性可用在域和方法，这样现有的 JavaBean getter/setter 方法可以很容易地被定义为属性。</p>
+    </li>
+</ol>
+<p><a name="9"><span class="smalltitle"><strong><font face="Arial" size="3">不变性(immutability)</font></strong></span></a></p>
+<p>由于对不变对象的访问不需要同步，所以在多线程条件下，不变的概念（一个对象的值在创建后不可更改）是无价的。Java 编程言语中，对于不变性的实现不够严格，有两个原因：</p>
+<ul>
+    <li>对于一个不变对象，在其被未完全创建之前，可以对它进行访问。这种访问对于某些域可以产生不正确的值。</li>
+    <li>对于恒定 (类的所有域都是 <code>final)</code> 的定义太松散。对于由 <code>final</code> <code>引用指定的对象，虽然引用本身不能改变，但是对象本身可以改变状态。 </code></li>
+</ul>
+<p>第一个问题可以解决，不允许线程在构造函数中开始执行 (或者在构造函数返回之前不能执行开始请求)。</p>
+<p>对于第二个问题，通过限定 <code>final</code> 修饰符指向恒定对象，可以解决此问题。这就是说，对于一个对象，只有所有的域是 <code>final</code> ，并且所有引用的对象的域也都是 <code>final</code> ，此对象才真正是恒定的。为了不打破现有代码，这个定义可以使用编译器加强，即只有一个类被显式标为不变时，此类才是不变类。方法如下：</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $immutable public class Fred<br>
+&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // all fields in this class must be final, and if the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // field is a reference, all fields in the referenced<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // class must be final as well (recursively).<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  static int x constant = 0; // use of `final` is optional when $immutable<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // is present.<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>有了 <code>$immutable</code> 修饰符后，在域定义中的 <code>final</code> 修饰符是可选的。</p>
+<p>最后，当使用内部类(inner class)后，在 Java 编译器中的一个错误使它无法可靠地创建不变对象。当一个类有重要的内部类时(我的代码常有)，编译器经常不正确地显示下列错误信息：</p>
+<p>&quot;Blank final variable 'name' may not have been initialized.<br>
+It must be assigned a value in an initializer, or in every constructor.&quot;</p>
+<p> </p>
+<p>既使空的 final 在每个构造函数中都有初始化，还是会出现这个错误信息。自从在 1.1 版本中引入内部类后，编译器中一直有这个错误。在此版本中（三年以后），这个错误依然存在。现在，该是改正这个错误的时候了。</p>
+<p><a name="10"><span class="smalltitle"><strong><font face="Arial" size="3">对于类级域的实例级访问</font></strong></span></a></p>
+<p>除了访问权限外，还有一个问题，即类级（静态）方法和实例（非静态）方法都能直接访问类级（静态）域。这种访问是非常危险的，因为实例方法的同步不会获取类级的锁，所以一个 <code>synchronized static</code> 方法和一个 <code>synchronized</code> 方法还是能同时访问类的域。改正此问题的一个明显的方法是，要求在实例方法中只有使用 <code>static</code> 访问方法才能访问非不变类的 <code>static</code> 域。当然，这种要求需要编译器和运行时间检查。在这种规定下，下面的代码是非法的：</p>
+<p>&nbsp;&nbsp;&nbsp;  class Broken<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  static long x;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized static void f()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  x = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized void g()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  x = -1;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  };</p>
+<p> </p>
+<p>由于 <code>f()</code> 和 <code>g()</code> 可以并行运行，所以它们能同时改变 <code>x</code> 的值（产生不定的结果）。请记住，这里有两个锁： <code>static</code> 方法要求属于 <code>Class</code> 对象的锁，而非静态方法要求属于此类实例的锁。当从实例方法中访问非不变 <code>static</code> 域时，编译器应要求满足下面两个结构中的任意一个：</p>
+<p>&nbsp;&nbsp;&nbsp;  class Broken<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  static long x;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized private static accessor( long value )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  x = value;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } synchronized static void f()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  x = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized void g()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  { <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  accessor( -1 ); }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>或则，编译器应获得读/写锁的使用：</p>
+<p>&nbsp;&nbsp;&nbsp;  class Broken<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  static long x;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized static void f()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  $writing(x){ x = 0 };<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  synchronized void g()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;  $writing(x){ x = -1 };<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }</p>
+<p> </p>
+<p>另外一种方法是（这也是一种 <a name="10">理想的</a> 方法）-- 编译器应 <em>自动</em> 使用一个读/写锁来同步访问非不变 static 域，这样，程序员就不必担心这个问题。</p>
+<p><a name="N10626"><span class="atitle">后台线程的突然结束</span></a></p>
+<p>当所有的非后台线程终止后，后台线程都被突然结束。当后台线程创建了一些全局资源（例如一个数据库连接或一个临时文件），而后台线程结束时这些资源没有被关闭或删除就会导致问题。</p>
+<p>对于这个问题，我建议制定规则，使 Java 虚拟机在下列情况下不关闭应用程序：</p>
+<ol>
+    <li>有任何非后台线程正在运行，或者：</li>
+    <li>有任何后台线程正在执行一个 <code>synchronized</code> 方法或 <code>synchronized</code> 代码块。</li>
+</ol>
+<p>后台线程在它执行完 <code>synchronized</code> 块或 <code>synchronized</code> 方法后可被立即关闭。</p>
+<p><a name="N1064E"><span class="atitle">重新引入 stop() 、 suspend() 和 resume() 关键字 </span></a></p>
+<p>由于实用原因这也许不可行，但是我希望不要废除 <code>stop()</code> (在 <code>Thread</code> 和 <code>ThreadGroup</code> 中)。但是，我会改变 <code>stop()</code> 的语义，使得调用它时不会破坏已有代码。但是，关于 <code>stop()</code> 的问题，请记住，当线程终止后， <code>stop()</code> 将释放所有锁，这样可能潜在地使正在此对象上工作的线程进入一种不稳定（局部修改）的状态。由于停止的线程已释放它在此对象上的所有锁，所以这些对象无法再被访问。</p>
+<p>对于这个问题，可以重新定义 <code>stop()</code> 的行为，使线程只有在不占有任何锁时才立即终止。如果它占据着锁，我建议在此线程释放最后一个锁后才终止它。可以使用一个和抛出异常相似的机制来实现此行为。被停止线程应设置一个标志，并且当退出所有同步块时立即测试此标志。如果设置了此标志，就抛出一个隐式的异常，但是此异常应不再能被捕捉并且当线程结束时不会产生任何输出。注意，微软的 NT 操作系统不能很好地处理一个外部指示的突然停止(abrupt)。（它不把 stop 消息通知动态连接库，所以可能导致系统级的资源漏洞。）这就是我建议使用类似异常的方法简单地导致 <code>run()</code> 返回的原因。</p>
+<p>与这种和异常类似的处理方法带来的实际问题是，你必需在每个 <code>synchronized</code> 块后都插入代码来测试&ldquo;stopped&rdquo;标志。并且这种附加的代码会降低系统性能并增加代码长度。我想到的另外一个办法是使 <code>stop()</code> 实现一个&ldquo;延迟的(lazy)&rdquo;停止，在这种情况下，在下次调用 <code>wait()</code> 或 <code>yield()</code> 时才终止。我还想向 <code>Thread</code> 中加入一个 <code>isStopped()</code> 和 <code>stopped()</code> <code>方法（此时， <code>Thread</code> <code>将像 <code>isInterrupted()</code> 和 <code>interrupted()</code> 一样工作，但是会检测 &ldquo;stop-requested&rdquo;的状态)。这种方法不向第一种那样通用，但是可行并且不会产生过载。 </code></code></p>
+<p>应把 <code>suspend()</code> 和 <code>resume()</code> 方法放回到 Java 编程语言中，它们是很有用的，我不想被当成是幼儿园的小孩。由于它们可能产生潜在的危险（当被挂起时，一个线程可以占据一个锁）而去掉它们是没有道理的。请让我自己来决定是否使用它们。如果接收的线程正占据着锁，Sun 公司应该把它们作为调用 <code>suspend()</code> 的一个运行时间异常处理(run-time exception)；或者更好的方法是，延迟实际的挂起过程，直到线程释放所有的锁。</p>
+<p><a name="N106C6"><span class="atitle">被阻断的 I/O 应正确工作</span></a></p>
+<p>应该能打断任何被阻断的操作，而不是只让它们 <code>wait()</code> 和 <code>sleep()</code> 。我在&ldquo; <em>Taming Java Threads</em> &rdquo;的第二章中的 socket 部分讨论了此问题。但是现在，对于一个被阻断的 socket 上的 I/O 操作，打断它的唯一办法是关闭这个 socket，而没有办法打断一个被阻断的文件 I/O 操作。例如，一旦开始一个读请求并且进入阻断状态后，除非到它实际读出一些东西，否则线程一直出于阻断状态。既使关掉文件句柄也不能打断读操作。</p>
+<p>还有，程序应支持 I/O 操作的超时。所有可能出现阻断操作的对象（例如 InputStream 对象）也都应支持这种方法：</p>
+<p>&nbsp;&nbsp;&nbsp;  InputStream s = ...;<br>
+&nbsp;&nbsp;&nbsp;  s.set_timeout( 1000 );</p>
+<p> </p>
+<p>这和 Socket 类的 <code>setSoTimeout(time)</code> 方法是等价的。同样地，应该支持把超时作为参数传递到阻断的调用。</p>
+<p><a name="N106E8"><span class="atitle">ThreadGroup 类 </span></a></p>
+<p><code>ThreadGroup</code> 应该实现 <code>Thread</code> 中能够改变线程状态的所有方法。我特别想让它实现 <code>join()</code> 方法，这样我就可等待组中的所有线程的终止。</p>
+<p><a name="N10701"><span class="atitle">总结</span></a></p>
+<p>以上是我的建议。就像我在标题中所说的那样，如果我是国王...（哎）。我希望这些改变（或其它等同的方法）最终能被引入 Java 语言中。我确实认为 Java 语言是一种伟大的编程语言；但是我也认为 Java 的线程模型设计得还不够完善，这是一件很可惜的事情。但是，Java 编程语言正在演变，所以还有可提高的前景。</p>
+<p>Allen 撰写了八本书籍，最近新出的一本讨论了 Java 线程的陷阱和缺陷《 <em>Taming Java Threads</em> 》。他长期从事设计和编制面向对象软件。从事了 8 年的 C++ 编程工作后，Allen 在 1996 年由 C++ 转向 Java。他现在视 C++ 为一个噩梦，其可怕的经历正被逐渐淡忘。他从 1982 年起就自己和为加利弗尼亚大学伯克利分校教授计算机编程（首先是 C，然后是 C++ 和 MFC，现在是面向对象设计和 Java）。 Allen 也提供 Java 和面向对象设计方面的公众课程和私授 (in-house) 课程。他还提供面向对象设计的咨询并承包 Java 编程项目。请通过此 Web 站点和 Allen 取得联系并获取信息： <a cmimpressionsent="1" href="http://www.holub.com/"><font color="#5c81a7">www.holub.com</font></a>。</p>
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+<ul>
+    <li>您可以参阅本文在 developerWorks 全球站点上的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/j-king.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">英文原文</font></a>.</li>
+    <li>本文是对 <a cmimpressionsent="1" href="http://www1.fatbrain.com/asp/bookinfo/bookinfo.asp?theisbn=1893115100&amp;from=NCN454"><font color="#5c81a7">Taming Java Threads</font></a> 的更新摘编。该书探讨了在 Java 语言中多线程编程的陷阱和问题，并提供了一个与线程相关的 Java 程序包来解决这些问题。</li>
+    <li>马里兰大学的 Bill Pugh 正在致力修改 JLS 来提高其线程模型。Bill 的提议并不如本文所推荐的那么广，他主要致力于让现有的线程模型以更为合理方式运行。更多信息可从 <a cmimpressionsent="1" href="http://www.cs.umd.edu/~pugh/java/memoryModel/"><font color="#5c81a7">www.cs.umd.edu/~pugh/java/memoryModel/</font></a> 获得。</li>
+    <li>从 <a cmimpressionsent="1" href="http://java.sun.com/docs/books/jls/index.html"><font color="#5c81a7">Sun 网站</font></a>可找到全部 Java 语言的规范。</li>
+    <li>要从一个纯技术角度来审视线程，参阅 Doug Lea 编著的 <a cmimpressionsent="1" href="http://www1.fatbrain.com/asp/bookinfo/bookinfo.asp?theisbn=0201310090&amp;from=NCN454"><font color="#5c81a7">Concurrent Programming in Java: Design Principles and Patterns 第二版</font></a>。这是本很棒的书，但是它的风格是非常学术化的并不一定适合所有的读者。对《 <em>Taming Java Threads</em>》是个很好的补充读物。</li>
+    <li>由 Scott Oaks 和 Henry Wong 编写的 <a cmimpressionsent="1" href="http://www1.fatbrain.com/asp/bookinfo/bookinfo.asp?theisbn=1565924185&amp;from=NCN454"><font color="#5c81a7">Java Threads</font></a>比 <em>Taming Java Threads</em> 要轻量些，但是如果您从未编写过线程程序这本书更为适合。Oaks 和 Wong 同样实现了 Holub 提供的帮助类，而且看看对同一问题的不同解决方案总是有益的。</li>
+    <li>由 Bill Lewis 和 Daniel J. Berg　编写的 <a cmimpressionsent="1" href="http://www1.fatbrain.com/asp/bookinfo/bookinfo.asp?theisbn=0134436989&amp;from=NCN454"><font color="#5c81a7">Threads Primer: A Guide to Multithreaded Programming</font></a> 是对线程(不限于 Java)的很好入门介绍。</li>
+    <li>Java 线程的一些技术信息可在 <a cmimpressionsent="1" href="http://developer.java.sun.com/developer/technicalArticles/Threads/"><font color="#5c81a7">Sun 网站</font></a>上找到。</li>
+    <li>在 <a cmimpressionsent="1" href="http://www.primenet.com/~jakubik/mpsafe/MultiprocessorSafe.pdf"><font color="#5c81a7">&quot;Multiprocessor Safety and Java&quot;</font></a> 中 Paul Jakubik 讨论了多线程系统的 SMP 问题。</li>
+</ul>
+<p> </p>
+<p><a name="author"><span class="atitle">关于作者</span></a></p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td colspan="3"><img height="5" width="100%" src="http://www.ibm.com/i/c.gif"></td>
+        </tr>
+        <tr valign="top" align="left">
+            <td>
+            <p> </p>
+            </td>
+            <td><img height="5" width="4" src="http://www.ibm.com/i/c.gif"></td>
+            <td width="100%">
+            <p>Allen Holub 从 1979 年起就开始致力于计算机行业。他在各种杂志 (<em>Dr. Dobb's Journal、Programmers Journal、 Byte、MSJ 和其它</em>杂志) 上发表了大量的文章。他为网络杂志 <a cmimpressionsent="1" href="http://www.javaworld.com/"><font color="#5c81a7">JavaWorld</font></a> &ldquo;OO-设计流程&rdquo;栏目。他还领导着 <em>ITWorld 编程理论和实践</em> 讨论组。Allen 撰写了八本书籍，最近新出的一本讨论了 Java 线程的陷阱和缺陷《<em>Taming Java Threads</em>》。他长期从事设计和编制面向对象软件。从事了 8 年的 C++ 编程工作后，Allen 在 1996 年由 C++ 转向 Java。他现在视 C++ 为一个噩梦，其可怕的经历正被逐渐淡忘。他从 1982 年起就自己和为加利弗尼亚大学伯克利分校教授计算机编程（首先是 C，然后是 C++ 和 MFC，现在是面向对象设计和 Java）。 Allen 也提供 Java 和面向对象设计方面的公众课程和私授 (in-house) 课程。他还提供面向对象设计的咨询并承包 Java 编程项目。请通过此 Web 站点和 Allen 取得联系并获取信息：<a cmimpressionsent="1" href="http://www.holub.com/"><font color="#5c81a7">www.holub.com</font></a>。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-king/">http://www.ibm.com/developerworks/cn/java/j-king/</a></p></div></body></html>

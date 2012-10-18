@@ -1,0 +1,130 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JBoss目录结构，部署应用，启动配置 -gdo -hxzon动手</title></head><body><h1>JBoss目录结构，部署应用，启动配置 -gdo -hxzon动手</h1><div><p>JBoss目录结构，部署应用，启动配置 -gdo -hxzon动手<br>
+-----------------------------------------------<br>
+安装JBoss会创建下列目录结构：<br>
+目录 描述<br>
+bin 启动和关闭JBoss的脚本<br>
+client 客户端与JBoss通信所需的Java 库（JAR）<br>
+docs 配置文件的例子（数据库配置等）<br>
+docs/dtd 在JBoss中使用的各种 XML文件的 DTD。<br>
+lib JBoss启动时使用到的JAR，这些库为所有JBoss配置所共享。（不要把你的库放在<br>
+这里）<br>
+------------<br>
+server 各种JBoss配置。每个配置必须放在不同的子目录。 子目录的名字表示配置的名字。<br>
+JBoss包含 3个默认的配置：minimal，default和 all。<br>
+server/all JBoss的完全配置，启动所有服务，包括集群和 IIOP。<br>
+server/minimal 这是启动JBoss服务器所要求的最低配置。minimal 配置将启动日志服务、JNDI服<br>
+务器以及 URL 部署扫描器，以找到待部署的（新）应用。对于那些不需要使用任<br>
+何其他 J2EE 技术，而只是使用自定义服务的场合而言，则这种配置最适合。它仅<br>
+仅是服务器，而不包含 Web 容器、不提供EJB 和JMS 支持。<br>
+server/default 默认配置，它含有大部分J2EE应用所需的标准服务。但是，它不含有JAXR服务、<br>
+IIOP 服务、或者其他任何群集服务。如果在JBoss命令行中没有指定配置名称，则<br>
+默认使用此配置。(本教程就采用此配置)<br>
+server/default/conf JBoss的配置文件。如：log4j.xml是 Log4j日志配置文件，login-config.xml是 Jboss<br>
+安全配置文件，jboss-service.xml 配置在 jboss 启动时开启的 Jboss 服务（像类加载<br>
+器，JNDI，部署工具等），jbossmq-state.xml 是 JbossMQ（JMS 实现）的用户配置<br>
+文件。<br>
+server/default/deploy<br>
+JBoss的热部署目录。任何位于此目录下的文件或目录都会被自动部署。如：EJB、<br>
+WAR、EAR，甚至服务。<br>
+server/default/lib 一些JAR，JBoss启动 default配置时会加载它们。<br>
+server/default/log 日志信息将存储到该目录。JBoss 使用 Jakarta Log4j 包作为其日志功能。同时，用<br>
+户可以在应用中直接使用Log4j日志记录功能。<br>
+server/default/data 这一目录存储持久化数据， 即使服务器发生重启其中的数据也不会丢失。 许多JBoss<br>
+服务将数据存储在这里，比如Hypersonic 数据库实例。<br>
+server/default/tmp 供部署器临时存储未打包应用使用，也可以作为其他用途。<br>
+server/default/work 供 Tomcat编译JSP 使用。<br>
+其中，log、data、tmp、work 目录是JBoss创建的。如果用户没有启动过JBoss服务器，则这些目录不会被创建。<br>
+---------------------------------------------------------<br>
+1.9 在 JBoss部署应用<br>
+在JBoss部署应用的过程非常简单、直接。在每一个配置中，Jboss会不断扫描一个名为[jboss安装目<br>
+录]/server/config-name/deploy的特定目录，查看是否有任何更新，此目录一般被称为“部署目录” 。<br>
+你可以把下列文件拷贝到部署目录中：<br>
+? 任何Java 库（其中的类将被自动添加到JBoss的 classpath 中）<br>
+? EJB-JAR<br>
+? WAR (Web Appliction aRrchive)<br>
+? EAR (Enterprise Application aRchive)<br>
+? 包含JBoss MBean定义的XML文件<br>
+? 以.jar、.war或者.ear结尾的目录，分别包含了 EJB-JAR、WAR 或者 EAR 的解压缩内容。<br>
+要重新部署上述文件（JAR、WAR、EAR、XML等），只需用更新后的版本覆盖即可。Jboss将通过对比时间戳<br>
+来检测变化，卸载旧文件，部署相应的新文件。如果要重新部署目录，只需更新其时间戳即可。从部署目录中删<br>
+除文件会导致相应文件从部署中卸载。<br>
+---------------------<br>
+启动时可用-c参数指定要启动的配置：run.bat -c config-name<br>
+===================<br>
+hxzon： 启动JBOSS</p>
+<p>在run.bat启动文件开头添加如下两句：<br>
+set JBOSS_HOME=D:\big\jboss4.2.2.GA<br>
+set JAVA_HOME=D:\big\Java\jdk1.6.0_07<br>
+在浏览器输入可看到JBOSS首页。<br>
+-------------------</p>
+<p><font class="f14">测试<br>
+5.1、html,jsp测试<br>
+首先在deploy下建立一个test.war文件夹，然后将html,jsp文件都可以放到这里进行测试 <br>
+例如建立一testdate.jsp如下： <br>
+&lt;%@ page language=&quot;java&quot; %&gt; <br>
+&lt;%@ page contentType=&quot;text/html;charset=gb2312&quot; %&gt; <br>
+&lt;%@ page import=&quot;java.util.*&quot; %&gt; <br>
+&lt;%=new Date().toString()%&gt; <br>
+通过http://localhost:8080/test/test.jsp调用就可得到当前日期时间。</font></p>
+<p><font class="f14">5.2、在jsp中操调用操作数据库<br>
+&lt;%@ page language=&quot;java&quot; %&gt; <br>
+&lt;%@ page import=&quot;javax.naming.*&quot; %&gt; <br>
+&lt;%@ page import=&quot;javax.sql.*&quot; %&gt; <br>
+&lt;%@ page import=&quot;java.sql.*&quot; %&gt; <br>
+&lt;%! <br>
+javax.sql.DataSource ds; <br>
+%&gt; <br>
+<br>
+&lt;% <br>
+try { <br>
+Context ctx = new InitialContext(); <br>
+ds = (javax.sql.DataSource)ctx.lookup(&quot;java:/MySqlDS&quot;); <br>
+} catch (Exception e) { <br>
+out.println(&quot;erro when connect to java naming api&quot;); <br>
+}<br>
+<br>
+</font><font class="f14">Connection conn = ds.getConnection(); <br>
+Statement st = conn.createStatement(); <br>
+String sqlStr = &quot;select * from cat&quot;; <br>
+ResultSet rs = st.executeQuery(sqlStr); <br>
+while ( rs.next() ) { <br>
+out.println(rs.getString(&quot;categoryName&quot;)+&quot;&lt;br&gt;&quot;); <br>
+} <br>
+rs.close(); <br>
+st.close(); <br>
+conn.close(); <br>
+%&gt;<br>
+5.3、servlet的配置测试 <br>
+5.3.1编写并编译如下的简单servlet <br>
+import java.io.*; <br>
+import javax.servlet.*; <br>
+import javax.servlet.http.*; </font></p>
+<p>public class HelloWorld extends HttpServlet { <br>
+public void doGet(HttpServletRequest request,HttpServletResponse response) throws IOException,ServletException { <br>
+response.setContentType(&quot;text/html&quot;); <br>
+PrintWriter out = response.getWriter(); <br>
+out.println(&quot;&quot;); <br>
+out.println(&quot;Hello World&quot;); <br>
+} <br>
+}<br>
+5.3.2在test.war文件夹下建立一个WEB-INF目录，里面再建立一个classes目录和web.xml文件目录结构如下： <br>
+[test.war] <br>
+[WEB-INF] <br>
+[classes] <br>
+web.xml <br>
+将编译成功的HelloWorld.class放置到classes目录下，web.xml内容如下：</p>
+<p>&lt;?xml version=&quot;1.0&quot;?&gt; <br>
+&lt;!DOCTYPE web-app PUBLIC <br>
+&quot;-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN&quot; <br>
+&quot;http://java.sun.com/dtd/web-app_2_3.dtd&quot;&gt; <br>
+&lt;web-app&gt; <br>
+&lt;servlet&gt; <br>
+&lt;servlet-name&gt;HelloWorld&lt;/servlet-name&gt; <br>
+&lt;servlet-class&gt;HelloWorld&lt;/servlet-class&gt;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;  <br>
+&lt;/servlet&gt; <br>
+&lt;servlet-mapping&gt; <br>
+&lt;servlet-name&gt;HelloWorld&lt;/servlet-name&gt; <br>
+&lt;url-pattern&gt;/HelloWorld&lt;/url-pattern&gt; <br>
+&lt;/servlet-mapping&gt; <br>
+&lt;/web-app&gt;</p>
+<p>通过调用http://localhost:8080/test/HelloWorld 就可以看到hello world的输出</p></div></body></html>

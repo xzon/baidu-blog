@@ -1,0 +1,181 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>用 IFrame 跟上潮流:将 IFrame 窗口转换为炫目的应用程序窗口</title></head><body><h1>用 IFrame 跟上潮流:将 IFrame 窗口转换为炫目的应用程序窗口</h1><div><div>
+<h1>用 IFrame 跟上潮流:<em>将 IFrame 窗口转换为炫目的应用程序窗口</em></h1>
+<p><em><a href="http://www.ibm.com/developerworks/cn/java/j-iframe/">http://www.ibm.com/developerworks/cn/java/j-iframe/</a> </em></p>
+<p>级别： 初级</p>
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-iframe/#author">Michael Abernethy</a> (<a href="mailto:mabernet@us.ibm.com?subject=%E7%94%A8%20IFrame%20%E8%B7%9F%E4%B8%8A%E6%BD%AE%E6%B5%81">mabernet@us.ibm.com</a>), IT 专家, IBM</p>
+<p>2004 年 4 月 01 日</p>
+<blockquote>IFrame 是一种应用程序窗口体系结构，它可以有自定义颜色、自定义边框、自定义形状、自定义组件、甚至透明性。有了 JFrame，就不需要在应用程序中总是使用乏味的、老的 JFram 了。在本文中，IT 专家 Michael Aberethy 介绍了 IFrame 类，并展示了如何用它将标准 JFrame 应用程序窗口立刻转换为先进的 IFrame。</blockquote>
+<p>自 Java 1.0 开始，UI 开发人员就一直在寻找自定义应用程序窗口的方法。在引入了 Swing 后，这个问题愈发突出了，因为开发人员可以创建具有令人惊叹的更复杂的、更高级 widget，但是却受到它所在的 Frame 或者 JFrame 和它们的特定于操作系统的外观的限制。常常可以看到应用程序在框架边框内部看起来很好，但是 Microsoft Windows 的蓝色标题栏却大刹风景的情况。更糟的是，应用程序有 70 年代的 Motif 外观，但却使用了 Microsoft Windows 的颜色光滑渐变的标题栏。</p>
+<p><a name="1.0"><span class="atitle">JFrame 的外观问题</span></a></p>
+<p>如图 1 所示的这些外观问题，展现了 UI 开发人员所面临的许多问题：应用程序在各个平台上看起来是不一样的，因为 JFrame 的属性（标题栏颜色、边框、形状等）无法使用公共外观，它们是特于定操作系统的。</p>
+<br>
+<a name="fig1"><strong>图 1. JFrame 的外观是如何变化的</strong></a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="3" cellpadding="3" width="630">
+    <tbody>
+        <tr>
+            <td width="210"><strong>Metal 外观</strong> <br>
+            <img alt="Metal 外观" width="200" height="150" src="http://hiphotos.baidu.com/hxzon/pic/item/2f2eb9384b19f1fed56225e2.jpg"></td>
+            <td width="210"><strong>Motif 外观</strong> <br>
+            <img alt="Motif 外观" width="200" height="150" src="http://hiphotos.baidu.com/hxzon/pic/item/d56285353194592d90ef39e2.jpg"></td>
+            <td width="210"><strong>Windows 外观</strong> <br>
+            <img alt="Windows 外观" width="200" height="150" src="http://hiphotos.baidu.com/hxzon/pic/item/572c11dfdca5342f632798e2.jpg"></td>
+        </tr>
+    </tbody>
+</table>
+<p>解决方案看起来很很明显：一个独立于操作系统的框架，它具有 JFrame 提供的所有功能&mdash;&mdash;注册到 OS 窗口管理器、调整大小/重绘管理、最大化/最小化/恢复，同时又可以设置这些组件的外观。Java 1.3 提供了 JFrame 的功能，但牺牲了定制能力。</p>
+<p>在 Java 1.4 中，Sun 在 Frmae 类中引入了一个新的 <code><font face="NSimsun">setUndecorated()</font></code> 函数，它走到了另一个极端&mdash;&mdash;它可以自定义框架中的所有内容，但是缺少了 Java 1.3 中大多数特定于操作的好处。</p>
+<p>IFrame 类是对这个问题的期待已久的解决方案。通过弥合这两个问题之间的距离，IFrame 提供了一个使用简单、同时又很强大的解决方案，可以根据需要对框架进行或多或少的自定义，同时不会牺牲使用 JFrame 时所习惯的任何特定于操作系统的功能。不用再守着同样的陈旧的蓝色标题栏、同样的陈旧的三个窗口按钮和同样的陈旧的斜面边框。虽然对于普通应用程序来说，JFrame 仍然很有用，但是有些应用程序需要比它所能提供的更多的功能，如：</p>
+<ul>
+    <li>所有具有自定义外观的应用程序。</li>
+    <li>所有用于体现公司的某种品牌形象的应用程序。</li>
+    <li>所有需要对其窗口具有更多控制的应用程序。</li>
+</ul>
+<p>IFrame 通过提供一个容易使用的 API 而突破了 JFrame 的限制，这个 API 可以生成具有任何状态的框架、可以有任何颜色和状态的标题栏、可用于更多功能的标题栏按钮、具有任何颜色和大小的边框、按钮旁边的组件和标题栏中的标签及甚至是透明性。</p>
+<p>本文介绍 IFrame 框架。首先描绘这个体系结构中的每一个类及其作用。当然，学习如何使用 IFrame 的最好方法是使用例子，所以我举了四个使用 IFrame 的应用程序的例子，它们具有不同的复杂性。阅读了本文及学习 IFrame 体系结构后，应当能够让应用程序窗口从乏味窗口（图 2）变为炫目窗口（图 3）。</p>
+<br>
+<a name="fig2"><strong>图 2. 使用 IFrame 之前</strong></a><br>
+<img alt="JFrame" width="400" height="300" src="http://hiphotos.baidu.com/hxzon/pic/item/90ef76c67fa670279d163de2.jpg"> <br>
+<a name="fig3"><strong>图 3. 使用 IFrame 之后</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="3" cellpadding="3" width="600">
+    <tbody>
+        <tr>
+            <td><img alt="IFrame1" width="250" height="188" src="http://hiphotos.baidu.com/hxzon/pic/item/a7efce1b475f43c6af5133e2.jpg"></td>
+            <td><img alt="IFrame2" width="250" height="188" src="http://hiphotos.baidu.com/hxzon/pic/item/632762d08e4a2fb3a0ec9ce2.jpg"></td>
+        </tr>
+        <tr>
+            <td><img alt="IFrame3" width="250" height="188" src="http://hiphotos.baidu.com/hxzon/pic/item/9d16fdfa73184de2b48f31e2.jpg"></td>
+            <td><img alt="IFrame4" width="250" height="188" src="http://hiphotos.baidu.com/hxzon/pic/item/b48f8c5474a74e233a2935e2.jpg"></td>
+        </tr>
+    </tbody>
+</table>
+<p><a name="2.0"><span class="atitle">IFrame 体系结构</span></a></p>
+<p>IFrame 体系结构非常容易和直观，这可以从图 4 展示的类图中看出来。用于作为应用程序窗口的主类是 <code><font face="NSimsun">IFrame</font></code> 。IFrame 包含类 <code><font face="NSimsun">IBorderPanel</font></code> 的一个到多个实例，这个类的子类包括 <code><font face="NSimsun">IWindowTitleBar</font></code> 和 <code><font face="NSimsun">IContentPane</font></code> 。 <code><font face="NSimsun">IBorderPanels</font></code> 通过触发 <code><font face="NSimsun">WindowChangeEvents</font></code> 与 IFrame 通信，IFrame 对它进行处理并作出响应。</p>
+<p>通过分析体系结构中每一个组件，就会清楚为了定制自己的 IFrame，需要在什么地方和什么时候改写默认功能。</p>
+<br>
+<a name="fig3"><strong>图 4. IFrame 体系结构</strong></a><br>
+<img alt="IFrame 体系结构" width="565" height="341" src="http://hiphotos.baidu.com/hxzon/pic/item/f703918fdba5b6c6513d92e2.jpg"> <br>
+<p><a name="2.1"><span class="smalltitle">IFrame</span></a></p>
+<p><code><font face="NSimsun">IFrame</font></code> 是用于创建自定义框架的主类。除了从 <code><font face="NSimsun">IFrame</font></code> 的父类 <code><font face="NSimsun">JFrame</font></code> 继承的方法外， <code><font face="NSimsun">IFrame</font></code> 还增加了几个 public 方法，可以用来改变 框架的基本外观组件。</p>
+<p>IFrame 的默认行为与 JFrame 一样，所以 JFrame 和默认 IFrame 可以互换。不过，通过调用 IFrame 中可以使用的几个 public 方法，可以只用几行代码迅速改变窗口的外观。</p>
+<p><strong>注：</strong>在 JFrame 对应的 <code><font face="NSimsun">getContentPane()</font></code> 和 <code><font face="NSimsun">setContentPane()</font></code> 的位置上应当使用 IFrame 的 <code><font face="NSimsun">getIContentPane()</font></code> 和 <code><font face="NSimsun">setIContentPane()</font></code> 方法。在 IFrame 中添加的所有组件都应当调用 <code><font face="NSimsun">myIFrame.getIContentPane().add()</font></code> 。用 <code><font face="NSimsun">getContentPane()</font></code> 在 IFrame 中添加组件或者用 <code><font face="NSimsun">setContentPane()</font></code> 设置内容窗格会导致bukeyuce的、并且很可能是错误的行为。</p>
+<p><a name="2.2"><span class="smalltitle">IBorderComponent</span></a></p>
+<p><code><font face="NSimsun">IBorderComponent</font></code> 是在 IFrame 中加入的所有可以控制 Windows 的位置和调整大小的 JPanel 的父类。乍看之下，最可能的子类是 <code><font face="NSimsun">IWindowTitleBar</font></code> 和 <code><font face="NSimsun">IContentPane</font></code> ，因为它们看起来是惟一进行调整大小和移动的类。不过在当前的应用程序中，有许多是用应用程序窗口内的组件调整应用程序窗口大小或者移动它的。例如，所有 Microsoft Office 应用程序现在都在应用程序窗口右下角有一个小的 widget，可以用来调整大小（可以去自己试一试）。所以如果设计一个包含所有类型的调整大小和移动窗口的 widget，那么所要做的就是继承 <code><font face="NSimsun">IBorderComponent</font></code> ，这些 widget 就会具有与用 <code><font face="NSimsun">IWindowTitleBar</font></code> 和 <code><font face="NSimsun">IContentPane</font></code> 得到的同样的移动和调整大小的能力。</p>
+<p><a name="2.3"><span class="smalltitle">IWindowTitleBar</span></a></p>
+<p>自定义框架的大部分工作都是在 <code><font face="NSimsun">IWindowTitleBar</font></code> 中进行的。与 <code><font face="NSimsun">IFrame</font></code> 一样， <code><font face="NSimsun">IWindowTitleBar</font></code> 有许多 public 方法，不用继承它或者自己编写方法就可以改变标题栏的属性。虽然用这些方法可以容易地对外观进行改变，但是所有高级的设计都应当继承 <code><font face="NSimsun">IWindowTitleBar</font></code> 以使用 <code><font face="NSimsun">paintComponent()</font></code> ，这个方法可以做出更复杂的标题栏。（关于复杂的标题栏以及它是如何继承 <code><font face="NSimsun">IWindowTitleBar</font></code> 的内容，请参阅下面 <a href="http://www.ibm.com/developerworks/cn/java/j-iframe/#example3">例 3</a>。）</p>
+<p>除了改变标题栏的背景颜色， <code><font face="NSimsun">IWindowTitleBar</font></code> 还提供了许多功能，可以用来控制标题栏中的 <code><font face="NSimsun">IWindowButtons</font></code> 。在默认情况下， <code><font face="NSimsun">IWindowTitleBar</font></code> 包含 Microsoft Windows 应用程序中可以看到的三个标准窗口按钮，但是可以容易地删除它们或者添加自己的具有不同功能的窗口按钮。可以改变按钮的大小和颜色，如果创建高级的窗口按钮，那么可以继承 <code><font face="NSimsun">IWindowButton</font></code> 以绘制所希望的任何形状和颜色方案（尽管改变 JButton 的外观超出了本文的范围）。</p>
+<p>也许自定义 <code><font face="NSimsun">IWindowTitleBar</font></code> 的最有技巧性的方面是管理边框。在默认情况下，窗口标题栏是标准的矩形边框，但是如果创建一个具有非标准边框的复杂标题栏（请参阅 <a href="http://www.ibm.com/developerworks/cn/java/j-iframe/#example4">例 4</a>），那么必须继承 <code><font face="NSimsun">IWindowTitleBar</font></code> 并覆盖 <code><font face="NSimsun">isMouseOnBorder()</font></code> 和 <code><font face="NSimsun">isInsideTitleBar()</font></code> ，以自己管理边框。</p>
+<p><a name="2.4"><span class="smalltitle">IContentPane</span></a></p>
+<p><code><font face="NSimsun">IContentPane</font></code> 提供了在其中加入所有应用程序组件的基本容器，很像 JFrame 中的 <code><font face="NSimsun">JFcontentPane。</font></code> 因为它也继承了 <code><font face="NSimsun">IBorderComponent</font></code> ，所以在默认情况下它也管理自己的边框。 <code><font face="NSimsun">IContentPane</font></code> 边框的默认实现也是矩形。要想得到非矩形的复杂边框，需要继承 <code><font face="NSimsun">IContentPane</font></code> 并通过 <code><font face="NSimsun">重载 isMouseOnBorder()</font></code> 自己处理边框。</p>
+<p><a name="2.5"><span class="smalltitle">IWindowButton</span></a></p>
+<p><code><font face="NSimsun">IWindowButton</font></code> 提供了出现在标准 Microsoft Windows JFrame 标题栏中的三个按钮（最小化、还原和关闭）的默认实现，但是它们还为想要在标题栏中创建和添加的所有自定义窗口按钮提供了基类。如果希望在标题栏中加入第四个按钮（如果认为自己比 Microsoft 更了解情况），那么可以继承 <code><font face="NSimsun">IWindowButton</font></code> 并 <code><font face="NSimsun">重载 paintComponent()</font></code> 。不过，对于创建自定义按钮的介绍不在本文的范围之内。</p>
+<p><a name="2.6"><span class="smalltitle">WindowChangeEvent/WindowChangeListener</span></a></p>
+<p>Swing 为窗口中会发生的几乎所有事情提供了事件。有大约 15 种事件和处理窗口事件的相应方法。但是，就算有了所有这些事件，Swing 也没有包括窗口可以生成的所有事件，最明显的是特定于操作系统的事件。最后，使用 <code><font face="NSimsun">WindowChangeEvent</font></code> 和 <code><font face="NSimsun">WindowChangeListener</font></code> 类，可以确保接收窗口会发生的 <em>所有</em>事件。</p>
+<p><code><font face="NSimsun">WindowChangeEvent</font></code> 处理所有窗口变化的情况（因而类的名字变化）。它可以改变其大小、在屏幕上定位、恢复状态或者最小化/最大化状态。将这五个事件加上 15 种已有的事件，就包括了所有基本情况。现在窗口中发生的所有事情都可以掌握了。</p>
+<p><a name="3.0"><span class="atitle">例子</span></a></p>
+<p>现在可以编写几行代码并改变应用程序窗口的整个外观、亲自体验 IFrame 的强大功能了。记住，IFrame 可以很简单，也可以很复杂，完全取决于您的需要。</p>
+<p>在这一节，我将完成几个展示开始使用 IFrame 所需要完成的基本步骤的例子。学习这些例子并在自己的计算机中运行它们，会看到仅凭阅读说明或者 API 所想像不到的效果。运行所有四个例子并分析每个例子的代码，我相信您将会理解为什么 IFrame 可以成为应用程序中一个强大的工具。</p>
+<p>所有例子都包含在 <code><font face="NSimsun">com.ibm.iwt.examples</font></code> 包中，可以从 <a href="http://www.ibm.com/developerworks/cn/java/j-iframe/#resources">参考资料</a> 中下载这个包，它们都有可以运行的 <code><font face="NSimsun">main()</font></code> 方法。它们是用 JDK 1.4 编写的。</p>
+<p><a name="example1"><span class="smalltitle">例 1：默认 IFrame</span></a></p>
+<p>为了保持 IFrame &ldquo;向后兼容&rdquo;，我让 IFrame 的默认实现看上去与 JFrame 的完全一样，如图 5 所示：</p>
+<br>
+<a name="fig5"><strong>图 5. 默认 IFrame</strong></a><br>
+<img alt="例 1" width="400" height="300" src="http://hiphotos.baidu.com/hxzon/pic/item/a0ec08fa2c7498ab59ee90e2.jpg"> <br>
+<p>因为 IFrame 不从本机操作系统中得到其信息，所以我只能选择一种操作系统进行模拟。默认的 IFrame 实现看起来就像在 Microsoft Windows 2000 中的 JFrame 一样，我们就保持使用它了。如果在 Windows 2000 计算机中运行应用程序，那么将可以互换 JFrame 与 IFrame，不会有看得出来的差别。如果运行的不是 Windows 2000 -- 那么，第一个练习应用程序可以是模拟自己的操作系统。清单 1 显示了创建一个 IFrame 是多么容易：</p>
+<br>
+<a name="list1"><strong>清单 1. IFrame 例 1</strong></a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">public TestApp1()<br>  {<br>    setTitle(&quot;Window&quot;);<br>  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>是的，就是这么容易（想象一下如果所有应用程序开发都这么容易，那该会怎样）。</p>
+<p><strong>建议用法：</strong>在希望向后兼容 JFrame 时。</p>
+<p><a name="example2"><span class="smalltitle">例 2： 改变默认颜色、边框和大小</span></a></p>
+<p>现在看一些更有意思的代码。在这个例子中，我将标题栏框架周围的边框的背景颜色改为红色，改变窗口按钮的颜色、还改变了标题栏和窗口按钮的大小。图 6 显示了在例 2 中创建的 IFrame。</p>
+<br>
+<a name="fig6"><strong>图 6. 改变颜色、边框和大小</strong></a><br>
+<img alt="例 2" width="400" height="300" src="http://hiphotos.baidu.com/hxzon/pic/item/94eef01fd86093c9e0fe0be2.jpg"> <br>
+<p>仅就所说的这些改变，可以看出它们在 JFrame 中都是不可能的，但是用 IFrame 就可以很容易地实现。清单 2 显示了如何创建例 2 中使用的 IFrame：</p>
+<br>
+<a name="list2"><strong>清单 2. IFrame 例 2</strong></a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">public TestApp2()<br>  {<br>    IWTUtilities.setBorderSize(new Insets(3,3,3,3));<br>    setIContentPaneBorder(new LineBorder(Color.red, 3));<br>    setTitleBarHeight(35);<br>    setTitleBarBackground(Color.red);<br>    setTitleBarButtonColors(Color.red, Color.white);<br>    setTitleBarButtonSize(new Dimension(26, 26));<br>    setTitle(&quot;Window&quot;);<br>  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>这样就行了。改变框架的外观所要做的就是这些。尽管这只是 IFrame 的一个基本的例子，只使用了六行代码，但是我们完成了一些 UI 开发人员多年来一直想要做的事情。这个基本的例子已经比当前使用的应用程序窗口中的 99% 都更先进。</p>
+<p><strong>建议用法：</strong> 如果希望迅速改变框架的外观，同时又不想使它与特定于操作系统的框架有大的改变时使用。</p>
+<p><a name="example3"><span class="smalltitle">例 3: 利用 IWindowTitleBar 的子类</span></a></p>
+<p>如果希望做比颜色、大小和标题栏中的按钮这样的基本改变更多的事情，就必须继承 <code><font face="NSimsun">IWindowTitleBar</font></code> 类以充分利用它提供的各种可能性。创建了子类后，就可以对标题栏做很多新的操作了，包括更高级的绘制选项以及更强大的、在标题栏中加入任何组件的能力。为什么让标题栏中的按钮和标签把自己限制住呢？加上一直想要的 JTable 吧。只要调用 IFrame 中的 <code><font face="NSimsun">setTitleBar()</font></code> ，就可以创建一个应用程序开发史上最先进的标题栏子类，并在任何 IFrame 上使用它。图 7 描绘了创建自定义窗口组件所可能产生的外观：</p>
+<br>
+<a name="fig7"><strong>图 7. 创建自定义窗口组件</strong></a><br>
+<img alt="例 3" width="500" height="300" src="http://hiphotos.baidu.com/hxzon/pic/item/513d269726a7835155fb96e2.jpg"> <br>
+<p>在这个例子中，通过建立 <a href="http://www.ibm.com/developerworks/cn/java/j-iframe/#list2">清单 2</a> 中的框架，并用一个新的、动态的边框取代单调的、静态的红色标题栏，充分利用了所有这些新的可能性。可以从图中看到，标题已经从左边移到了中间，并使用了更有可读性的字体。我用一个在左边的&ldquo;关闭&rdquo;按钮取代右边三个标准按钮。最后，也许是最有创造性的，我在标题栏的右边增加了一个 JSlider，可以让这个 IFrame 的用户动态改变标题栏背景的渐变色。清单 3 中的代码片段显示了将例 2 转变为例 3 所需要的额外代码。这些对于 JFrame 来说是不可能的。</p>
+<a name="list3"><strong>清单 3. IFrame 例 3</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">public TestApp3()<br>  {<br>    IWTUtilities.setBorderSize(new Insets(3,3,3,3));<br>    getIContentPane().setBorder(new LineBorder(Color.red, 3));<br>    setTitleBar(new TitleBar());<br>  }<br>  private class TitleBar extends IWindowTitleBar implements ChangeListener<br>  {<br>    private Color c = new Color(0,0,0);<br>    private JSlider slider;<br>    public TitleBar()<br>    {<br>      setPreferredSize(new Dimension(0, 26));<br>      removeWindowDecorations();<br>      addWindowButton(IWindowButton.CLOSE, SwingConstants.LEFT);<br>      setWindowButtonColors(Color.RED, Color.WHITE);<br>      addTitle(getTitle(), SwingConstants.CENTER, new Font(&quot;Verdana&quot;, Font.BOLD, 14), Color.WHITE);<br>      slider = new JSlider();<br>      add(slider, new GroupFlowLayoutConstraints(SwingConstants.RIGHT, new Insets(3,3,3,3)));<br>      slider.addChangeListener(this);<br>      slider.setMaximum(255);<br>      slider.setMinimum(0);<br>      slider.setOpaque(false);<br>    }<br>    public void paintComponent(Graphics g)<br>    {<br>      super.paintComponent(g);<br>      PaintUtilities.paintGradient(g, 0, 0, getWidth(), getHeight(), c, Color.WHITE, <br>      SwingConstants.HORIZONTAL);<br>    }<br>    public void stateChanged(ChangeEvent e)<br>    {<br>      c = new Color(slider.getValue(), 0, 0);<br>      repaint();<br>    }<br>  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>分析创建这个 IFrame 的代码，可以看到它不比 <a href="http://www.ibm.com/developerworks/cn/java/j-iframe/#list2">清单 2</a> 中的代码更复杂。不过，出于下面两个理由，我将所有代码移到了 <code><font face="NSimsun">IWindowTitleBar</font></code> 的子类中：</p>
+<ul>
+    <li>通过 <code><font face="NSimsun">重载 IWindowTitleBar</font></code> 中的 <code><font face="NSimsun">paintComponent()</font></code> 提供外观更精致的标题栏</li>
+    <li>加入动态改变标题栏背景颜色的 JSlider</li>
+</ul>
+<p>因为可以在任何位置上添加任何 JComponent，所以在为标题栏创建新 widget 时可以尽情发挥想象力。对于在标题栏中创建新功能这方面来说，改变背景颜色的 JSlider 只是冰山的一角。可以开发出许多在标题栏中使用的有创造性的自定义组件。</p>
+<p><strong>建议用法：</strong> 适合使用 <code><font face="NSimsun">IWindowTitleBar</font></code> 的子类的情况有：</p>
+<ul>
+    <li>希望在标题栏中创建更复杂的图像，而不是一种单纯的颜色</li>
+    <li>常常会希望动态改变框架的标题栏属性，并且不希望每改变次它们时调用多个函数</li>
+    <li>希望在标题栏中加入默认组件以外的其他组件</li>
+</ul>
+<p><a name="example4"><span class="smalltitle">例 4：结合在一起并加上透明性</span></a></p>
+<p>最后一个例子将其他例子结合到一起并加入了 IFrame 的最新特性&mdash;&mdash;透明性。这个例子是最复杂的，并且很好地体现了 IFrame 在用最少的工作创建具有出色外观的应用程序窗口方面的强大能力。图 8 显示了具有某种透明性的复杂应用程序窗口，这种透明性使它区别其他应用程序窗口。</p>
+<br>
+<a name="fig8"><strong>图 8. 加入透明性</strong></a><br>
+<img alt="例 4" width="400" height="300" src="http://hiphotos.baidu.com/hxzon/pic/item/3a292df504b72719bc3109e2.jpg"> <br>
+<p>首先，让我们介绍一下透明性。几年前，Microsoft Windows 应用程序开始有了标准矩形以外的框架。其中使用最多的就是 Windows Media Player，从那之后，使应用程序具有非矩形形状就成了一种趋势和很酷的事情。是的，Java 应用程序一直没有这种能力，并且在透明性方面总是差强人意，特别是当与本机绘制像素交互时。</p>
+<p>幸运的是，IFrame 改变了这种局面，可以开发具有透明性、甚至对于本机绘制像素透明的应用程序窗口。IFrame 中的 <code><font face="NSimsun">setTransparent()</font></code> 在指定的边界内绘制指定的组件透明性。在大多数情况下，组件将是 <code><font face="NSimsun">IWindowTitleBar</font></code> 或 <code><font face="NSimsun">IContentPane</font></code> 的子类。应当在子类的 <code><font face="NSimsun">paintComponent()</font></code> 中调用 <code><font face="NSimsun">setTransparent()</font></code> ，以使它可以用它下面的正确像素重绘。</p>
+<p>最后提醒一下，绘制透明性速度相对来说是慢的，应当尽可能使透明区域相对较小。</p>
+<p>最后这个例子使用了 IFrame 的其他更高级的功能。从 <a href="http://www.ibm.com/developerworks/cn/java/j-iframe/#fig8">清单 8</a> 中可以看到，标题栏不再是标准的矩形标题栏了。它是自定义的形状，具有完全不同于矩形的边框。因此，在所创建的 <code><font face="NSimsun">IWindowTitleBar</font></code> 子类中，必须 <code><font face="NSimsun">重载 isMouseOnBorder()</font></code> 和 <code><font face="NSimsun">isInsideTitleBar()</font></code> 方法，以使标题栏在绘制光标时具有正确的行为，并可以调整大小。清单 4 显示了生成例 4 中看到的应用程序窗口所需要的代码。</p>
+<a name="example4"><strong>清单 4. IFrame 例 4</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">public TestApp4()<br>  {<br>    setTitle(&quot;Window&quot;);<br>    IWTUtilities.setBorderSize(new Insets(0,7,7,7));<br>    IWTUtilities.setDiagonalSize(20);<br>    getIContentPane().setBorder(new AppBorder());<br>    getIContentPane().setBackground(new Color(255, 255, 102));<br>    setTitleBar(new TitlePanel());<br>  }<br>  private class TitlePanel extends IWindowTitleBar<br>  {<br>    public TitlePanel()<br>    {<br>      setPreferredSize(new Dimension(800,35));<br>      setFont(new Font(&quot;Verdana&quot;, Font.BOLD, 22));<br>      removeWindowDecorations();<br>    }<br>    protected boolean isInsideTitleBar(int x, int y)<br>    {<br>      if (x &lt; (int)getWidth()*.1 || x &gt; (int)getWidth()*.9)<br>        return false;<br>      return true;<br>    }<br>    protected void isMouseOnBorder(int x, int y)<br>    {<br>      if (y &gt; 10 &amp;&amp; y &gt; 16 &amp;&amp; !isInsideTitleBar(x, y))<br>        isMouseOnBorder = true;<br>      else<br>        isMouseOnBorder = false;<br>    }<br>    public void paintComponent(Graphics g)<br>    {<br>      super.paintComponent(g);<br>      // ... paint code here<br>      setTransparent(this, g, 0, 0, w+1, 10);<br>      PaintUtilities.paintDropShadow(g, (int)(w*.1), 0, (int)(w*.8), 27);<br>      Color c1 = new Color(67, 118, 135);<br>      Color c2 = new Color(105, 152, 199);<br>      PaintUtilities.paintGradient(g, (int)(w*.1), 0, (int)(w*.9), 14, c1, c2);<br>      PaintUtilities.paintGradient(g, (int)(w*.1), 14, (int)(w*.9), 13, c2, c1);<br>      Graphics2D g2 = (Graphics2D)g;<br>      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);<br>      g.setColor(Color.white);<br>      int strW = SwingUtilities.computeStringWidth(g.getFontMetrics(), getTitle());<br>      int strH = g.getFontMetrics().getMaxAscent();<br>      g2.drawString(getTitle(), w/2-strW/2, h-strH/2);<br>      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_OFF);<br>    }<br>    private void drawBorder(Graphics g, int x, int y, int w, int h)<br>    {<br>      g.drawLine(x, 10+y, x, h);<br>      g.drawLine(x, 10+y, w-x, 10+y);<br>      g.drawLine(w-x, 10+y, w-x, h);<br>    }<br>  }<br>  private class AppBorder extends AbstractBorder<br>  {<br>    public void paintBorder(Component c, Graphics g, int x, int y, int width, int height)<br>    {<br>      // ... paint border<br>    }<br>  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><strong>建议用法：</strong>创建一个非百分之百矩形的框架是当前 UI 开发中的一种趋势（仅就 Windows XP 而言)。使用 IFrame 后，Java 应用程序就不会落伍了。使用透明性并 <code><font face="NSimsun">重载 IWindowTitleBar</font></code> 及其所有高级函数，就可以创建具有非常精致外观的框架，可以作为整个公司应用程序的默认框架。先进的功能使 UI 开发人员可以开发出这样的框架，它可以使用户自动与某家公司关联到一起（而不只限于那种使用户自动关联到 Remond，Washington 的某家公司的框架）。</p>
+<p><a name="4.0"><span class="atitle">结束语</span></a></p>
+<p>通过让 UI 开发人员可以完全控制他们的框架的功能 <em>和</em>和外观，IFrame 最终弥补了 Java 开发中的缺撼。它使 UI 开发人员可以创建只改变标题栏字体的简单 IFrame，也可以创建改变整个公司外观的复杂 IFrame。IFrame 的好处在于开发人员容易使用。它提供了开发人员改变框架所需要的所有功能，而且还非常易于扩展，使开发人员可以只改变需要改变的地方，而不会干扰其他默认行为。</p>
+<p>从我们完成的这些例子中可以看到，框架可能有的外观只受我们的想象力的限制。我相信在阅读过程中，您会在脑子里产生一些想法，希望读过本文后，可以用 IFrame 很快地将这些想法落实到屏幕上。</p>
+<p>我很想知道您开发出了什么样的 IFrame，所以请将您得到的任何 IFrame <a href="mailto:mabernet@us.ibm.com">的屏幕快照发给我</a>。真想看到其他人是如何利用 IFrame 的。</p>
+<p><a href="http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/j-iframe.zip">http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/j-iframe.zip</a></p>
+<p><a href="http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/j-iframe-doc.zip">http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/j-iframe-doc.zip</a></p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+</div></div></body></html>

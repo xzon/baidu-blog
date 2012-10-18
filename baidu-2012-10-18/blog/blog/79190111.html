@@ -1,0 +1,163 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>框架设计（第2版）：CLR Via C# 第9章 属性</title></head><body><h1>框架设计（第2版）：CLR Via C# 第9章 属性</h1><div><p><a href="http://book.csdn.net/bookfiles/154"><font color="#666699">框架设计（第2版）：CLR Via C# </font></a></p>
+<h4 style="text-indent: 21pt"><span>本章内容</span></h4>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>无参属性</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>有参属性</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>调用属性访问器方法的性能</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>属性访问器的可访问性</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>泛型属性访问器方法</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>本章将讨论属性。属性允许源代码使用一个简化的语法来调用方法。公共语言运行库</span><span>(common language runtime</span><span>，</span><span>CLR)</span><span>支持两种类型的属性：无参属性</span><span>(parameterless property)</span><span>和有参属性</span><span>(parameterful property)</span><span>，前者可以简称为属性</span><span>(property)</span><span>；后者在不同的编程语言中名称不同。例如，</span><span>C#</span><span>将有参属性称作索引器</span><span>(indexer)</span><span>，而</span><span>Microsoft Visual Basic</span><span>则将有参属性称作默认属性</span><span>(default property)</span><span>。</span></p>
+<h3><span>9.1 </span><span>无</span> <span>参</span> <span>属</span> <span>性</span></h3>
+<p style="text-indent: 21pt" class="MsoNormal"><span>许多类型都定义了可以被检索或者修改的状态信息。通常情况下，这些状态信息作为类型的字段成员实现。例如，以下类型定义中就包含两个字段：</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 21pt" class="ab"><span>public sealed class Employee {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public String Name; //</span><span>员工姓名</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public Int32 Age; //</span><span>员工年龄</span></p>
+<p style="margin-left: 21pt" class="ab"><span>} </span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>如果创建了一个以上类型的实例，就可以用下述形式的代码很容易地获得或者设置对象的状态信息：</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 21pt" class="ab"><span>Employee e = new Employee(); </span></p>
+<p style="margin-left: 21pt" class="ab"><span>e.Name = &quot;Jeffrey Richter&quot;; //</span><span>设置员工姓名</span></p>
+<p style="margin-left: 21pt" class="ab"><span>e.Age = 41; //</span><span>设置员工年龄</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>Console.WriteLine(e.Name); //</span><span>显示</span> <span>&quot;Jeffrey Richter&quot;</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>按照上述方式查询和设置对象状态信息的做法十分常见。但是，前述代码永远不能像示范的那样实现。面向对象设计和面向对象编程的一个主要特点就是数据密封</span><span>(data encapsulation)</span><span>。数据密封意味着类型的字段永远不会公开地对外提供，因为这样容易编写出不恰当使用字段的代码，从而破坏对象的状态。例如，开发人员可以使用下述形式的代码很容易地破坏对象</span><span>Employee</span><span>：</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 21pt" class="ab"><span>e.Age=-5; //</span><span>怎么会有人是</span><span>-5</span><span>岁呢？</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>对类型数据字段的访问进行密封还有其他的原因。例如，如果希望在访问字段的同时执行一些额外的操作、缓存某些值或者延迟创建一些内部对象；如果希望对字段的访问是线程安全的；或者访问的字段是一个逻辑字段，它的值不是由内存中的字节表示，而是经过某些运算得到的，这些情况都需要进行数据密封。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>基于上述各种原因，强烈建议在设计类型时将所有字段定义为</span><span>private</span><span>。然后，如果希望类型的用户获得或者设置状态信息，则可以针对这一具体目的对外提供方法。密封字段访问的方法通常称为索引器方法</span><span>(indexer method)</span><span>。可以选择索引器方法执行稳健性检查来确保对象的状态永远不被破坏。例如，将前述代码重写为下述形式：</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 21pt" class="ab"><span>public sealed class Employee {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  private String m_Name; //</span><span>私有字段</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  private Int32 m_Age; &nbsp;&nbsp;  //</span><span>私有字段</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public String GetName() {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return(m_Name);</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public void SetName(String value) {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_Name = value;</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public Int32 GetAge() {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return(m_Age);</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public void SetAge(Int32 value) {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (value &lt; 0)</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new ArgumentOutOfRangeException(&quot;value&quot;,</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  value.ToString(),</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;The value must be greater than or equal to 0&quot;);</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_Age = value;</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"><span>}</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>尽管这只是一个简单的范例，但还是可以看出数据字段的密封能带来很多好处。还可以看出实现只读属性或只写属性是多么的简单：只要不实现某个索引器方法即可。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>然而，前面提到的数据密封有两个缺点：首先，因为不得不实现额外的方法，所以必须编写更多的代码；其次，类型的用户必须调用方法，而不能简单地引用一个单独的字</span><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><span>段名。</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 21pt" class="ab"><span>e.SetName(&quot;Jeffrey Richter&quot;); //</span><span>更新员工姓名</span></p>
+<p style="margin-left: 21pt" class="ab"><span>String EmployeeName = e.GetName();//</span><span>检索员工姓名</span></p>
+<p style="margin-left: 21pt" class="ab"><span>e.SetAge(41); //</span><span>更新员工年龄</span></p>
+<p style="margin-left: 21pt" class="ab"><span>e.SetAge(-5); //</span><span>抛出</span><span>ArgumentOutOfRangeException</span><span>异常</span></p>
+<p style="margin-left: 21pt" class="ab"><span>Int32 EmployeeAge = e.GetAge();//</span><span>检索员工年龄</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>就个人而言，我认为这些缺点微不足道。尽管如此，编程语言和</span><span>CLR</span><span>还是提供了一种称为属性的机制减轻了第一个缺点的影响并完全消除了第二个缺点的影响。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>下面演示了一个使用了属性的类，它与前面定义的类功能相同：</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 21pt" class="ab"><span>public sealed class Employee {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  private String m_Name;</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  private Int32 m_Age;</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public String Name {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  get { return(m_Name); }</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  set{ m_Name = value;} //</span><span>关键字</span><span>'value'</span><span>通常表示新设的值</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public Int32 Age {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  get { return(m_Age); }</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  set {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (value &lt; 0) //</span><span>关键字</span><span>'value'</span><span>通常表示新设的值</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new ArgumentOutOfRangeException(&quot;value&quot;,</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  value.ToString(),</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;The value must be greater than or equal to 0&quot;);</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_Age = value;</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"><span>}</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>可以看出，属性使类型的定义稍微复杂了一点，但是属性允许采用下述形式编写代码，而组件还需要做额外的工作：</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 21pt" class="ab"><span>e.Name = &quot;Jeffrey Richter&quot;; //</span><span>&ldquo;设置&rdquo;员工姓名</span></p>
+<p style="margin-left: 21pt" class="ab"><span>String EmployeeName = e.Name; //</span><span>&ldquo;获取&rdquo;员工姓名</span></p>
+<p style="margin-left: 21pt" class="ab"><span>e.Age = 41; //</span><span>&ldquo;设置&rdquo;员工年龄</span></p>
+<p style="margin-left: 21pt" class="ab"><span>e.Age = -5; //</span><span>抛出</span><span>ArgumentOutOfRangeException</span><span>异常</span></p>
+<p style="margin-left: 21pt" class="ab"><span>Int32 EmployeeAge = e.Age; //</span><span>&ldquo;获取&rdquo;员工年龄</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>可以将属性看作智能字段</span><span>(smart field)</span><span>，即后面有额外逻辑的字段。</span><span>CLR</span><span>支持静态属性、实例属性、抽象属性和虚拟属性。另外，属性可以标记任意的访问限定符</span><span>(</span><span>详情参见第</span><span>6</span><span>章</span><span>)</span><span>，并且可以在接口中定义</span><span>(</span><span>详情参见第</span><span>14</span><span>章</span><span>)</span><span>。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>每个属性都有一个名称和一个类型</span><span>(</span><span>类型不能是</span><span>void</span><span>)</span><span>。属性不能被重载，也就是说，如果其类型不同，两个属性可以同名。当定义属性时，通常同时指</span><span>定</span><span>get</span><span>和</span><span>set</span><span>两</span><span>个方法。但是，可以省略</span><span>set</span><span>方法而定义一个只读属性，或者</span><span>省略</span><span>get</span><span>方法而</span><span>定义一个只写属性。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>通过属性</span><span>的</span><span>get</span><span>和</span><span>set</span><span>方法操作</span><span>类型内定义的私有字段，这种做法也十分常见。私有字段通常称为后备字段</span><span>(backing field)</span><span>，但是</span><span>get</span><span>和</span><span>set</span><span>方法没有必要访问后备字段，例如，</span><span>System.Threading.Thread</span><span>类型提供了一个</span><span>Priority</span><span>属性可</span><span>以直接与操作系统通信，而</span><span>Thread</span><span>对象并没有维持一个关于线程优先级的字段。另一个没有后备字段的典型属性是在运行时运算的只读属性，例如，以</span><span>0</span><span>结束的数组的长度或者已经知道长度和宽度的矩形的面积。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>定义属性时，根据属性的定义，编译器将在最后得到的托管程序集中生成以下两项或三项：</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>一个表示属性</span><span style="letter-spacing: 0pt">get</span><span>访问器</span><span>(accessor)</span><span>方法的方法。仅当属性定义</span><span style="letter-spacing: 0pt">get</span><span>访问器方法时才生成这个方法。</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>一个表示属性</span><span style="letter-spacing: 0pt">set</span><span>访问器方法的方法。仅当属性定义</span><span style="letter-spacing: 0pt">set</span><span>访问器方法时才生成这个方法。</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>一个位于托管程序集的元数据中的属性定义。编译器通常生成该项。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>参考前</span><span>面所示的</span><span>Employee</span><span>类型。编译器编译这个类型时，编译器会发现其中定义的</span><span>Name</span><span>和</span><span>Age</span><span>两个属性。因为这两个属性都有</span><span>get</span><span>和</span><span>set</span><span>访问器方法，所以编译器将在</span><span>Employee</span><span>类型中生成</span><span>4</span><span>个方法定义，看上去原始代码就像下面的代码</span><span>那样编写的：</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 21pt" class="ab"><span>public sealed class Employee {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  private String m_Name;</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  private Int32 m_Age;</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public String get_Name(){</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return m_Name;</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public void set_Name(String value) {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_Name = value; //</span><span>参数</span> <span>'value'</span><span>通常表示新设的值</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public Int32 get_Age() {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return m_Age;</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"> </p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public void set_Age(Int32 value) {</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (value &lt; 0) { //</span><span>参数</span> <span>'value' </span><span>通常表示新设的值</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new ArgumentOutOfRangeException(&quot;value&quot;,</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  value.ToString(),</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;The value must be greater than or equal to 0&quot;);</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_Age = value;</span></p>
+<p style="margin-left: 21pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 21pt" class="ab"><span>} </span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>编译器通过在开发</span><span>人员指定的在属性名称前加上</span><span>get_</span><span>或者</span><span>set_</span><span>前缀自</span><span>动为这些方法生成名称。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>C#</span><span>编译器内置了属性支持。当</span><span>C#</span><span>编译器发现代码试图获得或者设置属性时，编译器生成一个对相应方法的调用。如果所使用的编程语言不直接支持属性，仍然可以通过调用期望的访问器方法来访问属性。效果是一样的，只不过源代码看起来不那么优美。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>除了生成访问器方法，编译器同样在托管的程序集元数据中为源代码中定义的每个属性生成属性定义的条目。该条目包含一些标记以及属</span><span>性的类型，并且引用</span><span>get</span><span>和</span><span>set</span><span>访</span><span>问器方法。该元数据信息只是为了在抽象概念&ldquo;属性&rdquo;及其访问器方法之间建立一个关联关系。编译器及其他工具可以使用这个元数据信息</span><span>(</span><span>通过使用</span><span>System.Reflection. PropertyInfo</span><span>类获得</span><span>)</span><span>。</span><span>CLR</span><span>不使用这个元数据信息，仅在运行时需要访问器方法。</span></p>
+<h3><span>巧妙定义属性</span></h3>
+<p style="text-indent: 21pt" class="MsoNormal"><span>就个人而言，我不喜欢属性，而且我希望</span><span>Microsoft</span><span>的</span><span>.NET Framework</span><span>及其编程语言中不支持属性。因为属性与字段相似，但属性是方法。这个问题已经引起了大量的误解。编程人员发现代码准备访问字段时，需要进行许多假定，以确定这个属性不会引起误解。例如：</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>属性可以只读或者只写，字段的访问却通常是可读和可写的。如果定义一个属性，最好为属性同时提供</span><span style="letter-spacing: 0pt">get</span><span style="letter-spacing: 0pt">和</span><span style="letter-spacing: 0pt">set</span><span>访问器方法。</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>属性方法也许会抛出异常，字段的访问则永远不会抛出异常。</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>属性不能作为</span><span style="letter-spacing: 0pt">out</span><span>或</span><span style="letter-spacing: 0pt">ref</span><span>参数传递给方法，字段则可以。例如，下述代码不能通过编译：</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p style="margin-left: 42.65pt" class="ab"><span>using System; </span></p>
+<p style="margin-left: 42.65pt" class="ab"> </p>
+<p style="margin-left: 42.65pt" class="ab"><span>public sealed class SomeType {</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  private static String Name {</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  get { return null; }</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  set {}</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 42.65pt" class="ab"> </p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  static void MethodWithOutParam(out String n) { n = null; }</span></p>
+<p style="margin-left: 42.65pt" class="ab"> </p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  public static void Main() {</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //</span><span>对于下一行代码，</span><span>C#</span><span>编译器将生成下述错误信息：</span><span>error CS0206: </span><span>属性或索引器不能</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //</span><span>作为</span><span>out</span><span>或</span><span>ref</span><span>参数传递</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  MethodWithOutParam(out Name);</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>&nbsp;&nbsp;&nbsp;  }</span></p>
+<p style="margin-left: 42.65pt" class="ab"><span>}</span></p>
+<p style="text-indent: 21pt" class="af0"> </p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>属性方法可以花费较长时间来执行；字段的访问则始终会立即完成。一个使用属性的常见解释是为了执行线程同步，而这可能使线程永远停止，因此，如果需要线程同步，就不应使用属性。在这种情况下，应优先选用方法。同样，如果类可以被远程访问</span><span>(</span><span>例如从</span><span style="letter-spacing: 0pt">System.MashalByRefObject</span><span>派生的类</span><span>)</span><span>，那么对属性方法的调用将非常慢，因此，可以优先选择方法而不是属性。在我个人看来，从</span><span style="letter-spacing: 0pt">MashalByRefObject</span><span>派生的类应永远不要使用属性。</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>如果在一行中多次调用属性方法，则每次属性方法返回的值可能不同；而字段每次调用都返回相同的值。</span><span style="letter-spacing: 0pt">System.DateTime</span><span>类有一个只读属性</span><span style="letter-spacing: 0pt">Now</span><span>可以返回当前的日期和时间。每次查询这个属性时，它将返回不同的值。这是一个错误，</span><span>Microsoft</span><span>希望修复这个错误，将</span><span style="letter-spacing: 0pt">Now</span><span>改为方法，而不是属性。</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>属性方法也许会导致明显的副作用；字段的访问永远不会。换句话说就是类型的使用者应设置各种由类型定义的属性，使用者可以以任何顺序选择属性而不会在类型中产生不同的行为。</span></p>
+<p class="1"><span style="font-size: 9pt">l<span style="font: 7pt Times New Roman">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span></span><span>属性方法可能需要额外的内存，或者可能返回某个实际上不是对象状态一部分的对象的引用，因此对返回对象的修改并不会影响原始对象的状态；对字段的查询通常返回一个对象的引用，该对象保证是原始对象状态的一部分。使用能返回属性备份的属性使开发人员极易混淆，而且文档中通常不记录该特征。</span></p>
+<p style="text-indent: 21pt" class="MsoNormal"><span>我注意到，人们对属性的使用往往超乎想像。如果查看上述关于属性和字段区别的列表，就会发现只有极个别的情况下定义的属性实际上有用，而且不会使开发人员产生混淆。过度使用属性的惟一原因就是属性简化的语法。属性不会提升代码的性能，而且还使代码的可理解性减弱。要是我参与</span><span>.NET Framework</span><span>及编译器的设计，我就根本不会提供属性；相反，我会让编程人员按照期望</span><span>的实际实现</span><span>GetXxx</span><span>和</span><span>SetXxx</span><span>方法</span><span>。于是，如果编译器希望提供一些特殊的、简化的语法来调用这些方法，就可以直接去调用这些方法。除此之外，我还希望编译器使用的语法要不同于字段访问的语法，以便编程人员可以真正地理解他们正在做什么&mdash;&mdash;方法调用。</span></p></div></body></html>

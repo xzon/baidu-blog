@@ -1,0 +1,214 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>How to Use BoxLayout</title></head><body><h1>How to Use BoxLayout</h1><div><p>How to Use BoxLayout</p>
+<p>The Swing packages include a general purpose layout manager named <a class="APILink" href="http://java.sun.com/javase/6/docs/api/javax/swing/BoxLayout.html" target="_blank"><code><span style=";;font-family:新宋体;">BoxLayout</span></code></a>. <code><span style=";;font-family:新宋体;">BoxLayout</span></code> either stacks its components on top of each other or places them in a row — your choice. You might think of it as a version of <a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/flow.html"><code><span style=";;font-family:新宋体;">FlowLayout</span></code></a>, but with greater functionality. Here is a picture of an application that demonstrates using <code><span style=";;font-family:新宋体;">BoxLayout</span></code> to display a centered column of components:</p>
+<p> </p>
+<p> </p>
+<center><img height="164" alt="A snapshot of BoxLayoutDemo" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/BoxLayoutDemo.png" width="203" align="bottom"></center>
+<p>You can see the code in <a class="SourceLink" href="http://java.sun.com/docs/books/tutorial/uiswing/examples/layout/BoxLayoutDemoProject/src/layout/BoxLayoutDemo.java" target="_blank"><code><span style=";;font-family:新宋体;">BoxLayoutDemo.java</span></code></a>.</p>
+<p>The following figure shows a GUI that uses two instances of <code><span style=";;font-family:新宋体;">BoxLayout</span></code>. In the top part of the GUI, a top-to-bottom box layout places a label above a scroll pane. In the bottom part of the GUI, a left-to-right box layout places two buttons next to each other. A <code><span style=";;font-family:新宋体;">BorderLayout</span></code> combines the two parts of the GUI and ensures that any excess space is given to the scroll pane.</p>
+<p> </p>
+<center><img height="191" alt="Uses both left-to-right and top-to-bottom box layouts" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/ListDialogMetal.png" width="278" align="bottom"></center>
+<p>The following code, taken from <a class="SourceLink" href="http://java.sun.com/docs/books/tutorial/uiswing/examples/components/ListDialogRunnerProject/src/components/ListDialog.java" target="_blank"><code><code><span style=";;font-family:新宋体;">ListDialog.java</span></code></code></a>, lays out the GUI. This code is in the constructor for the dialog, which is implemented as a <code><span style=";;font-family:新宋体;">JDialog</span></code> subclass. The bold lines of code set up the box layouts and add components to them.</p>
+<p> </p>
+<blockquote>
+<pre>JScrollPane listScroller = new JScrollPane(list);
+listScroller.setPreferredSize(new Dimension(250, 80));
+listScroller.setAlignmentX(LEFT_ALIGNMENT);
+...
+//Lay out the label and scroll pane from top to bottom.
+JPanel listPane = new JPanel();
+<strong>listPane.setLayout(new BoxLayout(listPane, BoxLayout.PAGE_AXIS));</strong>
+JLabel label = new JLabel(labelText);
+...
+<strong>listPane.add(label);</strong>
+<strong>listPane.add(Box.createRigidArea(new Dimension(0,5)));</strong>
+<strong>listPane.add(listScroller);</strong>
+listPane.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+
+//Lay out the buttons from left to right.
+JPanel buttonPane = new JPanel();
+<strong>buttonPane.setLayout(new BoxLayout(buttonPane, BoxLayout.LINE_AXIS));</strong>
+buttonPane.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+<strong>buttonPane.add(Box.createHorizontalGlue());</strong>
+<strong>buttonPane.add(cancelButton);</strong>
+<strong>buttonPane.add(Box.createRigidArea(new Dimension(10, 0)));</strong>
+<strong>buttonPane.add(setButton);</strong>
+
+//Put everything together, using the content pane's BorderLayout.
+Container contentPane = getContentPane();
+contentPane.add(listPane, BorderLayout.CENTER);
+contentPane.add(buttonPane, BorderLayout.PAGE_END);</pre></blockquote>
+<p>The first bold line creates a top-to-bottom box layout and sets it up as the layout manager for <code><span style=";;font-family:新宋体;">listPane</span></code>. The two arguments to the <code><span style=";;font-family:新宋体;">BoxLayout</span></code> constructor are the container that it manages and the axis along which the components will be laid out. The <code><span style=";;font-family:新宋体;">PAGE_AXIS</span></code> constant specifies that components should be laid out in the direction that lines flow across a page as determined by the target container's <code><span style=";;font-family:新宋体;">ComponentOrientation</span></code> property. The <code><span style=";;font-family:新宋体;">LINE_AXIS</span></code> constant specifies that components should be laid out in the direction of a line of text as determined by the target container's <code><span style=";;font-family:新宋体;">ComponentOrientation</span></code> property. These constants allow for internationalization, by laying out components in their container with the correct left-to-right, right-to-left or top-to-bottom orientation for the language being used.</p>
+<p>The next three bold lines add the label and scroll pane to the container, separating them with a <em>rigid area</em> — an invisible component used to add space between components. In this case, the rigid area has no width and puts exactly 5 pixels between the label and scroll pane. Rigid areas are discussed later, in <a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#filler">Using Invisible Components as Filler</a>.</p>
+<p>The next chunk of bold code creates a left-to-right box layout and sets it up for the <code><span style=";;font-family:新宋体;">buttonPane</span></code> container. Then the code adds two buttons to the container, using a rigid area to put 10 pixels between the buttons. To place the buttons at the right side of their container, the first component added to the container is <em>glue</em>. This glue is an invisible component that grows as necessary to absorb any extra space in its container. Glue is discussed in <a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#filler">Using Invisible Components as Filler</a>.</p>
+<p>As an alternative to using invisible components, you can sometimes use empty borders to create space around components, most particularly panels. For example, the preceding code snippet uses empty borders to put 10 pixels between all sides of the dialog and its contents, and between the two parts of the contents. Borders are completely independent of layout managers. They are simply how Swing components draw their edges and provide padding between the content of the component and the edge. See <a class="TutorialLink" href="http://java.sun.com/docs/books/tutorial/uiswing/components/border.html" target="_top">How to Use Borders</a> for more information.</p>
+<p>The following sections discuss <code><span style=";;font-family:新宋体;">BoxLayout</span></code> in more detail:</p>
+<ul>
+    <li><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#features">Box layout features</a></li>
+    <li><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#filler">Using invisible components as filler</a></li>
+    <li><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#alignment">Fixing alignment problems</a></li>
+    <li><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#size">Specifying component sizes</a></li>
+    <li><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#api">The box layout API</a></li>
+    <li><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#eg">Examples that use box layouts</a></li>
+</ul>
+<p>Do not let the length of the <code><span style=";;font-family:新宋体;">BoxLayout</span></code> discussion scare you! You can probably use <code><span style=";;font-family:新宋体;">BoxLayout</span></code> with the information you already have. If you run into trouble or you want to take advantage of <code><span style=";;font-family:新宋体;">BoxLayout</span></code>'s power, read on.</p>
+<h3><a name="features">Box Layout Features </a></h3>
+<blockquote>As said before, <code><span style=";;font-family:新宋体;">BoxLayout</span></code> arranges components either on top of each other or in a row. As the box layout arranges components, it takes the components' alignments and minimum, preferred, and maximum sizes into account. In this section, we will talk about top-to-bottom layout. The same concepts apply to left-to-right or right-to-left layout. You simply substitute X for Y, height for width, and so on. </blockquote>
+<p>When a <code><span style=";;font-family:新宋体;">BoxLayout</span></code> lays out components from top to bottom, it tries to size each component at the component's preferred height. If the vertical space of the layout does not match the sum of the preferred heights, then <code><span style=";;font-family:新宋体;">BoxLayout</span></code> tries to resize the components to fill the space. The components either grow or shrink to fill the space, with <code><span style=";;font-family:新宋体;">BoxLayout</span></code> honoring the minimum and maximum sizes of each of the components. Any extra space appears at the bottom of the container.</p>
+<p>For a top-to-bottom box layout, the preferred width of the container is that of the maximum preferred width of the children. If the container is forced to be wider than that, <code><span style=";;font-family:新宋体;">BoxLayout</span></code> attempts to size the width of each component to that of the container's width (minus insets). If the maximum size of a component is smaller than the width of the container, then X alignment comes into play.</p>
+<p>The X alignments affect not only the components' positions relative to each other, but also the location of the components (as a group) within their container. The following figures illustrate alignment of components that have restricted maximum widths.</p>
+<p align="center"><img height="181" alt="Three left-aligned components" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/BoxLayoutDemo-left.png" width="124">  <img height="181" alt="Three center-aligned components" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/BoxLayoutDemo-center.png" width="126">  <img height="181" alt="Three right-aligned components" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/BoxLayoutDemo-right.png" width="124"></p>
+<p>In the first figure, all three components have an X alignment of 0.0 (<code><span style=";;font-family:新宋体;">Component.LEFT_ALIGNMENT</span></code>). This means that the components' left sides should be aligned. Furthermore, it means that all three components are positioned as far left in their container as possible.</p>
+<p>In the second figure, all three components have an X alignment of 0.5 (<code><span style=";;font-family:新宋体;">Component.CENTER_ALIGNMENT</span></code>). This means that the components' centers should be aligned, and that the components should be positioned in the horizontal center of their container.</p>
+<p>In the third figure, the components have an X alignment of 1.0 (<code><span style=";;font-family:新宋体;">Component.RIGHT_ALIGNMENT</span></code>). You can guess what that means for the components' alignment and position relative to their container.</p>
+<p>You might be wondering what happens when the components have both restricted maximum sizes and different X alignments. The next figure shows an example of this:</p>
+<p> </p>
+<center><img height="181" alt="Three components with mixed X alignments" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/BoxLayoutDemo-wacky.png" width="249" align="bottom"></center>
+<p> </p>
+<p>As you can see, the left side of the component with an X alignment of 0.0 (<code><span style=";;font-family:新宋体;">Component.LEFT_ALIGNMENT</span></code>) is aligned with the center of the component that has the 0.5 X alignment (<code><span style=";;font-family:新宋体;">Component.CENTER_ALIGNMENT</span></code>), which is aligned with the right side of the component that has an X alignment of 1.0 (<code><span style=";;font-family:新宋体;">Component.RIGHT_ALIGNMENT</span></code>). Mixed alignments like this are further discussed in <a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#alignment">Fixing Alignment Problems</a>.</p>
+<p>What if none of the components has a maximum width? In this case, if all the components have identical X alignment, then all components are made as wide as their container. If the X alignments are different, then any component with an X alignment of 0.0 (left) or 1.0 (right) will be smaller. All components with an intermediate X alignment (such as center) will be as wide as their container. Here are two examples:</p>
+<p align="center"><img height="181" alt="Three components with mixed X alignments and no maximum size" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/BoxLayoutDemo-left2.png" width="200">  <img height="181" alt="Three components with mixed X alignments and no maximum size" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/BoxLayoutDemo-wacky2.png" width="202"></p>
+<p>To get to know <code><span style=";;font-family:新宋体;">BoxLayout</span></code> better, you can run your own experiments with BoxLayoutDemo2.</p>
+<h3><a name="filler">Using Invisible Components as Filler </a></h3>
+<blockquote>Each component controlled by a box layout butts up against its neighboring components. If you want to have space between components, you can either add an empty <a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/border.html">border</a> to one or both components, or insert invisible components to provide the space. You can create invisible components with the help of the <code><span style=";;font-family:新宋体;">Box</span></code> class.
+<p>The <a class="APILink" href="http://java.sun.com/javase/6/docs/api/javax/swing/Box.html" target="_blank"><code><span style=";;font-family:新宋体;">Box</span></code></a> class defines a nested class, <a class="APILink" href="http://java.sun.com/javase/6/docs/api/javax/swing/Box.Filler.html" target="_blank"><code><span style=";;font-family:新宋体;">Box.Filler</span></code></a>, that is a transparent component that paints nothing, and is used to provide space between other components. However, <code><span style=";;font-family:新宋体;">Filler</span></code> is not actually invisible, because <code><span style=";;font-family:新宋体;">setVisible(false)</span></code> is not invoked. The <code><span style=";;font-family:新宋体;">Box</span></code> class provides convenience methods to help you create common kinds of filler. The following table gives details about creating invisible components with <code><span style=";;font-family:新宋体;">Box</span></code> and <code><span style=";;font-family:新宋体;">Box.Filler</span></code>.</p>
+<p>
+<table border="1">
+    <tbody>
+        <tr>
+            <th colspan="2">Type</th>
+            <th>Size Constraints</th>
+            <th>How to Create</th>
+        </tr>
+        <tr>
+            <td colspan="2"><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#rigidarea">rigid area</a></td>
+            <td><center><img height="42" alt="Three components with mixed X alignments and no maximum size" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/7fill.gif" width="42"></center></td>
+            <td>
+            <pre>Box.createRigidArea(size)</pre>            </td>
+        </tr>
+        <tr>
+            <td rowspan="2"><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#glue">glue</a></td>
+            <td>horizontal</td>
+            <td><center><img height="13" alt="Three components with mixed X alignments and no maximum size" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/9fill.gif" width="60"></center></td>
+            <td>
+            <pre>Box.createHorizontalGlue()</pre>            </td>
+        </tr>
+        <tr>
+            <td>vertical</td>
+            <td><center><img height="60" alt="Three components with mixed X alignments and no maximum size" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/8fill.gif" width="13"></center></td>
+            <td>
+            <pre>Box.createVerticalGlue()</pre>            </td>
+        </tr>
+        <tr>
+            <td colspan="2"><a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#box.filler">custom <code><span style=";;font-family:新宋体;">Box.Filler</span></code></a></td>
+            <td><em>(as specified)</em></td>
+            <td>
+            <pre>new Box.Filler(minSize, prefSize,
+               maxSize)</pre>            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>Here is how you generally use each type of filler:</p>
+<dl><dt><a name="rigidarea"><strong>Rigid area</strong></a> </dt><dd>Use this when you want a fixed-size space between two components. For example, to put 5 pixels between two components in a left-to-right box, you can use this code: <blockquote>
+<pre>container.add(firstComponent);
+container.add(Box.createRigidArea(new Dimension(5,0)));
+container.add(secondComponent);</pre></blockquote>
+<table>
+    <tbody>
+        <tr>
+            <td><img height="95" alt="Without rigid area" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/3fill.gif" width="169"></td>
+            <td><img height="95" alt="With rigid area" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/6fill.gif" width="168"></td>
+        </tr>
+    </tbody>
+</table>
+<p> </p>
+<hr>
+<strong>Note:</strong> The <code><span style=";;font-family:新宋体;">Box</span></code> class provides another kind of filler for putting fixed space between components: a vertical or horizontal strut. Unfortunately, struts have unlimited maximum heights or widths (for horizontal and vertical struts, respectively). This means that if you use a horizontal box within a vertical box, for example, the horizontal box can sometimes become too tall. For this reason, we recommend that you use rigid areas instead of struts. <hr>
+<p> </p>
+</dd><dt><a name="glue"><strong>Glue</strong></a> </dt><dd>Use this to specify where excess space in a layout should go. Think of it as a kind of elastic glue — stretchy and expandable, yet taking up no space unless you pull apart the components that it is sticking to. For example, by putting horizontal glue between two components in a left-to-right box, you make any extra space go between those components, instead of to the right of all the components. Here is an example of making the space in a left-to-right box go between two components, instead of to the right of the components: <blockquote>
+<pre>container.add(firstComponent);
+container.add(Box.createHorizontalGlue());
+container.add(secondComponent);</pre></blockquote>
+<table>
+    <tbody>
+        <tr>
+            <td><img height="99" alt="Without horizontal glue" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/2fill.gif" width="171"></td>
+            <td><img height="99" alt="With glue" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/5fill.gif" width="171"></td>
+        </tr>
+    </tbody>
+</table>
+<p> </p>
+</dd><dt><a name="box.filler"><strong>Custom <code><span style=";;font-family:新宋体;">Box.Filler</span></code></strong></a> </dt><dd>Use this to specify a component with whatever minimum, preferred, and maximum sizes you want. For example, to create some filler in a left-to-right layout that puts at least 5 pixels between two components and ensures that the container has a minimum height of 100 pixels, you could use this code: <blockquote>
+<pre>container.add(firstComponent);
+Dimension minSize = new Dimension(5, 100);
+Dimension prefSize = new Dimension(5, 100);
+Dimension maxSize = new Dimension(Short.MAX_VALUE, 100);
+container.add(new Box.Filler(minSize, prefSize, maxSize));
+container.add(secondComponent);</pre></blockquote>
+<table>
+    <tbody>
+        <tr>
+            <td><img height="99" alt="Without custom filler" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/1fill.gif" width="171"></td>
+            <td><img height="121" alt="With custom filler" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/4fill.gif" width="166"></td>
+        </tr>
+    </tbody>
+</table>
+</dd></dl></blockquote>
+<h3><a name="alignment">Fixing Alignment Problems </a></h3>
+<blockquote>Two types of alignment problems sometimes occur with <code><span style=";;font-family:新宋体;">BoxLayout</span></code>:
+<ul>
+    <li>A group of components all have the same alignment, but you want to change their alignment to make them look better. For example, instead of having the centers of a group of left-to-right buttons all in a line, you might want the bottoms of the buttons to be aligned. Here is an example:
+    <p><img height="214" alt="Customizing alignment" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/AlignmentDemo-0.png" width="458"></p>
+    </li>
+    <li>Two or more components controlled by a <code><span style=";;font-family:新宋体;">BoxLayout</span></code> have different default alignments, which causes them to be mis-aligned. For example, as the following shows, if a label and a panel are in a top-to-bottom box layout, the label's left edge is, by default, aligned with the center of the panel.
+    <p><img height="214" alt="X alignment mismatch" src="http://java.sun.com/docs/books/tutorial/figures/uiswing/layout/AlignmentDemo-1.png" width="458"></p>
+    </li>
+</ul>
+<p>In general, all the components controlled by a top-to-bottom <code><span style=";;font-family:新宋体;">BoxLayout</span></code> object should have the same X alignment. Similarly, all the components controlled by a left-to-right <code><span style=";;font-family:新宋体;">Boxlayout</span></code> should generally have the same Y alignment. You can set a <code><span style=";;font-family:新宋体;">JComponent</span></code>'s X alignment by invoking its <code><span style=";;font-family:新宋体;">setAlignmentX</span></code> method. An alternative available to all components is to override the <code><span style=";;font-family:新宋体;">getAlignmentX</span></code> method in a custom subclass of the component class. Similarly, you set the Y alignment of a component by invoking the <code><span style=";;font-family:新宋体;">setAlignmentY</span></code> method or by overriding <code><span style=";;font-family:新宋体;">getAlignmentY</span></code>.</p>
+<p>Here is an example, taken from an application called <a href="http://java.sun.com/docs/books/tutorial/uiswing/examples/layout/index.html#BoxAlignmentDemo"><code><span style=";;font-family:新宋体;">BoxAlignmentDemo</span></code></a>, of changing the Y alignments of two buttons so that the bottoms of the buttons are aligned:</p>
+<blockquote>
+<pre>button1.setAlignmentY(Component.BOTTOM_ALIGNMENT);
+button2.setAlignmentY(Component.BOTTOM_ALIGNMENT);</pre></blockquote></blockquote>
+<p> </p>
+<blockquote>
+<p>By default, most components have center X and Y alignment. However, buttons, combo boxes, labels, and menu items have a different default X alignment value: <code><span style=";;font-family:新宋体;">LEFT_ALIGNMENT</span></code>. The previous picture shows what happens if you put a left-aligned component such as a label together with a center-aligned component in a container controlled by a top-to-bottom <code><span style=";;font-family:新宋体;">BoxLayout</span></code>.</p>
+<p>The <a href="http://java.sun.com/docs/books/tutorial/uiswing/examples/layout/index.html#BoxAlignmentDemo"><code><span style=";;font-family:新宋体;">BoxAlignmentDemo</span></code></a> program gives examples of fixing mismatched alignment problems. Usually, it is as simple as making an offending button or label be center aligned. For example:</p>
+<blockquote>
+<pre>label.setAlignmentX(Component.CENTER_ALIGNMENT);</pre></blockquote>
+<p> </p>
+</blockquote>
+<h3><a name="size">Specifying Component Sizes </a></h3>
+<blockquote>
+<p>As mentioned before, <code><span style=";;font-family:新宋体;">BoxLayout</span></code> pays attention to a component's requested minimum, preferred, and maximum sizes. While you are fine-tuning the layout, you might need to adjust these sizes.</p>
+<p>Sometimes the need to adjust the size is obvious. For example, a button's maximum size is generally the same as its preferred size. If you want the button to be drawn wider when additional space is available, then you need to change its maximum size.</p>
+<p>Sometimes, however, the need to adjust size is not so obvious. You might be getting unexpected results with a box layout, and you might not know why. In this case, it is usually best to treat the problem as an <a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/box.html#alignment">alignment problem</a> first. If adjusting the alignments does not help, then you might have a size problem. We'll discuss this further a bit later.</p>
+<blockquote><hr>
+<strong>Note:</strong>  Although <code><span style=";;font-family:新宋体;">BoxLayout</span></code> pays attention to a component's maximum size, many layout managers do not. For example, if you put a button in the bottom part of a <code><span style=";;font-family:新宋体;">BorderLayout</span></code>, the button will probably be wider than its preferred width, no matter what the button's maximum size is. <code><span style=";;font-family:新宋体;">BoxLayout</span></code>, on the other hand, never makes a button wider than its maximum size. <hr>
+</blockquote>
+<p>You can change the minimum, preferred, and maximum sizes in two ways:</p>
+<ul>
+    <li>By invoking the appropriate <code><span style=";;font-family:新宋体;">set<em>Xxx</em>Size</span></code> method (which is defined by the <code><span style=";;font-family:新宋体;">JComponent</span></code> class). For example: <blockquote>
+    <pre>comp.setMinimumSize(new Dimension(50, 25));
+comp.setPreferredSize(new Dimension(50, 25));
+comp.setMaximumSize(new Dimension(Short.MAX_VALUE,
+                                  Short.MAX_VALUE));</pre>    </blockquote></li>
+    <li>By overriding the appropriate <code><span style=";;font-family:新宋体;">get<em>Xxx</em>Size</span></code> method. For example: <blockquote>
+    <pre><em>...//in a subclass of a component class:</em>
+public Dimension getMaximumSize() {
+    size = getPreferredSize();
+    size.width = Short.MAX_VALUE;
+    return size;
+}</pre>    </blockquote></li>
+</ul>
+<p> </p>
+<p>If you are running into trouble with a box layout and you have ruled out alignment problems, then the trouble might well be size-related. For example, if the container controlled by the box layout is taking up too much space, then one or more of the components in the container probably needs to have its maximum size restricted.</p>
+<p>You can use two techniques to track down size trouble in a box layout:</p>
+<ul>
+    <li>Add a garish line <a href="http://java.sun.com/docs/books/tutorial/uiswing/layout/border.html">border</a> to the outside of the Swing components in question. This lets you see what size they really are. For example: <blockquote>
+    <pre>comp.setBorder(BorderFactory.createCompoundBorder(
+                   BorderFactory.createLineBorder(Color.red),
+                   comp.getBorder()));</pre>    </blockquote></li>
+    <li>Use <code><span style=";;font-family:新宋体;">System.out.println</span></code> to print the components' minimum, preferred, and maximum sizes, and perhaps their bounds.</li>
+</ul>
+</blockquote>
+<p> </p></div></body></html>

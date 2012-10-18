@@ -1,0 +1,550 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>强化 Windows Server 2003 堡垒主机</title></head><body><h1>强化 Windows Server 2003 堡垒主机</h1><div><div>
+<p>强化 Windows Server 2003 堡垒主机<br>
+更新日期： 2004年03月08日</p>
+<p>本页内容<br>
+ 本模块内容 <br>
+ 目标 <br>
+ 适用范围 <br>
+ 如何使用本模块 <br>
+ 概述 <br>
+ 审核策略设置 <br>
+ 用户权限分配 <br>
+ 安全选项 <br>
+ 事件日志设置 <br>
+ 系统服务 <br>
+ 其他安全设置 <br>
+ 小结</p>
+</div>
+<div> </div>
+<div>本模块内容<br>
+本模块解释专门用于堡垒主机的安全模板配置。堡垒主机是一种安全但可供公共访问的计算机，它位于外围网络的面向公众的一端。堡垒主机通常用作 Web 服务器、域名系统 (DNS) 服务器、文件传输协议 (FTP) 服务器、简单邮件传输协议 (SMTP) 服务器和网络新闻传输协议 (NNTP) 服务器。本模块引用&ldquo;Windows Server 2003 Security&rdquo;（英文）中所包含成员服务器基准中的设置。此外，本模块还将考虑除安全模板定义的那些配置以外还必须应用的额外安全配置设置。要创建完全强化的堡垒主机，需要使用这些附加设置。本模块还包括有关如何使用安全配置和分析工具应用安全模板的说明。</div>
+<div> </div>
+<div> <br>
+目标<br>
+使用本模块可以：</div>
+<div> </div>
+<div>&#8226; 强化堡垒主机。<br>
+ <br>
+&#8226; 调查堡垒主机的相应安全配置。<br>
+ </div>
+<div> </div>
+<div> <br>
+适用范围<br>
+本模块适用于下列产品和技术：</div>
+<div> </div>
+<div>&#8226; Microsoft&reg; Windows Server&#8482; 2003 操作系统<br>
+ <br>
+&#8226; 堡垒主机 <br>
+ </div>
+<div> </div>
+<div> <br>
+如何使用本模块<br>
+使用本模块可以了解应该应用于堡垒主机并强化此类独立服务器的的安全设置。本模块结合使用特定于角色的安全模板和基准安全模板。这些安全模板来自&ldquo;Windows Server 2003 Security Guide&rdquo;，其网址为：<a href="http://go.microsoft.com/fwlink/?LinkId=14846">http://go.microsoft.com/fwlink/?LinkId=14846</a>（英文）。</div>
+<div> </div>
+<div>为了更好地理解本模块的内容，请：</div>
+<div> </div>
+<div>&#8226; 阅读模块 Windows Server 2003 安全性简介。此模块解释了&ldquo;Windows Server 2003 安全指南&rdquo;（英文）的目的和内容。<br>
+ <br>
+&#8226; 阅读模块创建 Windows Server 2003 服务器的成员服务器基准。此模块演示组织单位层次结构的使用以及将成员服务器基准应用到多个服务器的组策略。<br>
+ <br>
+&#8226; 使用附带的&ldquo;如何&rdquo;文章。使用本模块引用的以下指导性文章：</div>
+<div> </div>
+<div>&#8226; 如何在 Windows Server 2003 中应用组策略和安全模板。 <br>
+ <br>
+ </div>
+<div> </div>
+<div> <br>
+概述<br>
+本模块关注强化环境中的堡垒主机。堡垒主机是安全但可公开访问的计算机。堡垒主机位于外围网络（也称为 DMZ、网络隔离区域和屏蔽子网）的面向公众的一端。堡垒主机不受防火墙或过滤路由器的保护，因此它们完全暴露在攻击中。由于这个暴露的缺陷，在设计和配置堡垒主机时必须付出巨大的努力，最大程度地减少损坏的几率。</div>
+<div> </div>
+<div>堡垒主机通常用作 Web 服务器、域名系统 (DNS) 服务器、文件传输协议 (FTP) 服务器、简单邮件传输协议 (SMTP) 服务器和网络新闻传输协议 (NNTP) 服务器。理想情况下，堡垒主机应该只执行这些服务中的某一个功能，因为它扮演的角色越多，出现安全漏洞的可能性就越大。而在单个堡垒主机上保护单个服务则相对容易。能够在多项堡垒主机业务上投入资金的企业必将从此类网络体系结构中获益匪浅。</div>
+<div> </div>
+<div>安全堡垒主机的配置与通常的主机相比明显不同。所有不必要的服务、协议、程序和网络接口都将被禁用或删除，而且，每台堡垒主机通常被配置成只承担一个特定角色。使用此方式强化堡垒主机，会限制某些可能的攻击方法。</div>
+<div> </div>
+<div>本模块的以下各部分详细说明可以在不同环境中最有效保护堡垒主机的各种安全强化设置。</div>
+<div> </div>
+<div>堡垒主机本地策略<br>
+组策略与本指南前面详细说明的其他服务器角色组策略不同，它不能应用于堡垒主机服务器，因为它们将被配置为不属于 Microsoft&reg; Active Directory&reg; 目录服务域的独立主机。由于暴露级别很高，只对本指南中定义的三种环境中的堡垒主机服务器规定了一个级别的指导。以下介绍的安全设置基于模块创建 Windows Server 2003 服务器的成员服务器基准中为高安全性环境定义的成员服务器基准策略 (MSBP)。它们包含在必须应用于每台堡垒主机的堡垒主机本地策略 (BHLP) 的安全模板中。</div>
+<div> </div>
+<div>应用堡垒主机本地策略<br>
+可以使用本指南所引用的 High Security-Bastion Host.inf 文件配置 BHLP。它能够启用使 SMTP 堡垒主机服务器正常工作所需的服务。应用 High Security-Bastion Host.inf 可以增强服务器的安全性，因为它减少了堡垒主机的攻击面，但是您将无法对堡垒主机进行远程管理。必须修改 BHLP，才能启用更多的功能或增强堡垒主机的可管理性。</div>
+<div> </div>
+<div>要应用安全模版中包含的所有安全设置，必须使用&ldquo;安全配置和分析&rdquo;管理单元，而不是&ldquo;本地计算机策略&rdquo;管理单元。不能使用&ldquo;本地计算机策略&rdquo;管理单元导入安全模板，因为使用此管理单元无法应用系统服务的安全设置。</div>
+<div> </div>
+<div>下列步骤详细介绍了如何使用&ldquo;安全配置和分析&rdquo;管理单元导入并应用 BHLP 安全模板。</div>
+<div> </div>
+<div>警告：Microsoft 强烈建议在对堡垒主机服务器应用 High Security-Bastion Host.inf 之前先执行完全备份。应用 High Security-Bastion Host.inf 安全模板之后，很难将堡垒主机还原为其原始配置。请确保已配置了安全模板，以启用环境所要求的堡垒主机功能。</div>
+<div> </div>
+<div>有关导入、分析和应用安全模板的逐步指南，请参阅如何在 Windows Server 2003 中应用组策略和安全模板。</div>
+<div> </div>
+<div>完成这些步骤后，所有相关安全模板设置将全部应用于环境中堡垒主机的本地策略。必须重新启动堡垒主机才能使所有设置生效。</div>
+<div> </div>
+<div>以下各部分描述使用 BHLP 应用的安全设置。本模块只讨论与 MSBP 中的设置不同的那些设置。</div>
+<div> </div>
+<div> <br>
+审核策略设置<br>
+用于堡垒主机的 BHLP 审核策略的设置与在 High Security-Member Server Baseline.inf 文件中所指定的设置是相同的。有关 MSBP 的详细信息，请参阅模块创建 Windows Server 2003 服务器的成员服务器基准。BHLP 设置可确保所有相关的安全审核信息都记录在所有的堡垒主机服务器上。</div>
+<div> </div>
+<div> <br>
+用户权限分配<br>
+堡垒主机的 BHLP 用户权限分配基于模块创建 Windows Server 2003 服务器的成员服务器基准中的 High Security-Member Server Baseline.inf 文件中指定的那些设置。下面介绍 BHLP 与 MSBP 之间的差异。</div>
+<div> </div>
+<div>允许本地登录<br>
+表 1：设置</div>
+<div> </div>
+<div>成员服务器默认值 设置 <br>
+允许本地登录<br>
+ Administrators<br>
+ </div>
+<div> </div>
+<div>&ldquo;允许本地登录&rdquo;用户权限使用户可以启动计算机上的交互式会话。对那些能登录到堡垒主机服务器控制台的帐户做出限制，将有助于阻止未经授权的用户访问服务器上的文件系统和系统服务。可以登录服务器控制台的用户便可以使该系统暴露于安全损害下。</div>
+<div> </div>
+<div>默认情况下，Account Operators、Backup Operators、Print Operators 和 Power Users 组被授予本地登录的权限。请仅将此权限授予 Administrators 组，以便只有高度信任的用户才拥有对堡垒主机服务器的管理访问权限，从而提供更高级别的安全性。</div>
+<div> </div>
+<div>拒绝从网络访问此计算机<br>
+表 2：设置</div>
+<div> </div>
+<div>成员服务器默认值 设置 <br>
+SUPPORT_388945a0<br>
+ 匿名登录；内置 Administrator；Support_388945a0；Guest；所有的非操作系统服务帐户<br>
+ </div>
+<div> </div>
+<div>注意：安全模板中不包含匿名登录、内置 Administrator、Support_388945a0、Guest 和所有的非操作系统服务帐户。这些帐户和组具有唯一的安全标识符 (SID)。因此，必须手动将它们添加到 BHLP。</div>
+<div> </div>
+<div>&ldquo;拒绝从网络访问此计算机&rdquo;用户权限确定禁止哪些用户通过网络访问计算机。这些设置将拒绝大量的网络协议，包括基于服务器消息块 (SMB) 的协议、网络基本输入/输出系统 (NetBIOS)、通用 Internet 文件系统 (CIFS)、超文本传输协议 (HTTP) 和组件对象模型 (COM+)。如果用户帐户同时遵循这两个策略，则这些设置将覆盖&ldquo;从网络访问此计算机&rdquo;设置。在您的环境中为其它组配置此用户权限可以限制用户的访问能力，让他们只能执行委派的管理任务。</div>
+<div> </div>
+<div>在模块创建 Windows Server 2003 服务器的成员服务器基准中，本指南建议将 Guests 组包括到已分配此权限的用户和组列表中，从而提供最高的安全性级别。不过，用来匿名访问 IIS 的 IUSR 帐户默认为 Guests 组的成员。出于这些原因，在本指南中定义的高安全性环境中，堡垒主机的&ldquo;拒绝从网络访问此计算机&rdquo;设置被配置为包括 ANONOYMOUS LOGON、内置 Administrator、Support_388945a0、Guest、所有的非操作系统服务帐户。</div>
+<div> </div>
+<div> <br>
+安全选项<br>
+堡垒主机的 BHLP 安全选项设置与模块创建 Windows Server 2003 服务器的成员服务器基准中的 High Security-Member Server Baseline.inf 文件中指定的那些设置相同。BHLP 设置确保所有相关的安全选项都通过堡垒主机服务器统一配置。</div>
+<div> </div>
+<div> <br>
+事件日志设置<br>
+堡垒主机的 BHLP 事件日志设置与模块创建 Windows Server 2003 服务器的成员服务器基准中的 High Security-Member Server Baseline.inf 文件中指定的那些设置相同。BHLP 设置确保所有相关的事件日志设置都通过堡垒主机服务器统一配置。</div>
+<div> </div>
+<div> <br>
+系统服务<br>
+堡垒主机服务器的工作性质决定了它将暴露在外界的攻击之中。出于此原因，必须最大程度地降低每台堡垒主机的攻击面。为了正确强化堡垒主机服务器，所有不需要的操作系统服务，以及对堡垒主机正常运行没有必要的角色都应该禁用。本指南所引用的 High Security-Bastion Host.inf 安全模板件可以对 BHLP 进行特定配置，以启用 SMTP 堡垒主机服务器正常工作时所需要的服务。BHLP 可以启用 Internet Information Services Manager 服务、HTTP SSL 服务和 SMTP 服务。但是，要启用其他任何功能，必须对 BHLP 进行修改。</div>
+<div> </div>
+<div>众多被禁用的服务将会产生大量的事件日志警告，您可以忽略这些警告。在某些情况下，启用这些服务将会减少事件日志警告和错误消息以及增加堡垒主机的可管理性。但是，这也会增加每台堡垒主机的攻击面。</div>
+<div> </div>
+<div>以下各部分讨论在堡垒主机服务器上应该被禁用的服务，以在降低堡垒主机攻击面的同时保持其功能。这些部分只涉及 High Security-Member Server Baseline.inf 文件中未被禁用的服务。</div>
+<div> </div>
+<div>自动更新<br>
+表 3：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+wuauserv<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Automatic Updates 服务使得堡垒主机可以下载并安装重要的 Microsoft Windows&reg; 操作系统更新。此服务将自动为堡垒主机提供最新的更新程序、驱动程序和增强功能。您不必再手动搜索关键的更新和信息；操作系统会将它们直接传送到堡垒主机。操作系统将识别您何时在线，并使用您的 Internet 连接从 Windows Update 服务中搜索可用的更新。根据您的配置设置，该服务会在您下载、安装更新程序之前通知您，或者自动为您安装更新程序。</div>
+<div> </div>
+<div>停止或禁用 Automatic Updates 服务可防止将关键的更新自动下载到计算机。在这种情况下，您必须直接转至位于 <a href="http://v4.windowsupdate.microsoft.com/en/default.asp">http://v4.windowsupdate.microsoft.com/en/default.asp</a> 的 Windows Update 网站，搜索、下载和安装所有可用的关键修补程序。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。您可以使用本地策略将服务的启动模式设置为只允许管理员访问服务器，以阻止未经授权或怀有恶意的用户对服务进行配置和操作。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Automatic Updates 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Background Intelligent Transfer Service<br>
+表 4：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+BITS<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Background Intelligent Transfer Service (BITS) 是后台文件传输机制和队列管理器。BITS 可在客户端和 HTTP 服务器之间异步传输文件。BITS 接收请求后，会使用空闲的网络带宽传输文件，这样，其他的网络相关活动（例如浏览）将不受影响。</div>
+<div> </div>
+<div>如果停止此服务，将导致服务再次运行之前，某些功能（如 Automatic Update）无法自动下载程序和其他信息。这表明，如果通过&ldquo;组策略&rdquo;配置此服务，计算机将不会从软件更新服务 (SUS) 中接收到自动更新。禁用此服务将导致显式依赖于它的所有服务无法传输文件，除非使用可靠机制直接通过 Internet Explorer 等其他方法传输文件。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置此服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，在 BHLP 中此服务被禁用。</div>
+<div> </div>
+<div>Computer Browser<br>
+表 5：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+Browser<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Computer Browser 服务维护网络上的最新计算机列表，并将该列表提供给需要它的程序。Computer Browser 服务由需要查看网络域和资源的 Windows 计算机所使用。被指定为浏览器的计算机对浏览列表进行维护，该列表包括了网络上使用的所有共享资源。早期版本的 Windows 应用程序（例如&ldquo;网上邻居&rdquo;）、NET VIEW 命令和 Microsoft Windows NT&reg; 操作系统的资源管理器都需要浏览功能。例如，在运行 Windows 95 的计算机上打开&ldquo;网上邻居&rdquo;将显示域和计算机的列表，计算机将通过从指定为浏览器的计算机中获得一份浏览列表来完成此操作。</div>
+<div> </div>
+<div>禁用 Computer Browser 服务将使得浏览器列表无法更新或维护。禁用此服务还将导致任何显式依赖于此服务的服务都失败。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Computer Browser 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>DHCP Client<br>
+表 6：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+Dhcp<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>DHCP Client 服务可用于通过为计算机注册和更新 Internet 协议 (IP) 地址和 DNS 名称，从而管理网络配置。此服务避免了当客户（例如漫游用户）在网络中无目的地游荡时必须手动更改 IP 设置。客户会被自动分配一个新的IP地址，而不考虑它所连接的子网 - 只要动态主机配置协议 (DHCP) 服务器对于每个子网来说都是可访问的。不需要对 DNS 或 Windows Internet 名称服务 (WINS) 手动配置设置。DHCP 服务器会将这些服务设置强加给客户，只要 DHCP 服务器已经做好配置并且可以发出此类信息即可。 要在该客户端上启用此选项，只需选中&ldquo;自动获得 DNS 服务器地址&rdquo;选项按钮即可。启用此选项将不会导致因 IP 地址重复而产生的冲突。</div>
+<div> </div>
+<div>停止 DHCP Client 服务将导致您的计算机无法接收到动态的 IP 地址，动态 DNS 更新功能也不会在 DNS 服务器上自动更新 IP 地址。禁用此服务还将导致任何显式依赖于此服务的服务都失败。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置此服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 DHCP Client 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Network Location Awareness (NLA)<br>
+表：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+NLA<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Network Location Awareness (NLA) 服务收集并存储网络配置信息（例如 IP 地址和域名更改以及位置更改信息），然后在这些信息发生更改时通知应用程序。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Network Location Awareness (NLA) 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>NTLM Security Support Provider<br>
+表 8：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+NtLmSsp<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>NTLM Security Support Provider 服务为使用传输器，而不是已命名管道的远程过程调用 (RPC) 程序提供安全保护，并使用户可以使用 NTLM 验证协议登录至网络。NTLM 协议将对不使用 Kerberos v5 验证的客户端进行身份验证。</div>
+<div> </div>
+<div>停止或禁用 NTLM Security Support Provider 服务将禁止使用 NTLM 验证协议登录客户端，或访问网络资源。Microsoft Operations Manager (MOM) 和 Telnet 都依赖于此服务。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 NTLM Security Support Provider 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Performance Logs and Alerts<br>
+表 9：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+SysmonLog<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Performance Logs and Alerts 服务基于预先配置的时间表从本地或远程计算机上采集性能数据，然后将数据写入日志或触发警报。Performance Logs and Alerts 服务将基于指定的日志收集设置中包含的信息来启动和停止每个指定的性能数据集合。至少有一个采集计划，此服务才能运行。</div>
+<div> </div>
+<div>停止或禁用 Performance Logs and Alerts 服务将会导致性能信息未被搜集，当前运行的数据采集也会终止，并且预定的未来采集计划也将不会发生。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Performance Logs and Alerts 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Remote Administration Service<br>
+表 10：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+SrvcSurg<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>当服务器重启时，Remote Administration Service 将运行以下远程管理任务：</div>
+<div> </div>
+<div>&#8226; 增加服务器重启计数。<br>
+ <br>
+&#8226; 生成自签名证书。<br>
+ <br>
+&#8226; 如果未在服务器上设置日期和事件，则引发警报。<br>
+ <br>
+&#8226; 如果未配置电子邮件报警功能，则引发警报。<br>
+ </div>
+<div> </div>
+<div>停止 Remote Administration Service 可能会导致远程服务器管理工具的某些功能无法正常工作，例如，用于执行远程管理的 Web 界面。禁用此服务将导致任何显式依赖于此服务的服务都失败。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Remote Administration Service 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Remote Registry Service<br>
+表 11：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+RemoteRegistry<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Remote Registry Service 使远程用户可以修改域控制器上的注册表设置（如果远程用户具有所需的权限）。默认情况下，只有 Administrators 和 Backup Operators 组中的用户才可以远程访问注册表。Microsoft Baseline Security Analyzer (MBSA) 实用程序需要使用此服务。MBSA 是一种用来验证要在组织机构内的每个服务器上安装哪些修补程序的工具。</div>
+<div> </div>
+<div>如果停止 Remote Registry Service，则您只能修改本地计算机上的注册表。禁用此服务会导致显式依赖于它的所有服务都失败，但是不会影响本地计算机上的注册表操作。其他的计算机或设备也不会连接至您的本地计算机注册表。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Remote Registry Service 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Server<br>
+表 12：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+lanmanserver<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Server 服务通过网络提供 RPC 支持、文件、打印和命名管道共享。此服务允许本地资源共享（例如磁盘和打印机），因此网络上的其他用户便可以访问这些共享资源。此外，它还允许运行在其它计算机上的应用程序和您的计算机展开命名管道通信（使用 RPC）。命名管道通信为一个进程的输出保留了一块内存，并以此作为另一个进程的输入。接收输入的进程不需要在本地计算机上运行。</div>
+<div> </div>
+<div>停止 Server 服务将禁止您与网路上的其他用户共享文件和打印机，并且还将无法满足 RPC 请求。禁用此服务还将导致任何显式依赖于此服务的服务都失败。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Server 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>TCP/IP NetBIOS Helper Service<br>
+表 13：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+LmHosts<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>TCP/IP NetBIOS Helper Service 通过 TCP/IP (NetBT) 服务支持网络基本输入/输出系统 (NetBIOS) ，并支持网络上的客户端的 NetBIOS 名称解析；从而使用户可以共享文件、打印和网络登录。TCP/IP（传输控制协议/Internet 协议）NetBIOS Helper Service 通过执行 DNS 名称解析，支持 NetBT 服务。</div>
+<div> </div>
+<div>停止 TCP/IP NetBIOS Helper Service 会禁止 NetBT、Redirector (RDR)、Server (SRV)、Netlogon 和 Messenger 服务客户端共享文件、打印机，并可防止用户登录计算机。例如，基于域的组策略将不再起作用。禁用此服务将导致任何显式依赖于此服务的服务都失败。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 TCP/IP NetBIOS Helper Service 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Terminal Services<br>
+表 14：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+TermService<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Terminal Services 提供一个多会话环境，客户端设备可以在此环境中访问虚拟 Windows 桌面会话和服务器上运行的基于 Windows 的程序。Terminal Services 使用户可以远程管理服务器。</div>
+<div> </div>
+<div>停止或禁用 Terminal Services 会防止远程管理计算机，使得计算机管理和更新非常困难。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Terminal Services 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Windows Installer<br>
+表 15：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+MSIServer<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Windows Installer 服务通过应用一系列在安装过程期间集中定义的安装规则，来管理应用程序的安装和删除。这些安装规则定义应用程序的安装和已安装应用程序的配置。此外，此服务还用于修改、修复或删除现有的应用程序。组成此服务的技术包括适用于 Windows 操作系统的 Windows Installer 服务以及 (.msi) 数据包格式文件（用于保存应用程序设置和安装的信息）。</div>
+<div> </div>
+<div>Windows Installer 不仅是一个安装程序，而且还是一个可扩展的软件管理系统。该服务可以管理软件组件的安装、添加和删除、监视文件回弹以及使用回滚功能从灾难事件中恢复基本文件。此外，Windows Installer 服务支持从多个源安装和运行软件，并且可以由要安装自定义应用程序的开发人员自定义。</div>
+<div> </div>
+<div>将 Windows Installer 服务设置为手动会导致使用此安装程序的应用程序启动此服务。</div>
+<div> </div>
+<div>停止此服务将使依赖于此服务的应用程序的安装、删除、修复和修改操作失败。此外，在运行时将用到此服务的大量应用程序可能会无法执行。禁用此服务将导致任何显式依赖于此服务的服务都失败。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Windows Installer 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>Windows Management Instrumentation Driver Extensions<br>
+表 16：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+Wmi<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Windows Management Instrumentation Driver Extensions 服务可用来监视为发布 Wmi 而配置的所有驱动程序和事件跟踪提供程序，或者监视事件跟踪信息。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 Windows Management Instrumentation Driver Extensions 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>WMI Performance Adapter<br>
+表 17：设置</div>
+<div> </div>
+<div>服务名 设置 <br>
+WMIApSrv<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>WMI Performance Adapter 服务提供来自 WMI HiPerf 提供程序的性能库信息。现在，需要提供性能计数器的应用程序和服务可以采用两种方法实现此目的：通过编写 WMI 高性能提供程序，或者通过编写性能库。</div>
+<div> </div>
+<div>WMI Performance Adapter 服务通过&ldquo;反向适配器性能库&rdquo;(Reverse Adapter Performance Library)，将&ldquo;WMI高性能提供程序&rdquo;提供的性能计数器转换成&ldquo;性能数据助手&rdquo;(Performance Data Helper，PDH) 可以引用的计数器。这样一来，PDH 客户端（例如 Sysmon）就可以引用计算机上任何 WMI 高性能提供程序所提供的性能计数器。</div>
+<div> </div>
+<div>如果停止 WMI Performance Adapter 服务，则 WMI 性能计数器将不可用。禁用此服务将导致任何显式依赖于此服务的服务都失败。</div>
+<div> </div>
+<div>此服务不是正确操作堡垒主机所必需的。使用本地策略保护并设置服务的启动模式后，将仅对服务器管理员授予访问权限，这样可防止未经授权或恶意用户配置或操作该服务。此外，禁用此服务将有效减少堡垒主机服务器的攻击面。出于这些原因，应在 BHLP 中将 WMI Performance Adapter 设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div> <br>
+其他安全设置<br>
+通过 BHLP 应用的安全设置为堡垒主机服务器提供了大量的增强性安全保护。不过，还是应该考虑其他一些注意事项和过程。这些步骤不能通过本地策略完成，而应该在所有的堡垒主机服务器上手动执行。</div>
+<div> </div>
+<div>在用户权限分配中手动添加唯一的安全组<br>
+大多数通过 MSBP 应用的用户权限分配都已经在本指南附带的安全模板中进行了适当的指定。但是，有几个帐户和安全组不能包含于模板中，因为它们的安全标识符 (SID) 特定于各个 Windows 2003 域。以下指定了必须手动配置的用户权限分配。</div>
+<div> </div>
+<div>警告：下表包含内置 Administrator 帐户的值。不要将此帐户与内置 Administrators 安全组相混淆。如果将 Administrators 安全组添加到以下任何拒绝访问用户权限中，则需要在本地登录来更正错误。</div>
+<div> </div>
+<div>此外，内置的 Administrators 帐户可能已根据模块创建 Windows Server 2003 服务器的成员服务器基准中阐述的某些建议进行了重命名。添加 Administrators 帐户时，请确保指定的是重命名后的帐户。</div>
+<div> </div>
+<div>表 18：手动添加的用户权限分配</div>
+<div> </div>
+<div>成员服务器默认值 旧客户端 企业客户端 高安全性 <br>
+拒绝从网络访问此计算机<br>
+ 内置 Administrator；Support_388945a0；Guest；所有非操作系统服务帐户<br>
+ 内置 Administrator；Support_388945a0；Guest；所有非操作系统服务帐户<br>
+ 内置 Administrator；Support_388945a0；Guest；所有非操作系统服务帐户<br>
+ </div>
+<div> </div>
+<div>要点：所有的非操作系统服务帐户包括整个企业范围内用于特定应用程序的服务帐户。这并不包括操作系统所使用的内置式帐户：LOCAL SYSTEM、LOCAL SERVICE 或 NETWORK SERVICE。</div>
+<div> </div>
+<div>删除不必要的网络协议和绑定<br>
+为了避免用户枚举的威胁，应该在通过 Internet 可直接访问的服务器（特别是堡垒主机服务器）上禁用所有不必要的协议。用户枚举是一种信息搜集暴露类型，攻击者试图使用它获得系统特有的信息，然后计划下一步的攻击。</div>
+<div> </div>
+<div>服务器消息块 (SMB) 协议将返回有关一台计算机的大量信息，甚至对使用&ldquo;null&rdquo;会话的未经授权的用户也是如此。可以检索的信息包括共享、用户信息（包括组和用户权限）、注册表项等等。</div>
+<div> </div>
+<div>禁用 SMB 和 TCP/IP 上的 NetBIOS，可以大大降低服务器的攻击面，从而保护堡垒主机。虽然该配置下的服务器更加难于管理，并且无法访问网络上的共享文件夹，但这些措施可以有效保护服务器免予轻易受到损害。因此，本指南建议在可以通过 Internet 进行访问的堡垒主机服务器上，禁用网络连接的 SMB 或者 TCP/IP 上的 NetBIOS。</div>
+<div> </div>
+<div>&#8226; 要禁用 SMB，请执行下列操作：</div>
+<div> </div>
+<div>1.<br>
+ 在&ldquo;控制面板&rdquo;中，双击&ldquo;网络连接&rdquo;。<br>
+ <br>
+2.<br>
+ 右键单击 Internet 类型连接，然后单击&ldquo;属性&rdquo;。<br>
+ <br>
+3.<br>
+ 在&ldquo;属性&rdquo;对话框中，选择&ldquo;Microsoft 网络客户端&rdquo;，然后单击&ldquo;卸载&rdquo;。<br>
+ <br>
+4.<br>
+ 按照卸载步骤指示进行。<br>
+ <br>
+5.<br>
+ 选择&ldquo;Microsoft 网络的文件和打印机共享&rdquo;，然后单击&ldquo;卸载&rdquo;。<br>
+ <br>
+6.<br>
+ 按照卸载步骤指示进行。<br>
+ <br>
+ <br>
+&#8226; 要禁用 TCP/IP 上的 NetBIOS，请执行下列操作：</div>
+<div> </div>
+<div>1.<br>
+ 在&ldquo;控制面板&rdquo;中，双击&ldquo;系统&rdquo;，再单击&ldquo;硬件&rdquo;选项卡，然后单击&ldquo;设备管理器&rdquo;按钮。<br>
+ <br>
+2.<br>
+ 在&ldquo;查看&rdquo;菜单中，单击&ldquo;显示隐藏的设备&rdquo;。<br>
+ <br>
+3.<br>
+ 展开&ldquo;非即插即用驱动程序&rdquo;。<br>
+ <br>
+4.<br>
+ 右键单击&ldquo;NetBios over Tcpip&rdquo;，然后单击&ldquo;停用&rdquo;。<br>
+ <br>
+ </div>
+<div> </div>
+<div>此过程会禁用 TCP/445 和 UDP 445 端口上的 SMB 直接主机侦听程序。</div>
+<div> </div>
+<div>注意：此过程将禁用 nbt.sys 驱动程序。&ldquo;高级 TCP/IP 设置&rdquo;对话框的&ldquo;WINS&rdquo;选项卡包含&ldquo;禁用 TCP/IP over NetBIOS&rdquo;选项。选择此选项将仅禁用&ldquo;NetBIOS 会话服务&rdquo;（在 TCP 端口 139 上侦听）。这样做并不会完全禁用 SMB。若要执行此操作，请使用以上步骤。</div>
+<div> </div>
+<div>保护众所周知的帐户<br>
+Windows Server 2003 具备大量的内置用户帐户，这些帐户不能删除，但可以重命名。Windows 2003 中的两个最为人熟知的内置帐户为&ldquo;Guest&rdquo;和&ldquo;Administrator&rdquo;。</div>
+<div> </div>
+<div>默认情况下，服务器上的 Guest 帐户是禁用的，而且不应被修改。内置的 Administrator 帐户应该被重命名，并且改变描述，以阻止攻击者从远程服务器使用该帐户进行攻击。</div>
+<div> </div>
+<div>在首次尝试攻击服务器时，许多恶意代码的变种使用内置的 administrator 帐户。在近几年来，进行上述重命名配置的意义已经大大降低了，因为出现了很多新的攻击工具，这些工具企图通过指定内置 Administrator 帐户的安全标识 (SID) 来确定该帐户的真实姓名，从而侵入服务器。SID 是用来唯一标识网络上的每个用户、用户组、计算机帐户和登录会话的值。此内置帐户的 SID 不可能更改。将本地管理员帐户重命名为唯一的名称，可便于操作组监视对此帐户的攻击。</div>
+<div> </div>
+<div>&#8226; 要保护堡垒主机服务器上众所周知的帐户，请执行下列操作：</div>
+<div> </div>
+<div>1.<br>
+ 重命名 Administrator 和 Guest 帐户，然后将其在每台服务器上的密码设成一个长且复杂的值。<br>
+ <br>
+2.<br>
+ 在每个服务器上使用不同的名称和密码。如果在所有的服务器上都使用相同的帐户名和密码，那么获得一台服务器访问权限的攻击者就能使用相同的帐户名和密码来访问其他所有服务器。<br>
+ <br>
+3.<br>
+ 将帐户说明更改为不同于默认说明的内容，从而避免使用简单的帐户标识。<br>
+ <br>
+4.<br>
+ 将这些更改记录到一个安全的位置。<br>
+ <br>
+ </div>
+<div> </div>
+<div>Error Reporting<br>
+表 19：设置</div>
+<div> </div>
+<div>默认值 旧客户端 企业客户端 高安全性 <br>
+报告错误<br>
+ 已禁用<br>
+ 已禁用<br>
+ 已禁用<br>
+ </div>
+<div> </div>
+<div>Error Reporting 服务将帮助 Microsoft 跟踪和查找错误。您可以将此服务配置为给操作系统错误、Windows 组件错误或程序错误生成报告。启用后，Error Reporting 服务将把这些错误通过 Internet 报告给 Microsoft，或者报告给内部企业文件共享。</div>
+<div> </div>
+<div>此设置仅在 Windows XP Professional 和 Windows Server 2003 上可用。在组策略对象编辑器中配置此设置的路径是：</div>
+<div> </div>
+<div>计算机配置\管理模板\系统\错误报告。</div>
+<div> </div>
+<div>错误报告很可能包含敏感或机密的公司数据。Microsoft 关于错误报告的隐私政策保证 Microsoft 不会不适当地使用这些数据，但是这些数据使用明文形式的超文本传输协议 (HTTP) 传送，这就有可能被 Internet 上的第三方截获或者查看。出于这些原因，本指南建议在所定义的三种安全环境下，在 DCBP 中将&ldquo;Error Reporting&rdquo;设置配置为&ldquo;已禁用&rdquo;。</div>
+<div> </div>
+<div>使用 IPSec 过滤器阻塞端口<br>
+Internet 协议安全 (IPSec) 过滤器可以提供提高服务器所需安全级别的有效方法。本指南建议在所定义的高安全性环境中使用此选项，以便进一步减少服务器的攻击面。</div>
+<div> </div>
+<div>有关使用 IPSec 过滤器的详细信息，请参阅模块其他成员服务器强化过程。</div>
+<div> </div>
+<div>下表列出了应在本指南定义的高安全性环境中的 SMTP 堡垒主机上创建的所有 IPSec 过滤器。</div>
+<div> </div>
+<div>表 20：SMTP 堡垒主机 IPSec 网络流量图</div>
+<div> </div>
+<div>服务 协议 源端口 目标端口 源地址 目标地址 操作 镜像 <br>
+SMTP Server<br>
+ TCP<br>
+ 所有<br>
+ 25<br>
+ 所有<br>
+ ME<br>
+ 允许<br>
+ 是<br>
+ <br>
+DNS 客户端<br>
+ TCP<br>
+ 所有<br>
+ 53<br>
+ ME<br>
+ DNS 服务器<br>
+ 允许<br>
+ 是<br>
+ <br>
+DNS 客户端<br>
+ UDP<br>
+ 所有<br>
+ 53<br>
+ ME<br>
+ DNS 服务器<br>
+ 允许<br>
+ 是<br>
+ <br>
+All Inbound Traffic<br>
+ 所有<br>
+ 所有<br>
+ 所有<br>
+ 所有<br>
+ ME<br>
+ 阻止<br>
+ 是<br>
+ </div>
+<div> </div>
+<div>实施上表中列出的所有规则时，都应进行镜像。这样可以保证任何进入服务器的网络流量也可以返回到源服务器。</div>
+<div> </div>
+<div>上表表示服务器要想完成特定角色的功能而应当打开的基本端口。如果服务器具有静态 IP 地址，则这些端口是足够了。</div>
+<div> </div>
+<div>警告：这些 IPSec 过滤器施加的限制非常严格，会显著降低这些服务器的可管理性。您需要打开其他的端口才能启用监视、修补管理和软件更新功能。</div>
+<div> </div>
+<div>IPSec 策略的实施不应该对服务器的性能产生显著影响。但是，在实施这些过滤器前还是应该进行测试，以验证服务器是否仍然可以维持必要的功能和性能。要支持其他应用程序，可能还需要添加其他规则。</div>
+<div> </div>
+<div>本指南包含一个 .cmd 文件，该文件简化了依照指南要求为域控制器创建 IPSec 过滤器的过程。PacketFilters-SMTPBastionHost.cmd 文件使用 NETSH 命令创建适当的过滤器。</div>
+<div> </div>
+<div>此脚本不会创建持久过滤器。因此，IPSec 策略代理启动之前，服务器处于无保护状态。有关构建持久过滤器或创建高级 IPSec 过滤器脚本的详细信息，请参阅模块其他成员服务器强化过程。最后，此脚本被配置为不分配它所创建的 IPSec 策略。IP 安全策略管理单元可用来检查所创建的 IPSec 过滤器，并且分配 IPSec 策略以便让其生效。</div>
+<div> </div>
+<div> <br>
+小结<br>
+堡垒主机服务器很容易暴露于外界的攻击之下。您必须尽可能的保证它们的安全，在将其可用性发挥至最大的同时，将堡垒主机服务器面临的安全威胁降至最低。最安全的堡垒主机服务器只允许高度信任的帐户访问，并仅仅启用能够正常行使其功能所需的最少的服务。</div>
+<div> </div>
+<div>本模块说明了规定的服务器强化设置以及为保护堡垒主机服务器所使用的过程。许多设置可通过本地组策略应用。本模块提供了配置和应用手动设置的步骤。</div>
+<div> </div>
+<div>此外，还提供了有关创建和应用能够控制堡垒主机服务器间网络通信类型的 IPSec 过滤器的详细信息。根据企业环境中堡垒主机服务器所扮演的角色，这些过滤器可以被修改，以阻止特定类型的网络流量。</div>
+<div> </div>
+<div>更多信息<br>
+以下是在发布 Windows Server 2003 时提供的最新信息源，其内容紧紧围绕运行 Windows Server 2003 的计算机环境中的堡垒主机服务器。</div>
+<div> </div>
+<div>有关构建专用网络的详细信息，请参阅由 Elizabeth D. Zwicky、Simon Cooper 和 Brent D. Chapman 共同撰写的&ldquo;Firewalls and Virtual Private Networks&rdquo;，其网址为： <a href="http://www.wiley.com/legacy/compbooks/press/0471348201_09.pdf">http://www.wiley.com/legacy/compbooks/press/0471348201_09.pdf</a>（英文）。</div>
+<div> </div>
+<div>有关防火墙和安全保护的详细信息，请参阅由 Chuck Semeria 撰写的&ldquo;Internet Firewalls and Security-A Technology Overview&rdquo;，其网址为： <a href="http://www.itmweb.com/essay534.htm">http://www.itmweb.com/essay534.htm</a>（英文）。</div>
+<div> </div>
+<div>有关&ldquo;深度防卫&rdquo;模型的信息，请参阅&ldquo;U.S. Military with Rod Powers&rdquo;，其网址为： <a href="http://usmilitary.about.com/careers/usmilitary/library/glossary/d/bldef01834.htm">http://usmilitary.about.com/careers/usmilitary/library/glossary/d/bldef01834.htm</a>（英文）。</div>
+<div> </div>
+<div>有关入侵防护方面的信息，请参阅由 Jay Beale 撰写的&ldquo;Intruder Detection Checklist&rdquo;，其网址为： <a href="http://www.cert.org/tech_tips/intruder_detection_checklist.html">http://www.cert.org/tech_tips/intruder_detection_checklist.html</a>（英文）。</div>
+<div> </div>
+<div>有关强化堡垒主机的信息，请参阅&ldquo;Hardening Bastion Hosts&rdquo;上的&ldquo;SANS Info Sec Reading Room&rdquo;，其网址为： <a href="http://www.sans.org/rr/papers/index.php?id=420">http://www.sans.org/rr/papers/index.php?id=420</a>（英文）。</div>
+<div> </div>
+<div>有关堡垒主机的详细信息，请参阅&ldquo;How Bastion Hosts Work&rdquo;，其网址为： <a href="http://thor.info.uaic.ro/~busaco/teach/docs/intranets/ch16.htm">http://thor.info.uaic.ro/~busaco/teach/docs/intranets/ch16.htm</a>（英文）。</div>
+<div> </div>
+<div>有关在 Windows Server 2003 中关闭 Internet 连接防火墙的信息，请参阅知识库文章&ldquo;How To:Turn On the Internet Connection Firewall Feature in Windows Server 2003&rdquo;，其网址为： <a href="http://support.microsoft.com/default.aspx?scid=317530">http://support.microsoft.com/default.aspx?scid=317530</a>（英文）。</div>
+<div> </div>
+<div>有关&ldquo;安全配置和分析工具&rdquo;排除故障方面的信息，请参阅知识库文章&ldquo;Problems After You Import Multiple Templates Into the Security Configuration and Analysis Tool&rdquo;，其网址为： <a href="http://support.microsoft.com/default.aspx?scid=279125">http://support.microsoft.com/default.aspx?scid=279125</a>（英文）。</div></div></body></html>

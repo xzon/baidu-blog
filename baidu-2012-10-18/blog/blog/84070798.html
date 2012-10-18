@@ -1,0 +1,173 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Merlin 的魔力: Merlin 的新 I/O 缓冲区的输入和输出</title></head><body><h1>Merlin 的魔力: Merlin 的新 I/O 缓冲区的输入和输出</h1><div><h1><span style="color: #999999">Merlin 的魔力: </span>Merlin 的新 I/O 缓冲区的输入和输出</h1>
+<p>了解如何操作 J2SE 1.4 的新 I/O 包</p>
+<p>级别： 初级</p>
+<p><a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-mer03253/#author"><font color="#5c81a7">John Zukowski</font></a> (<a cmimpressionsent="1" href="mailto:jaz@zukowski.net?subject=Merlin 的新 I/O 缓冲区的输入和输出&amp;cc=jaz@zukowski.net"><font color="#5c81a7">jaz@zukowski.net</font></a>), 总裁, JZ Ventures 公司</p>
+<p>2003 年 6 月 02 日</p>
+<blockquote>一系列缓冲区类支撑起了 Java 2 平台标准版的新 I/O（NIO）包。这些类的数据容器形成了其它 NIO 操作（如套接字通道上的非阻塞读取）的基础。在本月的 <em>Merlin 的魔力</em>中，常驻 Java 编程专家 John Zukowski 展示了如何操作那些数据缓冲区来执行如读／写原语这样的任务以及如何使用内存映射文件。在以后的文章里，他将把这里所提到的概念扩展到套接字通道的使用。 </blockquote>
+<p>Java 2 平台标准版（Java 2 Platform Standard Edition，J2SE）1.4 对 Java 平台的 I/O 处理能力做了大量更改。它不仅用流到流的链接方式继续支持以前 J2SE 发行版的基于流的 I/O 操作，而且 Merlin 还添加了新的功能 &mdash; 称之为新 I/O 类（NIO），现在这些类位于 <code><font face="NSimsun">java.nio</font></code> 包中。</p>
+<p>I/O 执行输入和输出操作，将数据从文件或系统控制台等传送至或传送出应用程序。（有关 Java I/O 的其它信息，请参阅 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-mer03253/#resources"><font color="#5c81a7">参考资料</font></a>）。</p>
+<p><a name="1"><span class="atitle">缓冲区基础</span></a></p>
+<p>抽象的 <code><font face="NSimsun">Buffer</font></code> 类是 <code><font face="NSimsun">java.nio</font></code> 包支持缓冲区的基础。 <code><font face="NSimsun">Buffer</font></code> 的工作方式就象内存中用于读写基本数据类型的 <code><font face="NSimsun">RandomAccessFile</font></code> 。象 <code><font face="NSimsun">RandomAccessFile</font></code> 一样，使用 <code><font face="NSimsun">Buffer</font></code> ，所执行的下一个操作（读／写）在当前某个位置发生。执行这两个操作中的任一个都会改变那个位置，所以在写操作之后进行读操作不会读到刚才所写的内容，而会读到刚才所写内容之后的数据。 <code><font face="NSimsun">Buffer</font></code> 提供了四个指示方法，用于访问线性结构（从最高值到最低值）：</p>
+<ul>
+    <li><code><font face="NSimsun">capacity()</font></code> ：表明缓冲区的大小</li>
+    <li><code><font face="NSimsun">limit()</font></code> ：告诉您到目前为止已经往缓冲区填了多少字节，或者让您用 <code><font face="NSimsun">:limit(int newLimit)</font></code> 来改变这个限制</li>
+    <li><code><font face="NSimsun">position()</font></code> ：告诉您当前的位置，以执行下一个读／写操作</li>
+    <li><code><font face="NSimsun">mark()</font></code> ：为了稍后用 <code><font face="NSimsun">reset()</font></code> 进行重新设置而记住某个位置</li>
+</ul>
+<p>缓冲区的基本操作是 <code><font face="NSimsun">get()</font></code> 和 <code><font face="NSimsun">put()</font></code> ；然而，这些方法在子类中都是针对每种数据类型的特定方法。为了说明这一情况，让我们研究一个简单示例，该示例演示了从同一个缓冲区读和写一个字符。在清单 1 中， <code><font face="NSimsun">flip()</font></code> 方法交换限制和位置，然后将位置置为 0，并废弃标记，让您读刚才所写的数据：</p>
+<p><br>
+<a name="N4000CD"><strong>清单 1. 读／写示例</strong></a><br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.nio.*;
+...
+CharBuffer buff = ...;
+buff.put('A');
+buff.flip();
+char c = buff.get();
+System.out.println(&quot;An A: &quot; + c);</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>现在让我们研究一些具体的 <code><font face="NSimsun">Buffer</font></code> 子类。</p>
+<p><a name="2"><span class="atitle">缓冲区类型</span></a></p>
+<p>Merlin 具有 7 种特定的 <code><font face="NSimsun">Buffer</font></code> 类型，每种类型对应着一个基本数据类型（不包括 boolean）：</p>
+<ul>
+    <li><code><font face="NSimsun">ByteBuffer</font></code></li>
+    <li><code><font face="NSimsun">CharBuffer</font></code></li>
+    <li><code><font face="NSimsun">DoubleBuffer</font></code></li>
+    <li><code><font face="NSimsun">FloatBuffer</font></code></li>
+    <li><code><font face="NSimsun">IntBuffer</font></code></li>
+    <li><code><font face="NSimsun">LongBuffer</font></code></li>
+    <li><code><font face="NSimsun">ShortBuffer</font></code></li>
+</ul>
+<p>在本文后面，我将讨论第 8 种类型 <code><font face="NSimsun">MappedByteBuffer</font></code> ，它用于内存映射文件。如果您必须使用的类型不是这些基本类型，则可以先从 <code><font face="NSimsun">ByteBuffer</font></code> 获得字节类型，然后将其转换成 <code><font face="NSimsun">Object</font></code> 或其它任何类型。</p>
+<p>正如前面所提到的，每个缓冲区包含 <code><font face="NSimsun">get()</font></code> 和 <code><font face="NSimsun">put()</font></code> 方法，它们可以提供类型安全的版本。通常，需要重载这些 <code><font face="NSimsun">get()</font></code> 和 <code><font face="NSimsun">put()</font></code> 方法。例如，有了 <code><font face="NSimsun">CharBuffer</font></code> ，可以用 <code><font face="NSimsun">get()</font></code> 获得下一个字符，用 <code><font face="NSimsun">get(int index)</font></code> 获得某个特定位置的字符，或者用 <code><font face="NSimsun">get(char[] destination)</font></code> 获得一串字符。静态方法也可以创建缓冲区，因为不存在构造函数。那么，仍以 <code><font face="NSimsun">CharBuffer</font></code> 为例，用 <code><font face="NSimsun">CharBuffer.wrap(aString)</font></code> 可以将 <code><font face="NSimsun">String</font></code> 对象转换成 <code><font face="NSimsun">CharBuffer</font></code> 。为了演示，清单 2 接受第一个命令行参数，将它转换成 <code><font face="NSimsun">CharBuffer</font></code> ，并显示参数中的每个字符：</p>
+<p><br>
+<a name="N40015B"><strong>清单 2. CharBuffer 演示</strong></a><br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.nio.*;
+public class ReadBuff {
+  public static void main(String args[]) {
+     if (args.length != 0) {
+      CharBuffer buff = CharBuffer.wrap(args[0]);
+      for (int i=0, n=buff.length(); i&lt;n; i++) {
+        System.out.println(i + &quot; : &quot; + buff.get());
+      }
+    }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>请注意，这里我使用了 <code><font face="NSimsun">get()</font></code> ，而没有使用 <code><font face="NSimsun">get(index)</font></code> 。我这样做的原因是，在每次执行 <code><font face="NSimsun">get()</font></code> 操作之后，位置都会移动，所以不需要手工来声明要检索的位置。</p>
+<p><a name="3"><span class="atitle">直接 vs. 间接</span></a></p>
+<p>既然已经了解了典型的缓冲区，那么让我们研究直接缓冲区与间接缓冲区之间的差别。在创建缓冲区时，可以要求创建直接缓冲区，创建直接缓冲区的成本要比创建间接缓冲区高，但这可以使运行时环境直接在该缓冲区上进行较快的本机 I/O 操作。因为创建直接缓冲区所增加的成本，所以直接缓冲区只用于长生存期的缓冲区，而不用于短生存期、一次性且用完就丢弃的缓冲区。而且，只能在 <code><font face="NSimsun">ByteBuffer</font></code> 这个级别上创建直接缓冲区，如果希望使用其它类型，则必须将 <code><font face="NSimsun">Buffer</font></code> 转换成更具体的类型。为了演示，清单 3 中代码的行为与清单 2 的行为一样，但清单 3 使用直接缓冲区：</p>
+<p><br>
+<a name="N400189"><strong>清单 3. 列出网络接口</strong></a><br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.nio.*;
+public class ReadDirectBuff {
+  public static void main(String args[]) {
+     if (args.length != 0) {
+      String arg = args[0];
+      int size = arg.length();
+      ByteBuffer byteBuffer = ByteBuffer.allocateDirect(size*2);
+      CharBuffer buff = byteBuffer.asCharBuffer();
+      buff.put(arg);
+      buff.rewind();
+      for (int i=0, n=buff.length(); i&lt;n; i++) {
+        System.out.println(i + &quot; : &quot; + buff.get());
+      }
+    }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>在上面的代码中，请注意，不能只是将 <code><font face="NSimsun">String</font></code> 包装在直接 <code><font face="NSimsun">ByteBuffer</font></code> 中。必须首先创建一个缓冲区，先填充它，然后将位置倒回起始点，这样才能从头读。还要记住，字符长度是字节长度的两倍，因此示例中会有 <code><font face="NSimsun">size*2</font></code> 。</p>
+<p><a name="4"><span class="atitle">内存映射文件</span></a></p>
+<p>第 8 种 <code><font face="NSimsun">Buffer</font></code> 类型 <code><font face="NSimsun">MappedByteBuffer</font></code> 只是一种特殊的 <code><font face="NSimsun">ByteBuffer</font></code> 。 <code><font face="NSimsun">MappedByteBuffer</font></code> 将文件所在区域直接映射到内存。通常，该区域包含整个文件，但也可以只映射部分文件。所以，必须指定要映射文件的哪部分。而且，与其它 <code><font face="NSimsun">Buffer</font></code> 对象一样，这里没有构造函数；必须让 <code><font face="NSimsun">java.nio.channels.FileChannel</font></code> 的 <code><font face="NSimsun">map()</font></code> 方法来获取 <code><font face="NSimsun">MappedByteBuffer</font></code> 。此外，无需过多涉及通道就可以用 <code><font face="NSimsun">getChannel()</font></code> 方法从 <code><font face="NSimsun">FileInputStream</font></code> 或 <code><font face="NSimsun">FileOutputStream</font></code> 获取 <code><font face="NSimsun">FileChannel</font></code> 。通过从命令行传入文件名来读取文本文件的内容，清单 4 显示了 <code><font face="NSimsun">MappedByteBuffer</font></code> ：</p>
+<p><br>
+<a name="N4001E3"><strong>清单 4. 读取内存映射文本文件</strong></a><br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import java.nio.*;
+import java.nio.channels.*;
+import java.nio.charset.*;
+public class ReadFileBuff {
+  public static void main(String args[]) throws IOException {
+     if (args.length != 0) {
+      String filename = args[0];
+      FileInputStream fis = new FileInputStream(filename);
+      FileChannel channel = fis.getChannel();
+      int length = (int)channel.size();
+      MappedByteBuffer byteBuffer =
+        channel.map(FileChannel.MapMode.READ_ONLY, 0, length);
+      Charset charset = Charset.forName(&quot;ISO-8859-1&quot;);
+      CharsetDecoder decoder = charset.newDecoder();
+      CharBuffer charBuffer = decoder.decode(byteBuffer);
+      for (int i=0, n=charBuffer.length(); i&lt;n; i++) {
+        System.out.print(charBuffer.get());
+      }
+    }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>正如我在&ldquo;字符集&rdquo;（请参阅 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-mer03253/#resources"><font color="#5c81a7">参考资料</font></a>）这篇文章中所解释的，由于文件有内容，必须告诉系统如何将字节转换成字符。因此需要使用 <code><font face="NSimsun">Charset</font></code> 。</p>
+<p><a name="5"><span class="atitle">结束语</span></a></p>
+<p>由 <code><font face="NSimsun">Buffer</font></code> 支撑的 J2SE 新的 I/O 包从根本上改变了 Java 技术处理 I/O 操作的方式。在阅读完本文之后，您应该了解了 NIO 从基本的 get 和 put 操作到读取内存映射文件方面的知识。然而，这不能说，学习 NIO 就到此为止了。使用这里所提及的参考资料来研读 Java 平台内的 I/O。在以后的文章中，我将把这里所提到的概念应用到套接字通道的使用当中。</p>
+<p> </p>
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+<ul>
+    <li>您可以参阅本文在 developerWorks 全球站点上的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/j-mer03253.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">英文原文</font></a>.</li>
+    <li>请参加本文的 <a cmimpressionsent="1" href=":void forumWindow()()"><font color="#5c81a7">论坛</font></a>。（您也可以单击本文顶部或底部的 <strong>讨论</strong>来访问论坛）。</li>
+    <li>请阅读整个 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-merlin/index.html"><font color="#5c81a7"><em>Merlin 的魔力</em>专栏系列 </font></a>，其中详细讲述了如何告诉系统 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-mer1022/index.html"><font color="#5c81a7">Merlin 的魔力：字符集</font></a>（ <em>developerWorks，</em>2002 年 10 月）。</li>
+    <li>请阅读 <a cmimpressionsent="1" href="http://java.sun.com/j2se/1.4/docs/api/java/nio/package-summary.html"><font color="#5c81a7">java.nio</font></a>包的 API 文档。</li>
+    <li>有关 NIO 的更多信息，请阅读&ldquo; <a cmimpressionsent="1" href="http://java.sun.com/j2se/1.4/docs/guide/nio/index.html"><font color="#5c81a7">New I/O APIs</font></a>&rdquo;（Sun Microsystems，2002）。</li>
+    <li>从&ldquo; <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-javaio/index.html"><font color="#5c81a7">Merlin 给 Java 平台带来了非阻塞 I/O</font></a>&rdquo;（ <em>developerWorks，</em>2002 年 3 月）了解有关非阻塞 I/O 操作的更多信息。</li>
+    <li>在 <em>developerWorks</em>XML 专区，阅读另一篇有关 NIO 的相关知识的文章&ldquo; <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/xml/library/x-wxxm10.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">Working XML: Wrestling with Java NIO</font></a>&rdquo;（ <em>developerWorks，</em>2002 年 6 月）。</li>
+    <li>在 Merlin Hughes 的文章&ldquo; <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/j-io2/index.html"><font color="#5c81a7">彻底转变流，第 2 部分：优化 Java 内部 I/O</font></a>&rdquo;（ <em>developerWorks，</em>2002 年 9 月）中，他向您展示了如何加速您的应用程序。</li>
+    <li>在 <a cmimpressionsent="1" href="http://www-128.ibm.com/developerworks/cn/java/"><font color="#5c81a7"><em>developerWorks</em>Java 技术专区 </font></a>，还可以找到数百篇与 Java 技术相关的参考资料。</li>
+</ul>
+<p> </p>
+<p><a name="author"><span class="atitle">关于作者</span></a></p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td colspan="3"><img height="5" width="100%" src="http://www.ibm.com/i/c.gif"></td>
+        </tr>
+        <tr valign="top" align="left">
+            <td>
+            <p><img height="80" alt="John Zukowski" width="64" align="left" src="http://www-128.ibm.com/developerworks/cn/i/p-zukowski.jpg"></p>
+            </td>
+            <td><img height="5" width="4" src="http://www.ibm.com/i/c.gif"></td>
+            <td width="100%">
+            <p>John Zukowski 为 <a cmimpressionsent="1" href="http://www.jzventures.com/"><font color="#5c81a7">JZ Ventures, Inc.</font></a>做战略性的 Java 咨询，同时还是许多由 <a cmimpressionsent="1" href="http://www.jguru.com/"><font color="#5c81a7">jGuru</font></a>社区推动的 <a cmimpressionsent="1" href="http://www.jguru.com/faq"><font color="#5c81a7">Java FAQ</font></a>的常客，充当解答高手。他最近的著作有 Apress 出版的 <a cmimpressionsent="1" href="http://www.amazon.com/exec/obidos/ASIN/1893115984/johnzukowshomefo/"><font color="#5c81a7"><em>Learn Java with JBuilder 6</em> </font></a>和 Sybex 出版的 <a cmimpressionsent="1" href="http://www.amazon.com/exec/obidos/ASIN/078214022X/johnzukowshomefo/"><font color="#5c81a7"><em>Mastering Java 2: J2SE 1.4</em> </font></a>。可以通过 <a cmimpressionsent="1" href="mailto:jaz@zukowski.net?Subject=Magic with Merlin&amp;cc=jaz@zukowski.net"><font color="#5c81a7">jaz@zukowski.net</font></a>与他联系。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p></div></body></html>

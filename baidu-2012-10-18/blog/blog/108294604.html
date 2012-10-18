@@ -1,0 +1,178 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JAVA读取WORD,EXCEL,POWERPOINT,PDF文件的方法 -javacode</title></head><body><h1>JAVA读取WORD,EXCEL,POWERPOINT,PDF文件的方法 -javacode</h1><div><p>JAVA读取WORD,EXCEL,POWERPOINT,PDF文件的方法 -javacode</p>
+<div>OFFICE文档使用POI控件，PDF可以使用PDFBOX0.7.3控件，完全支持中文，用XPDF也行，不过感觉PDFBOX比较好，而且作者也在更新。水平有限，万望各位指正</div>
+<div> </div>
+<div>WORD:</div>
+<div>
+<p><font face="宋体">import org.apache.lucene.document.Document;<br>
+import org.apache.lucene.document.Field;</font><font face="宋体"><br>
+import org.apache.poi.hwpf.extractor.WordExtractor;</font></p>
+<p><font face="宋体">import java.io.File;<br>
+import java.io.InputStream;<br>
+import java.io.FileInputStream;</font></p>
+<p><font face="宋体">import com.search.code.Index;</font></p>
+<p><font face="宋体">public Document getDocument(Index index, String url, String title, InputStream is) throws DocCenterException {</font></p>
+<p><font face="宋体">&nbsp;&nbsp;  String bodyText = null;<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  WordExtractor ex = new WordExtractor(is);//is是WORD文件的InputStream <br>
+&nbsp;&nbsp;&nbsp;  bodyText = ex.getText();<br>
+&nbsp;&nbsp;&nbsp;  if(!bodyText.equals(&quot;&quot;)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  index.AddIndex(url, title, bodyText);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }catch (DocCenterException e) {<br>
+&nbsp;&nbsp;&nbsp;  throw new DocCenterException(&quot;无法从该Mocriosoft Word文档中提取内容&quot;, e);<br>
+&nbsp;&nbsp;  }catch(Exception e){<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }<br>
+}<br>
+&nbsp;&nbsp;  return null;<br>
+}</font></p>
+<p> </p>
+<p>Excel:</p>
+<p><font face="宋体">import org.apache.lucene.document.Document;<br>
+import org.apache.lucene.document.Field;</font></p>
+<p><font face="宋体">import org.apache.poi.hwpf.extractor.WordExtractor;<br>
+import org.apache.poi.hssf.usermodel.HSSFWorkbook; <br>
+import org.apache.poi.hssf.usermodel.HSSFSheet; <br>
+import org.apache.poi.hssf.usermodel.HSSFRow; <br>
+import org.apache.poi.hssf.usermodel.HSSFCell; </font></p>
+<p><font face="宋体">import java.io.File;<br>
+import java.io.InputStream;<br>
+import java.io.FileInputStream;</font></p>
+<p><font face="宋体">import com.search.code.Index;</font></p>
+<p> </p>
+<p><font face="宋体">public Document getDocument(Index index, String url, String title, InputStream is) throws DocCenterException {<br>
+</font><font face="宋体">&nbsp;&nbsp;  StringBuffer content = new StringBuffer();<br>
+&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;  HSSFWorkbook workbook = new HSSFWorkbook(is);//创建对Excel工作簿文件的引用 <br>
+&nbsp;&nbsp;&nbsp;  for (int numSheets = 0; numSheets &lt; workbook.getNumberOfSheets(); numSheets++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  if (null != workbook.getSheetAt(numSheets)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  HSSFSheet aSheet = workbook.getSheetAt(numSheets);//获得一个sheet<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int rowNumOfSheet = 0; rowNumOfSheet &lt;= aSheet.getLastRowNum(); rowNumOfSheet++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (null != aSheet.getRow(rowNumOfSheet)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  HSSFRow aRow = aSheet.getRow(rowNumOfSheet); //获得一个行<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  for (short cellNumOfRow = 0; cellNumOfRow &lt;= aRow.getLastCellNum(); cellNumOfRow++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  if (null != aRow.getCell(cellNumOfRow)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  HSSFCell aCell = aRow.getCell(cellNumOfRow);//获得列值<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  content.append(aCell.getStringCellValue());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  if(!content.equals(&quot;&quot;)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  index.AddIndex(url, title, content.toString());<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+<font face="宋体">&nbsp;&nbsp;  }catch (DocCenterException e) {</font></font></p>
+<p><font face="宋体"><font face="宋体">&nbsp;&nbsp;&nbsp;  throw new DocCenterException(&quot;无法从该Mocriosoft Word文档中提取内容&quot;, e);<br>
+&nbsp;&nbsp;  }catch(Exception e) { <br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;已运行xlRead() : &quot; + e ); <br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  return null;<br>
+}</font></font></p>
+</div>
+<p> </p>
+<p><font face="宋体">PowerPoint:</font></p>
+<p><font face="宋体"><font face="宋体">import java.io.InputStream;</font></font></p>
+<p><font face="宋体">import org.apache.lucene.document.Document;<br>
+import org.apache.poi.hslf.HSLFSlideShow;<br>
+import org.apache.poi.hslf.model.TextRun;<br>
+import org.apache.poi.hslf.model.Slide;<br>
+import org.apache.poi.hslf.usermodel.SlideShow;</font></p>
+<p><font face="宋体">public Document getDocument(Index index, String url, String title, InputStream is)<br>
+throws DocCenterException {<br>
+&nbsp;&nbsp;  StringBuffer content = new StringBuffer(&quot;&quot;);<br>
+&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;  SlideShow ss = new SlideShow(new HSLFSlideShow(is));//is 为文件的InputStream，建立SlideShow<br>
+&nbsp;&nbsp;&nbsp;  Slide[] slides = ss.getSlides();//获得每一张幻灯片<br>
+&nbsp;&nbsp;&nbsp;  for(int i=0;i&lt;slides.length;i++){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  TextRun[] t = slides[i].getTextRuns();//为了取得幻灯片的文字内容，建立TextRun<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  for(int j=0;j&lt;t.length;j++){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  content.append(t[j].getText());//这里会将文字内容加到content中去<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  content.append(slides[i].getTitle());<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  index.AddIndex(url, title, content.toString());<br>
+&nbsp;&nbsp;  }catch(Exception ex){<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(ex.toString());<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  return null;<br>
+}</font></p>
+<p> </p>
+<p>PDF:</p>
+<p><font face="宋体">import java.io.InputStream;<br>
+import java.io.IOException;<br>
+import org.apache.lucene.document.Document;</font></p>
+<p><font face="宋体">import org.pdfbox.cos.COSDocument;<br>
+import org.pdfbox.pdfparser.PDFParser;<br>
+import org.pdfbox.pdmodel.PDDocument;<br>
+import org.pdfbox.pdmodel.PDDocumentInformation;<br>
+import org.pdfbox.util.PDFTextStripper;</font></p>
+<p><font face="宋体">import com.search.code.Index;</font></p>
+<p> </p>
+<p><font face="宋体">public Document getDocument(Index index, String url, String title, InputStream is)throws DocCenterException {<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  COSDocument cosDoc = null;<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  cosDoc = parseDocument(is);<br>
+&nbsp;&nbsp;  } catch (IOException e) {<br>
+&nbsp;&nbsp;&nbsp;  closeCOSDocument(cosDoc);<br>
+&nbsp;&nbsp;&nbsp;  throw new DocCenterException(&quot;无法处理该PDF文档&quot;, e);<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  if (cosDoc.isEncrypted()) {<br>
+&nbsp;&nbsp;&nbsp;  if (cosDoc != null)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  closeCOSDocument(cosDoc);<br>
+&nbsp;&nbsp;&nbsp;  throw new DocCenterException(&quot;该PDF文档是加密文档，无法处理&quot;);<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  String docText = null;<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  PDFTextStripper stripper = new PDFTextStripper();<br>
+&nbsp;&nbsp;&nbsp;  docText = stripper.getText(new PDDocument(cosDoc));<br>
+&nbsp;&nbsp;  } catch (IOException e) {<br>
+&nbsp;&nbsp;&nbsp;  closeCOSDocument(cosDoc);<br>
+&nbsp;&nbsp;&nbsp;  throw new DocCenterException(&quot;无法处理该PDF文档&quot;, e);<br>
+&nbsp;&nbsp;  }</font></p>
+<p><font face="宋体">&nbsp;&nbsp;  PDDocument pdDoc = null;<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  pdDoc = new PDDocument(cosDoc);<br>
+&nbsp;&nbsp;&nbsp;  PDDocumentInformation docInfo = pdDoc.getDocumentInformation();<br>
+&nbsp;&nbsp;&nbsp;  if(docInfo.getTitle()!=null &amp;&amp; !docInfo.getTitle().equals(&quot;&quot;)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  title = docInfo.getTitle();<br>
+&nbsp;&nbsp;&nbsp;  }</font></p>
+<p><font face="宋体"><font face="宋体">&nbsp;&nbsp;  } catch (Exception e) {<br>
+&nbsp;&nbsp;&nbsp;  closeCOSDocument(cosDoc);<br>
+&nbsp;&nbsp;&nbsp;  closePDDocument(pdDoc);<br>
+&nbsp;&nbsp;&nbsp;  System.err.println(&quot;无法取得该PDF文档的元数据&quot; + e.getMessage());<br>
+&nbsp;&nbsp;  } finally {<br>
+&nbsp;&nbsp;&nbsp;  closeCOSDocument(cosDoc);<br>
+&nbsp;&nbsp;&nbsp;  closePDDocument(pdDoc);<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  return null;<br>
+}</font></font></p>
+<p><font face="宋体"><font face="宋体">private static COSDocument parseDocument(InputStream is) throws IOException {<br>
+&nbsp;&nbsp;  PDFParser parser = new PDFParser(is);<br>
+&nbsp;&nbsp;  parser.parse();<br>
+&nbsp;&nbsp;  return parser.getDocument();<br>
+}</font></font></p>
+<p><font face="宋体">private void closeCOSDocument(COSDocument cosDoc) {<br>
+&nbsp;&nbsp;  if (cosDoc != null) {<br>
+&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  cosDoc.close();<br>
+&nbsp;&nbsp;&nbsp;  } catch (IOException e) {<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }<br>
+}</font></p>
+<p><font face="宋体">private void closePDDocument(PDDocument pdDoc) {<br>
+&nbsp;&nbsp;  if (pdDoc != null) {<br>
+&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  pdDoc.close();<br>
+&nbsp;&nbsp;&nbsp;  } catch (IOException e) {<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }<br>
+}</font></p>
+<p>代码复制可能出错，不过代码经过测试，绝对能用，POI为3.0-rc4，PDFBOX为0.7.3</p>
+<p>POI: <a target="_blank" href="http://jakarta.apache.org/poi/index.html"><font face="宋体"><font face="宋体">http://jakarta.apache.org/poi/index.html</font></font></a></p>
+<p>PDFBOX: <a target="_blank" href="http://www.pdfbox.org/">http://www.pdfbox.org/</a></p>
+<p><a href="http://hi.baidu.com/weiqi228/blog/item/7c164559dbbd592e2834f0b6.html">http://hi.baidu.com/weiqi228/blog/item/7c164559dbbd592e2834f0b6.html</a></p>
+<p> </p></div></body></html>

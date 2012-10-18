@@ -1,0 +1,65 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>#ifndef#define#endif的用法</title></head><body><h1>#ifndef#define#endif的用法</h1><div><div>#ifndef#define#endif的用法</div>
+<div> </div>
+<div>文件中的#ifndef</div>
+<div> </div>
+<div>头件的中的#ifndef，这是一个很关键的东西。比如你有两个C文件，这两个C文件都include了同一个头文件。而编译时，这两个C文件要一同编译成一个可运行文件，于是问题来了，大量的声明冲突。</div>
+<div> </div>
+<div>还是把头文件的内容都放在#ifndef和#endif中吧。不管你的头文件会不会被多个文件引用，你都要加上这个。一般格式是这样的：</div>
+<div> </div>
+<div>#ifndef &lt;标识&gt;<br>
+#define &lt;标识&gt;</div>
+<div> </div>
+<div>......<br>
+......</div>
+<div> </div>
+<div>#endif</div>
+<div> </div>
+<div>&lt;标识&gt;在理论上来说可以是自由命名的，但每个头文件的这个&ldquo;标识&rdquo;都应该是唯一的。标识的命名规则一般是头文件名全大写，前后加下划线，并把文件名中的&ldquo;.&rdquo;也变成下划线，如：stdio.h</div>
+<div> </div>
+<div>#ifndef _STDIO_H_<br>
+#define _STDIO_H_</div>
+<div> </div>
+<div>......</div>
+<div> </div>
+<div>#endif</div>
+<div> </div>
+<div>2.在#ifndef中定义变量出现的问题（一般不定义在#ifndef中）。</div>
+<div> </div>
+<div>#ifndef AAA<br>
+#define AAA<br>
+...<br>
+int i;<br>
+...<br>
+#endif<br>
+里面有一个变量定义<br>
+在vc中链接时就出现了i重复定义的错误，而在c中成功编译。</div>
+<div> </div>
+<div>结论：</div>
+<div> </div>
+<div>(1).当你第一个使用这个头的.cpp文件生成.obj的时候，int i 在里面定义了<br>
+当另外一个使用这个的.cpp再次[单独]生成.obj的时候，int i 又被定义<br>
+然后两个obj被另外一个.cpp也include 这个头的，连接在一起，就会出现重复定义.</div>
+<div> </div>
+<div>(2).把源程序文件扩展名改成.c后，VC按照C语言的语法对源程序进行编译，而不是C++。在C语言中，若是遇到多个int i，则自动认为其中一个是定义，其他的是声明。</div>
+<div> </div>
+<div>(3).C语言和C++语言连接结果不同，可能（猜测）时在进行编译的时候，C++语言将全局<br>
+变量默认为强符号，所以连接出错。C语言则依照是否初始化进行强弱的判断的。（参考）</div>
+<div> </div>
+<div>解决方法：</div>
+<div> </div>
+<div>(1).把源程序文件扩展名改成.c。</div>
+<div> </div>
+<div>(2).推荐解决方案：<br>
+.h中只声明 extern int i;在.cpp中定义</div>
+<div> </div>
+<div>&lt;x.h&gt;<br>
+#ifndef __X_H__<br>
+#define __X_H__<br>
+extern int i;<br>
+#endif //__X_H__<br>
+&lt;x.c&gt;<br>
+int i;</div>
+<div> </div>
+<div>注意问题：</div>
+<div> </div>
+<div>(1).变量一般不要定义在.h文件中。</div></div></body></html>

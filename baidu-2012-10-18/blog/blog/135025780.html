@@ -1,0 +1,211 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 9. Seam中的JSF表单验证 -seam满江红</title></head><body><h1>Chapter 9. Seam中的JSF表单验证 -seam满江红</h1><div><div class="chapter">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title"><a name="validation"></a>Chapter 9. Seam中的JSF表单验证 -seam满江红</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>在普通JSF中，验证在视图中定义:</p>
+<pre class="programlisting">&lt;h:form&gt;
+    &lt;h:messages/&gt;
+
+    &lt;div&gt;
+        Country:
+        &lt;h:inputText value=&quot;#{location.country}&quot; required=&quot;true&quot;&gt;
+            &lt;my:validateCountry/&gt;
+        &lt;/h:inputText&gt;
+    &lt;/div&gt;
+
+    &lt;div&gt;
+        Zip code:
+        &lt;h:inputText value=&quot;#{location.zip}&quot; required=&quot;true&quot;&gt;
+            &lt;my:validateZip/&gt;
+        &lt;/h:inputText&gt;
+    &lt;/div&gt;
+
+    &lt;h:commandButton/&gt;
+&lt;/h:form&gt;</pre>
+<p>在实践中，这种方式常常违背了DRY原则，因为很多&ldquo;validation&rdquo;实际上依赖的约束是数据模型的一部分，而且也有很多方法引入数据库Schema定义。 Seam使用Hibernate Validator来提供对基于model的约束支持。</p>
+<p>让我们从定义 <tt class="literal"><font face="新宋体">Location</font></tt> 类的约束开始：</p>
+<pre class="programlisting">public class Location {
+    private String country;
+    private String zip;
+
+    @NotNull
+    @Length(max=30)
+    public String getCountry() { return country; }
+    public void setCountry(String c) { country = c; }
+
+    @NotNull
+    @Length(max=6)
+    @Pattern(&quot;^\d*$&quot;)
+    public String getZip() { return zip; }
+    public void setZip(String z) { zip = z; }
+}</pre>
+<p>好，这是一个不错的切入点，但在实践中使用自定义的约束可能比 Hibernate Validator 更优雅：</p>
+<pre class="programlisting">public class Location {
+    private String country;
+    private String zip;
+
+    @NotNull
+    @Country
+    public String getCountry() { return country; }
+    public void setCountry(String c) { country = c; }
+
+    @NotNull
+    @ZipCode
+    public String getZip() { return zip; }
+    public void setZip(String z) { zip = z; }
+}</pre>
+<p>无论我们使用哪种方式，都不需要在JSF页面中指定验证类型。我们可以使用 <tt class="literal"><font face="新宋体">&lt;s:validate&gt;</font></tt> 来验证定义在model对象上的约束。</p>
+<pre class="programlisting">&lt;h:form&gt;
+    &lt;h:messages/&gt;
+
+    &lt;div&gt;
+        Country:
+        &lt;h:inputText value=&quot;#{location.country}&quot; required=&quot;true&quot;&gt;
+            &lt;s:validate/&gt;
+        &lt;/h:inputText&gt;
+    &lt;/div&gt;
+
+    &lt;div&gt;
+        Zip code:
+        &lt;h:inputText value=&quot;#{location.zip}&quot; required=&quot;true&quot;&gt;
+            &lt;s:validate/&gt;
+        &lt;/h:inputText&gt;
+    &lt;/div&gt;
+
+    &lt;h:commandButton/&gt;
+
+&lt;/h:form&gt;</pre>
+<p><span class="emphasis"><em>注意：</em></span> 在model上指定 <tt class="literal"><font face="新宋体">@NotNull</font></tt> <span class="emphasis"><em>并不能</em></span> 在控制上省去 <tt class="literal"><font face="新宋体">required=&quot;true&quot;</font></tt>！ 这是因为JSF验证架构的限制。</p>
+<p>这种方式在model中 <span class="emphasis"><em>定义</em></span> 约束，然后在表现层中 <span class="emphasis"><em>展示</em></span> 约束违例 &mdash; 这显然是一种更好的设计。</p>
+<p>但是，这并不比我们之前的方法简便多少，所以让我们试试 <tt class="literal"><font face="新宋体">&lt;s:validateAll&gt;</font></tt>：</p>
+<pre class="programlisting">&lt;h:form&gt;
+
+    &lt;h:messages/&gt;
+
+    &lt;s:validateAll&gt;
+
+        &lt;div&gt;
+            Country:
+            &lt;h:inputText value=&quot;#{location.country}&quot; required=&quot;true&quot;/&gt;
+        &lt;/div&gt;
+
+        &lt;div&gt;
+            Zip code:
+            &lt;h:inputText value=&quot;#{location.zip}&quot; required=&quot;true&quot;/&gt;
+        &lt;/div&gt;
+
+        &lt;h:commandButton/&gt;
+
+    &lt;/s:validateAll&gt;
+
+&lt;/h:form&gt;</pre>
+<p>这个标签只是简单地给表单中的每个输入框增加 <tt class="literal"><font face="新宋体">&lt;s:validate&gt;</font></tt> 标签。 对于一个大的表单来说，这能够减少很多打字工作量！</p>
+<p>现在我们需要做些事情来显示验证失败时的反馈消息。当前我们是在表单的上方显示所有消息。 而我们真正想要做的是在值域后面显示错误的提示消息（普通JSF也可以实现），高亮显示字段和标签（普通JSF无法实现）， 更好的是在字段后面显示一些图片（普通JSF同样无法实现）。 我们还希望在每个必须输入的字段所对应的标记前显示一个有颜色的*号。</p>
+<p>这的确给表单中的每个字段增加了不少功能。 我们不希望给表单中的每一个字段指定图片、消息和输入字段的高亮显示和布局。所以我们将通用布局定义在facelets模板中。</p>
+<pre class="programlisting">&lt;ui:composition xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+                xmlns:ui=&quot;http://java.sun.com/jsf/facelets&quot;
+                xmlns:h=&quot;http://java.sun.com/jsf/html&quot;
+                xmlns:f=&quot;http://java.sun.com/jsf/core&quot;
+                xmlns:s=&quot;http://jboss.com/products/seam/taglib&quot;&gt;
+
+    &lt;div&gt;
+
+        &lt;s:label styleClass=&quot;#{invalid?'error':''}&quot;&gt;
+            &lt;ui:insert name=&quot;label&quot;/&gt;
+            &lt;s:span styleClass=&quot;required&quot; rendered=&quot;#{required}&quot;&gt;*&lt;/s:span&gt;
+        &lt;/s:label&gt;
+
+        &lt;span class=&quot;#{invalid?'error':''}&quot;&gt;
+            &lt;h:graphicImage src=&quot;img/error.gif&quot; rendered=&quot;#{invalid}&quot;/&gt;
+            &lt;s:validateAll&gt;
+                &lt;ui:insert/&gt;
+            &lt;/s:validateAll&gt;
+        &lt;/span&gt;
+
+        &lt;s:message styleClass=&quot;error&quot;/&gt;
+
+    &lt;/div&gt;
+
+&lt;/ui:composition&gt;</pre>
+<p>我们可以通过 <tt class="literal"><font face="新宋体">&lt;s:decorate&gt;</font></tt> 让每一个表单字段都使用这个模板。</p>
+<pre class="programlisting">&lt;h:form&gt;
+
+    &lt;h:messages globalOnly=&quot;true&quot;/&gt;
+
+    &lt;s:decorate template=&quot;edit.xhtml&quot;&gt;
+        &lt;ui:define name=&quot;label&quot;&gt;Country:&lt;/ui:define&gt;
+        &lt;h:inputText value=&quot;#{location.country}&quot; required=&quot;true&quot;/&gt;
+    &lt;/s:decorate&gt;
+
+    &lt;s:decorate template=&quot;edit.xhtml&quot;&gt;
+        &lt;ui:define name=&quot;label&quot;&gt;Zip code:&lt;/ui:define&gt;
+        &lt;h:inputText value=&quot;#{location.zip}&quot; required=&quot;true&quot;/&gt;
+    &lt;/s:decorate&gt;
+
+    &lt;h:commandButton/&gt;
+
+&lt;/h:form&gt;</pre>
+<p>最后，我们可以使用 RichFaces Ajax 来在用户浏览表单时显示验证消息：</p>
+<pre class="programlisting">&lt;h:form&gt;
+
+    &lt;h:messages globalOnly=&quot;true&quot;/&gt;
+
+    &lt;s:decorate id=&quot;countryDecoration&quot; template=&quot;edit.xhtml&quot;&gt;
+        &lt;ui:define name=&quot;label&quot;&gt;Country:&lt;/ui:define&gt;
+        &lt;h:inputText value=&quot;#{location.country}&quot; required=&quot;true&quot;&gt;
+            &lt;a:support event=&quot;onblur&quot; reRender=&quot;countryDecoration&quot; bypassUpdates=&quot;true&quot;/&gt;
+        &lt;/h:inputText&gt;
+    &lt;/s:decorate&gt;
+
+    &lt;s:decorate id=&quot;zipDecoration&quot; template=&quot;edit.xhtml&quot;&gt;
+        &lt;ui:define name=&quot;label&quot;&gt;Zip code:&lt;/ui:define&gt;
+        &lt;h:inputText value=&quot;#{location.zip}&quot; required=&quot;true&quot;&gt;
+            &lt;a:support event=&quot;onblur&quot; reRender=&quot;zipDecoration&quot; bypassUpdates=&quot;true&quot;/&gt;
+        &lt;/h:inputText&gt;
+    &lt;/s:decorate&gt;
+
+    &lt;h:commandButton/&gt;
+
+&lt;/h:form&gt;</pre>
+<p>最好为页面上的重要控件定义显式的id，特别是当你希望用像 Selenium 这样的工具来进行UI自动化测试时。 如果你没有提供显式的id，JSF会生成它们，但任何页面上的改动都会导致生成的值发生变化。</p>
+<pre class="programlisting">&lt;h:form id=&quot;form&quot;&gt;
+
+    &lt;h:messages globalOnly=&quot;true&quot;/&gt;
+
+    &lt;s:decorate id=&quot;countryDecoration&quot; template=&quot;edit.xhtml&quot;&gt;
+        &lt;ui:define name=&quot;label&quot;&gt;Country:&lt;/ui:define&gt;
+        &lt;h:inputText id=&quot;country&quot; value=&quot;#{location.country}&quot; required=&quot;true&quot;&gt;
+            &lt;a:support event=&quot;onblur&quot; reRender=&quot;countryDecoration&quot; bypassUpdates=&quot;true&quot;/&gt;
+        &lt;/h:inputText&gt;
+    &lt;/s:decorate&gt;
+
+    &lt;s:decorate id=&quot;zipDecoration&quot; template=&quot;edit.xhtml&quot;&gt;
+        &lt;ui:define name=&quot;label&quot;&gt;Zip code:&lt;/ui:define&gt;
+        &lt;h:inputText id=&quot;zip&quot; value=&quot;#{location.zip}&quot; required=&quot;true&quot;&gt;
+            &lt;a:support event=&quot;onblur&quot; reRender=&quot;zipDecoration&quot; bypassUpdates=&quot;true&quot;/&gt;
+        &lt;/h:inputText&gt;
+    &lt;/s:decorate&gt;
+
+    &lt;h:commandButton/&gt;
+
+&lt;/h:form&gt;</pre>
+<p>但是，如果你想在验证失败时指定去显示不同的消息又该怎么做呢？可以使用Seam对Hibernate Validator的消息绑定： （同样也包括其中那些类似el表达式和独立视图消息绑定之类的各种好处）</p>
+<pre class="programlisting">public class Location {
+    private String name;
+    private String zip;
+
+    // Getters and setters for name
+
+    @NotNull
+    @Length(max=6)
+    @ZipCode(message=&quot;#{messages['location.zipCode.invalid']}&quot;)
+    public String getZip() { return zip; }
+    public void setZip(String z) { zip = z; }
+}</pre>
+<pre class="programlisting">location.zipCode.invalid = The zip code is not valid for #{location.name}</pre>
+</div></div></body></html>

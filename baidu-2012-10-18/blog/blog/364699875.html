@@ -1,0 +1,164 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>AWT, SWT, Swing: Java GUI Clean Up (3)</title></head><body><h1>AWT, SWT, Swing: Java GUI Clean Up (3)</h1><div><p>AWT, SWT, Swing: Java GUI Clean Up (3)</p><p><span></span>http://blogs.sun.com/Swing/entry/awt_swt_swing_java_gui2</p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Look And Feel</span></span><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Native
+ toolkits including SWT and AWT do not support Look And Feel mechanism. 
+They bind their components to operating systems, which have both pros 
+and cons. One of the cons is that they cannot support pluggable Look And
+ Feel. Handling the drawing process to operating system deprives of 
+their ability to customize component look and feel. This prevent them 
+from providing Look And Feel mechanism. Look And Feel mechanism is 
+becoming more and more indispensable in GUI toolkit.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Swing
+ has wonderful Look And Feel support. You can even change Swing 
+application's look and feel dynamically. This is an insurmountable task 
+for AWT and SWT, since they handle their control entirely to operating 
+system. I've heard many people complains about Sun on Swing design. They
+ think why Swing can not be built on SWT like AWT. In fact, Look And 
+Feel mechanism is one of reason why Swing should go in that direction. 
+If Swing follows the way that wrapping existing components and emulating
+ non-existing components, it cannot provide Look And Feel mechanism. 
+Providing pluggable Look and Feel mechanism is an insurmountable task to
+ native strategy.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Graphics and Fonts</span></span><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Since
+ Swing is an emulated system, its graphics tools is much more powerful 
+than those of AWT and SWT. Swing bases its whole system on two 
+fundamental components, one is Java 2D and the other is AWT. Java 2D is a
+ powerful library in Java. It provides rich features of advanced image 
+processing, color management, graphical drawing and filling, 
+coordination system transmission and font manipulations. AWT and SWT 
+only provides limited access to these features. Compared to Java 2D, 
+they are comparably primitive and inferior.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">JavaBeans Specification Conformity</span></span><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Swing
+ and AWT was designed with JavaBeans specification in mind. So their 
+component classes conform to JavaBeans specification. However SWT does 
+not quite conforms to this specification. For example, there's no 
+empty-argument constructor in every component classes. Every component 
+in SWT must has at least a single parameter constructor. This parameter 
+is the parent of the components. That means whenever a component is 
+created, it must be immediately added to a component tree. A component 
+cannot exist without registered native peer. By this way, SWT wants the 
+components created by programmer can be automatically released when 
+dispose methods of display is called.</span></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">More on Resource Management</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">SWT's
+ strategy of component constructor can eliminate some possibility of 
+memory leaks. AWT has the similar question about resource management. 
+But it resolve the issues using a different way. When an AWT component 
+is created, the counterpart peer will not immediately be added. When it 
+is added to a component tree, but the tree is not visible yet, the peer 
+will be still not created. Only when top container is set visible, will 
+these peers be created. The method creating the peer generally is 
+located in addNotify method. They generally call their parent's 
+addNotify recursively until all of the peers on the component tree are 
+created. When top container is dismissed by calling dispose method, a 
+reverse method removeNotify will be called recursively to release these 
+peers. By this way, AWT manage its resource without any interference 
+from the developers.</span></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Event System</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">An
+ event is the message sent to a GUI system, either from the outside or 
+from the system itself, which requires certain action to be taken. These
+ events include I/O interrupts from computer devices such as mouse or 
+keyboard or network ports, and logical events triggered by GUI system, 
+such as ActionEvent posted by a button.</span></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Single-Threaded vs Multiple-Threaded</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Dispatching
+ events can follow two different models. One is called single-threaded 
+dispatching model and the other multiple-threaded dispatching model.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><img src="http://hiphotos.baidu.com/hxzon/pic/item/e65fe6fed4f039675d6008b2.jpg" height="490" width="444"><br><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">In
+ single-threaded dispatching model, an event is pumped from the queue 
+and processed in the same thread immediately. After the event being 
+processed, next pending event in the queue is pumped again and continues
+ the next round of cycle. In multiple-threaded dispatching model, the 
+thread fetching the events from the queue launches another thread called
+ task thread, and hand the event over to it for processing. The thread 
+responsible for fetching the event does not wait for the end of the 
+processing thread. It simply goes on to fetch next pending event and 
+dispatch it.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Event
+ processing usually involves changing application data. While these data
+ are often the source data that components display. Multiple-threaded 
+dispatching can easily raise synchronization issues. It generates 
+multiple event processing threads, which might interfere with each 
+other. In a stable GUI system, component should be able to keep the view
+ synchronized with the model. Because of the synchronization issue, 
+multiple-threaded model requires developers to be more experienced in 
+concurrent programing. For ordinary programmers, it is very easy to make
+ synchronization errors. Therefore many GUI system don't use this model.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Single-threaded
+ model provide natural synchronizations by enforcing sequential event 
+processing. AWT, SWT and Swing all use this model to dispatch events. 
+But single-threaded model also has its own issues. One of them is thread
+ engrossment. Since all events are dispatched by a single thread, if one
+ event processing last too long, it will hold back pending events from 
+being processed. If there are PAINT event holding back, then the screen 
+will appear to be unresponsive. This usually make user feel that the 
+software is slow. There are many such slow applications that are 
+programmed by inexperienced developers. What they did is most probably 
+cramming a listener method with time-consuming tasks. Swing is 
+especially prominent, since it is widely used. This has brought swing a 
+bad reputation of slow and ugly. In fact, swing application can be very 
+responsive if you knows to thread.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Thread Safety</span></span><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">The
+ solution to the above issue is launching a separate worker thread to 
+handle long-time processing, thus releasing the event dispatching thread
+ to continue. Just like what multiple-threaded model does. But that also
+ invites the synchronization issues that happen in multiple-threaded 
+model. Many GUI toolkits often setup some innate mechanism to avoid 
+this, for example, by a complex lock on a component tree. Developers 
+don't have to worry about how to program to be safe. This kind of 
+toolkit is called thread-safe. AWT is one of them.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">However,
+ it is often too complex to build such GUI system and usually it creates
+ a lot overhead because of unnecessary synchronization. Therefore, Swing
+ and SWT were designed to be thread unsafe. That means developers have 
+to program carefully when they want to do multi-threading task. There is
+ a little difference between SWT and Swing about runtime behavior 
+towards thread safety. SWT always checks if the action modifying 
+component takes place in the event dispatching thread. By this way, 
+developers can find out the probable synchronization issues. Swing does 
+not have. This is a shortage of Swing, which I think should not be so 
+hard to implement.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Event Dispatching Thread</span></span><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">AWT
+ reads the primitive event from the operating systems and process them 
+in java codes. AWT event dispatching thread is named as AWT-{OS}-Thread.
+ This thread is launched implicitly by AWT system. When an AWT 
+application launches, this thread starts in background, pumping and 
+draining events from the operating systems. When logical events such 
+button action is fired, it is passed over to action listeners registered
+ on button. Developers can also listen to primitive events such as 
+mouse, keyboard or paint event to write customized AWT components. This 
+is generally done by extending AWT Canvas component. This component 
+enables all of the available event happened on them, and by overriding 
+the event processing method, you can implement a custom component.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">However,
+ in Swing, this is a different thread. Swing takes AWT events as the 
+input of its event system. It gets AWT events and after some initial 
+processing, generate a swing counterpart event and put it into its own 
+event queue. Swing has own dispatching thread, usually named 
+EventQueue-0. This thread pump swing events from the event queue, just 
+as AWT does from the operating system. Then it dispatches this event to 
+the target components. Usually an event is first post to the top 
+container components. This event is then processed by the top 
+container's dispatch methods. Then it may re-dispatching or re-targeting
+ this event to a swing component, which in turn continues the processing
+ by its listeners.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">For
+ example, when a mouse moves over a Jbutton on a Jframe, an AWT event 
+targeting Jframe is fired to the AWT-thread. The AWT-thread checks to 
+see if it needs further processing. Then it wraps the event into a Swing
+ MouseEvent object and enqueue it into the EventQueue. Upon receiving 
+the MouseEvent, EventQueue-0 pumps this event out and dispatch it to 
+Jframe by calling its.dispatching method. This method then translate 
+MouseEvent and figure out the target Swing component. Here, the 
+component is Jbutton. After that, it created a new MouseEvent with the 
+new coordinations and event source re-target to the Jbutton. After that,
+ it calls the jbutton.dispatch to continue dispatching. Jbutton.dispatch
+ filters these event to a specific method and finally hit the point 
+where it is dispatched to specific mouse listener.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">SWT
+ is more akin to AWT. The only difference is that it requires the 
+developers to explicitly write the event looping codes. However, the 
+underneath implementation is different from that of AWT. Look at the 
+code that SWT read and dispatching events, it reminds you MFC code 
+style.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Event Listener</span></span><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">AWT,
+ SWT and Swing have similar event listener models. They all use observer
+ pattern, in which, components and listeners are connected by adding 
+listeners to components. This model forms a object-net model as shown in
+ the following figure. When an event is fired and transmitted to the 
+component by dispatching, the component call its listeners to process 
+this event. A listener can also further dispatching this event after 
+processing, or it can event generate a new event and broadcast it to 
+other nodes of the net. Basically there are two different way of 
+broadcasting events. One is synchronously calling other listeners. The 
+other is asynchronously posting this event to the queue, where it can 
+get dispatched during next round of event dispatching.</span></span></p><p><span style="font-family: verdana,arial,helvetica,sans-serif;"><br></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">Besides
+ post method, Swing has some other way of dispatching asynchronous 
+event. One of them is invokeLater from SwingUtilities or EventQueue. 
+This method can wrap a Runnable object into a event and post it into the
+ event queue. This ensures the run method of Runnable can be executed on
+ the event dispatching thread, enabling thread-safety operation. In 
+fact, Swing Timer and SwingWorker is implemented based on this 
+mechanism. SWT also has this counterpart utilities which can 
+asynchronously post events. Its invokeLater counterpart is 
+display.asyncExec which takes a Runnable object as parameter.</span></span></p><p><span><span style="font-family: verdana,arial,helvetica,sans-serif;">(To be continued ...)</span></span></p><p>Posted on: 十一月 23, 2007</p><p>Posted by: williamchen</p><p>Category: Swing</p></div></body></html>

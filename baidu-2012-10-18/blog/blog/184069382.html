@@ -1,0 +1,93 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>一个强大的表格控件：XTable  设计、实现和使用</title></head><body><h1>一个强大的表格控件：XTable  设计、实现和使用</h1><div><p><font style="background-color: #ffffff">一个强大的表格控件：XTable 设计、实现和使用</font></p>
+<p><font style="background-color: #ffffff">梁邦勇 徐鹏 王克宏 清华大学计算机系知识工程组 2008-12-27 </font></p>
+<div class="text f12_gray lh20">
+<p><font face="宋体"><font style="background-color: #ffffff"><strong>1. 前言</strong><br>
+&nbsp;&nbsp;&nbsp;  <strong style="background-color: rgb(255,255,102); color: black">JTable</strong>是Swing包中非常易用和功能强大的表格控件，但是它仍然有许多缺点，它不支持很多在实际的表格设计中很常用的特性，<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>不支持的特性如下：<br>
+1) 行列合并<br>
+2) 不同行有不同的高度<br>
+3) 行的行头<br>
+4) 单元格的边框<br>
+&nbsp;&nbsp;&nbsp;  因为<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>有着这些限制，所以往往不能够满足表格设计的需要，因此，我们设计并且开发了XTable，XTable能够支持上述<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>无法支持的特性，而且XTable继承了<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>的可编程的优点。</font></font></p>
+<p><font face="宋体"><font style="background-color: #ffffff"><strong>XTable的设计<br>
+</strong>&nbsp;&nbsp;&nbsp;  <strong style="background-color: rgb(255,255,102); color: black">JTable</strong>的设计思想使它拥有良好的可编程性。比如在单元格的显示和编辑方面，<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>提供了render和editor的概念。开发者通过继承相应的接口，能够实现自己的renderer和editor。<br>
+&nbsp;&nbsp;&nbsp;  XTable的设计参考了<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>的思想，遵守了软件工程的M-V-C的设计方法，把数据，显示和控制分开。在使用和可编程方面，也尽量让XTable和<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>几乎没有什么区别。<br>
+&nbsp;&nbsp;&nbsp;  基于上述的思想，我们设计了XTable这个控件，一个简略但是能够体现整个完整的XTable的结构的UML图如下：<br>
+</font></font></p>
+<p align="center"> </p>
+<p align="center"> </p>
+<p><font face="宋体"><font style="background-color: #ffffff" face="宋体">&nbsp;&nbsp;&nbsp;  现在开始分析这个设计中的各个包的作用。<br>
+&nbsp;&nbsp;&nbsp;  XTable.model是表示该XTable中的数据的包，该包包含着表示数据的接口和缺省的实现类。其中XTableModel是表格中的数据的接口，从这个接口，XTable可以取得该表格中的每一格中包含的数据，该表格中的每一格合并的行列数和该单元格的边框信息，除此之外，还可以获得该表格的每一行的高度和每一列的高度。XTableColumnModel这个接口提供的是获得列头部信息的接口，比如列名。XTableRowModel这个接口提供的是获得行头部的信息的接口，比如行的名字。XTableSelectionModel提供的是获得当前被选中的块信息的接口。 XTable.model包中还包含这几个接口的缺省实现类，开发者可以直接使用这些缺省实现的类。<br>
+&nbsp;&nbsp;&nbsp;  XTable.Event是表示该XTable中事件的包，该包中定义了XTable中的所有事件<strong style="background-color: rgb(160,255,255); color: black">监听</strong>类和事件类。XTable中所有的事件类都继承自java.util.EventObject。所有的事件<strong style="background-color: rgb(160,255,255); color: black">监听</strong>类都继承自EventListener。其中XTableModelListener<strong style="background-color: rgb(160,255,255); color: black">监听</strong>的是XTableModel发生的变化。XTableSelectionListener<strong style="background-color: rgb(160,255,255); color: black">监听</strong>的是XTable选择区域的变化。CellEditorListener<strong style="background-color: rgb(160,255,255); color: black">监听</strong>的是当前正在编辑的单元格的事件。这三个Listener的实现者都是XTable。XTableRowModelListener<strong style="background-color: rgb(160,255,255); color: black">监听</strong>的是行头的数据的变化，比如某个行名发生了变化，XTableColumnModelListener<strong style="background-color: rgb(160,255,255); color: black">监听</strong>的是列头数据的变化，比如某个列名发生了变化。XTableRowModelListenr由XTableRowHeader实现，XTableColumnModelListener由XTableColHeader实现。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  XTable.renderer 定义了一个renderer必须实现的接口。Renderer是XTable中显示数据的方法，XTable中的单元格使用renderer来显示该单元格中的数据。XTableCellRenderer是XTable中的renderer的接口，DefaultXTableCellRenderer是该接口的缺省实现类，开发者可以直接使用。XTableColumnHeaderRenderer是该列头的renderer类，而 XTableRowHeaderRenderer是该行头的renderer类。<br>
+&nbsp;&nbsp;&nbsp;  XTable.header包含的是列头和行头，XTableColHeader是列头，XTableRowHeader是行头，其中列头实现了XTableColumnModelListener，行头实现了XTableRowModelListener。<br>
+XTable.editor 包含的是单元格的editor需要实现的接口，其中XTableCellEditor就是该XTable中单元格需要实现的接口，XTableCellEditor继承自javax.swing.CellEditor，其中为了方便开发者，提供了一个继承自 XTableCellEditor的虚类AbstractXTableCellEditor。实现Editor的时候，继承这个虚类比直接实现 XTableCellEditor要方便很多。同时，该包中还提供了一个缺省的DefaultXTableCellEditor供开发者使用。<br>
+&nbsp;&nbsp;&nbsp;  XTable类就是这个XTable的中心类，和<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>一样，一个XTable的实例代表了一个表格。XTable中包含一个XTableColHeader和XTableRowHeader的实例，用于代表表格的列头和行头。XTable同时还是XTableModelListener，XTableSelectionListener和 CellEditorListener的实现类，负责处理表格中的model，selection和editor激发的事件。</font></font></p>
+<font face="宋体"><font face="宋体">
+<p><br>
+<font style="background-color: #ffffff"><strong>2 XTable的实现<br>
+</strong>&nbsp;&nbsp;&nbsp;  XTable在设计方面遵守了MVC的思想，并且保持了和<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>一样的可编程性质。在实现方面，XTable比<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>更加困难。因为要实现行合并和列合并，所以<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>这样的布局方式不再适用，XTable使用了GridBagLayout来做整体布局。<br>
+&nbsp;&nbsp;&nbsp;  在事件的处理方面，XTable捕获了鼠标事件，并且解释这些鼠标事件，分发给不同的Listener，比如正在选择事件或者选择结束事件。<br>
+&nbsp;&nbsp;&nbsp;  在编辑方面，XTable将事件的处理权下放给Editor，根据Editor返回的值是编辑结束还是取消编辑来动态更新单元格里的信息。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  完成的XTable是一个实用的开发包，目前已经用于开发一些商业程序。</font></p>
+<p><font style="background-color: #ffffff"><strong>3. XTable的使用方法<br>
+</strong>一个简单的例子如下：</font></p>
+<p><font style="background-color: #ffffff">import java.awt.*;<br>
+import javax.swing.*;<br>
+import java.util.Vector;</font></p>
+<p><font style="background-color: #ffffff">import model.DefaultXTableColumnModel;<br>
+import model.DefaultXTableRowModel;<br>
+import model.DefaultXTableModel;</font></p>
+<p><font style="background-color: #ffffff">import header.XTableColHeader;<br>
+import header.XTableRowHeader;</font></p>
+<p><font style="background-color: #ffffff">import datatype.*;<br>
+import table.XTable;</font></p>
+<p><br>
+<font style="background-color: #ffffff">public class CellShower extends JFrame{</font></p>
+<p><font style="background-color: #ffffff">&nbsp;&nbsp;  static int [] widths = { 64, 64, 100, 100};<br>
+&nbsp;&nbsp;  static int [] heights = { 64, 64, 32 ,32 };</font></p>
+<p><br>
+<font style="background-color: #ffffff">public CellShower() {<br>
+<br>
+//初始化XTableModel，往里面填要显示的数据和行列和并信息<br>
+&nbsp;&nbsp;  DefaultXTableModel model = new DefaultXTableModel(heights, widths);</font></p>
+<p><font style="background-color: #ffffff">&nbsp;&nbsp;  ImageIcon icon = new ImageIcon(&quot;ft.gif&quot;);<br>
+&nbsp;&nbsp;  model.setValueAt(icon,0, 0);<br>
+&nbsp;&nbsp;  model.setValueAt(new ColorType(Color.red), 3,3);<br>
+&nbsp;&nbsp;  model.setValueAt(new Length(2,&quot;cm&quot;), 3, 3);<br>
+&nbsp;&nbsp;  model.setCellRowSpan(0, 0, 2);<br>
+&nbsp;&nbsp;  model.setDownBorderAt(2,3,1);<br>
+&nbsp;&nbsp;  model.setValueAt(new StringType(&quot;lbynsafa&quot;),0,2);<br>
+&nbsp;&nbsp;  model.setValueAt(new StringType(&quot;School&quot;),1,1);<br>
+&nbsp;&nbsp;  model.setValueAt(new IntType(100000), 3,4);</font></p>
+<p><font style="background-color: #ffffff">&nbsp;&nbsp;  model.setValueAt(new BooleanType(true), 3,5);<br>
+&nbsp;&nbsp;  model.setValueAt(new DoubleType(1.345325), 2, 4);</font></p>
+<p><font style="background-color: #ffffff">&nbsp;&nbsp;  model.setCellColSpan(1,1,2);<br>
+&nbsp;&nbsp;  model.setCellRowSpan(1,1,2);</font></p>
+<p><font style="background-color: #ffffff">&nbsp;&nbsp;  model.setRangeBorder(1,1,2,3);<br>
+&nbsp;&nbsp;  <br>
+//将该XTableModel赋给某个XTable的实例<br>
+XTable table = new XTable(model);<br>
+getContentPane().add(table,BorderLayout.CENTER);<br>
+<br>
+//设定该XTable的窗体容器<br>
+table.setFrame(this);</font></p>
+<p><font style="background-color: #ffffff">setSize(500,400);<br>
+setVisible(true);<br>
+}</font></p>
+<p><font style="background-color: #ffffff">public static void main(String args[])<br>
+{<br>
+&nbsp;&nbsp;&nbsp;  CellShower cell = new CellShower();<br>
+}<br>
+}</font></p>
+<p><br>
+<font style="background-color: #ffffff">运行这个例子，得到的表格如下：<br>
+</font></p>
+<p align="center"> </p>
+<p><font style="background-color: #ffffff" face="宋体">&nbsp;&nbsp;&nbsp;  XTable还有更为复杂的使用方法，比如实现一个自己的renderer或者Editor等，XTable良好的可编程特性给程序员提供了很多可扩展的功能。</font></p>
+<p><font face="宋体"><font style="background-color: #ffffff"><strong>4. 总结</strong><br>
+&nbsp;&nbsp;&nbsp;  在企业内部，很多数据都以表格的方式给出，而<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>在表格的表现方面有着很多的缺陷，因此我们设计并实现了这个比<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>更为强大的XTable，在整个设计中遵守了MVC的设计模式并且参考了<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>，使得XTable像<strong style="background-color: rgb(255,255,102); color: black">JTable</strong>一样易用而且可编程。最后实现完毕的XTable就是这样一个功能强大，简单易用而且可编程的购件，已经应用于商业程序的开发中。</font></font></p>
+<p><font style="background-color: #ffffff">=========================<br>
+</font></p>
+<pre><strong>edu.northwestern.at.utils.swing.XTable</strong></pre>
+<p><a href="http://wordhoard.northwestern.edu/userman/javadoc/edu/northwestern/at/utils/swing/XTable.html">http://wordhoard.northwestern.edu/userman/javadoc/edu/northwestern/at/utils/swing/XTable.html</a></p>
+</font></font></div></div></body></html>

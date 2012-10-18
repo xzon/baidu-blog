@@ -1,0 +1,83 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>水滴石穿C语言之static辨析     2007-07-27 21:21:50</title></head><body><h1>水滴石穿C语言之static辨析     2007-07-27 21:21:50</h1><div><a>水滴石穿C语言之static辨析</a>
+<div class="toggleLink" toggle="articleContentArea">
+<div>
+<div> </div>
+</div>
+</div>
+<div>
+<div class="middleSize">
+<div>
+<div class="postTitle"><a href="http://blog.csdn.net/CanvasHat/archive/2004/12/09/209927.aspx"><img border="0" width="15" height="13" src="http://blog.csdn.net/images/authorship.gif"><font color="#333333"> 水滴石穿C语言之static辨析</font></a></div>
+<div class="postText">　1、概述<br>
+<br>
+　　static 声明的变量在C语言中有两方面的特征：<br>
+<br>
+　　1)、变量会被放在程序的全局存储区中，这样可以在下一次调用的时候还可以保持原来的赋值。这一点是它与堆栈变量和堆变量的区别。<br>
+<br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="365" align="right">
+    <tbody>
+        <tr>
+            <td align="right"> </td>
+        </tr>
+        <tr>
+            <td> </td>
+        </tr>
+    </tbody>
+</table>
+　　2)、变量用static告知编译器，自己仅仅在变量的作用范围内可见。这一点是它与全局变量的区别。<br>
+<br>
+　　2、问题：Static的理解<br>
+<br>
+　　关于static变量，请选择下面所有说法正确的内容：<br>
+<br>
+　　A、若全局变量仅在单个C文件中访问，则可以将这个变量修改为静态全局变量，以降低模块间的耦合度；<br>
+<br>
+　　B、若全局变量仅由单个函数访问，则可以将这个变量改为该函数的静态局部变量，以降低模块间的耦合度；<br>
+<br>
+　　C、设计和使用访问动态全局变量、静态全局变量、静态局部变量的函数时，需要考虑重入问题；<br>
+<br>
+　　D、静态全局变量过大，可那会导致堆栈溢出。<br>
+<br>
+　　答案与分析：<br>
+<br>
+　　对于A，B：根据本篇概述部分的说明b)，我们知道，A,B都是正确的。<br>
+<br>
+　　对于C：根据本篇概述部分的说明a)，我们知道，C是正确的（所谓的函数重入问题，下面会详细阐述）。<br>
+<br>
+　　对于D：静态变量放在程序的全局数据区，而不是在堆栈中分配，所以不可能导致堆栈溢出，D是错误的。<br>
+<br>
+　　因此，答案是A、B、C。<br>
+<br>
+　　3、问题：不可重入函数<br>
+<br>
+　　曾经设计过如下一个函数，在代码检视的时候被提醒有bug，因为这个函数是不可重入的，为什么？<br>
+<br>
+<table border="1" bordercolor="#ffcc66" width="90%" bgcolor="#e6e4dd" align="center">
+    <tbody>
+        <tr>
+            <td>unsigned int sum_int( unsigned int base )<br>
+            {<br>
+            　unsigned int index;<br>
+            　static unsigned int sum = 0; // 注意，是static类型的。<br>
+            　for (index = 1; index &lt;= base; index++)<br>
+            　{<br>
+            　　sum += index;<br>
+            　}<br>
+            　return sum;<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　答案与分析：<br>
+<br>
+　　所谓的函数是可重入的（也可以说是可预测的），即：只要输入数据相同就应产生相同的输出。<br>
+<br>
+　　这个函数之所以是不可预测的，就是因为函数中使用了static变量，因为static变量的特征，这样的函数被称为：带&ldquo;内部存储器&rdquo;功能的的函数。因此如果我们需要一个可重入的函数，那么，我们一定要避免函数中使用static变量，这种函数中的static变量，使用原则是，能不用尽量不用。<br>
+<br>
+　　将上面的函数修改为可重入的函数很简单，只要将声明sum变量中的static关键字去掉，变量sum即变为一个auto 类型的变量，函数即变为一个可重入的函数。<br>
+<br>
+　　当然，有些时候，在函数中是必须要使用static变量的，比如当某函数的返回值为指针类型时，则必须是static的局部变量的地址作为返回值，若为auto类型，则返回为错指针。</div>
+</div>
+</div>
+</div></div></body></html>

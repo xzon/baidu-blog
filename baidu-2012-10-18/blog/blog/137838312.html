@@ -1,0 +1,75 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>#{...} not allowed in a template text body.</title></head><body><h1>#{...} not allowed in a template text body.</h1><div><p> #{...} not allowed in a template text body.&nbsp;&nbsp;&nbsp;</p>
+<p>1. 在JSP2.1以前，JSP编译器并不解析#{}表达式（不是保留的表达式），因为在之前的JSP中，EL表达式是${}来表示的； <br>
+&nbsp;&nbsp;  2. 正因为#{}不是JSP保留的表达式，所以在JSF中，EL表达式采用了#{}表示的； <br>
+&nbsp;&nbsp;  3. 同时，在Struts2中，OGNL（Object-Graph Navigation Language，一种功能强大的表达式语言）也是用#{}表示的； <br>
+&nbsp;&nbsp;  4. 而在JSP2.1规范中，SUN为了统一JSP与JSF的EL表达式语法，将#{}作为了保留的表达式（SUN号称在纯jsp中也能够直接引用JSF的managedBean），也就是说，采用JSP2.1规范的服务器会自动编译#{}表达式； <br>
+&nbsp;&nbsp;  5. jetty6和tomcat6采用的JSP2.1规范，而jetty5和tomcat5采用的是JSP2.0规范。 <br>
+<br>
+OK，问题似乎明朗了，使用jetty5和tomcat5就不会出现这个jsp编译错误。那么，如果我们需要使用jetty6或者tomcat6呢？ <br>
+<br>
+在采用JSP2.1规范的服务器（如jetty6和tomcat6）中，我们有两种方案来解决这个EL表达式的兼容问题： <br>
+&nbsp;&nbsp;  方案一：在web项目的web.xml中增加如下配置：</p>
+<div class="dp-highlighter">
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/286901#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<ol class="dp-j">
+    <li><span><span>&lt;jsp-property-group&gt; &nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp; &lt;url-pattern&gt;*.jsp&lt;/url-pattern&gt; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp; &lt;deferred-syntax-allowed-as-literal&gt;</span><span class="keyword"><strong><font color="#7f0055">true</font></strong></span><span>&lt;/deferred-syntax-allowed-as-literal&gt; &nbsp;&nbsp;</span></li>
+    <li><span>&lt;/jsp-property-group&gt;&nbsp;&nbsp;</span></li>
+</ol>
+</div>
+<pre class="java" style="display: none" name="code">&lt;jsp-property-group&gt;
+  &lt;url-pattern&gt;*.jsp&lt;/url-pattern&gt;
+  &lt;deferred-syntax-allowed-as-literal&gt;true&lt;/deferred-syntax-allowed-as-literal&gt;
+ &lt;/jsp-property-group&gt;</pre>
+<p><br>
+这需要使用servlet2.5规范，所以同时必须将web-app节点配置修改为：</p>
+<div class="dp-highlighter">
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/286901#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<ol class="dp-j">
+    <li><span><span>&lt;web-app id=</span><span class="string"><font color="#0000ff">&quot;KSOA3&quot;</font></span><span> version=</span><span class="string"><font color="#0000ff">&quot;2.5&quot;</font></span><span> xmlns=</span><span class="string"><font color="#0000ff">&quot;http://java.sun.com/xml/ns/j2ee&quot;</font></span><span> xmlns:xsi=</span><span class="string"><font color="#0000ff">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</font></span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp; xsi:schemaLocation=</span><span class="string"><font color="#0000ff">&quot;http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_5.xsd&quot;</font></span><span>&gt;&nbsp;&nbsp;</span></li>
+</ol>
+</div>
+<pre class="java" style="display: none" name="code">&lt;web-app id=&quot;KSOA3&quot; version=&quot;2.5&quot; xmlns=&quot;http://java.sun.com/xml/ns/j2ee&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+ xsi:schemaLocation=&quot;http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_5.xsd&quot;&gt;</pre>
+<p><br>
+&nbsp;&nbsp;  方案二：在使用了#{}表达式的jsp文件中，在@page中增加deferredSyntaxAllowedAsLiteral=&quot;true&quot;：</p>
+<div class="dp-highlighter">
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/286901#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<ol class="dp-j">
+    <li><span><span>&lt;%@ page contentType=</span><span class="string"><font color="#0000ff">&quot;text/html; charset=UTF-8&quot;</font></span><span> deferredSyntaxAllowedAsLiteral=</span><span class="string"><font color="#0000ff">&quot;true&quot;</font></span><span>%&gt;&nbsp;&nbsp;</span></span></li>
+</ol>
+</div>
+<pre class="java" style="display: none" name="code">&lt;%@ page contentType=&quot;text/html; charset=UTF-8&quot; deferredSyntaxAllowedAsLiteral=&quot;true&quot;%&gt;</pre>
+<p><br>
+由于方案一只需要修改一处配置，维护成本较低，所以推荐使用方案一。 <br>
+<br>
+使用了以上解决方案后，在采用JSP2.1规范的服务器中，一切运行正常。但由于采用JSP2.0规范的服务器（如tomcat5或jetty5）不能识别以上的这些配置信息，所以，如果在采用JSP2.0规范的服务器中也使用了这些配置，结果会很严重： <br>
+&nbsp;&nbsp;  1. JSP页面中的${}表达式不会被编译 <br>
+&nbsp;&nbsp;  2. 使用了#{}表达式的jsp页面渲染不成功 <br>
+<br>
+到目前为止，还没有既适合JSP2.1，又能兼容JSP2.0的配置，所以只能根据服务器采用的JSP规范版本来进行相应的配置。 <br>
+<br>
+参考： http://today.java.net/pub/a/today/2006/03/07/unified-jsp-jsf-expression-language.html#backwards-compatibility</p>
+<p>============================<br>
+ &lt;welcome-file-list&gt;<br>
+&nbsp;&nbsp; &lt;welcome-file&gt;index.jsp&lt;/welcome-file&gt;<br>
+ &lt;/welcome-file-list&gt;<br>
+ &lt;jsp-config&gt;<br>
+&nbsp;&nbsp; &lt;jsp-property-group&gt;<br>
+&nbsp;&nbsp;&nbsp; &lt;url-pattern&gt;*.jsp&lt;/url-pattern&gt;<br>
+&nbsp;&nbsp;&nbsp; &lt;deferred-syntax-allowed-as-literal&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp; true<br>
+&nbsp;&nbsp;&nbsp; &lt;/deferred-syntax-allowed-as-literal&gt;<br>
+&nbsp;&nbsp; &lt;/jsp-property-group&gt;<br>
+ &lt;/jsp-config&gt;<br>
+ &lt;login-config&gt;<br>
+&nbsp;&nbsp; &lt;auth-method&gt;BASIC&lt;/auth-method&gt;<br>
+ &lt;/login-config&gt;</p></div></body></html>

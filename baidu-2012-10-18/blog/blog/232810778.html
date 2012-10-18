@@ -1,0 +1,189 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>IOU 设计模式介绍及应用</title></head><body><h1>IOU 设计模式介绍及应用</h1><div><h1>IOU 设计模式介绍及应用</h1>
+<p>http://www.ibm.com/developerworks/cn/java/j-lo-iou/index.html</p>
+<div class="author"><a href="http://www.ibm.com/developerworks/cn/java/j-lo-iou/index.html#author1" rel="#authortip1" class="dwauthor">王 忠平</a>, 软件工程师, IBM</div>
+<div class="dwauthor-onload-state ibm-no-print" style="display: none;">
+<div>王忠平，软件工程师，目前在 IBM 上海中国系统技术实验室任职。</div>
+</div>
+<div class="author"><a href="http://www.ibm.com/developerworks/cn/java/j-lo-iou/index.html#author2" rel="#authortip2" class="dwauthor">何 平</a>, 软件工程师, IBM</div>
+<p><strong>简介：</strong>&#160;IOU（I Owe  You）设计模式是一种帮助管理和提高程序并发性的设计模式。该模式构思巧妙、设计灵活、简单直观而且不依赖于任何特定的并发机制，具有普遍的适用性。本 文介绍该模式的设计及其 Java 实现，并通过与 Java 动态代理机制的巧妙结合以获得更好的用户体验，最后通过示例帮助读者加深对该模式的理解。</p>
+<p><a name="major2"><span class="atitle">原理</span></a></p>
+<p>IOU 思想是人们在处理日常债务关系时行之有效的一种方法，即：</p>
+<ul>
+    <li>债务人通过可靠的第三方保管账户，向债权人发放 IOU 债务凭证；</li>
+    <li>债务人通过向第三方保管账户提交结果以终止 IOU 债务；</li>
+    <li>债权人凭此 IOU 债务凭证通过第三方保管账户履行债权并进行结果赎回。</li>
+</ul>
+<p>债务人和债权人之间的债务关系，通过可靠的第三方保管账户，实现了在时间和空间上最大程度的分离和解耦。</p>
+<p>IOU 设计模式是 IOU 思想在软件设计领域的应用，最早由 Allan Vermeulen 于 1996  年首次提出。在软件设计领域，债务关系发生在方法调用者和方法体之间，债务对象就是方法的返回结果。普通方法的调用模型是方法体同步执行然后返回结果，调 用者必须等待结果返回后才能继续执行。在 IOU 设计模式下，方法体将立即返回一个 IOU 对象，并且承诺 IOU 对象最终一定会被终止，调用者在  IOU 对象被终止后可进行结果的赎回。在此期间，调用者无需等待就能够继续进行其它有价值的事务，从而达到了提高程序整体的并发性和异步性的目的。</p>
+<p>IOU 设计模式完全不依赖于任何一种异步机制，IOU 对象的提供者可以选择任意有效的方式来执行服务并最终终止 IOU  对象，比如启用独立的线程/进程执行、驱动异步事件产生、通过远程方法调用或是等待用户终端输入等等。这是 IOU 模式具备普遍适用性的一个重要因素。</p>
+<p><a name="major3"><span class="atitle">IOU 模式分析及实现</span></a></p>
+<p>IOU 模式主要有 Iou（债务凭证）和 Escrow（第三方保管账户）两个对象，模式的实际使用时还会涉及 Caller（调用者）、Callee（被调用者）及 AsyncService（异步服务）等对象。</p>
+<p><a name="minor3.1"><span class="smalltitle">时序图</span></a></p>
+<p>通过时序图，读者可以建立对 IOU 模式使用过程的初步印象。</p>
+<br>
+<a name="fig1"><strong>图 1. IOU 模式时序图</strong></a><br>
+<img width="572" height="424" src="http://hiphotos.baidu.com/hxzon/pic/item/98e9fdf260225851b17ec545.jpg" alt="图 1. IOU 模式时序图">    <br>
+<p><a name="minor3.2"><span class="smalltitle">IOU 接口定义</span></a></p>
+<p>IOU 对象具备两种状态：一是未终止状态，意味着结果对象尚不可赎回；另一种是已终止状态，意味着结果对象可赎回。IOU 对象同时需支持四种基本操作：</p>
+<ol>
+    <li>支持对状态的查询操作；</li>
+    <li>支持等待操作直至其被终止；</li>
+    <li>支持对结果的赎回操作，若尚未终止则保持等待直至其被终止；</li>
+    <li>支持添加或删除回调对象的操作。</li>
+</ol>
+<p>IOU 接口定义见清单 1。</p>
+<br>
+<a name="listing1"><strong>清单 1. Iou 接口定义</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>public interface Iou <br>{ <br>    // 判断 IOU 对象是否已终止<br>    boolean closed(); <br>    <br>    // 保持等待直至被终止<br>    void standBy(); <br>    <br>    // 赎回结果，如果 IOU 对象尚未被终止则该方法将保持等待直至终止后再返回结果<br>    Object redeem(); <br>    <br>    // 添加回调对象 cb <br>    void addCallback(Callback cb); <br>    <br>    // 删除回调对象 cb <br>    void removeCallback(Callback cb); <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><a name="minor3.3"><span class="smalltitle">Escrow 接口定义</span></a></p>
+<p>Escrow 是第三方保管账户，它实际上扮演了一个桥梁作用。在债务关系建立初期，债务人通过 Escrow 向债权人发行  Iou；当债务关系结束时，债务人通过 Escrow 终止 Iou，并使其进入结果可赎回状态。如果债权人前期设置了回调对象，回调机制在 Iou  对象被终止时将立即执行债权人所提前设定的特定操作。Escrow 接口定义见清单 2。</p>
+<br>
+<a name="listing2"><strong>清单 2. Escrow 接口定义</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>public interface Escrow <br>{<br>    // 发行 Iou 对象<br>    Iou issueIou(); <br>    <br>    // 终止 Iou 对象，参数是最终结果<br>    void close(Object o); <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><a name="minor3.4"><span class="smalltitle">Callback 接口定义</span></a></p>
+<p>IOU 模式中的回调机制主要是为了提供一种当 Iou 对象进入结果可赎回状态时能够立即执行某些回调动作的能力。每个回调对象都需实现  Callback 接口，并向感兴趣的 Iou 对象进行注册。每个 Iou 对象都会维护一个 Callback 对象列表，每个 Callback  对象在该 Iou 对象被终止时都有机会在结果对象上执行回调操作。Callback 接口定义见清单 3。</p>
+<br>
+<a name="listing3"><strong>清单 3. Callback 接口定义</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>public interface Callback <br>{ <br>    // 在结果对象上执行回调任务<br>    void callback(Object o); <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><a name="minor3.5"><span class="smalltitle">IOU 模式的 Java 实现</span></a></p>
+<p>Iou 接口侧重于债权人的操作，而 Escrow 侧重于债务人的操作，两个接口由同一个类来实现可以让实现变得更加简洁高效，具体实现见清单 4。</p>
+<br>
+<a name="listing4"><strong>清单 4. RealIouEscrow 实现</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>public class RealIouEscrow implements Iou, Escrow <br>{ <br>    // Vector to hold all callbacks <br>    private Vector callbacks; <br>    // boolean indicate if IOU has been closed <br>    private boolean closed; <br>    // Object that I owe you <br>    private Object objectIou; <br>    <br>    public RealIouEscrow() <br>    { <br>        this.callbacks = new Vector(); <br>        this.closed = false; <br>    } <br>    <br>    public Iou issueIou() <br>    { <br>        // 直接返回对象本身，因为已经实现了 Iou 接口<br>        return this; <br>    }<br>    <br>    public synchronized void addCallback(Callback cb) <br>    { <br>        if( this.closed ) <br>        { <br>            // 若已经被终止，则直接回调<br>            cb.callback(this.objectIou); <br>        } <br>        else <br>        { <br>            // 否则，将回调对象加入列表<br>            this.callbacks.add(cb); <br>        } <br>    } <br>    <br>    public synchronized void removeCallback(Callback cb) <br>    { <br>        // 将回调对象从列表中删除<br>        this.callbacks.remove(cb); <br>    } <br>    <br>    public synchronized boolean closed() <br>    { <br>        return this.closed; <br>    } <br>    <br>    public synchronized Object redeem() <br>    { <br>        if( !this.closed ) <br>        { <br>            // 如果尚未被终止，保持等待<br>            standBy(); <br>        } <br>        return this.objectIou; <br>    } <br>    <br>    public synchronized void standBy() <br>    { <br>        if( !this.closed ) <br>        { <br>            try <br>            { <br>                wait(); <br>            } <br>            catch (InterruptedException e) <br>            { <br>            } <br>        } <br>    } <br>    <br>    public synchronized void close(Object o) <br>    { <br>        if( !this.closed ) <br>        { <br>            // 首先设置结果对象<br>            this.objectIou = o; <br>            // 然后设置终止标志位<br>            this.closed = true; <br>            // 接着唤醒等待线程<br>            this.notifyAll(); <br>            // 最后驱动回调者执行回调方法<br>            Iterator it = this.callbacks.iterator(); <br>            while(it.hasNext()) <br>            { <br>                Callback callback = (Callback)it.next(); <br>                callback.callback(this.objectIou); <br>            } <br>        } <br>    } <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><a name="minor3.6"><span class="smalltitle">IOU 模式的使用</span></a></p>
+<p>从被调方法的角度：首先构造 Escrow 对象，然后启动异步执行服务并关联 Escrow 对象，最后返回 Escrow 对象发行的 Iou 对象。被调方法模型如清单 5 所示。</p>
+<br>
+<a name="listing5"><strong>清单 5. 被调方法的实现模型</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>public Iou method( … ) <br>{ <br>    // 首先创建 escrow 对象<br>    Escrow escrow = new RealIouEscrow(); <br>        <br>    // 启动异步服务，并关联 escrow 对象<br>    ……<br>        <br>    // 返回 escrow 发行的 Iou 欠条<br>    return escrow.issueIou(); <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>从方法调用者的角度：调用者获得 Iou 对象后，可以继续进行其他事务，直到需要结果的时候再对 Iou  进行赎回操作以获得真正结果（假设其真实类型是 Foo 接口，该接口声明有 bar 方法），则调用者还要把结果转换到 Foo 类型，然后再调用  bar 方法。调用者模型如清单 6 所示。</p>
+<br>
+<a name="listing6"><strong>清单 6. 调用者的实现模型</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>    // 调用 method 方法，获得 Iou 对象<br>    Iou iou = method(); <br>        <br>    // 执行其他事务<br>    …… <br>        <br>    // 通过 Iou 赎回操作获得真实 result <br>    Object result = iou.redeem(); <br>        <br>    // 将 result 类型转换到 Foo <br>    Foo foo = (Foo)result; <br>    // 然后访问 bar 方法<br>    foo.bar(); <br>    ……</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><a name="minor3.7"><span class="smalltitle">IOU 模式的不足之处</span></a></p>
+<p>由于 Escrow 发行的都是 Iou 对象，这在无意间要求 IOU 模式下的方法必须统一声明返回 Iou  接口，从而隐藏了结果的真实类型，用户必须依靠记忆记住真实类型并强制转换，然后才能访问结果。用户友好性的先天不足，或许是限制 IOU  模式广泛使用的一大因素。</p>
+<p><a name="major4"><span class="atitle">双剑合璧：IOU 模式结合 Java 动态代理</span></a></p>
+<p><a name="minor4.1"><span class="smalltitle">鱼和熊掌可否兼得</span></a></p>
+<p>理想的情况下，用户会希望 IOU  模式下方法的返回类型依然是真实类型。似乎是“鱼和熊掌不可兼得”式的矛盾，因为根据传统的观点，一个方法是无法返回两种类型的（尤其当两种类型又无必然 的联系时）。但是，Java 动态代理机制给我们带来了希望（本文假设读者对 Java 动态代理机制已经有所了解，不了解的读者请查阅相关资料）。通过  Java  动态代理机制，我们能够动态地为一组目标接口（允许是任意不相关的接口）创建代理对象，该代理对象将同时实现所有接口。运用在这里，我们就能够创建一个即 是 Iou 类型又是目标接口类型的代理对象，所以它能被安全地从 Iou 类型转换到目标接口类型并返回。这样就消除了传统 IOU  模式下方法返回类型的限制，我们称此为扩展 IOU 模式。</p>
+<p><a name="minor4.2"><span class="smalltitle">扩展 IOU 模式的 Java 实现</span></a></p>
+<p>Java 动态代理的核心是将代理对象上的方法调用统统分派转发到一个 InvocationHandler  对象上进行处理，为此，我们需要在 RealIouEscrow 基础再实现一个 InvocationHandler  接口。当用户调用目标接口的任何方法时，都会自动转发到 InvocationHandler 接口的 invoke 方法上执行。在 invoke  方法内部，我们可以及时地进行赎回操作以获得真实结果，然后再通过反射调用相应方法来访问真实结果的属性或功能。对调用者而言，进行赎回操作时可能的等待 是完全透明的，最终效果完全等价于直接在真实结果上调用某同步方法。RealIouEscrowEx 类实现见清单 7。</p>
+<br>
+<a name="listing7"><strong>清单 7. RealIouEscrowEx 类实现</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>public class RealIouEscrowEx extends RealIouEscrow implements InvocationHandler <br>{ <br>    // IOU 结果类的类型对象<br>    private Class type; <br>    <br>    public RealIouEscrowEx(Class type) throws IllegalArgumentException <br>    { <br>        if( type == null || !type.isInterface() ) <br>        { <br>            throw new IllegalArgumentException(&quot;Unsupport non-interface type.&quot;); <br>        } <br>        this.type = type; <br>    } <br><br>    public Iou issueIou() <br>    { <br>        // 返回代理对象，该代理对象同时代理类 Iou 接口类型和结果接口类型<br>        return (Iou)Proxy.newProxyInstance(Iou.class.getClassLoader(), <br>            new Class[] {type, Iou.class}, <br>            this); <br>    } <br><br>    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable <br>    { <br>        Object obj; <br>        if( method.getDeclaringClass() == Iou.class ) <br>        { <br>            // 如果方法来自于 Iou 类声明，则将本 IOU 对象设为反射执行的目标对象<br>            obj = this; <br>        } <br>        else <br>        { <br>            // 调用非 Iou 类的方法，检查此 IOU 对象是否已经终止，未终止则保持等待直至终止<br>            if( !this.closed() ) <br>            { <br>               this.standBy(); <br>            } <br>            // 赎回结果对象，并设为反射执行的目标对象<br>            obj = this.redeem(); <br>        } <br>        // 在目标对象上执行 invoke 调用<br>        return method.invoke(obj, args); <br>    } <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>扩展 IOU 模式带来了更好的用户体验，在使用方法上也有所改进。清单 5 和清单 6 改进后的实现分别是清单 8 和清单 9。</p>
+<br>
+<a name="listing8"><strong>清单 8. 被调方法的实现模型（改进后）</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>public Foo method( … ) <br>{ <br>    // 首先创建扩展的 escrow 对象 , 指定结果类型为 Foo <br>    Escrow escrow = new RealIouEscrowEx(Foo.class); <br>        <br>    // 启动异步服务，并关联扩展 escrow 对象<br>    ……<br>        <br>    // 发行 escrow 发行的 Iou 欠条，这里可以安全的类型转换到 Foo 再返回<br>    return (Foo)escrow.issueIou(); <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<br>
+<a name="listing9"><strong>清单 9. 调用者的实现模型（改进后）</strong></a><br>
+<pre class="displaycode"><br>    // 调用 method 方法，获得 Foo 对象（其实是一<br>    // 个同时代理了 Iou 接口和 Foo 接口的代理对象）<br>    Foo foo = method(); <br>        <br>    // 执行其他事务<br>    …… <br>        <br>    // 可以直接在 foo 上调用 bar，效果完全等<br>    // 价于在真正的返回对象上调用 bar 方法<br>    foo.bar() <br>        <br>    ……</pre>
+<p><a name="major5"><span class="atitle">实例演示</span></a></p>
+<p>接下来通过一个实例来演示 IOU 设计模式的实际应用，例子描述了一位女管家如何通过 IOU 模式来更加有效地处理家务的故事。</p>
+<p>涉及的接口有：顶层接口 Processable 及其子接口 Clothes 和 Food。Processable 接口声明了  process 方法，子接口 Food 声明了 addSpice 方法。Clothes 经过清洗（process）变得干净；Food  经过烹饪（process）变得可食用，而且 Food 还能够添加调味香料（addSpice）。具体实现类为 ChothesImpl 和  FoodImpl。</p>
+<p>涉及的异步服务类是 AsyncService，它以异步方式处理 Processable 对象并调用其 process  方法，并且最后会终止 Escrow 对象以结束 Iou 债务。实例中的 AsyncService  是以后台线程为载体，但是实际应用中用户可以选择任意的异步机制。</p>
+<p>最后的女管家类是 HouseKeeper。她需要进行的家务包括洗衣、做饭及其他，其中可以并行执行是洗衣和做饭，因为有洗衣机和电饭煲可以帮忙，剩下的则必须一件一件地进行。具体实现见清单 10。</p>
+<br>
+<a name="listing10"><strong>清单 10. HouseKeeper 类</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>public class HouseKeeper <br>{ <br>    public static void main(String args[]) <br>    { <br>        // 初始化待处理的衣服和食物对象<br>        Clothes clothesToWash = new ClothesImpl(); <br>        Food foodToCook = new FoodImpl(); <br>        <br>        // 设定洗衣事务<br>        Iou iou = wash(clothesToWash); <br>        // 继续做其他事情<br>        doSomethingOther(); <br>        // 设定烹饪事务<br>        Food foodCooked = cook(foodToCook); <br>        // 继续做其他事情<br>        doSomethingOther(); <br>        // 开始享用食物<br>        eat(foodCooked); <br>        // 开始晾晒衣服<br>        hangout(iou); <br>    } <br>    <br>    private static Iou wash(Clothes clothes) <br>    { <br>        logger(&quot;Schedule a task to wash &quot; + clothes); <br>        // 构造 Escrow 对象<br>        Escrow escrow = new RealIouEscrow(); <br>        // 启动后台洗衣服务<br>        AsyncService service = new AsyncService(&quot;wash clothes&quot;, clothes, escrow); <br>        service.start(); <br>        // 随即通过 Escrow 对象发行一个传统的 Iou <br>        return escrow.issueIou(); <br>    } <br>    <br>    private static Food cook(Food food) <br>    { <br>        logger(&quot;Schedule a task to cook &quot; + food); <br>        // 构造扩展 Escrow 对象，并关联 Food 接口类型<br>        Escrow escrow = new RealIouEscrowEx(Food.class); <br>        // 启动后台烹饪服务<br>        AsyncService service = new AsyncService(&quot;cook food&quot;, food, escrow); <br>        service.start(); <br>        // 随即通过扩展 Escrow 对象发行一个扩展 Iou <br>        // 它可以被安全地类型装换到 Food 类型<br>        return (Food)escrow.issueIou(); <br>    } <br>    <br>    private static void eat(Food food) <br>    { <br>        logger(&quot;Be about to eat food...add some spice first...&quot;); <br>        // 演示在扩展 Iou 对象上执行方法（效果等价于在真实结果上调用该方法）<br>        food.addSpice(); <br>        logger(food + &quot; is eaten.&quot;); <br>    } <br>    <br>    private static void hangout(Iou iou) <br>    { <br>        logger(&quot;Be about to hang out clothes...&quot;); <br>        // 演示在传统 Iou 对象上的检查、等待并赎回结果<br>       if( !iou.closed() ) <br>        { <br>            logger(&quot;Clothes are not ready, stand by...&quot;); <br>            iou.standBy(); <br>        } <br>        Object clothes = iou.redeem(); <br>        logger(clothes + &quot; are hung out.&quot;); <br>    } <br>    <br>    ……<br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>程序的最终执行输出见清单 11。</p>
+<br>
+<a name="listing11"><strong>清单 11. 程序输出</strong></a><br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode"><br>[Mon Sep 14 13:33:41 CST 2009] Schedule a task to wash 'Dirty' clothes <br>    &gt;&gt;&gt; Starting to wash clothes <br>[Mon Sep 14 13:33:42 CST 2009] Do something other [442 millis] <br>[Mon Sep 14 13:33:42 CST 2009] Schedule a task to cook 'Uncooked' food <br>    &gt;&gt;&gt; Starting to cook food <br>[Mon Sep 14 13:33:42 CST 2009] Do something other [521 millis] <br>[Mon Sep 14 13:33:42 CST 2009] Be about to eat food...add some spice first... <br>    &gt;&gt;&gt; Object is not ready, stand by at calling addSpice() <br>    &lt;&lt;&lt; Finished wash clothes [1162 millis] <br>    &lt;&lt;&lt; Finished cook food [889 millis] <br>    &lt;&lt;&lt; Object is ready, continue from calling addSpice() <br>    &gt;&gt;&gt; Adding spice... <br>    &lt;&lt;&lt; Spice is added. <br>[Mon Sep 14 13:33:43 CST 2009] 'Cooked' food is eaten. <br>[Mon Sep 14 13:33:43 CST 2009] Be about to hang out clothes... <br>[Mon Sep 14 13:33:43 CST 2009] 'Clean' clothes are hung out.</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>来分析一下程序的执行情况：女管家在安排了洗衣事务后，继续做了 442 毫秒的其他事情，接着她又安排了烹饪事务，完后又做了 521  毫秒的其他事情，然后她打算开始享用食物（IOU 模式的魔力：女管家以为 cook  方法返回的“食物”是已经做好的），当她向食物上添加美味的调味品时，奇妙的事情发生了，扩展的 IOU  模式开始发挥作用，它会发现食物其实没有真正做好，于是在食物 Iou 对象上保持等待直至其被终止并可赎回（数据显示烹饪事务实际总耗时 889  毫秒），然后才执行真正的添加调味品动作，之后控制权又回到了女管家（女管家对之前的等待过程浑然不知，因为在她看来仅仅是一个普通的方法调用），女管家 最终美美地享用了美味的食物，接着她开始晾晒衣服，这次衣服 Iou  对象的赎回进行得相当顺利，因为洗衣事务的确已经顺利完成了。在整个过程中，我们看到有若干事务在并行进行，却只有一个等待过程，而这唯一的等待过程也在  Java 动态代理机制下实现了对女管家的完全透明，这就是融合了动态代理机制后的扩展 IOU 模式的魅力所在。</p>
+<p><a name="major6"><span class="atitle">总结</span></a></p>
+<p>IOU 模式在帮助提高程序的并发性方面有着非常独到的作用，而引入了动态代理机制支持的扩展 IOU 模式又融入了更加友好的用户体验，两者相得益彰，可谓珠联璧合。</p>
+<ul>
+    <li>Allan Vermeulen 的文章“<a href="http://www.ddj.com/184409898">An Asynchronous Design Pattern</a>”：了解 IOU 模式的基础知识。</li>
+    <li>Allan Vermeulen 的文章“<a href="http://www.ddj.com/cpp/184403633">Using Asynchronous Calls in COM</a>”：了解如何在实际应用中运用 IOU 模式。</li>
+    <li>“<a href="http://www.ibm.com/developerworks/cn/java/j-lo-proxy1/">Java 动态代理机制分析及扩展，第 1 部分</a>”：阅读本系列的第一部分。</li>
+</ul>
+<p> </p></div></body></html>

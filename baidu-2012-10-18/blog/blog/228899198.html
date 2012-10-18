@@ -1,0 +1,97 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Jetty 6 Architecture</title></head><body><h1>Jetty 6 Architecture</h1><div><div>
+<p> </p>
+<p>Jetty 6 Architecture</p>
+<p><a href="http://docs.codehaus.org/display/JETTY/Architecture">http://docs.codehaus.org/display/JETTY/Architecture</a></p>
+<h1>Jetty 6 Architecture</h1>
+<h2><a name="Architecture-Viewfrom20,000feet"></a>View from 20,000 feet</h2>
+<p><span class="image-wrap"><img style="border-bottom: black 0px solid; border-left: black 0px solid; border-top: black 0px solid; border-right: black 0px solid" src="http://hiphotos.baidu.com/hxzon/pic/item/7f258a5490ae395f3b29354f.jpg"></span></p>
+<p>The Jetty <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/Server.html">Server</a> is the plumbing between a collection of <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/Connector.html">Connector</a>s that accept <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/HttpConnection.html">HTTP connections</a>, and a collection of <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/Handler.html">Handler</a>s that service <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/Request.html">request</a>s from the connections and produce <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/Response.html">response</a>s, with the work being done by threads taken from a <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/thread/ThreadPool.html">thread pool</a>.</p>
+<div class="panelMacro">
+<table class="infoMacro FCK__ShowTableBorders">
+    <colgroup><col width="24"></col><col></col></colgroup>
+    <tbody>
+        <tr>
+            <td valign="top"><img border="0" align="absMiddle" width="16" height="16" src="http://hiphotos.baidu.com/hxzon/pic/item/5f44f61f3c69e4b5e1fe0b4f.jpg"></td>
+            <td>While the jetty request/responses are derived from the <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/apidocs/javax/servlet/package-summary.html">Servlet API</a>, the full features of the servlet API are only available if the appropriate handlers are configured. For example, the session API on the request is inactive unless the request has been passed to a <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/servlet/SessionHandler.html">Session Handler</a>. The concept of a Servlet itself is implemented by a <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/servlet/ServletHandler.html">Servlet Handler</a>. If servlets are not required, there is very little overhead in the use of the servlet request/response APIs
+            <p>Thus a Jetty server may be built using simply connectors and handlers, but without using Servlets.</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>The job of configuring jetty is the job of building a network of connectors and handlers and providing their individual configurations. As Jetty components are simply Plain Old Java Objects (POJOs) this assembly and configuration of components can be done by a variety of techniques:</p>
+<ul>
+    <li>In code. See the examples in the <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/example/package-summary.html">org.mortbay.jetty.example</a> package.</li>
+    <li>With <a title="jetty.xml" href="http://docs.codehaus.org/display/JETTY/jetty.xml">jetty.xml</a> - dependency injection style XML format.</li>
+    <li>With your dependency injection framework of choice: <span class="error">[Spring]</span> or <span class="error">[XBean]</span></li>
+    <li>Deployers: <a title="WebAppDeployer" href="http://docs.codehaus.org/display/JETTY/WebAppDeployer">WebAppDeployer</a>, <a title="ContextDeployer" href="http://docs.codehaus.org/display/JETTY/ContextDeployer">ContextDeployer</a></li>
+</ul>
+<h2><a name="Architecture-Patterns"></a>Patterns</h2>
+<p><span class="image-wrap"><img style="border-bottom: black 0px solid; border-left: black 0px solid; border-top: black 0px solid; border-right: black 0px solid" src="http://hiphotos.baidu.com/hxzon/pic/item/f1832bf5e8be5065bd31094f.jpg"></span></p>
+<p>The implementation of Jetty follows some fairly standard patterns. Most abstract concepts such as Connector, Handler and Buffer are captured by interfaces. Generic handling for those interfaces is then provided in an Abstract implementation such as <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/AbstractConnector.html">AbstractConnector</a>, <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/handler/AbstractHandler.html">AbstractHandler</a> and <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/io/AbstractBuffer.html">AbstractBuffer</a>.</p>
+<p>The JSR77 inspired life cycle of most jetty components is represented by <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/component/LifeCycle.html">LifeCycle</a> interface and the <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/component/AbstractLifeCycle.html">AbstractLifeCycle</a> implementation used as the base of many Jetty components.</p>
+<p>Jetty provides is own <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/io/package-summary.html">IO Buffering</a> abstract over String, byte arrays and NIO buffers. This allows for greater portability of Jetty as well as hiding some of the complexity of the NIO layer and it's advanced features.</p>
+<h2><a name="Architecture-Connectors"></a>Connectors</h2>
+<p><span class="image-wrap"><img style="border-bottom: black 0px solid; border-left: black 0px solid; border-top: black 0px solid; border-right: black 0px solid" src="http://hiphotos.baidu.com/hxzon/pic/item/2b549f25b671952035a80f4f.jpg"></span></p>
+<div class="panelMacro">
+<table class="infoMacro FCK__ShowTableBorders">
+    <colgroup><col width="24"></col><col></col></colgroup>
+    <tbody>
+        <tr>
+            <td valign="top"><img border="0" align="absMiddle" width="16" height="16" src="http://hiphotos.baidu.com/hxzon/pic/item/779b5a6038e8979f8cb10d4f.jpg"></td>
+            <td>This diagram is a little out of date, as a <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/io/Connection.html">Connection</a> interface has been extracted out of HttpConnector to allow support for the <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/ajp/package-summary.html">AJP protocol</a></td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p>The connectors represent the protocol handlers that accept connections, parse requests and generate responses. The different types of connectors available are based on the protocols , scheduling model and IO APIs used:</p>
+<ul>
+    <li><a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/bio/SocketConnector.html">SocketConnector</a> - for few busy connections or when NIO is not available.</li>
+    <li><a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/nio/BlockingChannelConnector.html">BlockingChannelConnector</a> - for few busy connections when NIO is available</li>
+    <li><a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/nio/SelectChannelConnector.html">SelectChannelConnector</a> - for many mostly idle connections or asynchronous handling of Ajax requests.</li>
+    <li><a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/security/SslSocketConnector.html">SslSocketConnector</a> - SSL without NIO</li>
+    <li><a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/security/SslSelectChannelConnector.html">SslSelectChannelConnector</a> - SSL with non blocking NIO support.</li>
+    <li><a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/ajp/Ajp13SocketConnector.html">AJPConnector</a> AJP protocol support for connections from apache mod_jk or mod_proxy_ajp</li>
+</ul>
+<h2><a name="Architecture-Handlers"></a>Handlers</h2>
+<p><span class="image-wrap"><img style="border-bottom: black 0px solid; border-left: black 0px solid; border-top: black 0px solid; border-right: black 0px solid" src="http://hiphotos.baidu.com/hxzon/pic/item/ff0258df83f102534854034f.jpg"></span></p>
+<p>The <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/Handler.html">Handler</a> is the component that deals with received requests. The core API of a handler is the handle method:</p>
+<div style="border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; border-left-width: 1px" class="code panel">
+<div class="codeContent panelContent">
+<pre class="code-java"><span class="code-keyword">public</span> void handle(<span class="code-object">String</span> target, HttpServletRequest request, HttpServletResponse response, <span class="code-object">int</span> dispatch)
+    <span class="code-keyword">throws</span> IOException, ServletException;</pre>
+</div>
+</div>
+<p>An implementation of this method may handle the request, pass the request onto another handler (or servlet) or may modify and/or wrap the request and then pass it on. This gives three styles of Handler:</p>
+<ol>
+    <li>Coordinating Handlers - Handlers that route requests to other handlers (eg <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/handler/HandlerCollection.html">HandlerCollection</a>, <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/handler/ContextHandlerCollection.html">ContextHandlerCollection</a>)</li>
+    <li>Filtering Handlers - Handlers that augment a request and pass it on to other handlers (eg. <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/handler/HandlerWrapper.html">HandlerWrapper</a>, <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/handler/ContextHandler.html">ContextHandler</a>, <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/servlet/SessionHandler.html">SessionHandler</a>)</li>
+    <li>Generating Handlers - Handlers that produce content (eg <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/handler/ResourceHandler.html">ResourceHandler</a> and <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/servlet/ServletHandler.html">ServletHandler</a>)</li>
+</ol>
+<p>See also <a title="Writing a Jetty Handler" href="http://docs.codehaus.org/display/JETTY/Writing+a+Jetty+Handler">Writing a Jetty Handler</a>.</p>
+<h2><a name="Architecture-Servlets"></a>Servlets</h2>
+<p><span class="image-wrap"><img style="border-bottom: black 0px solid; border-left: black 0px solid; border-top: black 0px solid; border-right: black 0px solid" src="http://hiphotos.baidu.com/hxzon/pic/item/461bcd135914c063dc54014f.jpg"></span></p>
+<p>The <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/servlet/ServletHandler.html">ServletHandler</a> is a Handler that generates content by passing the request to any configured <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/javax/servlet/Filter.html">Filter</a>s and then to a <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/javax/servlet/Servlet.html">Servlet</a> mapped by a URI pattern.</p>
+<p>A ServletHandler is normally deployed within the scope of a servlet <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/servlet/Context.html">Context</a>, which is a ContextHandler that provides convenience methods for mapping URIs to servlets.</p>
+<p>Filters and Servlets may also use a <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/javax/servlet/RequestDispatcher.html">RequestDispatcher</a> to reroute a request to another context or another servlet in the current context.</p>
+<h2><a name="Architecture-Context"></a>Context</h2>
+<p>Contexts are handlers that group other handlers below a particular URI context path or a virtual host. Typcially a context may have :</p>
+<ul>
+    <li>A context path that defines which requests are handled by the context (eg /myapp )</li>
+    <li>A resource base for static content (a docroot)</li>
+    <li>A class loader to obtain classes specific to the context (typically docroot/WEB-INF/classes)</li>
+    <li>Virtual host names</li>
+</ul>
+<p>Contexts implementations include:</p>
+<ul>
+    <li><a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/handler/ContextHandler.html">ContextHandler</a></li>
+    <li>Servlet <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/servlet/Context.html">Context</a></li>
+    <li>or a <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/webapp/WebAppContext.html">Web Application Context</a>.</li>
+</ul>
+<p>A web application context combines handlers for security, session and servlets in a single unit that can be configured with a web.xml descriptor.</p>
+<h2><a name="Architecture-WebApplications"></a>Web Applications</h2>
+<p><span class="image-wrap"><img style="border-bottom: black 0px solid; border-left: black 0px solid; border-top: black 0px solid; border-right: black 0px solid" src="http://hiphotos.baidu.com/hxzon/pic/item/82fe0f23cf149f0e9358074f.jpg"></span></p>
+<p>A <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/webapp/WebAppContext.html">WebAppContext</a> is a derivation of the servlet <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/servlet/Context.html">Context</a> that supports the standardized layout of a web application and configuration of session, security, listeners, filter, servlets and JSP via a web.xml descriptor normally found in the WEB-INF directory of a webapplication.</p>
+<p>Essentially the WebAppContext is a convenience class to assist the construction and configuration of other handlers to achieve a standard web application configuration.</p>
+<p>Configuration is actually done by pluggable implementations of the <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/webapp/Configuration.html">Configuration</a> class and the prime among these is <a class="external-link" rel="nofollow" href="http://jetty.mortbay.org/xref/org/mortbay/jetty/webapp/WebXmlConfiguration.html">WebXmlConfiguration</a></p>
+</div></div></body></html>

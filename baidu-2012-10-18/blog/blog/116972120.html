@@ -1,0 +1,158 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>2.4  全程跟踪Rails的运行 ;2.2  分析Rails的MVC实现</title></head><body><h1>2.4  全程跟踪Rails的运行 ;2.2  分析Rails的MVC实现</h1><div><p style="margin: 7.5pt 0cm" class="11">2.4 全程跟踪Rails的运行</p>
+<p style="text-indent: 20pt" class="MsoNormal">你已经看到了框架帮助组织应用的方式，也看到了Rails实现MVC概念的方式。也经历了编写和运行Rails应用的过程&mdash;&mdash;虽然是一个简单的应用，但是涉及了三个主要步骤。</p>
+<p style="text-indent: 20pt" class="MsoNormal">为圆满结束对Rails工作原理的解释，我们将详细分析Web客户端向Rails应用发出请求时会发生什么。这涉及Web服务器、几个辅助的脚本以及Rails应用自动获得的程序。尽管在当前这个例子中使用了WEBrick，我们还是要分析为Rails应用设置Apache服务器时所涉及的基本内容。这个过程要复杂一些&mdash;&mdash;这是没有在当前的例子中这么做的原因，也是它包含关于整个请求处理过程如何运作的有用信息的原因。</p>
+<p style="text-indent: 20pt" class="MsoNormal">监听进入Rails应用的请求并作出响应的过程可以划分为几个阶段：Web服务器与分发器（是一个Ruby程序）对话；分发器唤醒一个合适的控制器并请求该控制器（也是一个Ruby程序）执行一个特定的动作；执行该动作；基于控制器动作中产生的计算和数据操作来填充视图。我们将逐一地检查每一个阶段。</p>
+<p style="text-indent: 20pt" class="MsoNormal">在阅读的过程中，你可能需要参考图2-3，它给出了Rails请求处理过程的框图。</p>
+<p style="text-indent: 20pt" class="MsoNormal">图2-3用发到RCRchive（Ruby更改请求）站点的一个URL作为例子；该URL触发在客户端浏览器中显示RCR#231。请注意该图是示意性的；从一个步骤指向另一个步骤的箭头指示的是顺序，而不是信息传递的技术。尽管如此，作为一个理解该过程基本步骤可见的起点，该图有助于你继续学习本节的剩余内容。</p>
+<p style="text-indent: -30.6pt; margin: 7.5pt 0cm 7.5pt 30.6pt" align="center"><img width="555" height="330" src="http://book.csdn.net/BookFiles/393/img/image165.jpg"></p>
+<p style="text-indent: -30.6pt; margin: 7.5pt 0cm 7.5pt 30.6pt" align="center">图2-3 典型的Rails输入请求处理涉及的步骤流程图</p>
+<p style="margin: 7.5pt 0cm" class="111">2.4.1 阶段1：服务器到分发器</p>
+<p style="text-indent: 20pt" class="MsoNormal">Web服务器，Apache、lightTPD或别的可能已经安装在系统中的服务器，从浏览器接收请求。服务器的配置使得服务器将请求传递给Rails应用。服务器并不知道Rails是什么；它只是做预先设定要做的输入请求的重定向（redirecting）或偏向（deflecting）工作。</p>
+<p style="text-indent: 20pt" class="MsoNormal">举例来说，为将Apache服务器导向Rails应用的目录，将下面的代码写入Apache配置文件中：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="365" height="62" src="http://book.csdn.net/BookFiles/393/img/image166.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">（当然，你需要注册域名r4rmusic.com并将其指向你的站点。）现在，用类似下面的URL：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="152" height="10" src="http://book.csdn.net/BookFiles/393/img/image167.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">或下面这个典型的Rails风格的URL：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="222" height="10" src="http://book.csdn.net/BookFiles/393/img/image168.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">来连接这个服务器时，Apache会将目录/usr/loacl/share/railsapps/r4rmusic/public看作该请求的目录。不同Web服务器的处理过程略有不同，但是为了说明，我们还是坚持用Apache。</p>
+<p style="text-indent: 20pt" class="MsoNormal">当Apache服务器指向一个目录时，它会在该目录下面查找一个名为.htaccess的文件。这样一个文件可在任何Rails应用的public目录下找到。该文件的工作是触发分发器（dispatcher，负责让Rails应用执行某些操作的小程序）的执行。</p>
+<p style="text-indent: 20pt" class="MsoNormal">可以在r4rmusic的public子目录下看到这个分发器（事实上，可看到好几个分发器，你的应用所使用的分发器是可以配置的）。</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="274" height="36" src="http://book.csdn.net/BookFiles/393/img/image170.jpg"></p>
+<p style="text-indent: 20pt" class="MsoNormal">就概述的目的来说，调用哪一个分发器并不重要。重要的是调用了三个分发器程序中的一个。</p>
+<p style="margin: 5.25pt 0cm" class="111">2.4.2 阶段2：分发器到控制器</p>
+<p style="text-indent: 20pt" class="MsoNormal">分发器的工作是分发请求&mdash;&mdash;即将请求发送给合适的控制器。控制器是Rails应用中执行任务的子程序。它们到后端的数据库中去获取数据，进行搜索和排序，测试密码是否匹配，等等。一般来说，一个Rails应用有多个控制器，每个控制器可以执行多个动作。举例来说，你可能有一个customer控制器，它可以执行登录、注销（编辑轮廓文件）以及其他动作。</p>
+<p style="text-indent: 20pt" class="MsoNormal">分发器如何知道应该调用哪个控制器，以及调用控制器请求的哪个动作？它是通过分析输入的URL知道的。更准确地说，在URL经过一个内部的转换和翻译后，它从URL中提取出正确的控制器和动作。用户连接的URL包含了触发正确的应用响应所必需的指令，但首先需要解释这些指令。这些都是自动发生的（但是如果很复杂，就需要人工设置URL解释规则）。</p>
+<p style="text-indent: 20pt" class="MsoNormal">所有这些对URL的重写和解释的结果是，Rails分发器获得了三个信息，两个是必需的，一个是可选的：</p>
+<p class="a2">控制器的名字；</p>
+<p class="a2">动作的名字；</p>
+<p class="a2">请求的id的值。</p>
+<p style="text-indent: 0cm" class="MsoNormal">这些值确定之后，输入请求的自动处理和你作为应用开发者所做的工作就连在一起了。下面将介绍分发器将控制向前传递后所发生的事情。</p>
+<p style="margin: 7.5pt 0cm" class="111">2.4.3 阶段3：执行控制器动作</p>
+<p style="text-indent: 20pt" class="MsoNormal">当执行合适的控制器中合适的动作时，就会自动访问以下内容：</p>
+<p class="a2">CGI数据，包含来自提交的表单中的数据（通过内建的params方法）；</p>
+<p class="a2">控制器的会话信息（通过内建的会话方法）。</p>
+<p style="text-indent: 0cm" class="MsoNormal">CGI变量和它们的值可以通过Rails内建的params方法得到。举例来说，为了得到表单中email输入字段的值，可以像下面这样调用params:</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="86" height="9" src="http://book.csdn.net/BookFiles/393/img/image172.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">或者，如果值被保存在更深的嵌套结构中，你可以像下面这样调用params:</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="131" height="9" src="http://book.csdn.net/BookFiles/393/img/image173.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">（params返回一个散列：一个组织成键/值对集合的数据结构，可以通过键访问值。在params中的一些值可能是内部的或嵌套的散列，例如params[:user]。关于这些散列数据结构如何工作的详细信息，在第11章讨论集合和容器对象时，会进行解释）。</p>
+<p style="text-indent: 20pt" class="MsoNormal">控制器用这种方式得到的CGI数据包含一个id条目。该条目的值自动设置为规范的Rails URL中的第三个元素。举例来说，假设输入的URL类似下面这样（或者是基于某种当前有效的重写和路由规则翻译成这样）：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="228" height="10" src="http://book.csdn.net/BookFiles/393/img/image174.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">正如在2.3.3节所看到的那样，show动作通过使用params[:id]表达式，获取CGI变量id的值。由于&ldquo;12&rdquo;出现在URL中合适的字段，该变量的值将自动设置为&ldquo;12&rdquo;。show动作使用该值来确定显示哪一个作品，即id号是12的作品。</p>
+<p style="text-indent: 20pt" class="MsoNormal">controller动作也可以访问它自身的会话信息。Rails应用可以缓存本次激活的信息给下一次激活使用。这是很方便的，举例来说，可以使客户在浏览一个站点时，不需要在每次到达站点的不同部分时重新登录。登录状态在会话缓存中维护，并做合法性检查。动作可以设置会话中的值：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="159" height="8" src="http://book.csdn.net/BookFiles/393/img/image175.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">它也可以检索以前的动作设置的值（如果有的话）：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="397" height="60" src="http://book.csdn.net/BookFiles/393/img/image177.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">怎么称呼会话数据，以及是否使用会话设施，都取决于你。session方法给你提供了一个方便的场所，这样，在需要动作间的通信时，一个动作可以在其中给另一个动作留言。</p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt" class="aff4">注释&nbsp;&nbsp;&nbsp;  @params和@session变量　通过params和session方法得到的信息，也可以通过特殊的预定义的变量@params和@session得到（它们是实例变量，一种专用的变量，将在第二部分更多地介绍）。你可能会在Rails应用中看到@params和@session；但是，使用方法而不是变量，已经逐渐被认为是更好的实践。</p>
+</div>
+<p style="text-indent: 20pt" class="MsoNormal">控制器动作就是Ruby代码序列，直接对应于请求该应用执行的任务：用户登录、在菜谱中加入一道配方、显示一个在线影集的头10幅照片的缩略图，等等。Rails动作（在控制器文件中定义动作的代码行）与用户可能对应用的操作密切对应。</p>
+<p style="text-indent: 20pt" class="MsoNormal">在了解了模型和控制器之后，让我们看看它们是怎样彼此关联的。</p>
+<p style="text-indent: 20pt" class="4">控制器和模型</p>
+<p style="text-indent: 20pt" class="MsoNormal">实体模型与数据库关系密切。控制器不一样，它们通过模型的实例来操作数据库记录。下面的代码中，user是User模型的一个特例或实例：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="167" height="22" src="http://book.csdn.net/BookFiles/393/img/image178.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">在这个例子中，控制器请求user实例将它的邮件地址设置为表单中输入的邮件地址，然后更新它自己。控制器并不知道该请求会变成什么。但是user实例知道如何处理该请求，它会产生一个类似下面的SQL命令：</p>
+<p style="margin: 6pt 0.5pt 6pt 1.4pt" class="a1"><img width="388" height="8" src="http://book.csdn.net/BookFiles/393/img/image179.jpg"></p>
+<p style="text-indent: 0cm" class="MsoNormal">（这个例子随意地假设该用户记录的id值是33。）控制器被保护起来，以免直接与数据库打交道。</p>
+<p style="text-indent: 20pt" class="MsoNormal">你也一样被保护了起来。当编写Rails应用代码时，你总是编写这样的代码，它们通过命名规范、排序整齐的变量来操作数据。你编写的代码会触发层叠的数据库操作。但是你不需要直接与数据库打交道。你必须设计数据库，必须知道数据库表和字段的命名（因为这些知识与模型可以做什么直接相关）。但是之后，你就在抽象的层面上操作数据库了。</p>
+<div style="border-bottom: #999999 1pt solid; padding-bottom: 4pt; border-right-style: none; padding-left: 0cm; padding-right: 0cm; margin-left: 0cm; border-left-style: none; border-top: #999999 1pt solid; margin-right: 2pt; padding-top: 4pt">
+<p style="text-indent: -28.5pt; margin: 11.25pt 0cm 11.25pt 28.5pt; vertical-align: baseline" class="aff4">提示&nbsp;&nbsp;&nbsp;  学习SQL，即使它不是你主要的关注点　作为Rails程序员，通常不需要编写SQL语句；对于大多数需要SQL来完成的事，Rails为你提供了捷径和自动查询设施。但是很有可能在某个时候你需要编写一些SQL语句&mdash;&mdash;如果你正在处理一个数据库系统，比如SQL，那么很可能偶尔会与Rails之外的数据库交互（比如，在一个交互式的监视器中）。强烈建议所有的Rails开发人员掌握基本的SQL知识。</p>
+</div>
+<p style="margin: 7.5pt 0cm" class="111">2.4.4 阶段4：填充视图</p>
+<p style="text-indent: 20pt" class="MsoNormal">你现在到了该过程的最后阶段。控制器剩下的工作就是将数据传递给视图。视图填充它的模板，填充的结果是一个HTML文档，然后该文档被传给Web服务器，并从那里传回给初始的Web客户。</p>
+<p style="text-indent: 20pt" class="MsoNormal">基本的过程如下：输入的HTTP请求从服务器默认的文档位置重定向到Rails应用的主目录，在主目录执行一个分发器程序。分发器程序将请求分发到合适的控制器/动作组合，该组合是由分发器通过URL（根据需要使用解释规则）来确定的。然后控制器取得控制权。一方面，控制器可以访问整个模型，由此它可以操作数据；另一方面，它可以与视图模板共享数据。视图模板内插数据后扩张为HTML，最后，Web服务器将HTML传回给客户。<br>
+<br>
+2.5 小结</p>
+<p style="text-indent: 20pt" class="MsoNormal">在本章中，我们概述了Ruby on Rails框架的工程应用。介绍了关于MVC框架体系结构的知识，以及Rails通过ActiveRecord（基于数据库设计为实体建模）、ActionView（基于ERb提供模板设施）和ActionController（协调数据操作和数据表示）来完成MVC框架体系结构的实现。描述了产生和运行一个可工作的Rails应用的全过程，基于后面的章节中对Ruby语言的学习，你将在本书的第四部分增强该应用。我们详细地学习了Rails应用的输入请求的处理过程所涉及的各个阶段：服务器唤醒一个Rails分发器；分发器联系一个合适的控制器；控制器执行请求的动作；视图模板被填充后以HTML文档的形式传回给服务器。</p>
+<p style="text-indent: 20pt" class="MsoNormal">到此为止，你已经掌握了Ruby和Rails的工作原理。接下来是第一部分的最后一章，这一章将初步介绍Ruby和Rails是怎样协作的。<br>
+<br>
+============================================<br>
+2.1.3 亲身体验MVC</p>
+<div>如果你还没有近距离地接触过MVC而现在想要这么做，那么在你想要放置Rails应用例程目录的目录下运行下面的命令：（即使你已接触过也要这么做，因为不管怎样，后面你还是需要执行这一步。）</div>
+<div><img width="107" height="8" src="http://book.csdn.net/BookFiles/393/img/image095.jpg"></div>
+<div>rails程序是随着Rails框架一起安装的，它负责生成应用程序的目录&mdash;&mdash;在这里，是一个名为r4rmusic1的目录。（就这个例子来说，任意的名字都是可以的；但是使用这个特殊的名字和目录会方便我们编写本书的例子应用。）在此应用目录下，Rails产生了一组标准的子目录，并在其中填充开发和运行Rails应用所必需的文件。如果查看app子目录下的内容，你会看到有名为models、controllers和views的子目录。相互关联的模型和控制器程序文件以及视图模板将放置在这些子目录下。MVC原理指导了应用的布局以及编程工作的组织方式。</div>
+<div>
+<div>注释&nbsp;&nbsp;&nbsp;  Rails应用名　与域名不同，要想访问你的网站，别人必须知道域名，但是Rails应用的内部名字（如r4rmusic1或者myrailsapp）只与编写和/或维护该应用的人有关。它只是一个目录名；它甚至没有必要公开。如果你打算发行和销售你的Rails应用，那么你需要考虑为应用取一个独特的品牌名字。但是这个名字与宿主机上的应用以及它的目录的内部名字无关。</div>
+</div>
+<div>你已经了解了编写一个Rails应用的三个阶段或活动的层次，也知道它们与MVC框架概念中的三个元素相对应。让我们再进一步了解：Rails框架作为MVC的一个实现是如何运作的。</div>
+<div> </div>
+<div>2.2 分析Rails的MVC实现</div>
+<div>MVC概念完全是围绕着将编程工作以及程序的功能划分为三个层次：模型，视图，控制器。与它的MVC基础一致，Rails主要由三个独立的编程库组成&mdash;&mdash;独立意味着每个库都有自己的名字，而且如果需要可以单独使用任意一个。</div>
+<div>表2-1列出了构成Rails框架的主要部分的三个库。这三个库已经安装在你的计算机上。它们通常位于Ruby安装目录下的gems区域（关于RubyGems的信息，请参考本书的附录）。一个标准的、默认的安装是下面这样的：</div>
+<div><img width="238" height="22" src="http://book.csdn.net/BookFiles/393/img/image098.jpg"></div>
+<div align="center">表2-1 Rails的MVC框架设计实现概览</div>
+<p>
+<table border="1" cellspacing="0" cellpadding="0" width="554">
+    <tbody>
+        <tr>
+            <td valign="top" width="94">
+            <div align="center">MVC阶段</div>
+            </td>
+            <td valign="top" width="102">
+            <div align="center">Rails子库</div>
+            </td>
+            <td valign="top" width="358">
+            <div align="center">目　　的</div>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="94">
+            <div>模型</div>
+            </td>
+            <td valign="top" width="102">
+            <div>ActiveRecord</div>
+            </td>
+            <td valign="top" width="358">
+            <div>在关系数据库表和操作数据库记录的Ruby程序代码之间提供接口和绑定。Ruby方法名自动从数据库表的字段名产生，等等</div>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="94">
+            <div>视图</div>
+            </td>
+            <td valign="top" width="102">
+            <div>ActionView</div>
+            </td>
+            <td valign="top" width="358">
+            <div>一个基于嵌入式Ruby（ERb）的系统，用于定义服务于数据表示的表示模板。对Rails应用的每一次Web连接都导致显示一个视图</div>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top" width="94">
+            <div>控制器</div>
+            </td>
+            <td valign="top" width="102">
+            <div>ActionController</div>
+            </td>
+            <td valign="top" width="358">
+            <div>在ActiveRecord（数据库接口）和ActionView（表示引擎）之间的数据中介。ActionController提供功能设施，处理和组织来自数据库和Web表单输入的数据，然后它将这些数据递交给ActionView，ActionView将这些数据插入模板并显示</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<div>你可以看到下面这些子目录（但不仅仅是这些）：</div>
+<div>actionpack-1.11.2；</div>
+<div>activerecord-1.13.2；</div>
+<div>rails-1.0.0。</div>
+<div>
+<div>注释&nbsp;&nbsp;&nbsp;  版本号可能不同　你在目录名右侧看到的版本号可能和这个例子中的不同。而且在一些系统上，一个包可能有多个版本被安装。如果是这种情况，查看编号最大的版本，它是安装在你的系统上的库的最新版本。</div>
+</div>
+<div>ActionView和ActionController捆绑在一起位于ActionPack下。想要分别看它们可以这样做：</div>
+<div><img width="165" height="10" src="http://book.csdn.net/BookFiles/393/img/image099.jpg"></div>
+<div>你会看到它们各自的子目录。</div>
+<div>查看这些目录列表可以使你具体地了解这样一个事实：Rails是由组件包构成的，这些组件包共同构成了MVC结构的一个实现。</div>
+<div>
+<div>注释&nbsp;&nbsp;&nbsp;  ActionPack的内容　因为在MVC结构中，V和C（视图和控制器）关系非常紧密，所以ActionView和ActionController捆绑在一起成为ActionPack。举例来说，ActionView负责处理的视图模板文件和基于ActionController的控制器代码必须使用相同的变量名。这意味着如果对控制器文件中发生的事缺乏相当具体的了解，你就无法设计视图。尽管在某种意义上它们是独立的库，ActionView和ActionController也可以被看作是一套东西的两个部分。</div>
+</div>
+<div>Rails：结合的纽带</div>
+<div>如果这三个MVC友好的、独立的库是Rails的组件，那么什么是Rails?</div>
+<div>Rails框架很大程度上是这三个组件包或库的同时部署。ActiveRecord提供了一系列的技术和捷径，用于操作来自SQL数据库的数据。ActionController和ActionView（合在一起就是ActionPack）提供了处理和显示这些数据的设施。Rails将它们三者结合到一起。</div>
+<div>图2-1为Ruby和Rails的协作关系，以及它们与保存Rails数据的数据库系统和输出最终的HTML页面的Web服务器之间的协作关系的一个示意图。箭头表示系统组件间紧密的协作。</div>
+<div align="center"><img width="555" height="445" src="http://book.csdn.net/BookFiles/393/img/image101.jpg"></div>
+<div align="center">图2-1 图解Ruby和Rails框架</div>
+<div>Rails安装目录下的子目录和图2-1中提到的支持库相对应。我们不会像介绍三个主要部分（直接对应于MVC框架概念）那样详细地去讨论这些支持库，但是它们提供了严格意义的MVC组成部分之外的重要的支持和辅助功能，并且常常在多个阶段使用。</div>
+<div>了解了这些关系，这么说吧，了解了Rails组件和MVC框架结构组件之间的对应关系，并将此关系放到Ruby和Rails之间关系的上下文中，我们将着手编写一个Rails应用。它将是一个小程序，其目的是为了广度优先地遍历整个开发过程。我们将在本书的第四部分扩展这个例子。现在，我们将通过一个可以运行的一般的应用走进Rails的世界。</div>
+<div>我们将开发的应用是一个在线的古典音乐活页乐谱商店。为纪念本书，我们将这个虚构的商店命名为R4Rmusic。如果你还没有运行rails r4rmusic1命令，那么现在运行它来生成该应用的目录（末尾的1表示这是该应用的第一个版本）。</div>
+<p> </p></div></body></html>

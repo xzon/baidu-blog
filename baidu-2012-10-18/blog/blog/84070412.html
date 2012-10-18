@@ -1,0 +1,200 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Servlet API 和 NIO: 最终组合在一起</title></head><body><h1>Servlet API 和 NIO: 最终组合在一起</h1><div><h1><span style="color: #999999">Servlet API 和 NIO: </span>最终组合在一起</h1>
+<p>使用非阻塞 I/O 构建基于 Servlet 的 Web 服务器</p>
+<p>级别： 初级</p>
+<p><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-nioserver/#author"><font color="#5c81a7">Taylor Cowan</font></a> (<a cmimpressionsent="1" href="mailto:taylor_cowan@yahoo.com?subject=最终组合在一起"><font color="#5c81a7">taylor_cowan@yahoo.com</font></a>), 高级软件系统工程师, Travelocity</p>
+<p>2004 年 3 月 01 日</p>
+<blockquote>您认为把 NIO 和 Servlet API 组合在一起是不可能的？请再好好想一下。在本文中，Java 开发人员 Taylor Cowan 向您展示了如何把生产者/消费者模型应用到消费者非阻塞 I/O，从而轻松地让 Servlet API 全新地兼容 NIO。在这个过程中，您将会看到采用了什么来创建实际的基于 Servlet 并实现了 NIO 的 Web 服务器；您也将发现在企业环境中，那个服务器是如何以标准的 Java I/O 服务器（Tomcat 5.0）为基础而创建的。</blockquote>
+<p>NIO 是带有 JDK 1.4 的 Java 平台的最有名（如果不是最出色的）的添加部分之一。下面的许多文章阐述了 NIO 的基本知识及如何利用非阻塞通道的好处。但它们所遗漏的一件事正是，没有充分地展示 NIO 如何可以提高 J2EE Web 层的可伸缩性。对于企业开发人员来说，这些信息特别密切相关，因为实现 NIO 不像把少数几个 import 语句改变成一个新的 I/O 包那样简单。首先，Servlet API 采用阻塞 I/O 语义，因此默认情况下，它不能利用非阻塞 I/O。其次，不像 JDK 1.0 中那样，线程不再是&ldquo;资源独占&rdquo;（resource hog），因此使用较少的线程不一定表明服务器可以处理更多的客户机。</p>
+<p>在本文中，为了创建基于 Servlet 并实现了 NIO 的 Web 服务器，您将学习如何解决 Servlet API 与非阻塞 I/O 的不配合问题。我们将会看到在多元的 Web 服务器环境中，这个服务器是如何针对标准 I/O 服务器（Tomcat 5.0）进行伸缩的。为符合企业中生存期的事实，我们将重点放在当保持 socket 连接的客户机数量以指数级增长时，NIO 与标准 I/O 相比较的情况如何。</p>
+<p>注意，本文针对某些 Java 开发人员，他们已经熟悉了 Java 平台上 I/O 编程的基础知识。有关非阻塞 I/O 的介绍，请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-nioserver/#resources"><font color="#5c81a7">参考资料</font></a> 部分。</p>
+<p><a name="IDAYBGLB"><span class="atitle">线程不再昂贵</span></a></p>
+<p>大家都知道，线程是比较昂贵的。在 Java 平台的早期（JDK 1.0），线程的开销是一个很大负担，因此强制开发人员自定义生成解决方案。一个常见的解决方案是使用 VM 启动时创建的线程池，而不是按需创建每个新线程。尽管最近在 VM 层上提高了线程的性能，但标准 I/O 仍然要求分配惟一的线程来处理每个新打开的 socket。就短期而言，这工作得相当不错，但当线程的数量增加超过了 1K，标准 I/O 的不足就表现出来了。由于要在线程间进行上下文切换，因此 CPU 简直变成了超载。</p>
+<p>由于 JDK 1.4 中引入了 NIO，企业开发人员最终有了&ldquo;单线程&rdquo;模型的一个内置解决方案：多元 I/O 使得固定数量的线程可以服务不断增长的用户数量。</p>
+<p><em>多路复用（Multiplexing）</em>指的是通过一个载波来同时发送多个信号或流。当使用手机时，日常的多路复用例子就发生了。无线频率是稀有的资源，因此无线频率提供商使用多路复用技术通过一个频率发送多个呼叫。在一个例子中，把呼叫分成一些段，然后给这些段很短的持续时间，并在接收端重新装配。这就叫做 <em>时分多路复用（time-division multiplexing）</em>，即 TDM。</p>
+<p>在 NIO 中，接收端相当于&ldquo;选择器&rdquo;（参阅 <code><font face="NSimsun">java.nio.channels.Selector</font></code> ）。不是处理呼叫，选择器是处理多个打开的 socket。就像在 TDM 中那样，选择器重新装配从多个客户机写入的数据段。这使得服务器可以用单个线程管理多个客户机。</p>
+<p><a name="IDALCGLB"><span class="atitle">Servlet API 和 NIO</span></a></p>
+<p>对于 NIO，非阻塞读写是必要的，但它们并不是完全没有麻烦。除了不会阻塞之外，非阻塞读不能给呼叫方任何保证。客户机或服务器应用程序可能读取完整信息、部分消息或者根本读取不到消息。另外，非阻塞读可能读取到太多的消息，从而强制为下一个呼叫准备一个额外的缓冲区。最后，不像流那样，读取了零字节并不表明已经完全接收了消息。</p>
+<p>这些因素使得没有轮询就不可能实现甚至是简单的 <code><font face="NSimsun">readline</font></code> 方法。所有的 servlet 容器必须在它们的输入流上提供 <code><font face="NSimsun">readline</font></code> 方法。因此，许多开发人员放弃了创建基于 Servlet 并实现了 NIO 的 Web 应用程序服务器。不过这里有一个解决方案，它组合了 Servlet API 和 NIO 的多元 I/O 的能力。</p>
+<p>在下面的几节中，您将学习如何使用 <code><font face="NSimsun">java.io.PipedInput</font></code> 和 <code><font face="NSimsun">PipedOutputStream</font></code> 类来把生产者/消费者模型应用到消费者非阻塞 I/O。当读取非阻塞通道时，把它写到正由第二个线程消费的管道。注意，这种分解映射线程不同于大多数基于 Java 的客户机/服务器应用程序。这里，我们让一个线程单独负责处理非阻塞通道（生产者），让另一个线程单独负责把数据作为流消费（消费者）。管道也为应用程序服务器解决了非阻塞 I/O 问题，因为 servlet 在消费 I/O 时将采用阻塞语义。</p>
+<p><a name="IDAFDGLB"><span class="atitle">示例服务器</span></a></p>
+<p>示例服务器展示了 Servlet API 和 NIO 不兼容的生产者/消费者解决方案。该服务器与 Servlet API 非常相似，可以为成熟的基于 NIO 应用程序服务器提供 POC (proof of concept)，是专门编写来衡量 NIO 相对于标准 Java I/O 的性能的。它处理简单的 HTTP <code><font face="NSimsun">get</font></code> 请求，并支持来自客户机的 Keep-Alive 连接。这是重要的，因为多路复用 I/O 只证明在要求服务器处理大量打开的 scoket 连接时是有意的。</p>
+<p>该服务器被分成两个包： <code><font face="NSimsun">org.sse.server</font></code> 和 <code><font face="NSimsun">org.sse.http</font></code> 包中有提供主要 <code><font face="NSimsun">服务器</font></code> 功能的类，比如如下的一些功能：接收新客户机连接、阅读消息和生成工作线程以处理请求。 <code><font face="NSimsun">http</font></code> 包支持 HTTP 协议的一个子集。详细阐述 HTTP 超出了本文的范围。有关实现细节，请从 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-nioserver/#resources"><font color="#5c81a7">参考资料</font></a> 部分下载代码示例。</p>
+<p>现在让我们来看一下 <code><font face="NSimsun">org.sse.server</font></code> 包中一些最重要的类。</p>
+<p><a name="IDALEGLB"><span class="atitle">Server 类</span></a></p>
+<p><code><font face="NSimsun">Server</font></code> 类拥有多路复用循环 &mdash;&mdash; 任何基于 NIO 服务器的核心。在清单 1 中，在服务器接收新客户机或检测到正把可用的字节写到打开的 socket 前， <code><font face="NSimsun">select()</font></code> 的调用阻塞了。这与标准 Java I/O 的主要区别是，所有的数据都是在这个循环中读取的。通常会把从特定 socket 中读取字节的任务分配给一个新线程。使用 NIO 选择器事件驱动方法，实际上可以用单个线程处理成千上万的客户机，不过，我们还会在后面看到线程仍有一个角色要扮演。</p>
+<p>每个 <code><font face="NSimsun">select()</font></code> 调用返回一组事件，指出新客户机可用；新数据准备就绪，可以读取；或者客户机准备就绪，可以接收响应。server 的 <code><font face="NSimsun">handleKey()</font></code> 方法只对新客户机（ <code><font face="NSimsun">key.isAcceptable()</font></code> ）和传入数据 ( <code><font face="NSimsun">key.isReadable()</font></code> ) 感兴趣。到这里，工作就结束了，转入 <code><font face="NSimsun">ServerEventHandler</font></code> 类。</p>
+<p><br>
+<a name="IDAQFGLB"><strong>清单 1. Server.java 选择器循环</strong></a><br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">public void listen() {
+   SelectionKey key = null;
+   try {
+      while (true) {
+         selector.select();
+         Iterator it = selector.selectedKeys().iterator();
+         while (it.hasNext()) {
+            key = (SelectionKey) it.next();
+            handleKey(key);
+            it.remove();
+         }
+      }
+   } catch (IOException e) {
+      key.cancel();
+   } catch (NullPointerException e) {
+      // NullPointer at sun.nio.ch.WindowsSelectorImpl, Bug: 4729342
+      e.printStackTrace();   
+   }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><a name="IDA0FGLB"><span class="atitle">ServerEventHandler 类</span></a></p>
+<p><code><font face="NSimsun">ServerEventHandler</font></code> 类响应服务器事件。当新客户机变为可用时，它就实例化一个新的 <code><font face="NSimsun">Client</font></code> 对象，该对象代表了那个客户机的状态。数据是以非阻塞方式从通道中读取的，并被写到 <code><font face="NSimsun">Client</font></code> 对象中。 <code><font face="NSimsun">ServerEventHandler</font></code> 对象也维护请求队列。为了处理（消费）队列中的请求，生成了不定数量的工作线程。在传统的生产者/消费者方式下，为了在队列变为空时线程会阻塞，并在新请求可用时线程会得到通知，需要写 <code><font face="NSimsun">Queue</font></code> 。</p>
+<p>为了支持等待的线程，在清单 2 中已经重写了 <code><font face="NSimsun">remove()</font></code> 方法。如果列表为空，就会增加等待线程的数量，并阻塞当前线程。它实质上提供了非常简单的线程池。</p>
+<p><br>
+<a name="IDA1GGLB"><strong>清单 2. Queue.java</strong></a><br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">public class Queue extends LinkedList
+{
+ private int waitingThreads = 0;
+ public synchronized void insert(Object obj)
+ {
+  addLast(obj);
+  notify();
+ }
+ public synchronized Object remove()
+ {
+  if ( isEmpty() ) {
+   try { waitingThreads++; wait();} 
+   catch (InterruptedException e)  {Thread.interrupted();}
+   waitingThreads--;
+  }
+  return removeFirst();
+ }
+ public boolean isEmpty() {
+  return  (size() - waitingThreads &lt;= 0);
+ }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>工作线程的数量与 Web 客户机的数量无关。不是为每个打开的 socket 分配一个线程，相反，我们把所有请求放到一个由一组 <code><font face="NSimsun">RequestHandlerThread</font></code> 实例所服务的通用队列中。理想情况下，线程的数量应该根据处理器的数量和请求的长度或持续时间进行调整。如果请求通过资源或处理需求花了很长时间，那么通过添加更多的线程，可以提高感知到的服务质量。</p>
+<p>注意，这不一定提高整体的吞吐量，但确实改善了用户体验。即使在超载的情况下，也会给每个线程一个处理时间片。这一原则同样适用于基于标准 Java I/O 的服务器；不过这些服务器是受到限制的，因为会 <em>要求</em> 它们为每个打开的 socket 连接分配一个线程。NIO 服务器完全不用担心这一点，因此它们可以扩展到大量用户。最后的结果是 NIO 服务器仍然需要线程，只是不需要那么多。</p>
+<p><a name="IDANHGLB"><span class="atitle">请求处理</span></a></p>
+<p><code><font face="NSimsun">Client</font></code> 类有两个用途。首先，通过把传入的非阻塞 I/O 转换成可由 Servlet API 消费的阻塞 <code><font face="NSimsun">InputStream</font></code> ，它解决了阻塞/非阻塞问题。其次，它管理特定客户机的请求状态。因为当全部读取消息时，非阻塞通道没有给出任何提示，所以强制我们在协议层处理这一情况。 <code><font face="NSimsun">Client</font></code> 类在任意指定的时刻都指出了它是否正在参与进行中的请求。如果它准备处理新请求， <code><font face="NSimsun">write()</font></code> 方法就会为请求处理而将该客户机排到队列中。如果它已经参与了请求，它就只是使用 <code><font face="NSimsun">PipedInputStream</font></code> 和 <code><font face="NSimsun">PipedOutputStream</font></code> 类把传入的字节转换成一个 <code><font face="NSimsun">InputStream</font></code> 。</p>
+<p>图 1 展示了两个线程围绕管道进行交互。主线程把从通道读取的数据写到管道中。管道把相同的数据作为 <code><font face="NSimsun">InputStream</font></code> 提供给消费者。管道的另一个重要特性是：它是进行缓冲处理的。如果没有进行缓冲处理，主线程在尝试写到管道时就会阻塞。因为主线程单独负责所有客户机间的多路复用，因此我们不能让它阻塞。</p>
+<p><br>
+<a name="IDA0YGLB"><strong>图 1. PipedInput/OutputStream</strong></a><br>
+<img height="111" alt="关系的图形表示" width="454" src="http://www.ibm.com/developerworks/cn/java/j-nioserver/figure1.gif"></p>
+<p>在 <code><font face="NSimsun">Client</font></code> 自己排队后，工作线程就可以消费它了。 <code><font face="NSimsun">RequestHandlerThread</font></code> 类承担了这个角色。至此，我们已经看到主线程是如何连续地循环的，它要么接受新客户机，要么读取新的 I/O。工作线程循环等待新请求。当客户机在请求队列上变为可用时，它就马上被 <code><font face="NSimsun">remove()</font></code> 方法中阻塞的第一个等待线程所消费。</p>
+<p><br>
+<a name="IDATZGLB"><strong>清单 3. RequestHandlerThread.java</strong></a><br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">public void run() {
+   while (true) {
+      Client client = (Client) myQueue.remove();
+      try {
+         for (; ; ) {
+            HttpRequest req = new HttpRequest(client.clientInputStream,
+               myServletContext);
+            HttpResponse res = new HttpResponse(client.key);
+            defaultServlet.service(req, res);
+            if (client.notifyRequestDone())
+               break;
+         }
+      } catch (Exception e) {
+         client.key.cancel();
+         client.key.selector().wakeup();
+      }
+   }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>然后该线程创建新的 <code><font face="NSimsun">HttpRequest</font></code> 和 <code><font face="NSimsun">HttpResponse</font></code> 实例，并调用 <code><font face="NSimsun">defaultServlet</font></code> 的 service 方法。注意， <code><font face="NSimsun">HttpRequest</font></code> 是用 <code><font face="NSimsun">Client</font></code> 对象的 <code><font face="NSimsun">clientInputStream</font></code> 属性构造的。 <code><font face="NSimsun">PipedInputStream</font></code> 就是负责把非阻塞 I/O 转换成阻塞流。</p>
+<p>从现在开始，请求处理就与您在 J2EE Servlet API 中期望的相似。当对 servlet 的调用返回时，工作线程在返回到池中之前，会检查是否有来自相同客户机的另一个请求可用。注意，这里用到了单词 <em>池 (pool)</em>。事实上，线程会对队列尝试另一个 <code><font face="NSimsun">remove()</font></code> 调用，并变成阻塞，直到下一个请求可用。</p>
+<p><a name="IDA30GLB"><span class="atitle">运行示例</span></a></p>
+<p>示例服务器实现了 HTTP 1.1 协议的一个子集。它处理普通的 HTTP <code><font face="NSimsun">get</font></code> 请求。它带有两个命令行参数。第一个指定端口号，第二个指定 HTML 文件所驻留的目录。在解压文件后， <em>切换</em>到项目目录，然后执行下面的命令，注意要把下面的 webroot 目录替换为您自己的目录：</p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">java -cp bin org.sse.server.Start 8080
+&quot;C:\mywebroot&quot;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>还请注意，服务器并没有实现目录清单，因此必须指定有效的 URL 来指向您的 webroot 目录下的文件。</p>
+<p><a name="IDAP1GLB"><span class="atitle">性能结果</span></a></p>
+<p>示例 NIO 服务器是在重负载下与 Tomcat 5.0 进行比较的。选择 Tomcat 是因为它是基于标准 Java I/O 的纯 Java 解决方案。为了提高可伸缩性，一些高级的应用程序服务器是用 JNI 本机代码优化的，因此它们没有提供标准 I/O 和 NIO 之间的很好比较。目标是要确定 NIO 是否给出了大量的性能优势，以及是在什么条件下给出的。</p>
+<p>如下是一些说明：</p>
+<ul>
+    <li>Tomcat 是用最大的线程数量 2000 来配置的，而示例服务器只允许用 4 个工作线程运行。</li>
+    <li>每个服务器是针对相同的一组简单 HTTP <code><font face="NSimsun">get</font></code> 测试的，这些 HTTP <code><font face="NSimsun">get</font></code> 基本上由文本内容组成。</li>
+    <li>把加载工具（Microsoft Web Application Stress Tool）设置为使用&ldquo;Keep-Alive&rdquo;会话，导致了大约要为每个用户分配一个 socket。然后它导致了在 Tomcat 上为每个用户分配一个线程，而 NIO 服务器用固定数量的线程来处理相同的负载。</li>
+</ul>
+<p>图 2 展示了在不断增加负载下的&ldquo;请求/秒&rdquo;率。在 200 个用户时，性能是相似的。但当用户数量超过 600 时，Tomcat 的性能开始急剧下降。这最有可能是由于在这么多的线程间切换上下文的开销而导致的。相反，基于 NIO 的服务器的性能则以线性方式下降。记住，Tomcat 必须为每个用户分配一个线程，而 NIO 服务器只配置有 4 个工作线程。</p>
+<p><br>
+<a name="IDAG2GLB"><strong>图 2. 请求/秒</strong></a><br>
+<img height="292" alt="关系的图形表示" width="468" src="http://www.ibm.com/developerworks/cn/java/j-nioserver/graph1.gif"></p>
+<p>图 3 进一步显示了 NIO 的性能。它展示了操作的 Socket 连接错误数/分钟。同样，在大约 600 个用户时，Tomcat 的性能急剧下降，而基于 NIO 的服务器的错误率保持相对较低。</p>
+<p><br>
+<a name="IDAU2GLB"><strong>图 3. Socket 连接错误数/分钟</strong></a><br>
+<img height="282" alt="关系的图形表式" width="531" src="http://www.ibm.com/developerworks/cn/java/j-nioserver/graph2.gif"></p>
+<p><a name="IDAA3GLB"><span class="atitle">结束语</span></a></p>
+<p>在本文中您已经学习了，实际上可以使用 NIO 编写基于 Servlet 的 Web 服务器，甚至可以启用它的非阻塞特性。对于企业开发人员来说，这是好消息，因为在企业环境中，NIO 比标准 Java I/O 更能够进行伸缩。不像标准的 Java I/O，NIO 可以用固定数量的线程处理许多客户机。当基于 Servlet 的 NIO Web 服务器用来处理保持和拥有 socket 连接的客户机时，会获得更好的性能。</p>
+<p> </p>
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+<ul>
+    <li>您可以参阅本文在 developerWorks 全球站点上的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/j-nioserver/index.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">英文原文</font></a>.</li>
+    <li>下载本文中使用的 <a cmimpressionsent="1" href="http://download.boulder.ibm.com/ibmdl/pub/software/dw/library/j-nioserver-source.zip"><font color="#5c81a7">源代码</font></a>。</li>
+    <li>看看&ldquo; <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-javaio/"><font color="#5c81a7">Merlin 给 Java 平台带来了非阻塞 I/O</font></a>&rdquo;（ <em>developerWorks</em>，2002 年 3 月），获得 NIO 语义的进一步知识。</li>
+    <li>综合的 developerWorks 教程&ldquo; <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/views/java/tutorials.jsp?cv_doc_id=85062"><font color="#5c81a7">NIO 入门</font></a>&rdquo;（ <em>developerWorks</em>，2003 年 11 月）从高级的概念到底层的编程细节，详细论及了 NIO 库。</li>
+    <li>Merlin Hughes 的由两部分组成的文章&ldquo; <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-io1/"><font color="#5c81a7">Turning streams inside out</font></a>&rdquo;（ <em>developerWorks</em>，2002 年 9 月）为 Java I/O（标准版和 NIO 版）的一些普遍的挑战提供了制作精巧的设计解决方案。</li>
+    <li>为获取有关 Java I/O 问题的一些背景知识，请参阅 Allen Holub 的&ldquo; <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-king/"><font color="#5c81a7">关于解决 Java 编程语言线程问题的建议 </font></a>&rdquo;（ <em>developerWorks</em>，2000 年 10 月）。</li>
+    <li>访问 <a cmimpressionsent="1" href="http://java.sun.com/j2se/1.4.2/docs/guide/nio/"><font color="#5c81a7">NIO 主页</font></a>，从资源中学习非阻塞 I/O。</li>
+    <li><a cmimpressionsent="1" href="http://www.javanio.info/"><font color="#5c81a7">JavaNIO.info</font></a> 是查找有关 NIO 的资源的理想地方。</li>
+    <li>为从书本系统学习 NIO，请参阅该领域的经典著作：Ron Hitchens 的 <a cmimpressionsent="1" href="http://www.oreilly.com/catalog/javanio/"><font color="#5c81a7">Java NIO</font></a>（O'Reilly &amp; Associates，2002 年）。</li>
+    <li>在 developerWorks <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/"><font color="#5c81a7">Java 技术专区</font></a>可以找到有关 Java 编程各个方面的文章。</li>
+    <li>访问 <a cmimpressionsent="1" href="http://devworks.krcinfo.com/"><font color="#5c81a7">Developer Bookstore</font></a>，获取技术书籍的完整列表，其中包括数百本 <a cmimpressionsent="1" href="http://devworks.krcinfo.com/WebForms/ProductList.aspx?Search=Category&amp;id=200&amp;parent=Java"><font color="#5c81a7">Java 相关的图书</font></a>。</li>
+    <li>也请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/views/java/tutorials.jsp"><font color="#5c81a7">Java 技术专区教程页</font></a>，从 <em>developerWorks</em> 获取免费的 Java 专门教程的完整列表。</li>
+</ul>
+<p> </p>
+<p><a name="author"><span class="atitle">关于作者</span></a></p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%" border="0">
+    <tbody>
+        <tr>
+            <td colspan="3"><img height="5" width="100%" src="http://www.ibm.com/i/c.gif"></td>
+        </tr>
+        <tr valign="top" align="left">
+            <td>
+            <p> </p>
+            </td>
+            <td><img height="5" width="4" src="http://www.ibm.com/i/c.gif"></td>
+            <td width="100%">
+            <p>Taylor Cowan 是一位软件工程师，也是一位专攻 J2EE 的自由撰稿人。他从 North Texas 大学的计算机科学专业获得了硕士学位，另外，他还从 Jazz Arranging 获得了音乐学士学位。</p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<a href="http://www.ibm.com/developerworks/cn/java/j-nioserver/">http://www.ibm.com/developerworks/cn/java/j-nioserver/</a></div></body></html>

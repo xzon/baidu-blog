@@ -1,0 +1,380 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>在 Eclipse Workbench 之外使用 Eclipse GUI，第 2 部分: 使用 JFace 图像注册表</title></head><body><h1>在 Eclipse Workbench 之外使用 Eclipse GUI，第 2 部分: 使用 JFace 图像注册表</h1><div><h1><span style="color: #999999">在 Eclipse Workbench 之外使用 Eclipse GUI，第 2 部分: </span>使用 JFace 图像注册表</h1>
+<p>给一个简单的文件资源管理器应用程序添加图标</p>
+<p><a name="N100A9"><span class="atitle">继续使用第 1 部分的示例</span></a></p>
+<p>上一篇文章结束时，我们的资源管理器应用程序如图 1 所示：</p>
+<p><br>
+<a name="N100B4"><strong>图 1. 资源管理器（V4）</strong></a><br>
+<img alt="图 1. 资源管理器(V4)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/explorer_4.gif" height="387" width="521"></p>
+<p>我们在最左边窗格中使用树查看器显示文件夹和文件。当在左边窗格中选中某个文件夹时，它所包含的文件就显示在最右边窗格的表查看器中。让我们通过设置窗口标题来着手完善这个示例。</p>
+<p><a name="N100C6"><span class="atitle">设置窗口标题</span></a></p>
+<p>这是 JFace 不试图向您隐藏 SWT 的又一个例子。必须获取底层 SWT Shell 窗口小部件并设置其标题。</p>
+<p>我们使用 <code><span style="font-family: NSimsun;">getShell()</span></code> 向 JFace 窗口求取其 SWT shell，然后使用 <code><span style="font-family: NSimsun;">setText()</span></code> 设置 shell 的标题，于是，在资源管理器 <code><span style="font-family: NSimsun;">createContents()</span></code> 方法中，我们将使用如下语句：</p>
+<p><code><span style="font-family: NSimsun;">getShell().setText("JFace File Explorer");</span></code></p>
+<p>我们在表视图中有了一列。让我们添加另一个以字节为单位显示文件大小的列。我们将使该列中的文本向右对齐。它的代码与第一列类似，所以我不在这里显示。</p>
+<p>既然有了两列，那就把表查看器的选择样式设置为 <code><span style="font-family: NSimsun;">FULL</span></code> ，表示选中某行后，整行都将被突出显示。</p>
+<p><code><span style="font-family: NSimsun;">new TableViewer(sash_form, SWT.BORDER | SWT.FULL_SELECTION);</span></code></p>
+<p><a name="N10118"><span class="atitle">给应用程序窗口添加状态行</span></a></p>
+<p>状态行是应用程序窗口的另一个可选组件。必须通过使用 <code><span style="font-family: NSimsun;">addStatusLine()</span></code> ，在窗口创建 SWT 窗口小部件之前要求窗口创建状态行。</p>
+<p>让我们用状态行显示在表视图中选中了多少项。每当表视图中的选择发生改变时，我们就更新状态行并显示有多少项被选中，如清单 1 所示：</p>
+<p><a name="code1"><strong>清单 1. 资源管理器 — 设置状态行中的文本</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">tbv.addSelectionChangedListener(new ISelectionChangedListener()
+{
+      public void selectionChanged(SelectionChangedEvent event)
+  {
+        IStructuredSelection selection =
+          (IStructuredSelection) event.getSelection();
+        setStatus("Number of items selected is " + selection.size());
+  }
+});</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>缺省情况下，表查看器被设置为单选方式。可以通过在创建表查看器时将多选方式作为样式参数的另一位（以文字表示）添加，将表查看器更改为多选方式。</p>
+<p><code><span style="font-family: NSimsun;">new TableViewer(sash_form, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);</span></code></p>
+<p>综合以上代码就得到清单 2：</p>
+<p><a name="code2"><strong>清单 2. 资源管理器（V5）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.custom.*;
+import org.eclipse.swt.widgets.*;
+public class Explorer extends ApplicationWindow
+{
+  public Explorer()
+  {
+    super(null);
+    addStatusLine();
+  }
+  protected Control createContents(Composite parent)
+  {
+    getShell().setText("JFace File Explorer");
+    SashForm sash_form = new SashForm(parent, SWT.HORIZONTAL | SWT.NULL);
+    TreeViewer tv = new TreeViewer(sash_form);
+    tv.setContentProvider(new FileTreeContentProvider());
+    tv.setLabelProvider(new FileTreeLabelProvider());
+    tv.setInput(new File("C:\\"));
+    final TableViewer tbv =
+      new TableViewer(sash_form, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
+    tbv.setContentProvider(new FileTableContentProvider());
+    tbv.setLabelProvider(new FileTableLabelProvider());
+    TableColumn column = new TableColumn(tbv.getTable(), SWT.LEFT);
+    column.setText("Name");
+    column.setWidth(200);
+    column = new TableColumn(tbv.getTable(), SWT.RIGHT);
+    column.setText("Size");
+    column.setWidth(100);
+    tbv.getTable().setHeaderVisible(true);
+    tv.addSelectionChangedListener(new ISelectionChangedListener()
+    {
+      public void selectionChanged(SelectionChangedEvent event)
+      {
+        IStructuredSelection selection =
+          (IStructuredSelection) event.getSelection();
+        Object selected_file = selection.getFirstElement();
+        tbv.setInput(selected_file);
+      }
+    });
+    tbv.addSelectionChangedListener(new ISelectionChangedListener()
+    {
+      public void selectionChanged(SelectionChangedEvent event)
+      {
+        IStructuredSelection selection =
+          (IStructuredSelection) event.getSelection();
+        setStatus("Number of items selected is " + selection.size());
+      }
+    });
+    return sash_form;
+  }
+  public static void main(String[] args)
+  {
+    Explorer w = new Explorer();
+    w.setBlockOnOpen(true);
+    w.open();
+    Display.getCurrent().dispose();
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>运行该程序的结果如图 2 所示：</p>
+<p><br>
+<a name="N10154"><strong>图 2. 资源管理器（V5）</strong></a><br>
+<img alt="图 2. 资源管理器(V5)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/explorer_4a.gif" height="399" width="600"></p>
+<p>如您所见，size 列目前不正确 — 我们马上就修正它。</p>
+<p><a name="N10166"><span class="atitle">图标和图像</span></a></p>
+<p>在 SWT 中，用来表示图标的对象是 <code><span style="font-family: NSimsun;">Image</span></code> （有关类 <code><span style="font-family: NSimsun;">Image</span></code> 的详细信息，请参阅本文后面的 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/#resources"><span style="color: rgb(92, 129, 167);">参考资料</span></a>）。当直接创建可显示图像的 SWT 窗口小部件时，可使用 <code><span style="font-family: NSimsun;">setImage(Image)</span></code> 设置它。</p>
+<p>关于图像有一个问题：它们是受限资源。图像是比较重量级的对象，具有对外部 OS 资源的引用（图 3）。在某些操作系统上，对任一时间内可拥有图像的数量有严格限制，因此使用它们时必须注意这一限制。</p>
+<p><br>
+<a name="N10184"><strong>图 3. 操作系统中的图像描述符、图像和资源</strong></a><br>
+<img alt="图 3. 操作系统中的图像描述符,图像和资源" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/image_descriptors.gif" height="133" width="373"></p>
+<p>最终，当应用程序退出时，会释放 Image 所用的资源 — 但即使那样，在某些操作系统上仍可能有问题：共享库造成资源被继续占用。出于各种原因，不能指望 Java 垃圾收集器会替您清理它们。有关标准窗口小部件工具箱（Standard Widget Toolkit）的完整说明，请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/#resources"><span style="color: rgb(92, 129, 167);">参考资料</span></a>。</p>
+<p>有个好消息：图像 <em>可以</em>在窗口小部件之间共享，而且 SWT 为 Image 提供了 <code><span style="font-family: NSimsun;">dispose()</span></code> 方法，它可以释放图像所用的资源。</p>
+<p>因为窗口小部件可以共享图像，所以 SWT 做出了这样的设计决定：当窗口小部件不再存在时（也就是说，在关闭窗口时），SWT 将不会自动清除这些图像。然而，JFace 会给予您一些帮助，它告诉您大型 UI 对象（如窗口和查看器）何时可以清除它们的图像，然后由您负责清除已创建的任何图像。</p>
+<p>实际上，绝大多数应用程序都从文件或数据库获取其图标，这些文件或数据库包含一些标准格式（如 gif 或 jpeg）的数据。为此，JFace 提供了 <code><span style="font-family: NSimsun;">ImageDescriptor</span></code> （请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/#resources"><span style="color: rgb(92, 129, 167);">参考资料</span></a>），这是一个轻量级对象，它不存储图像本身，而是可以按需要创建特定的图像。这个类有许多可以从不同来源构造图像的子类。</p>
+<p>在本例中，我们将图标存储在位于 <strong>icons</strong> 文件夹的 .gif 文件中，因此我们将在 <code><span style="font-family: NSimsun;">ImageDescriptor</span></code> 中使用这一工厂（factory）方法： <br>
+<code><span style="font-family: NSimsun;">public static ImageDescriptor createFromURL(URL url)</span></code></p>
+<p>TableViewer 获取元素图标的方式和它获取元素文本的方式大体相同。它请求标签提供程序。我们必须做的就是从 <code><span style="font-family: NSimsun;">ITableLabelProvider</span></code> 实现该方法：</p>
+<p><code><span style="font-family: NSimsun;">public Image getColumnImage(Object element, int columnIndex)</span></code></p>
+<p>为了便于我们管理图像的共享和清除，我们将使用 <code><span style="font-family: NSimsun;">ImageRegistry</span></code> （请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/#resources"><span style="color: rgb(92, 129, 167);">参考资料</span></a>）。</p>
+<p><a name="N101DA"><span class="atitle">JFace 图像注册表</span></a></p>
+<p>管理一组共享且昂贵的资源是经典的软件工程问题。JFace 提供经典的解决方案：一个能高速缓存图像和图像描述符的中央共享注册表。</p>
+<p>其思想是：您的代码获取它需要的图像描述符，然后将其添加到图像注册表，并使用键为每个图像描述符建立索引。当希望获得图像时，就用它的键从注册表中访存。</p>
+<p>当清除顶级显示（Display）时，图像注册表将负责清除它的图像。如果需要更频繁地清除图像，则可能要创建数个图像注册表，并按需要直接清除图像。要获得更多的详细信息，请参阅 Eclipse 网站上关于使用图像的文章（请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/#resources"><span style="color: rgb(92, 129, 167);">参考资料</span></a>）以获得链接。</p>
+<p>我们的小示例将只使用少数几个图标，因此我们将使用单个图像注册表。让我们先看看表查看器。</p>
+<p><a name="N101F0"><span class="smalltitle"><strong><span style="font-size: 16px;">给文件表查看器添加图标</span></strong></span></a></p>
+<p>要从名为 icons\file.gif 的文件创建图像描述符，可使用以下语句：</p>
+<p><code><span style="font-family: NSimsun;">image_descriptor = ImageDescriptor.createFromURL(new URL("icons/file.gif"));</span></code></p>
+<p>获得图像描述符之后，可将它存储在图像注册表中。在本例中，我们使用字符串“file”作为键：</p>
+<p><code><span style="font-family: NSimsun;">image_registry.put("file", image_descriptor);</span></code></p>
+<p>然后，要再次获取该图像，可使用以下语句：</p>
+<p><code><span style="font-family: NSimsun;">image = image_registry.get("file");</span></code></p>
+<p>URL 的构造函数抛出一个已检查异常（checked exception）。我们要使用的所有 URL 都将是硬编码的，因此我们将把 URL 的创建包装在某个工具代码中，以将已检查异常转换为运行时异常。</p>
+<p>另外，我们希望在代码中共享这些图像，因此需要集中创建图像注册表，并使它可被全局访问。</p>
+<p>现在该创建一个实用程序类了，如清单 3 所示：</p>
+<p><a name="code3"><strong>清单 3. Util（V1）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.net.*;
+import org.eclipse.jface.resource.*;
+public class Util
+{
+  private static ImageRegistry image_registry;
+  public static URL newURL(String url_name)
+  {
+    try
+    {
+      return new URL(url_name);
+    }
+    catch (MalformedURLException e)
+    {
+      throw new RuntimeException("Malformed URL " + url_name, e);
+    }
+  }
+  public static ImageRegistry getImageRegistry()
+  {
+    if (image_registry == null)
+    {
+      image_registry = new ImageRegistry();
+      image_registry.put(
+        "folder",
+        ImageDescriptor.createFromURL(newURL("file:icons/folder.gif")));
+      image_registry.put(
+        "file",
+        ImageDescriptor.createFromURL(newURL("file:icons/file.gif")));
+    }
+    return image_registry;
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><code><span style="font-family: NSimsun;">getImageRegistry()</span></code> 方法简单地创建了一个图像注册表并添加了两个图像描述符。我们现在需要更改 <code><span style="font-family: NSimsun;">FileTableLabelProvider</span></code> 以根据元素是文件还是文件夹来返回正确的图像，如清单 4 所示：</p>
+<p><a name="code4"><strong>清单 4. FileTableLabelProvider（V2）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.swt.graphics.*;
+public class FileTableLabelProvider implements ITableLabelProvider
+{
+  public String getColumnText(Object element, int column_index)
+  {
+    if (column_index == 0)
+    {
+    return ((File) element).getName();
+    }
+    if (column_index == 1)
+    {
+      return "" + ((File) element).length();
+    }
+    return "";
+  }
+  public void addListener(ILabelProviderListener ilabelproviderlistener)
+  {
+  }
+  public void dispose()
+  {
+  }
+  public boolean isLabelProperty(Object obj, String s)
+  {
+    return false;
+  }
+  public void removeListener(ILabelProviderListener ilabelproviderlistener)
+  {
+  }
+  public Image getColumnImage(Object element, int column_index)
+  {
+    if (column_index != 0)
+    {
+      return null;
+    }
+    if (((File) element).isDirectory())
+    {
+      return Util.getImageRegistry().get("folder");
+    }
+    else
+    {
+      return Util.getImageRegistry().get("file");
+    }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>由于现在表有两列（我们在前面添加了大小（size）列），所以还必须调整 <code><span style="font-family: NSimsun;">getColumnText(Object,int)</span></code> 以使程序正确工作。</p>
+<p>运行该程序的结果如图 4 所示：</p>
+<p><br>
+<a name="N1024E"><strong>图 4. 资源管理器（V6）</strong></a><br>
+<img alt="图 4. 资源管理器(V6)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/explorer_5.gif" height="409" width="549"></p>
+<p>程序开始变得十分漂亮了 — 至少在表查看器中是这样。让我们升级 <code><span style="font-family: NSimsun;">FileTreeLabelProvider</span></code> 以使用图像，如清单 5 所示：</p>
+<p><a name="code5"><strong>清单 5. FileTreeLabelProvider（V2）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.swt.graphics.*;
+public class FileTreeLabelProvider extends LabelProvider
+{
+  public String getText(Object element)
+  {
+    return ((File) element).getName();
+  }
+  public Image getImage(Object element)
+  {
+    if (((File) element).isDirectory())
+    {
+      return Util.getImageRegistry().get("folder");
+    }
+    else
+    {
+      return Util.getImageRegistry().get("file");
+    }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>运行该程序的结果如图 5 所示：</p>
+<p><br>
+<a name="N10276"><strong>图 5. 资源管理器（V7）</strong></a><br>
+<img alt="图 5. 资源管理器(V7)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/explorer_6.gif" height="362" width="589"></p>
+<p>现在，可以很容易地看出文件和文件夹之间的区别，我们还可以看到：在表视图中，缺省排序算法按字母顺序给各项排序 — 但将文件夹和文件混在一起。您可能还注意到：在树视图中，我们同时看到了文件夹 <em>和</em>文件。我们现在来修正这个问题。</p>
+<p><a name="N1028B"><span class="atitle">排序和过滤</span></a></p>
+<p>要在查看器中对项进行排序，我们使用 <code><span style="font-family: NSimsun;">ViewerSorter</span></code> 。</p>
+<p><code><span style="font-family: NSimsun;">ViewerSorter</span></code> （请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/#resources"><span style="color: rgb(92, 129, 167);">参考资料</span></a>）是旨在被子类化的类。查看器使用查看器排序程序以便采取两个步骤对它的元素排序。首先，它询问元素的 <em>类别（category）</em>。这返回一个整数，然后它把元素按其 <em>类别号</em>的升序归到各类别组：</p>
+<p><code><span style="font-family: NSimsun;">public int category(Object element)</span></code></p>
+<p>接着，在每个类别中，它使用 <code><span style="font-family: NSimsun;">ViewerSorter</span></code> 的 <code><span style="font-family: NSimsun;">compare()</span></code> 方法进行排序。该方法类似于标准 Java 类 <code><span style="font-family: NSimsun;">Comparator</span></code> 中的 <code><span style="font-family: NSimsun;">compare()</span></code> 方法：</p>
+<p><code><span style="font-family: NSimsun;">public int compare(Viewer viewer, Object element1, Object element2)</span></code></p>
+<p>缺省情况下，使用标签提供程序返回的字符串并忽略大小写进行排序。</p>
+<p>我们在表查看器中只实现 category 方法，如清单 6 所示：</p>
+<p><a name="code6"><strong>清单 6. FileSorter（V1）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+public class FileSorter extends ViewerSorter
+{
+  public int category(Object element)
+  {
+    return ((File) element).isDirectory() ? 0 : 1;
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>这将先对文件夹排序，再对文件排序。</p>
+<p>在树查看器中，我们希望只显示文件夹。我们通过使用 <code><span style="font-family: NSimsun;">ViewerFilter</span></code> （请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/#resources"><span style="color: rgb(92, 129, 167);">参考资料</span></a>）做到这一点。和排序程序一样，过滤器也旨在被子类化。我们需要实现 <code><span style="font-family: NSimsun;">select()</span></code> 方法，它检查元素，如果将要显示该元素，则返回 true。在本例中，我们希望只允许文件夹通过过滤器，所以有清单 7 中的 <code><span style="font-family: NSimsun;">AllowOnlyFoldersFilter()</span></code> 方法：</p>
+<p><a name="code7"><strong>清单 7. AllowOnlyFoldersFilter（V1）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.viewers.*;
+public class AllowOnlyFoldersFilter extends ViewerFilter
+{
+  public boolean select(Viewer viewer, Object parent, Object element)
+  {
+    return ((File) element).isDirectory();
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>注：我们过滤的元素是第 3 个参数。现在给出了查看器和父元素 — 以便在需要时访问它们。</p>
+<p>现在，我们只需将这些类的实例附加到查看器，如清单 8 所示：</p>
+<p><a name="code8"><strong>清单 8. 资源管理器（V8）</strong> </a><br>
+<table class="FCK__ShowTableBorders" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">import java.io.*;
+import org.eclipse.jface.action.*;
+import org.eclipse.jface.viewers.*;
+import org.eclipse.jface.window.*;
+import org.eclipse.swt.*;
+import org.eclipse.swt.custom.*;
+import org.eclipse.swt.widgets.*;
+public class Explorer extends ApplicationWindow
+{
+  ...
+  protected Control createContents(Composite parent)
+  {
+    getShell().setText("JFace File Explorer");
+    SashForm sash_form = new SashForm(parent, SWT.HORIZONTAL | SWT.NULL);
+    TreeViewer tv = new TreeViewer(sash_form);
+    tv.setContentProvider(new FileTreeContentProvider());
+    tv.setLabelProvider(new FileTreeLabelProvider());
+    tv.setInput(new File("C:\\"));
+    tv.addFilter(new AllowOnlyFoldersFilter());
+    final TableViewer tbv =
+      new TableViewer(sash_form, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
+    tbv.setContentProvider(new FileTableContentProvider());
+    tbv.setLabelProvider(new FileTableLabelProvider());
+    tbv.setSorter(new FileSorter());
+     ...
+  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>注：正如这些方法的名称所表明的那样，一个查看器可以同时有多个过滤器，但只能有一个排序程序。</p>
+<p>现在运行资源管理器所得的结果如图 6 所示：</p>
+<p><br>
+<a name="N1031B"><strong>图 6. 资源管理器（V8）</strong></a><br>
+<img alt="图 6. 资源管理器(V8)" src="http://www.ibm.com/developerworks/cn/linux/opensource/os-ecgui2/explorer_7.gif" height="367" width="589"></p>
+<p><a name="N1032A"><span class="atitle">结束语</span></a></p>
+<p>好了，这些图标无疑使程序更漂亮了一些。我们有了窗口标题，它告诉我们看到的是什么，还有一个新的漂亮的状态行，它告诉我们选中了多少项，再通过过滤和排序将文件和文件夹整齐地分隔开，这个程序开始象一个真正的文件资源管理器了。</p>
+<p>它可能看起来漂亮了一点，但现在还做不了什么。在本系列（由 3 部分组成）的最后一篇文章中，我们将通过添加菜单和操作来弥补这一缺陷。我们将了解如何创建菜单栏、工具栏和弹出菜单。我们还将开发一些示例，这些示例中的菜单会使用一些巧妙的 JFace 实用程序来启动程序并访问系统剪贴板，而且我们还将演示如何使用侦听器使菜单项对上下文敏感。</p></div></body></html>

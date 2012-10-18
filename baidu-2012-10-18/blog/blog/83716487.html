@@ -1,0 +1,155 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>反射在Java Swing中的应用</title></head><body><h1>反射在Java Swing中的应用</h1><div><p><span style="font-size:16px;;;;"><u><span style=";color:#810081;;">反射在Java Swing中的应用</span></u></span></p>
+<div style="text-indent: 21pt; line-height: 150%"><span style="font-size: 12pt; line-height: 150%">学习过</span><span style="font-size: 12pt; line-height: 150%">Java Swing</span><span style="font-size: 12pt; line-height: 150%">的读者一定对于</span><span style="font-size: 12pt; line-height: 150%">Swing</span><span style="font-size: 12pt; line-height: 150%">中相对较为复杂的事件驱动模型比较困惑，虽然事件驱动模型在</span><span style="font-size: 12pt; line-height: 150%">Java Swing</span><span style="font-size: 12pt; line-height: 150%">中被完完全全的体现出来了，但是对于一个软件初学者而言这样的近乎“裸体”的事件驱动模型确实是很难理解的。</span></div>
+<p><span style="font-size: 12pt">Microsoft</span><span style="font-size: 12pt">公司</span><span style="font-size: 12pt">.Net</span><span style="font-size: 12pt">框架与</span><span style="font-size: 12pt">Java Swing</span><span style="font-size: 12pt">的</span><span style="font-size: 12pt">GUI</span><span style="font-size: 12pt">编程相比要简单很多，同样是事件驱动模型</span><span style="font-size: 12pt">.Net</span><span style="font-size: 12pt">框架就进行了大量的封装处理，</span><span style="font-size: 12pt">.Net</span><span style="font-size: 12pt">把这种封装称之为委托器</span><span style="font-size: 12pt">(Delegate)</span><span style="font-size: 12pt">其代码如下：</span></p>
+<span style="font-size: 10.5pt">
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td>
+            <div>
+            <div style="text-indent: 21pt; line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">当btnSubmit按钮被点击以后要求交给btnSubmit_Click方法处理</span></span></div>
+            <div style="text-indent: 21pt; line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">// EventHandler</span><span style="color: #339966; line-height: 150%">在中间启到委托器的作用，</span></span></div>
+            <div style="text-indent: 21pt; line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">它负责将事件分发到指定的方法中进行处理</span></span></div>
+            <div style="text-indent: 21pt; line-height: 150%"><span style="font-size:16px;;;;"><strong><span style="color: blue; line-height: 150%">this</span></strong><strong><span style="line-height: 150%">.btnSubmit.Click += <span style="color: blue">new</span> EventHandler(<span style="color: blue">this</span>.btnSubmit_Click);</span></strong></span></div>
+            <div style="text-indent: 21pt; line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">事件处理方法</span></span></div>
+            <div style="text-indent: 21pt; line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">// object sender:</span><span style="color: #339966; line-height: 150%">事件源，这里指btnSubmit对象</span></span></div>
+            <div style="text-indent: 21pt; line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">// EventArgs e:</span><span style="color: #339966; line-height: 150%">事件处理参数，它保存了需要提供给程序员的必要信息</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="line-height: 150%"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;  <span style="color: blue">private</span> <span style="color: blue">void</span> btnSubmit_Click(<span style="color: blue">object</span> sender, EventArgs e)</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="line-height: 150%"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;  {</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //</span><span style="color: #339966; line-height: 150%">打印This is a button语句</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="line-height: 150%"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  System.Diagnostics.Debug.WriteLine("This is button");</span></span></div>
+            <div style="text-indent: 21pt; line-height: 150%"><span style="line-height: 150%"><span style="font-size:16px;;;;">}</span></span></div>
+            <div> </div>
+            </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><span style="font-size: 12pt; mso-ascii-: 1.0pt">作为对比，我们来看看</span><span style="font-size: 12pt; mso-bidi-: 1.0pt">Java Swing</span><span style="font-size: 12pt; mso-ascii-: 1.0pt">的事件处理和委托就要复杂很多：代码如下：</span><span style="font-size: 12pt; mso-bidi-: 1.0pt">(</span><span style="font-size: 12pt; mso-ascii-: 1.0pt">您若还不是很了解</span><span style="font-size: 12pt; mso-bidi-: 1.0pt">Swing</span><span style="font-size: 12pt; mso-ascii-: 1.0pt">事件驱动的话，可以参考我的另外一篇文章：</span><span style="font-size: 12pt; mso-bidi-: 1.0pt"><a href="http://blog.csdn.net/frank_softworks/archive/2007/05/29/1629615.aspx"><span><span>事件驱动模型实例详解（</span></span>Java<span><span>篇<span>）</span></span></span></a>)</span><span style="font-size: 12pt; mso-ascii-: 1.0pt">：</span></p>
+<p><span style="font-size: 12pt; mso-ascii-: 1.0pt"><span style="font-size: 10.5pt">
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td>
+            <div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">为btnSubmit增加侦听器</span><span style="color: #339966; line-height: 150%">SelectHandler</span><span style="color: #339966; line-height: 150%">，当</span><span style="color: #339966; line-height: 150%">btnSubmit</span><span style="color: #339966; line-height: 150%">被点击以后</span></span></div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">有侦听器的</span><span style="color: #339966; line-height: 150%">actionPerformed</span><span style="color: #339966; line-height: 150%">负责处理该点击事件的业务</span></span></div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">由于事件源</span><span style="color: #339966; line-height: 150%">btnSubmit</span><span style="color: #339966; line-height: 150%">和侦听器类</span><span style="color: #339966; line-height: 150%">SelectHandler</span><span style="color: #339966; line-height: 150%">处于两个不同的类中</span></span></div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">为了让SelectHandler类取得页面的信息，我们需要将窗体对象(this)</span></span></div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">传入到侦听器中</span></span></div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="line-height: 150%">btnSubmit</span><span style="color: black; line-height: 150%">.addActionListener(</span><strong><span style="color: #7f0055; line-height: 150%">new</span></strong><span style="color: black; line-height: 150%"> SelectHandler(</span><strong><span style="color: #7f0055; line-height: 150%">this</span></strong><span style="color: black; line-height: 150%">));</span></span></div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">侦听器</span><span style="color: #339966; line-height: 150%">SelectHandler</span><span style="color: #339966; line-height: 150%">，它必须实现动作事件ActionListener接口</span></span></div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">//</span><span style="color: #339966; line-height: 150%">以达到事件分发的作用</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="font-size:16px;;;;"><strong><span style="color: #7f0055; line-height: 150%">class</span></strong><span style="color: black; line-height: 150%"> SelectHandler </span><strong><span style="color: #7f0055; line-height: 150%">implements</span></strong><span style="color: black; line-height: 150%"> ActionListener {</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="font-size:16px;;;;"><span style="color: black; line-height: 150%">&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055; line-height: 150%">private</span></strong><span style="color: black; line-height: 150%"> CommonDialogDemo </span><span style="color: #0000c0; line-height: 150%">form</span><span style="color: black; line-height: 150%"> = </span><strong><span style="color: #7f0055; line-height: 150%">null</span></strong><span style="color: black; line-height: 150%">;</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">&nbsp;&nbsp;&nbsp;  //</span><span style="color: #339966; line-height: 150%">将窗体对象CommonDialogDemo通过构造函数传入SelectHandler类中</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="font-size:16px;;;;"><span style="color: black; line-height: 150%">&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055; line-height: 150%">public</span></strong><span style="color: black; line-height: 150%"> SelectHandler(CommonDialogDemo form) {</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="font-size:16px;;;;"><span style="color: black; line-height: 150%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055; line-height: 150%">this</span></strong><span style="color: black; line-height: 150%">.</span><span style="color: #0000c0; line-height: 150%">form</span><span style="color: black; line-height: 150%"> = form;</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="color: black; line-height: 150%"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;  }</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="font-size:16px;;;;"><span style="color: #339966; line-height: 150%">&nbsp;&nbsp;&nbsp;  //</span><span style="color: #339966; line-height: 150%">事件处理方法，当</span><span style="color: #339966; line-height: 150%">btnSubmit</span><span style="color: #339966; line-height: 150%">被点击，自动执行以下打印代码</span></span></div>
+            <div style="line-height: 150%"><span style="font-size:16px;;;;"><span style="color: black; line-height: 150%">&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055; line-height: 150%">public</span></strong><strong><span style="color: #7f0055; line-height: 150%">void</span></strong><span style="color: black; line-height: 150%"> actionPerformed(ActionEvent e) {</span></span></div>
+            <div style="line-height: 150%" align="left"><span style="font-size:16px;;;;"><span style="color: black; line-height: 150%">&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  System.out.println</span><span style="line-height: 150%">("This is button");</span></span></div>
+            <div style="line-height: 150%"><span style="color: black; line-height: 150%"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;  }</span></span></div>
+            <div style="line-height: 150%"><span style="color: black; line-height: 150%"><span style="font-size:16px;;;;">}</span></span></div>
+            </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</span></span></p>
+<p> </p>
+<div style="text-indent: 21pt; line-height: 150%"><span style="font-size: 12pt; line-height: 150%">根据以上代码，我们可以清晰的看到</span><span style="font-size: 12pt; line-height: 150%">Java Swing</span><span style="font-size: 12pt; line-height: 150%">要比</span><span style="font-size: 12pt; line-height: 150%">.Net</span><span style="font-size: 12pt; line-height: 150%">的麻烦的多，而且更不能让人忍受的就是，一个页面如果有多个按钮的话，我们必须针对每个按钮编写多个事件侦听类，而且这些类一般都会被设为内部类。学过软件建模的读者可能知道，内部在软件建模在软件工程中是不推荐使用的，所以这样的代码编写明显会增加设计冗余度和复杂度，因此我们可以考虑自己编写一个类似于</span><span style="font-size: 12pt; line-height: 150%">.Net</span><span style="font-size: 12pt; line-height: 150%">中</span><span style="font-size: 12pt; line-height: 150%">EventHandler</span><span style="font-size: 12pt; line-height: 150%">一样的事件委托类来处理事件分发。</span></div>
+<p><span style="font-size: 12pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><span style="font-size: 12pt">由于我们无权修改</span><span style="font-size: 12pt">Java</span><span style="font-size: 12pt">的编译器，所以我在这里将会借助于反射技术，利用一个事件委托类处理所有的点击事件，代码如下：</span></p>
+<p><span style="font-size: 12pt"><span style="font-size: 10.5pt">
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td>
+            <div>
+            <div align="left"><span style="font-size:16px;;;;"><strong><span style="color: #7f0055">package</span></strong><span style="color: black"> cn.softworks.teachersearchsystem.support;</span></span></div>
+            <div align="left"> </div>
+            <div align="left"><span style="font-size:16px;;;;"><strong><span style="color: #7f0055">import</span></strong><span style="color: black"> java.awt.event.ActionEvent;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><strong><span style="color: #7f0055">import</span></strong><span style="color: black"> java.awt.event.ActionListener;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><strong><span style="color: #7f0055">import</span></strong><span style="color: black"> java.lang.reflect.Method;</span></span></div>
+            <div align="left"> </div>
+            <div align="left"><span style="color: #3f5fbf"><span style="font-size:16px;;;;">/**</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: #3f5fbf">*</span><span style="color: #3f5fbf">该类是用来处理所有的Swing按钮点击事件，并根据将处理权</span><span style="color: #7f7f9f">&lt;br&gt;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: #3f5fbf">*</span><span style="color: #3f5fbf">转交给使用者来处理</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: #3f5fbf">*</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: #3f5fbf">*</span><strong><span style="color: #7f9fbf">@author</span></strong><span style="color: #3f5fbf">Chen.yu</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: #3f5fbf">*</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: #3f5fbf">*/</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><strong><span style="color: #7f0055">public</span></strong><strong><span style="color: #7f0055">class</span></strong><span style="color: black"> EventHandler</span><strong><span style="color: #7f0055">implements</span></strong><span style="color: black"> ActionListener {</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f7f5f">//</span><span style="color: #3f7f5f">组件所在的窗体对象</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055">private</span></strong><span style="color: black"> Object </span><span style="color: #0000c0">form</span><span style="color: black"> = </span><strong><span style="color: #7f0055">null</span></strong><span style="color: black">;</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f7f5f">//</span><span style="color: #3f7f5f">受到委托的方法名</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055">private</span></strong><span style="color: black"> String </span><span style="color: #0000c0">methodName</span><span style="color: black"> = </span><strong><span style="color: #7f0055">null</span></strong><span style="color: black">;</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">/**</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">*</span><span style="color: #3f5fbf">构造函数</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">*</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">*</span><strong><span style="color: #7f9fbf">@param</span></strong><span style="color: #3f5fbf">form</span><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">组件所在的窗体对象</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">*</span><strong><span style="color: #7f9fbf">@param</span></strong><span style="color: #3f5fbf">methodName</span><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">受到委托的方法名</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">*/</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055">public</span></strong><span style="color: black"> EventHandler</span><span style="color: black">(Object form,String methodName) {</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055">this</span></strong><span style="color: black">.</span><span style="color: #0000c0">form</span><span style="color: black"> = form;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055">this</span></strong><span style="color: black">.</span><span style="color: #0000c0">methodName</span><span style="color: black"> = methodName;</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;  }</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">/**</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">*</span><span style="color: #3f5fbf">事件处理委托方法</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f5fbf">*/</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055">public</span></strong><strong><span style="color: #7f0055">void</span></strong><span style="color: black"> actionPerformed(ActionEvent e) {</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f7f5f">//</span><span style="color: #3f7f5f">得到窗体对象的类型</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Class formType = </span><strong><span style="color: #7f0055">this</span></strong><span style="color: black">.</span><span style="color: #0000c0">form</span><span style="color: black">.getClass();</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055">try</span></strong><span style="color: black"> {</span></span></div>
+            <div><span style="color: black"><span style="font-size:16px;;;;"><span style="color: #3f7f5f">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //</span><span style="color: #3f7f5f">得到指定委托方法的类型</span></span>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Method method =</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  formType.getMethod(</span><strong><span style="color: #7f0055">this</span></strong><span style="color: black">.</span><span style="color: #0000c0">methodName</span><span style="color: black">, </span><strong><span style="color: #7f0055">new</span></strong><span style="color: black"> Class[] {e.getClass()});</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><span style="color: #3f7f5f">//</span><span style="color: #3f7f5f">调用指定的方法</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  method.invoke(</span><strong><span style="color: #7f0055">this</span></strong><span style="color: black">.</span><span style="color: #0000c0">form</span><span style="color: black">, </span><strong><span style="color: #7f0055">new</span></strong><span style="color: black"> Object[] {e});</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</span><strong><span style="color: #7f0055">catch</span></strong><span style="color: black">(Exception ex) {</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="font-size:16px;;;;"><span style="color: black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </span><strong><span style="color: #7f0055">return</span></strong><span style="color: black">;</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;</span></span></div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;  }</span></span></div>
+            <div align="left"> </div>
+            <div align="left"><span style="color: black"><span style="font-size:16px;;;;">}</span></span></div>
+            </span></div>
+            </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</span></span></p>
+<p><span style="font-size: 12pt; mso-ascii-: 1.0pt">从以上代码中我们可以清晰的看到，事件处理和事件委托处于同一窗体中了，</span><span style="font-size: 12pt; mso-bidi-: 1.0pt">.Net</span><span style="font-size: 12pt; mso-ascii-: 1.0pt">方便的</span><span style="font-size: 12pt; mso-bidi-: 1.0pt">Delegate</span><span style="font-size: 12pt; mso-ascii-: 1.0pt">处理被我们用反射实现了。</span></p>
+<div style="line-height: 150%"><span style="font-size: 12pt; line-height: 150%">现在我们来编写一个测试程序，代码如下：</span></div>
+<div style="line-height: 150%"><span style="font-size: 12pt; line-height: 150%"><span style="font-size: 10.5pt">
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td>
+            <div>
+            <div style="line-height: 150%" align="left"><strong><span style="color: black; line-height: 150%"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  btnSearch.addActionListener(</span></span></strong></div>
+            <div style="text-indent: 131.75pt; line-height: 150%" align="left"><span style="font-size:16px;;;;"><strong><span style="color: #7f0055; line-height: 150%">new</span></strong><strong><span style="color: black; line-height: 150%"> EventHandler</span></strong><strong><span style="color: black; line-height: 150%">(</span></strong><strong><span style="color: #7f0055; line-height: 150%">this</span></strong><strong><span style="color: black; line-height: 150%">,</span></strong><strong><span style="color: #2a00ff; line-height: 150%">"btnSearch_Click"</span></strong><strong><span style="color: black; line-height: 150%">));</span></strong></span></div>
+            <div style="text-indent: 131.25pt; line-height: 150%" align="left"> </div>
+            <div style="margin-left: 42pt; line-height: 150%" align="left"><span style="color: black; line-height: 150%"><span style="font-size:16px;;;;">public void btnSearch_Click(ActionEvent e) {</span></span></div>
+            <div style="margin-left: 42pt; line-height: 150%" align="left"><span style="color: black; line-height: 150%"><span style="font-size:16px;;;;">&nbsp;&nbsp;&nbsp;  System.out.println("This is btnSearch");</span></span></div>
+            <div style="margin-left: 42pt; line-height: 150%" align="left"><span style="color: black; line-height: 150%"><span style="font-size:16px;;;;">}</span></span></div>
+            <div style="line-height: 150%"> </div>
+            </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</span></span></div>
+<p> </p>
+</span><span style="font-size:16px;;;;">&nbsp;&nbsp;<br></span><a href="http://blog.csdn.net/frank_softworks/archive/2007/08/25/1758329.aspx"><span style="font-size:16px;;;;">http://blog.csdn.net/frank_softworks/archive/2007/08/25/1758329.aspx</span></a></div></body></html>

@@ -1,0 +1,353 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Facelets 非常适合 JSF （续）</title></head><body><h1>Facelets 非常适合 JSF （续）</h1><div><div>
+<h1>Facelets 非常适合 JSF （续）</h1>
+<p><a name="N102DB"><span class="smalltitle"><strong><font size="3">要点</font></strong></span></a></p>
+<p>在进入更高级的示例之前，我想把您的注意力引到几件事上。首先，请注意在清单 5 中，我如何用一种通用方式引用值绑定：</p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;h:outputText value=&quot;${entity[fieldName]}&quot;/&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>第二，当调用这个复合组件时，我把 <code><font face="新宋体">entity</font></code> 和 <code><font face="新宋体">fieldName</font></code> 作为属性传递，如下所示：</p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;a:column entity=&quot;${cd}&quot; fieldName=&quot;title&quot; backingBean=&quot;${CDManagerBean}&quot;/&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>Facelets 使用的 EL 规范允许用圆点（<code><font face="新宋体">.</font></code>）表示法或较少使用的映射表示法引用字段。例如，如果像上面那样调用，那么 <code><font face="新宋体">${entity[fieldName]}</font></code> 等价于 <code><font face="新宋体">CDManager.title</font></code>。还请注意，我不需要 <code><font face="新宋体">f:verbatim</font></code> 标记或辅助的 <code><font face="新宋体">h:outputText</font></code>。对于您编写的任何 Facelets 页面，都可以这样。Facelets 知道 JSF 组件树，它的唯一目的就是构建这个组件树。这是使用 Facelets 与使用 JSP 和 Tiles 相比的另一个优势。</p>
+<p>编写完成之后，就可以在其他许多地方使用 <em>column.xhtml</em> 复合组件。作为一个通用规则：如果正在破坏 DRY 原则，那么请考虑改用复合组件。</p>
+<p> </p>
+<p><a name="N10314"><span class="atitle">创建组件</span></a></p>
+<p>现在通过 column.xhtml 示例已经快速查看了复合组件。下面一步一步地介绍创建复合组件的过程。以下是创建复合组件的步骤：</p>
+<ol>
+    <li>创建 Facelets 标记库。</li>
+    <li>在 web.xml 中声明标记库。</li>
+    <li>用命名空间导入标记文件。</li>
+</ol>
+<p><a name="N10329"><span class="smalltitle"><strong><font size="3">步骤 1. 创建 Facelets 标记文件</font></strong></span></a></p>
+<p><em>标记文件</em> 是符合 facelet_taglib_1_0.dtd 的文件。在概念上它与 JSP 中的 TLD 文件相似。清单 6 是一个示例标记库文件：</p>
+<p><br>
+<a name="code6"><strong>清单 6. 标记库文件 &mdash;&mdash; arcmind.taglib.xml</strong></a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;!DOCTYPE facelet-taglib PUBLIC
+  &quot;-//Sun Microsystems, Inc.//DTD Facelet Taglib 1.0//EN&quot;
+  &quot;facelet-taglib_1_0.dtd&quot;&gt;
+&lt;facelet-taglib&gt;
+      &lt;namespace&gt;http://www.arc-mind.com/jsf&lt;/namespace&gt;
+ &lt;tag&gt;
+  &lt;tag-name&gt;field&lt;/tag-name&gt;
+  &lt;source&gt;field.xhtml&lt;/source&gt;
+ &lt;/tag&gt;
+ &lt;tag&gt;
+  &lt;tag-name&gt;column&lt;/tag-name&gt;
+  &lt;source&gt;column.xhtml&lt;/source&gt;
+ &lt;/tag&gt;
+ &lt;tag&gt;
+  &lt;tag-name&gt;columnCommand&lt;/tag-name&gt;
+  &lt;source&gt;columnCommand.xhtml&lt;/source&gt;
+ &lt;/tag&gt;
+&lt;/facelet-taglib&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>arcmind.taglib.xml 文件声明了三个标记：<code><font face="新宋体">field</font></code>、<code><font face="新宋体">column</font></code>（已经看过这个！）和 <code><font face="新宋体">columnCommand</font></code>。需要做的只是用 <code><font face="新宋体">tag-name</font></code> 指定标记的名称和实现文件的位置。实现文件的名称是相对的。可以在示例 Web 应用程序下的 WEB-INF\facelets\tags 文件中找到所有这些代码，包括 DTD。</p>
+<p>请一定注意在上面的标记元素之前声明的 <code><font face="新宋体">namespace</font></code> 元素：稍后需要通过它在其他 Facelets 页面中使用这个标记库。</p>
+<p><a name="N10358"><span class="smalltitle"><strong><font size="3">步骤 2. 在 web.xml 中声明标记库</font></strong></span></a></p>
+<p>有了一个标记库是很好，但是要让它有用，还必须把它的存在告诉 Facelets。在 web.xml 文件中用 <code><font face="新宋体">facelets.LIBRARIES init</font></code> 参数做这件事，如下所示：</p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;context-param&gt;
+ &lt;param-name&gt;facelets.LIBRARIES&lt;/param-name&gt;
+ &lt;param-value&gt;
+  /WEB-INF/facelets/tags/arcmind.taglib.xml
+ &lt;/param-value&gt;
+&lt;/context-param&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>将 <code><font face="新宋体">facelets.LIBRARIES</font></code> 以分号分隔的列表形式传递，就可以想定义多少就定义多少标记文件。</p>
+<p><a name="N10370"><span class="smalltitle"><strong><font size="3">步骤 3. 用命名空间导入标记文件</font></strong></span></a></p>
+<p>创建了标记文件并在 Facelets 标记库中定义了它之后，就可以使用它了。标记文件的使用要求把它声明为 XML 命名空间，如下所示：</p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+      xmlns:ui=&quot;http://java.sun.com/jsf/facelets&quot;
+      xmlns:h=&quot;http://java.sun.com/jsf/html&quot;
+      xmlns:f=&quot;http://java.sun.com/jsf/core&quot;
+      xmlns:a=&quot;http://www.arc-mind.com/jsf&quot;&gt;
+...
+...
+&lt;a:column entity=&quot;${cd}&quot; fieldName=&quot;title&quot;  
+  backingBean=&quot;${CDManagerBean}&quot;/&gt;
+&lt;a:column entity=&quot;${cd}&quot; fieldName=&quot;artist&quot; 
+  backingBean=&quot;${CDManagerBean}&quot;/&gt;
+&lt;a:column entity=&quot;${cd}&quot; fieldName=&quot;price&quot; 
+  backingBean=&quot;${CDManagerBean}&quot; sort=&quot;${false}&quot;/&gt;
+&lt;a:columnCommand label=&quot;Edit&quot; action=&quot;editCD&quot;
+              backingBean=&quot;${CDManagerBean}&quot;/&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>请注意命名空间的定义如下所示：</p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">xmlns:a=&quot;http://www.arc-mind.com/jsf&quot;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>命名空间的值与前面步骤 1 中标记库中声明的命名空间元素一样。</p>
+<p> </p>
+<p><a name="N10387"><span class="atitle">高级技巧</span></a></p>
+<p>上面只介绍了复合组件的基础知识。用我目前为止介绍的内容能够创建可重用组件。在我自己使用 Facelets 时，发现了一些可以让复合组件更有用的小技巧，而且在某些情况下能够解决一些小问题。例如，请考虑来自 cdForm.xhtml 模板的以下代码片段：</p>
+<p><br>
+<a name="code7"><strong>清单 7. cdForm.xhtml 的片段</strong></a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;h:form id=&quot;cdForm&quot;&gt;
+  &lt;h:inputHidden id=&quot;cdid&quot; value=&quot;#{CDManagerBean.cd.id}&quot; /&gt;
+  &lt;h:panelGrid id=&quot;formGrid&quot; columns=&quot;3&quot; rowClasses=&quot;row1, row2&quot;&gt;
+ &lt;!-- Title                                   --&gt;
+ &lt;h:outputLabel id=&quot;titleLabel&quot; for=&quot;title&quot; styleClass=&quot;label&quot;
+                     value=&quot;Title&quot; /&gt;
+ &lt;h:inputText id=&quot;title&quot; value=&quot;#{CDManagerBean.cd.title}&quot;
+         required=&quot;true&quot; /&gt;
+ &lt;h:message id=&quot;titleMessage&quot; for=&quot;title&quot; styleClass=&quot;errorText&quot;/&gt;
+ &lt;!-- Artist                                   --&gt;
+ &lt;h:outputLabel  id=&quot;artistLabel&quot; for=&quot;artist&quot; styleClass=&quot;label&quot; 
+                     value=&quot;Artist&quot; /&gt;
+ &lt;h:inputText id=&quot;artist&quot; value=&quot;#{CDManagerBean.cd.artist}&quot;
+         required=&quot;true&quot; /&gt;
+ &lt;h:message id=&quot;titleMessage&quot; for=&quot;artist&quot;  
+                     styleClass=&quot;errorText&quot;/&gt;
+ &lt;!-- Price                                   --&gt;
+ &lt;h:outputLabel  id=&quot;priceLabel&quot; for=&quot;price&quot; styleClass=&quot;label&quot; value=&quot;Price&quot; /&gt;
+ &lt;h:inputText id=&quot;price&quot; value=&quot;#{CDManagerBean.cd.price}&quot;
+         required=&quot;true&quot;&gt;
+  &lt;f:validateDoubleRange minimum=&quot;15.0&quot; maximum=&quot;100.0&quot; /&gt;
+ &lt;/h:inputText&gt;
+ &lt;h:message id=&quot;priceMessage&quot; for=&quot;price&quot; styleClass=&quot;errorText&quot;/&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>以上页面在概念上与 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-facelets/#code3"><font color="#996699">清单 3</font></a> 类似，但它为 Facelets 和一个字段复合组件留出了空间，可以避免重复代码。基于这个代码，应当可以容易地创建显示字段的复合组件，但是有一个小麻烦。不知道您看到没有？请看表单的 <code><font face="新宋体">price</font></code> 字段：它包含一个验证器。</p>
+<p>现在，如何把验证器传递给复合组件？</p>
+<p> </p>
+<p><a name="N103A8"><span class="atitle">传递子元素</span></a></p>
+<p>这里有一个关于 Facelets 的小秘密：复合组件基本上也是一类模板。所以，可以用 <code><font face="新宋体">ui:define</font></code> 标记传递模板参数，带上具体的 <code><font face="新宋体">ui:insert</font></code>，或者也可以把体作为默认 <code><font face="新宋体">ui:insert</font></code> 传递。</p>
+<p>清单 8 就是字段组件的这样一种实现（field.xhtml）：</p>
+<p><br>
+<a name="code8"><strong>清单 8. field.xhtml</strong></a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; 
+&quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&gt;
+&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+      xmlns:ui=&quot;http://java.sun.com/jsf/facelets&quot;
+      xmlns:h=&quot;http://java.sun.com/jsf/html&quot;
+      xmlns:f=&quot;http://java.sun.com/jsf/core&quot;
+      xmlns:z=&quot;http://www.qualcomm.com/jsf/core&quot;
+      xmlns:c=&quot;http://java.sun.com/jstl/core&quot;
+      xmlns:fn=&quot;http://java.sun.com/jsp/jstl/functions&quot;
+      xmlns:t=&quot;http://myfaces.apache.org/tomahawk&quot;&gt;
+THIS TEXT WILL BE REMOVED
+&lt;ui:composition&gt;
+       &lt;!--  The label is optional. 
+                Generate it if it is missing. --&gt;
+  &lt;c:if test=&quot;${empty label}&quot;&gt;
+   &lt;c:set var=&quot;label&quot; value=&quot;${fieldName}&quot; /&gt;
+  &lt;/c:if&gt;
+  
+   &lt;!-- The required attribute is optional, 
+                 initialize it to true if not found. --&gt;
+  &lt;c:if test=&quot;${empty required}&quot;&gt;
+   &lt;c:set var=&quot;required&quot; value=&quot;true&quot; /&gt;
+  &lt;/c:if&gt;
+ 
+  &lt;h:outputLabel id=&quot;${fieldName}Label&quot; 
+                      value=&quot;${label}&quot; for=&quot;#{fieldName}&quot; /&gt;   
+  &lt;h:inputText id=&quot;#{fieldName}&quot; value=&quot;#{entity[fieldName]}&quot; 
+                required=&quot;${required}&quot;&gt;
+     &lt;ui:insert /&gt;
+  &lt;/h:inputText&gt;
+  &lt;!--  Display any error message that are found --&gt;
+  &lt;h:message id=&quot;${fieldName}Message&quot; 
+   style=&quot;color: red; text-decoration: overline&quot; 
+   for=&quot;#{fieldName}&quot; /&gt;
+&lt;/ui:composition&gt;
+THIS TEXT WILL BE REMOVED AS WELL
+&lt;/html&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>目前为止，清单 8 的工作基本上是不出所料。请注意 <code><font face="新宋体">h:inputText</font></code> 内部未命名 <code><font face="新宋体">ui:insert</font></code> 标记的使用。理解了它之后，就可以像清单 9 所示那样使用这个复合组件：</p>
+<p><br>
+<a name="code9"><strong>清单 9. 字段标记复合组件</strong></a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; 
+    &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&gt;
+&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+      xmlns:ui=&quot;http://java.sun.com/jsf/facelets&quot;
+      xmlns:h=&quot;http://java.sun.com/jsf/html&quot;
+      xmlns:f=&quot;http://java.sun.com/jsf/core&quot;
+      xmlns:a=&quot;http://www.arc-mind.com/jsf&quot;&gt;
+...
+&lt;h:form id=&quot;cdForm&quot;&gt;
+ &lt;!-- Title, Artist, Price --&gt;
+ &lt;a:field fieldName=&quot;title&quot; entity=&quot;#{CDManagerBean.cd}&quot; /&gt;
+ &lt;a:field fieldName=&quot;artist&quot; entity=&quot;#{CDManagerBean.cd}&quot; /&gt;
+ &lt;a:field fieldName=&quot;price&quot; entity=&quot;#{CDManagerBean.cd}&quot; &gt;
+  &lt;f:validateDoubleRange minimum=&quot;15.0&quot; maximum=&quot;100.0&quot; /&gt;
+ &lt;/a:field&gt;
+...</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><code><font face="新宋体">price</font></code> 的字段标记被传递给验证器，作为匿名插入。因为其他字段没有定义体，所以匿名插入对于默认值没有影响。</p>
+<p> </p>
+<p><a name="N103E5"><span class="atitle">传递动作</span></a></p>
+<p>在想传递动作绑定来创建像工具栏或导航列表这样的元素时，问题就是使用标准的表达式语言，不能传递，但是有方法可以做到！使用从对象中引用字段的相同方式，可以引用对象中的方法。所以，要创建可以创建动作绑定的组件，可以像下面这样做（来自 columnCommand.xhtml）：</p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;h:commandLink id=&quot;#{action}&quot; value=&quot;#{label}&quot;  
+                              action=&quot;#{backingBean[action]}&quot;/&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>请研究动作属性的 <code><font face="新宋体">value</font></code>。请注意，我使用与前面从实体引用字段相同的方式，访问到了方法。可以用以下语法调用这个组件：</p>
+<p>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;a:columnCommand label=&quot;Edit&quot; action=&quot;editCD&quot; 
+backingBean=&quot;${CDManagerBean}&quot;/&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>这个调用把 <code><font face="新宋体">CDManagerBean</font></code> 的 <code><font face="新宋体">editCD()</font></code> 方法绑定到链接。清单 10 显示了 <code><font face="新宋体">columnCommand.xhtml</font></code> 的完整清单：</p>
+<p><br>
+<a name="code10"><strong>清单 10. columnCommand.xhtml</strong></a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0" width="100%">
+    <tbody>
+        <tr>
+            <td class="code-outline">
+            <pre class="displaycode">&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; 
+&quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&gt;
+&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+      xmlns:ui=&quot;http://java.sun.com/jsf/facelets&quot;
+      xmlns:h=&quot;http://java.sun.com/jsf/html&quot;
+      xmlns:f=&quot;http://java.sun.com/jsf/core&quot;
+      xmlns:z=&quot;http://www.qualcomm.com/jsf/core&quot;
+      xmlns:c=&quot;http://java.sun.com/jstl/core&quot;&gt;
+THIS TEXT WILL BE REMOVED
+&lt;ui:composition&gt;
+ &lt;!--  The label is optional. Generate it if it is missing. --&gt;
+ &lt;c:if test=&quot;${empty label}&quot;&gt;
+   &lt;c:set var=&quot;label&quot; value=&quot;${action}&quot; /&gt;
+ &lt;/c:if&gt;
+ 
+ &lt;h:column&gt;
+  &lt;f:facet name=&quot;header&quot;&gt;
+   &lt;h:panelGroup&gt;
+    &lt;h:outputText value=&quot;#{label}&quot; /&gt;
+   &lt;/h:panelGroup&gt;
+  &lt;/f:facet&gt;
+  &lt;h:commandLink id=&quot;#{action}&quot; value=&quot;#{label}&quot; 
+                                     action=&quot;#{backingBean[action]}&quot;/&gt;
+ &lt;/h:column&gt;
+  
+&lt;/ui:composition&gt;
+THIS TEXT WILL BE REMOVED AS WELL
+&lt;/html&gt;</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><a name="N10416"><span class="atitle">Facelets 的不足</span></a></p>
+<p>我已经清楚地演示了使用 Facelets 的好处：即组件复合和模板框架，它的<em>核心</em> 是组件，而不是 Servlets 输出。但是采用 Facelets 也有些不足。其中之一就是，对 Facelets 的 IDE 支持极少。只有一个 Eclipse IDE 实现完全支持 Facelets（商业版的实现，请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/j-facelets/#resources"><font color="#996699">参考资料</font></a>），而且看起来还不支持代码补足。</p>
+<p>而且也没对 Facelets 调试的 IDE 支持（也就是说，设置断点之类的东西）。要想调试，需要阅读 Facelets 手册，打开 JDK 1.4 样式的日志，根据开发情况设置它的 <code><font face="新宋体">init</font></code> 参数。</p>
+<p>在有利方面来说，我发现使用 Facelets API 非常自然和直观。调试在开始的时候有些怪异，但是后来就适应了。随 Facelets 发行包提供的演示应用程序没有定制标记或功能的示例，但是核心项目代码中有，所以请用核心项目代码作为指导。</p>
+<p>如果要使用新的 JSF 组件库，必须有公开这个库的 Facelets 标记库。有些主要的组件库（例如 Oracle 和 Tomahawk）的标记库存在，但是即使这些也需要调整。我必须调整 Tomahawk 标记库才能在应用程序中得到 Tomahawk 的日历组件。虽然编写导出组件的标记库文件比较容易，但是也是件麻烦事。如果想使用新的定制组件库，就必须编写标记库文件。</p>
+<p>因为在其他实现中的问题，Facelets 看起来只能用于 MyFaces 1.1.1 和 Sun 1.2 JSF 的参考实现（Sun 的 JSF RI 1.2 还没有正式发布）。不能把 Facelets 用于 1.1 RI。虽然可以把 MyFaces 用于 IBM WebSphere，但不能把 Facelets 用于 IBM 的实现。（如果使用最新版本的 Facelets，必须使用最新构建的 MyFaces 1.1.2，它现在还没推出。）</p>
+<p>还要注意的是，MyFaces 1.1 和 JSF RI 1.2 的底层机制不同。尽管如此，Facelets 试图把这两者的实现保持为它们当前的形式（MyFaces 1.1.2 和 JSF RI 1.2），这看起来解释了花在 Facelets 上的大量时间。如果双方更团结协调一点，让 Facelets 在两个环境中做同样的事上少花些时间，就可以把更多时间花在改进 Facelets 上。</p>
+<p> </p>
+<p><a name="N10439"><span class="atitle">结束语</span></a></p>
+<p>虽然有些缺点，我还是强烈推荐您下载 Facelets 并尽快开始使用它。Facelets 是 JSF 的未来，或者将会是，使用它可以使您在任何 JSF 暴风雨中都干爽（DRY 的双关语，译者注）。如果还不能在当前项目中使用它，请在下一个项目中想着它。</p>
+<p>我已经用 Facelets 创建了复合组件、定制 Facelet 标记和内部 CRUD 框架功能的整个库。我发现了许多构建复合组件的技巧和技术（例如，自动生成复选框、日历组件的字段标记，或者根据绑定到组件的值绑定类型的文本字段），超过了在这样一篇介绍性文章中能涉及的内容。相反，我把重点放在让您了解和运行复合组件。通过在这里学到的知识，只用最少的定制功能和定制 Facelets 标记，就可以创建动人的组件。</p>
+<p><a name="N10445"><span class="smalltitle"><strong><font size="3">致谢</font></strong></span></a></p>
+<p>特别感谢 Jacob Hookom，他是 Facelets 的创造者，感谢他对本文的审阅和贡献，还要感谢 Athenz 细致入微的编辑。</p>
+<p> </p>
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+<p><strong>学习</strong></p>
+<ul>
+    <li>&ldquo;<a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/j-jsf1/?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">JSF for nonbelievers: Clearing the FUD about JSF</font></a>&rdquo;（Richard Hightower，developerWorks，2005 年 2 月）：四部分的系列，捍卫 JSF 编程，解密 JSF 编程。请参阅 <a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/j-jsf2/?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">第 2 部分</font></a> 获得这里使用的原始在线 CD 商店示例。</li>
+    <li>&ldquo;<a cmimpressionsent="1" href="http://www.ibm.com/developerworks/library/j-tapestry1/?S_TACT=105AGX52&amp;S_CMP=cn-a-j"><font color="#5c81a7">In tune with Tapestry</font></a>&rdquo;（Brett McLaughlin，developerWorks，2006 年 1 月）：一份精彩的两部分的 Tapestry 介绍。</li>
+    <li>&ldquo;<a cmimpressionsent="1" href="http://www.jsfcentral.com/articles/facelets_1.html"><font color="#996699">Inside Facelets Part 1: An Introduction</font></a>&rdquo;（Jacob Hookom，JSF 中心，2005 年 8 月）：Facelets 创建者对它的思考。</li>
+    <li><a cmimpressionsent="1" href="https://facelets.dev.java.net/nonav/docs/dev/docbook.html#config-webapp"><font color="#996699">Facelets 文档</font></a>：请参阅 Facelets 参数的完整清单。</li>
+    <li><a cmimpressionsent="1" href="http://www.thearcmind.com/confluence/display/SpribernateSF/Home"><font color="#5c81a7">Combining Spring, JSF, and Hibernate</font></a>：作者 Rick Hightower 对把 Spring、JSF 和 Hibernate 结合在一起的思考。</li>
+    <li><a cmimpressionsent="1" href="http://jroller.com/page/RickHigh"><font color="#5c81a7">Another Sleepless Night in Tucson</font></a>：作者 Hightower 的 blog，他在这里思考 JSF（还有酒和厨艺）一直到凌晨。</li>
+    <li><a cmimpressionsent="1" href="http://www.ibm.com/developerworks/cn/java/"><font color="#5c81a7">Java 技术专区</font></a>：数百篇 Java 编程各方面的文章。</li>
+</ul>
+<p><br>
+<strong>获得产品和技术</strong></p>
+<ul>
+    <li><a cmimpressionsent="1" href="http://www.jcp.org/en/jsr/detail?id=252"><font color="#5c81a7">获得 JSR 252</font></a>：请下载 JavaServer Faces。</li>
+    <li><a cmimpressionsent="1" href="https://facelets.dev.java.net/"><font color="#996699">Facelets 主页</font></a>：请下载 Facelets。</li>
+    <li><a cmimpressionsent="1" href="http://xulfaces.sourceforge.net/using-facelets.html"><font color="#5c81a7">XULFaces</font></a>：对 Facelets 中的 XMTHL 标记的一个替代品。<br>
+    <br>
+    <a href="http://www.ibm.com/developerworks/cn/java/j-facelets/">http://www.ibm.com/developerworks/cn/java/j-facelets/</a> 本文</li>
+</ul>
+</div></div></body></html>

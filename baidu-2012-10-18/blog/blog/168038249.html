@@ -1,0 +1,197 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Swing中的并发-使用SwingWorker线程模式</title></head><body><h1>Swing中的并发-使用SwingWorker线程模式</h1><div><div>
+<h1>Swing中的并发-使用SwingWorker线程模式</h1>
+<div>本文介绍Java SE 6中的SwingWorker线程工作模式，翻译Concurrency in Swing（<a href="http://java.sun.com/docs/books/tutorial/uiswing/concurrency/index.html" target="_blank">[url]http://java.sun.com/docs/books/tutorial/uiswing/concurrency/index.html[/url]</a>）。</div>
+<div>author: ZJ <st1:chsdate year="2007" month="7" day="16" isrocdate="False" islunardate="False">2007-7-16</st1:chsdate></div>
+<div>Blog: <a href="http://zhangjunhd.blog.51cto.com/" target="_blank">[url]http://zhangjunhd.blog.51cto.com/[/url]</a> </div>
+<div>本文将讨论并发机制在Swing编程中的应用。</div>
+<div>谨慎地使用并发机制对Swing开发人员来说非常重要。一个好的Swing程序使用并发机制来创建不会失去响应的用户接口-不管是什么样的用户交互，程序总能够对其给出响应。创建一个有响应的程序，开发人员必须学会如何在Swing框架中使用多线程。</div>
+<div>一个Swing开发人员将会与下面几类线程打交道：</div>
+<div>[1]Initial threads（初始线程），此类线程将执行初始化应用代码。</div>
+<div>[2]The event dispatch thread（事件派发线程）,所有的事件处理代码在这里执行。大多数与Swing框架交互的代码也必须执行这个线程。</div>
+<div>[3]Worker threads（工作线程）,也称作background threads（后台线程）,此类线程将执行所有消耗时间的任务。</div>
+<div>开发人员不需要在代码中显式的创建这些线程：它们是由runtime或Swing框架提供的。开发人员的工作就是利用这些线程来创建具有响应的，持久的Swing程序。</div>
+<div>如同所有其他在Java平台上运行的程序，一个Swing程序可以创建额外的线程和线程池，这需要使用本文即将介绍的方法。本文将介绍以上这三种线程。工作线程的讨论将涉及到使用javax.swing.SwingWorker类。这个类有许多有用的特性，包括在工作线程任务与其他线程任务之间的通信与协作。 </div>
+<div>1．初始线程</div>
+<div>每个程序都会在应用逻辑开始时生成一系列的线程。在标准的程序中，只有一个这样的线程：这个线程将调用程序主类中的main方法。在applet中初始线程是applet对象的构造子，它将调用init方法；这些actions可能在一个单一的线程中执行，或在两个或三个不同的线程中，这些都依据Java平台的具体实现。在本文中，我们称这类线程为初始线程（initial threads）。</div>
+<div>在Swing程序中，初始线程没有很多事情要做。它们最基本的任务是创建一个Runnable对象，用于初始化GUI以及为那些用于执行事件派发线程中的事件的对象编排顺序。一旦GUI被创建，程序将主要由GUI事件驱动，其中的每个事件驱动将引起一个在事件派发线程中事件的执行。程序代码可以编排额外的任务给事件驱动线程（前提是它们会被很快的执行，这样才不会干扰事件的处理）或创建工作线程（用于执行消耗时间的任务）。</div>
+<div>一个初始线程编排GUI创建任务是通过调用javax.swing.SwingUtilities.invokeLater或javax.swing.SwingUtilities.invokeAndWait。这两个方法都带有一个唯一的参数：Runnable用于定义新的任务。它们唯一的区别是：invokerLater仅仅编排任务并返回；invokeAndWait将等待任务执行完毕才返回。</div>
+<div>看下面示例：</div>
+<p>
+<table cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">
+            <div>SwingUtilities.invokeLater(new Runnable()) {</div>
+            <div>&nbsp;&nbsp;&nbsp;  public void run() {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  createAndShowGUI();</div>
+            <div>&nbsp;&nbsp;&nbsp;  }</div>
+            <div>}</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<div> 在applet中，创建GUI的任务必须被放入init方法中并且使用invokeAndWait；否则，初始过程将有可能在GUI创建完之前完成，这样将有可能出现问题。在其他的情况下，编排GUI创建任务通常是初始线程中最后一个被执行的，所以使用invokeLater或invokeAndWait都可以。</div>
+<div>为什么初始线程不直接创建GUI？因为几乎所有的用于创建和交互Swing组件的代码必须在事件派发线程中执行。这个约束将在下文中讨论。</div>
+<div> 2．事件派发线程</div>
+<div>Swing事件的处理代码在一个特殊的线程中执行，这个线程被称为事件派发线程。大部分调用Swing方法的代码都在这个线程中被执行。这样做是必要的，因为大部分Swing对象是&ldquo;非线程安全的&rdquo;。</div>
+<div>可以将代码的执行想象成在事件派发线程中执行一系列短小的任务。大部分任务被事件处理方法调用，诸如ActionListener.actionPerformed。其余的任务将被程序代码编排，使用invokeLater或invokeAndWait。在事件派发线程中的任务必须能够被快速执行完成，如若不然，未经处理的事件被积压，用户界面将变得&ldquo;响应迟钝&rdquo;。</div>
+<div>如果你需要确定你的代码是否是在事件派发线程中执行，可调用javax.swing.SwingUtilities.isEventDispatchThread。</div>
+<div> 3．工作线程与SwingWorker</div>
+<div>当一个Swing程序需要执行一个长时间的任务，通常将使用一个工作线程来完成。每个任务在一个工作线程中执行，它是一个javax.swing.SwingWorker类的实例。SwingWorker类是抽象类；你必须定义它的子类来创建一个SwingWorker对象；通常使用匿名内部类来这做这些。</div>
+<div>SwingWorker提供一些通信与控制的特征：</div>
+<div>[1]SwingWorker的子类可以定义一个方法，done。当后台任务完成的时候，它将自动的被事件派发线程调用。</div>
+<div>[2]SwingWorker类实现java.util.concurrent.Future。这个接口允许后台任务提供一个返回值给其他线程。该接口中的方法还提供允许撤销后台任务以及确定后台任务是被完成了还是被撤销的功能。</div>
+<div>[3]后台任务可以通过调用SwingWorker.publish来提供中间结果，事件派发线程将会调用该方法。</div>
+<div>[4]后台任务可以定义绑定属性。绑定属性的变化将触发事件，事件派发线程将调用事件处理程序来处理这些被触发的事件。 </div>
+<div>4．简单的后台任务</div>
+<div>下面介绍一个示例，这个任务非常简单，但它是潜在地消耗时间的任务。TumbleItem applet导入一系列的图片文件。如果这些图片文件是通过初始线程导入的，那么将在GUI出现之前有一段延迟。如果这些图片文件是在事件派发线程中导入的，那么GUI将有可能出现临时无法响应的情况。</div>
+<div>为了解决这些问题，TumbleItem类在它初始化时创建并执行了一个StringWorker类的实例。这个对象的doInBackground方法，在一个工作线程中执行，将图片导入一个ImageIcon数组，并且返回它的一个引用。接着done方法，在事件派发线程中执行，得到返回的引用，将其放在applet类的成员变量imgs中。这样做可以允许TumbleItem类立刻创建GUI，而不必等待图片导入完成。</div>
+<div>下面的示例代码定义和实现了一个SwingWorker对象。</div>
+<p>
+<table cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">
+            <div>SwingWorker worker = new SwingWorker&lt;ImageIcon[], Void&gt;() {</div>
+            <div>&nbsp;&nbsp;&nbsp;  @Override</div>
+            <div>&nbsp;&nbsp;&nbsp;  public ImageIcon[] doInBackground() {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  final ImageIcon[] innerImgs = new ImageIcon[nimgs];</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int i = 0; i &lt; nimgs; i++) {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  innerImgs[i] = loadImage(i+1);</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return innerImgs;</div>
+            <div>&nbsp;&nbsp;&nbsp;  }</div>
+            <div> </div>
+            <div>&nbsp;&nbsp;&nbsp;  @Override</div>
+            <div>&nbsp;&nbsp;&nbsp;  public void done() {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //Remove the &quot;Loading images&quot; label.</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  animator.removeAll();</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  loopslot = -1;</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  imgs = get();</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } catch (InterruptedException ignore) {}</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  catch (java.util.concurrent.ExecutionException e) {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String why = null;</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Throwable cause = e.getCause();</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (cause != null) {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  why = cause.getMessage();</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  why = e.getMessage();</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.err.println(&quot;Error retrieving file: &quot; + why);</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+            <div>&nbsp;&nbsp;&nbsp;  }</div>
+            <div>};</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;  所有的继承自SwingWorker的子类都必须实现doInBackground；实现done方法是可选的。</div>
+<div>注意，SwingWorker是一个范型类，有两个参数。第一个类型参数指定doInBackground的返回类型。同时也是get方法的类型，它可以被其他线程调用以获得来自于doInBackground的返回值。第二个类型参数指定中间结果的类型，这个例子没有返回中间结果，所以设为void。</div>
+<div>使用get方法，可以使对象imgs的引用（在工作线程中创建）在事件派发线程中得到使用。这样就可以在线程之间共享对象。</div>
+<div>实际上有两个方法来得到doInBackground类返回的对象。</div>
+<div>[1]调用SwingWorker.get没有参数。如果后台任务没有完成，get方法将阻塞直到它完成。</div>
+<div>[2]调用SwingWorker.get带参数指定timeout。如果后台任务没有完成，阻塞直到它完成-除非timeout期满，在这种情况下，get将抛出java.util.concurrent.TimeoutException。 </div>
+<div>5．具有中间结果的任务</div>
+<div>让一个正在工作的后台任务提供中间结果是很有用处的。后台任务可以调用SwingWorker.publish方法来做到这个。这个方法接受许多参数。每个参数必须是由SwingWorker的第二个类型参数指定的一种。</div>
+<div>可以覆盖（override）SwingWorker.process来保存由publish方法提供的结果。这个方法是由事件派发线程调用的。来自publish方法的结果集通常是由一个process方法收集的。</div>
+<div>我们看一下Filpper.java提供的实例。这个程序通过一个后台任务产生一系列的随机布尔值测试java.util.Random。就好比是一个投硬币试验。为了报告它的结果，后台任务使用了一个对象FlipPair。</div>
+<p>
+<table cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">
+            <div>private static class FlipPair {</div>
+            <div>&nbsp;&nbsp;&nbsp;  private final long heads, total;</div>
+            <div>&nbsp;&nbsp;&nbsp;  FlipPair(long heads, long total) {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.heads = heads;</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.total = total;</div>
+            <div>&nbsp;&nbsp;&nbsp;  }</div>
+            <div>}</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<div>heads表示true的结果；total表示总的投掷次数。</div>
+<div>后台程序是一个FilpTask的实例：</div>
+<p>
+<table cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">
+            <div>private class FlipTask extends SwingWorker&lt;Void, FlipPair&gt; {</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<div>因为任务没有返回一个最终结果，这里不需要指定第一个类型参数是什么，使用Void。在每次&ldquo;投掷&rdquo;后任务调用publish：</div>
+<p>
+<table cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">
+            <div>@Override</div>
+            <div>protected Void doInBackground() {</div>
+            <div>&nbsp;&nbsp;&nbsp;  long heads = 0;</div>
+            <div>&nbsp;&nbsp;&nbsp;  long total = 0;</div>
+            <div>&nbsp;&nbsp;&nbsp;  Random random = new Random();</div>
+            <div>&nbsp;&nbsp;&nbsp;  while (!isCancelled()) {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  total++;</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (random.nextBoolean()) {</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  heads++;</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  publish(new FlipPair(heads, total));</div>
+            <div>&nbsp;&nbsp;&nbsp;  }</div>
+            <div>&nbsp;&nbsp;&nbsp;  return null;</div>
+            <div>}</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<div>由于publish时常被调用，许多的FlipPair值将在process方法被事件派发线程调用之前被收集；process仅仅关注每次返回的最后一组值，使用它来更新GUI:</div>
+<p>
+<table cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td valign="top">
+            <div>protected void process(List pairs) {</div>
+            <div>&nbsp;&nbsp;&nbsp;  FlipPair pair = pairs.get(pairs.size() - 1);</div>
+            <div>&nbsp;&nbsp;&nbsp;  headsText.setText(String.format(&quot;%d&quot;, pair.heads));</div>
+            <div>&nbsp;&nbsp;&nbsp;  totalText.setText(String.format(&quot;%d&quot;, pair.total));</div>
+            <div>&nbsp;&nbsp;&nbsp;  devText.setText(String.format(&quot;%<st1:chmetcnv tcsc="0" numbertype="1" negative="False" hasspace="False" sourcevalue=".1" unitname="g">.10g</st1:chmetcnv>&quot;,</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((double) pair.heads)/((double) pair.total) - 0.5));</div>
+            <div>}</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<div> 6．取消后台任务</div>
+<div>调用SwingWorker.cancel来取消一个正在执行的后台任务。任务必须与它自己的撤销机制一致。有两个方法来做到这一点：</div>
+<div>[1]当收到一个interrupt时，将被终止。</div>
+<div>[2]调用SwingWorker.isCanceled，如果SwingWorker调用cancel，该方法将返回true。</div>
+<div> 7．绑定属性和状态方法</div>
+<div>SwingWorker支持bound properties，这个在与其他线程通信时很有作用。提供两个绑定属性：progress和state。progress和state可以用于触发在事件派发线程中的事件处理任务。</div>
+<div>通过实现一个property change listener，程序可以捕捉到progress,state或其他绑定属性的变化。</div>
+<div> </div>
+<div>7.1The progress Bound Variable</div>
+<div>Progress绑定变量是一个整型变量，变化范围由0到100。它预定义了setter (the protected SwingWorker.setProgress)和getter (the public SwingWorker.getProgress)方法。</div>
+<div> </div>
+<div>7.2The state Bound Variable</div>
+<div>State绑定变量的变化反映了SwingWorker对象在它的生命周期中的变化过程。该变量中包含一个SwingWorker.StateValue的枚举类型。可能的值有：</div>
+<div>[1]PENDING</div>
+<div>这个状态持续的时间为从对象的建立知道doInBackground方法被调用。</div>
+<div>[2]STARTED</div>
+<div>这个状态持续的时间为doInBackground方法被调用前一刻直到done方法被调用前一刻。</div>
+<div>[3]DONE</div>
+<div>对象存在的剩余时间将保持这个状态。</div>
+<div>需要返回当前state的值可调用SwingWorker.getState。 </div>
+<div> </div>
+<div>7.3Status Methods</div>
+<div>两个由Future接口提供的方法，同样可以报告后台任务的状态。如果任务被取消，isCancelled返回true。此外，如果任务完成，即要么正常的完成，要么被取消，isDone返回true。</div>
+</div></div></body></html>

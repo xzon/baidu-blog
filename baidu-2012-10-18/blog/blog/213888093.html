@@ -1,0 +1,181 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>xsocket (a simple length field-based handler)</title></head><body><h1>xsocket (a simple length field-based handler)</h1><div><p>xsocket (<em>a simple length field-based handler)</em></p>
+<p><em>java nio</em></p>
+<p><strong><em>xSocket</em></strong> is an easy to use NIO-based library to build high performance, scalable network applications. It supports writing client-side applications as well as server-side applications in an intuitive way. Issues like low level NIO selector programming, connection pool management, connection timeout detection are encapsulated by xSocket.</p>
+<p>With xSocket you are able to write high performance, scalable client and server components such as SMTP Server, proxies or client and server components which are based on a custom protocol.</p>
+<p> </p>
+<p style="text-align: center"><img alt="modules" src="http://hiphotos.baidu.com/hxzon/pic/item/e39e329b855753ffc8eaf405.jpg"></p>
+<p> </p>
+<p><strong><em>xSocket core:</em></strong></p>
+<ul>
+    <li>Blocking and non-blocking connection support</li>
+    <li>Blocking and non-blocking connection pooling (client-side only)</li>
+    <li>Dynamic callback handler architecture to provide asynchronous communication approaches</li>
+    <li>Configurable threading behaviour (multi-threaded, non-threaded) on callback class and method level</li>
+    <li>Quality of service management by providing dynamic data transfer rate control</li>
+    <li>SSL (which can also be activated in a ad-hoc manner)</li>
+    <li>TCP and UDP transport protocol</li>
+    <li>JMX-based monitoring and management</li>
+    <li>OSGi and Maven support on deployment level</li>
+</ul>
+<p> </p>
+<p> </p>
+<p><a href="http://xsocket.sourceforge.net/core/tutorial/V2/TutorialCore.htm">http://xsocket.sourceforge.net/core/tutorial/V2/TutorialCore.htm</a></p>
+<h2><strong><em>15. Example: a simple length field-based handler</em></strong></h2>
+<p>To apply a length field based communication pattern, the connection's mark-support can be used. In this case the client will first write an &quot;empty&quot; length field. After writing the content data, the write pointer will be moved back to the length field, to override the length field.</p>
+<pre class="text">IBlockingConnection bc = new BlockingConnection(host, port);
+bc.setAutoflush(false); // mark support requires deactivated autoflush!
+ 
+bc.markWritePosition();  // mark current position
+bc.write((int) 0);       // write &quot;emtpy&quot; length field
+ 
+int written = bc.write(&quot;hello world&quot;);
+written += bc.write(&quot; it's nice to be here&quot;);
+//...
+bc.resetToWriteMark();  // return to length field position
+bc.write(written);      // and update it
+ 
+bc.flush(); // flush (marker will be removed implicit)</pre>
+<p> </p>
+<h2><strong><em>16. ... and the server</em></strong></h2>
+<p>For the server-side a utility method of ConnectionUtils can be used.</p>
+<pre class="text">public boolean onData(INonBlockingConnection nbc) 
+          throws IOException, 
+          BufferUnderflowException {
+
+   // validate that enough data is available (if 
+   // not an BufferUnderflowException will be thrown)
+   int length = ConnectionUtils.validateSufficientDatasizeByIntLengthField(nbc);
+   String text = nbc.readStringByLength(length);
+ 
+   nbc.write(text);
+   return true;
+}</pre>
+<p> </p>
+<h2><strong><em>17. A more complex example: multitpart data</em></strong></h2>
+<p>Often a data record consists of multiple parts. For instance a data record can start with some header data fields followed by the content data. Typical the header also contains a content length field.</p>
+<pre class="text">IBlockingConnection bc = new BlockingConnection(host, port);
+bc.setAutoflush(false);
+
+bc.write(RECORD_TYPE_A);         // record type
+bc.write((int) 2);               // version
+bc.write(sign);                  // signature
+bc.write(length);                // data length
+bc.flush();
+
+bc.write(data);                  // data
+bc.flush(); 
+
+String status = bc.readStringByDelimiter(&quot;\r\n&quot;);
+//...</pre>
+<p> </p>
+<h2><strong><em>18. ... and the server (&quot;transactional&quot; read &amp; dynamic handler replacing)</em></strong></h2>
+<p>As discussed above, data will be segmented on the network level. If the onData() method is called, it is not predictable how many bytes will be received. By calling a read method such as readInt() or readStringByDelimiter() a BufferUnderflowException can occur. To handle this, the read mark support can be used.</p>
+<pre class="text">class ProtocolHandler implements IDataHandler {
+
+   public boolean onData(INonBlockingConnection connection) throws IOException {
+
+      byte type = -1;;
+      int version = -1;
+      int signature = -1;
+      int dataLength = 0
+
+      ////////////  
+      // &quot;transaction&quot; start  
+      //
+
+      // mark read position
+      connection.markReadPosition();
+
+      try {
+         type = connection.readByte();
+         version = connection.readInt();
+         signature = connection.readInt();   
+         dataLength = connection.readInt();
+
+         connection.removeReadMark();
+
+      } catch (BufferUnderflowException bue) {
+         connection.resetToReadMark();
+         return true;
+      }
+
+      //
+      // &quot;transaction&quot; end
+      ///////////////
+
+      if (type == 1) {
+         connection.setHandler(new ContentHandler(this, dataLength, signature));
+      } else {
+        //...
+      }
+
+      return true;
+   }
+}
+
+ 
+class ContentHandler implements IDataHandler {
+
+   private int remaining = 0;
+   private ProtocolHandler hdl = null;
+
+   public ContentHandler(ProtocolHandler hdl, int dataLength, int signature) {  
+      this.hdl = hdl;
+      remaining = dataLength;
+      //...
+   }
+
+   public boolean onData(INonBlockingConnection nbc) throws IOException {
+      int available = nbc.available();
+      
+      int lengthToRead = remaining;
+      if (available &lt; remaining) { 
+         lengthToRead = available;
+      }
+
+      ByteBuffer[] buffers = nbc.readByteBufferByLength(lengthToRead);
+      remaining -= lengthToRead;
+
+      // processing the data
+      // ...
+      
+      if (remaining == 0) {  
+         nbc.setAttachment(hdl);
+         nbc.write(&quot;ACCEPTED\r\n&quot;);
+      }
+
+      return true;  
+   }
+}</pre>
+<p> </p>
+<p>This listing above shows a simple multipart protocol. If data is received, the onData() method will be called. The read position reference points to the head of the internal read buffer.</p>
+<p><img title="MarkSupport_1.gif" alt="MarkSupport_1.gif" src="http://hiphotos.baidu.com/hxzon/pic/item/04561817b9eeb14b4b90a705.jpg"></p>
+<p>By performing the markReadPosition() method the current read position will be marked. By marking the read position the result data of all following read operations will be duplicated and buffered internally by the read mark buffer.</p>
+<p><img title="MarkSupport_2.gif" alt="MarkSupport_2.gif" src="http://hiphotos.baidu.com/hxzon/pic/item/c8915db541861d8437d3ca05.jpg"></p>
+<p>By calling the read methods the read position will be moved to the next unread data.</p>
+<p><img title="MarkSupport_3.gif" alt="MarkSupport_3.gif" src="http://hiphotos.baidu.com/hxzon/pic/item/024013cebcbfdd73b700c805.jpg"></p>
+<p> </p>
+<p>If not enough data is available by performing a read method, a BufferUnderflowException will be thrown.</p>
+<p><img title="MarkSupport_4.gif" alt="MarkSupport_4.gif" src="http://hiphotos.baidu.com/hxzon/pic/item/7daa3cf3b4ebe11a342acc05.jpg"></p>
+<p>In the example code this exception will be catched, the read position will be reset to the read mark and the onData() method will be exited.</p>
+<p><img title="MarkSupport_5.gif" alt="MarkSupport_5.gif" src="http://hiphotos.baidu.com/hxzon/pic/item/4128bf017ffcfe49728da505.jpg"></p>
+<p>If more data is recevied, the onData() method will be called again.</p>
+<p><img title="MarkSupport_5_5.gif" alt="MarkSupport_5_5.gif" src="http://hiphotos.baidu.com/hxzon/pic/item/f12def50a546ce161138c205.jpg"></p>
+<p> </p>
+<p>Within he onData() method the read methods will be performed again.</p>
+<p><img title="MarkSupport_6.gif" alt="MarkSupport_6.gif" src="http://hiphotos.baidu.com/hxzon/pic/item/fe80c05c82545b09faf2c005.jpg"></p>
+<p> </p>
+<p>By removing the read mark the &quot;transaction&quot; is completed. The removeReadMark() method cleans the read mark buffer.</p>
+<p><img title="MarkSupport_7.gif" alt="MarkSupport_7.gif" src="http://hiphotos.baidu.com/hxzon/pic/item/db9255436f9eba5b9213c605.jpg"></p>
+<p>The read mark support can be used to implement a lightweight &ldquo;transaction&rdquo; (read all or nothing) support. The read mark support is not required, if only a single read operation will be called within the inData method.</p>
+<p> </p>
+<p>In the example below a dedicated handler will be used the read the content data. To do this, the current Protocol handler will be replaced at runtime by the dedicated content handler.</p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p></div></body></html>

@@ -1,0 +1,49 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>1人30天44587行代码，分享舍得网开发经验（修订版）</title></head><body><h1>1人30天44587行代码，分享舍得网开发经验（修订版）</h1><div><p>1人30天44587行代码，分享舍得网开发经验（修订版）</p>
+<p>舍得网（shedewang.com）的开发暂时告一段落，一个人用时不到1个月，java底层代码16902行，jsp代码27685行，共计44587行。整个开发过程遇到过许多问题，但最后都解决了。下面把我在开发中遇到的所有问题和解决办法列出，供参考。 <br>
+<br>
+系统构架：redhat AS4/apache2.0.59/resin2.1.17/jdk6.0 u2/hibernate3.0/lucene2.2/urlrewrite3.0.4，数据库用得是mysql4.1.15，数据库缓存是构架在hibernate之上的，是一个只有794行的java类，但这个java类却做了数据库对象缓存、列表缓存、update缓冲、自动删除列表缓存，还提供了数据库查询、更新、插入的所有操作，它节省了我一半以上的开发时间。一个获取含有五个查询条件获取列表的方法只用不到10行代码就可以了。【增加：现在我已经把这个数据库操作工具改成分布式了，可以随便增加java应用服务器实现负载均衡，并且各服务器之间可以实现缓存同步，这样，即使每日用户达到百万级别，我的构架也是可以支持的，我将在下面详细说明我的构架，仅供参考。许多人要求我开源，我觉得现在系统还没有经过大规模用户的并发验证，还不是时候，以后我会考虑开源的，我的代码没有太多高深的算法和设计模式，主要用到了模板模式，但全是用心写出来的。 <br>
+<br>
+问题一：做数据库缓存时遇到的问题。HashMap在并发遍历时会报ConcurrentModificationException，即使使用Collections.synchronizedList把Map包起来还是会报这个异常，这个问题很简单，解决办法也简单。第一种解决办法是不要用Map的iterator来遍历，而是用Set（Map.keySet方法）的toArray方法来遍历，这种办法虽然会损耗一定的性能和内存，但比在方法前加synchronized好得多；第二种解决办法用jdk5.0以后的ConcurrentHashMap来实现。【修正：经过测试和验证，第一种方法不行，也就是并发操作MAP而且要求遍历的时候只能用ConcruuentHashMap，在此要感谢写ConcurrentHashMap的专家们。】【增加：数据库的缓存有很多种办法，对于单个对象的缓存比较容易，直接用HashMap都可以，但是对于列表的缓存就比较复杂了，网上说到的memcachedb+memcache_engine或者berkeleydb应该都是做不到列表自动缓存，因为增加一条记录后会影响许多列表的排序，所以什么时候删除列表缓存是个比较头痛的问题，我的解决办法是列表的缓存的key便包含了查询条件信息。如一个表T有字段A,B,C，对应T.java有域A,B,C，那么查询一个A=1 and B=2 and C&gt; 0 的组合条件的列表的key就是A=1#B=2#C&gt; 0，这样，如果增加了一个对象T，其中T.A=1，T.B=3，T.C=0，显然上面列表查询条件包含了条件B=2，而增加的对象B=3，那么无论如何这个新增加的对象T都不可能在这个列表中，也就是说不用删除这个列表，只有增加的对象T满足T.A=1、T.B=2、T.C&gt; 0时该列表才需要重新从数据库中获取，以此可以推出更新、删除一个T对象时什么时候需要删除什么列表。】【增加：至于分布式，我用到了memcached来做远程缓存，利用UDP报文来保持各服务器之间的缓存同步。如获取一个对象：首先在本机缓存中获取，如果没有再去远程memcached server中获取，如果还没有才从数据库中获取并同时放入memcached server 和本机缓存，这样，不管有多少台服务器在做负载均衡，对于一个对象T，只需要在数据库中读取一次，其他所有服务器都可以共享了，数据库查询的压力几乎没有，当然如果插入和修改的次数达到每秒几千次，我可能会用到mysql-proxy，但目前看来，几十万的用户/天的量都用不着，用个好点的数据库服务器即可】【不谦虚的说，我的这套分布式缓存方案是比较强大的，都是用心写出来的，虽然代码只有2874行。实例：如要获取一个id为6789的用户，只要用User u =UserManager.getInstance().getById(&quot;6789&quot;);一句话即可，所有缓存逻辑都已经包含在里面了。】</p>
+<p>问题二：jfreecharts在Linux上不能显示中文，这个问题没有费多长时间就解决了，上网一搜就搞定，解决方法如下： <br>
+到网上下载一个linux下的ttf字体，本例用的是zysong.ttf <br>
+1.确认%JavaHome%/jre/lib/fonts目录下存在zysong.ttf <br>
+2.在%JavaHome%/jre/lib/fonts目录下执行&quot;ttmkfdir -o fonts.dir&quot;命令,重新生成fonts.dir文件 <br>
+3.确认/usr/share/fonts/zh_CN/TrueType目录存在,如果不存在则mkdir创建 <br>
+4.确认/usr/share/fonts/zh_CN/TrueType目录下存在zysong.ttf <br>
+5.在%JavaHome%/jre/lib目录下,执行 cp fontconfig.RedHat.3.properties.src fontconfig.properties <br>
+6.重起resin，OK。 <br>
+<br>
+问题三：linux下的too many open files错误，这个问题比较严重，AS4默认打开文件数是1024，如果超过这个数，resin就自动down掉了，非常恶心。解决办法如下： <br>
+echo 65536 &gt; /proc/sys/fs/file-max <br>
+编辑/etc/sysctl.conf 文件，编辑行 fs.file-max = 65536 <br>
+编辑文件/etc/security/limits.conf，增加行 * - nofile 65536 <br>
+用ulimit -a 查看，如果看到行open files (-n) 65536就说明对了 <br>
+<br>
+问题四：内存泄露，表现出来的特征是CPU占到99.9%，内存由10%左右经过几个小时后慢慢涨到50%，最后死掉。做java的人知道，这个问题非常痛苦，而且没有很好的解决办法，因为直接看代码很难看出来。我原来一直以为问题会出现在缓存上，但仔细想想apache的LRUMap不至于产生内存泄露，尤其我设置了LRUMap最大长度只有10000，10000个内存对象能有多大，后来发现是SmartUpload的问题，改成apache的FileUpload子项目就可以了。另外，我在设置jvm参数时增加了-Xmx2048m -Xms2048m -Xmn768m -Xss512k -XX:+UseParallelGC -XX:ParallelGCThreads=4 -XX:+UseParallelOldGC -XX:+UseAdaptiveSizePolicy这些参数，可以回收年老区的内存，现在比较稳定，一般内存占到27%左右就不会再涨了，可能这些参数还不是最优的，有待探索。另外查找内存泄露的软件JProbe我也玩了玩，的确看出其他代码没有明显内存泄露。【修正：上面的参数配置狗P用都没有，内存总是一直在涨。我还尝试了用其他不同方法去回收内存，结果都不太好使，直接用jvm默认的回收方式是最好的，也就是只配置两个参数-Xmx768M -Xms768M效果最好，这样java才真的可以一次性回收几百兆的内存。】 <br>
+<br>
+问题五：搜索分词。一个用户在用舍得网时反映，看到有&ldquo;啤酒&rdquo;和&ldquo;茅台酒&rdquo;，为什么搜&ldquo;酒&rdquo;搜不出来，原因很简单，&ldquo;啤酒&rdquo;和&ldquo;茅台酒&rdquo;是单独一个词，lucene写入的时候没有再把它拆开，所以必须要搜&ldquo;啤酒&rdquo;或&ldquo;茅台酒&rdquo;才能搜出来，这在技术上合理，但是用户觉得不合理。所以我改进了搜索算法，把中国3万多个汉字也加到词库中，而且在写入和搜索时用不同的分词算法，如&ldquo;我喜欢喝啤酒&rdquo;在写入时会分成&ldquo;我+喜欢+喝+啤酒+喜+欢+啤+酒&rdquo;，而在搜索时这句话会被分词为&ldquo;我+喜欢+喝+啤酒&rdquo;，这样，用户搜&ldquo;啤酒&rdquo;能搜到，搜&ldquo;酒&rdquo;也能搜到，而对应另外一句话&ldquo;这人啤气不好，总喝酒&rdquo;搜&ldquo;啤&rdquo;和&ldquo;酒&rdquo;都能搜到，但搜&ldquo;啤酒&rdquo;却搜不到，似乎有点意思。但是这么分词也会有点小问题，就是搜索的结果不太人性化。（我的中文词库加成语加汉字共50多万个，比起一般网上十来二十万要丰富得多，不过这没什么大用） <br>
+<br>
+问题六：URL链接&ldquo;静态化&rdquo;。本想直接用apache的URL Rewrite来实现，发现不太可能，于是改用urlrewirte实现，配置没什么难度，但是要注意resin的web-app里须增加一行配置 &lt;servlet-mapping url-pattern='*.htm' servlet-name='plugin_match'/&gt; ，这样apache才会把htm结尾的请求转交给resin，否则apache报404错误，这在一般structs项目中都会提到。现在看到的舍得网http://shedewang.com/pg_5_c_2_index.htm，其实就是http://shedewang.com/index.jsp?pg=5&amp;c=2，呵呵，没什么特别的。 <br>
+<br>
+问题七：IE6/IE7/FF的适配，这体现在许多细节上，如FF的回车事件捕获，IE7的href=#页面会移动等等问题上，多测几次，多上网找找也就都解决了。很多人开发网站似乎不太会管FF能不能看，但好歹我也在SP混过几年，做WAP的时候要适配10来款手机，做web适配三五个浏览器不算什么。 <br>
+<br>
+问题八：linux自身的bug。远程连接mysql时有时mysql似乎会重起，这个问题似乎是linux自身的bug，好像和解析有点关系导致mysql崩溃。解决办法：启动mysql增加一个参数，如下：/usr/local/mysql/bin/mysqld_safe --user=mysql --skip-name-resolve &amp; <br>
+<br>
+问题九：hiberate配置文件的问题，配置不好的话总是会报NESTED Exception，或者多用户并发的时候报错。我想一般人都遇到过了，增加一个c3p0的配置段，尤其注意max_statements设置稍微大一点，原来我设置为100的时候10个用户同时创建记录就会出错。 <br>
+&lt;property name=&quot;hibernate.connection.provider_class&quot;&gt; org.hibernate.connection.C3P0ConnectionProvider &lt;/property&gt; <br>
+&lt;property name=&quot;hibernate.c3p0.max_size&quot;&gt; 200 &lt;/property&gt; <br>
+&lt;property name=&quot;hibernate.c3p0.min_size&quot;&gt; 20 &lt;/property&gt; <br>
+&lt;property name=&quot;hibernate.c3p0.timeout&quot;&gt; 3600 &lt;/property&gt; <br>
+&lt;property name=&quot;hibernate.c3p0.max_statements&quot;&gt; 1000 &lt;/property&gt; <br>
+&lt;property name=&quot;hibernate.c3p0.idle_test_period&quot;&gt; 300 &lt;/property&gt; <br>
+&lt;property name=&quot;hibernate.c3p0.acquire_increment&quot;&gt; 5 &lt;/property&gt; <br>
+&lt;property name=&quot;hibernate.c3p0.validate&quot;&gt; false &lt;/property&gt; <br>
+<br>
+问题十：ajax的运用问题。提交大文本时似乎不能用prototype提供的Ajax.Updater，要自己创建一个AJAX对象，然后把内容send过去，具体js代码可以参考舍得网的comm.js，另外用jsp获取Ajax提交的内容如果是乱码，把jsp改成UTF-8编码即可。AJAX运用好了的确可以增加用户感受，而且可以让代码的松散耦合性更好，可以把一大段逻辑写在一个小的jsp里面。 <br>
+<br>
+问题十一：网上似乎还有很多人在为自己选择应用服务器的事发愁，我只相信自己的眼睛，就拿tomcat6最新版和resin2.1.17做测试，50个用户并发的情况下tomcat慢4－5倍，我还能指望tomcat在更多的用户并发下发挥作用吗？我用resin2.1.17，很快！resin3 和resin Pro只有在配置好缓存和native的时候可能才有用，但对于我这种情况，用resin3和resin Pro不一定会更快。 <br>
+<br>
+做技术、做管理、做事都是在做人，有很多刚入门的新手，好多人都问我到底用struts还是spring还是什么MVC构架，其实这些都不是问题，只要养成自己的一套开发方式即可，但做技术要有深厚的基本功。像一个武林高手，就拿李小龙来说，他懂空手道、跆拳道、刀枪钯棍都研究过，但真正打架的时候就那么几招，但他有力量、脚步和无与伦比的速度，这些都是基本功；对于篮球高手来说，他甚至不需要懂街球那些花骚的玩法，但实战的时候他也就用几招而已，像科比，他最常用的就是远程投篮和突破，真正打球时没必要在地上一边打滚一边运球，当然，科比也是非常有力量的一个球员。 <br>
+<br>
+email:bruce_lau@163.com，欢迎指教！<br>
+<a href="http://bbs.chinajavaworld.com/thread.jspa?threadID=750995&amp;tstart=0">http://bbs.chinajavaworld.com/thread.jspa?threadID=750995&amp;tstart=0</a></p></div></body></html>

@@ -1,0 +1,207 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>MiG Layout White Paper and Cheat Sheet</title></head><body><h1>MiG Layout White Paper and Cheat Sheet</h1><div><div>
+<p>MiG Layout White Paper and Cheat Sheet</p>
+<p><a href="http://www.migcalendar.com/miglayout/whitepaper.html">http://www.migcalendar.com/miglayout/whitepaper.html</a></p>
+<p><a href="http://www.migcalendar.com/miglayout/cheatsheet.html">http://www.migcalendar.com/miglayout/cheatsheet.html</a></p>
+<h4>Button Bars and Button Order</h4>
+<p>MigLayout has support for reorganizing your buttons (within a single cell, which might span a whole row though) according to platform preference. For instance the OK and Cancel buttons have different order on Windows and Mac OS X. While other layout managers use factories and button builders for this, it is inherently supported by MigLayout by just tagging the buttons. One just tags the OK button with &quot;ok&quot; and the Cancel button with &quot;cancel&quot; and they will end up in the correct order for the platform the application is running on, if they are put in the same grid cell. There are about 10 different tags and the format for how the buttons should be ordered, and what spacing is to be used between buttons, including glues, can be highly customized in a very simple way by settting the button order with PlatformDefaults.setButtonOrder(String).<br>
+hxzon:&quot;tag ok&quot;,&quot;tag cancel&quot;</p>
+<h4>Visual Guide Lines for Debugging Layouts</h4>
+<p>To turn on debugging for a container just add the &quot;debug&quot; constraint to the Layout Constraints. This will trigger a special debug overdraw of the container that will outline the cells in the grid and the component bounds. This is a invaluable help for understanding why components end up where they do. There is no need for a DebugPanel or anything else that will modify the actual component creation code.<br>
+hxzon:new MigLayout(&quot;debug&quot;);组件显示蓝色边框，单元格显示红色边框。</p>
+<h2>Layout Constraints</h2>
+<p>wrap [count]<br>
+Sets auto-wrap mode for the layout. This means that the grid will wrap to a new column/row after a certain number of columns (for horizontal flow) or rows (for vertical flow). The number is either specified as an integer after the keyword or if not, the number of column/row constraints specified will be used. A wrapping layout means that after the count:th component has been added the layout will wrap and continue on the next row/column. If wrap is turned off (default) the Component Constraint's &quot;wrap&quot; and &quot;newline&quot; can be used to control wrapping. <br>
+Example: &quot;wrap&quot; or &quot;wrap 4&quot;.</p>
+<p>gap gapx [gapy] or gapx gapx or gapy gapy<br>
+Specifies the default gap between the cells in the grid and are thus overriding the platform default value. The gaps are specified as a BoundSize. See above. <br>
+Example: &quot;gap 5px 10px&quot; or &quot;gap unrel rel&quot; or &quot;gapx 5dlu&quot; or &quot;gapx 10::50&quot; or &quot;gapy 0:rel:null&quot; or &quot;gap 10! 10!&quot;.</p>
+<p>debug [millis]<br>
+Turns on debug painting for the container. This will lead to an active repaint every millis milliseconds. Default value is 1000 (once every second). <br>
+Example: &quot;debug&quot; or &quot;debug 4000&quot;.</p>
+<p>nogrid<br>
+Puts the layout in a flow-only mode. All components in the flow direction will be put in the same cell and will thus not be aligned with component in other rows/columns. For normal horizontal flow this is the same as to say that all component will be put in the first and only column.<br>
+Example: &quot;nogrid&quot;.</p>
+<p>novisualpadding<br>
+Turns off padding of visual bounds (e.g. compensation for drop shadows)<br>
+Example: &quot;novisualpadding&quot;.</p>
+<p>fill or fillx or filly<br>
+Claims all available space in the container for the columns and/or rows, even if none of them has a &quot;grow&quot; constraint set. The space will be divided equal, though honoring &quot;growpriority&quot;. If no columns/rows has &quot;grow&quot; set the grow weight of the componets in the rows/columns will migrate to that row/column.<br>
+Example: &quot;fill&quot; or &quot;fillx&quot; or &quot;filly&quot;</p>
+<p>ins/insets [&quot;dialog&quot;] or [&quot;panel&quot;] or [top/all [left] [bottom] [right]]<br>
+Specified the insets for the laid out container. The gaps before/after the first/last column/row is always discarded and replaced by these layout insets. This is the same thing as setting an EmptyBorder on the container but without removing any border already there. Default value is &quot;panel&quot; (or zero if there are docking components). The size of &quot;dialog&quot; and &quot;panel&quot; insets is returned by the current PlatformConverter. The inset values all around can also be set explicitly for one or more sides. Insets on sides that are set to &quot;null&quot; or &quot;n&quot; will get the default values provided by the PlatformConverter. If less than four sides are specified the last value will be used for the remaining side. The gaps are specified as a UnitValue. See above.<br>
+Example: &quot;insets dialog&quot; or &quot;ins 0&quot; or &quot;insets 10 n n n&quot; or &quot;insets 10 20 30 40&quot;.</p>
+<p>flowy<br>
+Puts the layout in vertical flow mode. This means that the next cell is normally below and the next component will be put there instead of to the right. Default is horizontal flow.<br>
+Example: &quot;flowy&quot;</p>
+<p>al/align alignx [aligny] or aligny/ay aligny or aligny/ax alignx<br>
+Specifies the alignment for the laid out components as a group. If the total bounds of all laid out components does not fill the entire container the align value is used to position the components within the container without changing their relative positions. The alignment can be specified as a UnitValue or AlignKeyword. See above. If an AlignKeyword is used the &quot;align&quot; keyword can be omitted. <br>
+Example: &quot;align 50% 50%&quot; or &quot;aligny top&quot; or &quot;alignx leading&quot; or &quot;align 100px&quot; or &quot;top, left&quot; or &quot;aligny baseline&quot;</p>
+<p>ltr/lefttoright or rtl/righttoleft<br>
+Overrides the container's ComponentOrientation property for this layout. Normally this value is dependant on the Locale that the application is running. This constraint overrides that value.<br>
+Example: &quot;ltr&quot; or &quot;lefttoright&quot; or &quot;rtl&quot;</p>
+<p>ttb/toptobottom or btt/bottomtotop<br>
+Specifies if the components should be added in the grid bottom-to-top or top-to-bottom. This value is not picked up from the container and is top-to-bottom by default. <br>
+Example: &quot;ttb&quot; or &quot;toptobottom&quot; or &quot;btt&quot;</p>
+<p>hidemode<br>
+Sets the default hide mode for the layout. This hide mode can be overridden by the component constraint. The hide mode specified how the layout manager should handle a component that isn't visible. The modes are:<br>
+0 - Default. Means that invisible components will be handled exactly as if they were visible.<br>
+1 - The size of an invisible component will be set to 0, 0.<br>
+2 - The size of an invisible component will be set to 0, 0 and the gaps will also be set to 0 around it.<br>
+3 - Invisible components will not participate in the layout at all and it will for instance not take up a grid cell. <br>
+Example: &quot;hidemode 1&quot;</p>
+<p>nocache<br>
+Instructs the layout engine to not use caches. This should normally only be needed if the &quot;%&quot; unit is used as it is a function of the parent size. If you are experiencing revalidation problems you can try to set this constraint. <br>
+Example: &quot;nocache&quot;</p>
+<p> </p>
+<h2>Column/Row Constraints</h2>
+<p>Column and row constraints works the same and hence forth the term row will be used for both columns and rows.</p>
+<p>Every [] section denotes constraints for that row. The gap size between is the gap size dividing tthe two rows. The format for the constraint is:<br>
+[constraint1, constraint2, ...]gap size[constraint1, constraint2, ...]gap size[...]...&quot;<br>
+<br>
+Example: &quot;[fill]10[top,10:20]&quot;, &quot;[fill]push[]&quot;, &quot;[fill]10:10:100:push[top,10:20]&quot;.</p>
+<p>Tip! A vertical bar &quot;|&quot; can be used instead of &quot;][&quot; between rows if the default gap should be used. E.g. &quot;[100|200|300]&quot; is the same as &quot;[100][200][300]&quot;.</p>
+<p>Gaps are expressed as a BoundSize (see above) and can thus have a min/preferred/max size. The size of the row is expressed the same way, as a BoundSize. Leaving any of the sizes out will make the size the default one. For gaps this is &quot;related&quot; (the pixel size for &quot;related&quot; is determined by the PlatformConverter) and for row size this is the largest of the contained components for minimum and preferred size and no maximum size. If there are fewer rows in the format string than there are in the grid cells in that dimension the last gap and row constraint will be used for the extra rows. For instance &quot;[10]&quot; is the same as &quot;[10][10][10]&quot; (affects wrapping if wrap is turned on though) .</p>
+<p>Gaps have only their size, however there are number of constraints that can be used between the [ ] and they will affect that row.</p>
+<p>&quot;:push&quot; (or &quot;push&quot; if used with the default gap size) can be added to the gap size to make that gap greedy and try to take as much space as possible without making the layout bigger than the container.</p>
+<p>Note! &quot;&quot; is the same as &quot;[]&quot; which is the same as &quot;[pref]&quot; and &quot;[min:pref:n]&quot;.</p>
+<p>sg/sizegroup [name]<br>
+Gives the row a size group name. All rows that share a size group name will get the same BoundSize as the row with the largest min/preferred size. This is most usable when the size of the row is not explicitly set and thus is determined by the largest component is the row(s). An empty name &quot;&quot; can be used unless there should be more than one group.<br>
+Example: &quot;sg&quot; or &quot;sg grp1&quot; or &quot;sizegroup props&quot;.</p>
+<p>fill<br>
+Set the default value for components to &quot;grow&quot; in the dimension of the row. So for columns the components in that column will default to a &quot;growx&quot; constraint (which can be overridden by the individual component constraints). Note that this property does not affect the size for the row, but rather the size of the components in the row. <br>
+Example: &quot;fill&quot;.</p>
+<p>nogrid<br>
+Puts the row in flow-only mode. All components in the flow direction will be put in the same cell and will thus not be aligned with component in other rows/columns. This property will only be adhered to if the row is in the flow direction. So for the normal horizontal flow (&quot;flowx&quot;) it is only used for rows and for &quot;flowy&quot; it is only used for columns.<br>
+Example: &quot;nogrid&quot;.</p>
+<p>grow [weight]<br>
+Sets how keen the row should be to grow in relation to other rows. The weight (defaults to 100 if not specified) is purely a relative value to other rows' weight. Twice the weight will get double the extra space. If this constraint is not set, the grow weight is set to zero and the column will not grow (unless &quot;fill&quot; is set in the Layout Constraints and no other row has grow weight above zero either). Grow weight will only be compared to the weights for rows with the same grow priority. See below. <br>
+Example: &quot;grow 50&quot; or &quot;grow&quot;</p>
+<p>growprio priority<br>
+Sets the grow priority for the row (not for the components in the row). When growing, all rows with higher priorities will be grown to their maximum size before any row with lower priority are considered. The default grow priority is 100. This can be used to make certain rows grow to max before other rows even start to grow.<br>
+Example: &quot;growprio 50&quot;</p>
+<p>shrink weight<br>
+Sets how keen/reluctant the row should be to shrink in relation to other rows. The weight is purely a relative value to other rows' weights. Twice the weight will shrink twice as much when space is scarce. If this constraint is not set the shrink weight defaults to 100, which means that all rows by default can shrink to their minimum size, but no less. Shrink weight will only be compared against the weights in the same shrink priority group (other rows with the same shrink priority). See below. <br>
+Example: &quot;shrink 50&quot;</p>
+<p>shp/shrinkprio priority<br>
+Sets the shrink priority for the row (not for the components in the row). When space is scarce and rows needs to be shrunk, all rows with higher priorities will be shrunk to their minimum size before any row with lower priority are considered. The default shrink priority is 100. This can be used to make certain rows shrink to min before other rows even start to shrink.<br>
+Example: &quot;shrinkprio 50&quot; or &quot;shp 110&quot;</p>
+<p>al/align align<br>
+Specifies the default alignment for the components in the row. This default alignment can be overridden by setting the alignment for the component in the Component Constraint. The default row alignment is &quot;left&quot; for columns and &quot;center&quot; for rows.<br>
+The alignment can be specified as a UnitValue or AlignKeyword. See above. If AlignKeyword is used the &quot;align&quot; part can be omitted.<br>
+Example: &quot;align 50%&quot; or &quot;align top&quot; or &quot;align leading&quot; or &quot;align 100px&quot; or &quot;top, left&quot; or &quot;align baseline&quot;</p>
+<p> </p>
+<h2>Component Constraints</h2>
+<p>Component constraints are used as an argument in the Container.add(...) for Swing and by setting it as Control.setLayoutData(...) in SWT. It can be used to specify constraints that has to do with the component's size and/or the grid cell flow. The format is same as for Layout Constraint, which means that the constraints are specified one by one with comma signs as separators. <br>
+Example: &quot;width 100px!, grid 3 2, wrap&quot;.</p>
+<p>wrap [gapsize]<br>
+Wraps to a new column/row after the component has been put in the next available cell. This means that the next component will be put on the new row/column. Tip! Read wrap as &quot;wrap after&quot;. If specified &quot;gapsize&quot; will override the size of the gap between the current and next row (or column if &quot;flowy&quot;). Note that the gaps size is after the row that this component will end up at.<br>
+Example: &quot;wrap&quot; or &quot;wrap 15px&quot; or &quot;wrap push&quot; or &quot;wrap 15:push&quot;</p>
+<p>newline [gapsize]<br>
+Wraps to a new column/row before the component is put in the next available cell. This means that the this component will be put on a new row/column. Tip! Read wrap as &quot;on a newline&quot;. If specified &quot;gapsize&quot; will override the size of the gap between the current and next row (or column if &quot;flowy&quot;). Note that the gaps size is before the row that this component will end up at. <br>
+Example: &quot;newline&quot; or &quot;newline 15px&quot; or &quot;newline push&quot; or &quot;newline 15:push&quot;</p>
+<p>push [weightx] [weighty] or pushx[weightx] or pushy [weighty]<br>
+Makes the row and/or column that the component is residing in grow with &quot;weight&quot;. This can be used instead of having a &quot;grow&quot; keyword in the column/row constraints. <br>
+Example: &quot;push&quot; or &quot;pushx 200&quot;.</p>
+<p>skip [count]<br>
+Skips a number of cells in the flow. This is used to jump over a number of cells before the next free cell is looked for. The skipping is done before this component is put in a cell and thus this cells is affected by it. &quot;count&quot; defaults to 1 if not specified. <br>
+Example: &quot;skip&quot; or &quot;skip 3&quot;.</p>
+<p>span [countx] [county] or spany/sy [count] or spanx/sx [count]<br>
+Spans the current cell (merges) over a number of cells. Practically this means that this cell and the count number of cells will be treated as one cell and the component can use the space that all these cells have. count defaults to a really high value which practically means span to the end or the row/column. Note that a cell can be spanned and split at the same time, so it can for instance be spanning 2 cells and split that space for three components. &quot;span&quot; for the first cell in a row is the same thing as setting &quot;nogrid&quot; in the row constraint. <br>
+Example: &quot;span&quot; or &quot;span 4&quot; or &quot;span 2 2&quot; or &quot;spanx&quot; or &quot;spanx 10&quot; or &quot;spanx 2, spany 2&quot;.</p>
+<p>split [count]<br>
+Splits the cell in a number of sub-cells. Practically this means that the next count number components will be put in the same cell, next to eachother without gaps. Only the first component in a cell can set the split, any subsequent split keywords in the cell will be ignored. count defaults to infinite if not specified which means that split alone will put all coming components in the same cell. &quot;split&quot;, &quot;wrap&quot; or &quot;newline&quot; will break out of the split celll. The latter two will move to a new row/column as usual. Note! &quot;skip&quot; will will skip out if the splitting and continue in the next cell.<br>
+Example: &quot;split&quot; or &quot;split 4&quot;.</p>
+<p>cell [col row [span x [span y]]] <br>
+Sets the grid cell that the component should be placed in. If there are already components in the cell they will share the cell. If there are two integers specified they will be interpreted as absolute coordinates for the column and row. The flow will continue after this cell. How many cells that will be spanned is optional but may be specified. It is the same thing as using the spanx and spany keywords.<br>
+E.g. &quot;cell 2 2&quot; or &quot;cell 0 1 2 &quot; or &quot;cell 1 1 3 3&quot;.</p>
+<p>flowx or flowy<br>
+Sets the flow direction in the cell. By default the flow direction in the cell is the same as the flow direction for the layout. So if the components flows from left to right they will do so for in-cell flow as well. The first component added to a cell can change the cell flow. If flow direction is changed to flowy the components in the cell will be positioned above/under each other. <br>
+Example: &quot;flowy&quot; or &quot;flowx&quot;.</p>
+<p>w/width size or h/height size<br>
+Overrides the default size of the component that is set by the UI delegate or by the developer explicitly on the component. The size is specified as a BoundSize. See the Common Argument Types section above for an explanation. Note that expressions is supported and you can for instance set the size for a component with &quot;width pref+10px&quot; to make it 10 pixels larger than normal or &quot;width max(100, 10%)&quot; to make it 10% of the container's widht, but a maximum of 100 pixels.<br>
+Example: &quot;width 10!&quot; or &quot;width 10&quot; or &quot;h 10:20&quot; or &quot;height pref!&quot; or &quot;w min:100:pref&quot; or &quot;w 100!,h 100!&quot; or &quot;width visual.x2-pref&quot;.</p>
+<p>wmin/wmax x-size or hmin/hmax y-size<br>
+Overrides the default size of the component for minimum or maximum size that is set by the UI delegate or by the developer explicitly on the component. The size is specified as a BoundSize. See the Common Argument Types section above for an explanation. Note that expressions is supported and you can for instance set the size for a component with &quot;wmin pref-10px&quot; to make it no less than 10 pixels smaller than normal. Thease keywords are syntactic shorts for &quot;width size:pref&quot; or &quot;width min:pref:size&quot; with is exactly the same for minimum and maximun respectively. <br>
+Example: &quot;wmin 10&quot; or &quot;hmax pref+100&quot;.</p>
+<p>grow [weightx] [weighty] or growx [weightx] or growy [weighty]<br>
+Sets how keen the component should be to grow in relation to other component in the same cell. The weight (defaults to 100 if not specified) is purely a relative value to other components' weight. Twice the weight will get double the extra space. If this constraint is not set the grow weight is set to 0 and the component will not grow (unless fill is set in the row/column in which case &quot;grow 0&quot; can be used to explicitly make it not grow). Grow weight will only be compared against the weights in the same grow priority group and for the same cell. See below. <br>
+Example: &quot;grow 50 20&quot; or &quot;growx 50&quot; or &quot;grow&quot; or &quot;growx&quot; or &quot;growy 0&quot;</p>
+<p>growprio/gp prio or growpriox/gpx priox or growprioy/gpy prioy<br>
+Sets the grow priority for the component. When growing, all components with higher priorities will be grown to their maximum size before any component with lower priority are considered. The default grow priority is 100. This constraint can be used to make certain components grow to max before other components even start to grow. <br>
+Example: &quot;growprio 50 50&quot; or &quot;gp 110 90&quot; or &quot;gpx 200&quot; or &quot;prowprioy 200&quot;</p>
+<p>shrink weightx [weighty] <br>
+Sets how keen/reluctant the component should be to shrink in relation to other components. The weight is purely a relative value to other components' weight. Twice the weight will shrink twice as much when space is scarce. If this constraint is not set the shrink weight defaults to 100, which means that all components by default can shrink to their minimum size, but no less. Shrink weight will only be compared against the weights in the same shrink priority group (other components with the same shrink priority). See below. <br>
+Example: &quot;shrink 50&quot; or &quot;shrink 50 40&quot;</p>
+<p>shrinkprio/shp priox [prioy] or shrinkpriox/shpx priox or shrinkprioy/shpy prioy<br>
+Sets the shrink priority for the component. When space is scarce and components needs be be shrunk, all components with higher priorities will be shrunk to their minimum size before any component with lower priority are considered. The default shrink priority is 100. This can be used to make certain components shrink to min before other even start to shrink. <br>
+Example: &quot;shrinkpriority 50 50 &quot; or &quot;shp 200 200 &quot; or &quot;shpx 110&quot;</p>
+<p>sizegroup/sg [name] or sizegroupx/sgx [name] or sizegroupy/sgy [name]<br>
+Gives the component a size group name. All components that share a size group name will get the same BoundSize (min/preferred/max). It is used to make sure that all components in the same size group gets the same min/preferred/max size which is that of the largest component in the group. An empty name &quot;&quot; can be used.<br>
+Example: &quot;sg&quot; or &quot;sg group1&quot; or &quot;sizegroup props&quot; or &quot;sgx&quot; or &quot;sizegroupy grp1&quot;.</p>
+<p>eg/endgroup [name] or egx/endgroupx [name] or egy/endgroupy [name]<br>
+Gives the component an end group name and association. All components that share an end group name will get their right/bottom component side aligned. The right/bottom side will be that of the largest component in the group. If &quot;eg&quot; or &quot;endgroup&quot; is used and thus the dimension is not specified the current flow dimension will be used (see &quot;flowx&quot;). So &quot;eg&quot; will be the same as &quot;egx&quot; in the normal case. An empty name &quot;&quot; can be used.<br>
+Example: &quot;eg&quot; or &quot;eg group1&quot; or &quot;endgroup props&quot; or &quot;egx&quot; or &quot;endgroupy grp1&quot;.</p>
+<p>gap left [right] [top] [bottom] or gaptop gap or gapleft gap or gapbottom gap or gapright gap or gapbefore gap or gapafter gap <br>
+Specifies the gap between the components in the cell or to the cell edge depending on what is around this component. If a gap size is missing it is interpreted as 0px. The gaps are specified as a BoundSize. See above. <br>
+Example: &quot;gap 5px 10px 5px 7px&quot; or &quot;gap unrel rel&quot; or &quot;gapx 5dlu&quot; or &quot;gapx 10:20:50:push&quot; or &quot;gapy 0:rel:null&quot; or &quot;gap 10! 10!&quot; or &quot;gapafter push&quot;.</p>
+<p>gapx left [right] or gapy top [bottom]<br>
+Specifies the horizontal or vertical gap between the components in the cell or to the cell edge depending on what is around this component. If a gap size is missing it is interpreted as 0px. The gaps are specified as a BoundSize. See above. <br>
+Example: &quot;gapx 5px 10px&quot; or &quot;gapy unrel rel&quot;</p>
+<p>id [groupid.] id<br>
+Sets the id (or name) for the component. If the id is not specified the ComponentWrapper.getLinkId() value is used. This value will give the component a way to be referenced from other components. Two or more components may share the group id but the id should be unique within a layout. The value will be converted to lower case and are thus not case sensitive. There must not be a dot first or last in the value string. <br>
+Example: &quot;id button1&quot; or &quot;id grp1.b1&quot;</p>
+<p>pos x y [x2] [y2]<br>
+Positions the component with absolute coordinates relative to the container. If this keyword is used the component will not be put in a grid cell and will thus not affect the flow in the grid. One of eitherx/x2 and one ofy/y2 must not be null. The coordinate that is set to null will be placed so that the component get its preferred size in that dimension. Non-specified values will be set to null, so for instance &quot;abs 50% 50%&quot; is the same as &quot;abs 50% 50% null null&quot;. If the position and size can be determined without references to the parent containers size it will affect the preferred size of the container.<br>
+Example: &quot;pos 50% 50% n n&quot; or &quot;pos 0.5al 0.5al&quot; or &quot;pos 100px 200px&quot; or &quot;position n n 200 200&quot;.</p>
+<p>Absolute positions can also links to other components' bounds using their ids or groupIds. It can even use expressions around these links. E.g. &quot;pos (butt.x+indent) butt1.y2&quot; will position the component directly under the component with id &quot;butt1&quot;, indented slightly to the right. There are two special bounds that are always set. &quot;container&quot; are set to the bounds if the container and &quot;visual&quot; are set to the bounds of the container minus the specified insets. The coordinates that can be used for these links are:</p>
+<ul>
+    <li>.x or .y - The top left coordinate of the referenced component's bounds</li>
+    <li>.x2 or .y2 - The lower right coordinate of the referenced component's bounds</li>
+    <li>.w or .h - The current width and height of the referenced component.</li>
+    <li>.xpos or .ypos - The top left coordinate of the referenced component in screen coordinates.</li>
+</ul>
+<p>Example: &quot;pos (b1.x+b1.w/2) (b1.y2+rel)&quot; or &quot;pos (visual.x2 - pref) 200&quot; or &quot;pos n b1.y b1.x-rel b1.y2&quot; &quot;pos 100 100 200 200&quot;.</p>
+<p>x x or x2 x2 or y y or y2 y2<br>
+Used to position the start (x or y), end (x2 or y2) or both edges of a component in absolute coordinates. This is used for when a component is in a grid or dock and it for instance needs to be adjusted to align with something else or in some other way be positioned absolutely. The cell that the component is positioned in will not change size, neither will the grid. The x, y, x2 and y2 keywords are applied in the last stage and will therefore not affect other components in the grid or dock, unless they are explicitly linked to the bounds of the component. If the position and size can be determined without references to the parent containers size it will affect the preferred size of the container. <br>
+Example: &quot;x button1.x&quot; or &quot;x2 (visual.x2-50)&quot; or &quot;x 100, y 300&quot;.</p>
+<p>dock (&quot;north&quot; or &quot;west&quot; or &quot;south&quot; or &quot;east&quot;) or north/west/south/east <br>
+Used for docking the component at an edge in the container. Works much like BorderLayout except that there can be an arbitrary number of docking components. They get the docked space in the order they are added to the container and &quot;cuts that piece of&quot;. The &quot;dock&quot; keyword can be omitted and is only there to use for clarity. The component will be put in special surrounding cells that spans the rest of the rows which means that the docking constraint can be combined with many other constraints such as padding, width, height and gap.<br>
+Example: &quot;dock north&quot; or &quot;north&quot; or &quot;west, gap 5&quot;.</p>
+<p>pad top [left] [bottom] [right]<br>
+Sets the padding for the component in absolute pixels. This is an absolute adjustment of the bounds if the component and is done at the last stage in the layout process. This means it will not affect gaps or cell size or move other components. It can be used to compensate for something that for some reason is hard to do with the other constraints. For instance &quot;ins -5 -5 5 5&quot; will enlarge the component five pixels in all directions making it 10 pixels taller and wider. If values are omitted they will be set to 0. <br>
+Note! Padding multi-line components derived from JTextComponent (such as JTextArea) without setting a explicit minimum size may result in an continuous size escalation (animated!). This is not a bug in the layout manager but a &quot;feature&quot; derived from how these components calculates their minimum size. If the size is padded so that it increases by one pixel, the text component will automatically issue a revalidation and the layout cycle will restart, now with a the newly increased size as the new minimum size. This will continue until the maximum size is reached. This only happens for components that have &quot;line wrap&quot; set to true.<br>
+Example: &quot;padding 10 10&quot; or &quot;pad 5 5 -5 -5&quot; or &quot;pad 0 0 1 1&quot;.</p>
+<p>al/align alignx [aligny] or aligny/ay aligny or aligny/ax alignx<br>
+Specifies the alignment for the component if the cell is larger than the component plus its gaps. The alignment can be specified as a UnitValue or AlignKeyword. See above. If AlignKeyword is used the &quot;align&quot; keyword can be omitted. In a cell where there is more than one component, the first component can set the alignment for all the components. It is not possible to for instance set the first component to be left aligned and the second to be right aligned and thus get a gap between them. That effect can better be accomplished by setting a gap between the components that have a minimum size and a large preferred size.<br>
+Example: &quot;align 50% 50%&quot; or &quot;aligny top&quot; or &quot;alignx leading&quot; or &quot;align 100px&quot; or &quot;top, left&quot; or &quot;aligny baseline&quot;.</p>
+<p>external<br>
+Inhibits MigLayout to change the bounds for the component. The bounds should be handled/set from code outside this layout manager by calling the setBounds(..) (or equivalent depending on the GUI toolkit used) directly on the component. This component's bounds can still be linked to by other components if it has an &quot;id&quot; tag, or a link id is provided by the ComponentWrapper. This is a very simple and powerful way to extend the usages for MigLayout and reduce the number of times a custom layout manager has to be written. Normal application code can be used to set the bounds, something that can't be done with any other layout managers. <br>
+Example: &quot;external&quot; or &quot;external, id mybutt&quot;.</p>
+<p>hidemode<br>
+Sets the hide mode for the component. If the hide mode has been specified in the This hide mode can be overridden by the component constraint. The hide mode specified how the layout manager should handle a component that isn't visible. The modes are:<br>
+0 - Default. Means that invisible components will be handled exactly as if they were visible.<br>
+1 - The size of the component (if invisible) will be set to 0, 0.<br>
+2 - The size of the component (if invisible) will be set to 0, 0 and the gaps will also be set to 0 around it.<br>
+3 - Invisible components will not participate in the layout at all and it will for instance not take up a grid cell. <br>
+Example: &quot;hidemode 1&quot;</p>
+<p>tag [name]<br>
+Tags the component with metadata name that can be used by the layout engine. The tag can be used to explain for the layout manager what the components is showing, such as an OK or Cancel button. Unknown tags will be disregarded without error or any indication.<br>
+Currently the recognized tags are used for button reordering on a per platform basis. See the JavaDoc for PlatformConverter.getButtonBarOrder(int type) for a longer explanation. <br>
+The supported tags are:</p>
+<p> </p>
+<ul>
+    <li>ok - An OK button.</li>
+    <li>cancel - A Cancel button.</li>
+    <li>help - Help button that is normally on the right.</li>
+    <li>help2 - Help button that on some platforms is placed to the left.</li>
+    <li>yes - A Yes button.</li>
+    <li>no - A No button.</li>
+    <li>apply - An Apply button.</li>
+    <li>next - A Next or Forward button.</li>
+    <li>back - A Previous or Back button.</li>
+    <li>finished - A Finished button.</li>
+    <li>left - A button that should normally always be placed on the far left.</li>
+    <li>right - A button that should normally always be placed on the far right.</li>
+</ul>
+<p>Example: &quot;tag ok&quot; or &quot;tag help2&quot;.</p>
+</div></div></body></html>

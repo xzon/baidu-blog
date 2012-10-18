@@ -1,0 +1,139 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Java程序中的配置文件的存放和读取 - hdwangyi - JavaEye技术网站</title></head><body><h1>Java程序中的配置文件的存放和读取 - hdwangyi - JavaEye技术网站</h1><div><p>Java程序中的配置文件的存放和读取 - hdwangyi - JavaEye技术网站</p>
+<div>
+<div>
+<div>
+<div>大家可能经常会遇到在Java程序中存取程序配置文件的需求，比如，为了能够和不同的数据库连接，我们经常把数据库连接的信息存放到属性文件中，这些信息一般包括数据库驱动程序类名、数据库连接的URL，数据库的用户名和口令等等。为了便于程序的安装或部署，我们经常会把这些的配置文件存放到程序安装的根目录中。由于Java程序用包来分组类，有时候将这些配置文件放入到读取它们的类所在的包目录中会更好一些。比如，在下面的图示中，将数据库配置文件 database.properties放到数据库读取类所在的包目录就是一种比较清晰的存储方案：<br>
+<br>
+/-----------其它包目录<br>
+|<br>
+|<br>
+-------edu.ec.database<br>
+|<br>
+|---------------ConnectionPool（数据库连接池类）<br>
+|<br>
+|---------------Dao（数据库访问对象类）<br>
+|<br>
+|---------------DaoFactory（Dao的工厂类）<br>
+|<br>
+|---------------database.properties（数据库配置属性文件）<br>
+|<br>
+|---------------RecordSet（记录集类）<br>
+<br>
+在这种存储方案中，所有的与数据库相关的类和配置文件都在同一个包目录中；在开发过程中，配置文件和源文件也按采用这种方式进行组织，这样会使得程序的数据库访问维护变得相当清晰明了。<br>
+<br>
+大部分开发工具在编译打包这样的源文件组织时，会自动将相关配置文件和类文件放到生成的目标文件夹中或JAR文件中。一般情况下，我们在发布自己的 Java程序时，都是以JAR或WAR形式将程序打包发布，而对应的配置文件也会按照上述的目录格式被放到了JAR或WAR文件中，这样，就实现了配置文件和程序文件打包在一起发布的目的。<br>
+<br>
+现在的问题是，我们如何读取位于程序安装文件中的配置文件的信息？比如，在上面的图中， ConnectionPool是一个数据库连接池类，它需要在系统启动时自动读取存储在database.properties中的数据库连接和配置信息，以便设置相关的数据库连接。这样，我们 就需要在程序中测定目前程序安装或部署的位置，以便读取对应的属性文件。<br>
+<br>
+在很多其他语言编写的程序中，我们可以利用一些系统提供的API或一些全局对象获取目前应用程序运行所在的目录。比如VB,我们可以使用Application对象测定当前程序的安装位置，在Java程序中如何完成类似的任务呢？<br>
+<br>
+Java程序并没有类似于VB那种全局对象，但如果我们观察位于上述目录结构中的database.properties文件，应该发现其处于应用程序的CLASSPATH中，这样，我们就可以使用Java中的类装载器中的相关的方法，读出这些配置文件的信息，该类名为ClassLoader。比如，在上例中，我们可以先得到ConnectinPool的类装载器，然后测定ConnectionPool类所在的包路径，然后利用 ConnectionPool所在的包目录读出database.properties文件的信息，对应的伪代码如下：<br>
+<br>
+ClassLoader loader=ConnectionPool.class.getClassLoader();<br>
+得到ConnectionPool所在的包名;<br>
+将包名转换为对应的目录名，存入一个名为path的字符串变量中;<br>
+调用loader的getResourceAsStream(path+&quot;database.properties&quot;)，得到输入流<br>
+<br>
+下面是一个可实际运行的样例代码片段，它可自动测定传入的类所在的包目录，返回传入的属性文件所代表的输入流。它还有一个附加的功能：如果属性文件直接放到了当前类所在的根目录（比如位于JAR文件的根目录或WAR文件的WEB-INF/classes目录中）、系统的用户目录系统、系统其他的类路径中时，它也可以找到；当然，如果还是找不到，它将返回null。具体的代码如下：<br>
+<br>
+<br>
+public class PropHelper{<br>
+/**<br>
+*guessPropFile:<br>
+*@param cls:和要寻找的属性文件处于相同的包中的任意的类<br>
+*@param propFile:要寻找的属性文件名<br>
+*/<br>
+public static java.io.InputStream guessPropFile(Class cls,String propFile){<br>
+try{<br>
+//得到类的类装载器<br>
+ClassLoader loader=cls.getClassLoader();<br>
+<br>
+//先从当前类所处路径的根目录中寻找属性文件<br>
+java.io.InputStream in=loader.getResourceAsStream(propFile);<br>
+if(in!=null) return in;<br>
+<br>
+//没有找到，就从该类所处的包目录中查找属性文件<br>
+Package pack=cls.getPackage();<br>
+if(pack!=null){<br>
+String packName=pack.getName();<br>
+String path=&quot;&quot;;<br>
+if(packName.indexOf(&quot;.&quot;) &lt; 0 ) <br>
+path=packName+&quot;/&quot;;<br>
+else{<br>
+int start=0,end=0;<br>
+end=packName.indexOf(&quot;.&quot;);<br>
+while(end!=-1){<br>
+path=path+packName.substring(start,end)+&quot;/&quot;;<br>
+start=end+1;<br>
+end=packName.indexOf(&quot;.&quot;,start);<br>
+}<br>
+path=path+packName.substring(start)+&quot;/&quot;;<br>
+}<br>
+in=loader.getResourceAsStream(path+propFile);<br>
+if(in!=null) return in;<br>
+}<br>
+<br>
+//如果没有找到，再从当前系统的用户目录中进行查找<br>
+java.io.File f=null;<br>
+String curDir=System.getProperty(&quot;user.dir&quot;);<br>
+f=new java.io.File(curDir,propFile);<br>
+if(f.exists()) return new java.io.FileInputStream(f);<br>
+<br>
+//如果还是没有找到，则从系统所有的类路径中查找<br>
+String classpath=System.getProperty(&quot;java.class.path&quot;);<br>
+String[] cps=classpath.split(System.getProperty(&quot;path.separator&quot;));<br>
+<br>
+for(int i=0;i &lt; cps.length; i++){<br>
+f=new java.io.File(cps[i],propFile);<br>
+if(f.exists()) break;<br>
+f=null;<br>
+}<br>
+if(f!=null) return new java.io.FileInputStream(f);<br>
+return null;<br>
+}catch(Exception e){throw new RuntimeException(e);}<br>
+<br>
+}<br>
+}<br>
+<br>
+使用举例：利用上述的方法，可在ConnectionPool中自动查找和ConnectionPool处于同一个包目录中的database.properties的输入流，并利用该输入流读入对应的属性值的代码如下：<br>
+public class ConnectionPool{<br>
+//静态初始化器，将在ConnectionPools加载时自动执行<br>
+static{<br>
+java.util.Properties dbProp=new java.util.Properties();<br>
+java.io.InputStream in=PropHelper.guessPropFile(edu.ec.database.ConnectionPool.class,&quot;database.properties&quot;);<br>
+if(in!=null) dbProp.load(in);<br>
+//利用dbProp，为相应的数据源对象设置相关的属性，比如C3P0........<br>
+}<br>
+}</div>
+<div>评论
+<div>
+<div>
+<div>deadcode 写道</div>
+程序打包成Jar发布后，应该将配置文件放在jar的当前同级目录，访问调用直接访问，如 <br>
+java.util.Properties pro = new java.util.Properties(); <br>
+InputStream inStream = new java.io.FileInputStream(&quot;database.properties&quot;);pro.load(inStream); <br>
+如果是打包成WAR发布，则放在适合LZ的方法</div>
+</div>
+<div>
+<div>现在，guessPropFile可以自动在如下位置中寻找属性文件： <br>
+<br>
+在未打包的Java程序的类文件所在的根目录中寻找属性文件 在打包的JAR程序的根目录中寻找属性文件 在未打包的Java类文件所在的根目录中对应传入参数类所在的包目录中寻找属性文件 在打包的JAR文件中对应传入参数类所在的包目录中寻找属性文件 在未打包及打包的WAR文件夹中的WEB-INF/classes目录中寻找属性文件 在未打包及打包的WAR文件中的WEB-INF/classes目录中对应传入参数类所在的包目录中寻找属性文件 在操作系统中的当前登录用户的主目录中寻找属性文件 在系统设定的环境变量CLASSPATH所指向的各个目录中寻找属性文件 <br>
+<br>
+其实，guessPropFile方法还可做的更加智能一些，比如在WAR文件的WEB-INF文件中寻找属性文件。如果要完成这个任务，ClassLoader是关键类，利用它的getResource方法，就可以获得相应程序中的资源的位置，我们可以在它的基础上稍加修改就可获得当前Java程序的运行位置信息，其伪代码如下： <br>
+获得Class参数的所在的类名 <br>
+取得该类所在的包名 <br>
+将包名转换为路径 <br>
+利用getResource得到当前的类文件所在URL <br>
+利用URL解析出当前Java程序所在的路径 <br>
+具体代码如下： <br>
+public class PropHelper{ //其他方法的定义 //............. /** *getAppPath需要一个当前程序使用的Java类的class属性参数，它可以返回打包过的 *Java可执行文件（jar，war）所处的系统目录名或非打包Java程序所处的目录 *@param cls为Class类型 *@return 返回值为该类所在的Java程序运行的目录 */ public static String getAppPath(Class cls){ ClassLoader loader=cls.getClassLoader(); String clsName=cls.getName()+&quot;.class&quot;; Package pack=cls.getPackage(); String path=&quot;&quot;; if(pack!=null){ String packName=pack.getName(); clsName=clsName.substring(packName.length()+1); if(packName.indexOf(&quot;.&quot;)&lt;0) path=packName+&quot;/&quot;; else{ int start=0,end=0; end=packName.indexOf(&quot;.&quot;); while(end!=-1){ path=path+packName.substring(start,end)+&quot;/&quot;; start=end+1; end=packName.indexOf(&quot;.&quot;,start); } path=path+packName.substring(start)+&quot;/&quot;; } } java.net.URL url =loader.getResource(path+clsName); String realPath=url.getPath(); int pos=realPath.indexOf(&quot;file:&quot;); if(pos&gt;-1) realPath=realPath.substring(pos+5); pos=realPath.indexOf(path+clsName); realPath=realPath.substring(0,pos-1); if(realPath.endsWith(&quot;!&quot;)) realPath=realPath.substring(0,realPath.lastIndexOf(&quot;/&quot;)); return realPath; }//getAppPath定义结束 }//PropHelper类定义结束 <br>
+在getAppPath方法的帮助下，我们可以测定当前程序运行的路径是不是包含WEB-INF/classes路径信息，如果是，则当前程序就可能是运行在Web环境中，这样，就可以对guessPropFile中的代码进行增加，加入在WEB-INF文件夹寻找属性文件的方法。</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p><br>
+<br>
+<br>
+本文出自:&nbsp;&nbsp;<a href="http://hdwangyi.javaeye.com/blog/105512"><font color="#000000">Java程序中的配置文件的存放和读取 - hdwangyi - JavaEye技术网站</font></a></p></div></body></html>

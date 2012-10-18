@@ -1,0 +1,249 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>智能数据使 Swing 保持简单</title></head><body><h1>智能数据使 Swing 保持简单</h1><div><div>
+<h1>智能数据使 Swing 保持简单</h1>
+<p >使用 iData 技术以简化复杂的 GUI 开发</p>
+<p>http://www.ibm.com/developerworks/cn/java/j-idata/</p>
+<p>级别： 初级</p>
+<p><a href="http://www.ibm.com/developerworks/cn/java/j-idata/#author">Jonathan Simon</a> (<a href="mailto:jonathan_s_simon@yahoo.com?subject=%E6%99%BA%E8%83%BD%E6%95%B0%E6%8D%AE%E4%BD%BF%20Swing%20%E4%BF%9D%E6%8C%81%E7%AE%80%E5%8D%95&amp;cc=jonathan_s_simon@yahoo.com">jonathan_s_simon@yahoo.com</a>), 客户机端架构设计师和 Swing 开发人员, JPMorganChase and Entology, Inc.</p>
+<p>2002 年 1 月 23 日</p>
+<blockquote>Swing 体系结构允许 Java 开发人员创建呈现大量数据的复杂显示。遗憾的是，编写代码以在大型 Swing 组件内维护那些数据简直是一场噩梦。在本文中，Jonathan Simon 介绍了一项称为 iData 或称为智能数据的技术。您可以使用 iData 体系结构来在您的应用程序内创建数据的中央资源库。这样，可以更彻底地将数据和显示相分离，并且产生数据的更清晰更易于维护的代码。甚至还有一个带有样本代码的开放源码工具箱可以帮助您入门。请继续阅读以学习更多相关知识并查看 iData 技术的一个样本实现。请在 <a href=" :void%20forumWindow()">论坛</a>上与作者和其他读者分享您的想法。 </blockquote>
+<p>高级 Swing 体系结构使得开发人员能够设计比以前更复杂的显示。这些显示通常需要大量极易出错且难以维护的逻辑。对于高级 Swing 组件（例如，JTable 和 JTree），当程序逻辑使用基于单元的数据存储、编辑和渲染（常需要更多全局知识）时，常会碰到困难。可以将智能数据，或带有高级知识的数据作为单元数据持久存储在组件模型内，此单元数据提供了开发高级应用程序的必要知识。本文描述的 iData 技术建立了一个通用的体系结构，该体系结构用于将智能数据与 Swing 组件集成，同时又保留了&ldquo;模型-视图-控制器（Model-View-Controller）&rdquo;体系结构。通过一个紧密集成的间接方案实现了这一点，该方案将智能数据用于数据存储、数据检索间接以及显示设置间接。生成的间接对象创建了灵活且可扩展的中央位置，用来实现带有最小复杂性的复杂业务显示逻辑和交互功能。</p>
+<p>开发人员可以获得一个开放源码 iData 工具箱，以帮助他们将 iData 体系结构集成到他们自己的项目中。该工具箱包含一个接口集合，这些接口定义了间接层、缺省实现、优化、定制编辑器与渲染器以及许多示例。请阅读 <a href="http://www.ibm.com/developerworks/cn/java/j-idata/#resources">参考资料</a>以获取到该工具箱的链接。</p>
+<p><a name="1">iData 技术的三层</a></p>
+<p>iData 技术包含三层。</p>
+<ul>
+    <li>数据存储：iData 技术假定应用程序将数据存储在 DataObject 中。人们将 DataObject 松散定义为符合 JavaBean 的对象，它含有一些字段，以及对应的 get[FieldName]() 和 set[FieldName]() 方法。</li>
+    <li>显示组件的数据值间接：数据间接层由一个定义包含 DataObject 的对象组成。这称为智能数据或 iData 层。（注意，不要将 iData 层同 iData 技术相混淆，后者整体上是体系结构的名称。）iData 层接口定义了访问与修改 DataObject 中字段的通用方法。针对具体的需求，每个具体的 iData 层类都实现这些通用的取值（accessor）和赋值（mutator）方法。通常，iData 层实现仅仅读（get）和写（set） DataObject 中的值。然而，正如您将在示例中所看到的一样，这一间接创建了一个实现复杂逻辑的集中位置，这些复杂逻辑包括编辑验证、虚拟数据和数据修饰。iData 层被进一步细分为不可修改（只读）和可修改（读／写）数据的功能。进行这样的区分是为了简化那些带有无须编辑逻辑的复杂的不可编辑数据的接口。</li>
+    <li>根据数据定制编辑和渲染组件的显示间接：智能显示，或称为 iDisplay 层，通过使用类似于 iData 层的间接来完成智能显示。iDisplay 层为编辑和渲染 iData 层对象的组件定义了一个接口。这一 iDisplay 层定制的示例包括：通过更改单元背景颜色来显示错误条件，以及创建通用的编辑器，这些编辑器允许 iData 层实现确定最适合于编辑其数据的组件。同 iData 层一样，iDisplay 层也被细分成可修改数据和不可修改数据的功能。</li>
+</ul>
+<p>这三个层结合起来创建了一个紧密集成的间接对象集，这些对象被添加到了组件模型而不是数据本身。该体系结构使得基于单元的知识成为可能，同时又可以保留 Swing 中的&ldquo;模型-视图-控制器&rdquo;体系结构。检索、显示和编辑数据的逻辑被封装在每个单元内的智能数据对象中。其结果是用于实现复杂用户界面显示和交互的功能上灵活和可扩展的技术。</p>
+<br>
+<a name="figure1">图 1. iData 技术的完整体系结构类图</a><br>
+<img alt="iData 技术的完整体系结构类图" src="http://hiphotos.baidu.com/hxzon/pic/item/6b63f624fd89b00f8644f942.jpg"> <br>
+<p>接下来，我们将讨论 iData 技术体系结构的每一层。同时，我们将构建假想的&ldquo;自行车商店（Bike Shop）&rdquo;应用程序的一些代码片段以演示该技术。</p>
+<p><a name="2">DataObject</a></p>
+<p>如上面所提到的，人们将 DataObject 定义为符合 JavaBean 的对象，该对象含有一些字段和对应的 get[FieldName]() 和 set[FieldName]() 方法。通常，将数据字段按业务区域组合在 DataObject 中。我们的示例&ldquo;自行车商店&rdquo;应用程序含有一个称为 Bicycle 的 DataObject 对象，该对象有大量字段（ modelName 、 manufacturer 、 price 和 cost 等等）以及相应的读（get）和写（set）方法。&ldquo;自行车商店&rdquo;中其它可能的 DataObject 对象有 BicycleComponent 对象（带有类似于 Bicycle 的字段）和 Purchase DataObject 对象（带有如 purchasorName 、 price 、 dateOfPurchase 等字段）。下面是&ldquo;自行车商店&rdquo;应用程序中 Bicycle DataObject 对象的部分代码的示例。</p>
+<br>
+<a name="code1">清单 1. 样本 DataObject</a><br>
+<pre>public class Bicycle<br>{<br>     //fields<br>     double price = ...<br>     String manufacturer = ...<br>     ...<br>     //default constructor<br>     public Bicycle(){}<br>     //accessors<br>     public Double getPrice()<br>     {<br>          //sometimes its necessary to wrap primitives in related <br>          //Object types...<br>          return new Double(this.price);<br>     }<br>     public String getManufacturer()<br>     {<br>          return this.manufacturer;<br>     }<br>     ...<br>     //mutators<br>     public void setPrice(Double price)<br>     {<br>          this.price = price.doubleValue();<br>     }<br>     public void setManufacturer(String manufacturer)<br>     {<br>          this.manufacturer = manufacturer;<br>     }<br>     ...<br>}</pre>
+<p><a name="3">间接：iData 层</a></p>
+<p>如上面所提到的，iData 层被细分为不可修改数据和可修改数据的功能。由于 MutableIData 接口继承了 ImmutableIData 接口，我们将从研究不可修改数据的功能开始。</p>
+<p><a name="N10101">只读智能数据的数据间接层（ImmutableIData）</a></p>
+<p>ImmutableIData 接口是 iData 层的一部分；它表示不可修改 iData 间接。它由两个方法和一个推荐的方法覆盖组成：</p>
+<ul>
+    <li>getData() 从 DataObject 返回一个具有类型的数据值。</li>
+    <li>getSource() 返回 DataObject 本身。</li>
+    <li>覆盖 toString() 方法返回 getData() 结果的 string 表示。</li>
+</ul>
+<p>作为示例，让我们看一下 Manufacturer 字段的 ImmutableIData 实现。</p>
+<br>
+<a name="code2">清单 2. &ldquo;自行车制造商&rdquo;的 ImmutableIData 实现</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>public class BicycleManufacturerIData implements ImmutableIData<br>{<br>  //the DataObject<br>  Bicycle bicycle = null;<br>  public BicycleManufacturerIData(Bicycle bicycle)<br>  {<br>    this.bicycle = bicycle;  //cache the DataObject <br>  }<br>  public Object getSource()<br>  {<br>    return this.bicycle; //this simply returns the DataObject<br>  }<br>  public Object getData()<br>  {<br>    //returns the manufacturer field from the DataObject.  <br>    //This is the main logical method of the indirection layer.<br>    return bicycle.getManufacturer(); <br>  }<br>  public String toString()<br>  {<br>    //create a safe to String method to avoid null pointer exceptions <br>    //while painting...<br>    Object data = this.getData();<br>    if (data != null)     <br>      return data.toString();<br>    else<br>      return &quot;&quot;;<br>  }<br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>iData 工具箱提供了一个实现 ImmutableIData 的称作 DefaultImmutableIData 的抽象类。它覆盖 Object 中的 toString() 方法以安全地返回 getData().toString() 。示例的剩余部分将扩展 iData 层接口的缺省实现。这些缺省实现也包含在该工具箱中。</p>
+<p>与 JTable 集成 <br>
+让我们继续&ldquo;自行车商店&rdquo;示例，并将 iData 技术集成到 JTable 中。表有 manufacturer 、 modelName 、 modelID 、 price 、 cost 和 inventory 列。假定 ImmutableIData 实现的剩余部分紧跟 manufacturer iData 语句行编写。</p>
+<p>实际添加到 JTable DataModel 的数据是 ImmutableIData 实现，每个实现都含有一个 DataObject 。这种添加含有 DataObject 的 iData 层实现的思想就是前面所指的间接层的实现。</p>
+<br>
+<a name="figure2">图 2. 带有含有 DataObject 的 ImmutableIData 实现的 JTable 单元</a><br>
+<img alt="带有 ImmutableIData 实现的 JTable 单元,该实现含有 DataObject" src="http://hiphotos.baidu.com/hxzon/pic/item/6b600c331fad57c41b4cff42.jpg"> <br>
+<p>我发现使用一个助手（helper）方法（我将其称为 createRow() ）来立即创建一整行是有用的。当使用 AbstractTableModel 的子类时，可以将这一行整个添加到模型中。 createRow() 方法将 DataObject 作为参数，并为特定的表实例化适当的 ImmutableIData 实现。</p>
+<br>
+<a name="code3">清单 3. createRow() 方法</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>protected Vector createRow(Bicycle bicycle)<br>  {<br>    Vector vec = new Vector();<br>      vec.add(new BicycleModelNameImmutableIData(bicycle));<br>      vec.add(new BicycleModelIDImmutableIData(bicycle));<br>      vec.add(new BicycleManufacturerImmutableIData(bicycle));<br>      vec.add(new BicyclePriceAndCostImmutableIData(bicycle));<br>      vec.add(new BicycleProfitImmutableIData(bicycle));<br>      vec.add(new BicycleInventoryImmutableIData(bicycle));<br>    return vec;<br>  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>此外， createRow() 方法是确定模型中应放置何种 ImmutableIData 实现的逻辑的集中位置。从类管理的角度，使用匿名内部类也是有用的，对于简单的 ImmutableIData 实现，可以直接在 createRow() 方法中声明这些类。</p>
+<p>渲染顺序 <br>
+缺省渲染器通过调用对象的 toString() 方法来创建他们要显示对象的字符串表示。这就是 ImmutableIData 实现要有一个有用的 toString() 方法是很重要的原因之一。在渲染期间，渲染器从 JTable 接收到 ImmutableIData 实现。要渲染 iData，调用了 toString() 方法。以下表示了整个渲染顺序：</p>
+<ul>
+    <li>iData 实现上的 toString()</li>
+    <li>iData 实现上的 getData()</li>
+    <li>DataObject 上的 get[FieldName]()</li>
+</ul>
+<br>
+<a name="figure3">图 3. 渲染顺序</a><br>
+<img alt="渲染顺序" src="http://hiphotos.baidu.com/hxzon/pic/item/8744ebf880a5ed33d8f9fd42.jpg"> <br>
+<br>
+<a name="figure4">图 4. 只读表</a><br>
+<img alt="只读表" src="http://hiphotos.baidu.com/hxzon/pic/item/1a4c510f45106b166159f342.jpg"> <br>
+<p>动态持久性 <br>
+使用 DataObject 作为 iData 的数据不仅为 iData 间接提供了灵活性，而且添加了一个提供动态持久性的有用的数据间接层。请考虑一个已显示的表的示例，正在从外部更新该表的值。通常，客户机需要实现复杂的逻辑来推断模型中持久存储更新值的地方。当使用 iData 和 DataObject 间接时，由于会自动持久存储新值，因此这一逻辑完全没有必要。这就是用包含相同 DataObject 实例的多个 iData 对象填充模型的结果。当更改 DataObject 的内部值时，由于所有 iData 对象指向同一个实例，因此 DataObject 本身不会改变。通过使用 DataObject 的读（get）和写（set）方法对其进行再查询，无须任何手工持久性的工作，就总能返回最新的结果。客户机对更新要执行的唯一操作是重画（repaint），这一操作强制渲染器重新渲染更新的单元，即依次检索并显示新数据值。</p>
+<p>这种间接的一个结果是有统一的客户机数据高速缓存的能力。假定组件使用来自中央客户机高速缓存的 iData 间接和 DataObjects ，在整个应用程序中，所有数据编辑将动态持久存储。这极大地简化了负责显示动态数据的交易系统和其它客户机。</p>
+<p>示例：虚拟列 <br>
+虚拟列体现了 iData 技术的灵活性。虚拟列是一个含有数据的列（这些数据没有显式地包含在模型中，而是由多个字段组合而成）。设想称为 profit 的列，它将显示 price 和 cost 之间的差额。要创建这个列，需要创建一个 ImmutableIData 实现，其中 getData() 返回 price 和 cost 之间的差额。</p>
+<br>
+<a name="code4">清单 4. 利润虚拟列</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>public class BicycleProfitImmutableIData extends DefaultImmutableIData<br>{<br>  ...<br>  <br>  public Object getData()<br>  {<br>    //return the difference of the price and cost field from the DataObject<br>    return new Double(bicycle.getPrice() - bicycle.getCost());<br>  }<br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>使用标准模型创建这种类型的虚拟列将需要大量逻辑。首先，要使用正确的值填充该模型。当编辑 price 或 cost 时，可能会出现一些问题：在整个应用程序中需要复杂和经常容易出错的逻辑来更新 profit 值。有了 iData 技术，编辑 price 或 cost 时，无须任何更新操作。动态地存在持久性。</p>
+<p>使用 iData 对象作为构造模块 <br>
+间接层作为一组 iData 对象来实现，这样会带来实质性的好处。例如，附加两个数据值的 PriceAndCost 显示也可以使用组合来实现。不是直接从新的 CompositePriceAndCost 显示中的 DataObject 检索这两个值，而是可以使用以前编写的 BicyclePriceImmutableIData 和 BicycleCostImmutableIData 对象。通过从两个 iData 层实现（由一个分隔符来分隔，在本例中，分隔符为斜杠）检索值，然后附加这两个值，这样 getData() 就创建了返回字符串。最终的 getData() 方法类似于这样：</p>
+<br>
+<a name="code5">清单 5. PriceAndCostImmutableIData 的组合实现</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>public Object getData()<br>{<br>    // append the price, a slash, and the cost using pre-built iData <br>    // implementations     <br>    return new String( (String)priceIData.getData() + &quot; / &quot; + <br>        (String)costIData.getData() );  <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>这种组合不同 iData 实现的能力提高了代码重用和灵活性。可以通过对已有 iData 实现进行不同的组合来开发新的 iData 实现。由于这种组合有利于运行时 iData 实现的动态组合，这意味着需要更少的具体类和更大的灵活性。工具箱含有一些实现简单的基于组合的 iData 对象的助手类，包括前缀和后缀字符串修饰符 iData 实现，这些实现使用任意一个带有后缀和／或前缀的 iData 对象来修饰 iData 的字符串表示。</p>
+<p>基于反射（reflection）的 ImmutableIData 实现（UniversalImmutableIData） <br>
+iData 方法的主要缺陷之一是类的数目过多。在大型应用程序中，iData 类的数目可能会迅速变得难以控制。大多数 iData 层实现重复相同的顺序，在这一顺序里， getData() 请求被重定向到 DataObject 中的 get[FieldName]() 方法。通常，可以使用反射来实现这一点。工具箱含有一个基于反射的 ImmutableIData 实现的缺省实现，名为 UniversalImmutableIData 。 UniversalImmutableIData 使用一个 DataObject 和一个字段名作为初始化参数。在内部，它获取字段名，然后检索 get[FieldName]() 方法，当调用 getData() 或 toString() 方法时会调用 get[FieldName]() 方法。这种方法简化了开发，同时减少了类的数目，所付出的代价只是由于使用反射而带来的性能上的轻微降低。大多数应用程序不会受这一性能下降影响，而大型或实时应用程序的开发人员应该牢记这一点。</p>
+<br>
+<a name="code6">清单 6. 使用 UniversalImmutableIData 的 createRow() 方法</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>protected Vector createRow(Bicycle bicycle)<br>{<br>  Vector vec = new Vector();<br>    vec.add(new UniversalImmutableIData(bicycle, &quot;modelName&quot;));<br>    vec.add(new UniversalImmutableIData(bicycle, &quot;modelID&quot;));<br>    vec.add(new UniversalImmutableIData(bicycle, &quot;manufacturer&quot;));<br>    vec.add(new UniversalImmutableIData(bicycle, &quot;priceAndCost&quot;));<br>    vec.add(new UniversalImmutableIData(bicycle, &quot;inventory&quot;));<br>  return vec;<br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<br>
+<a name="code7">清单 7. 来自基于反射的 UniversalImmutableIData 的样本</a><br>
+<br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>protected String field = ...  //the field name <br>  protected Method accessorMethod = ... //the accessor method<br>  protected Object source = ... //the DataObject<br>  ...<br>  protected void setMethods()<br>  {<br>    if (field == null || field.equals(&quot;&quot;))<br>      return;<br>    //capitalize the first letter of the field, so you get getName, <br>    //not getname...<br>    String firstChar = field.substring(0,1).toUpperCase();<br>    //remove first letter<br>    String restOfField = field.substring(1);<br>    //add together the string &quot;get&quot; + the capitalized first letter, <br>    //plus the remaining<br>    String fieldAccessor = &quot;get&quot; + firstChar + restOfField;<br>    //cache the method object for future use<br>    this.setAccessorMethod(fieldAccessor);<br>  }<br>  ...<br>  protected void setAccessorMethod(String methodName)<br>  {<br>    try<br>    {<br>      accessorMethod = source.getClass().getMethod(methodName, null);<br>    }<br>    catch ( ... )<br>    {<br>      ...<br>    }<br>  }<br>  ...<br>  public Object getData()<br>  {<br>    try<br>    {<br>      return accessorMethod.invoke(source, null);    <br>    }<br>    catch ( ... )<br>    {<br>      ...<br>    }<br>  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p><a name="N10324">可编辑智能数据的数据间接层（MutableIData）</a></p>
+<p>通过增加一个 setData() 方法， MutableIData 继承了 ImmutableIData ，使之可修改。 setData() 方法采用新数据值作为一个参数，并返回一个表示编辑是否成功的布尔值。通常，有必要对 setData() 方法中的新数据值进行强制类型转换，以与 DataObject 中那个字段高速缓存的数据类型相匹配。标准实现安全地测试对象类型，如果类类型不匹配，则返回值为 false。</p>
+<br>
+<a name="code8">清单 8. &ldquo;自行车制造商&rdquo;的 MutableIData</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>public boolean setData(Object data)<br>  {<br>     if (!data instanceof String) <br>         return false;<br>     ((Bicycle)this.getSource()).setManufacturer((String)data);<br>         return true;<br>  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>一旦编写完所有的新 MutableIData 对象，则更新 getRow() 方法来实例化 MutableIData 实例而不是与其对应的 Immutable 实例。我发现，当字段明确是不可修改时，只生成 ImmutableIData 对象。否则，知道不会调用 setData() 方法，生成了 MutableIData 并且仅在只读表中使用它。</p>
+<p>定制编辑器 <br>
+既然已经能够修改数据了，就有了一个大的改变：编辑数据需要定制编辑器。如果使用缺省编辑器，那么 JTable 将会检索编辑器以查找 Object 类型的数据，这个编辑器实际上是一个 String 编辑器。一旦停止编辑，该编辑器就返回一个 String 值，这个 String 值持久存储在模型中，其中使用 String 值替换 iData 层实现。下图描绘了要保持 iData 间接的完整性必须遵循的编辑顺序。</p>
+<br>
+<a name="figure5">图 5. 编辑顺序</a><br>
+<img alt="编辑顺序" src="http://hiphotos.baidu.com/hxzon/pic/item/d9f9d72afeb09911d52af142.jpg"> <br>
+<p>虽然可以扩展已有的编辑器来遵循该顺序，但这种方法是不切实际的；它会导致过多的类和造成不必要的复杂性。定制编辑器在某些独特情况下是可行的，但是大多数编辑器将遵循相同的顺序，可以将这一顺序封装在一个单独的类中。iData 工具箱包含这个类的一个实现，称为 UniversalTableCellEditor 。</p>
+<p>UniversalTableCellEditor 使用 TableCellEditor 的内涵而不是其扩展。在编辑时， UniversalTableCellEditor 从 iData 层实现抽取出数据值，并使用该值初始化所含的 TableCellEditor 。当停止编辑时， UniversalTableCellEditor 从 TableCellEditor 中检索该值并相应地在 iData 实现中设置该值。如果开始没有指定编辑器，则 UniversalTableCellEditor 检索 JTable 中的缺省编辑器以查找 iData 实现的数据类型。</p>
+<p>在以上所述的整个编辑程序完全封装在 UniversalTableCellEditor 中。这意味着，可以使用任何编辑器，甚至是第三方编辑器，而不需要实现 iData 逻辑的扩展。</p>
+<p>我建议通过将每个 TableColumn 的缺省编辑器设置成 UniversalTableCellEditor 来设置 JTable 中的编辑器。iData 工具箱含有一个带有几个静态助手方法的实用类。实用类中的 configureTable() 方法对 TableColumns 进行遍历，将每个当前编辑器设置成包含那一列以前的单元编辑器的 UniversalTableCellEditor 的新实例。</p>
+<p>当工具箱与渲染器相关时，它有具有类似功能的 UniversalTableCellRenderer ，它具有与渲染器类似的功能。工具箱中还包括 JTree 和 JComboBox/JList 的通用编辑器和渲染器组合。</p>
+<p>示例：单元内验证保证了价格高于成本 <br>
+编辑的标准困难是 单元内验证，即在单元编辑停止之前进行数据验证。 setData() 方法创建了一个用于单元内验证的集中位置。请考虑这样一个示例，在对 price 或 cost 进行编辑之后，如果 price 值低于 cost ，则用户应该接到通知。这时，我们希望向用户显示下列选项：</p>
+<ul>
+    <li>对两个值不做任何处理。</li>
+    <li>提高 price 使之等于 cost 。</li>
+    <li>修改未编辑的那个值，使这个值与刚编辑过的值之间的差值与最初的价差相等。</li>
+</ul>
+<p>在 setData() 方法中，实现它们相对比较容易。它向用户提供了一个 JOptionPane 以标识首选的选项。一旦选定了某个选项，则会执行计算以设置适当的值。知道实现这一业务逻辑的所有数据值以及集中位置是 iData 技术灵活性的关键。</p>
+<br>
+<a name="code9">清单 9. 单元内验证</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>String doNotEdit = &quot;Do Not Edit&quot;;<br>String priceEqualsCost = &quot;Price = Cost&quot;;<br>String keepProfitDifference = &quot;Keep Profit Difference&quot;;<br>String keepProfitPercentage = &quot;Keep Profit Percentage&quot;;<br>...<br>public boolean setData(Object data)<br>{<br>    double newCost = new Double(data.toString()).doubleValue();<br>    double oldCost = this.bicycle.getCost();<br>    double price = bicycle.getPrice();<br>    ((Bicycle)this.getSource()).setCost(newCost);<br>    if (price &gt; newCost)<br>    {<br>      Object result = JOptionPane.showInputDialog<br>      (<br>        null,<br>        &quot;Cost you have entered is more than the set price for this bicycle&quot;<br>        + &quot;\nPlease select from the following options&quot;,<br>        &quot;&quot;,<br>        JOptionPane.QUESTION_MESSAGE,<br>        null,<br>        new Object[]{doNotEdit, priceEqualsCost, keepProfitDifference, <br>            keepProfitPercentage},<br>        priceEqualsCost<br>      );<br>      if (result != null)<br>      {<br>        //persist the data<br>        if (result.equals(priceEqualsCost))<br>          this.bicycle.setPrice(bicycle.getCost());  <br>        //keep the delta between price and cost<br>        else if (result.equals(keepProfitDifference))<br>          this.bicycle.setPrice( newCost + (oldPrice - oldCost) ); <br>        //keep the same profit percentage<br>        else if (result.equals(keepProfitPercentage))<br>          this.bicycle.setPrice( newCost * (oldPrice / oldCost) ); <br>      }<br>    }<br>    return true;<br>  }</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<p>使用非 JTable 组件 <br>
+虽然，出于一致性考虑，在我们的示例中一直使用 JTable，但是使用另一个 Swing 组件来研究一个简单的示例也是值得的。让我们创建一个含有自行车名称的 JList。仅对 Bicycle 对象的集合进行遍历，将它们封装在 BicycleModelNameImmutableIData 对象中，然后将这些对象添加到 JList 中。请注意，在 JList 中使用了与 JTable 中相同的 iData 实例。在任何其它组件中也可以以相同方式使用这些实例。</p>
+<br>
+<a name="code10">清单 10. JList 初始化</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>protected void initList()<br>{<br>    ...<br>    while ( ... )<br>    {<br>       //wrap the bicycle in an iData object and add it to the list model<br>      Bicycle bike =  ...<br>      model.addElement(new BicycleModelNameMutableIData(bicycle)); <br>    }<br>    //wrap the lists renderer in the iData toolkit universal renderer <br>    //for JLists<br>    list.setCellRenderer(new <br>      UniversalListCellRenderer(list.getCellRenderer())); <br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<br>
+<a name="figure6">图 6. JList 示例</a><br>
+<img alt="JList 示例" src="http://hiphotos.baidu.com/hxzon/pic/item/6059252d74c39408359bf742.jpg">
+<p><a name="4">智能显示间接（iDisplay）</a></p>
+<p>iDisplay 结构是根据 iData 来创建定制显示的层。例如，可以考虑这样一个接口：其中，首选的 Manufacturer 应该用红色文本显示以提示用户其首选状态。通常，这需要复杂的逻辑来检索不是由渲染器传入的数据值，这会导致复杂的代码，使得以数据为中心的定制显示的实现变得不切实际。iDisplay 同 iData 的紧密集成使得这一方案非常简单，这样做也为扩展创建了一个集中的位置。</p>
+<p><a name="N1045A">只读智能数据的显示间接层（ImmutableIDisplay）</a></p>
+<p>ImmutableIDisplay 封装了特定于显示的逻辑。可以通过 ImmutableIDisplay 让对于三种主要渲染器类型每一个有 get[Component]CellRendererComponent() 方法来实现这一点，这三种类型是： TableCellRenderer 、 TreeCellRenderer 和 ListCellRenderer 。通过包含 ImmutableIDisplay ， ImmutableIDisplayIData 将 ImmutableIDisplay 与 ImmutableIData 集成在一起。</p>
+<p>当 JTable 调用 UniversalTableCellRenderer 中的 getCellRendererComponent() 并传入一个 ImmutableIDisplayIData 类型的对象时， UniversalTableCellRenderer 则转发 getCellRendererComponent 请求给相应的 get[Component]CellRendererComponent ， get[Component]CellRendererComponent 位于 ImmutableIDisplayIData 所包含的 ImmutableIDisplay 中。</p>
+<p>让我们看一看&ldquo;自行车商店&rdquo;演示的另外一个示例，其中用户输入一个低于 cost 的 price ，随后 price 和 cost 单元的背景颜色变红。 ImmutableIDisplay 的 getTableCellRenderer() 方法检索 DataObject ，并检查 price 是否低于 cost 。如果是这样，就将背景设置为红色；否则就将背景设置为白色。当没有出现特例时，记住将背景显式地设置成缺省颜色，这一点很重要。Swing 使用最轻量级的模式用于渲染，重复地绘制同一个组件。如果更改了特例的标准设置而又没有为标准情况复位，那么就会产生难以预料的结果。</p>
+<br>
+<a name="code11">清单 11. Bicycle 成本的 getTableCellRenderer()方法根据数据对单元着色</a><br>
+<table class="FCK__ShowTableBorders" border="0" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>public TableCellRenderer getTableCellRenderer(JTable table, Object value, <br>  boolean isSelected, boolean hasFocus, int row, int column)<br>{<br>      //cache old background for change comparisons<br>      Color oldColor = renderer.getBackground(); <br>      //cache old background for change comparisons<br>      Color newColor = null;<br>      //check to see if Object is a MutableIData<br>      if (value instanceof MutableIData)<br>      {<br>        MutableIData arg = (MutableIData)value;  //cast it.<br>        Bicycle bike = (Bicycle)arg.getSource();<br>        if (arg.getData() instanceof Number)  //check the data type<br>        {<br>        // retrieve price and cost from the DataObject<br>          double cost = ((Number)arg.getData()).doubleValue();<br>          double price = bike.getPrice();<br>          //make comparisons<br>          if (price &gt; cost)<br>            newColor = Color.cyan;<br>          else<br>            newColor = Color.red;<br>        }<br>      }<br>      // check and see if color changed<br>      if (!newColor.equals(oldColor))<br>          this.setBackground(newColor);<br>}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<br>
+<a name="figure7">图 7. 带有 price 和 cost 背景颜色验证的表</a><br>
+<img alt="带有 price 和 cost 背景颜色验证的表" src="http://hiphotos.baidu.com/hxzon/pic/item/d42a28349672bf075ab5f542.jpg"> <br>
+<p><a name="N104F2">可编辑智能数据的显示间接层（MutableIDisplay）</a></p>
+<p>对于 iDisplay 实现，也存在不可修改／可修改的差异。 MutableIDisplay 负责编辑器，而 ImmutableIDisplay 负责渲染器。就象 ImmutableIDisplayIData 一样，有一个继承 MutableIData 且含有一个 MutableIDisplay 的 MutableIDisplayIData 。其用法同 ImmutableIDisplay 的用法相同，不同之处只是它实现的是 get[Component]CellEditor() 方法而不是 get[Component]CellRenderer() 方法。工具箱包含 JTable、JTree 和 JComboBox 的定制编辑器。</p>
+<p>将 get[Component]CellRenderer() 和 get[Component]CellEditor() 方法转发到 iDisplay 创建了一个有用的间接层。主要结果是产生了一个定制显示设置和功能的集中的、已封装的位置。iData 使用 iDisplay 的内涵而不是扩展，这样，除了限制了类的数目之外还增加了灵活性和可扩展性。最为重要的是，几乎不需要定制编辑器和渲染器，它们通常包含非常复杂的显示逻辑。虽然需要完整的定制编辑器和渲染器，但是可以使用由 iDisplay 提供的间接层来实现大多数显示。</p>
+<p><a name="5">缺陷</a></p>
+<p>在实现 iData 技术时，需要记住有几个缺陷：</p>
+<ul>
+    <li>性能：对于大多数应用程序来说，iData 技术并没有带来显著的性能开销。该技术规定了大量的间接而不是逻辑或处理。然而，如果 getData() / setData() 方法或 get[Component]CellRenderer() / Editor () 方法有太多逻辑，那么就会产生问题。每次绘制组件时，就会为组件中的每一个单元调用这些方法中的任何逻辑。因此，请尽可能地使这些方法保持简洁。</li>
+    <li>添加到代码库中的类：毫无疑问，使用 iData 技术需要相当数量的类。任何面向对象的技术都会如此，而且这有一定好处。事实上，在这些额外的类中驻留着大量特定于应用程序的业务逻辑，这样会强制产生某个级别的封装，而这种封装在一般情况下是不会出现的。如果要使类的数量保持绝对最低，那么这可能不是最佳选择。对于这些对规模要求至关重要的应用程序已经做了很多优化，然而通常有相关的性能代价。因此，当决定代码复杂性、类的数目以及性能代价时，应该考虑应用程序需求。</li>
+    <li>学习曲线：这是最突出的缺陷。设计 iData 技术时，考虑的是灵活性和可扩展性。这就要求某些数量的抽象，这些抽象首先就容易令人迷惑，即便没有让人望而却步。我相信经过一些探索后，这一体系结构是可达到的，但是这确实需要坚持不懈。</li>
+</ul>
+<p><a name="6">结束语</a></p>
+<p>使用结合 iData 间接层的智能数据来填充组件模型有助于创建用于实现高级用户界面功能的灵活和可扩展的集中位置。此外，可以使用完全封装的类中相对简单的逻辑来实现这一功能，这可以增加灵活性和重用。附加的开放源码工具箱使向集成 iData 技术的转换变得方便，这是因为已经编写并测试了转换所需的大多数代码。每个应用程序只需 iData 间接层的自己实现就可以成功地使用上面所讨论的技术。没有定制主要的 Swing 组件，没有定制模型，也没有更改标准 Swing 功能 ― 有的只是仔细放置的间接。结果是以直接、灵活并且可扩展的方式简化了复杂显示功能和定制实现的系统。</p>
+<p><a name="7">开放源码说明</a></p>
+<p>我相信工具箱对于成功实现 iData 方法是至关重要的。工具箱除了提供一些优化和长期开发的助手类之外，还提供了经过用户测试的代码，从而使集成时间减至最少。设计和实现都要受所开发的项目的影响。显然，您可能碰到其需求可能更方便地通过对工具箱做一些修改来实现的项目，当开发人员帮助改进工具箱的设计时，将极大地增强其可用性，同时会创建更可访问和更健壮的实现。</p>
+<p>该工具箱是遵照 Artistic 许可证（Artistic License）通过 SourceForge.net 分发的。该项目主页（参见 <a href="http://www.ibm.com/developerworks/cn/java/j-idata/#resources">参考资料</a>）包含完整的源代码、文档、二进制分发版以及到邮件列表服务器和其它信息的链接。鼓励您对代码做一些改进以便包含在未来的发行版中。根据开放源码协议的规定，可以自由使用所有应用程序。</p>
+<p>http://sourceforge.net/projects/idata/files/</p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+</div></div></body></html>

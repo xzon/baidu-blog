@@ -1,0 +1,240 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>COM技术初窥[ZZ]</title></head><body><h1>COM技术初窥[ZZ]</h1><div><p>COM技术初窥[ZZ]</p><p>2007年08月14日 星期二 上午 11:12</p><p><a><span style="color: rgb(0, 0, 0);">一、COM是一个更好的C++</span></a><br><br><a><span style="color: rgb(0, 0, 0);">1、COM 是什么</span></a><br><br><a href="http://www.vckbase.com/document/viewdoc/?id=915#1"><span style="color: rgb(128, 0, 128);">Don Box</span></a> 说"COM IS LOVE"。COM 的全称是 Component Object Model 组件对象模型。 <br><br><a><span style="color: rgb(0, 0, 0);">2、从 C++ 到 DLL 再到 COM</span></a><br><br><a><span style="color: rgb(0, 0, 0);">2.1 C++</span></a><br><br>
+如某一软件厂商发布一个类库(CMath四则运算)，此时类库的可执行代码将成为客户应用中不可分割的一部分。假设此类库的所产生的机器码在目标可执行文
+ 
+件中占有4MB的空间。当三个应用程序都使用CMath库时，那么每个可执行文件都包含4MB的类库代码(见图1.1)。当三个应用程序共同运行时，他们
+ 
+将会占用12MB的虚拟内存。问题还远不于此。一旦类库厂商发现CMath类库有一个缺陷后，发布一个新的类库，此时需要要求所有运用此类库的应用程序。
+ 此外别无他法了。<br><br><img src="http://www.vckbase.com/document/journal/vckbase26/images/comimg1.gif"><br><img src="http://www.vckbase.com/document/journal/vckbase26/images/comimg2.gif"><br><img src="http://www.vckbase.com/document/journal/vckbase26/images/comimg3.gif"><br>
+图1.1 CMath 的三个客户<br><br><a><span style="color: rgb(0, 0, 0);">2.2 DLL</span></a><br><br>
+解决上面问题的一个技术是将CMath类做成动态链接库(DLL ，Dynamic Link Library)的<a href="http://www.vckbase.com/document/viewdoc/?id=915#%E5%BD%A2%E5%BC%8F%E5%B0%81%E8%A3%85"><span style="color: rgb(128, 0, 128);">形式封装</span></a>起来 。<br>
+在使用这项技术的时候，CMath的所有方法都将被加到 CMath dll 的引出表(export list)中，而且链接器将会产生一个引入库(import library)。这个库暴露了CMath的方法<a href="http://www.vckbase.com/document/viewdoc/?id=915#%E6%88%90%E5%91%98%E7%9A%84%E7%AC%A6%E5%8F%B7"><span style="color: rgb(128, 0, 128);">成员的符号</span></a> 。当客户链接引入库时，有一些存根会被引入到可执行文件中，它在运行时通知装载器动态装载 <a href="http://www.vckbase.com/document/viewdoc/?id=915#CMath%20Dll"><span style="color: rgb(128, 0, 128);">CMath Dll</span></a>。<br>
+当 CMath 位于dll中时，他的运行模型见图1.2<br><br><img src="http://www.vckbase.com/document/journal/vckbase26/images/comimg4.gif"><br>
+图1.2 CMath引入库<br><br><a><span style="color: rgb(0, 0, 0);">2.3 COM</span></a><br><br>
+"简单地把C++类定义从dll中引出来"这种方案并不能提供合理的二进制组件结构。因为C++类那既是接口也是实现。这里需要把接口从实现中分离出来才 能提供二进制组件结构。此时需要有二个C++类，一个作为接口类另一个作为实现类。让我们开始COM之旅吧。<br><br><img src="http://www.vckbase.com/document/image/paragraph.gif"><a><span style="color: rgb(0, 0, 0);">二、COM基础</span></a><br><br><a><span style="color: rgb(0, 0, 0);">1、 COM基本知识</span></a><br><br><a><span style="color: rgb(0, 0, 0);">1.1 返回值HRESULT</span></a><br><br>
+COM要求所有的方法都会返回一个HRESULT类型的错误号。HRESULT 其实就一个类型定义：</p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    typedef LONG HRESULT;<p>有关HRESULT的定义见 winerror.h 文件</p>//&nbsp;&nbsp;&nbsp;    Values are 32 bit values layed out as follows:
+//
+//&nbsp;&nbsp;&nbsp;    3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
+//&nbsp;&nbsp;&nbsp;    1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+//&nbsp;&nbsp;&nbsp;    +-+----+-------------------------+---------------------------------+
+//&nbsp;&nbsp;&nbsp;    |S| Res|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Facility&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |
+//&nbsp;&nbsp;&nbsp;    +-+----+-------------------------+---------------------------------+
+//
+//&nbsp;&nbsp;&nbsp;    where
+//
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    S - is the severity code
+//
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    0 - Success
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    1 - Error
+//
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Res- is a reserved bit
+//
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Facility - is the facility code
+//
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Code - is the facility''s status code<p>我们一般下面的宏来判断方法是否成功：</p>#define SUCCEEDED(hr)(long(hr)&gt;=0)
+#define FAILED(hr)(long(hr)&lt;0)<p><a><span style="color: rgb(0, 0, 0);">1.2 初识 IDL</span></a><br><br>
+每个标准的COM组件都需要一个接口定义文件，文件的扩展名为<a href="http://www.vckbase.com/document/viewdoc/?id=915#IDL"><span style="color: rgb(128, 0, 128);">IDL</span></a>。让我们看IUnknow接口的定义文件是怎样的。</p>[
+&nbsp;&nbsp;&nbsp;    local,
+&nbsp;&nbsp;&nbsp;    object,
+&nbsp;&nbsp;&nbsp;    uuid(00000000-0000-0000-C000-000000000046),
+&nbsp;&nbsp;&nbsp;    pointer_default(unique)
+]
+
+interface IUnknown
+{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    typedef [unique] IUnknown *LPUNKNOWN;
+
+cpp_quote("//////////////////////////////////////////////////////////////////")
+cpp_quote("// IID_IUnknown and all other system IIDs are provided in UUID.LIB")
+cpp_quote("// Link that library in with your proxies, clients and servers")
+cpp_quote("//////////////////////////////////////////////////////////////////")
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    HRESULT QueryInterface(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    [in] REFIID riid,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    [out, iid_is(riid)] void **ppvObject);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ULONG AddRef();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ULONG Release();
+}
+
+[local]属性禁止产生网络代码。
+[object]属性是表明定义的是一个COM接口，而不是DEC风格的接口。
+[uuid]属性给接口一个GUID。
+[unique]属性表明null(空)指针为一个合法的参数值。
+[pointer_defaul]属性所有的<a href="http://www.vckbase.com/document/viewdoc/?id=915#%E5%86%85%E5%B5%8C%E6%8C%87%E9%92%88"><span style="color: rgb(128, 0, 128);">内嵌指针</span></a>指定一个默认指针属性
+typedef [unique] IUnknown *LPUNKNOWN;这是一个类型定义
+cpp_quote这个比较有趣，这是一个在idl文件写注解的方法。这些注解将保存到***.h和***_i.c文件中
+[in]表示这个参数是入参
+[out]表示这个参数是出参
+[iid_is(riid)]表示这个参数需要前一个的<a href="http://www.vckbase.com/document/viewdoc/?id=915#riid"><span style="color: rgb(128, 0, 128);">riid</span></a>参数。<p>注意：所有具有out属性的参数都需要是指针类型。<br><br><a><span style="color: rgb(0, 0, 0);">1.3 IUnkown接口</span></a><br><br>
+在整个例子除了IUnkown这个东西，其他应该不会感到陌生吧！COM要求(最基本的要求)所有的接口都需要从IUnknown接口直接或间接继承，所以IUnknown接口有"万恶之源"之称。<br>
+IUnkown接口定义了三个方法。</p>HRESULT QueryInterface([in] REFIID riid,[out] void **ppv);
+ULONG AddRef();
+ULONG Release();&nbsp;&nbsp;&nbsp;&nbsp;<p>其中 <a href="http://www.vckbase.com/document/viewdoc/?id=915#AddReft%28%29"><span style="color: rgb(128, 0, 128);">AddReft()</span></a> 和Release()负责对象引用计数用的，而 QueryInterface()方法是用于查询所实现接口用的。每当COM组件被引用一次就应调用一次AddRef()方法。而当客户端在释放COM组件的某个接口时就需要调用Release()方法。<br>
+这里所讲的请在下面的例子仔细体会。<br><br><a><span style="color: rgb(0, 0, 0);">2、一个比较简单的COM</span></a><br><br>
+此例子共有四个文件组成：</p><table style="border-collapse: collapse" border="1" cellpadding="0" cellspacing="0" width="73%"><tbody><tr><td align="center" width="50%"><strong>文件名</strong></td><td align="center" width="50%"><strong>说明</strong></td></tr><tr><td width="50%">Interface.h</td><td width="50%">接口类定义文件</td></tr><tr><td width="50%">Math.h和Math.cpp</td><td width="50%">实现类文件</td></tr><tr><td width="50%">Simple.cpp 主函数文件</td><td width="50%">这里用来当作COM的客户端</td></tr></tbody></table><p><a><span style="color: rgb(0, 0, 0);">2.1 interface.h 文件</span></a></p>#ifndef INTERFACE_H
+#define INTERFACE_H
+#include &lt;unknwn.h&gt;
+
+//{7C8027EA-A4ED-467c-B17E-1B51CE74AF57}
+static const GUID IID_ISimpleMath = 
+{ 0x7c8027ea, 0xa4ed, 0x467c, { 0xb1, 0x7e, 0x1b, 0x51, 0xce, 0x74, 0xaf, 0x57 } };
+
+//{CA3B37EA-E44A-49b8-9729-6E9222CAE84F}
+static const GUID IID_IAdvancedMath = 
+{ 0xca3b37ea, 0xe44a, 0x49b8, { 0x97, 0x29, 0x6e, 0x92, 0x22, 0xca, 0xe8, 0x4f } };
+
+interface ISimpleMath : public IUnknown
+{
+public:
+ virtual int Add(int nOp1, int nOp2) = 0;&nbsp;&nbsp;    
+ virtual int Subtract(int nOp1, int nOp2) = 0;
+ virtual int Multiply(int nOp1, int nOp2) = 0;
+ virtual int Divide(int nOp1, int nOp2) = 0;
+};
+
+interface IAdvancedMath : public IUnknown
+{
+public:
+ virtual int Factorial(int nOp1) = 0;
+ virtual int Fabonacci(int nOp1) = 0;
+};
+#endif&nbsp;&nbsp;&nbsp;&nbsp;<p>此文件首先 #include &lt;unknwn.h&gt; 将 <a href="http://www.vckbase.com/document/viewdoc/?id=915#IUnknown%20%E6%8E%A5%E5%8F%A3"><span style="color: rgb(128, 0, 128);">IUnknown 接口</span></a>定义文件包括进来。<br>
+接下来定义了两个接口，GUID（Globally Unique Identifier全局唯一标识符）它能保证时间及空间上的唯一。<br>
+ISmipleMath接口里定义了四个方法，而IAdvancedMath接口里定义了二个方法。这些方法都是虚函数，而整个 ISmipleMath 与 IAdvancedMath 抽象类就作为二进制的接口。<br><br><a><span style="color: rgb(0, 0, 0);">2.2 math.h文件</span></a></p>#include "interface.h"
+
+class CMath : public ISimpleMath,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    public IAdvancedMath
+{
+private:
+ ULONG m_cRef;
+
+private:
+ int calcFactorial(int nOp);
+ int calcFabonacci(int nOp);
+
+public:
+ //IUnknown Method
+ STDMETHOD(QueryInterface)(REFIID riid, void **ppv);
+ STDMETHOD_(ULONG, AddRef)();
+ STDMETHOD_(ULONG, Release)();
+
+ // ISimpleMath Method
+ int Add(int nOp1, int nOp2);
+ int Subtract(int nOp1, int nOp2);
+ int Multiply(int nOp1, int nOp2);
+ int Divide(int nOp1, int nOp2);
+
+ // IAdvancedMath Method
+ int Factorial(int nOp);
+ int Fabonacci(int nOp);
+};&nbsp;&nbsp;&nbsp;&nbsp;<p>此类为实现类，他实现了ISmipleMath和IAdvancedMath两个接口类(当然也可以只实现一个接口类)。<br>
+请注意：m_cRef 是用来对象计数用的。当 m_cRef 为0组件对象应该自动删除。<br><br><a><span style="color: rgb(0, 0, 0);">2.3 math.cpp文件</span></a></p>#include "interface.h"
+#include "math.h"
+
+STDMETHODIMP CMath::QueryInterface(REFIID riid, void **ppv)
+{// 这里这是实现dynamic_cast的功能，但由于dynamic_cast与编译器相关。
+ if(riid == IID_ISimpleMath)
+&nbsp;&nbsp;    *ppv = static_cast(this);
+ else if(riid == IID_IAdvancedMath)
+&nbsp;&nbsp;    *ppv = static_cast(this);
+ else if(riid == IID_IUnknown)
+&nbsp;&nbsp;    *ppv = static_cast(this);
+ else {
+&nbsp;&nbsp;    *ppv = 0;
+&nbsp;&nbsp;    return E_NOINTERFACE;
+ }
+
+ reinterpret_cast(*ppv)-&gt;AddRef(); //这里要这样是因为引用计数是针对组件的
+ return S_OK;
+}
+
+STDMETHODIMP_(ULONG) CMath::AddRef()
+{
+ return ++m_cRef;
+}
+
+STDMETHODIMP_(ULONG) CMath::Release()
+{
+ ULONG res = --m_cRef; // 使用临时变量把修改后的引用计数值缓存起来
+ if(res == 0)&nbsp;&nbsp;    // 因为在对象已经销毁后再引用这个对象的数据将是非法的
+&nbsp;&nbsp;    delete this;
+ return res;
+}
+
+int CMath::Add(int nOp1, int nOp2)
+{
+ return nOp1+nOp2;
+}
+
+int CMath::Subtract(int nOp1, int nOp2)
+{
+ return nOp1 - nOp2;
+}
+
+int CMath::Multiply(int nOp1, int nOp2)
+{
+ return nOp1 * nOp2;
+}
+
+int CMath::Divide(int nOp1, int nOp2)
+{
+ return nOp1 / nOp2;
+}
+
+int CMath::calcFactorial(int nOp)
+{
+ if(nOp &lt;= 1)
+&nbsp;&nbsp;    return 1;
+
+ return nOp * calcFactorial(nOp - 1);
+}
+
+int CMath::Factorial(int nOp)
+{
+ return calcFactorial(nOp);
+}
+
+int CMath::calcFabonacci(int nOp)
+{
+ if(nOp &lt;= 1)
+&nbsp;&nbsp;    return 1;
+
+ return calcFabonacci(nOp - 1) + calcFabonacci(nOp - 2);
+}
+
+int CMath::Fabonacci(int nOp)
+{
+ return calcFabonacci(nOp);
+}
+ CMath::CMath()
+{
+ m_cRef=0;
+}&nbsp;&nbsp;&nbsp;<p>此文件是CMath类定义文件。<br><br><a><span style="color: rgb(0, 0, 0);">2.4 simple.cpp文件</span></a></p>#include "math.h"
+#include &lt;iostream&gt;
+
+using namespace std;
+
+int main(int argc, char* argv[])
+{
+ ISimpleMath *pSimpleMath = NULL;//声明接口指针
+ IAdvancedMath *pAdvMath = NULL;
+
+ //创建对象实例，我们暂时这样创建对象实例，COM有创建对象实例的机制
+ CMath *pMath = new CMath; 
+
+ //查询对象实现的接口ISimpleMath
+ pMath-&gt;QueryInterface(IID_ISimpleMath, (void **)&amp;pSimpleMath); 
+ if(pSimpleMath)
+&nbsp;&nbsp;    cout &lt;&lt; "10 + 4 = " &lt;&lt; pSimpleMath-&gt;Add(10, 4) &lt;&lt; endl;
+
+ //查询对象实现的接口IAdvancedMath
+ pSimpleMath-&gt;QueryInterface(IID_IAdvancedMath, (void **)&amp;pAdvMath);
+ if(pAdvMath)
+&nbsp;&nbsp;    cout &lt;&lt; "10 Fabonacci is " &lt;&lt; pAdvMath-&gt;Fabonacci(10) &lt;&lt; endl; 
+
+ pAdvMath-&gt;Release();
+ pSimpleMath-&gt;Release();
+ return 0;
+}<p>此文件相当于客户端的代码，首先创建一个CMath对象,再根据此对象去查询所需要的接口，如果正确得到所需接口指针，再调用接口的方法，最后再将接口的释放掉。<br><br><a><span style="color: rgb(0, 0, 0);">2.5 Math组件的二进制结构图</span></a><br><br><br><img src="http://www.vckbase.com/document/journal/vckbase26/images/comimg6.jpg"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  图1.3 Math组件二进制结构图<br><br><a><span style="color: rgb(0, 0, 0);">2.6 小结</span></a><br><br>
+此例子从严格意义上来并不是真正的COM组件(他不是dll)，但他已符合COM的最小要求(实现IUnknown接口)。接下来我们来做一COM dll(但还不用ATL)。<br><br>
+（待续） <a href="http://../../../roofalison/blog/item/bf8fef261271da158a82a1dc.html">http://hi.baidu.com/roofalison/blog/item/bf8fef261271da158a82a1dc.html</a></p></div></body></html>

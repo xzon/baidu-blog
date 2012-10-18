@@ -1,0 +1,12 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>平步星云: 软件的脆弱：从二分法查找的BUG说开去</title></head><body><h1>平步星云: 软件的脆弱：从二分法查找的BUG说开去</h1><div><div>&#8205;
+<p>平步星云: 软件的脆弱：从二分法查找的BUG说开去</p>
+<p>&#8205;http://pprun.blogspot.com/2007/05/bug.html</p>
+<p>&#8205;&#8205;来自：<a>NetBeans星球</a></p>
+<p>大概是在去年的七月份左右，我首先在 <a href="http://www.javalobby.org/java/forums/t73548.html" target="_blank">javalobby</a> 上看到这篇。当时也无比震惊，因为JDK (1.5及之前的版本) 中 Arrays.binarySearch(int[] a, int key) 及 Collections.binarySearch(int[] a, int key) (其调用indexedBinarySearch) 存在一个在业界隐藏了几十年的BUG，而这两个方法的作者恰恰是两位高人实现：<br><br>* @author Josh Bloch<br>* @author Neal Gafter<br><br>我想在Java 领域呆的比较长的开发者应该会有所耳闻吧，Josh Bloch 被称之为 "Java 之母"（虽然他是一位男性），因为 java collection 框架，java.math, 泛型 及《Effective Java Programming Language Guide》都出自他之手；而 Neal Gafter 则是 我们每天都用的JAVA编译器 Javac 的实现者。<br><br><br>我们先看有问题的代码:<br></p><br>
+<p>&#8205;public static int binarySearch(int[] a, int key) {<br>int low = 0;<br>int high = a.length-1;<br><br>while (low &lt;= high) { <br>int mid = (low + high) &gt;&gt; 1;<br>int midVal = a[mid];<br><br>if (midVal &lt; low =" mid"&gt; key)<br>high = mid -  1;<br>else<br>return mid; // key found<br>}<br>return -(low + 1); // key not found.<br>}<br><br>有问题的代码是这一行：<br></p>int mid = (low + high) &gt;&gt; 1;
+<p><br>大家知道，其等价于：<br></p>int mid =(low + high) / 2;
+<p><br>问题是在 low 和 high 都很大时，比如数组的元素达到 2^30 时，low + high 将超过整数的最大值 2^31 -1，此时将造成溢流，溢流后得到的 mid 为负值。<br><br>正确的实现应该为：<br></p> int
+      mid = low + ((high - low) / 2);
+<p><br><span>或者更加清楚地使用Java的无符号右移操作符:</span></p> int mid = (low + high) &gt;&gt;&gt; 1;
+<p><br>虽然这个问题目前得到解决，我们就能断定这十几行程序就准确无误吗？<br>但连以上两位作者目前也还表示怀疑。<br>从行内得知，第一个二分法算法是1946年出现的，而当时被认为“无误”的实现到1962年才出现（也就是说以上十几行代码是经过十几年才得到的）。因为当时的数据量不可能逼近 2 ^ 30的数量级，所以直到去年这个BUG被提交到 <a href="http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=5045582" target="_blank">Java 的 Bug 库</a>中。可想人类的思维是有缺陷的。<br><br>目前，对于搜索引擎，基因工程领域，这一数量级应该是少见多怪了，所以如果你工作的领域需要处理大量的数据时，请使用 JDK 6.0<br><br>顺便提一句，对于C的实现，可以采用如下实现：<br></p>mid = ((unsigned) (low + high)) &gt;&gt; 1;
+<p>看到这样的情况，作为程序员，我们应该时刻警惕、保持低调！</p></div></div></body></html>

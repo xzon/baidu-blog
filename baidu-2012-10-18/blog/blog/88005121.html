@@ -1,0 +1,228 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>使用JDom对Xml文件进行读写示例 -javacode</title></head><body><h1>使用JDom对Xml文件进行读写示例 -javacode</h1><div><p>使用JDom对Xml文件进行读写示例 -javacode</p>
+<p>文件完整内容如下:</p>
+<p>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt; <br>
+- &lt;setting&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;srcFfolder&gt;aaaa&lt;/srcFfolder&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;destfolder&gt;bbbbb&lt;/destfolder&gt; <br>
+- &lt;filespecify&gt;<br>
+- &lt;specifybean&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;A&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;filetypes&gt;B&lt;/filetypes&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;keywords&gt;C&lt;/keywords&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;D&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;/specifybean&gt;<br>
+- &lt;specifybean&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;A&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;filetypes&gt;B&lt;/filetypes&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;keywords&gt;C&lt;/keywords&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;D&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;/specifybean&gt;<br>
+- &lt;specifybean&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;A&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;filetypes&gt;B&lt;/filetypes&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;keywords&gt;C&lt;/keywords&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;D&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;/specifybean&gt;<br>
+- &lt;specifybean&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;A&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;filetypes&gt;B&lt;/filetypes&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;keywords&gt;C&lt;/keywords&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;D&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;/specifybean&gt;<br>
+- &lt;specifybean&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;A&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;filetypes&gt;B&lt;/filetypes&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;keywords&gt;C&lt;/keywords&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;valid&gt;D&lt;/valid&gt; <br>
+&nbsp;&nbsp;&nbsp;  &lt;/specifybean&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/filespecify&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/setting&gt;</p>
+<p><br>
+// 用于对Xml文件进行读写的类 <br>
+package mvc.bean;</p>
+<p>import java.io.File;<br>
+import java.io.FileWriter;<br>
+import java.util.Iterator;<br>
+import java.util.List;</p>
+<p>import org.jdom.Document;<br>
+import org.jdom.Element;<br>
+import org.jdom.input.SAXBuilder;<br>
+import org.jdom.output.XMLOutputter;</p>
+<p>import utils.ComDlgUtils;<br>
+import utils.CommonChecks;</p>
+<p>public class XmlBean{<br>
+private String currFilePath;// 当前xml文件路径名<br>
+private String srcFolder;&nbsp;&nbsp;&nbsp;&nbsp;  // 源目录<br>
+private String destFolder;&nbsp;&nbsp;&nbsp;  // 目标目录<br>
+private String[][] specifyArrs; // 数据数组,大小n*4</p>
+<p>// 这些是定义的一些字符串常量<br>
+private final static String Xml_Root_Text=&quot;setting&quot;;<br>
+private final static String Xml_SrcFolder_Text=&quot;srcFfolder&quot;;<br>
+private final static String Xml_DestFolder_Text=&quot;destfolder&quot;;<br>
+private final static String Xml_FileSpecify_Text=&quot;filespecify&quot;;<br>
+private final static String Xml_SpecifyBean_Text=&quot;specifybean&quot;;<br>
+private final static String Xml_SpecifyBeanValid_Text=&quot;valid&quot;;<br>
+private final static String Xml_SpecifyBeanFileTypes_Text=&quot;filetypes&quot;;<br>
+private final static String Xml_SpecifyBeanKeywords_Text=&quot;keywords&quot;;<br>
+private final static String Xml_SpecifyBeanProcess_Text=&quot;process&quot;;</p>
+<p>public XmlBean(){<br>
+<br>
+}</p>
+<p>public void getInfo(ConditionBean cBean){<br>
+&nbsp;&nbsp;&nbsp;  srcFolder=cBean.getFromFolder();<br>
+&nbsp;&nbsp;&nbsp;  destFolder=cBean.getToFolder();<br>
+&nbsp;&nbsp;&nbsp;  specifyArrs=cBean.getSpecifyArrs();<br>
+}</p>
+<p>// 对文件格式进行检查，主要是检查三个二级节点的内容<br>
+public boolean checkFile(String filePath){<br>
+&nbsp;&nbsp;&nbsp;  SAXBuilder buider=new SAXBuilder();<br>
+&nbsp;&nbsp;&nbsp;  Document doc=null;<br>
+<br>
+&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  doc=buider.build(new File(filePath));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Element root=doc.getRootElement();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Element elm;<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // Check Root<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  if(!root.getName().equals(Xml_Root_Text)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return false;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // Check SrcFolder&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  elm=root.getChild(Xml_SrcFolder_Text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  if(elm.getText().length()&lt;1){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return false;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // Check DestFolder&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  elm=root.getChild(Xml_DestFolder_Text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  if(elm.getText().length()&lt;1){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return false;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // Check FileSpecify&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  elm=root.getChild(Xml_FileSpecify_Text);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  catch(Exception ex){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ComDlgUtils.popupErrorDialog(&quot;Error:&quot;+ex.getMessage()); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ex.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return false;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;&nbsp;  return true;<br>
+}</p>
+<p>// Xml文件读取<br>
+public void openFile(String filePath){<br>
+&nbsp;&nbsp;&nbsp;  currFilePath=filePath;<br>
+<br>
+&nbsp;&nbsp;&nbsp;  SAXBuilder buider=new SAXBuilder();<br>
+&nbsp;&nbsp;&nbsp;  Document doc=null;<br>
+<br>
+&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  doc=buider.build(new File(filePath));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Element root=doc.getRootElement();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Element elm;<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // Get SrcFolder&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  elm=root.getChild(Xml_SrcFolder_Text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  srcFolder=elm.getText();<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // Get DestFolder&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  elm=root.getChild(Xml_DestFolder_Text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  destFolder=elm.getText();<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // FileSpecify Element<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  elm=root.getChild(Xml_FileSpecify_Text); <br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  List list=elm.getChildren(Xml_SpecifyBean_Text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  specifyArrs=new String[list.size()][4];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  //for(Iterator it=list.iterator();it.hasNext();){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  for(int i=0;i&lt;list.size();i++){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element el=(Element)list.get(i);<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element emlTmp=el.getChild(Xml_SpecifyBeanValid_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  specifyArrs[i][0]=emlTmp.getText();<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  emlTmp=el.getChild(Xml_SpecifyBeanFileTypes_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  specifyArrs[i][1]=emlTmp.getText();<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  emlTmp=el.getChild(Xml_SpecifyBeanKeywords_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  specifyArrs[i][2]=emlTmp.getText();<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  emlTmp=el.getChild(Xml_SpecifyBeanProcess_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  specifyArrs[i][3]=emlTmp.getText();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  } <br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  catch(Exception ex){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ComDlgUtils.popupErrorDialog(&quot;Error:&quot;+ex.getMessage()); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ex.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>public void saveFile(){<br>
+&nbsp;&nbsp;&nbsp;  saveFile(currFilePath);<br>
+}</p>
+<p>// 写入Xml文件<br>
+public void saveFile(String filePath){<br>
+&nbsp;&nbsp;&nbsp;  if(CommonChecks.isBlankString(filePath)==true){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ComDlgUtils.popupErrorDialog(&quot;Xml File name is invalid!&quot;); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return;<br>
+&nbsp;&nbsp;&nbsp;  } <br>
+<br>
+&nbsp;&nbsp;&nbsp;  Document doc=new Document(); <br>
+&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // Root Element<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Element root=new Element(Xml_Root_Text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  doc.setRootElement(root);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;  // SrcFolder Element<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Element srcFolderElm=new Element(Xml_SrcFolder_Text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  srcFolderElm.addContent(srcFolder);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  root.addContent(srcFolderElm);<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // DestFolder Element<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Element destFolderElm=new Element(Xml_DestFolder_Text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  destFolderElm.addContent(destFolder);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  root.addContent(destFolderElm); <br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // FileSpecify Element<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Element fileSpecifyElm=new Element(Xml_FileSpecify_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  int rows=specifyArrs.length;<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  if(rows&gt;0){&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int i;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for(i=0;i&lt;rows;i++){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element SpecifyBeanElm=new Element(Xml_SpecifyBean_Text);&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element specifyBeanValidElm=new Element(Xml_SpecifyBeanValid_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  specifyBeanValidElm.addContent(specifyArrs[i][0]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SpecifyBeanElm.addContent(specifyBeanValidElm); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element specifyBeanFileTypesElm=new Element(Xml_SpecifyBeanFileTypes_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  specifyBeanFileTypesElm.addContent(specifyArrs[i][1]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SpecifyBeanElm.addContent(specifyBeanFileTypesElm);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element specifyBeanKeywordsElm=new Element(Xml_SpecifyBeanKeywords_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  specifyBeanKeywordsElm.addContent(specifyArrs[i][2]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SpecifyBeanElm.addContent(specifyBeanKeywordsElm);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Element specifyBeanProcessElm=new Element(Xml_SpecifyBeanProcess_Text); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  specifyBeanProcessElm.addContent(specifyArrs[i][3]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SpecifyBeanElm.addContent(specifyBeanProcessElm);&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  fileSpecifyElm.addContent(SpecifyBeanElm);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  } <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  root.addContent(fileSpecifyElm);<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  // Write to file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  FileWriter writer=new&nbsp;&nbsp;&nbsp;  FileWriter(filePath);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  XMLOutputter outputter=new XMLOutputter(&quot;&quot;,true);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  outputter.output(doc,writer);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  writer.close();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  catch(Exception ex){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ComDlgUtils.popupErrorDialog(&quot;Error:&quot;+ex.getMessage()); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ex.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+}</p>
+<p> </p></div></body></html>

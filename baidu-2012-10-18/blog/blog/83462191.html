@@ -1,0 +1,520 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JAVA写的MP3标签读写器</title></head><body><h1>JAVA写的MP3标签读写器</h1><div><p>JAVA写的MP3标签读写器 2007-12-03 来自：conanpaul&nbsp;&nbsp;</p>
+<div class="newscon">前几天写了一个NB的音乐插件，自己用了一下，还是挺方便的，后来想想，如果能把歌词也显示出来那就更好了。呵呵，怎么办呢，只有自己写了，在显示歌词之前，必须要知道目前正在播放的MP3是什么内容啊，一点可以从文件名得到一些信息，还有一点就是从MP3文件里面得到这个MP3的信息，我这里实现的ID3V1的格式标签，APEV2也想实现，无奈找不到相关的资料，不知道APEV2的数据结构是怎么样的，所以也无从分析。目前已经写完了ID3V1格式标签的读取和写入。并且NB的音乐插件也实现了本地歌词的搜索，先把ID3V1的文件结构的类文件帖一下，大家一起分享。<br>
+MP3的ID3V1的信息结构是很有规律的，它一般是出现在MP3文件的最后128个字节上，并且是以&ldquo;TAG&rdquo;开头。我这里把它封装成一个类了。<br>
+截图如下：<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+代码如下：<br>
+/*<br>
+* To change this template, choose Tools | Templates<br>
+* and open the template in the editor.<br>
+*/<br>
+package com.hadeslee.music; <br>
+<br>
+/**<br>
+* 一个歌曲信息的类的结构表示<br>
+* 这个歌曲是使用ID3V1的信息存储结构的<br>
+* @author hadeslee<br>
+*/<br>
+public class SongInfo {<br>
+<br>
+private final String TAG = &quot;TAG&quot;; //文件头1-3<br>
+private String songName; //歌曲名4-33<br>
+private String artist; //歌手名34-63<br>
+private String album; //专辑名61-93<br>
+private String year; //年94-97<br>
+private String comment; //备注98-125<br>
+private byte r1, r2, r3; //三个保留位126，127，128<br>
+private boolean valid; //是否合法<br>
+public transient String fileName; //此歌曲对应的文件名,没有封装<br>
+public SongInfo(byte[] data) {<br>
+if (data.length != 128) {<br>
+throw new RuntimeException(&quot;数据长度不合法:&quot; + data.length); <br>
+}<br>
+String tag = new String(data, 0, 3); <br>
+//只有前三个字节是TAG才处理后面的字节<br>
+if (tag.equalsIgnoreCase(&quot;TAG&quot;)) {<br>
+valid = true; <br>
+songName = new String(data, 3, 30).trim(); <br>
+artist = new String(data, 33, 30).trim(); <br>
+album = new String(data, 63, 30).trim(); <br>
+year = new String(data, 93, 4).trim(); <br>
+comment = new String(data, 97, 28).trim(); <br>
+r1 = data[125]; <br>
+r2 = data[126]; <br>
+r3 = data[127]; <br>
+} else {<br>
+valid = false; <br>
+}<br>
+}<br>
+<br>
+public SongInfo() {<br>
+}<br>
+<br>
+/**<br>
+* 返回是否合法<br>
+* @return 是否<br>
+*/<br>
+public boolean isValid() {<br>
+return valid; <br>
+}<br>
+<br>
+/**<br>
+* 得到此对象的128个字节的表示形式<br>
+* @return<br>
+*/<br>
+public byte[] getBytes() {<br>
+byte[] data = new byte[128]; <br>
+System.arraycopy(TAG.getBytes(), 0, data, 0, 3); <br>
+byte[] temp = songName.getBytes(); <br>
+System.arraycopy(temp, 0, data, 3, temp.length &gt; 30 ? 30 : temp.length); <br>
+temp = artist.getBytes(); <br>
+System.arraycopy(temp, 0, data, 33, temp.length &gt; 30 ? 30 : temp.length); <br>
+temp = album.getBytes(); <br>
+System.arraycopy(temp, 0, data, 63, temp.length &gt; 30 ? 30 : temp.length); <br>
+temp = year.getBytes(); <br>
+System.arraycopy(temp, 0, data, 93, temp.length &gt; 4 ? 4 : temp.length); <br>
+temp = comment.getBytes(); <br>
+System.arraycopy(temp, 0, data, 97, temp.length &gt; 28 ? 28 : temp.length); <br>
+data[125] = r1; <br>
+data[126] = r2; <br>
+data[127] = r3; <br>
+return data; <br>
+}<br>
+<br>
+public String getArtist() {<br>
+return artist; <br>
+}<br>
+<br>
+public void setArtist(String authorName) {<br>
+this.artist = authorName; <br>
+}<br>
+<br>
+public String getComment() {<br>
+return comment; <br>
+}<br>
+<br>
+public void setComment(String comment) {<br>
+this.comment = comment; <br>
+}<br>
+<br>
+public byte getR1() {<br>
+return r1; <br>
+}<br>
+<br>
+public void setR1(byte r1) {<br>
+this.r1 = r1; <br>
+}<br>
+<br>
+public byte getR2() {<br>
+return r2; <br>
+}<br>
+<br>
+public void setR2(byte r2) {<br>
+this.r2 = r2; <br>
+}<br>
+<br>
+public byte getR3() {<br>
+return r3; <br>
+}<br>
+<br>
+public void setR3(byte r3) {<br>
+this.r3 = r3; <br>
+}<br>
+<br>
+public String getSongName() {<br>
+return songName; <br>
+}<br>
+<br>
+public void setSongName(String songName) {<br>
+if(songName==null){<br>
+throw new NullPointerException(&quot;歌名不能是null!&quot;); <br>
+}<br>
+valid=true; <br>
+this.songName = songName; <br>
+}<br>
+<br>
+public String getAlbum() {<br>
+return album; <br>
+}<br>
+<br>
+public void setAlbum(String specialName) {<br>
+this.album = specialName; <br>
+}<br>
+<br>
+public String getYear() {<br>
+return year; <br>
+}<br>
+<br>
+public void setYear(String year) {<br>
+this.year = year; <br>
+}<br>
+<br>
+}<br>
+<br>
+编辑对话框的代码：<br>
+/*<br>
+* SongInfoDialog.java<br>
+*<br>
+* Created on 2007年11月26日, 下午4:12<br>
+*/<br>
+package com.hadeslee.music; <br>
+<br>
+import java.awt.Dialog; <br>
+import java.awt.Frame; <br>
+import java.io.File; <br>
+import java.io.RandomAccessFile; <br>
+import java.util.logging.Level; <br>
+import java.util.logging.Logger; <br>
+<br>
+/**<br>
+*<br>
+* @author hadeslee<br>
+*/<br>
+public class SongInfoDialog extends javax.swing.JDialog {<br>
+<br>
+private SongInfo info; //歌曲信息对象<br>
+private File file; //文件对象<br>
+private boolean valid; //表示原来这个文件是不是合法的,如果不是,就要重新写入128个字节<br>
+/** Creates new form SongInfoDialog */<br>
+public SongInfoDialog(java.awt.Frame parent, boolean modal) {<br>
+super(parent, modal); <br>
+initComponents(); <br>
+}<br>
+<br>
+public SongInfoDialog(Dialog parent, boolean modal) {<br>
+super(parent, modal); <br>
+initComponents(); <br>
+}<br>
+<br>
+public SongInfoDialog(Frame parent, boolean modal, File file) {<br>
+this(parent, modal); <br>
+this.file = file; <br>
+init(); <br>
+}<br>
+<br>
+public SongInfoDialog(Dialog parent, boolean modal, File file) {<br>
+this(parent, modal); <br>
+this.file = file; <br>
+init(); <br>
+}<br>
+<br>
+/**<br>
+* 初始化<br>
+*/<br>
+private void init() {<br>
+try {<br>
+fileName.setText(file.toString()); <br>
+RandomAccessFile ra = new RandomAccessFile(file, &quot;r&quot;); <br>
+byte[] buffer = new byte[128]; <br>
+ra.seek(ra.length() - 128); <br>
+ra.read(buffer); <br>
+info = new SongInfo(buffer); <br>
+valid = info.isValid(); <br>
+title.setText(info.getSongName()); <br>
+artist.setText(info.getArtist()); <br>
+album.setText(info.getAlbum()); <br>
+year.setText(info.getYear()); <br>
+comment.setText(info.getComment()); <br>
+r2.setText(&quot;&quot; + info.getR2()); <br>
+r3.setText(&quot;&quot; + info.getR3()); <br>
+ra.close(); <br>
+} catch (Exception ex) {<br>
+Logger.getLogger(SongInfoDialog.class.getName()).log(Level.SEVERE, null, ex); <br>
+}<br>
+}<br>
+<br>
+/** This method is called from within the constructor to<br>
+* initialize the form.<br>
+* WARNING: Do NOT modify this code. The content of this method is<br>
+* always regenerated by the Form Editor.<br>
+*/<br>
+// <editor-fold desc="Generated Code" defaultstate="collapsed"></editor-fold><br>
+private void initComponents() {<br>
+<br>
+jLabel5 = new javax.swing.JLabel(); <br>
+fileName = new javax.swing.JTextField(); <br>
+jPanel1 = new javax.swing.JPanel(); <br>
+jLabel1 = new javax.swing.JLabel(); <br>
+title = new javax.swing.JTextField(); <br>
+jLabel2 = new javax.swing.JLabel(); <br>
+artist = new javax.swing.JTextField(); <br>
+jLabel3 = new javax.swing.JLabel(); <br>
+jLabel4 = new javax.swing.JLabel(); <br>
+album = new javax.swing.JTextField(); <br>
+jLabel6 = new javax.swing.JLabel(); <br>
+r2 = new javax.swing.JTextField(); <br>
+year = new javax.swing.JTextField(); <br>
+jLabel7 = new javax.swing.JLabel(); <br>
+r3 = new javax.swing.JTextField(); <br>
+jLabel8 = new javax.swing.JLabel(); <br>
+jScrollPane1 = new javax.swing.JScrollPane(); <br>
+comment = new javax.swing.JTextArea(); <br>
+jButton1 = new javax.swing.JButton(); <br>
+jButton2 = new javax.swing.JButton(); <br>
+jButton3 = new javax.swing.JButton(); <br>
+jLabel9 = new javax.swing.JLabel(); <br>
+<br>
+setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE); <br>
+<br>
+jLabel5.setText(&quot;文件名:&quot;); <br>
+<br>
+fileName.setEditable(false); <br>
+<br>
+jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(&quot;标签&quot;)); <br>
+<br>
+jLabel1.setText(&quot;标 题:&quot;); <br>
+<br>
+jLabel2.setText(&quot;艺术家:&quot;); <br>
+<br>
+jLabel3.setText(&quot;专 辑:&quot;); <br>
+<br>
+jLabel4.setText(&quot;年份:&quot;); <br>
+<br>
+jLabel6.setText(&quot;音轨:&quot;); <br>
+<br>
+r2.setEditable(false); <br>
+<br>
+jLabel7.setText(&quot;流 派:&quot;); <br>
+<br>
+r3.setEditable(false); <br>
+<br>
+jLabel8.setText(&quot;备 注:&quot;); <br>
+<br>
+comment.setColumns(20); <br>
+comment.setRows(5); <br>
+jScrollPane1.setViewportView(comment); <br>
+<br>
+javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1); <br>
+jPanel1.setLayout(jPanel1Layout); <br>
+jPanel1Layout.setHorizontalGroup(<br>
+jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addContainerGap()<br>
+.addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addComponent(jLabel1)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(title, javax.swing.GroupLayout.PREFERRED_SIZE, 183, javax.swing.GroupLayout.PREFERRED_SIZE))<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addComponent(jLabel2)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(artist, javax.swing.GroupLayout.DEFAULT_SIZE, 185, Short.MAX_VALUE)<br>
+.addContainerGap())<br>
+.addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()<br>
+.addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addComponent(jLabel3)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(album, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE))<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addComponent(jLabel7)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(r3, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE)))<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addComponent(jLabel4)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)<br>
+.addComponent(year, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE))<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addComponent(jLabel6)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)<br>
+.addComponent(r2, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)))<br>
+.addContainerGap())<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addComponent(jLabel8)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 185, Short.MAX_VALUE)<br>
+.addContainerGap())))<br>
+); <br>
+jPanel1Layout.setVerticalGroup(<br>
+jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)<br>
+.addComponent(jLabel1)<br>
+.addComponent(title, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)<br>
+.addComponent(jLabel2)<br>
+.addComponent(artist, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)<br>
+.addComponent(jLabel3)<br>
+.addComponent(r2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)<br>
+.addComponent(jLabel6)<br>
+.addComponent(album, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)<br>
+.addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)<br>
+.addComponent(jLabel4)<br>
+.addComponent(year, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)<br>
+.addComponent(jLabel7)<br>
+.addComponent(r3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(jPanel1Layout.createSequentialGroup()<br>
+.addComponent(jLabel8)<br>
+.addContainerGap(42, Short.MAX_VALUE))<br>
+.addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)))<br>
+); <br>
+<br>
+jButton1.setText(&quot;重新读取文件&quot;); <br>
+jButton1.addActionListener(new java.awt.event.ActionListener() {<br>
+public void actionPerformed(java.awt.event.ActionEvent evt) {<br>
+jButton1ActionPerformed(evt); <br>
+}<br>
+}); <br>
+<br>
+jButton2.setText(&quot;保存到文件&quot;); <br>
+jButton2.addActionListener(new java.awt.event.ActionListener() {<br>
+public void actionPerformed(java.awt.event.ActionEvent evt) {<br>
+jButton2ActionPerformed(evt); <br>
+}<br>
+}); <br>
+<br>
+jButton3.setText(&quot;取消&quot;); <br>
+jButton3.addActionListener(new java.awt.event.ActionListener() {<br>
+public void actionPerformed(java.awt.event.ActionEvent evt) {<br>
+jButton3ActionPerformed(evt); <br>
+}<br>
+}); <br>
+<br>
+jLabel9.setForeground(new java.awt.Color(255, 0, 102)); <br>
+jLabel9.setText(&quot;注:目前只支持ID3v1格式标签的存取&quot;); <br>
+<br>
+javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane()); <br>
+getContentPane().setLayout(layout); <br>
+layout.setHorizontalGroup(<br>
+layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(layout.createSequentialGroup()<br>
+.addContainerGap()<br>
+.addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(layout.createSequentialGroup()<br>
+.addComponent(jLabel5)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(fileName, javax.swing.GroupLayout.DEFAULT_SIZE, 221, Short.MAX_VALUE))<br>
+.addGroup(layout.createSequentialGroup()<br>
+.addComponent(jButton1)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(jButton2)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(jButton3))<br>
+.addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)<br>
+.addComponent(jLabel9))<br>
+.addContainerGap())<br>
+); <br>
+layout.setVerticalGroup(<br>
+layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)<br>
+.addGroup(layout.createSequentialGroup()<br>
+.addContainerGap()<br>
+.addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)<br>
+.addComponent(jLabel5)<br>
+.addComponent(fileName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)<br>
+.addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)<br>
+.addComponent(jButton1)<br>
+.addComponent(jButton2)<br>
+.addComponent(jButton3))<br>
+.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)<br>
+.addComponent(jLabel9)<br>
+.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))<br>
+); <br>
+<br>
+pack(); <br>
+}// <br>
+private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) { <br>
+// TODO add your handling code here:<br>
+this.dispose(); <br>
+} <br>
+<br>
+private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) { <br>
+// TODO add your handling code here:<br>
+doSave(); <br>
+} <br>
+<br>
+private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) { <br>
+// TODO add your handling code here:<br>
+init(); <br>
+} <br>
+<br>
+private void doSave() {<br>
+try {<br>
+info.setAlbum(album.getText()); <br>
+info.setArtist(artist.getText()); <br>
+info.setComment(comment.getText()); <br>
+info.setR1((byte) 0); <br>
+try {<br>
+info.setR2(Byte.parseByte(r2.getText())); <br>
+info.setR3(Byte.parseByte(r3.getText())); <br>
+} catch (Exception exe) {<br>
+exe.printStackTrace(); <br>
+}<br>
+info.setYear(year.getText()); <br>
+info.setSongName(title.getText()); <br>
+RandomAccessFile raf = new RandomAccessFile(file, &quot;rw&quot;); <br>
+//如果这个文件原来就是合法的,那么就不用新起128个字节了<br>
+if (valid) {<br>
+raf.seek(raf.length() - 128); <br>
+} else {//否则就在末层加上128个字节<br>
+raf.seek(raf.length()); <br>
+}<br>
+raf.write(info.getBytes()); <br>
+raf.close(); <br>
+this.dispose(); <br>
+} catch (Exception ex) {<br>
+Logger.getLogger(SongInfoDialog.class.getName()).log(Level.SEVERE, null, ex); <br>
+}<br>
+}<br>
+<br>
+/**<br>
+* @param args the command line arguments<br>
+*/<br>
+public static void main(String args[]) {<br>
+java.awt.EventQueue.invokeLater(new Runnable() {<br>
+<br>
+public void run() {<br>
+SongInfoDialog dialog = new SongInfoDialog(new javax.swing.JFrame(), true); <br>
+dialog.addWindowListener(new java.awt.event.WindowAdapter() {<br>
+<br>
+public void windowClosing(java.awt.event.WindowEvent e) {<br>
+System.exit(0); <br>
+}<br>
+}); <br>
+dialog.setVisible(true); <br>
+}<br>
+}); <br>
+}<br>
+// Variables declaration - do not modify <br>
+private javax.swing.JTextField album; <br>
+private javax.swing.JTextField artist; <br>
+private javax.swing.JTextArea comment; <br>
+private javax.swing.JTextField fileName; <br>
+private javax.swing.JButton jButton1; <br>
+private javax.swing.JButton jButton2; <br>
+private javax.swing.JButton jButton3; <br>
+private javax.swing.JLabel jLabel1; <br>
+private javax.swing.JLabel jLabel2; <br>
+private javax.swing.JLabel jLabel3; <br>
+private javax.swing.JLabel jLabel4; <br>
+private javax.swing.JLabel jLabel5; <br>
+private javax.swing.JLabel jLabel6; <br>
+private javax.swing.JLabel jLabel7; <br>
+private javax.swing.JLabel jLabel8; <br>
+private javax.swing.JLabel jLabel9; <br>
+private javax.swing.JPanel jPanel1; <br>
+private javax.swing.JScrollPane jScrollPane1; <br>
+private javax.swing.JTextField r2; <br>
+private javax.swing.JTextField r3; <br>
+private javax.swing.JTextField title; <br>
+private javax.swing.JTextField year; <br>
+// End of variables declaration <br>
+}<br>
+<br>
+<br>
+有歌词的插件，由于还不是很完善，所以过一两天再发布，呵呵。：）</div></div></body></html>

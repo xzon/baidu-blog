@@ -1,0 +1,513 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 7. 页面流和业务流程 -seam满江红</title></head><body><h1>Chapter 7. 页面流和业务流程 -seam满江红</h1><div><div class="chapter">
+<div class="titlepage">
+<div>
+<div>
+<h2 class="title"><a name="jbpm"></a>Chapter 7. 页面流和业务流程 -seam满江红</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>JBoss jBPM 是一个可以运行于任何Java SE或EE环境的业务流程管理引擎。 jBPM使用一组节点组成的图形来描述一个业务流程或用户交互过程，这些节点分别表示等待状态、决策、任务、Web页面等等。 这个图形使用一种简单的、非常易读的，称为jPDL的XML方言来定义，并且可以使用一个Eclipse插件图形化显示和编辑。 jPDL是一种可扩展的语言，适合于解决许多问题，从定义Web应用程序页面流到传统的工作流管理，直到在SOA环境中组织服务。</p>
+<p>Seam应用程序使用jBPM解决两个不同的问题：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>定义包含复杂用户交互的页面流，jDPL流程定义可以用来为一次对话定义页面流。 一次Seam对话可以理解为与一个单一用户进行的一次相关的短暂交互。</p>
+    </li>
+    <li>
+    <p>定义主控业务流程。业务流程可能是横跨多个用户的多次对话。流程的状态被保存在jBPM数据库中，所以流程被认为是长时间运行的。 协调多个用户的行为远比处理一个单一用户的交互复杂得多，对此jBPM提供了成熟的工具来解决任务管理和多路并发执行的问题。</p>
+    </li>
+</ul>
+</div>
+<p>不要把这两个事情弄混了！它们运行在两个非常不同的层面或粒度中。 <span class="emphasis"><em>页面流Pageflow</em></span>、<span class="emphasis"><em>对话Conversation</em></span> 和 <span class="emphasis"><em>任务Task</em></span> 全部来自于一次与单一用户的单一交互。 而一个业务流程则横跨许多任务。进一步说，这两种jBPM应用是完全正交的，可以在一起使用或是分开单独使用，或者都不用。</p>
+<p>使用Seam不必了解jDPL。如果你完全乐于使用JSF或是Seam导航规则定义页面流，并且你的应用程序更多的是数据驱动而不是流程驱动，可能就不需要jBPM。 但是我们发现，根据一个定义良好的图形考虑用户交互有助于我们创建更加有生命力的应用程序。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5598"></a>7.1. Seam中的页面流</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>在Seam中定义页面流有两种方法:</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>使用JSF或是Seam导航规则 &ndash; <span class="emphasis"><em>无状态的导航模型</em></span></p>
+    </li>
+    <li>
+    <p>使用jPDL &ndash; <span class="emphasis"><em>有状态的导航模型</em></span></p>
+    </li>
+</ul>
+</div>
+<p>非常简单的应用程序只需要无状态的导航模型。非常复杂的应用程序则应该在不同的场合结合使用这两种模型。每种模型各有优缺点。</p>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5618"></a>7.1.1. 两种导航模型</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>无状态的模型定义一种映射，把事件的一组命名的逻辑结果直接映射到视图的结果页面。导航规则除了记录哪个页面是事件来源之外不会保留任何状态。 这意味着Action监听方法有时必须进行一些页面流转的处理，因为只有它们能访问到应用程序的当前状态。</p>
+<p>下面是一个使用JSF导航规则定义页面流的例子：</p>
+<pre class="programlisting">&lt;navigation-rule&gt;
+    &lt;from-view-id&gt;/numberGuess.jsp&lt;/from-view-id&gt;
+        
+    &lt;navigation-case&gt;
+        &lt;from-outcome&gt;guess&lt;/from-outcome&gt;
+        &lt;to-view-id&gt;/numberGuess.jsp&lt;/to-view-id&gt;
+        &lt;redirect/&gt;
+    &lt;/navigation-case&gt;
+
+    &lt;navigation-case&gt;
+        &lt;from-outcome&gt;win&lt;/from-outcome&gt;
+        &lt;to-view-id&gt;/win.jsp&lt;/to-view-id&gt;
+        &lt;redirect/&gt;
+    &lt;/navigation-case&gt;
+        
+    &lt;navigation-case&gt;
+        &lt;from-outcome&gt;lose&lt;/from-outcome&gt;
+        &lt;to-view-id&gt;/lose.jsp&lt;/to-view-id&gt;
+        &lt;redirect/&gt;
+    &lt;/navigation-case&gt;
+
+&lt;/navigation-rule&gt;</pre>
+<p>同一个例子，下面使用Seam导航规则定义:</p>
+<pre class="programlisting">&lt;page view-id=&quot;/numberGuess.jsp&quot;&gt;
+        
+    &lt;navigation&gt;
+        &lt;rule if-outcome=&quot;guess&quot;&gt;
+            &lt;redirect view-id=&quot;/numberGuess.jsp&quot;/&gt;
+        &lt;/rule&gt;
+        &lt;rule if-outcome=&quot;win&quot;&gt;
+            &lt;redirect view-id=&quot;/win.jsp&quot;/&gt;
+        &lt;/rule&gt;
+        &lt;rule if-outcome=&quot;lose&quot;&gt;
+            &lt;redirect view-id=&quot;/lose.jsp&quot;/&gt;
+        &lt;/rule&gt;
+    &lt;/navigation&gt;
+
+&lt;/page&gt;</pre>
+<p>如果你觉得导航规则过于繁琐，可以在Action监听方法里直接返回View的id。</p>
+<pre class="programlisting">public String guess() {
+    if (guess==randomNumber) return &quot;/win.jsp&quot;;
+    if (++guessCount==maxGuesses) return &quot;/lose.jsp&quot;;
+    return null;
+}</pre>
+<p>注意这会导致一个重定向，甚至可以指定要在重定向中使用的一些参数。</p>
+<pre class="programlisting">public String search() {
+    return &quot;/searchResults.jsp?searchPattern=#{searchAction.searchPattern}&quot;;
+}</pre>
+<p>有状态模型在一组具名的、合乎逻辑的应用状态之间定义一组重定向。 在这种模型中，可以完全使用jPDL页面流定义来表示任意用户的交互流程，并在编写Action监听方法完全不必知道用户的交互流程。</p>
+<p>下面是一个使用jPDL定义页面流的例子：</p>
+<pre class="programlisting">&lt;pageflow-definition name=&quot;numberGuess&quot;&gt;
+    
+   &lt;start-page name=&quot;displayGuess&quot; view-id=&quot;/numberGuess.jsp&quot;&gt;
+      &lt;redirect/&gt;
+      &lt;transition name=&quot;guess&quot; to=&quot;evaluateGuess&quot;&gt;
+       &lt;action expression=&quot;#{numberGuess.guess}&quot; /&gt;
+      &lt;/transition&gt;
+   &lt;/start-page&gt;
+   
+   &lt;decision name=&quot;evaluateGuess&quot; expression=&quot;#{numberGuess.correctGuess}&quot;&gt;
+      &lt;transition name=&quot;true&quot; to=&quot;win&quot;/&gt;
+      &lt;transition name=&quot;false&quot; to=&quot;evaluateRemainingGuesses&quot;/&gt;
+   &lt;/decision&gt;
+   
+   &lt;decision name=&quot;evaluateRemainingGuesses&quot; expression=&quot;#{numberGuess.lastGuess}&quot;&gt;
+      &lt;transition name=&quot;true&quot; to=&quot;lose&quot;/&gt;
+      &lt;transition name=&quot;false&quot; to=&quot;displayGuess&quot;/&gt;
+   &lt;/decision&gt;
+   
+   &lt;page name=&quot;win&quot; view-id=&quot;/win.jsp&quot;&gt;
+      &lt;redirect/&gt;
+      &lt;end-conversation /&gt;
+   &lt;/page&gt;
+   
+   &lt;page name=&quot;lose&quot; view-id=&quot;/lose.jsp&quot;&gt;
+      &lt;redirect/&gt;
+      &lt;end-conversation /&gt;
+   &lt;/page&gt;
+   
+&lt;/pageflow-definition&gt;</pre>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/plugin-jbpm-numguess.png"></div>
+<p>这里我们马上注意到了两件事：</p>
+<div class="itemizedlist">
+<ul type="disc">
+    <li>
+    <p>JSF/Seam导航规则 <span class="emphasis"><em>更加</em></span> 简单。（然而，隐藏在后面的Java代码会相当复杂。）</p>
+    </li>
+    <li>
+    <p>jPDL让用户交互的过程立刻变得直接易懂，我们甚至不需要考虑JSP或Java代码。</p>
+    </li>
+</ul>
+</div>
+<p>另外，有状态模型更加 <span class="emphasis"><em>受约束</em></span> 。对于每一种逻辑状态（页面流中的每一步）而言，都存在一组受限的可能转到其他状态的重定向。 而无状态模型则是一种 <span class="emphasis"><em>实时的</em></span> 模型，它适用于相对不受约束的、形式自由的导航，在这种情况下，由用户决定他／她下一步想重定向到哪里，而不是应用程序。</p>
+<p>有状态和无状态导航之间的差别与传统的模态和非模态交互视图之间的差别很类似。 现在，Seam应用程序通常不是模态的，简单地说 －－ 的确，使用对话的一个主要原因就是避免应用程序中的模态行为！ 然而，在一个具体对话的级别里Seam应用程序可以是（甚至经常是）模态的。 众所周知，应该尽可能地避免模态行为；预知用户想要做事的顺序是非常困难的！然而，毫无疑问，有状态模型也是需要的。</p>
+<p>这两种模型之间的最大不同是后退按钮行为。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5674"></a>7.1.2. Seam和后退按钮</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>当使用JSF或Seam导航规则时，Seam允许用户通过后退、前进和刷新按钮自由地导航。当用户有以上操作时，应用程序的职责是确保发生对话状态的内部保持一致。 许多开发者都将Web应用框架例如Struts或WebWork －－ 它们不支持对话模型 －－ 和无状态组件模型例如EJB无状态Session Beans或Spring框架相结合过，这使得他们认为这几乎是不可能的一件事。 然而，就我们的经验，在Seam的上下文中，存在一个定义良好的对话模型，基于有状态的Session Bean，实现会话状态的内部一致实际上非常容易。 通常，在Action监听方法的开始把 <tt class="literal"><font face="新宋体">no-conversation-view-id</font></tt> 的使用和null检查结合起来是很简单的。 我们认为支持自由导航将几乎总是可行的。</p>
+<p>既然如此，<tt class="literal"><font face="新宋体">pages.xml</font></tt> 中就包含一个 <tt class="literal"><font face="新宋体">no-conversation-view-id</font></tt> 声明。 它告诉Seam，如果在一个对话当中有一个页面渲染的请求，而这个对话不再存在，就重定向到一个不同的页面。</p>
+<pre class="programlisting">&lt;page view-id=&quot;/checkout.xhtml&quot; 
+        no-conversation-view-id=&quot;/main.xhtml&quot;/&gt;</pre>
+<p>另一方面，在有状态的模型中，后退按钮被认为是一个返回前一状态的未定义跳转。 因为有状态模型强迫当前状态必须有一组明确定义的跳转，所以后退按钮在有状态模型中是被默认禁止的！ Seam明确地监测到后退按钮的使用，并且阻止执行前一个Action和访问过期的页面，而后简单地将用户重定向回当前页面（并且显示一个消息）。 这到底是有状态模型的一个特性还是一个限制，则取决于你在其中的角色：作为一个开发者，这是一个特性； 作为用户，这可能是一个限制！可以为一些特殊的Page节点设置 <tt class="literal"><font face="新宋体">back=&quot;enabled&quot;</font></tt> 属性，从而允许后退按钮导航。</p>
+<pre class="programlisting">&lt;page name=&quot;checkout&quot; 
+        view-id=&quot;/checkout.xhtml&quot; 
+        back=&quot;enabled&quot;&gt;
+    &lt;redirect/&gt;
+    &lt;transition to=&quot;checkout&quot;/&gt;
+    &lt;transition name=&quot;complete&quot; to=&quot;complete&quot;/&gt;
+&lt;/page&gt;</pre>
+<p>这个配置允许使用后退按钮 <span class="emphasis"><em>从</em></span> <tt class="literal"><font face="新宋体">checkout</font></tt> 状态转到 <span class="emphasis"><em>任意前一个状态</em></span>！</p>
+<p>当然，如果在一个页面流中有一个页面渲染的请求，并且这个页面流的对话不再存在，我们依然需要决定如何处理这种情况。 既然这样，需要在页面流定义中包括一个 <tt class="literal"><font face="新宋体">no-conversation-view-id</font></tt> 声明：</p>
+<pre class="programlisting">&lt;page name=&quot;checkout&quot; 
+        view-id=&quot;/checkout.xhtml&quot; 
+        back=&quot;enabled&quot; 
+        no-conversation-view-id=&quot;/main.xhtml&quot;&gt;
+    &lt;redirect/&gt;
+    &lt;transition to=&quot;checkout&quot;/&gt;
+    &lt;transition name=&quot;complete&quot; to=&quot;complete&quot;/&gt;
+&lt;/page&gt;</pre>
+<p>在实践中，这两种导航模型都有它们自己的用处，你将很快学会如何在这两种模型之间做出选择。</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5719"></a>7.2. 使用jPDL页面流</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5722"></a>7.2.1. 安装页面流</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们需要安装Seam jBPM相关的组件，并且告诉它们在哪里找到页面流定义。我们可以在 <tt class="literal"><font face="新宋体">components.xml</font></tt> 配置文件中指定这个配置。</p>
+<pre class="programlisting">&lt;bpm:jbpm&gt;
+    &lt;bpm:pageflow-definitions&gt;
+        &lt;value&gt;pageflow.jpdl.xml&lt;/value&gt;
+    &lt;/bpm:pageflow-definitions&gt;
+&lt;/bpm:jbpm&gt;</pre>
+<p>第一行安装jBPM，第二行指向一个基于jPDL的页面流定义。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5734"></a>7.2.2. 开始页面流</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们可以通过在 <tt class="literal"><font face="新宋体">@Begin</font></tt>、<tt class="literal"><font face="新宋体">@BeginTask</font></tt> 或 <tt class="literal"><font face="新宋体">@StartTask</font></tt>　的注解中指定流程定义的名字来&ldquo;启动&rdquo;一个基于jPDL的页面流。</p>
+<pre class="programlisting">@Begin(pageflow=&quot;numberguess&quot;)
+public void begin() { ... }</pre>
+<p>作为选择，我们也可以使用pages.xml来启动一个页面流:</p>
+<pre class="programlisting">&lt;page&gt;
+        &lt;begin-conversation pageflow=&quot;numberguess&quot;/&gt;
+    &lt;/page&gt;</pre>
+<p>在上面这个例子中，如果我们在渲染阶段 <tt class="literal"><font face="新宋体">RENDER_RESPONSE</font></tt> 阶段&mdash; 例如，在一个 <tt class="literal"><font face="新宋体">@Factory</font></tt> 或 <tt class="literal"><font face="新宋体">@Create</font></tt> 方法中 -- 启动一个页面流，那就意味着我们已经处在已产生的页面中，就要使用页面流中的 <tt class="literal"><font face="新宋体">&lt;start-page&gt;</font></tt> 节点作为页面流的第一个节点，如上例示所示。</p>
+<p>但是如果这个页面流作为一个Action监听器的执行结果而启动的话，这个action监听器的结果则将决定哪个页面作为第一个被渲染的页面。 既然这样，我们在页面流中使用一个 <tt class="literal"><font face="新宋体">&lt;start-state&gt;</font></tt> 作为第一个节点，并且为每一个可能的结果声明一个跳转。</p>
+<pre class="programlisting">&lt;pageflow-definition name=&quot;viewEditDocument&quot;&gt;
+
+    &lt;start-state name=&quot;start&quot;&gt;
+        &lt;transition name=&quot;documentFound&quot; to=&quot;displayDocument&quot;/&gt;
+        &lt;transition name=&quot;documentNotFound&quot; to=&quot;notFound&quot;/&gt;
+    &lt;/start-state&gt;
+    
+    &lt;page name=&quot;displayDocument&quot; view-id=&quot;/document.jsp&quot;&gt;
+        &lt;transition name=&quot;edit&quot; to=&quot;editDocument&quot;/&gt;
+        &lt;transition name=&quot;done&quot; to=&quot;main&quot;/&gt;
+    &lt;/page&gt;
+    
+    ...
+    
+    &lt;page name=&quot;notFound&quot; view-id=&quot;/404.jsp&quot;&gt;
+        &lt;end-conversation/&gt;
+    &lt;/page&gt;
+    
+&lt;/pageflow-definition&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5775"></a>7.2.3. 页面节点和跳转</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>每一个 <tt class="literal"><font face="新宋体">&lt;page&gt;</font></tt> 节点描绘一种状态，在该状态下系统等待用户的输入：</p>
+<pre class="programlisting">&lt;page name=&quot;displayGuess&quot; view-id=&quot;/numberGuess.jsp&quot;&gt;
+    &lt;redirect/&gt;
+    &lt;transition name=&quot;guess&quot; to=&quot;evaluateGuess&quot;&gt;
+        &lt;action expression=&quot;#{numberGuess.guess}&quot; /&gt;
+    &lt;/transition&gt;
+&lt;/page&gt;</pre>
+<p>其中的 <tt class="literal"><font face="新宋体">view-id</font></tt> 是一个JSF 视图id。 <tt class="literal"><font face="新宋体">&lt;redirect/&gt;</font></tt> 元素跟JSF导航规则中的 <tt class="literal"><font face="新宋体">&lt;redirect/&gt;</font></tt> 有相同的作用： 即，一个post-then-redirect（提交后跳转）行为，这样做是为了防止用户点击了浏览器的刷新按钮进行重复刷新。 （需要注意的是，Seam会在这些浏览器重定向中保存对话的上下文，所以在Seam中不需要类似ROR（Ruby On Rails）风格的&rdquo;flash&rdquo;构造！）</p>
+<p>跳转的名字是一个JSF输出的名字，在 <tt class="literal"><font face="新宋体">numberGuess.jsp</font></tt> 中通过点击一个Command按钮或是Command链接触发这个跳转。</p>
+<pre class="programlisting">&lt;h:commandButton type=&quot;submit&quot; value=&quot;Guess&quot; action=&quot;guess&quot;/&gt;</pre>
+<p>当点击这个按钮触发这个跳转之后，jBPM将会通过调用 <tt class="literal"><font face="新宋体">numberGuess</font></tt> 组件的 <tt class="literal"><font face="新宋体">guess()</font></tt> 方法激活跳转Action。 注意到jPDL中用于指定Action的语法类似于JSF的EL表达式，并且这个跳转的Action Handler不过是Seam当前上下文中的一个组件里的一个方法。 同JSF事件一样，我们可以在jBPM中拥有完全相同的事件模型！（<span class="emphasis"><em>同一类型</em></span>准则）</p>
+<p>在没有指定输出的情况下（例如，一个Command按钮没有定义 <tt class="literal"><font face="新宋体">action</font></tt> 属性）， 如果存在没有指定name的跳转，Seam将激活该跳转，或者如果所有的跳转都有name的话，Seam简单地重新显示该页。 所以我们可以稍微地简化示例页面流和这个按钮：</p>
+<pre class="programlisting">&lt;h:commandButton type=&quot;submit&quot; value=&quot;Guess&quot;/&gt;</pre>
+<p>将激活一个未命名的跳转：</p>
+<pre class="programlisting">&lt;page name=&quot;displayGuess&quot; view-id=&quot;/numberGuess.jsp&quot;&gt;
+    &lt;redirect/&gt;
+    &lt;transition to=&quot;evaluateGuess&quot;&gt;
+        &lt;action expression=&quot;#{numberGuess.guess}&quot; /&gt;
+    &lt;/transition&gt;
+&lt;/page&gt;</pre>
+<p>甚至可以通过点击一个按钮来执行一个Action方法，在这种情况下，Action执行的结果将决定采用哪个跳转：</p>
+<pre class="programlisting">&lt;h:commandButton type=&quot;submit&quot; value=&quot;Guess&quot; action=&quot;#{numberGuess.guess}&quot;/&gt;</pre>
+<pre class="programlisting">&lt;page name=&quot;displayGuess&quot; view-id=&quot;/numberGuess.jsp&quot;&gt;
+    &lt;transition name=&quot;correctGuess&quot; to=&quot;win&quot;/&gt;
+    &lt;transition name=&quot;incorrectGuess&quot; to=&quot;evaluateGuess&quot;/&gt;
+&lt;/page&gt;</pre>
+<p>然而，这是一种不可取的方式，因为它把流程控制的职责从页面流定义转到了其他组件。最好还是把这些相关的职责集中到页面流本身。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5833"></a>7.2.4. 流程控制</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>通常，我们定义页面流的时候不需要更多强大的jPDL特性，然而我们还是需要 <tt class="literal"><font face="新宋体">&lt;decision&gt;</font></tt> 节点。</p>
+<pre class="programlisting">&lt;decision name=&quot;evaluateGuess&quot; expression=&quot;#{numberGuess.correctGuess}&quot;&gt;
+    &lt;transition name=&quot;true&quot; to=&quot;win&quot;/&gt;
+    &lt;transition name=&quot;false&quot; to=&quot;evaluateRemainingGuesses&quot;/&gt;
+&lt;/decision&gt;</pre>
+<p>通过在Seam上下文中执行一个JSF EL表达式来决定如何跳转。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5845"></a>7.2.5. 流程的结束</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>使用 <tt class="literal"><font face="新宋体">&lt;end-conversation&gt;</font></tt> 或是 <tt class="literal"><font face="新宋体">@End</font></tt> 结束对话。 （实际上，为了程序的易读性，鼓励 <span class="emphasis"><em>两者共同</em></span> 使用。）</p>
+<pre class="programlisting">&lt;page name=&quot;win&quot; view-id=&quot;/win.jsp&quot;&gt;
+    &lt;redirect/&gt;
+    &lt;end-conversation/&gt;
+&lt;/page&gt;</pre>
+<p>可选择的，可以指定一个jBPM的 <tt class="literal"><font face="新宋体">状态转移（transition）</font></tt> 名字结束一个任务。 在这种情况下，Seam将给主控的业务流程发送一个结束当前任务的信号。</p>
+<pre class="programlisting">&lt;page name=&quot;win&quot; view-id=&quot;/win.jsp&quot;&gt;
+    &lt;redirect/&gt;
+    &lt;end-task transition=&quot;success&quot;/&gt;
+&lt;/page&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5868"></a>7.2.6. 页面流组合</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>多个页面流可以进行组合，并当另一个页面流执行时暂停一个页面流。 这个 <tt class="literal"><font face="新宋体">&lt;process-state&gt;</font></tt> 节点的作用就是暂停外部的页面流，同时开始执行一个命名的页面流。</p>
+<pre class="programlisting">&lt;process-state name=&quot;cheat&quot;&gt;
+    &lt;sub-process name=&quot;cheat&quot;/&gt;
+    &lt;transition to=&quot;displayGuess&quot;/&gt;
+&lt;/process-state&gt;</pre>
+<p>这个内部页面流从 <tt class="literal"><font face="新宋体">&lt;start-state&gt;</font></tt> 节点开始执行。 当执行到 <tt class="literal"><font face="新宋体">&lt;end-state&gt;</font></tt> 节点时，内部页面流执行完毕，同时外部的页面流会以 <tt class="literal"><font face="新宋体">&lt;process-state&gt;</font></tt> 定义的跳转恢复执行。</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5889"></a>7.3. Seam中的业务流程管理</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>一个业务流程由一系列定义良好的任务组成，这些任务必须由用户或是软件系统遵照一系列定义良好的规则来完成，这些规则规定了 <span class="emphasis"><em>谁</em></span> 可以执行任务，<span class="emphasis"><em>什么时候</em></span> 应该执行。 Seam对jBPM的整合使得给用户显示任务列表以及使用户管理他们的任务变得简单。 Seam还使应用程序在 <tt class="literal"><font face="新宋体">BUSINESS_PROCESS</font></tt> 的上下文中存储与业务流程相关的状态，通过jBPM变量来持久化这个状态。</p>
+<p>一个简单的业务流程定义看起来跟页面流定义非常相似（<span class="emphasis"><em>是同一种类型的东西</em></span>），不同的是用 <tt class="literal"><font face="新宋体">&lt;task-node&gt;</font></tt> 节点替换了 <tt class="literal"><font face="新宋体">&lt;page&gt;</font></tt> 节点。在一个长运行期的业务流程中，等待状态表示系统正在等待用户登录并执行任务。</p>
+<pre class="programlisting">&lt;process-definition name=&quot;todo&quot;&gt;
+   
+   &lt;start-state name=&quot;start&quot;&gt;
+      &lt;transition to=&quot;todo&quot;/&gt;
+   &lt;/start-state&gt;
+   
+   &lt;task-node name=&quot;todo&quot;&gt;
+      &lt;task name=&quot;todo&quot; description=&quot;#{todoList.description}&quot;&gt;
+         &lt;assignment actor-id=&quot;#{actor.id}&quot;/&gt;
+      &lt;/task&gt;
+      &lt;transition to=&quot;done&quot;/&gt;
+   &lt;/task-node&gt;
+   
+   &lt;end-state name=&quot;done&quot;/&gt;
+   
+&lt;/process-definition&gt;</pre>
+<div class="mediaobject" align="center"><img align="middle" src="http://www.redsaga.com/opendoc/Seam2.0/html/images/plugin-jbpm-todo.png"></div>
+<p>我们很有可能在一个项目中同时使用jPDL业务流程定义和jPDL页面流程定义。 如果这样，他们二者的关系是：一个业务流程中的 <tt class="literal"><font face="新宋体">&lt;task&gt;</font></tt> 对应一个完整的页面流 <tt class="literal"><font face="新宋体">&lt;pageflow-definition&gt;</font></tt>。</p>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h2 style="clear: both" class="title"><a name="d0e5929"></a>7.4. 使用jPDL业务流程定义</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5932"></a>7.4.1. 安装流程定义</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们需要安装jBPM，并且告诉它到哪里可以找到业务流程定义文件：</p>
+<pre class="programlisting">&lt;bpm:jbpm&gt;
+    &lt;bpm:process-definitions&gt;
+        &lt;value&gt;todo.jpdl.xml&lt;/value&gt;
+    &lt;/bpm:process-definitions&gt;
+&lt;/bpm:jbpm&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5939"></a>7.4.2. 初始化Actor id</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们总是需要知道当前的登录用户。jBPM使用 <span class="emphasis"><em>actor id</em></span> 和 <span class="emphasis"><em>group actor id</em></span> &ldquo;识别&rdquo;用户。 我们使用Seam内置的 <tt class="literal"><font face="新宋体">actor</font></tt> 组件指定当前用户的id。</p>
+<pre class="programlisting">@In Actor actor;
+
+public String login() {
+    ...
+    actor.setId( user.getUserName() );
+    actor.getGroupActorIds().addAll( user.getGroupNames() );
+    ...
+}</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5955"></a>7.4.3. 启动一个业务流程</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>使用 <tt class="literal"><font face="新宋体">@CreateProcess</font></tt> 注解来启动一个业务流程实例。</p>
+<pre class="programlisting">@CreateProcess(definition=&quot;todo&quot;)
+public void createTodo() { ... }</pre>
+<p>也可用使用pages.xml来启动一个业务流程。</p>
+<pre class="programlisting">&lt;page&gt;
+    &lt;create-process definition=&quot;todo&quot; /&gt;
+&lt;/page&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5969"></a>7.4.4. 任务分配</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>当一个流程执行到一个任务节点时，会创建任务实例。这些任务实例必须分配给用户或是用户组。我们可以手动编码指定actor id或是委托给一个Seam组件。</p>
+<pre class="programlisting">&lt;task name=&quot;todo&quot; description=&quot;#{todoList.description}&quot;&gt;
+    &lt;assignment actor-id=&quot;#{actor.id}&quot;/&gt;
+&lt;/task&gt;</pre>
+<p>在这里例子中，我们简单的将任务分配给当前用户。也可以将任务分配给一批用户（pool actor）：</p>
+<pre class="programlisting">&lt;task name=&quot;todo&quot; description=&quot;#{todoList.description}&quot;&gt;
+    &lt;assignment pooled-actors=&quot;employees&quot;/&gt;
+&lt;/task&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e5980"></a>7.4.5. 任务列表</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>几个内置的Seam组件使得显示任务列表变得简单。<tt class="literal"><font face="新宋体">pooledTaskInstanceList</font></tt> 是一个汇集任务集合，用户可以把这些任务分配给他们自己。</p>
+<pre class="programlisting">&lt;h:dataTable value=&quot;#{pooledTaskInstanceList}&quot; var=&quot;task&quot;&gt;
+    &lt;h:column&gt;
+        &lt;f:facet name=&quot;header&quot;&gt;Description&lt;/f:facet&gt;
+        &lt;h:outputText value=&quot;#{task.description}&quot;/&gt;
+    &lt;/h:column&gt;
+    &lt;h:column&gt;
+        &lt;s:link action=&quot;#{pooledTask.assignToCurrentActor}&quot; value=&quot;Assign&quot; taskInstance=&quot;#{task}&quot;/&gt;
+    &lt;/h:column&gt;             
+&lt;/h:dataTable&gt;</pre>
+<p>请注意，我们可以使用普通的JSF标签 <tt class="literal"><font face="新宋体">&lt;h:commandLink&gt;</font></tt> 来替代 <tt class="literal"><font face="新宋体">&lt;s:link&gt;</font></tt> 标签：</p>
+<pre class="programlisting">&lt;h:commandLink action=&quot;#{pooledTask.assignToCurrentActor}&quot;&gt; 
+    &lt;f:param name=&quot;taskId&quot; value=&quot;#{task.id}&quot;/&gt;
+&lt;/h:commandLink&gt;</pre>
+<p><tt class="literal"><font face="新宋体">pooledTask</font></tt> 组件是一个内置组件，它简单把任务分配给当前用户。</p>
+<p><tt class="literal"><font face="新宋体">taskInstanceListForType</font></tt>组件包含一种特殊类型的任务，这些任务分配给当前用户：</p>
+<pre class="programlisting">&lt;h:dataTable value=&quot;#{taskInstanceListForType['todo']}&quot; var=&quot;task&quot;&gt;
+    &lt;h:column&gt;
+        &lt;f:facet name=&quot;header&quot;&gt;Description&lt;/f:facet&gt;
+        &lt;h:outputText value=&quot;#{task.description}&quot;/&gt;
+    &lt;/h:column&gt;
+    &lt;h:column&gt;
+        &lt;s:link action=&quot;#{todoList.start}&quot; value=&quot;Start Work&quot; taskInstance=&quot;#{task}&quot;/&gt;
+    &lt;/h:column&gt;             
+&lt;/h:dataTable&gt;</pre>
+</div>
+<div class="section">
+<div class="titlepage">
+<div>
+<div>
+<h3 class="title"><a name="d0e6012"></a>7.4.6. 执行一个任务</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们在监听方法上使用 <tt class="literal"><font face="新宋体">@StartTask</font></tt> 或者 <tt class="literal"><font face="新宋体">@BeginTask</font></tt> 注解来执行一个任务。</p>
+<pre class="programlisting">@StartTask
+public String start() { ... }</pre>
+<p>我们也可以使用pages.xml来执行一个任务。</p>
+<pre class="programlisting">&lt;page&gt;
+    &lt;start-task /&gt;
+&lt;/page&gt;</pre>
+<p>这些注解启动一种特殊类型的对话，这个对话在整个业务流程中具有意义。通过该对话可以访问保存在业务流程上下文中的状态。</p>
+<p>如果我们使用 <tt class="literal"><font face="新宋体">@EndTask</font></tt> 注解来结束该对话，Seam会发出信号完成该任务。</p>
+<pre class="programlisting">@EndTask(transition=&quot;completed&quot;)
+public String completed() { ... }</pre>
+<p>作为选择，我们还可以使用pages.xml</p>
+<pre class="programlisting">&lt;page&gt;
+    &lt;end-task transition=&quot;completed&quot; /&gt;
+&lt;/page&gt;</pre>
+<p>也可以使用EL在pages.xml指定transition 。</p>
+<p>此时，jBPM接受指令并且继续执行业务流程定义。（在更加复杂的流程中，在流程向下执行之前，可能还需要完成其他一些任务。）</p>
+<p>若想对jBPM处理复杂业务流程的高级特性有一个更加彻底的认识，请参阅jBPM的参考文档。</p>
+</div>
+</div>
+</div></div></body></html>

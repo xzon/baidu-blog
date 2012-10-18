@@ -1,0 +1,348 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>com.l2fprod.common.swing.PercentLayout</title></head><body><h1>com.l2fprod.common.swing.PercentLayout</h1><div><div>
+<p><strong>com.l2fprod.common.swing.PercentLayout</strong></p>
+<p> </p>
+<p>PercentLayout. <br>
+Constraint based layout which allow the space to be splitted using percentages. The following are allowed when adding components to container:</p>
+<ul>
+    <li>container.add(component); <br>
+    in this case, the component will be sized to its preferred size</li>
+    <li>container.add(component, &quot;100&quot;); <br>
+    in this case, the component will have a width (or height) of 100</li>
+    <li>container.add(component, &quot;25%&quot;); <br>
+    in this case, the component will have a width (or height) of 25 % of the container width (or height)</li>
+    <li>container.add(component, &quot;*&quot;); <br>
+    in this case, the component will take the remaining space. if several components use the &quot;*&quot; constraint the space will be divided among the components.</li>
+</ul>
+<p>* L2FProd.com Common Components 7.3 License.<br>
+package com.l2fprod.common.swing;</p>
+<p>import java.awt.Component;<br>
+import java.awt.Container;<br>
+import java.awt.Dimension;<br>
+import java.awt.Insets;<br>
+import java.awt.LayoutManager2;<br>
+import java.util.ArrayList;<br>
+import java.util.Hashtable;<br>
+import java.util.Iterator;</p>
+<p>/**<br>
+* PercentLayout. &lt;BR&gt;Constraint based layout which allow the space to be<br>
+* splitted using percentages. The following are allowed when adding components<br>
+* to container:<br>
+* &lt;ul&gt;<br>
+* &lt;li&gt;container.add(component); &lt;br&gt;in this case, the component will be<br>
+* sized to its preferred size<br>
+* &lt;li&gt;container.add(component, &quot;100&quot;); &lt;br&gt;in this case, the component will<br>
+* have a width (or height) of 100<br>
+* &lt;li&gt;container.add(component, &quot;25%&quot;); &lt;br&gt;in this case, the component will<br>
+* have a width (or height) of 25 % of the container width (or height) &lt;br&gt;<br>
+* &lt;li&gt;container.add(component, &quot;*&quot;); &lt;br&gt;in this case, the component will<br>
+* take the remaining space. if several components use the &quot;*&quot; constraint the<br>
+* space will be divided among the components.<br>
+* &lt;/ul&gt;<br>
+* <br>
+* @javabean.class<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  name=&quot;PercentLayout&quot;<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  shortDescription=&quot;A layout supports constraints expressed in percent.&quot;<br>
+*/<br>
+public class PercentLayout implements LayoutManager2 {</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Useful constant to layout the components horizontally (from top to<br>
+&nbsp;&nbsp;  * bottom).<br>
+&nbsp;&nbsp;  */<br>
+public final static int HORIZONTAL = 0;</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Useful constant to layout the components vertically (from left to right).<br>
+&nbsp;&nbsp;  */<br>
+public final static int VERTICAL = 1;</p>
+<p>static class Constraint {<br>
+&nbsp;&nbsp;&nbsp;  protected Object value;<br>
+&nbsp;&nbsp;&nbsp;  private Constraint(Object value) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.value = value;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>static class NumberConstraint extends Constraint {<br>
+&nbsp;&nbsp;&nbsp;  public NumberConstraint(int d) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this(new Integer(d));<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public NumberConstraint(Integer d) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super(d);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public int intValue() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return ((Integer)value).intValue();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>static class PercentConstraint extends Constraint {<br>
+&nbsp;&nbsp;&nbsp;  public PercentConstraint(float d) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super(new Float(d));<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public float floatValue() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return ((Float)value).floatValue();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>private final static Constraint REMAINING_SPACE = new Constraint(&quot;*&quot;);</p>
+<p>private final static Constraint PREFERRED_SIZE = new Constraint(&quot;&quot;);</p>
+<p>private int orientation;<br>
+private int gap;</p>
+<p>private Hashtable m_ComponentToConstraint;</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Creates a new HORIZONTAL PercentLayout with a gap of 0.<br>
+&nbsp;&nbsp;  */<br>
+public PercentLayout() {<br>
+&nbsp;&nbsp;&nbsp;  this(HORIZONTAL, 0);<br>
+}</p>
+<p>public PercentLayout(int orientation, int gap) {<br>
+&nbsp;&nbsp;&nbsp;  setOrientation(orientation);<br>
+&nbsp;&nbsp;&nbsp;  this.gap = gap;</p>
+<p>&nbsp;&nbsp;&nbsp;  m_ComponentToConstraint = new Hashtable();<br>
+}</p>
+<p>public void setGap(int gap) {<br>
+&nbsp;&nbsp;&nbsp;  this.gap = gap;&nbsp;&nbsp;  <br>
+}<br>
+<br>
+/**<br>
+&nbsp;&nbsp;  * @javabean.property<br>
+&nbsp;&nbsp;  *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  bound=&quot;true&quot;<br>
+&nbsp;&nbsp;  *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  preferred=&quot;true&quot;<br>
+&nbsp;&nbsp;  */<br>
+public int getGap() {<br>
+&nbsp;&nbsp;&nbsp;  return gap;<br>
+}<br>
+<br>
+public void setOrientation(int orientation) {<br>
+&nbsp;&nbsp;&nbsp;  if (orientation != HORIZONTAL &amp;&amp; orientation != VERTICAL) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new IllegalArgumentException(&quot;Orientation must be one of HORIZONTAL or VERTICAL&quot;);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  this.orientation = orientation;<br>
+}</p>
+<p>/**<br>
+&nbsp;&nbsp;  * @javabean.property<br>
+&nbsp;&nbsp;  *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  bound=&quot;true&quot;<br>
+&nbsp;&nbsp;  *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  preferred=&quot;true&quot;<br>
+&nbsp;&nbsp;  */<br>
+public int getOrientation() {<br>
+&nbsp;&nbsp;&nbsp;  return orientation;<br>
+}<br>
+<br>
+public Constraint getConstraint(Component component) {<br>
+&nbsp;&nbsp;&nbsp;  return (Constraint)m_ComponentToConstraint.get(component);<br>
+}<br>
+<br>
+public void setConstraint(Component component, Object constraints) {<br>
+&nbsp;&nbsp;&nbsp;  if (constraints instanceof Constraint) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_ComponentToConstraint.put(component, constraints);<br>
+&nbsp;&nbsp;&nbsp;  } else if (constraints instanceof Number) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  setConstraint(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  component,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  new NumberConstraint(((Number)constraints).intValue()));<br>
+&nbsp;&nbsp;&nbsp;  } else if (&quot;*&quot;.equals(constraints)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  setConstraint(component, REMAINING_SPACE);<br>
+&nbsp;&nbsp;&nbsp;  } else if (&quot;&quot;.equals(constraints)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  setConstraint(component, PREFERRED_SIZE);<br>
+&nbsp;&nbsp;&nbsp;  } else if (constraints instanceof String) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String s = (String)constraints;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (s.endsWith(&quot;%&quot;)) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  float value = Float.valueOf(s.substring(0, s.length() - 1))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  .floatValue() / 100;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (value &gt; 1 || value &lt; 0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new IllegalArgumentException(&quot;percent value must be &gt;= 0 and &lt;= 100&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  setConstraint(component, new PercentConstraint(value));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  setConstraint(component, new NumberConstraint(Integer.valueOf(s)));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  } else if (constraints == null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // null constraint means preferred size<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  setConstraint(component, PREFERRED_SIZE);<br>
+&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throw new IllegalArgumentException(&quot;Invalid Constraint&quot;);<br>
+&nbsp;&nbsp;&nbsp;  }&nbsp;&nbsp;&nbsp;  <br>
+}<br>
+<br>
+public void addLayoutComponent(Component component, Object constraints) {<br>
+&nbsp;&nbsp;&nbsp;  setConstraint(component, constraints);&nbsp;&nbsp;&nbsp;  <br>
+}</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Returns the alignment along the x axis. This specifies how the component<br>
+&nbsp;&nbsp;  * would like to be aligned relative to other components. The value should be<br>
+&nbsp;&nbsp;  * a number between 0 and 1 where 0 represents alignment along the origin, 1<br>
+&nbsp;&nbsp;  * is aligned the furthest away from the origin, 0.5 is centered, etc.<br>
+&nbsp;&nbsp;  */<br>
+public float getLayoutAlignmentX(Container target) {<br>
+&nbsp;&nbsp;&nbsp;  return 1.0f / 2.0f;<br>
+}</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Returns the alignment along the y axis. This specifies how the component<br>
+&nbsp;&nbsp;  * would like to be aligned relative to other components. The value should be<br>
+&nbsp;&nbsp;  * a number between 0 and 1 where 0 represents alignment along the origin, 1<br>
+&nbsp;&nbsp;  * is aligned the furthest away from the origin, 0.5 is centered, etc.<br>
+&nbsp;&nbsp;  */<br>
+public float getLayoutAlignmentY(Container target) {<br>
+&nbsp;&nbsp;&nbsp;  return 1.0f / 2.0f;<br>
+}</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Invalidates the layout, indicating that if the layout manager has cached<br>
+&nbsp;&nbsp;  * information it should be discarded.<br>
+&nbsp;&nbsp;  */<br>
+public void invalidateLayout(Container target) {<br>
+}</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Adds the specified component with the specified name to the layout.<br>
+&nbsp;&nbsp;  * <br>
+&nbsp;&nbsp;  * @param name the component name<br>
+&nbsp;&nbsp;  * @param comp the component to be added<br>
+&nbsp;&nbsp;  */<br>
+public void addLayoutComponent(String name, Component comp) {<br>
+}</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Removes the specified component from the layout.<br>
+&nbsp;&nbsp;  * <br>
+&nbsp;&nbsp;  * @param comp the component ot be removed<br>
+&nbsp;&nbsp;  */<br>
+public void removeLayoutComponent(Component comp) {<br>
+&nbsp;&nbsp;&nbsp;  m_ComponentToConstraint.remove(comp);<br>
+}</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Calculates the minimum size dimensions for the specified panel given the<br>
+&nbsp;&nbsp;  * components in the specified parent container.<br>
+&nbsp;&nbsp;  * <br>
+&nbsp;&nbsp;  * @param parent the component to be laid out<br>
+&nbsp;&nbsp;  * @see #preferredLayoutSize<br>
+&nbsp;&nbsp;  */<br>
+public Dimension minimumLayoutSize(Container parent) {<br>
+&nbsp;&nbsp;&nbsp;  return preferredLayoutSize(parent);<br>
+}</p>
+<p>/**<br>
+&nbsp;&nbsp;  * Returns the maximum size of this component.<br>
+&nbsp;&nbsp;  * <br>
+&nbsp;&nbsp;  * @see java.awt.Component#getMinimumSize()<br>
+&nbsp;&nbsp;  * @see java.awt.Component#getPreferredSize()<br>
+&nbsp;&nbsp;  * @see java.awt.LayoutManager<br>
+&nbsp;&nbsp;  */<br>
+public Dimension maximumLayoutSize(Container parent) {<br>
+&nbsp;&nbsp;&nbsp;  return new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE);<br>
+}</p>
+<p>public Dimension preferredLayoutSize(Container parent) {<br>
+&nbsp;&nbsp;&nbsp;  Component[] components = parent.getComponents();<br>
+&nbsp;&nbsp;&nbsp;  Insets insets = parent.getInsets();<br>
+&nbsp;&nbsp;&nbsp;  int width = 0;<br>
+&nbsp;&nbsp;&nbsp;  int height = 0;<br>
+&nbsp;&nbsp;&nbsp;  Dimension componentPreferredSize;<br>
+&nbsp;&nbsp;&nbsp;  boolean firstVisibleComponent = true;<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 0, c = components.length; i &lt; c; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (components[i].isVisible()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  componentPreferredSize = components[i].getPreferredSize();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (orientation == HORIZONTAL) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  height = Math.max(height, componentPreferredSize.height);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  width += componentPreferredSize.width;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (firstVisibleComponent) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  firstVisibleComponent = false;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  width += gap;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  height += componentPreferredSize.height;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  width = Math.max(width, componentPreferredSize.width);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (firstVisibleComponent) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  firstVisibleComponent = false;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  height += gap;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  return new Dimension(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  width + insets.right + insets.left,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  height + insets.top + insets.bottom);<br>
+}</p>
+<p>public void layoutContainer(Container parent) {<br>
+&nbsp;&nbsp;&nbsp;  Insets insets = parent.getInsets();<br>
+&nbsp;&nbsp;&nbsp;  Dimension d = parent.getSize();</p>
+<p>&nbsp;&nbsp;&nbsp;  // calculate the available sizes<br>
+&nbsp;&nbsp;&nbsp;  d.width = d.width - insets.left - insets.right;<br>
+&nbsp;&nbsp;&nbsp;  d.height = d.height - insets.top - insets.bottom;</p>
+<p>&nbsp;&nbsp;&nbsp;  // pre-calculate the size of each components<br>
+&nbsp;&nbsp;&nbsp;  Component[] components = parent.getComponents();<br>
+&nbsp;&nbsp;&nbsp;  int[] sizes = new int[components.length];</p>
+<p>&nbsp;&nbsp;&nbsp;  // calculate the available size<br>
+&nbsp;&nbsp;&nbsp;  int totalSize =<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (HORIZONTAL == orientation ? d.width : d.height)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  - (components.length - 1) * gap;<br>
+&nbsp;&nbsp;&nbsp;  int availableSize = totalSize;</p>
+<p>&nbsp;&nbsp;&nbsp;  // PENDING(fred): the following code iterates 4 times on the component<br>
+&nbsp;&nbsp;&nbsp;  // array, need to find something more efficient!<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  // give priority to components who want to use their preferred size or who<br>
+&nbsp;&nbsp;&nbsp;  // have a predefined size<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 0, c = components.length; i &lt; c; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (components[i].isVisible()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Constraint constraint =<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (Constraint)m_ComponentToConstraint.get(components[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (constraint == null || constraint == PREFERRED_SIZE) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sizes[i] =<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (HORIZONTAL == orientation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ? components[i].getPreferredSize().width<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  : components[i].getPreferredSize().height);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  availableSize -= sizes[i];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else if (constraint instanceof NumberConstraint) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sizes[i] = ((NumberConstraint)constraint).intValue();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  availableSize -= sizes[i];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  // then work with the components who want a percentage of the remaining<br>
+&nbsp;&nbsp;&nbsp;  // space<br>
+&nbsp;&nbsp;&nbsp;  int remainingSize = availableSize;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  for (int i = 0, c = components.length; i &lt; c; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (components[i].isVisible()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Constraint constraint =<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (Constraint)m_ComponentToConstraint.get(components[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (constraint instanceof PercentConstraint) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sizes[i] = (int)(remainingSize * ((PercentConstraint)constraint)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  .floatValue());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  availableSize -= sizes[i];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  // finally share the remaining space between the other components&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  ArrayList remaining = new ArrayList();<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 0, c = components.length; i &lt; c; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (components[i].isVisible()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Constraint constraint =<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (Constraint)m_ComponentToConstraint.get(components[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (constraint == REMAINING_SPACE) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  remaining.add(new Integer(i));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sizes[i] = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;&nbsp;  if (remaining.size() &gt; 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int rest = availableSize / remaining.size();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (Iterator iter = remaining.iterator(); iter.hasNext();) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sizes[((Integer)iter.next()).intValue()] = rest;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;&nbsp;  // all calculations are done, apply the sizes<br>
+&nbsp;&nbsp;&nbsp;  int currentOffset = (HORIZONTAL == orientation ? insets.left : insets.top);</p>
+<p>&nbsp;&nbsp;&nbsp;  for (int i = 0, c = components.length; i &lt; c; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (components[i].isVisible()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (HORIZONTAL == orientation) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  components[i].setBounds(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  currentOffset,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  insets.top,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sizes[i],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  d.height);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  components[i].setBounds(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  insets.left,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  currentOffset,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  d.width,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sizes[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  currentOffset += gap + sizes[i];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>}</p>
+<p> </p>
+<p> </p>
+</div></div></body></html>

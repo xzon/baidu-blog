@@ -1,0 +1,172 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>开发您的第一个 Eclipse RCP 应用程序</title></head><body><h1>开发您的第一个 Eclipse RCP 应用程序</h1><div><h1>开发您的第一个 Eclipse RCP 应用程序</h1>
+<p>Eclipse V3.1 使得创建富客户机应用程序比以前更加容易</p>
+<p><span class="atitle"><span style="font-size: 18px;">什么是 Rich Client Platform？</span></span></p>
+<p>最初，Eclipse 平台设计用作开放工具平台。然而，从 Eclipse V3.0 开始，它被重新架构，使其组件可被用来构建几乎任何客户机应用程序。构建一个富客户机应用程序所需用到的最小插件集统称为 Rich Client Platform (RCP)。这些富应用程序仍然基于动态插件模型，并且图形用户界面是使用相同的工具箱和扩展点构建的。然而，最关键的差异在于，RCP 应用程序的工作台处于插件开发人员的精细控制之下。注意，Eclipse IDE 本身就是一个 RCP 应用程序。</p>
+<p><a name="N10129"><span class="smalltitle"><strong><span style="font-size: 16px;">RCP 要求</span></strong></span></a></p>
+<p>要构建具有图形用户界面的 RCP 应用程序，需要下列插件及其前提条件：org.eclipse.ui 和 org.eclipse.core.runtime。到 Eclipse V3.1.1，RCP 的总体磁盘需求量大约是 6.6 MB，其中包括上面的插件、startup.jar 和 eclipse.exe 可执行文件。现在，RCP 应用程序可自由使用任何必要的 API，并可以在最低要求之上要求任何插件，如 Help UI 和 Update Manager。</p>
+<p>由 org.eclipse.core.resources 插件提供的工作区资源模型被认为不是 RCP 的一部分。它虽然是用于 Eclipse IDE 的底层数据模型，但 RCP 对使用底层数据模型构建的应用程序不作保证。数据模型可以是本地文件系统、远程数据库或其他地方的文件。如果对应用程序有意义，org.eclipse.core.resources 可以被包含并用作应用程序的数据模型，但这不是必需的。</p>
+<p>org.eclipse.ui.ide 插件位于通用工作台 (org.eclipse.ui) 的上层，并为 Eclipse IDE 定义应用程序，在 Eclipse IDE 之上还有其他 IDE 组件，如 Java Development Tools (JDT)、Plug-in Development Environment (PDE)、Debugger 和 Team 支持。IDE 实例化通用工作台，给它配置 IDE 特定的菜单和工具条条目，并添加 IDE 特定的视图、首选项页面和其他扩展。IDE 使用工作区资源模型作为其底层数据模型。在 IDE 内部定义的 org.eclipse.ui.ide 插件和扩展没有设计成在其他 RCP 应用程序中被重新使用。</p>
+<p>Eclipse 运行库定义其他插件所依赖的插件（org.eclipse.osgi 和 org.eclipse.core.runtime）。Open Services Gateway Initiative (OSGi) 框架将插件称为包（bundle）。包与 OSGi 一起指定和执行 Java 类加载、前提条件管理和包的生命周期等过程。Eclipse 核心运行库负责发现和运行主 Eclipse 应用程序，并维护插件及其扩展和扩展点的注册。另外，运行库还提供了一类工具，如日志记录、调试跟踪选项、首选项存储和并发基础设施。</p>
+<p><span class="atitle"><span style="font-size: 18px;">Hello World RCP 应用程序概述</span></span></p>
+<p>在完成 Hello World RCP 应用程序之时，将会有两个插件和三个特性。</p>
+<p><br>
+<a name="table1"><strong>表 1. Hello World RCP 应用程序插件和特性的描述</strong></a><br>
+<table class="data-table-1 FCK__ShowTableBorders" summary="Description of the Hello World RCP application&#39;s plug-ins and features" border="0" cellpadding="0" cellspacing="0">
+    <tbody>
+        <tr>
+            <td>com.ibm.plte plug-in</td>
+            <td>定义 RCP 应用程序 <br>
+            定义特性和产品品牌信息</td>
+        </tr>
+        <tr>
+            <td>com.ibm.plte.ui plug-in</td>
+            <td>定义几个 Eclipse 功能，包括动作、首选项、视图和帮助</td>
+        </tr>
+        <tr>
+            <td>com.ibm.plte feature</td>
+            <td>定义 Hello World RCP 应用程序插件 <br>
+            定义下面两个所包含的特性</td>
+        </tr>
+        <tr>
+            <td>com.ibm.plte.help feature</td>
+            <td>定义 Help 插件（共 8 个）的依赖项</td>
+        </tr>
+        <tr>
+            <td>org.eclipse.rcp feature</td>
+            <td>定义 RCP 插件的依赖项</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>您将在 Eclipse SDK V3.1.1 中创建 Hello World RCP 应用程序。当打开 Eclipse 工作台时，您已将 com.ibm.plte.help 特性添加到工作台中。</p>
+<p>本教程分为四个部分：</p>
+<ol>
+    <li>创建一个最小的 Hello World RCP 应用程序
+    <ul>
+        <li>org.eclipse.core.runtime.applications</li>
+    </ul>
+    </li>
+    <li>将几个 Eclipse 功能添加到 Hello World RCP 应用程序
+    <ul>
+        <li>org.eclipse.ui.actionSets</li>
+        <li>org.eclipse.help.toc</li>
+        <li>org.eclipse.ui.preferencePages</li>
+        <li>org.eclipse.ui.views</li>
+    </ul>
+    </li>
+    <li>创建 Hello World RCP 产品
+    <ul>
+        <li>特性品牌烙印</li>
+        <li>org.eclipse.core.runtime.product</li>
+    </ul>
+    </li>
+    <li>在 Eclipse 之外部署和运行 Hello World RCP 产品</li>
+</ol>
+<p>注意，如果目标是构建集成到基于 Eclipse IDE 的产品中的 Eclipse 工具，那么就不是创建 RCP 应用程序或 RCP 产品。基于 Eclipse IDE 的产品已定义为一个应用程序和产品。然而，您仍然必须为 Eclipse 工具提供特性烙印。</p>
+<p><span class="atitle"><span style="font-size: 18px;">基础</span></span></p>
+<p><a name="1.1"><span class="smalltitle"><strong><span style="font-size: 16px;">步骤 1：创建最小的 Hello World RCP 应用程序</span></strong></span></a></p>
+<ol>
+    <li>单击 <strong>Ctrl+N</strong> 打开 New 向导。</li>
+    <li>选择 Plug-in Project 然后单击 <strong>Next</strong>。</li>
+    <li>在 Project name 文本域输入 <code><span style="font-family: NSimsun;">com.ibm.plte</span></code>，然后单击 <strong>Next</strong>。</li>
+    <li>对于 “Would you like to create a rich client application?” 选择 <strong>Yes</strong>，然后单击 <strong>Next</strong>。</li>
+    <li>选择 Hello RCP 模板，然后单击 <strong>Finish</strong>。</li>
+    <li>Open Associated Perspective 对话框将会弹出。单击 <strong>Yes</strong>。</li>
+</ol>
+<p>您的工作台应该与下图类似：</p>
+<p><br>
+<a name="fig1"><strong>图 1. PDE 透视图中插件 com.ibm.plte 的 plugin.xml</strong></a><br>
+<img alt="PDE 透视图中插件 com.ibm.plte 的 plugin.xml." src="https://www6.software.ibm.com/developerworks/cn/education/opensource/os-ecl-rcpapp/image002.jpg" height="338" width="450"></p>
+<p>Hello RCP 模板非常强大并在幕后执行很多任务。模板生成一个插件项目，并添加两个扩展点和六个 Java 类。每个扩展点和 Java 类描述如下。</p>
+<p><br>
+<a name="table2"><strong>表 2. Hello RCP 模板生成的工件的描述</strong></a><br>
+<table class="data-table-1 FCK__ShowTableBorders" summary="Description of artifacts generated by Hello RCP template" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tbody>
+        <tr>
+            <th>org.eclipse.core.runtime.applications</th>
+            <td>该扩展点将主程序和实现 <code><span style="font-family: NSimsun;">IPlatformRunnable</span></code> 和 <code><span style="font-family: NSimsun;">run()</span></code> 方法的类的名称告诉 Eclipse 运行库。在 Hello World RCP 应用程序里，程序名是 com.ibm.plte.application，类名是 com.ibm.plte.Application。<br>
+            <br>
+            注意，既然 Eclipse IDE 是一个 RCP 应用程序，那么它也定义了该扩展点。在 Eclipse IDE 中，应用程序名是 org.eclipse.ui.ide.workbench，类名是 org.eclipse.ui.internal.ide.IDEApplication。</td>
+        </tr>
+        <tr>
+            <th>org.eclipse.ui.perspectives<br>
+            Perspective.java</th>
+            <td><em>透视图</em> 是一系列包含位置和大小的可见视图、编辑器和菜单。在 RCP 应用程序中，您必须定义至少一个透视图并将它设置为默认的。透视图是通过使用该扩展点引用的类名实现 <code><span style="font-family: NSimsun;">IPerspectiveFactory</span></code> 而创建的。该接口最重要的部分是 <code><span style="font-family: NSimsun;">createInitialLayout()</span></code> 方法，您在这里定位和打开您希望用户开始时看到的任何视图或编辑器。本例到目前这里还没有视图或编辑器，因此方法是空的。</td>
+        </tr>
+        <tr>
+            <th>PltePlugin.java</th>
+            <td>该类被称为<em>插件类</em>。一个可选的单个类可以用来存储插件的全局信息。它也是放置插件中其他类使用的静态实用功能的一个方便的地方。</td>
+        </tr>
+        <tr>
+            <th>Application.java</th>
+            <td>Application.java 类是 RCP 应用程序的主例程。与 Java 类 <code><span style="font-family: NSimsun;">main()</span></code> 类似，是应用程序的控制器。该类负责创建一个工作台并将 ApplicationWorkbenchAdvisor.java 与其连接。<br>
+            <br>
+            工作台作为 RCP 框架的一部分声明和维护。只有惟一一个工作台，但是可以有不只一个可见的顶层工作台窗口。例如，在 Eclipse IDE 中，当您第一次启动 Eclipse 时，您将会看到一个工作台窗口，但是如果您选择 <strong>Window &gt; New Window</strong>，则会弹出第二个窗口。因此，现在有了两个工作台窗口，但是只有一个工作台。</td>
+        </tr>
+        <tr>
+            <th>ApplicationWorkbenchWindow.java<br>
+            ApplicationWorkbenchAdvisor.java<br>
+            ApplicationActionBarAdvisor.java</th>
+            <td>有三个 advisor 类用来配置工作台的所有方面，如标题、菜单条等。这些是 RCP 开发人员要理解的最重要的类。您可以在 RCP 应用程序中扩展基类（例如 WorkbenchAdvisor），并覆盖一个或多个方法来设置您需要的选项。详细信息参见产品文档。</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><a name="1.2"><span class="smalltitle"><strong><span style="font-size: 16px;">步骤 2：运行最小的 Hello World RCP 应用程序</span></strong></span></a></p>
+<p>确保 com.ibm.plte (plugin.xml) 编辑器的 overview 页面是打开的。单击 Testing 部分的 <strong>Launch an Eclipse application</strong>。最小的 Hello World RCP 应用程序应该与下面所显示的相似。</p>
+<p><br>
+<a name="fig2"><strong>图 2. 最小的 RCP 应用程序</strong></a><br>
+<img alt="最小的 RCP 应用程序" src="https://www6.software.ibm.com/developerworks/cn/education/opensource/os-ecl-rcpapp/image004.jpg" height="300" width="400"></p>
+<p>用这两个简单的步骤，您创建和运行了一个最小的 RCP 应用程序。这时，RCP 应用程序包含一个透视图，而没有其他 Eclipse 功能（菜单、动作、视图、首选项页面、帮助，等等）。接下来您将添加这些功能。</p>
+<p><a name="1.3"><span class="smalltitle"><strong><span style="font-size: 16px;">步骤 3：向最小的 Hello World RCP 应用程序添加菜单和动作</span></strong></span></a></p>
+<p>菜单和动作将通过两种途径添加。这里，我们以编程方式来将它们添加到 RCP 应用程序。后面您将通过扩展点来添加。</p>
+<p>将添加以下五个菜单：</p>
+<ul>
+    <li>File</li>
+    <li>Window</li>
+    <li>Help</li>
+    <li>Window/Open perspective</li>
+    <li>Window/Show view</li>
+</ul>
+<p>然后添加以下六个动作：</p>
+<ul>
+    <li>File/Exit</li>
+    <li>Window/Open perspective/Other</li>
+    <li>Window/Show view/Other</li>
+    <li>Window/Preferences</li>
+    <li>Help/Help contents</li>
+    <li>Help/About</li>
+</ul>
+<p>您在这里添加的动作是通常包含在 Eclipse IDE 中的预构建动作。然而，RCP 为了您的方便将它们提供给您。要理解这些菜单和动作是如何定义的，请查看 com.ibm.plte.help 特性项目中的 ApplicationActionBarAdvisor.java。注意，使用工作框架，您可以贡献您自己的动作。后面将使用扩展点来做到这一点。</p>
+<p>实施步骤：</p>
+<ol>
+    <li>用 com.ibm.plte.help 特性项目中一个相同名称的文件替换 com.ibm.plte 插件的 com.ibm.plte.ApplicationActionBarAdvisor.java。</li>
+    <li>确保已关闭先前打开的 RCP 应用程序。返回 com.ibm.plte (plugin.xml) 编辑器的 overview 页面，并单击 Testing 部分的 <strong>Launch an Eclipse application</strong>。RCP 应用程序应该有多个菜单。 <br>
+    <br>
+    <a name="fig3"><strong>图 3. 具有一些菜单的 RCP 应用程序</strong></a><br>
+    <img alt="具有一些菜单的 RCP 应用程序" src="https://www6.software.ibm.com/developerworks/cn/education/opensource/os-ecl-rcpapp/image006.jpg" height="300" width="400"></li>
+    <li>单击 <strong>Window &gt; Open Perspective &gt; Other</strong>。在 Select Perspective 对话框中，您将会看到一个名为 Plte Perspective (default) 的透视图。这是您使用 Hello RCP 模板创建的透视图。</li>
+    <li>单击 <strong>Window &gt; Show View &gt; Other</strong>。您将看到一个空的 Show View 对话框。这是因为您还没有将任何首选项添加到 RCP 应用程序。我们将在下一节中做到这一点。</li>
+    <li>单击 <strong>Window &gt; Preferences</strong>。您将会看到 Preferences 对话框。这是因为您还没有将任何 preference 添加到 RCP 应用程序。我将在下一节中做到这一点。</li>
+    <li>单击 <strong>Help &gt; About</strong>。About 对话框除了三个按钮，什么都没有。About 对话框提供关于安装在您的 RCP 应用程序中的特性和插件集合的信息。因为您还没有添加任何特性，所以对话框是空的。</li>
+    <li>单击 <strong>Plug-in Details</strong>。对话框将显示作为 RCP 应用程序一部分的插件的完全列表。我们将看到 10 个 RCP 插件，以及我们创建的一个插件。</li>
+    <li>单击该对话框中的 com.ibm.plte 插件，注意到 <strong>More Info</strong> 按钮是被禁用的。<strong>More Info</strong> 提供有关插件的附加信息。如果您希望提供有关您的插件的附加信息，您需要将其添加到 about.html 文件中。我们将在下一步做到这一点。 <br>
+    <br>
+    <a name="fig4"><strong>图 4. Hello World RCP 应用程序中包含的插件</strong></a><br>
+    <img alt="Hello World RCP 应用程序中包含的插件" src="https://www6.software.ibm.com/developerworks/cn/education/opensource/os-ecl-rcpapp/image008.jpg" height="375" width="500"></li>
+</ol>
+<p> </p>
+<p>我们没有执行的动作是 <strong>Help &gt; Help Contents</strong>。这需要许多没有包含在 Hello World RCP 应用程序中的 Help 插件。因此，该动作直到添加了必需的 Help 插件才会运行。我们将在下一节做到这一点。</p>
+<p><a name="1.4"><span class="smalltitle"><strong><span style="font-size: 16px;">步骤 4：向最小的 Hello World RCP 应用程序添加插件信息</span></strong></span></a></p>
+<p>这里，您通过 about.html 文件提供插件的有关信息：</p>
+<ol>
+    <li>将 about.html 从 com.ibm.plte.help 特性项目移动到 com.ibm.plte 插件。</li>
+    <li>确保已关闭先前打开的 RCP 应用程序。返回到 com.ibm.plte (plugin.xml) 编辑器的 overview 页面，并单击 Testing 部分的 <strong>Launch an Eclipse application</strong>。</li>
+    <li>单击 <strong>Help &gt; About</strong>。</li>
+    <li>单击 <strong>Plug-in Details</strong>。</li>
+    <li>选择 com.ibm.plte 插件。<strong>More Info</strong> 按钮将启用。</li>
+    <li>单击 <strong>More Info</strong>，about.html 将打开在浏览器中。 <br>
+    <br>
+    <a name="fig5"><strong>图 5. com.ibm.plte 插件的描述</strong></a><br>
+    <img alt="com.ibm.plte 插件的描述." src="https://www6.software.ibm.com/developerworks/cn/education/opensource/os-ecl-rcpapp/image010.jpg" height="252" width="500"></li>
+</ol></div></body></html>

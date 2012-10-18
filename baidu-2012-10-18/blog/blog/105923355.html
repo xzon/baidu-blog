@@ -1,0 +1,216 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>47-Spring IOC -mldn学习笔记 -hxzon</title></head><body><h1>47-Spring IOC -mldn学习笔记 -hxzon</h1><div><div>47-Spring IOC -mldn学习笔记 -hxzon</div>
+<div> </div>
+<div>1、IOC：控制反转（依赖注入）--&gt;通过配置文件进行Bean的设置<br>
+2、问题：虽然在程序中提倡使用pojo类，但有时希望可以通过构造方法实例化对象。<br>
+在Bean.java中新加一个构造方法。<br>
+public SimpleBean(String name,String password)<br>
+{<br>
+&nbsp;&nbsp;  this.setName(name) ;<br>
+&nbsp;&nbsp;  this.setPassword(password) ;<br>
+}<br>
+在配置文件中新加一个子标签&lt;constructor-arg&gt;。<br>
+&lt;bean id=&quot;simple&quot; class=&quot;cn.mldn.lxh.demo02.SimpleBean&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;constructor-arg index=&quot;0&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;value&gt;LiXingHua&lt;/value&gt;<br>
+&nbsp;&nbsp;  &lt;/constructor-arg&gt;<br>
+&nbsp;&nbsp;  &lt;constructor-arg index=&quot;1&quot; value=&quot;www.MLDN.cn&quot;&gt;&lt;/constructor-arg&gt;<br>
+&lt;/bean&gt;<br>
+3、一个类中使用另一个类对象作为属性。<br>
+改用子标签&lt;ref&gt;引用一个已经声明的Bean。<br>
+&lt;bean id=&quot;date&quot; class=&quot;java.util.Date&quot;&gt;<br>
+&lt;/bean&gt;<br>
+&lt;bean id=&quot;ref&quot; class=&quot;cn.mldn.lxh.demo03.RefBean&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;name&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;value&gt;LiXingHua&lt;/value&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;date&quot; &gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;ref bean=&quot;date&quot; /&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&lt;/bean&gt;<br>
+4、Spring中除了通过ref绑定之外，还提供了一种自动绑定机制。<br>
+通过加一个autowire属性来自动查找，省去了整个&lt;property name=&quot;date&quot; &gt;标签。<br>
+&lt;beans&gt;<br>
+&lt;bean id=&quot;date&quot; class=&quot;java.util.Date&quot;&gt;&lt;/bean&gt;<br>
+&lt;bean id=&quot;ref&quot; class=&quot;cn.mldn.lxh.demo03.RefBean&quot;<br>
+&nbsp;&nbsp;  autowire=&quot;byName&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;name&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;value&gt;LiXingHua&lt;/value&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&lt;/bean&gt;<br>
+&lt;/beans&gt;<br>
+属性值有byName,byType,constructor。<br>
+byName，被注入的Bean的id要和类中的属性名相同。<br>
+byType，通过类型查找。<br>
+constructor，通过构造方法绑定，要在类中新加一个构造方法。<br>
+public RefBean(Date date)<br>
+{<br>
+&nbsp;&nbsp;  this.setDate(date) ;<br>
+}<br>
+配置文件如下。<br>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;<br>
+&lt;!DOCTYPE beans PUBLIC &quot;-//SPRING//DTD BEAN//EN&quot; &quot;http://www.springframework.org/dtd/spring-beans.dtd&quot;&gt;<br>
+&lt;beans&gt;<br>
+&lt;bean id=&quot;date&quot; class=&quot;java.util.Date&quot;&gt;&lt;/bean&gt;<br>
+&lt;bean id=&quot;ref&quot; class=&quot;cn.mldn.lxh.demo03.RefBean&quot;<br>
+&nbsp;&nbsp;  autowire=&quot;constructor&quot;&gt;<br>
+&nbsp;&nbsp;  &lt;property name=&quot;name&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;value&gt;LiXingHua&lt;/value&gt;<br>
+&nbsp;&nbsp;  &lt;/property&gt;<br>
+&lt;/bean&gt;<br>
+&lt;/beans&gt;<br>
+==============================================================<br>
+5、Aware相关接口，表示在Spring实例化Bean之前进行调用。<br>
+-------------<br>
+package cn.mldn.lxh.demo04;</div>
+<div> </div>
+<div>import org.springframework.beans.factory.BeanNameAware;</div>
+<div> </div>
+<div>public class HelloBean implements BeanNameAware {<br>
+&nbsp;&nbsp;&nbsp;  private String name ;<br>
+&nbsp;&nbsp;&nbsp;  public void setBeanName(String arg0) {//在getBean时会被调用<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(arg0) ;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public String getName() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return name;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public void setName(String name) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.name = name;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+---------<br>
+&lt;beans&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;hello&quot; class=&quot;cn.mldn.lxh.demo04.HelloBean&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;name&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;LiXingHua&lt;/value&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/bean&gt;<br>
+&lt;/beans&gt;<br>
+--------<br>
+package cn.mldn.lxh.demo04;</div>
+<div> </div>
+<div>import org.springframework.context.ApplicationContext;<br>
+import org.springframework.context.support.ClassPathXmlApplicationContext;</div>
+<div> </div>
+<div>public class TestHelloBean {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public static void main(String[] args) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ApplicationContext ctx = null ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ctx = new ClassPathXmlApplicationContext(&quot;applicationContext.xml&quot;) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ctx.getBean(&quot;hello&quot;) ;//会调用setBeanName<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+6、ApplicationContextAware，在Bean被初始化之后，将会被注入ApplicationContext实例。<br>
+-----------<br>
+package cn.mldn.lxh.demo05;</div>
+<div> </div>
+<div>import org.springframework.beans.BeansException;<br>
+import org.springframework.context.ApplicationContext;<br>
+import org.springframework.context.ApplicationContextAware;</div>
+<div> </div>
+<div>public class HelloBean implements ApplicationContextAware {<br>
+&nbsp;&nbsp;&nbsp;  private String name ;<br>
+&nbsp;&nbsp;&nbsp;  public void setApplicationContext(ApplicationContext arg0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  throws BeansException {//在Bean初始化时被调用<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  HelloBean hb = (HelloBean)arg0.getBean(&quot;hello&quot;) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;内部打印 --&gt; &quot;+hb.getName()) ;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public String getName() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return name;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public void setName(String name) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.name = name;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+-----------<br>
+applicationContext.xml与上边相同。<br>
+package cn.mldn.lxh.demo05;</div>
+<div> </div>
+<div>import org.springframework.context.ApplicationContext;<br>
+import org.springframework.context.MessageSource;<br>
+import org.springframework.context.support.ClassPathXmlApplicationContext;</div>
+<div> </div>
+<div>public class TestHelloBean {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public static void main(String[] args) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ApplicationContext ctx = null ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ctx = new ClassPathXmlApplicationContext(&quot;applicationContext.xml&quot;) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  MessageSource mr = null ;<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>}<br>
+7、消息支持：ApplicationContext继承了MessageSource接口，用户可以直接使用。<br>
+-------<br>
+package cn.mldn.lxh.demo06;</div>
+<div> </div>
+<div>import java.util.*;</div>
+<div> </div>
+<div>import org.springframework.context.ApplicationContext;<br>
+import org.springframework.context.support.ClassPathXmlApplicationContext;</div>
+<div> </div>
+<div>public class SpringDemo06 {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public static void main(String[] args) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ApplicationContext ctx = null ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ctx = new ClassPathXmlApplicationContext(&quot;applicationContext.xml&quot;) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Object arg[] = new Object[]{&quot;李兴华&quot;,new Date()} ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // System.out.println(ctx.getMessage(&quot;userLogin&quot;, arg, Locale.SIMPLIFIED_CHINESE)) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(ctx.getMessage(&quot;userLogin&quot;, arg, Locale.US)) ;<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>}<br>
+---------<br>
+&lt;beans&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;messageSource&quot; class=&quot;org.springframework.context.support.ResourceBundleMessageSource&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;basename&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;messages&lt;/value&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/property&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/bean&gt;<br>
+&lt;/beans&gt;<br>
+----------messages_en_US.properties----<br>
+userLogin=User {0} Login at {1} .<br>
+----------messages_zh_CN.properties----<br>
+userLogin=\u6B22\u8FCE{0}\u5149\u4E34\uFF0C\u73B0\u5728\u662F{1}<br>
+8、事件监听（容器关闭，容器初始化，web请求处理）<br>
+---------<br>
+package cn.mldn.lxh.demo07;</div>
+<div> </div>
+<div>import org.springframework.context.ApplicationEvent;</div>
+<div> </div>
+<div>public class DefaultEvent extends ApplicationEvent {<br>
+&nbsp;&nbsp;&nbsp;  public DefaultEvent(Object source) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super(source);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+----------<br>
+package cn.mldn.lxh.demo07;</div>
+<div> </div>
+<div>import org.springframework.context.ApplicationEvent;<br>
+import org.springframework.context.ApplicationListener;</div>
+<div> </div>
+<div>public class DefaultListener implements ApplicationListener {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public void onApplicationEvent(ApplicationEvent arg0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(arg0.getSource());<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>}<br>
+--------<br>
+&lt;beans&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;lst&quot; class=&quot;cn.mldn.lxh.demo07.DefaultListener&quot;&gt;&lt;/bean&gt;<br>
+&lt;/beans&gt;<br>
+--------<br>
+package cn.mldn.lxh.demo07;</div>
+<div> </div>
+<div>import org.springframework.context.ApplicationContext;<br>
+import org.springframework.context.support.ClassPathXmlApplicationContext;</div>
+<div> </div>
+<div>public class TestEvent {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  public static void main(String[] args) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ApplicationContext ctx = null ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ctx = new ClassPathXmlApplicationContext(&quot;applicationContext.xml&quot;) ;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ctx.publishEvent(new DefaultEvent(TestEvent.class)) ;<br>
+&nbsp;&nbsp;&nbsp;  }</div>
+<div> </div>
+<div>}<br>
+=======</div></div></body></html>

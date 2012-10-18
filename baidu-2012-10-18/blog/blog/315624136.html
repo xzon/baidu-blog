@@ -1,0 +1,550 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Java 理论与实践: 您的小数点到哪里去了？</title></head><body><h1>Java 理论与实践: 您的小数点到哪里去了？</h1><div><h1>Java 理论与实践: 您的小数点到哪里去了？</h1>
+<p><em>使用浮点数和小数中的技巧和陷阱</em></p><p><em>http://www.ibm.com/developerworks/cn/java/j-jtp0114/</em></p><p><em>java基础进阶<br></em></p><p><b>发布日期：</b>&nbsp;2003 年 4 月 20 日</p><p><a class="dwauthor" rel="#authortip1" href="http://www.ibm.com/developerworks/cn/java/j-jtp0114/#author1">Brian Goetz</a>, 首席顾问, Quiotix Corp</p><p><b>简介：</b>&nbsp;许多程序员在其整个开发生涯中都不曾使用定点或浮点数，可能的例外是，偶尔在计时测试或基准测试程序中会用到。Java语言和类库支持两类非整数类型 ― IEEE 754 浮点（ 
+      <code>float</code> 和 
+      <code>double</code> ，包装类（wrapper class）为 
+      <code>Float</code> 和 
+      <code>Double</code> ），以及任意精度的小数（ 
+      <code>java.math.BigDecimal</code> ）。在本月的
+      <em>Java 理论和实践</em>中，Brian Goetz 探讨了在 Java 程序中使用非整数类型时一些常碰到的陷阱和“gotcha”。请在本文的
+      <a>论坛</a>上提出您对本文的想法，以飨笔者和其他读者。（您也可以单击本文顶部或底部的讨论来访问论坛）。</p>
+<p>虽然几乎每种处理器和编程语言都支持浮点运算，但大多数程序员很少注意它。这容易理解 ― 我们中大多数很少需要使用非整数类型。除了科学计算和偶尔的计时测试或基准测试程序，其它情况下几乎都用不着它。同样，大多数开发人员也容易忽略 
+        <code>java.math.BigDecimal</code> 
+所提供的任意精度的小数 ― 大多数应用程序不使用它们。然而，在以整数为主的程序中有时确实会出人意料地需要表示非整型数据。例如，JDBC 使用 
+        <code>BigDecimal</code> 作为 SQL 
+        <code>DECIMAL</code> 列的首选互换格式。
+      </p>
+
+      
+<p><a name="1"><span class="atitle">IEEE 浮点</span></a></p>
+
+      
+<p>
+Java 语言支持两种基本的浮点类型： 
+        <code>float</code> 和 
+        <code>double</code> ，以及与它们对应的包装类 
+        <code>Float</code> 和 
+        <code>Double</code> 。它们都依据 IEEE 754 标准，该标准为 32 位浮点和 64
+位双精度浮点二进制小数定义了二进制标准。
+      </p>
+
+      
+<p>IEEE 754 用科学记数法以底数为 2 的小数来表示浮点数。IEEE 浮点数用 1 位表示数字的符号，用 8 位来表示指数，用 23 位来表示尾数，即小数部分。作为有符号整数的指数可以有正负之分。小数部分用二进制（底数
+2）小数来表示，这意味着最高位对应着值 ?(2
+        <sup>-1</sup>)，第二位对应着 ?(2
+        <sup>-2</sup>)，依此类推。对于双精度浮点数，用 11 位表示指数，52 位表示尾数。IEEE 浮点值的格式如图 1 所示。
+      </p>
+
+      
+        <br>
+<a name="IDADA0PE"><b>图 1. IEEE 754 浮点数的格式
+</b></a><br>
+
+        <img alt="图 1. IEEE 754 浮点数的格式" src="http://hiphotos.baidu.com/hxzon/pic/item/49a85caf87094cabfaed5064.jpg" height="177" width="579">
+      <br>
+
+      
+<p>因为用科学记数法可以有多种方式来表示给定数字，所以要规范化浮点数，以便用底数为 2 并且小数点左边为 1
+的小数来表示，按照需要调节指数就可以得到所需的数字。所以，例如，数 1.25 可以表示为尾数为 1.01，指数为 0： 
+        <code>(-1)
+          <sup>0</sup>*1.01
+          <sub>2</sub>*2
+          <sup>0</sup>
+    
+        </code> 
+      </p>
+
+      
+<p>数 10.0 可以表示为尾数为 1.01，指数为 3： 
+        <code>(-1)
+          <sup>0</sup>*1.01
+          <sub>2</sub>*2
+          <sup>3</sup>
+    
+        </code> 
+      </p>
+
+      
+<p><a name="N100C3"><span class="smalltitle">特殊数字</span></a></p>
+
+      
+<p>
+除了编码所允许的值的标准范围（对于 
+        <code>float</code> ，从 1.4e-45 到 3.4028235e+38），还有一些表示无穷大、负无穷大、 
+        <code>-0</code> 和 NaN（它代表“不是一个数字”）的特殊值。这些值的存在是为了在出现错误条件（譬如算术溢出，给负数开平方根，除以 
+        <code>0</code> 等）下，可以用浮点值集合中的数字来表示所产生的结果。
+      </p>
+
+      
+<p>这些特殊的数字有一些不寻常的特征。例如， 
+        <code>0</code> 和 
+        <code>-0</code> 是不同值，但在比较它们是否相等时，被认为是相等的。用一个非零数去除以无穷大的数，结果等于 
+        <code>0</code> 。特殊数字 NaN 是无序的；使用 
+        <code>==</code> 、 
+        <code>&lt;</code> 和 
+        <code>&gt;</code> 运算符将 NaN 与其它浮点值比较时，结果为 
+        <code>false</code> 。如果 
+        <code>f</code> 为 NaN，则即使 
+        <code>(f == f)</code> 也会得到 
+        <code>false</code> 。如果想将浮点值与 NaN 进行比较，则使用 
+        <code>Float.isNaN()</code> 
+方法。表 1 显示了无穷大和 NaN 的一些属性。
+      </p>
+
+      
+<p><a name="N10107"><span class="smalltitle">表 1. 特殊浮点值的属性</span></a></p>
+
+      
+<table class="ibm-data-table" border="0" cellpadding="0" cellspacing="6">
+<tbody><tr><td>
+              <strong>表达式</strong>
+            </td><td>
+              <strong>结果</strong>
+            </td></tr><tr><td>
+ 
+              <code>Math.sqrt(-1.0)</code> 
+            </td><td>
+ 
+              <code>-&gt; NaN</code> 
+            </td></tr><tr><td>
+ 
+              <code>0.0 / 0.0</code> 
+            </td><td>
+ 
+              <code>-&gt; NaN</code> 
+            </td></tr><tr><td>
+ 
+              <code>1.0 / 0.0</code> 
+            </td><td>
+ 
+              <code>-&gt; 无穷大</code> 
+            </td></tr><tr><td>
+ 
+              <code>-1.0 / 0.0</code> 
+            </td><td>
+ 
+              <code>-&gt; 负无穷大</code> 
+            </td></tr><tr><td>
+ 
+              <code>NaN + 1.0</code> 
+            </td><td>
+ 
+              <code>-&gt; NaN</code> 
+            </td></tr><tr><td>
+ 
+              <code>无穷大 + 1.0</code> 
+            </td><td>
+ 
+              <code>-&gt; 无穷大</code> 
+            </td></tr><tr><td>
+ 
+              <code>无穷大 + 无穷大</code> 
+            </td><td>
+ 
+              <code>-&gt; 无穷大</code> 
+            </td></tr><tr><td>
+ 
+              <code>NaN &gt; 1.0</code> 
+            </td><td>
+ 
+              <code>-&gt; false</code> 
+            </td></tr><tr><td>
+ 
+              <code>NaN == 1.0</code> 
+            </td><td>
+ 
+              <code>-&gt; false</code> 
+            </td></tr><tr><td>
+ 
+              <code>NaN &lt; 1.0</code> 
+            </td><td>
+ 
+              <code>-&gt; false</code> 
+            </td></tr><tr><td>
+ 
+              <code>NaN == NaN</code> 
+            </td><td>
+ 
+              <code>-&gt; false</code> 
+            </td></tr><tr><td>
+ 
+              <code>0.0 == -0.01</code> 
+            </td><td>
+ 
+              <code>-&gt; true</code> 
+            </td></tr></tbody>
+</table>
+
+      
+<p><a name="N101F1"><span class="smalltitle">基本浮点类型和包装类浮点有不同的比较行为</span></a></p>
+
+      
+<p>
+使事情更糟的是，在基本 
+        <code>float</code> 类型和包装类 
+        <code>Float</code> 之间，用于比较 NaN 和 
+        <code>-0</code> 
+的规则是不同的。对于 
+        <code>float</code> 值，比较两个 NaN 值是否相等将会得到 
+        <code>false</code> ，而使用 
+        <code>Float.equals()</code> 来比较两个 NaN 
+        <code>Float</code> 对象会得到 
+        <code>true</code> 。造成这种现象的原因是，如果不这样的话，就不可能将 NaN 
+        <code>Float</code> 
+对象用作 
+        <code>HashMap</code> 中的键。类似的，虽然 
+        <code>0</code> 和 
+        <code>-0</code> 在表示为浮点值时，被认为是相等的，但使用 
+        <code>Float.compareTo()</code> 来比较作为 
+        <code>Float</code> 对象的 
+        <code>0</code> 和 
+        <code>-0</code> 
+时，会显示 
+        <code>-0</code> 小于 
+        <code>0</code> 。
+      </p>
+<p><a name="2"><span class="atitle">浮点中的危险</span></a></p>
+
+      
+<p>
+由于无穷大、NaN 和 
+        <code>0</code> 的特殊行为，当应用浮点数时，可能看似无害的转换和优化实际上是不正确的。例如，虽然好象 
+        <code>0.0-f</code> 很明显等于 
+        <code>-f</code> ，但当 
+        <code>f</code> 
+为 
+        <code>0</code> 时，这是不正确的。还有其它类似的 gotcha，表 2 显示了其中一些 gotcha。
+      </p>
+
+      
+<p><a name="N1025F"><span class="smalltitle">表 2. 无效的浮点假定</span></a></p>
+
+      
+<table class="ibm-data-table" border="0" cellpadding="0" cellspacing="6">
+<tbody><tr><td>
+              <strong>这个表达式……</strong>
+            </td><td>
+              <strong>不一定等于……</strong>
+            </td><td>
+              <strong>当……</strong>
+            </td></tr><tr><td>
+ 
+              <code>0.0 - f</code> 
+            </td><td>
+ 
+              <code>-f</code> 
+            </td><td>f 为 
+              <code>0</code> 
+            </td></tr><tr><td>
+ 
+              <code>f &lt; g</code> 
+            </td><td>
+ 
+              <code>! (f &gt;= g)</code> 
+            </td><td>f 或 g 为 NaN</td></tr><tr><td>
+ 
+              <code>f == f</code> 
+            </td><td>
+ 
+              <code>true</code> 
+            </td><td>f 为 NaN</td></tr><tr><td>
+ 
+              <code>f + g - g</code> 
+            </td><td>
+ 
+              <code>f</code> 
+            </td><td>g 为无穷大或 NaN</td></tr></tbody>
+</table>
+
+      
+<p><a name="N102D7"><span class="smalltitle">舍入误差</span></a></p>
+
+      
+<p>
+浮点运算很少是精确的。虽然一些数字（譬如 
+        <code>0.5</code> ）可以精确地表示为二进制（底数 2）小数（因为 
+        <code>0.5</code> 等于 2
+        <sup>-1</sup>），但其它一些数字（譬如 
+        <code>0.1</code> ）就不能精确的表示。因此，浮点运算可能导致舍入误差，产生的结果接近 ― 但不等于 ― 您可能希望的结果。例如，下面这个简单的计算将得到 
+        <code>2.600000000000001</code> ，而不是 
+        <code>2.6</code> ：
+      </p>
+
+      <br>
+
+ 
+      
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody><tr><td class="code-outline"><pre class="displaycode"> double s=0;<br>  for (int i=0; i&lt;26; i++)<br>    s += 0.1;<br>  System.out.println(s);<br></pre></td></tr></tbody>
+</table>
+<br>
+ 
+      <br>
+
+      
+<p>类似的， 
+        <code>.1*26</code> 相乘所产生的结果不等于 
+        <code>.1</code> 自身加 26 次所得到的结果。当将浮点数强制转换成整数时，产生的舍入误差甚至更严重，因为强制转换成整数类型会舍弃非整数部分，甚至对于那些“看上去似乎”应该得到整数值的计算，也存在此类问题。例如，下面这些语句：
+      </p>
+
+      <br>
+
+ 
+      
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody><tr><td class="code-outline"><pre class="displaycode"> double d = 29.0 * 0.01;<br>  System.out.println(d);<br>  System.out.println((int) (d * 100));<br></pre></td></tr></tbody>
+</table>
+<br>
+ 
+      <br>
+
+      
+<p>将得到以下输出：</p>
+
+      <br>
+
+ 
+      
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody><tr><td class="code-outline"><pre class="displaycode"> 0.29<br>  28<br></pre></td></tr></tbody>
+</table>
+<br>
+ 
+      
+<p>这可能不是您起初所期望的。</p>
+<p><a name="3"><span class="atitle">浮点数比较指南</span></a></p>
+
+      
+<p>
+由于存在 NaN 的不寻常比较行为和在几乎所有浮点计算中都不可避免地会出现舍入误差，解释浮点值的比较运算符的结果比较麻烦。</p>
+
+      
+<p>最好完全避免使用浮点数比较。当然，这并不总是可能的，但您应该意识到要限制浮点数比较。如果必须比较浮点数来看它们是否相等，则应该
+将它们差的绝对值同一些预先选定的小正数进行比较，这样您所做的就是测试它们是否“足够接近”。（如果不知道基本的计算范围，可以使用测试
+“abs(a/b - 1) &lt; epsilon”，这种方法比简单地比较两者之差要更准确）。甚至测试看一个值是比零大还是比零小也存在危险 
+―“以为”会生成比零略大值的计算事实上可能由于积累的舍入误差会生成略微比零小的数字。</p>
+
+      
+<p>NaN 的无序性质使得在比较浮点数时更容易发生错误。当比较浮点数时，围绕无穷大和 NaN
+问题，一种避免 gotcha 的经验法则是显式地测试值的有效性，而不是试图排除无效值。在清单 1 中，有两个可能的用于特性的 setter 
+的实现，该特性只能接受非负数值。第一个实现会接受 NaN，第二个不会。第二种形式比较好，因为它显式地检测了您认为有效的值的范围。</p>
+
+      <br>
+<a name="IDA52XPE"><b>清单 1. 需要非负浮点值的较好办法和较差办法</b></a><br>
+
+ 
+      
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody><tr><td class="code-outline"><pre class="displaycode">   // Trying to test by exclusion -- this doesn't catch NaN or infinity<br>    public void setFoo(float foo) {<br>      if (foo &lt; 0)<br>          throw new IllegalArgumentException(Float.toString(f));<br>        this.foo = foo;<br>    }<br>    // Testing by inclusion -- this does catch NaN<br>    public void setFoo(float foo) {<br>      if (foo &gt;= 0 &amp;&amp; foo &lt; Float.INFINITY)<br>        this.foo = foo;<br>  else<br>        throw new IllegalArgumentException(Float.toString(f));<br>    }<br></pre></td></tr></tbody>
+</table>
+<br>
+ 
+      
+<p><a name="N10337"><span class="smalltitle">不要用浮点值表示精确值</span></a></p>
+
+      
+<p>
+一些非整数值（如几美元和几美分这样的小数）需要很精确。浮点数不是精确值，所以使用它们会导致舍入误差。因此，使用浮点数来试图表示象货币量这样的精确
+数量不是一个好的想法。使用浮点数来进行美元和美分计算会得到灾难性的后果。浮点数最好用来表示象测量值这类数值，这类值从一开始就不怎么精确。</p>
+<p><a name="4"><span class="atitle">用于较小数的 BigDecimal</span></a></p>
+
+      
+<p>
+从 JDK 1.3 起，Java 开发人员就有了另一种数值表示法来表示非整数： 
+        <code>BigDecimal</code> 。 
+        <code>BigDecimal</code> 是标准的类，在编译器中不需要特殊支持，它可以表示任意精度的小数，并对它们进行计算。在内部，可以用任意精度任何范围的值和一个换算因子来表示 
+        <code>BigDecimal</code> ，换算因子表示左移小数点多少位，从而得到所期望范围内的值。因此，用 
+        <code>BigDecimal</code> 
+表示的数的形式为 
+        <code>unscaledValue*10
+          <sup>-scale</sup>
+    
+        </code> 。
+      </p>
+
+      
+<p>用于加、减、乘和除的方法给 
+        <code>BigDecimal</code> 值提供了算术运算。由于 
+        <code>BigDecimal</code> 
+对象是不可变的，这些方法中的每一个都会产生新的 
+        <code>BigDecimal</code> 对象。因此，因为创建对象的开销， 
+        <code>BigDecimal</code> 不适合于大量的数学计算，但设计它的目的是用来精确地表示小数。如果您正在寻找一种能精确表示如货币量这样的数值，则 
+        <code>BigDecimal</code> 可以很好地胜任该任务。
+      </p>
+
+      
+<p><a name="N10377"><span class="smalltitle">所有的 equals 方法都不能真正测试相等</span></a></p>
+
+      
+<p>
+如浮点类型一样， 
+        <code>BigDecimal</code> 也有一些令人奇怪的行为。尤其在使用 
+        <code>equals()</code> 
+方法来检测数值之间是否相等时要小心。 
+        <code>equals()</code> 方法认为，两个表示同一个数但换算值不同（例如， 
+        <code>100.00</code> 
+和 
+        <code>100.000</code> ）的 
+        <code>BigDecimal</code> 值是不相等的。然而， 
+        <code>compareTo()</code> 方法会认为这两个数是相等的，所以在从数值上比较两个 
+        <code>BigDecimal</code> 值时，应该使用 
+        <code>compareTo()</code> 而不是 
+        <code>equals()</code> 。
+      </p>
+
+      
+<p>另外还有一些情形，任意精度的小数运算仍不能表示精确结果。例如， 
+        <code>1</code> 除以 
+        <code>9</code> 会产生无限循环的小数 
+        <code>.111111...</code> 。出于这个原因，在进行除法运算时， 
+        <code>BigDecimal</code> 可以让您显式地控制舍入。 
+        <code>movePointLeft()</code> 方法支持 10 的幂次方的精确除法。
+      </p>
+
+      
+<p><a name="N103BF"><span class="smalltitle">使用 BigDecimal 作为互换类型</span></a></p>
+
+      
+<p>
+SQL-92 包括 
+        <code>DECIMAL</code> 数据类型，它是用于表示定点小数的精确数字类型，它可以对小数进行基本的算术运算。一些 SQL
+语言喜欢称此类型为 
+        <code>NUMERIC</code> 类型，其它一些 SQL 语言则引入了 
+        <code>MONEY</code> 数据类型，MONEY 数据类型被定义为小数点右侧带有两位的小数。
+      </p>
+
+      
+<p>如果希望将数字存储到数据库中的 
+        <code>DECIMAL</code> 字段，或从 
+        <code>DECIMAL</code> 字段检索值，则如何确保精确地转换该数字？您可能不希望使用由 JDBC 
+        <code>PreparedStatement</code> 和 
+        <code>ResultSet</code> 
+类所提供的 
+        <code>setFloat()</code> 和 
+        <code>getFloat()</code> 方法，因为浮点数与小数之间的转换可能会丧失精确性。相反，请使用 
+        <code>PreparedStatement</code> 和 
+        <code>ResultSet</code> 的 
+        <code>setBigDecimal()</code> 及 
+        <code>getBigDecimal()</code> 
+方法。
+      </p>
+
+      
+<p>对于 
+        <code>BigDecimal</code> ，有几个可用的构造函数。其中一个构造函数以双精度浮点数作为输入，另一个以整数和换算因子作为输入，还有一个以小数的 
+        <code> String</code> 表示作为输入。要小心使用 
+        <code>BigDecimal(double)</code> 构造函数，因为如果不了解它，会在计算过程中产生舍入误差。请使用基于整数或 
+        <code> String </code> 的构造函数。
+      </p>
+
+      
+<p><a name="N10412"><span class="smalltitle">构造 BigDecimal 数</span></a></p>
+
+      
+<p>
+对于 
+        <code>BigDecimal</code> ，有几个可用的构造函数。其中一个构造函数以双精度浮点数作为输入，另一个以整数和换算因子作为输入，还有一个以小数的 
+        <code>String</code> 表示作为输入。要小心使用 
+        <code>BigDecimal(double)</code> 构造函数，因为如果不了解它，会在计算过程中产生舍入误差。请使用基于整数或 
+        <code>String</code> 的构造函数。
+      </p>
+
+      
+<p>如果使用 
+        <code>BigDecimal(double)</code> 构造函数不恰当，在传递给 JDBC 
+        <code>setBigDecimal()</code> 
+方法时，会造成似乎很奇怪的 JDBC 驱动程序中的异常。例如，考虑以下 JDBC 代码，该代码希望将数字 
+        <code>0.01</code> 
+存储到小数字段：
+      </p>
+
+ 
+      
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody><tr><td class="code-outline"><pre class="displaycode"> PreparedStatement ps =<br>    connection.prepareStatement("INSERT INTO Foo SET name=?, value=?");<br>  ps.setString(1, "penny");<br>  ps.setBigDecimal(2, new BigDecimal(0.01));<br>  ps.executeUpdate();<br></pre></td></tr></tbody>
+</table>
+<br>
+ 
+      
+<p>在执行这段似乎无害的代码时会抛出一些令人迷惑不解的异常（这取决于具体的 JDBC 驱动程序），因为 
+        <code>0.01</code> 
+的双精度近似值会导致大的换算值，这可能会使 JDBC 驱动程序或数据库感到迷惑。JDBC 驱动程序会产生异常，但可能不会说明代码实际上错在哪里，除非意识到二进制浮点数的局限性。相反，使用 
+        <code>BigDecimal("0.01")</code> 或 
+        <code>BigDecimal(1, 2)</code> 
+构造 
+        <code>BigDecimal</code> 来避免这类问题，因为这两种方法都可以精确地表示小数。
+      </p>
+<p><a name="5"><span class="atitle">结束语</span></a></p>
+
+      
+<p>
+在 Java 
+程序中使用浮点数和小数充满着陷阱。浮点数和小数不象整数一样“循规蹈矩”，不能假定浮点计算一定产生整型或精确的结果，虽然它们的确“应该”那样做。最
+好将浮点运算保留用作计算本来就不精确的数值，譬如测量。如果需要表示定点数（譬如，几美元和几美分），则使用 
+        <code>BigDecimal</code> 。
+      </p>
+<p><a name="resources"><span class="atitle">参考资料 </span></a></p>
+
+      
+<ul>
+<li>您可以参阅本文在 developerWorks 全球站点上的
+          <a href="http://www.ibm.com/developerworks/library/j-jtp0114/index.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j">英文原文</a>.
+        <br><br></li><li>请参与本文的
+          <a>论坛</a>。（您也可以单击本文顶部或底部的
+          <strong>讨论</strong>来访问论坛）。
+        <br><br></li><li>David Goldberg 的经典文章
+          <a href="http://docs.sun.com/db/doc/800-7895">What Every Scientist Should Know About Floating-Point Arithmetic</a>对各种浮点表示进行了权衡，并讨论了它们各自的缺点。
+          <br>
+        <br><br></li><li>IBM Hursley 实验室的
+          <a href="http://www2.hursley.ibm.com/decimal/decifaq1.html">FAQ</a>探讨了有关小数运算的一些问题。
+          <br>
+        <br><br></li><li>Bill Venners 在
+          <em>JavaWorld</em> 的
+          <a href="http://www.javaworld.com/javaworld/jw-10-1996/jw-10-hood.html">Under the hood</a> 专栏（Bill Venners 撰写）研究了
+JVM 中的浮点支持。
+          <br>
+        <br><br></li><li>IEEE 754 的首席架构设计师之一 William Kahan 在“
+          <a href="http://www.cs.berkeley.edu/%7Ewkahan/JAVAhurt.pdf">How Java's Floating-Point Hurts Everyone Everywhere</a>”（PDF）一文中批评了不完整的 Java 浮点实现。
+          <br>
+        <br><br></li><li>
+          <a href="ftp://download.intel.com/design/Pentium4/manuals/24547009.pdf">Intel Architecture Software Developer's Manual</a>（PDF）详细讲述了 IEEE 754 浮点的最常见实现。
+          <br>
+        <br><br></li><li>
+          <a href="http://www.castor.org/">Castor</a> XML 数据绑定框架使用 
+          <code>BigDecimal</code> 
+作为小数的互换类型。
+          <br>
+        <br><br></li><li>Java Developer Connection 的
+          <a href="http://developer.java.sun.com/developer/JDCTechTips/2001/tt0807.html">Tech Tips</a>就 Java 2 平台中数字计算提供了一些指导。
+          <br>
+        <br><br></li><li>
+          <em>JavaWorld</em>文章“
+          <a href="http://www.javaworld.com/javaworld/jw-06-2001/jw-0601-cents.html">Make cents with BigDecimal</a>”为使用 
+          <code>BigDecimal</code> 和 
+          <code>NumberFormat</code> 来进行一些财会计算提供了一些有意义的技巧。
+          <br>
+        <br><br></li><li>阅读
+          <a href="http://www.ibm.com/developerworks/java/library/j-jtpcol.html?S_TACT=105AGX52&amp;S_CMP=cn-a-j">
+            <em>Java theory and practice</em>
+专栏
+          </a>（Brian 撰写）中的所有文章。</li>
+</ul>
+<p>&nbsp;</p><h1>Java Math 类中的新功能，第 1 部分: 实数</h1><p>http://www.ibm.com/developerworks/cn/java/j-math1/index.html?ca=drs-</p><h1>Java Math 类中的新功能，第 2 部分: 浮点数</h1><p>http://www.ibm.com/developerworks/cn/java/j-math2.html</p><p><b>发布日期：</b>&nbsp;2009 年 2 月 20 日
+  
+</p>
+<p><a name="summary"><span class="atitle">结束语</span></a></p>
+
+   
+<p>浮点数并不是实数。它们的数量是有限的。它们能够表示最大和最小的值。更值得注意的是，它们的精度虽然很高，但范围很窄，并且容易出现舍入错
+误。相反，浮点数和双精度数处理整数时获得的精度远比整型数和长型数差。您必须仔细考虑这些限制，尤其是在科研和工程应用方面，以生产出健壮、可靠的代
+码。对于财务应用程序（尤其是需要精确到最后一位的会计应用程序），处理浮点数和双精度数时也需要格外小心。
+</p>
+
+   
+<p>
+    <code>java.lang.Math</code>和 <code>java.lang.StrictMath</code>类经过了精心设计，可以解决这些问题。适当地使用这些类及其包含的方法能够改善程序。本文特别展示了良好的浮点算法有多么巧妙！最好使用专家提供的算法，而不是自己独创算法。如果适合使用 <code>java.lang.Math</code>和 <code>java.lang.StrictMath</code>中提供的方法，最好继续使用。它们通常是最佳的选择。
+</p>
+<ul>
+<li>“<a href="http://www.javaworld.com/javaworld/jw-10-1996/jw-10-hood.html">浮点算法</a>”（Bill Venners，JavaWorld，1996 年 10 月）：Venners 探索了 JVM 中的浮点算法，并且讨论了执行浮点运算操作的字节码。<br><br></li><li>
+    <a href="http://en.wikipedia.org/wiki/Unit_in_the_last_place">Unit in the last place</a>：Wikipedia 上提供的文章详细阐述了这个主题。</li>
+</ul>
+<p>&nbsp;</p><p>&nbsp;</p></div></body></html>

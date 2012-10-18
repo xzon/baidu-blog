@@ -1,0 +1,212 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>java网络聊天程序-Javacode</title></head><body><h1>java网络聊天程序-Javacode</h1><div><p class="STYLE5"><strong>java网络聊天程序-Javacode</strong></p>
+<p class="STYLE5">设计思路<br>
+Socket是实现client/server模式的通信方式，它首先要建立稳定的连接，然后以流的方式传输数据，实现网络通信。使用Socket进行Client/Server程序设计的一般连接过程是这样的：Server端监听某个端口是否有连接请求，Client端向Server端发出连接请求，Server端向Client端发回接受消息。一个连接就建立起来了。Server端和Client端都可以通过Send，Write等方法与对方通信。<br>
+因为在创建socket时如果发生错误，将会产生IOException，所以在创建ServerSocket和Socket时我用了try-catch-finally语句捕获和处理异常，并通过JOptionPane给用户发出提示。<br>
+本程序接收消息的模块使用了教材上的由Socket对象得到输入流，并构造相应的BufferedReader对象的方法，而发送模块是通过构造PrintWriter对象并将数据输出到Server的方法，因为对输出来说，使用Writer方式具有明显的优势。这一优势是通过PrintWriter表现出来的，它有一个过载的构建器，能获取第二个参数：一个布尔值标志，指向是否在每一次println()结束的时候自动刷新输出。每次写入了输出内容后，它的缓冲区必须刷新，使信息能正式通过网络传递出去。这样就能保证信息每次能够及时准确地从发送端发出。<br>
+在设计本程序时我还特意将发送消息的日期和时间跟消息一起发送到接收端，这样可以方便用户阅读聊天记录。<br>
+设计GUI界面时我用了最常见的模型，即上面有个JTextArea存放聊天记录，下面的JTextArea让用户输入信息，最下方还有三个按钮，用于发送信息，清空记录和关闭窗口。<br>
+本程序加入了GUI界面有以下三个原因：<br>
+1.由于本程序要实现全双工的网络通信，如果要在DOS界面下实现这种通信方式只有用到多线程，这样就增加了程序 的复杂程度，也更容易出错。而用GUI界面只要对原有程序稍加改动就可以通过JButton事件处理程序实现实时收发 功能而不受顺序的限制。而用同样的核心代码不加GUI界面只能实现半双工的通信模式。<br>
+2.在DOS界面下通信只能发英文而不能发中文，而用GUI界面就可以实现中文的收发。<br>
+3.GUI界面在人机交互方面更加友好，更加方便，使用起来更顺手。</p>
+<p class="STYLE5">以下是程序的主要设计思路：<br>
+1．先在Server端创建一个ServerSocket监听本机的6789端口，等待客户端的连接请求。<br>
+2．Client端启动后，会向客户端的6789端口发出连接请求，当Server端收到请求后会由ServerSocket通过accept()方法返回一个对应的Server端Socket与Client端进行连接，连接后两台机器间就建立了一个Socket&mdash;&mdash;Socket的连接，继而实现Socket之间的通信。此时Server端和Client端就基本没有什么差别了，发送和接收信息都是一样的。<br>
+3．创建一个无限循环，由Socket分别得到输入输出流，构造BufferedReader对象存放得到的输入流，并读出输入流中的数据，显示在聊天记录对话框中。用输出流构造一个PrintWriter对象。此时程序的接收功能就有了。<br>
+4．用事件处理程序控制信息的发送，当发送按钮按下时，从聊天对话框中取出输入的字符串，并向接收端发送该字符串，刷新输出流，使接收端马上收到该字符串。<br>
+5．当按下清除记录按钮时清空所有对话框中的字符。<br>
+6．按下关闭按钮时，关闭所有连接并退出程序。此时另一端没有关闭的程序会弹出一个对话框告诉用户连接已经断开。</p>
+<p class="STYLE5">设计模型<br>
+Server端： Client端：</p>
+<p class="STYLE5"><img height="641" width="361" src="http://www.woaijava.cn/code/04040400x/liuchengtu.gif"></p>
+<p class="STYLE5">主要程序描述<br>
+Server端：<br>
+public TCPServer()<br>
+{<br>
+//调用方法createUserInterface()<br>
+createUserInterface();<br>
+//用try和catch实现异常的捕获和抛出<br>
+try<br>
+{<br>
+//在与客户端的连接没有建立之前将GUI组件设为不可用<br>
+chatJTextArea.setEditable( false );<br>
+sendJButton.setEnabled( false );<br>
+clearJButton.setEnabled( false );<br>
+//在端口6789建立监听socket，并在historyJTextArea中显示提示语<br>
+ServerSocket welcomeSocket=new ServerSocket( 6789 );<br>
+historyJTextArea.append( &quot;等待连接...&quot;+&quot;\n&quot; );<br>
+//当监听socket监听到有客户端连接后建立一个新的socket用于传送数据<br>
+//并在historyJTextArea中显示提示语<br>
+Socket connectionSocket=welcomeSocket.accept( );<br>
+historyJTextArea.append( &quot;连接已建立,端口：&quot;+connectionSocket.getLocalPort()+&quot;\n&quot; );<br>
+historyJTextArea.append( &quot;主机信息：&quot;+connectionSocket.getInetAddress().getLocalHost()+&quot;\n&quot; );<br>
+historyJTextArea.append( &quot;socket信息：&quot;+connectionSocket+&quot;\n&quot; );<br>
+//恢复GUI组件的可用性<br>
+chatJTextArea.setEditable( true );<br>
+sendJButton.setEnabled( true );<br>
+clearJButton.setEnabled( true );<br>
+//建立变量fromClient用于存放从客户端接受到的数据<br>
+String fromClient;<br>
+//通过一个while循环实现连续的接收功能<br>
+while( true )<br>
+{<br>
+//从connectionSocket中取得输出流，并构造PrintWriter对象<br>
+OutputStream output=connectionSocket.getOutputStream();<br>
+outToClient=new PrintWriter(output,true);<br>
+//建立BufferedReader存放从socket中取得的输入流<br>
+BufferedReader inFromClient=new BufferedReader(<br>
+new InputStreamReader(<br>
+connectionSocket.getInputStream( ) ) );<br>
+//从输入流缓存区中读取数据存入变量fromClient中<br>
+fromClient=inFromClient.readLine( );<br>
+if( fromClient!=null)<br>
+//在historyJTextArea中显示接收到的数据<br>
+{<br>
+historyJTextArea.append(&quot;Client:&quot;+&quot;\n&quot;+fromClient+&quot;\n&quot;);<br>
+}<br>
+}//end while<br>
+}//end try<br>
+catch( IOException e )<br>
+{<br>
+//发生异常时出现提示<br>
+JOptionPane.showMessageDialog( null,<br>
+e,&quot;发生异常！&quot;,<br>
+JOptionPane.ERROR_MESSAGE );<br>
+}//end catch<br>
+finally<br>
+{<br>
+}//end finally<br>
+}<br>
+//建立方法sendJButtonActionPerformed用于响应sendJButton的动作<br>
+private void sendJButtonActionPerformed( ActionEvent event )<br>
+{<br>
+//建立变量words存放用户在chatJTextArea里输入的数据<br>
+String words=chatJTextArea.getText();<br>
+//执行判断，如果用户没有输入数据则提示用户输入数据，如果输入了数据就将其发送到socket中<br>
+if( words.equals( &quot;&quot; ) )<br>
+{<br>
+JOptionPane.showMessageDialog( null,<br>
+&quot;输入不能为空,请输入有效字符&quot;,&quot;输入有误&quot;,<br>
+JOptionPane.INFORMATION_MESSAGE );<br>
+}<br>
+else<br>
+{<br>
+//利用DateFormat的方法getDateTimeInstance取得一个DateFormat对象<br>
+//将其存放到time中<br>
+DateFormat time=DateFormat.getDateTimeInstance();<br>
+//利用new Date()返回当前系统时间，并用time的format方法将其转化为String<br>
+//用变量str存放格式化后的要发送的数据<br>
+String str=&quot; &quot;+words+&quot;\t&quot;+&quot;(&quot;+time.format( new Date() )+&quot;)&quot;;<br>
+try<br>
+{<br>
+//将str字符串内容发送Client端<br>
+outToClient.println(str);<br>
+outToClient.flush();<br>
+}<br>
+catch(Exception e)<br>
+{<br>
+JOptionPane.showMessageDialog( null,<br>
+e,&quot;发生异常！&quot;,<br>
+JOptionPane.ERROR_MESSAGE );<br>
+}<br>
+finally<br>
+{<br>
+}//end finally<br>
+sendJButton.requestFocusInWindow();<br>
+historyJTextArea.append( &quot;Server:&quot;+&quot;\n&quot;+str+&quot;\n&quot; );<br>
+chatJTextArea.setText( &quot;&quot; );<br>
+}<br>
+}//end method sendJButtonActionPerformed<br>
+Client端：<br>
+public TCPClient()<br>
+{<br>
+//调用方法createUserInterface<br>
+createUserInterface();<br>
+try<br>
+{<br>
+chatJTextArea.setEnabled( false );<br>
+sendJButton.setEnabled( false );<br>
+clearJButton.setEnabled( false );<br>
+//与主机建立连接并在historyJTextArea中显示提示语<br>
+Socket clientSocket=new Socket( &quot;localhost&quot;,6789 );<br>
+historyJTextArea.append( &quot;连接已建立，端口：&quot;+clientSocket.getLocalPort()+&quot;\n&quot; );<br>
+historyJTextArea.append( &quot;客户端信息:&quot;+clientSocket.getInetAddress().getLocalHost()+&quot;\n&quot; );<br>
+historyJTextArea.append( &quot;socket信息：&quot;+clientSocket+&quot;\n&quot; );<br>
+chatJTextArea.setEnabled( true );<br>
+sendJButton.setEnabled( true );<br>
+clearJButton.setEnabled( true );<br>
+//建立变量存放从Server端发送过来的数据<br>
+String fromServer;<br>
+while( true )<br>
+{<br>
+//从clientSocket中取得输出流，并构造PrintWriter对象<br>
+OutputStream output=clientSocket.getOutputStream();<br>
+outToServer=new PrintWriter(output,true);<br>
+//建立BufferedReader存放从socket中取得的输入流<br>
+BufferedReader inFromServer=new BufferedReader(<br>
+new InputStreamReader(<br>
+clientSocket.getInputStream( ) ) );</p>
+<p class="STYLE5">//从输入流中缓存区读取数据存入变量fromServer中<br>
+fromServer=inFromServer.readLine( );<br>
+if( fromServer!=null )<br>
+{<br>
+//在historyJTextArea中显示接收到的数据<br>
+historyJTextArea.append(&quot;Server:&quot;+&quot;\n&quot;+fromServer+&quot;\n&quot;);<br>
+}<br>
+}//end while<br>
+}//end try<br>
+catch( IOException e )<br>
+{<br>
+//发生异常时出现提示<br>
+JOptionPane.showMessageDialog( null,<br>
+e,&quot;发生异常！&quot;,<br>
+JOptionPane.ERROR_MESSAGE );<br>
+}//end catch<br>
+finally<br>
+{<br>
+}//end finally<br>
+}<br>
+//建立方法sendJButtonActionPerformed用于响应sendJButton的动作<br>
+private void sendJButtonActionPerformed( ActionEvent event )<br>
+{<br>
+//建立变量words存放用户在chatJTextArea里输入的数据<br>
+String words=chatJTextArea.getText();<br>
+//执行判断，如果用户没有输入数据则提示用户输入数据，如果输入了数据就将其发送到socket中<br>
+if( words.equals( &quot;&quot; ) )<br>
+{<br>
+JOptionPane.showMessageDialog( null,<br>
+&quot;输入不能为空,请输入有效字符&quot;,&quot;输入有误&quot;,<br>
+JOptionPane.INFORMATION_MESSAGE );<br>
+}<br>
+else<br>
+{<br>
+//利用DateFormat的方法getDateTimeInstance取得一个DateFormat对象<br>
+//将其存放到time中<br>
+DateFormat time=DateFormat.getDateTimeInstance();<br>
+//利用new Date()返回当前系统时间，并用time的format方法将其转化为String<br>
+//用变量str存放格式化后的要发送的数据<br>
+String str=&quot; &quot;+words+&quot;\t&quot;+&quot;(&quot;+time.format( new Date() )+&quot;)&quot;;<br>
+try<br>
+{<br>
+//将str字符串内容发送到Server端<br>
+outToServer.println(str);<br>
+outToServer.flush();<br>
+}<br>
+catch(Exception e)<br>
+{<br>
+JOptionPane.showMessageDialog( null,<br>
+e,&quot;发生异常！&quot;,<br>
+JOptionPane.ERROR_MESSAGE );<br>
+}<br>
+finally<br>
+{<br>
+}//end finally<br>
+sendJButton.requestFocusInWindow();<br>
+historyJTextArea.append( &quot;Client:&quot;+&quot;\n&quot;+str+&quot;\n&quot; );<br>
+chatJTextArea.setText( &quot;&quot; );<br>
+}<br>
+}//end method sendJButtonActionPerformed</p>
+<p class="STYLE5">完成效果图：</p>
+<p class="STYLE5"><img height="335" width="552" src="http://www.woaijava.cn/code/04040400x/xiaoguotu.gif"></p>
+<p align="right"><br>
+<span class="STYLE3"><em><font size="2">文章来源：原创作品</font></em></span></p></div></body></html>

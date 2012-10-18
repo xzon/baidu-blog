@@ -1,0 +1,63 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>15-HQL和QBC基础语法 -mldn学习笔记 -hxzon</title></head><body><h1>15-HQL和QBC基础语法 -mldn学习笔记 -hxzon</h1><div><div>15-HQL和QBC基础语法 -mldn学习笔记 -hxzon</div>
+<div> </div>
+<div>1、[select /update /delete ....]<br>
+[from ....]<br>
+[where ....]<br>
+[group by .... [having ...]]<br>
+[order by ...]<br>
+2、String hql=&quot;select distinct p.sex from Person as p&quot;;<br>
+Query q=session.createQuery(hql);<br>
+List all=q.list();<br>
+3、找出全部记录数<br>
+String hql=&quot;select count(p.id) from Person as p&quot;;<br>
+Query q=session.createQuery(hql);<br>
+List all=q.list();<br>
+4、还有min(),max(),sum(),avg()。使用distinct 去除重复。还有upper()转为大写。<br>
+如hql=&quot;select upper(s.name) from Person as p&quot;;<br>
+5、使用where子句。<br>
+可以进行表达式，如from Person p where (p.age/10=3);<br>
+可以使用and,or,可以使用is not null和is null测试空值。如from Person p where p.name is not null;<br>
+可以使用between,如from Person p where p.age between 20 and 30;<br>
+可以使用in和not in来测试是否在集合中，如from Person p where p.name in('lxh','hxzon');<br>
+in和not in可能用QBC会容易些。<br>
+可以使用like和not like进行模糊搜寻，如from Person p where p.name like '%三%';<br>
+6、排序<br>
+from Person p order by p.age，反排序，如from Person p order by p.age desc;<br>
+同时指定两种排序，如按年龄逆序，名字顺序，from Person p order by p.age desc,p.name;<br>
+7、group by子句，自动按指定字段相同分组，<br>
+如按性别分组求平均年龄，select p.sex,avg(p.age) from Person p group by p.sex;<br>
+结合having子句选择某些分组，如按性别分组，求平均年龄大于20的分组select p.sex,avg(p.age) from Person p group by p.sex <br>
+having avg(p.age)&gt;20;<br>
+8、更新，删除<br>
+update User set name='hxzon' where name='lxh';<br>
+delete Person where name='hxzon';<br>
+这两句都没有指定别名。<br>
+9、预处理<br>
+hql=&quot;update Person set sex=? where id=?&quot;;<br>
+Query q=session.createQuery(hql);<br>
+q.setString(0,&quot;男&quot;);<br>
+q.setInteger(1,1);<br>
+q.executeUpdate();<br>
+session.beginTransaction().commit();<br>
+10、分页<br>
+q.setFirstResult(100);<br>
+q.setMaxResults(20);（QBC也支持，如c.setMaxResults(20);）<br>
+====================================================================<br>
+QBC，query by creteria，对语句封装，如何Java语法习惯。<br>
+1、<br>
+Criteria c=session.createCriteria(Person.class);<br>
+c.add(Expression.eq(&quot;name&quot;,&quot;hxzon&quot;)); //Expression指定了查询条件<br>
+List all=c.list();<br>
+2、Expression指定了下列方法封装语句。<br>
+eq(field,value),等于。如c.add(Expression.lt(&quot;sex&quot;,new Integer(20)));<br>
+allEq。<br>
+gt，大于。ge，大于等于。lt，小于。le，小于等于。<br>
+between。like，如c.add(Expression.like(&quot;name&quot;,&quot;%三%&quot;));<br>
+in。eqProperty，用于比较两个属性之间的值。<br>
+geProperty，gtProperty，ltProperty，leProperty。<br>
+3、and，连接两个条件。Expression.and(Expression.eq(&quot;name&quot;,&quot;hxzon&quot;),Expression.eq(&quot;sex&quot;,new Integer(1)));<br>
+or。<br>
+4、sql，它是作为补充，提供原生语法支持。并不建议使用。<br>
+如Expression.sql(&quot;lower({alias}.name) lower(?)&quot;,&quot;lxh%&quot;,Hibernate.STRING);其中{alias}将由hibernate在运行期使用当前关联的POJO别名替换。</div>
+<div> </div>
+<div> </div></div></body></html>

@@ -1,0 +1,127 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>GUI 主循环设计及其在 MiniGUI, GTK, QT 的实现</title></head><body><h1>GUI 主循环设计及其在 MiniGUI, GTK, QT 的实现</h1><div><p> </p>
+<div class="info">
+<div class="title">GUI 主循环设计及其在 MiniGUI, GTK, QT 的实现</div>
+<div class="about"><strong>作者:</strong> 刘鹏</div>
+<div class="lastchange"><strong>日期: </strong>2009-05-22</div>
+<div class="about">介绍了 GUI 主循环的设计思路，并分析了 MiniGUI, GTK, QT 的主循环。</div>
+</div>
+<p><a href="http://www.linuxgraphics.cn/gui/gui_main_loop.html">http://www.linuxgraphics.cn/gui/gui_main_loop.html</a></p>
+<h4>简介</h4>
+<p class="first">我们知道GUI应用程序都是事件驱动的。这些事件大部分都来自于用户，比如键盘事件、鼠标事件或笔点事件。还有一些事件来自于系统内部，比如定时事件、socket事件和其它文件事件等等。在没有任何事件的情况下，应用程序处于睡眠状态。<sup><a class="footref" href="http://www.linuxgraphics.cn/gui/gui_main_loop.html#fn.1" name="fnr.1">1</a></sup></p>
+<p>因为这种事件驱动机制，GUI应用程序都毫无例外的需要一个主循环(main loop)。主循环(main loop)控制应用程序什么时候进入睡眠状态，什么时候被唤醒。主循环实现得好，应用程序才能工作正常又省电。<sup><a class="footref" href="http://www.linuxgraphics.cn/gui/gui_main_loop.html#fn.1" name="fnr.1">1</a></sup></p>
+<p>目前常见的主循环设计主要是三种思路：</p>
+<ol>
+    <li>消息队列 + 信号量(semaphore) + sem_wait；</li>
+    <li>事件源 + select；</li>
+    <li>事件源 + poll。</li>
+</ol>
+<p>对于第一种设计思路，主循环不断的从消息队列中提取消息分发给窗口，如果消息队列中没有消息，主循环调用 sem_wait 进入休眠状态，直到有信息出现被唤醒。<a href="http://www.linuxgraphics.cn/minigui/index.html">MiniGUI</a> 的主循环就是这样实现的。</p>
+<p>对于第二种思路，主循环使用 poll 函数监听事件源，若有事件出现则进行处理，否则进入休眠状态，直到有事件到来。<a href="http://www.linuxgraphics.cn/gtk/index.html">GTK</a>+ 的主循环就是采用的这种思路。</p>
+<p>第三种思路与第二种思路类似，不同之处是主循环使用 select 函数监听事件源， <a href="http://www.linuxgraphics.cn/qt/index.html">QT</a> 的主循环就是采用的这种思路。</p>
+<p>下面结合具体的实现逐一分析这三种思路。</p>
+<h4><a href="http://www.linuxgraphics.cn/minigui/index.html">MiniGUI</a> 的主循环</h4>
+<p><a href="http://www.linuxgraphics.cn/minigui/index.html">MiniGUI</a> 应用程序的主循环与 Win32 类似，大致如下：</p>
+<pre class="example">while (GetMessage (&amp;Msg, hMainWnd)) {
+        DispatchMessage (&amp;Msg);
+    }</pre>
+<p>在 <a href="http://www.linuxgraphics.cn/minigui/index.html">MiniGUI</a> 的主循环中，它不断的从消息队列中提取消息，然后分发给消息的目标(通常是窗口)，直到GetMessage返回FALSE（收到WM_QUIT消息，一般调用 PostQuitMessage）为止，如果队列中没有消息，应用程序就进入睡眠状态。</p>
+<p>这种方法的优点是简单明了，但缺陷也是明显的，它只能挂在消息队列上，而不能同时挂在多个事件源上(如管道和socket等)。要挂在多个事件源上，需要使用其它方式，比如用WaitForMultipleObjects，那就比较麻烦了。</p>
+<p>关于主循环的休眠，<a href="http://www.linuxgraphics.cn/minigui/index.html">MiniGUI</a> 采用的是信号量的方式(sem_wait)。我们进入 GetMessage 接口的实现：</p>
+<pre class="example">...
+
+checkagain:
+
+    LOCK_MSGQ (pMsgQueue);
+
+    ... peek message ...
+
+    UNLOCK_MSGQ (pMsgQueue);
+
+    if (bWait) {
+        /* no message, wait again. */
+        sem_wait (&amp;pMsgQueue-&gt;wait);
+        goto checkagain;
+    }</pre>
+<p>GetMessage 调用 sem_wait 函数等待消息队列，若没有消息主循环进入休眠等待状态。</p>
+<h4><a href="http://www.linuxgraphics.cn/gtk/index.html">GTK</a>+ 的主循环<sup><a class="footref" href="http://www.linuxgraphics.cn/gui/gui_main_loop.html#fn.1" name="fnr.1">1</a></sup></h4>
+<p class="first">在<a href="http://www.linuxgraphics.cn/gtk/index.html">GTK</a>+ 应用程序中，其主循环(main loop)更加简单，但是非常的不明了。</p>
+<p>每个 gtk 应用程序都有下面这行代码：</p>
+<pre class="example">gtk_main ();</pre>
+<p>不少人用<a href="http://www.linuxgraphics.cn/gtk/index.html">GTK</a>+写了很长时间的程序，还是觉得这行代码很神秘，不知道里面到底干了什么。我们在这里分析下 gtk_main 的工作原理。</p>
+<p>gtk_main 主要是对 glib 的 main loop 的包装，基本分为三步：</p>
+<ol>
+    <li>调用初始化函数;</li>
+    <li>进入glib main loop;</li>
+    <li>调用~初始化函数。</li>
+</ol>
+<p>所以弄清楚glib main loop之后，gtk_main的实现也就尽收眼底了，这里重点分析glib的main loop的实现。main loop使用模式大致如下：</p>
+<pre class="example">loop = g_main_loop_new (NULL, TRUE);
+g_main_loop_run (loop);
+g_main_loop_quit ();</pre>
+<p>g_main_loop_new创建一个main loop对象，一个main loop对象只能被一个线程使用，但一个线程可以有多个main loop对象。在<a href="http://www.linuxgraphics.cn/gtk/index.html">GTK</a>+应用中，一个线程使用多个main loop的主要用途是实现模态对话框，它在gtk_dialog_run函数里创建一个新的main loop，通过该main loop分发消息，直到对话框关闭为止。</p>
+<p>g_main_loop_run则是进入主循环，它会一直阻塞在这里，直到让它退出为止。有事件时，它就处理事件，没事件时就睡眠。</p>
+<p>g_main_loop_quit则是用于退出主循环，相当于Win32下的PostQuitMessage函数。</p>
+<p>Glib main loop 的最大特点就是支持多事件源，使用非常方便。来自用户的键盘和鼠标事件、来自系统的定时事件和socket事件等等，还支持一个称为idle的事件源，其主要用途是实现异步事件。</p>
+<p>Glib Main loop的设计思想是基于 poll 的 &quot;prepare/check/dispatch&quot; 模式，它的基本组成如下图所示：</p>
+<p>
+<table class="image FCK__ShowTableBorders" width="100%">
+    <tbody>
+        <tr>
+            <td align="center"><img alt="来自资料1" src="http://www.linuxgraphics.cn/images/gui/gtk_mainloop_struct.jpg"></td>
+        </tr>
+        <tr>
+            <td class="image-caption" align="center">来自资料1</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>GMainLoop的主要部件是GMainContext，GMainContext可以在多个GMainLoop间共享，但要求这些GMainLoop都在同一个线程中运行，前面提到的模态对话框就属于这一类。GMainContext通常由多个GSource组成，GSource是事件源的抽象，任何事件源，只要实现GSource规定的接口，都可以挂到GMainContext中来。</p>
+<p>GSource的接口函数有：</p>
+<ol>
+    <li>gboolean (*prepare) (GSource *source, gint *timeout_);进入睡眠之前，在g_main_context_prepare里，mainloop调用所有Source的prepare函数，计算最小的timeout时间，该时间决定下一次睡眠的时间。</li>
+    <li>gboolean (*check) (GSource *source); poll被唤醒后，在 g_main_context_check里，mainloop调用所有Source的check函数，检查是否有Source已经准备好了。如果poll是由于错误或者超时等原因唤醒的，就不必进行dispatch了。</li>
+    <li>gboolean (*dispatch) (GSource*source, GSourceFunc callback,gpointer user_data); 当有Source准备好了，在 g_main_context_dispatch里，mainloop调用所有Source的dispatch函数，去分发消息。</li>
+    <li>void (*finalize) (GSource *source); 在Source被移出时，mainloop调用该函数去销毁Source。</li>
+</ol>
+<p>Main loop的工作流程简图如下：</p>
+<p>
+<table class="image FCK__ShowTableBorders" width="100%">
+    <tbody>
+        <tr>
+            <td align="center"><img alt="来自资料1" src="http://www.linuxgraphics.cn/images/gui/gtk_mainloop_workflow.jpg"></td>
+        </tr>
+        <tr>
+            <td class="image-caption" align="center">来自资料1</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>下面我们看看几个内置Source的实现机制：</p>
+<p>Idle 它主要用实现异步事件，功能类似于Win32下的PostMessage。但它还支持重复执行的特性，根据用户注册的回调函数的返回值而定。</p>
+<ol>
+    <li>g_idle_prepare把超时设置为0，也就是即时唤醒，不进入睡眠状态。</li>
+    <li>g_idle_check 始终返回TRUE，表示准备好了。</li>
+    <li>g_idle_dispatch 调用用户注册的回调函数。</li>
+</ol>
+<p>Timeout 它主要用于实现定时器，支持一次定时和重复定时，根据用户注册的回调函数的返回值而定。</p>
+<ol>
+    <li>g_timeout_prepare 计算下一次的超时时间。</li>
+    <li>g_timeout_check 检查超时时间是否到了，如果到了就返回TRUE，否则返回FALSE。</li>
+    <li>g_timeout_dispatch调用用户注册的回调函数。</li>
+</ol>
+<p>线程可以向自己的mainloop中增加Source，也可以向其它线程的mainloop增加 Source。向自己的mainloop中增加Source时，mainloop已经唤醒了，所以不会存在什么问题。而向其它线程的mainloop增加Source时，对方线程可能正挂在poll 里睡眠，所以要想法唤醒它，否则Source可能来不及处理。在Linux下，这是通过wake_up_pipe管道实现的，mainloop在poll时，它除了等待所有的Source外，还会等待wake_up_pipe管道。要唤醒poll，调用 g_main_context_wakeup_unlocked向wake_up_pipe里写入字母A就行了。</p>
+<h4><a href="http://www.linuxgraphics.cn/qt/index.html">QT</a> 的主循环</h4>
+<p><a href="http://www.linuxgraphics.cn/qt/index.html">QT</a> 采用的是基于 select 的主循环。主循环使用 select 函数监听事件源，当有事件发生时对其进行处理，若没有事件则休眠等待。</p>
+<p><a href="http://www.linuxgraphics.cn/qt/index.html">QT</a> 的事件处理模块如下图所示：</p>
+<p class="image"><img src="http://www.linuxgraphics.cn/images/qt/event_dispatcher_class_diagram.png"></p>
+<p>类 QAbstractEventDispatcher 封装了所有的事件处理接口，包括事件的处理 (processEvents)，Socket 的登记和注销 (xxxSocketNotifier)，Timer 的注册与注销(xxxTimer)等。</p>
+<p>不同版本的 <a href="http://www.linuxgraphics.cn/qt/index.html">QT</a> 代码实现不同的 QAbstractEventDispathcer 子类。这里，我分析了 X11 平台的 <a href="http://www.linuxgraphics.cn/qt/index.html">QT</a> 实现，它实现了 QEventDispathcerUnix 类，并派生出 QEventDispatcherX11 类。</p>
+<p>processEvents 方法负责处理事件；select 方法提供了监听事件的接口，它实际上去调系统的 select 函数。</p>
+<p><a href="http://www.linuxgraphics.cn/qt/index.html">QT</a> 相关代码在 src/gui/kernel 和 src/corelib/kernel 目录下。</p>
+<h4>Reference</h4>
+<ol>
+    <li><a href="http://www.limodev.cn/blog/archives/772">GTK+主循环(main loop)的工作原理</a></li>
+    <li><a href="http://lists.freedesktop.org/archives/xdg/2004-November/003840.html">Common main loop: Qt ported to glib main loop (experimental)</a></li>
+    <li><a href="http://sunxinhe.yo2.cn/articles/gtk%E7%9A%84%E4%B8%BB%E5%BE%AA%E7%8E%AF.html">GTK 编程&mdash;&mdash;Gtk+的主循环</a></li>
+</ol>
+<p> </p></div></body></html>

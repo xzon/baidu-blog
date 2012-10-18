@@ -1,0 +1,292 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JavaMail API详解 -grule -hxzon</title></head><body><h1>JavaMail API详解 -grule -hxzon</h1><div><p>JavaMail API详解 -grule -hxzon</p>
+<p>作者:cleverpig(作者的Blog:<a target="_new" href="http://blog.matrix.org.cn/page/cleverpig">http://blog.matrix.org.cn/page/cleverpig</a>)<br>
+原文:<a target="_new" href="http://www.matrix.org.cn/resource/article/44/44101_JavaMail.html">http://www.matrix.org.cn/resource/article/44/44101_JavaMail.html</a><br>
+关键字:java,mail,pop,smtp<br>
+<br>
+<span style="color: blue">一、JavaMail API简介</span><br>
+JavaMail API是读取、撰写、发送电子信息的可选包。我们可用它来建立如Eudora、Foxmail、MS Outlook Express一般的邮件用户代理程序（Mail User Agent,简称MUA）。而不是像sendmail或者其它的邮件传输代理（Mail Transfer Agent，简称MTA）程序那样可以传送、递送、转发邮件。从另外一个角度来看，我们这些电子邮件用户日常用MUA程序来读写邮件，而MUA依赖着MTA处理邮件的递送。<br>
+在清楚了到MUA与MTA之间的关系后，让我们看看JavaMail API是如何提供信息访问功能的吧！JavaMail API被设计用于以不依赖协议的方式去发送和接收电子信息，这个API被分为两大部分：<br>
+<br>
+基本功能：如何以不依赖于协议的方式发送接收电子信息，这也是本文所要描述的，不过在下文中，大家将看到这只是一厢情愿而已。<br>
+第二个部分则是依赖特定协议的，比如SMTP、POP、IMAP、NNTP协议。在这部分的JavaMail API是为了和服务器通讯，并不在本文的内容中。<br>
+<br>
+<span style="color: blue">二、相关协议一览</span><br>
+在我们步入JavaMail API之前，先看一下API所涉及的协议。以下便是大家日常所知、所乐于使用的4大信息传输协议：<br>
+SMTP<br>
+POP<br>
+IMAP<br>
+MIME<br>
+当然，上面的4个协议，并不是全部，还有NNTP和其它一些协议可用于传输信息，但是由于不常用到，所以本文便不提及了。理解这4个基本的协议有助于我们更好的使用JavaMail API。然而JavaMail API是被设计为与协议无关的，目前我们并不能克服这些协议的束缚。确切的说，如果我们使用的功能并不被我们选择的协议支持，那么JavaMail API并不可能如魔术师一样神奇的赋予我们这种能力。<br>
+<br>
+<span style="color: blue">1．SMTP</span><br>
+简单邮件传输协议定义了递送邮件的机制。在下文中，我们将使用基于Java-Mail的程序与公司或者ISP的SMTP服务器进行通讯。这个SMTP服务器将邮件转发到接收者的SMTP服务器，直至最后被接收者通过POP或者IMAP协议获取。这并不需要SMTP服务器使用支持授权的邮件转发，但是却的确要注意SMTP服务器的正确设置（SMTP服务器的设置与JavaMail API无关）。<br>
+<br>
+<span style="color: blue">2．POP</span><br>
+POP是一种邮局协议，目前为第3个版本，即众所周知的POP3。POP定义了一种用户如何获得邮件的机制。它规定了每个用户使用一个单独的邮箱。大多数人在使用POP时所熟悉的功能并非都被支持，例如查看邮箱中的新邮件数量。而这个功能是微软的Outlook内建的，那么就说明微软Outlook之类的邮件客户端软件是通过查询最近收到的邮件来计算新邮件的数量来实现前面所说的功能。因此在我们使用JavaMail API时需要注意，当需要获得如前面所讲的新邮件数量之类的信息时，我们不得不自己进行计算。<br>
+<br>
+<span style="color: blue">3．IMAP</span><br>
+IMAP使用在接收信息的高级协议，目前版本为第4版，所以也被称为IMAP4。需要注意的是在使用IMAP时，邮件服务器必须支持该协议。从这个方面讲，我们并不能完全使用IMAP来替代POP，不能期待IMAP在任何地方都被支持。假如邮件服务器支持IMAP，那么我们的邮件程序将能够具有以下被IMAP所支持的特性：每个用户在服务器上可具有多个目录，这些目录能在多个用户之间共享。<br>
+其与POP相比高级之处显而易见，但是在尝试采取IMAP时，我们认识到它并不是十分完美的：由于IMAP需要从其它服务器上接收新信息，将这些信息递送给用户，维护每个用户的多个目录，这都为邮件服务器带来了高负载。并且IMAP与POP的一个不同之处是POP用户在接收邮件时将从邮件服务器上下载邮件，而IMAP允许用户直接访问邮件目录，所以在邮件服务器进行备份作业时，由于每个长期使用此邮件系统的用户所用的邮件目录会占有很大的空间，这将直接导致邮件服务器上磁盘空间暴涨。<br>
+<br>
+<span style="color: blue">4．MIME</span><br>
+MIME并不是用于传送邮件的协议，它作为多用途邮件的扩展定义了邮件内容的格式：信息格式、附件格式等等。一些RFC标准都涉及了MIME：RFC 822, RFC 2045, RFC 2046, RFC 2047，有兴趣的Matrixer可以阅读一下。而作为JavaMail API的开发者，我们并不需关心这些格式定义，但是这些格式被用在了程序中。<br>
+<br>
+<span style="color: blue">5．NNTP和其它的第三方协议</span><br>
+正因为JavaMail API在设计时考虑到与第三方协议实现提供商之间的分离，故我们可以很容易的添加一些第三方协议。SUN维护着一个第三方协议实现提供商的列表：<a target="_new" href="http://java.sun.com/products/javamail/Third_Party.html">http://java.sun.com/products/javamail/Third_Party.html</a>，通过此列表我们可以找到所需要的而又不被SUN提供支持的第三方协议：比如NNTP这个新闻组协议和S/MIME这个安全的MIME协议。<br>
+<br>
+<span style="color: blue">三、安装</span><br>
+<span style="color: blue">1．安装JavaMail</span><br>
+为了使用JavaMail API，需要从<a target="_new" href="ttp://java.sun.com/products/javamail/downloads/index.html">http://java.sun.com/products/javamail/downloads/index.html</a>下载文件名格式为javamail-[version].zip的文件（这个文件中包括了JavaMail实现），并将其中的mail.jar文件添加到CLASSPATH中。这个实现提供了对SMTP、IMAP4、POP3的支持。<br>
+注意：在安装JavaMail实现之后，我们将在demo目录中发现许多有趣的简单实例程序。<br>
+在安装了JavaMail之后,我们还需要安装JavaBeans Activation Framework，因为这个框架是JavaMail API所需要的。如果我们使用J2EE的话，那么我们并无需单独下载JavaMail，因为它存在于J2EE.jar中，只需将J2EE.jar加入到CLASSPATH即可。<br>
+<br>
+<span style="color: blue">2．安装JavaBeans Activation Framework</span><br>
+从<a target="_new" href="http://java.sun.com/products/javabeans/glasgow/jaf.html">http://java.sun.com/products/javabeans/glasgow/jaf.html</a>下载JavaBeans Activation Framework，并将其添加到CLASSPATH中。此框架增加了对任何数据块的分类、以及对它们的处理的特性。这些特性是JavaMail API需要的。虽然听起来这些特性非常模糊，但是它对于我们的JavaMail API来说只是提供了基本的MIME类型支持。<br>
+到此为止，我们应当把mail.jar和activation.jar都添加到了CLASSPATH中。<br>
+当然如果从方便的角度讲，直接把这两个Jar文件复制到JRE目录的lib/ext目录中也可以。<br>
+<br>
+<span style="color: blue">四、初次认识JavaMail API</span><br>
+<span style="color: blue">1．了解我们的JavaMail环境</span><br>
+<span style="color: green">A．纵览JavaMail核心类结构</span><br>
+打开JavaMail.jar文件，我们将发现在javax.mail的包下面存在着一些核心类：Session、Message、Address、Authenticator、Transport、Store、Folder。而且在javax.mail.internet包中还有一些常用的子类。<br>
+<span style="color: green">B．Session</span><br>
+Session类定义了基本的邮件会话。就像Http会话那样，我们进行收发邮件的工作都是基于这个会话的。Session对象利用了java.util.Properties对象获得了邮件服务器、用户名、密码信息和整个应用程序都要使用到的共享信息。<br>
+Session类的构造方法是私有的，所以我们可以使用Session类提供的getDefaultInstance()这个静态工厂方法获得一个默认的Session对象：</p>
+<pre class="overflow"><br>Properties props = new Properties();<br>// fill props with any information<br>Session session = Session.getDefaultInstance(props, null);</pre>
+<p><br>
+或者使用getInstance()这个静态工厂方法获得自定义的Session:</p>
+<pre class="overflow"><br>Properties props = new Properties();<br>// fill props with any information<br>Session session = Session.getInstance(props, null);</pre>
+<p><br>
+从上面的两个例子中不难发现，getDefaultInstance()和getInstance()方法的第二个参数都是null，这是因为在上面的例子中并没有使用到邮件授权，下文中将对授权进行详细介绍。<br>
+从很多的实例看，在对mail server进行访问的过程中使用共享的Session是足够的，即使是工作在多个用户邮箱的模式下也不例外。<br>
+<br>
+<span style="color: green">C．Message</span><br>
+当我们建立了Session对象后，便可以被发送的构造信息体了。在这里SUN提供了Message类型来帮助开发者完成这项工作。由于Message是一个抽象类，大多数情况下，我们使用javax.mail.internet.MimeMessage这个子类，该类是使用MIME类型、MIME信息头的邮箱信息。信息头只能使用US-ASCII字符，而非ASCII字符将通过编码转换为ASCII的方式使用。<br>
+为了建立一个MimeMessage对象，我们必须将Session对象作为MimeMessage构造方法的参数传入：</p>
+<pre class="overflow"><br>MimeMessage message = new MimeMessage(session);</pre>
+<p><br>
+注意：对于MimeMessage类来讲存在着多种构造方法，比如使用输入流作为参数的构造方法。<br>
+<br>
+在建立了MimeMessage对象后，我们需要设置它的各个part，对于MimeMessage类来说，这些part就是MimePart接口。最基本的设置信息内容的方法就是通过表示信息内容和米么类型的参数调用setContent()方法：</p>
+<pre class="overflow"><br>message.setContent(&quot;Hello&quot;, &quot;text/plain&quot;);</pre>
+<p><br>
+然而，如果我们所使用的MimeMessage中信息内容是文本的话，我们便可以直接使用setText()方法来方便的设置文本内容。</p>
+<pre class="overflow"><br>message.setText(&quot;Hello&quot;);</pre>
+<p><br>
+前面所讲的两种方法，对于文本信息，后者更为合适。而对于其它的一些信息类型，比如HTML信息，则要使用前者。<br>
+别忘记了，使用setSubject()方法对邮件设置邮件主题：</p>
+<pre class="overflow"><br>message.setSubject(&quot;First&quot;);</pre>
+<p><br>
+<br>
+<span style="color: green">D．Address</span><br>
+到这里，我们已经建立了Session和Message，下面将介绍如何使用邮件地址类：Address。像Message一样，Address类也是一个抽象类，所以我们将使用javax.mail.internet.InternetAddress这个子类。<br>
+通过传入代表邮件地址的字符串，我们可以建立一个邮件地址类：</p>
+<pre class="overflow"><br>Address address = new InternetAddress(&quot;president@whitehouse.gov&quot;);</pre>
+<p><br>
+如果要在邮件地址后面增加名字的话，可以通过传递两个参数：代表邮件地址和名字的字符串来建立一个具有邮件地址和名字的邮件地址类：</p>
+<pre class="overflow"><br>Address address = new InternetAddress(&quot;president@whitehouse.gov&quot;, &quot;George Bush&quot;);</pre>
+<p><br>
+本文在这里所讲的邮件地址类是为了设置邮件信息的发信人和收信人而准备的，在建立了邮件地址类后，我们通过message的setFrom()和setReplyTo()两种方法设置邮件的发信人：</p>
+<pre class="overflow"><br>message.setFrom(address);<br>message.setReplyTo(address);</pre>
+<p><br>
+若在邮件中存在多个发信人地址，我们可用addForm()方法增加发信人：</p>
+<pre class="overflow"><br>Address address[] = ...;<br>message.addFrom(address);</pre>
+<p><br>
+为了设置收信人，我们使用addRecipient()方法增加收信人，此方法需要使用Message.RecipientType的常量来区分收信人的类型：</p>
+<pre class="overflow"><br>message.addRecipient(type, address)</pre>
+<p><br>
+下面是Message.RecipientType的三个常量:<br>
+Message.RecipientType.TO<br>
+Message.RecipientType.CC<br>
+Message.RecipientType.BCC<br>
+因此，如果我们要发送邮件给总统，并发用一个副本给第一夫人的话，下面的方法将被用到：</p>
+<pre class="overflow"><br>Address toAddress = new InternetAddress(&quot;vice.president@whitehouse.gov&quot;);<br>Address ccAddress = new InternetAddress(&quot;first.lady@whitehouse.gov&quot;);<br>message.addRecipient(Message.RecipientType.TO, toAddress);<br>message.addRecipient(Message.RecipientType.CC, ccAddress);</pre>
+<p><br>
+JavaMail API并没有提供检查邮件地址有效性的机制。当然我们可以自己完成这个功能：验证邮件地址的字符是否按照RFC822规定的格式书写或者通过DNS服务器上的MX记录验证等。<br>
+<br>
+<span style="color: green">E．Authenticator</span><br>
+像java.net类那样，JavaMail API通过使用授权者类（Authenticator）以用户名、密码的方式访问那些受到保护的资源，在这里&ldquo;资源&rdquo;就是指邮件服务器。在javax.mail包中可以找到这个JavaMail的授权者类（Authenticator）。<br>
+在使用Authenticator这个抽象类时，我们必须采用继承该抽象类的方式，并且该继承类必须具有返回PasswordAuthentication对象（用于存储认证时要用到的用户名、密码）getPasswordAuthentication()方法。并且要在Session中进行注册，使Session能够了解在认证时该使用哪个类。<br>
+下面代码片断中的MyAuthenticator就是一个Authenticator的子类。</p>
+<pre class="overflow"><br>Properties props = new Properties();<br>// fill props with any information<br>Authenticator auth = new MyAuthenticator();<br>Session session = Session.getDefaultInstance(props, auth);</pre>
+<p><br>
+<br>
+<span style="color: green">F．Transport</span><br>
+在发送信息时，Transport类将被用到。这个类实现了发送信息的协议（通称为SMTP），此类是一个抽象类，我们可以使用这个类的静态方法send()来发送消息：</p>
+<pre class="overflow"><br>Transport.send(message);</pre>
+<p><br>
+当然，方法是多样的。我们也可由Session获得相应协议对应的Transport实例。并通过传递用户名、密码、邮件服务器主机名等参数建立与邮件服务器的连接，并使用sendMessage()方法将信息发送，最后关闭连接：</p>
+<pre class="overflow"><br>message.saveChanges(); // implicit with send()<br>Transport transport = session.getTransport(&quot;smtp&quot;);<br>transport.connect(host, username, password);<br>transport.sendMessage(message, message.getAllRecipients());<br>transport.close();</pre>
+<p><br>
+评论：上面的方法是一个很好的方法，尤其是在我们在同一个邮件服务器上发送多个邮件时。因为这时我们将在连接邮件服务器后连续发送邮件，然后再关闭掉连接。send()这个基本的方法是在每次调用时进行与邮件服务器的连接的，对于在同一个邮件服务器上发送多个邮件来讲可谓低效的方式。<br>
+注意：如果需要在发送邮件过程中监控mail命令的话，可以在发送前设置debug标志：</p>
+<pre class="overflow"><br>session.setDebug(true)。</pre>
+<p><br>
+<br>
+<span style="color: green">G．Store和Folder</span><br>
+接收邮件和发送邮件很类似都要用到Session。但是在获得Session后，我们需要从Session中获取特定类型的Store，然后连接到Store，这里的Store代表了存储邮件的邮件服务器。在连接Store的过程中，极有可能需要用到用户名、密码或者Authenticator。</p>
+<pre class="overflow"><br>// Store store = session.getStore(&quot;imap&quot;);<br>Store store = session.getStore(&quot;pop3&quot;);<br>store.connect(host, username, password);</pre>
+<p><br>
+在连接到Store后，一个Folder对象即目录对象将通过Store的getFolder()方法被返回，我们可从这个Folder中读取邮件信息：</p>
+<pre class="overflow"><br>Folder folder = store.getFolder(&quot;INBOX&quot;);<br>folder.open(Folder.READ_ONLY);<br>Message message[] = folder.getMessages();</pre>
+<p><br>
+上面的例子首先从Store中获得INBOX这个Folder（对于POP3协议只有一个名为INBOX的Folder有效），然后以只读（Folder.READ_ONLY）的方式打开Folder，最后调用Folder的getMessages()方法得到目录中所有Message的数组。<br>
+<br>
+注意：对于POP3协议只有一个名为INBOX的Folder有效，而对于IMAP协议，我们可以访问多个Folder（想想前面讲的IMAP协议）。而且SUN在设计Folder的getMessages()方法时采取了很智能的方式：首先接收新邮件列表，然后再需要的时候（比如读取邮件内容）才从邮件服务器读取邮件内容。<br>
+在读取邮件时，我们可以用Message类的getContent()方法接收邮件或是writeTo()方法将邮件保存，getContent()方法只接收邮件内容（不包含邮件头），而writeTo()方法将包括邮件头。</p>
+<pre class="overflow"><br>System.out.println(((MimeMessage)message).getContent());</pre>
+<p><br>
+在读取邮件内容后，别忘记了关闭Folder和Store。</p>
+<pre class="overflow"><br>folder.close(aBoolean);<br>store.close();</pre>
+<p><br>
+传递给Folder.close()方法的boolean 类型参数表示是否在删除操作邮件后更新Folder。 <br>
+<br>
+<span style="color: green">H．继续向前进！</span><br>
+在讲解了以上的七个Java Mail核心类定义和理解了简单的代码片断后，下文将详细讲解怎样使用这些类实现JavaMail API所要完成的高级功能。<br>
+<br>
+<span style="color: blue">五、使用JavaMail API</span><br>
+在明确了JavaMail API的核心部分如何工作后，本人将带领大家学习一些使用Java Mail API任务案例。<br>
+<span style="color: blue">1．发送邮件</span><br>
+在获得了Session后，建立并填入邮件信息，然后发送它到邮件服务器。这便是使用Java Mail API发送邮件的过程，在发送邮件之前，我们需要设置SMTP服务器：通过设置Properties的mail.smtp.host属性。</p>
+<pre class="overflow"><br>String host = ...;<br>String from = ...;<br>String to = ...;<br><br>// Get system properties<br>Properties props = System.getProperties();<br><br>// Setup mail server<br>props.put(&quot;mail.smtp.host&quot;, host);<br><br>// Get session<br>Session session = Session.getDefaultInstance(props, null);<br><br>// Define message<br>MimeMessage message = new MimeMessage(session);<br>message.setFrom(new InternetAddress(from));<br>message.addRecipient(Message.RecipientType.TO, <br>&nbsp;&nbsp;       new InternetAddress(to));<br>message.setSubject(&quot;Hello JavaMail&quot;);<br>message.setText(&quot;Welcome to JavaMail&quot;);<br>// Send message<br>Transport.send(message);</pre>
+<p><br>
+由于建立邮件信息和发送邮件的过程中可能会抛出异常，所以我们需要将上面的代码放入到try-catch结构块中。<br>
+<br>
+<span style="color: blue">2．接收邮件</span><br>
+为了在读取邮件，我们获得了session，并且连接到了邮箱的相应store，打开相应的Folder，然后得到我们想要的邮件，当然别忘记了在结束时关闭连接。</p>
+<pre class="overflow"><br>String host = ...;<br>String username = ...;<br>String password = ...;<br><br>// Create empty properties<br>Properties props = new Properties();<br><br>// Get session<br>Session session = Session.getDefaultInstance(props, null);<br><br>// Get the store<br>Store store = session.getStore(&quot;pop3&quot;);<br>store.connect(host, username, password);<br><br>// Get folder<br>Folder folder = store.getFolder(&quot;INBOX&quot;);<br>folder.open(Folder.READ_ONLY);<br><br>// Get directory<br>Message message[] = folder.getMessages();<br><br>for (int i=0, n=message.length; i&lt;n; i++) {<br>&nbsp;&nbsp;        System.out.println(i + &quot;: &quot; + message[i].getFrom()[0] <br>&nbsp;&nbsp;&nbsp;&nbsp;        + &quot;\t&quot; + message[i].getSubject());<br>}<br><br>// Close connection <br>folder.close(false);<br>store.close();</pre>
+<p><br>
+上面的代码所作的是从邮箱中读取每个邮件，并且显示邮件的发信人地址和主题。从技术角度讲，这里存在着一个异常的可能：当发信人地址为空时，getFrom()[0]将抛出异常。<br>
+<br>
+下面的代码片断有效的说明了如何读取邮件内容，在显示每个邮件发信人和主题后，将出现用户提示从而得到用户是否读取该邮件的确认，如果输入YES的话，我们可用Message.writeTo(java.io.OutputStream os)方法将邮件内容输出到控制台上，关于Message.writeTo()的具体用法请看JavaMail API。</p>
+<pre class="overflow"><br>BufferedReader reader = new BufferedReader (<br>&nbsp;&nbsp;       new InputStreamReader(System.in));<br><br>// Get directory<br>Message message[] = folder.getMessages();<br>for (int i=0, n=message.length; i&lt;n; i++) {<br>&nbsp;&nbsp;       System.out.println(i + &quot;: &quot; + message[i].getFrom()[0] <br>&nbsp;&nbsp;&nbsp;&nbsp;       + &quot;\t&quot; + message[i].getSubject());<br><br>&nbsp;&nbsp;       System.out.println(&quot;Do you want to read message? &quot; +<br>&nbsp;&nbsp;&nbsp;&nbsp;       &quot;[YES to read/QUIT to end]&quot;);<br>&nbsp;&nbsp;       String line = reader.readLine();<br>&nbsp;&nbsp;       if (&quot;YES&quot;.equals(line)) {<br>&nbsp;&nbsp;&nbsp;&nbsp;       message[i].writeTo(System.out);<br>&nbsp;&nbsp;       } else if (&quot;QUIT&quot;.equals(line)) {<br>&nbsp;&nbsp;&nbsp;&nbsp;       break;<br>&nbsp;&nbsp;       }<br>}</pre>
+<p><br>
+<br>
+<span style="color: blue">3．删除邮件和标志</span><br>
+设置与message相关的Flags是删除邮件的常用方法。这些Flags表示了一些系统定义和用户定义的不同状态。在Flags类的内部类Flag中预定义了一些标志：<br>
+Flags.Flag.ANSWERED<br>
+Flags.Flag.DELETED<br>
+Flags.Flag.DRAFT<br>
+Flags.Flag.FLAGGED<br>
+Flags.Flag.RECENT<br>
+Flags.Flag.SEEN<br>
+Flags.Flag.USER<br>
+但需要在使用时注意的：标志存在并非意味着这个标志被所有的邮件服务器所支持。例如，对于删除邮件的操作，POP协议不支持上面的任何一个。所以要确定哪些标志是被支持的&mdash;&mdash;通过访问一个已经打开的Folder对象的getPermanetFlags()方法，它将返回当前被支持的Flags类对象。<br>
+删除邮件时，我们可以设置邮件的DELETED标志：</p>
+<pre class="overflow"><br>message.setFlag(Flags.Flag.DELETED, true);</pre>
+<p><br>
+但是首先要采用READ_WRITE的方式打开Folder：</p>
+<pre class="overflow"><br>folder.open(Folder.READ_WRITE);</pre>
+<p><br>
+在对邮件进行删除操作后关闭Folder时，需要传递一个true作为对删除邮件的擦除确认。</p>
+<pre class="overflow"><br>folder.close(true);</pre>
+<p><br>
+Folder类中另一种用于删除邮件的方法expunge()也同样可删除邮件，但是它并不为sun提供的POP3实现支持，而其它第三方提供的POP3实现支持或者并不支持这种方法。<br>
+另外，介绍一种检查某个标志是否被设置的方法：Message.isSet(Flags.Flag flag)方法，其中参数为被检查的标志。<br>
+<br>
+<span style="color: blue">4．邮件认证</span><br>
+我们在前面已经学会了如何使用Authenticator类来代替直接使用用户名和密码这两字符串作为Session.getDefaultInstance()或者Session.getInstance()方法的参数。在前面的小试牛刀后，现在我们将了解到全面认识一下邮件认证。<br>
+我们在此取代了直接使用邮件服务器主机名、用户名、密码这三个字符串作为连接到POP3 Store的方式，使用存储了邮件服务器主机名信息的属性文件，并在获得Session时传入自定义的Authenticator实例：</p>
+<pre class="overflow"><br>// Setup properties<br>Properties props = System.getProperties();<br>props.put(&quot;mail.pop3.host&quot;, host);<br><br>// Setup authentication, get session<br>Authenticator auth = new PopupAuthenticator();<br>Session session = Session.getDefaultInstance(props, auth);<br><br>// Get the store<br>Store store = session.getStore(&quot;pop3&quot;);<br>store.connect();</pre>
+<p><br>
+<br>
+PopupAuthenticator类继承了抽象类Authenticator，并且通过重载Authenticator类的getPasswordAuthentication()方法返回PasswordAuthentication类对象。而getPasswordAuthentication()方法的参数param是以逗号分割的用户名、密码组成的字符串。</p>
+<pre class="overflow"><br>import javax.mail.*;<br>import java.util.*;<br><br>public class PopupAuthenticator extends Authenticator {<br><br>&nbsp;&nbsp;       public PasswordAuthentication getPasswordAuthentication(String param) {<br>&nbsp;&nbsp;&nbsp;&nbsp;       String username, password;<br><br>&nbsp;&nbsp;&nbsp;&nbsp;       StringTokenizer st = new StringTokenizer(param, &quot;,&quot;);<br>&nbsp;&nbsp;&nbsp;&nbsp;       username = st.nextToken();<br>&nbsp;&nbsp;&nbsp;&nbsp;       password = st.nextToken();<br><br>&nbsp;&nbsp;&nbsp;&nbsp;       return new PasswordAuthentication(username, password);<br>&nbsp;&nbsp;       }<br><br>}</pre>
+<p><br>
+<br>
+<span style="color: blue">5．回复邮件</span><br>
+回复邮件的方法很简单：使用Message类的reply()方法，通过配置回复邮件的收件人地址和主题（如果没有提供主题的话，系统将默认将&ldquo;Re：&rdquo;作为邮件的主体），这里不需要设置任何的邮件内容，只要复制发信人或者reply-to到新的收件人。而reply()方法中的boolean参数表示是否将邮件回复给发送者（参数值为false），或是恢复给所有人（参数值为true）。<br>
+补充一下，reply-to地址需要在发信时使用setReplyTo()方法设置。</p>
+<pre class="overflow"><br>MimeMessage reply = (MimeMessage)message.reply(false);<br>reply.setFrom(new InternetAddress(&quot;president@whitehouse.gov&quot;));<br>reply.setText(&quot;Thanks&quot;);<br>Transport.send(reply);</pre>
+<p><br>
+<br>
+<span style="color: blue">6．转发邮件</span><br>
+转发邮件的过程不如前面的回复邮件那样简单，它将建立一个转发邮件，这并非一个方法就能做到。<br>
+每个邮件是由多个部分组成，每个部分称为一个邮件体部分，是一个BodyPart类对象，对于MIME类型邮件来讲就是MimeBodyPart类对象。这些邮件体包含在成为Multipart的容器中对于MIME类型邮件来讲就是MimeMultiPart类对象。在转发邮件时，我们建立一个文字邮件体部分和一个被转发的文字邮件体部分，然后将这两个邮件体放到一个Multipart中。说明一下，复制一个邮件内容到另一个邮件的方法是仅复制它的DataHandler（数据处理者）即可。这是由JavaBeans Activation Framework定义的一个类，它提供了对邮件内容的操作命令的访问、管理了邮件内容操作，是不同的数据源和数据格式之间的一致性接口。</p>
+<pre class="overflow"><br>// Create the message to forward<br>Message forward = new MimeMessage(session);<br><br>// Fill in header<br>forward.setSubject(&quot;Fwd: &quot; + message.getSubject());<br>forward.setFrom(new InternetAddress(from));<br>forward.addRecipient(Message.RecipientType.TO, <br>&nbsp;&nbsp;       new InternetAddress(to));<br><br>// Create your new message part<br>BodyPart messageBodyPart = new MimeBodyPart();<br>messageBodyPart.setText(<br>&nbsp;&nbsp;       &quot;Here you go with the original message:\n\n&quot;);<br><br>// Create a multi-part to combine the parts<br>Multipart multipart = new MimeMultipart();<br>multipart.addBodyPart(messageBodyPart);<br><br>// Create and fill part for the forwarded content<br>messageBodyPart = new MimeBodyPart();<br>messageBodyPart.setDataHandler(message.getDataHandler());<br><br>// Add part to multi part<br>multipart.addBodyPart(messageBodyPart);<br><br>// Associate multi-part with message<br>forward.setContent(multipart);<br><br>// Send message<br>Transport.send(forward);</pre>
+<p><br>
+<br>
+<span style="color: blue">7．使用附件</span><br>
+附件作为与邮件相关的资源经常以文本、表格、图片等格式出现，如流行的邮件客户端一样，我们可以用JavaMail API从邮件中获取附件或是发送带有附件的邮件。<br>
+<br>
+<span style="color: green">A．发送带有附件的邮件</span><br>
+发送带有附件的邮件的过程有些类似转发邮件，我们需要建立一个完整邮件的各个邮件体部分，在第一个部分（即我们的邮件内容文字）后，增加一个具有DataHandler的附件而不是在转发邮件时那样复制第一个部分的DataHandler。<br>
+<br>
+如果我们将文件作为附件发送，那么要建立FileDataSource类型的对象作为附件数据源；如果从URL读取数据作为附件发送，那么将要建立URLDataSource类型的对象作为附件数据源。<br>
+<br>
+然后将这个数据源（FileDataSource或是URLDataSource）对象作为DataHandler类构造方法的参数传入，从而建立一个DataHandler对象作为数据源的DataHandler。<br>
+<br>
+接着将这个DataHandler设置为邮件体部分的DataHandler。这样就完成了邮件体与附件之间的关联工作，下面的工作就是BodyPart的setFileName()方法设置附件名为原文件名。<br>
+<br>
+最后将两个邮件体放入到Multipart中，设置邮件内容为这个容器Multipart，发送邮件。</p>
+<pre class="overflow"><br>// Define message<br>Message message = new MimeMessage(session);<br>message.setFrom(new InternetAddress(from));<br>message.addRecipient(Message.RecipientType.TO, <br>&nbsp;&nbsp;       new InternetAddress(to));<br>message.setSubject(&quot;Hello JavaMail Attachment&quot;);<br><br>// Create the message part <br>BodyPart messageBodyPart = new MimeBodyPart();<br><br>// Fill the message<br>messageBodyPart.setText(&quot;Pardon Ideas&quot;);<br><br>Multipart multipart = new MimeMultipart();<br>multipart.addBodyPart(messageBodyPart);<br><br>// Part two is attachment<br>messageBodyPart = new MimeBodyPart();<br>DataSource source = new FileDataSource(filename);<br>messageBodyPart.setDataHandler(new DataHandler(source));<br>messageBodyPart.setFileName(filename);<br>multipart.addBodyPart(messageBodyPart);<br><br>// Put parts in message<br>message.setContent(multipart);<br><br>// Send the message<br>Transport.send(message);</pre>
+<p><br>
+如果我们使用servlet实现发送带有附件的邮件，则必须上传附件给servlet，这时需要注意提交页面form中对编码类型的设置应为multipart/form-data。</p>
+<pre class="overflow"><br>&lt;FORM ENCTYPE=&quot;multipart/form-data&quot; <br>&nbsp;&nbsp;&nbsp;&nbsp;       method=post action=&quot;/myservlet&quot;&gt; <br>&nbsp;&nbsp;       &lt;INPUT TYPE=&quot;file&quot; NAME=&quot;thefile&quot;&gt;<br>&nbsp;&nbsp;       &lt;INPUT TYPE=&quot;submit&quot; VALUE=&quot;Upload&quot;&gt;<br>&lt;/FORM&gt;</pre>
+<p><br>
+<br>
+<span style="color: green">B．读取邮件中的附件</span><br>
+读取邮件中的附件的过程要比发送它的过程复杂一点。因为带有附件的邮件是多部分组成的，我们必须处理每一个部分获得邮件的内容和附件。<br>
+但是如何辨别邮件信息内容和附件呢？Sun在Part类（BodyPart类实现的接口类）中提供了getDisposition()方法让开发者获得邮件体部分的部署类型，当该部分是附件时，其返回之将是Part.ATTACHMENT。但附件也可以没有部署类型的方式存在或者部署类型为Part.INLINE，无论部署类型为Part.ATTACHMENT还是Part.INLINE，我们都能把该邮件体部分导出保存。</p>
+<pre class="overflow"><br>Multipart mp = (Multipart)message.getContent();<br><br>for (int i=0, n=multipart.getCount(); i&lt;n; i++) {<br>&nbsp;&nbsp;       Part part = multipart.getBodyPart(i));<br><br>&nbsp;&nbsp;       String disposition = part.getDisposition();<br><br>&nbsp;&nbsp;       if ((disposition != null) &amp;&amp; <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       ((disposition.equals(Part.ATTACHMENT) || <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        (disposition.equals(Part.INLINE))) {<br>&nbsp;&nbsp;&nbsp;&nbsp;       saveFile(part.getFileName(), part.getInputStream());<br>&nbsp;&nbsp;       }<br>}</pre>
+<p><br>
+下列代码中使用了saveFile方法是自定义的方法，它根据附件的文件名建立一个文件，如果本地磁盘上存在名为附件的文件，那么将在文件名后增加数字表示区别。然后从邮件体中读取数据写入到本地文件中（代码省略）。</p>
+<pre class="overflow"><br>// from saveFile()<br>File file = new File(filename);<br>for (int i=0; file.exists(); i++) {<br>&nbsp;&nbsp;       file = new File(filename+i);<br>}</pre>
+<p><br>
+以上是邮件体部分被正确设置的简单例子，如果邮件体部分的部署类型为null，那么我们通过获得邮件体部分的MIME类型来判断其类型作相应的处理，代码结构框架如下：</p>
+<pre class="overflow"><br>if (disposition == null) {<br>&nbsp;&nbsp;       // Check if plain<br>&nbsp;&nbsp;       MimeBodyPart mbp = (MimeBodyPart)part;<br>&nbsp;&nbsp;       if (mbp.isMimeType(&quot;text/plain&quot;)) {<br>&nbsp;&nbsp;&nbsp;&nbsp;       // Handle plain<br>&nbsp;&nbsp;       } else {<br>&nbsp;&nbsp;&nbsp;&nbsp;       // Special non-attachment cases here of <br>&nbsp;&nbsp;&nbsp;&nbsp;       // image/gif, text/html, ...<br>&nbsp;&nbsp;       }<br>...<br>}</pre>
+<p><br>
+<br>
+<span style="color: blue">8．处理HTML邮件</span><br>
+前面的例子中发送的邮件都是以文本为内容的（除了附件），下面将介绍如何接收和发送基于HTML的邮件。<br>
+<span style="color: green">A．发送HTML邮件</span><br>
+假如我们需要发送一个HTML文件作为邮件内容，并使邮件客户端在读取邮件时获取相关的图片或者文字的话，只要设置邮件内容为html代码，并设置内容类型为text/html即可：</p>
+<pre class="overflow"><br>String htmlText = &quot;&lt;H1&gt;Hello&lt;/H1&gt;&quot; + <br>&nbsp;&nbsp;       &quot;&lt;img src=\&quot;http://www.jguru.com/images/logo.gif\&quot;&gt;&quot;;<br>message.setContent(htmlText, &quot;text/html&quot;));</pre>
+<p><br>
+请注意：这里的图片并不是在邮件中内嵌的，而是在URL中定义的。邮件接收者只有在线时才能看到。<br>
+在接收邮件时，如果我们使用JavaMail API接收邮件的话是无法实现以HTML方式显示邮件内容的。因为JavaMail API邮件内容视为二进制流。所以要显示HTML内容的邮件，我们必须使用JEditorPane或者第三方HTML展现组件。<br>
+<br>
+以下代码显示了如何使用JEditorPane显示邮件内容：</p>
+<pre class="overflow"><br>if (message.getContentType().equals(&quot;text/html&quot;)) {<br>&nbsp;&nbsp;       String content = (String)message.getContent();<br>&nbsp;&nbsp;       JFrame frame = new JFrame();<br>&nbsp;&nbsp;       JEditorPane text = new JEditorPane(&quot;text/html&quot;, content);<br>&nbsp;&nbsp;       text.setEditable(false);<br>&nbsp;&nbsp;       JScrollPane pane = new JScrollPane(text);<br>&nbsp;&nbsp;       frame.getContentPane().add(pane);<br>&nbsp;&nbsp;       frame.setSize(300, 300);<br>&nbsp;&nbsp;       frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);<br>&nbsp;&nbsp;       frame.show();<br>}</pre>
+<p><br>
+<br>
+<span style="color: green">B．在邮件中包含图片</span><br>
+如果我们在邮件中使用HTML作为内容，那么最好将HTML中使用的图片作为邮件的一部分，这样无论是否在线都会正确的显示HTML中的图片。处理方法就是将HTML中用到的图片作为邮件附件并使用特殊的cid URL作为图片的引用，这个cid就是对图片附件的Content-ID头的引用。<br>
+处理内嵌图片就像向邮件中添加附件一样，不同之处在于我们必须通过设置图片附件所在的邮件体部分的header中Content-ID为一个随机字符串，并在HTML中img的src标记中设置为该字符串。这样就完成了图片附件与HTML的关联。</p>
+<pre class="overflow"><br>String file = ...;<br><br>// Create the message<br>Message message = new MimeMessage(session);<br><br>// Fill its headers<br>message.setSubject(&quot;Embedded Image&quot;);<br>message.setFrom(new InternetAddress(from));<br>message.addRecipient(Message.RecipientType.TO, <br>&nbsp;&nbsp;       new InternetAddress(to));<br><br>// Create your new message part<br>BodyPart messageBodyPart = new MimeBodyPart();<br>String htmlText = &quot;&lt;H1&gt;Hello&lt;/H1&gt;&quot; + <br>&nbsp;&nbsp;       &quot;&lt;img src=\&quot;cid:memememe\&quot;&gt;&quot;;<br>messageBodyPart.setContent(htmlText, &quot;text/html&quot;);<br><br>// Create a related multi-part to combine the parts<br>MimeMultipart multipart = new MimeMultipart(&quot;related&quot;);<br>multipart.addBodyPart(messageBodyPart);<br><br>// Create part for the image<br>messageBodyPart = new MimeBodyPart();<br><br>// Fetch the image and associate to part<br>DataSource fds = new FileDataSource(file);<br>messageBodyPart.setDataHandler(new DataHandler(fds));<br>messageBodyPart.setHeader(&quot;Content-ID&quot;,&quot;&lt;memememe&gt;&quot;);<br><br>// Add part to multi-part<br>multipart.addBodyPart(messageBodyPart);<br><br>// Associate multi-part with message<br>message.setContent(multipart);</pre>
+<p><br>
+<br>
+<span style="color: blue">9．在邮件中搜索短语</span><br>
+JavaMail API提供了过滤器机制，它被用来建立搜索短语。这个短语由javax.mail.search包中的SearchTerm抽象类来定义，在定义后我们便可以使用Folder的Search()方法在Folder中查找邮件：</p>
+<pre class="overflow"><br>SearchTerm st = ...;<br>Message[] msgs = folder.search(st);</pre>
+<p><br>
+下面有22个不同的类（继承了SearchTerm类）供我们使用：<br>
+AND terms (class AndTerm)<br>
+OR terms (class OrTerm)<br>
+NOT terms (class NotTerm)<br>
+SENT DATE terms (class SentDateTerm)<br>
+CONTENT terms (class BodyTerm)<br>
+HEADER terms (FromTerm / FromStringTerm, RecipientTerm / RecipientStringTerm, SubjectTerm, etc.)<br>
+使用这些类定义的断语集合，我们可以构造一个逻辑表达式，并在Folder中进行搜索。下面是一个实例：在Folder中搜索邮件主题含有&ldquo;ADV&rdquo;字符串或者发信人地址为friend@public.com的邮件。</p>
+<pre class="overflow"><br>SearchTerm st = <br>&nbsp;&nbsp;       new OrTerm(<br>&nbsp;&nbsp;&nbsp;&nbsp;       new SubjectTerm(&quot;ADV:&quot;), <br>&nbsp;&nbsp;&nbsp;&nbsp;       new FromStringTerm(&quot;friend@public.com&quot;));<br>Message[] msgs = folder.search(st);</pre>
+<p><br>
+<br>
+<span style="color: blue">六、参考资源</span><br>
+<a target="_new" href="http://java.sun.com/products/javamail/index.jsp">JavaMail API Home</a><br>
+<a target="_new" href="http://java.sun.com/developer/onlineTraining/JavaMail/contents.html">Sun&rsquo;s JavaMail API基础</a><br>
+<a target="_new" href="http://java.sun.com/products/javabeans/glasgow/jaf.html">JavaBeans Activation Framework Home</a><br>
+<a target="_new" href="http://mail.java.sun.com/archives/javamail-interest.html">javamail-interest mailing list</a><br>
+<a target="_new" href="http://java.sun.com/products/javamail/FAQ.html">Sun's JavaMail FAQ</a><br>
+<a target="_new" href="http://www.jguru.com/faq/JavaMail">jGuru's JavaMail FAQ</a><br>
+<a target="_new" href="http://java.sun.com/products/javamail/Third_Party.html">Third Party Products List</a><br>
+<br>
+<span style="color: blue">七、代码下载</span><br>
+<a target="_new" href="http://java.sun.com/developer/onlineTraining/JavaMail/exercises.html">http://java.sun.com/developer/onlineTraining/JavaMail/exercises.html</a>
+<table class="FCK__ShowTableBorders">
+    <tbody>
+        <tr>
+            <td> </td>
+        </tr>
+    </tbody>
+</table>
+</p></div></body></html>

@@ -1,0 +1,331 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>为什么说Java中继承是有害的</title></head><body><h1>为什么说Java中继承是有害的</h1><div><p>为什么说Java中继承是有害的</p>
+<p>　　大多数好的设计者象躲避瘟疫一样来避免使用实现继承(extends 关系)。实际上80%的代码应该完全用interfaces写，而不是通过extends。&ldquo;JAVA设计模式&rdquo;一书详细阐述了怎样用接口继承代替实现继承。这篇文章描述设计者为什么会这么作。 <br>
+　　Extends是有害的；也许对于Charles Manson这个级别的不是，但是足够糟糕的它应该在任何可能的时候被避开。&ldquo;JAVA设计模式&rdquo;一书花了很大的部分讨论用interface继承代替实现继承。 <br>
+<br>
+　　好的设计者在他的代码中，大部分用interface，而不是具体的基类。本文讨论为什么设计者会这样选择，并且也介绍一些基于interface的编程基础。 <br>
+<strong>接口（Interface）和类（Class）?</strong> <br>
+　　一次，我参加一个<a class="channel_keylink" target="_blank" href="http://java.chinaitlab.com/">Java</a>用户组的会议。在会议中，Jams Gosling（<a class="channel_keylink" target="_blank" href="http://java.chinaitlab.com/">Java</a>之父）做发起人讲话。在那令人难忘的Q&amp;A部分，有人问他：&ldquo;如果你重新构造Java，你想改变什么？&rdquo;。&ldquo;我想抛弃classes&rdquo;他回答。在笑声平息后，它解释说，真正的问题不是由于class本身，而是实现继承(extends 关系)。接口继承（implements关系）是更好的。你应该尽可能的避免实现继承。 <br>
+<strong>失去了灵活性</strong> <br>
+　　为什么你应该避免实现继承呢？第一个问题是明确的使用具体类名将你固定到特定的实现，给底层的改变增加了不必要的困难。 <br>
+　　在当前的敏捷编程方法中，核心是并行的设计和开发的概念。在你详细设计程序前，你开始编程。这个技术不同于传统方法的形式----传统的方式是设计应该在编码开始前完成----但是许多成功的项目已经证明你能够更快速的开发高质量代码，相对于传统的按部就班的方法。但是在并行开发的核心是主张灵活性。你不得不以某一种方式写你的代码以至于最新发现的需求能够尽可能没有痛苦的合并到已有的代码中。 <br>
+　　胜于实现你也许需要的特征，你只需实现你明确需要的特征，而且适度的对变化的包容。如果你没有这种灵活，并行的开发，那简直不可能。 <br>
+　　对于Inteface的编程是灵活结构的核心。为了说明为什么，让我们看一下当使用它们的时候，会发生什么。考虑下面的代码：
+<table style="font-size: 10pt" bordercolor="#808080" cellspacing="0" cellpadding="3" width="600" align="center" bgcolor="#cccccc" border="1">
+    <tbody>
+        <tr>
+            <td>f()<br>
+            { LinkedList list = new LinkedList();<br>
+            //...<br>
+            g( list );<br>
+            }<br>
+            <br>
+            g( LinkedList list )<br>
+            {<br>
+            list.add( ... );<br>
+            g2( list )<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><br>
+　　现在，假设一个对于快速查询的需求被提出，以至于这个LinkedList不能够解决。你需要用HashSet来代替它。在已有代码中，变化不能够局部化，因为你不仅仅需要修改f()也需要修改g()（它带有LinkedList参数），并且还有g()把列表传递给的任何代码。象下面这样重写代码:</p>
+<p>
+<table style="font-size: 10pt" bordercolor="#808080" cellspacing="0" cellpadding="3" width="600" align="center" bgcolor="#cccccc" border="1">
+    <tbody>
+        <tr>
+            <td>f()<br>
+            { Collection list = new LinkedList();<br>
+            //...<br>
+            g( list );<br>
+            }<br>
+            <br>
+            g( Collection list )<br>
+            {<br>
+            list.add( ... );<br>
+            g2( list )<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><br>
+　　这样修改Linked list成hash，可能只是简单的用new HashSet()代替new LinkedList()。就这样。没有其他的需要修改的地方。</p>
+<p>　　作为另一个例子，比较下面两段代码：</p>
+<p> </p>
+<p>
+<table style="font-size: 10pt" bordercolor="#808080" cellspacing="0" cellpadding="3" width="600" align="center" bgcolor="#cccccc" border="1">
+    <tbody>
+        <tr>
+            <td>f()<br>
+            { Collection c = new HashSet();<br>
+            //...<br>
+            g( c );<br>
+            }<br>
+            <br>
+            g( Collection c )<br>
+            {<br>
+            for( Iterator i = c.iterator(); i.hasNext() )<br>
+            do_something_with( i.next() );<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+和</p>
+<p>
+<table style="font-size: 10pt" bordercolor="#808080" cellspacing="0" cellpadding="3" width="600" align="center" bgcolor="#cccccc" border="1">
+    <tbody>
+        <tr>
+            <td>f2()<br>
+            { Collection c = new HashSet();<br>
+            //...<br>
+            g2( c.iterator() );<br>
+            }<br>
+            <br>
+            g2( Iterator i )<br>
+            { while( i.hasNext() )<br>
+            do_something_with( i.next() );<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p><br>
+　　g2()方法现在能够遍历Collection的派生，就像你能够从Map中得到的键值对。事实上，你能够写iterator，它产生数据，代替遍历一个Collection。你能够写iterator，它从测试的框架或者文件中得到信息。这会有巨大的灵活性。 <br>
+<strong>耦合</strong> <br>
+　　对于实现继承，一个更加关键的问题是耦合---令人烦躁的依赖，就是那种程序的一部分对于另一部分的依赖。全局变量提供经典的例子，证明为什么强耦合会引起麻烦。例如，如果你改变全局变量的类型，那么所有用到这个变量的函数也许都被影响，所以所有这些代码都要被检查，变更和重新测试。而且，所有用到这个变量的函数通过这个变量相互耦合。也就是，如果一个变量值在难以使用的时候被改变，一个函数也许就不正确的影响了另一个函数的行为。这个问题显著的隐藏于多线程的程序。 <br>
+　　作为一个设计者，你应该努力最小化耦合关系。你不能一并消除耦合，因为从一个类的对象到另一个类的对象的方法调用是一个松耦合的形式。你不可能有一个程序，它没有任何的耦合。然而，你能够通过遵守OO规则，最小化一定的耦合（最重要的是，一个对象的实现应该完全隐藏于使用他的对象）。例如，一个对象的实例变量（不是常量的成员域），应该总是private。我意思是某段时期的，无例外的，不断的。（你能够偶尔有效地使用protected方法，但是protected实例变量是可憎的事）同样的原因你应该不用get/set函数---他们对于是一个域公用只是使人感到过于复杂的方式（尽管返回修饰的对象而不是基本类型值的访问函数是在某些情况下是由原因的，那种情况下，返回的对象类是一个在设计时的关键抽象）。 <br>
+　　这里，我不是书生气。在我自己的工作中，我发现一个直接的相互关系在我OO方法的严格之间，快速代码开发和容易的代码实现。无论什么时候我违反中心的OO原则，如实现隐藏，我结果重写那个代码（一般因为代码是不可调试的）。我没有时间重写代码，所以我遵循那些规则。我关心的完全实用?我对干净的原因没有兴趣。 <br>
+<strong>脆弱的基类问题</strong> <br>
+　　现在，让我们应用耦合的概念到继承。在一个用extends的继承实现系统中，派生类是非常紧密的和基类耦合，当且这种紧密的连接是不期望的。设计者已经应用了绰号&ldquo;脆弱的基类问题&rdquo;去描述这个行为。基础类被认为是脆弱的是，因为你在看起来<a class="channel_keylink" target="_blank" href="http://security.chinaitlab.com/">安全</a>的情况下修改基类，但是当从派生类继承时，新的行为也许引起派生类出现功能紊乱。你不能通过简单的在隔离下检查基类的方法来分辨基类的变化是<a class="channel_keylink" target="_blank" href="http://security.chinaitlab.com/">安全</a>的；而是你也必须看（和测试）所有派生类。而且，你必须检查所有的代码，它们也用在基类和派生类对象中，因为这个代码也许被新的行为所打破。一个对于基础类的简单变化可能导致整个程序不可操作。 <br>
+　　让我们一起检查脆弱的基类和基类耦合的问题。下面的类extends了Java的ArrayList类去使它像一个stack来运转：</p>
+<p>
+<table style="font-size: 10pt" bordercolor="#808080" cellspacing="0" cellpadding="3" width="600" align="center" bgcolor="#cccccc" border="1">
+    <tbody>
+        <tr>
+            <td>class Stack extends ArrayList<br>
+            { private int stack_pointer = 0;<br>
+            <br>
+            public void push( Object article )<br>
+            { add( stack_pointer++, article );<br>
+            }<br>
+            <br>
+            public Object pop()<br>
+            { return remove( --stack_pointer );<br>
+            }<br>
+            <br>
+            public void push_many( Object[] articles )<br>
+            { for( int i = 0; i &lt; articles.length; ++i )<br>
+            push( articles[i] );<br>
+            }<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+甚至一个象这样简单的类也有问题。思考当一个用户平衡继承和用ArrayList的clear()方法去弹出堆栈时：</p>
+<p>
+<table style="font-size: 10pt" bordercolor="#808080" cellspacing="0" cellpadding="3" width="600" align="center" bgcolor="#cccccc" border="1">
+    <tbody>
+        <tr>
+            <td>Stack a_stack = new Stack();<br>
+            a_stack.push(&quot;1&quot;);<br>
+            a_stack.push(&quot;2&quot;);<br>
+            a_stack.clear();</td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p> </p>
+<p>　　这个代码成功编译，但是因为基类不知道关于stack指针堆栈的情况,这个stack对象当前在一个未定义的状态。下一个对于push（）调用把新的项放入索引2的位置。（stack_pointer的当前值），所以stack有效地有三个元素-下边两个是垃圾。（Java的stack类正是有这个问题，不要用它）. <br>
+　　对这个令人讨厌的继承的方法问题的解决办法是为Stack覆盖所有的ArrayList方法，那能够修改数组的状态，所以覆盖正确的操作Stack指针或者抛出一个例外。(removeRange()方法对于抛出一个例外一个好的候选方法)。 <br>
+　　这个方法有两个缺点。第一，如果你覆盖了所有的东西，这个基类应该真正的是一个interface，而不是一个class。如果你不用任何继承方法，在实现继承中就没有这一点。第二，更重要的是，你不能够让一个stack支持所有的ArrayList方法。例如，令人烦恼的removeRange()没有什么作用。唯一实现无用方法的合理的途径是使它抛出一个例外，因为它应该永远不被调用。这个方法有效的把编译错误成为运行错误。不好的方法是，如果方法只是不被定义，编译器会输出一个方法未找到的错误。如果方法存在，但是抛出一个例外，你只有在程序真正的运行时，你才能够发现调用错误。 <br>
+　　对于这个基类问题的一个更好的解决办法是封装数据结构代替用继承。这是新的和改进的Stack的版本：</p>
+<p>
+<table style="font-size: 10pt" bordercolor="#808080" cellspacing="0" cellpadding="3" width="600" align="center" bgcolor="#cccccc" border="1">
+    <tbody>
+        <tr>
+            <td>class Stack<br>
+            {<br>
+            private int stack_pointer = 0;<br>
+            private ArrayList the_data = new ArrayList();<br>
+            <br>
+            public void push( Object article )<br>
+            {<br>
+            the_data.add( stack_poniter++, article );<br>
+            }<br>
+            <br>
+            public Object pop()<br>
+            {<br>
+            return the_data.remove( --stack_pointer );<br>
+            }<br>
+            <br>
+            public void push_many( Object[] articles )<br>
+            {<br>
+            for（ int i = 0; i &lt; o.length; ++i ）<br>
+            push( articles[i] );<br>
+            }<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　到现在为止，一直都不错，但是考虑脆弱的基类问题，我们说你想要在stack创建一个变量， 用它在一段周期内跟踪最大的堆栈尺寸。一个可能的实现也许象下面这样:</p>
+<p>
+<table style="font-size: 10pt" bordercolor="#808080" cellspacing="0" cellpadding="3" width="600" align="center" bgcolor="#cccccc" border="1">
+    <tbody>
+        <tr>
+            <td>class Monitorable_stack extends Stack<br>
+            {<br>
+            private int high_water_mark = 0;<br>
+            private int current_size;<br>
+            <br>
+            public void push( Object article )<br>
+            {<br>
+            if( ++current_size &gt; high_water_mark )<br>
+            high_water_mark = current_size;<br>
+            super.push( article );<br>
+            }<br>
+            <br>
+            publish Object pop()<br>
+            {<br>
+            --current_size;<br>
+            return super.pop();<br>
+            }<br>
+            <br>
+            public int maximum_size_so_far()<br>
+            {<br>
+            return high_water_mark;<br>
+            }<br>
+            }</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+　　这个新类运行的很好，至少是一段时间。不幸的是，这个代码发掘了一个事实，push_many()通过调用push()来运行。首先，这个细节看起来不是一个坏的选择。它简化了代码，并且你能够得到push()的派生类版本，甚至当Monitorable_stack通过Stack的参考来访问的时候，以至于high_water_mark能够正确的更新。<a href="http://blog.csdn.net//softwarezhang/archive/2005/04/25/362832.aspx">http://blog.csdn.net//softwarezhang/archive/2005/04/25/362832.aspx</a></p>
+<p>================================================================</p>
+<p>有一天，有人也许运行这个代码并且注意到Stack没有运行的如想象的那么快，并且能够在重负荷下使用。你能够重写Stack，以至于它不用ArrayList并且继续提高Stack的效率。这是新的倾向的和有意义的版本：<br>
+[/代码]<br>
+class Stack <br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  private int stack_pointer = -1;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  private Object[] stack = new Object[1000];<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void push( Object article )<br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  assert stack_pointer &lt; stack.length;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  stack[ ++stack_pointer ] = article;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public Object pop()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  assert stack_pointer &gt;= 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return stack[ stack_pointer-- ];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void push_many( Object[] articles )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  assert ( stack_pointer + articles.length ) &lt; stack.length;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.arraycopy( articles, 0, stack, stack_pointer + 1, articles.length );<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Stack_pointer += articles.length;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+[/代码]<br>
+<br>
+注意到push_many不再多次调用push()&mdash;它做块传输。新的Stack运行正常；事实上，比前一个版本更好。不幸的是，派生类Monitorable_stack不再运行，因为如果push_many()被调用，它不正确的跟踪堆栈的使用（push()的派生类版本不再通过继承的push_many()方法调用，所以push_many()不再更新high_water_mark）。Stack是一个脆弱的类。与关闭它一样，事实上不可能通过小心来消灭这些类型的错误。<br>
+<br>
+注意如果你用接口继承，你就没有这个问题，因为你没有继承对你有害的函数。如果Stack是接口，由Simple_stack和Monitorable_stack实现，那么代码就是更加健壮的。<br>
+<br>
+我提供了一个基于接口的方法在Listing 0.1。这个解决方法和继承实现的方法一样的灵活：你能够用Stack抽象术语来写代码而不必担心你事实上在操作那种具体的堆栈。因为两个实现必须提供公共接口的所有东西，它很难使事情变糟。我仍然有和写基类的代码一样的只写一次，因为我用封装而不是继承。在底层，我不得不通过封装类中的琐碎的访问器方法来访问缺省的实现。（例如，Monitorable_Stack.push(…)(在41行)不得不调用在Simple_stack等价的方法）.程序员埋怨写所有这些行，但是写这特别行代码同消除重要的潜在bug是非常小的成本。<br>
+<br>
+[/代码]<br>
+Listing 0.1. 用接口消除脆弱基类<br>
+<br>
+&nbsp;&nbsp;&nbsp;  1| import java.util.*;<br>
+&nbsp;&nbsp;&nbsp;  2| <br>
+&nbsp;&nbsp;&nbsp;  3| interface Stack<br>
+&nbsp;&nbsp;&nbsp;  4| {<br>
+&nbsp;&nbsp;&nbsp;  5|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  void push( Object o );<br>
+&nbsp;&nbsp;&nbsp;  6|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Object pop();<br>
+&nbsp;&nbsp;&nbsp;  7|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  void push_many( Object[] source );<br>
+&nbsp;&nbsp;&nbsp;  8| }<br>
+&nbsp;&nbsp;&nbsp;  9| <br>
+&nbsp;&nbsp;  10| class Simple_stack implements Stack<br>
+&nbsp;&nbsp;  11| {&nbsp;&nbsp;&nbsp;  private int stack_pointer = -1;<br>
+&nbsp;&nbsp;  12|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  private Object[] stack = new Object[1000];<br>
+&nbsp;&nbsp;  13| <br>
+&nbsp;&nbsp;  14|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void push( Object o )<br>
+&nbsp;&nbsp;  15|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;&nbsp;  assert stack_pointer &lt; stack.length;<br>
+&nbsp;&nbsp;  16| <br>
+&nbsp;&nbsp;  17|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  stack[ ++stack_pointer ] = o;<br>
+&nbsp;&nbsp;  18|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  19| <br>
+&nbsp;&nbsp;  20|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public Object pop()<br>
+&nbsp;&nbsp;  21|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;&nbsp;  assert stack_pointer &gt;= 0;<br>
+&nbsp;&nbsp;  22| <br>
+&nbsp;&nbsp;  23|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return stack[ stack_pointer-- ];<br>
+&nbsp;&nbsp;  24|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  25| <br>
+&nbsp;&nbsp;  26|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void push_many( Object[] source )<br>
+&nbsp;&nbsp;  27|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;&nbsp;  assert (stack_pointer + source.length) &lt; stack.length;<br>
+&nbsp;&nbsp;  28| <br>
+&nbsp;&nbsp;  29|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  System.arraycopy(source,0,stack,stack_pointer+1,source.length);<br>
+&nbsp;&nbsp;  30|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  stack_pointer += source.length;<br>
+&nbsp;&nbsp;  31|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  32| }<br>
+&nbsp;&nbsp;  33| <br>
+&nbsp;&nbsp;  34| <br>
+&nbsp;&nbsp;  35| class Monitorable_Stack implements Stack<br>
+&nbsp;&nbsp;  36| {<br>
+&nbsp;&nbsp;  37|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  private int high_water_mark = 0;<br>
+&nbsp;&nbsp;  38|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  private int current_size;<br>
+&nbsp;&nbsp;  39|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Simple_stack stack = new Simple_stack();<br>
+&nbsp;&nbsp;  40| <br>
+&nbsp;&nbsp;  41|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void push( Object o )<br>
+&nbsp;&nbsp;  42|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;&nbsp;  if( ++current_size &gt; high_water_mark )<br>
+&nbsp;&nbsp;  43|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  high_water_mark = current_size;<br>
+&nbsp;&nbsp;  44|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  stack.push(o);<br>
+&nbsp;&nbsp;  45|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  46|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  47|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public Object pop()<br>
+&nbsp;&nbsp;  48|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;&nbsp;  --current_size;<br>
+&nbsp;&nbsp;  49|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return stack.pop();<br>
+&nbsp;&nbsp;  50|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  51| <br>
+&nbsp;&nbsp;  52|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void push_many( Object[] source )<br>
+&nbsp;&nbsp;  53|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;  54|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if( current_size + source.length &gt; high_water_mark )<br>
+&nbsp;&nbsp;  55|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  high_water_mark = current_size + source.length;<br>
+&nbsp;&nbsp;  56| <br>
+&nbsp;&nbsp;  57|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  stack.push_many( source );<br>
+&nbsp;&nbsp;  58|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  59| <br>
+&nbsp;&nbsp;  60|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public int maximum_size()<br>
+&nbsp;&nbsp;  61|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {&nbsp;&nbsp;&nbsp;  return high_water_mark;<br>
+&nbsp;&nbsp;  62|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  63| }<br>
+&nbsp;&nbsp;  64|<br>
+[/代码]<br>
+<br>
+没有提到基于框架编程，那使对于脆弱的基类的讨论是不完整的。诸如Microsoft Foundation Classes（MFC）的基类已经成为建立类库的流行途径。尽管MFC本身正在神圣的隐退，但是MFC的基口已经是根深蒂固，而这无关于Microsoft在那终止，程序员会一直认为Microsoft的方法是最好的方法。<br>
+<br>
+一个基于框架的系统典型的使用半成品的类的构成库开始，这些类不做任何需要做的事，而是依赖于派生类来提供需要的功能。在Java中，一个好的例子就是组件的paint()方法，它是一个有效的占位者；一个派生类必须提供真正的版本。<br>
+<br>
+你能够适度的多国一些东西，但是一个基于定制的派生类的完整的类框架是非常脆弱的。基类是太脆弱了。当我们用MFC编程时，每次Microsoft公布新版本时，我不得不重写我的应用。这些代码将经常编译，但是由于一些基类的改变，它们不能运行。<br>
+<br>
+所有提供的Java包工作的非常好。为了使它们运行，你不需要扩展任何东西。这个已经提供的结构比派生类的框架结构更好。它容易维护和使用，并且如果Sun Microsystems提供的类改变了它的实现，也不会使你的代码处在危险中。<br>
+<br>
+总结脆弱基类<br>
+一般，最好避开具体基础类和extends关系，而用接口和implements关系。我的处理规则是，在我的至少80%的代码中完全用接口来完成。例如，我从不用对HashMap的引用；我用对Map接口的引用。（我对interface这个字不是严格的。当你看怎样用接口的时候，InputStream是一个好的接口，尽管它在Java中是作为抽象类来实现的。）<br>
+<br>
+你增加的越抽象，就越灵活。在今天的商业环境下，需求随着程序开发而改变，灵活就是最主要的。而且灵敏编程中的大多数只有代码使用抽象来写才会很好的运行。<br>
+<br>
+如果你近距离的检查四人帮的模式，你将看到这些模式中的很多是提供方法消除实现继承，而最好用接口继承，并且大多数模式的共有特征是用接口继承。这个重要事实是我们开始时提到的：模式是发现而不是发明。模式的出现是当你发现写得很好，易维护的运行代码时。它讲的是这些写得好的，易维护的代码根本的避开了实现继承。<a href="http://blog.csdn.net/passren/archive/2004/06/30/30434.aspx">http://blog.csdn.net/passren/archive/2004/06/30/30434.aspx</a><br>
+<br>
+这个文章是从我即将出版的书，暂时命名为《Holub on Patterns:Learning Design Patterns by Looking at Code》，将有Apress在今年秋季出版。<br>
+<br>
+关于作者<br>
+Allen Holub从1979年就在计算机工业中工作。当前，他作为一个顾问，在公司的执行、培训和设计编码的服务中提供建议，使公司节省在软件中的成本。它已经出版的了8本书，包括《Taming Java Thread》(Apress, 2000)和《Compiler Design in C》（Pearson Higher Education,1990），并且在加州大学伯克利分校讲课。在他的网站，你会发现更多的信息。（<a class="ubblink" target="_blank" href="http://www.holub.com)/"><font color="#8b0000">http://www.holub.com）</font></a></p></div></body></html>

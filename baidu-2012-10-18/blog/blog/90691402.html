@@ -1,0 +1,121 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>tomcat的组件结构 和 TOMCAT的目录结构</title></head><body><h1>tomcat的组件结构 和 TOMCAT的目录结构</h1><div><p>tomcat的组件结构 和 TOMCAT的目录结构</p>
+<p><font size="4">Tomcat是一个基于组件的服务器，它的构成组件都是可配置的，其中最外层的组件是Catalina Servlet容器，其他的组件按照一定的格式要求配置在这个顶层容器中。<br>
+<font color="#ff0000">Tomcat的各个组件是在&lt;TOMCAT_HOME&gt;\conf\server.xml文件中配置的</font>，Tomcat服务器默认情况下对各种组件都有默认的实现，下面通过分析server.xml文件来理解Tomcat的各个组件是如何组织的。server.xml文件的基本组成结构如下。<br>
+</font></p>
+<div forimg="1" align="center"><font size="4"><img class="blogimg" src="http://hiphotos.baidu.com/jiangyuxing/pic/item/8e4dc3135f1aebd5f7039e80.jpg" border="0" small="0"></font></div>
+<p><br>
+&lt;Server&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  顶层类元素：一个配置文件中只能有一个&lt;Server&gt;元素，可包含多个Service。<br>
+&nbsp;&nbsp;&nbsp;  &lt;Service&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  顶层类元素：本身不是容器，可包含一个Engine，多个Connector。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;Connector/&gt;&nbsp;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  连接器类元素：代表通信接口。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;Engine&gt;&nbsp;&nbsp;  容器类元素：为特定的Service组件处理所有客户请求，可包含多个Host。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;Host&gt; &nbsp;&nbsp;  容器类元素：为特定的虚拟主机处理所有客户请求，可包含多个Context。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;Context&gt;&nbsp;&nbsp;  容器类元素：为特定的Web应用处理所有客户请求。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/Context&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/Host&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/Engine&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/Service&gt;<br>
+&lt;/Server&gt;<br>
+<font size="4">以上的类XML的代码就是server.xml文件的基本组成结构，一个元素代表一个组件。下面分别介绍这些组件。<br>
+<strong>.1 Server组件</strong><br>
+Server组件对应&lt;Server&gt;元素，它是配置文件的最顶层元素，代表一个服务器。一个配置文件中只能有一个&lt;Server&gt;元素。<br>
+<strong>.2 Service组件</strong><br>
+Service组件是一些Connector组件的集合，它本身不是一个容器，所以在这里不能定义日志等组件。一个Service组件中只能有一个Engine组件，可以包含多个Connector组件。<br>
+<strong>.3 Connector组件</strong><br>
+Connector组件表示一个接口，通过这个接口接收客户的请求，然户发送给其他的容器组件，最后再把服务器的响应结果传递给客户。<br>
+<strong>.4容器类元素</strong><br>
+上面介绍的3个组件本身并不能处理客户请求，也不能生成响应。在Tomcat中只有3个组件是可以处理客户请求并生成响应的，这3个组件分别是Engine、Host和Context组件。这3个组件分别代表了不同的服务范围，通过嵌套关系可以知道3个组件的范围有如下的关系：Engine&gt;Host&gt;Context。<br>
+&nbsp;&nbsp;&nbsp;  Engine组件下可以包含多个Host组件，它为特定的Service组件处理所有客户请求。<br>
+&nbsp;&nbsp;&nbsp;  一个Host组件代表一个虚拟主机，一个虚拟主机中可以包含多个Web应用（Context组件）。<br>
+&nbsp;&nbsp;&nbsp;  Context组件代表一个Web应用。<br>
+Tomcat的各个组件关系，可以用下图描述。</font></p>
+<div forimg="1" align="center"><img class="blogimg" src="http://hiphotos.baidu.com/jiangyuxing/pic/item/fd1503ed0f1202d1b21cb16c.jpg" border="0" small="0"><br>
+<br>
+<br>
+<div align="left">
+<p><font size="4">一个Java Web application在Tomcat中与一个Context元素对应，也就是说一个Context元素定义了一个Java Web application，它们是一一对应的关系。<br>
+在一个Java Web应用中可以包含如下内容：<br>
+&nbsp;&nbsp;&nbsp;  Servlet<br>
+&nbsp;&nbsp;&nbsp;  JSP页面<br>
+&nbsp;&nbsp;&nbsp;  Java类<br>
+&nbsp;&nbsp;&nbsp;  静态资源（HTML文档、图片等）<br>
+&nbsp;&nbsp;&nbsp;  描述Web应用的描述文件<br>
+客户每次提出请求时指定要访问的资源，如果客户没有指定具体资源，Tomcat使用默认的资源响应客户，显示文件夹中的资源列表或者提示错误。</font></p>
+<p><font size="4">==================</font></p>
+<font size="4">
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">一、<span>TOMCAT</span>的目录结构</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/bin</span><span style="font-size: 9pt">：存放<span>windows</span>或<span>Linux</span>平台上启动和关闭<span>Tomcat</span>的脚本文件</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/conf</span><span style="font-size: 9pt">：存放<span>Tomcat</span>服务器的各种全局配置文件，其中最重要的是<span>server.xml</span>和<span>web.xml</span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/doc</span><span style="font-size: 9pt">：存放<span>Tomcat</span>文档</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/server</span><span style="font-size: 9pt">：包含三个子目录：<span>classes</span>、<span>lib</span>和<span>webapps</span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/server/lib</span><span style="font-size: 9pt">：存放<span>Tomcat</span>服务器所需的各种<span>JAR</span>文件</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/server/webapps</span><span style="font-size: 9pt">：存放<span>Tomcat</span>自带的两个<span>WEB</span>应用<span>admin</span>应用和<span> manager</span>应用</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/common/lib</span><span style="font-size: 9pt">：存放<span>Tomcat</span>服务器以及所有<span>web</span>应用都可以访问的<span>jar</span>文件</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/shared/lib</span><span style="font-size: 9pt">：存放所有<span>web</span>应用都可以访问的<span>jar</span>文件（但是不能被<span>Tomcat</span>服务器访问）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/logs</span><span style="font-size: 9pt">：存放<span>Tomcat</span>执行时的日志文件</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/src</span><span style="font-size: 9pt">：存放<span>Tomcat</span>的源代码</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/webapps</span><span style="font-size: 9pt">：<span>Tomcat</span>的主要<span>Web</span>发布目录，默认情况下把<span>Web</span>应用文件放于此目录</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/work</span><span style="font-size: 9pt">：存放<span>JSP</span>编译后产生的<span>class</span>文件</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">二、<span>WEB</span>应用的目录结构：假设在<span>$CATALINA_HOME/webapps</span>下有<span>helloapp</span>的<span>web</span>应用</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/helloapp</span><span style="font-size: 9pt">：<span>Web</span>应用的根目录，所有的<span>jsp</span>文件和<span>html</span>文件都在此目录下</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/helloapp/WEB_INF</span><span style="font-size: 9pt">：存放该<span>web</span>应用发布时的描述文件<span>web.xml</span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/helloapp/WEB_INF/class</span><span style="font-size: 9pt">：存放各种<span>class</span>文件，<span>Servlet</span>文件也存放于此目录下</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">/helloapp/WEB_INF/lib</span><span style="font-size: 9pt">：存放各钟<span>Web</span>应用所需要的<span>jar</span>文件。比如可以存放<span>JDBC</span>驱动程序的<span>JAR</span>文件</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">三、<span>Tomcat</span>加载类和资源的顺序为（以<span>helloapp</span>应用为例）：</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">1</span><span style="font-size: 9pt">、<span>helloapp<span>&nbsp;&nbsp;&nbsp;&nbsp;</span></span>（<span>/webapps/helloapp/Web-INF/</span>下的<span>classes</span>，<span>lib</span>子目录中<span>*.calss</span>及<span>*.jar</span>，仅<span>helloapp</span>可以加载）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">2</span><span style="font-size: 9pt">、<span>Bootstrap<span>&nbsp;&nbsp;&nbsp;</span></span>（<span>$JAVA_HOME/jre/lib/ext/*.jar</span>）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">3</span><span style="font-size: 9pt">、<span>System<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span>（<span>$CLASSPATH/*.class</span>和<span>CLASSPATH</span>中指定的<span>jar</span>）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">4</span><span style="font-size: 9pt">、<span>Common<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span>（<span>$CATALINA_HOME/common/</span>下的<span>classes</span>，<span>lib</span>，<span>endores</span>子目录中<span>*.class</span>及<span>*.jar</span>）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">5</span><span style="font-size: 9pt">、<span>Catalina<span>&nbsp;&nbsp;&nbsp;&nbsp;</span></span>（<span>$CATALINA_HOME/server/</span>下的<span>classes</span>，<span>lib</span>子目录中<span>*.calss</span>及<span>*.jar</span>，仅<span>Tomcat</span>可以加载）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">6</span><span style="font-size: 9pt">、<span>Shared<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span>（<span>$CATALINA_HOME/shared/</span>下的<span>classes</span>，<span>lib</span>子目录中<span>*.calss</span>及<span>*.jar</span>，仅所有<span>Web</span>应用可以加载）</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">四、<span>$CATALINA_HOME/conf/server.xml</span>配置简介</span></strong></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">1</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Server&gt;</span>元素属性</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">port</span><span style="font-size: 9pt">：指定一个端口，这个端口负责监听关闭<span>tomcat</span>的请求</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">shutdown</span><span style="font-size: 9pt">：指定向端口发送的命令字符串，通常是&ldquo;<span>SHUTDOWN</span>&rdquo;</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">2</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Service&gt;</span>元素属性</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">name</span><span style="font-size: 9pt">：指定<span>service</span>的名字，通常是<span>&rdquo;Catalina&rdquo;</span></span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">3</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Connector/&gt;</span>元素属性（表示客户端和<span>service</span>之间的连接）：</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">port</span><span style="font-size: 9pt">：指定服务器端要创建的端口号，并使用这个断口监听来自客户端的请求</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">minProcessors</span><span style="font-size: 9pt">（考察是否有此属性）：服务器端启动时创建的处理请求的线程数<span> </span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">maxProcessors</span><span style="font-size: 9pt">（考察是否有此属性）：最大可以创建的处理请求的线程数 </span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">maxThreads</span><span style="font-size: 9pt">：服务器创建的最大线程数</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">minSpareThreads</span><span style="font-size: 9pt">：最小剩余线程数</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">maxSpareThreads</span><span style="font-size: 9pt">：最大剩余线程数</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">enableLookups</span><span style="font-size: 9pt">：如果为<span>true</span>，则可以通过调用<span>request.getRemoteHost</span>（）进行<span>DNS</span>查询来得到远程客户端的实际主机名，若为<span>false</span>则不进行<span>DNS</span>查询，而是返回其<span>IP</span>地址</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">redirectPort</span><span style="font-size: 9pt">：指定当服务器正在处理<span>HTTP</span>请求时收到了一个<span>SSL</span>传输请求后重定向的端口号<span> </span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">acceptCount</span><span style="font-size: 9pt">：指定当所有可以使用的处理请求的线程数都被使用时，可以放到处理队列中的请求数，超过的请求将不予处理<span> </span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">connectionTimeout</span><span style="font-size: 9pt">：指定超时的时间数（以毫秒为单位）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">disableUploadTimeout</span><span style="font-size: 9pt">：不明</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">debug</span><span style="font-size: 9pt">：不明</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">protocol</span><span style="font-size: 9pt">：不明</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">4</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Engine&gt;</span>元素属性（指定<span>service</span>中的请求处理主机，接收和处理来自<span>Connector</span>的请求）</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">name</span><span style="font-size: 9pt">：指定<span>Engine</span>的名字，通常是<span>&rdquo;Catalina&rdquo;</span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">defaultHost</span><span style="font-size: 9pt">：指定默认的处理请求的主机名，至少与某个<span>host</span>元素的<span>name</span>属性值是相同的</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">5</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Context/&gt;</span>元素属性（表示一个<span>web</span>应用程序）</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">docBase</span><span style="font-size: 9pt">：指定此<span>Web</span>应用的绝对或相对路径，也可以为<span>WAR</span>文件的路径</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">path</span><span style="font-size: 9pt">：表示此<span>Web</span>应用程序的<span>url</span>的入口，如为&ldquo;<span>/hello</span>&ldquo;，则请求的<span>URL</span>为<span>http://localhost:8080/hello/</span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">reloadable</span><span style="font-size: 9pt">：如果为<span>true</span>，则<span>Tomcat</span>在运行时会自动监视<span>Web</span>应用的<span>/WEB-INF/lib</span>和<span>/WEB-INF/classes</span>下文件的改动，自动装载新应用，使我们可以在不重启<span>Tomcat</span>的情况下更新<span>Web</span>应用</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">6</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Host&gt;</span>元素属性（表示一个虚拟主机）</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">name</span><span style="font-size: 9pt">：指定虚拟主机名字</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">debug</span><span style="font-size: 9pt">：指定日志级别</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">appBase</span><span style="font-size: 9pt">：存放<span>Web</span>应用程序的基本目录，可以是绝对路径或相对于<span>$CATALINA_HOME</span>的目录，默认是<span>$CATALINA_HOME/webapps</span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">unpackWARs</span><span style="font-size: 9pt">：如果为<span>true</span>，则<span>tomcat</span>会自动将<span>WAR</span>文件解压后运行，否则不解压而直接从<span>WAR</span>文件中运行应用程序</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">autoDeploy</span><span style="font-size: 9pt">：如果为<span>true</span>，表示<span>Tomcat</span>启动时会自动发布<span>appBase</span>目录下所有的<span>Web</span>应用（包括新加入的<span>Web</span>应用）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">deployOnStarup</span><span style="font-size: 9pt">：如果此项为<span>true</span>，表示<span>Tomcat</span>服务器启动时会自动发布<span>appBase</span>目录下所有<span>Web</span>应用。如果<span>Web</span>应用在<span>server.xml</span>中没有相应的<span>&lt;Context&gt;</span>元素<span>,</span>则将采用默认的<span>Context</span>配置。<span>deployOnStarup</span>的默认设置是<span>true</span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">alias</span><span style="font-size: 9pt">：指定虚拟主机的别名，可以指定多个别名</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">xmlValidation</span><span style="font-size: 9pt">：不明</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">xmlNamespaceAware</span><span style="font-size: 9pt">：不明</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">7</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Logger/&gt;</span>元素属性（表示日志，调试和错误信息）</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">className</span><span style="font-size: 9pt">：指定<span>logger</span>使用的类名，此类必须实现<span>org.apache.catalina.Logger </span>接口<span> </span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">prefix</span><span style="font-size: 9pt">：指定<span>log</span>文件名的前缀（文件名）</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">suffix</span><span style="font-size: 9pt">：指定<span>log</span>文件名的后缀（扩展名）<span> </span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">timestamp</span><span style="font-size: 9pt">：如果为<span>true</span>，则<span>log</span>文件名中会加入日期时间，如下例：<span>localhost_log.2006-10-04.txt</span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">directory</span><span style="font-size: 9pt">：指定<span>log</span>文件存放的目录</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">8</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Realm/&gt;</span>元素属性（表示存放用户名，密码及<span>role</span>的数据库）</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">className</span><span style="font-size: 9pt">：指定<span>Realm</span>使用的类名，此类必须实现<span>org.apache.catalina.Realm</span>接口</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">resourceName</span><span style="font-size: 9pt">：不明</span></p>
+<p style="text-indent: 18.05pt"><strong><span style="font-size: 9pt">9</span></strong><strong><span style="font-size: 9pt">、<span>&lt;Valve/&gt;</span>元素属性（功能与<span>Logger</span>相似，其<span>prefix</span>和<span>suffix</span>属性解释和<span>Logger </span>中的一样）</span></strong></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">className</span><span style="font-size: 9pt">：指定<span>Valve</span>使用的类名，如用<span>org.apache.catalina.valves.AccessLogValve</span>类可以记录应用程序的访问信息<span> </span></span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">directory</span><span style="font-size: 9pt">：指定<span>log</span>文件存放的位置</span></p>
+<p style="text-indent: 18pt"><span style="font-size: 9pt">pattern</span><span style="font-size: 9pt">：有两个值，<span>common</span>方式记录远程主机名或<span>ip</span>地址、用户名、日期、第一行请求的字符串、<span>HTTP</span>响应代码、发送的字节数。<span>combined</span>方式比<span>common</span>方式记录的值还多</span></p>
+</font></div>
+</div></div></body></html>

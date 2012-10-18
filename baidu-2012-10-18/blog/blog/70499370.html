@@ -1,0 +1,203 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>浅析Java与C#的事件处理机制</title></head><body><h1>浅析Java与C#的事件处理机制</h1><div><div>浅析Java与C#的事件处理机制</div>
+<div> </div>
+<div>您正在看的C++是:浅析Java与C#的事件处理机制。Java与C#的事件处理都是实现了事件源-事件响应者机制，但又不完全相同。Java实现的是一种事件源与事件响应者两级实体对象方式，这里的事件响应者也是事件监听者，而C#实现的是一种事件源-代理-事件响应者三级实体对象方式。下面就这两种方式来具体说明。</div>
+<div> </div>
+<div>Java事件处理 <br>
+从概念上讲，事件是一种在&quot;源对象&quot;和&quot;监听者对象&quot;之间，某种状态发生变化的传递机制。事件有许多不同的用途，例如在Windows系统中常要处理的鼠标事件、窗口边界改变事件、键盘事件等。在Java中则是定义了一个普通的、可扩充的事件机制，这种机制能够：</div>
+<div> </div>
+<div>对事件类型和传递的模型的定义和扩充提供一个公共框架，并适合于广泛的应用。</div>
+<div> </div>
+<div>与Java语言和环境有较高的集成度。</div>
+<div> </div>
+<div>事件能被描述环境捕获和触发。</div>
+<div> </div>
+<div>能使其它构造工具采取某种技术在设计时直接控制事件，以及事件源和事件监听者之间的联系。</div>
+<div> </div>
+<div>事件机制本身不依赖于复杂的开发工具。</div>
+<div> </div>
+<div>事件从事件源到监听者的传递是通过对目标监听者对象的Java方法调用进行的。 对每个明确的事件的发生，都相应地定义一个明确的Java方法。这些方法都集中定义在事件监听者（EventListener）接口中，这个接口要继承java.util.EventListener。实现了事件监听者接口中一些或全部方法的类就是事件监听者。 伴随着事件的发生，相应的状态通常都封装在事件状态对象中，该对象必须继承自Java.util.EventObject。事件状态对象作为单参传递给应响应该事件的监听者方法中。发出某种特定事件的事件源的标识是：遵从规定的设计格式为事件监听者定义注册方法，并接受对指定事件监听者接口实例的引用。有时，事件监听者不能直接实现事件监听者接口，或者还有其它的额外动作时，就要在一个源与其它一个或多个监听者之间插入一个事件适配器类的实例，来建立它们之间的联系。</div>
+<div> </div>
+<div>事件状态对象（Event State Object） <br>
+与事件发生有关的状态信息一般都封装在一个事件状态对象中，这种对象是Java。util。EventObject的子类。按设计习惯，这种事件状态对象类的名应以Event结尾。例如：</div>
+<div> </div>
+<div>public class MouseMovedExampleEvent extends Java。util。EventObject</div>
+<div> </div>
+<div>{ protected int x， y；</div>
+<div> </div>
+<div>/* 创建一个鼠标移动事件MouseMovedExampleEvent */</div>
+<div> </div>
+<div>MouseMovedExampleEvent(Java.awt.Component source， Point location) {</div>
+<div> </div>
+<div>super(source);</div>
+<div> </div>
+<div>x = location.x;</div>
+<div> </div>
+<div>y = location.y;</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>/* 获取鼠标位置*/</div>
+<div> </div>
+<div>public Point getLocation() {</div>
+<div> </div>
+<div>return new Point(x, y);</div>
+<div> </div>
+<div>}}</div>
+<div> </div>
+<div>事件监听者接口（EventListener Interface）与事件监听者 <br>
+由于Java事件模型是基于方法调用，因而需要一个定义并组织事件操纵方法的方式。事件操纵方法都被定义在继承了Java。util。EventListener类的EventListener接口中，按规定，EventListener接口的命名要以Listener结尾。任何一个类如果想操纵在EventListener接口中定义的方法都必须以实现这个接口方式进行。这个类也就是事件监听者。例如：</div>
+<div> </div>
+<div><br>
+/*先定义了一个鼠标移动事件对象*/</div>
+<div> </div>
+<div>public class MouseMovedExampleEvent extends Java。util。EventObject {</div>
+<div> </div>
+<div>// 在此类中包含了与鼠标移动事件有关的状态信息</div>
+<div> </div>
+<div>...</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>/*定义了鼠标移动事件的监听者接口*/</div>
+<div> </div>
+<div>interface MouseMovedExampleListener extends Java。util。EventListener {</div>
+<div> </div>
+<div>/*在这个接口中定义了鼠标移动事件监听者所应支持的方法*/</div>
+<div> </div>
+<div>void mouseMoved(MouseMovedExampleEvent mme);</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>在接口中只定义方法名，方法的参数和返回值类型。如：上面接口中的mouseMoved方法的具体实现是在下面的ArbitraryObject类中定义的。</div>
+<div> </div>
+<div>class ArbitraryObject implements MouseMovedExampleListener {</div>
+<div> </div>
+<div>public void mouseMoved(MouseMovedExampleEvent mme)</div>
+<div> </div>
+<div>{ ... }</div>
+<div> </div>
+<div>｝</div>
+<div> </div>
+<div>ArbitraryObject就是MouseMovedExampleEvent事件的监听者。</div>
+<div> </div>
+<div>事件监听者的注册与注销 <br>
+为了各种可能的事件监听者把自己注册入合适的事件源中，建立源与事件监听者间的事件流，事件源必须为事件监听者提供注册和注销的方法。在前面的bound属性介绍中已看到了这种使用过程，在实际中，事件监听者的注册和注销要使用标准的设计格式：</div>
+<div> </div>
+<div>public void add&lt; ListenerType&gt;(&lt; ListenerType&gt; listener)；</div>
+<div> </div>
+<div>public void remove&lt; ListenerType&gt;(&lt; ListenerType&gt; listener)；</div>
+<div> </div>
+<div>首先定义了一个事件监听者接口：</div>
+<div> </div>
+<div>public interface ModelChangedListener extends Java。util。EventListener {</div>
+<div> </div>
+<div>void modelChanged(EventObject e);</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>接着定义事件源类：</div>
+<div> </div>
+<div>public abstract class Model {</div>
+<div> </div>
+<div>private Vector listeners = new Vector(); // 定义了一个储存事件监听者的数组</div>
+<div> </div>
+<div>/*上面设计格式中的&lt; ListenerType&gt;在此处即是下面的ModelChangedListener*/</div>
+<div> </div>
+<div>public synchronized void addModelChangedListener(ModelChangedListener mcl)</div>
+<div> </div>
+<div>{ listeners.addElement(mcl); }//把监听者注册入listeners数组中</div>
+<div> </div>
+<div>public synchronized void removeModelChangedListener(ModelChangedListener mcl)</div>
+<div> </div>
+<div><br>
+{ listeners.removeElement(mcl</div>
+<div> </div>
+<div><br>
+); file://把监听者从listeners中注销</div>
+<div> </div>
+<div>｝</div>
+<div> </div>
+<div>/*以上两个方法的前面均冠以synchronized，是因为运行在多线程环境时，可能同时有几个对象同时要进行注册和注销操作，使用synchronized来确保它们之间的同步。开发工具或程序员使用这两个方法建立源与监听者之间的事件流*/</div>
+<div> </div>
+<div>protected void notifyModelChanged() {/**事件源使用本方法通知监听者发生了modelChanged事件*/</div>
+<div> </div>
+<div>Vector l;</div>
+<div> </div>
+<div>EventObject e = new EventObject(this);</div>
+<div> </div>
+<div>/* 首先要把监听者拷贝到l数组中，冻结EventListeners的状态以传递事件。这样来确保在事件传递到所有监听者之前，已接收了事件的目标监听者的对应方法暂不生效。*/</div>
+<div> </div>
+<div>synchronized(this) {</div>
+<div> </div>
+<div>l = (Vector)listeners.clone();</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>for (int i = 0; i &lt; l.size(); i++) {</div>
+<div> </div>
+<div>/* 依次通知注册在监听者队列中的每个监听者发生了modelChanged事件，</div>
+<div> </div>
+<div>并把事件状态对象e作为参数传递给监听者队列中的每个监听者*/</div>
+<div> </div>
+<div>((ModelChangedListener)l.elementAt(i)).modelChanged(e);</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>｝</div>
+<div> </div>
+<div>在程序中可见事件源Model类显式地调用了接口中的modelChanged方法，实际是把事件状态对象e作为参数，传递给了监听者类中的modelChanged方法。</div>
+<div> </div>
+<div>适配类 <br>
+适配类是Java事件模型中极其重要的一部分。在一些应用场合，事件从源到监听者之间的传递要通过适配类来&quot;转发&quot;。例如：当事件源发出一个事件，而有几个事件监听者对象都可接收该事件，但只有指定对象做出反应时，就要在事件源与事件监听者之间插入一个事件适配器类，由适配器类来指定事件应该是由哪些监听者来响应。适配类成为了事件监听者，事件源实际是把适配类作为监听者注册入监听者队列中，而真正的事件响应者并未在监听者队列中，事件响应者应做的动作由适配类决定。目前绝大多数的开发工具在生成代码时，事件处理都是通过适配类来进行的。</div>
+<div> </div>
+<div>C#事件处理 <br>
+在。NET应用程序开发中，不管是WEB Forms（ASP。NET）还是Windows Forms，都涉及到大量对象的事件响应及处理，比如客户在线提交一份订单、或是在Windows窗口上移动鼠标等都将有事件发生。那么在C#中，是怎样声明事件并为事件添加响应方法的呢？</div>
+<div> </div>
+<div>在C#中，事件(Events)成员就是用来声明一个类事件的。在类中声明一个事件成员一般采用如下的语法形式：</div>
+<div> </div>
+<div>public event 代表名 事件名。</div>
+<div> </div>
+<div>如在Control类中声明了一个Click事件成员，其语法如下：</div>
+<div> </div>
+<div>public event EventHandler Click;</div>
+<div> </div>
+<div>在C#中，增加了一个新的数据类型delegate来解决事件处理问题。代表数据类型非常类似于C语言中的指针，其与指针不同的是，其是代码是安全的，可管理的。由于C#本身的简易性，对于没有使用过C及指针的程序来说，理解delegate也是非常容易的。</div>
+<div> </div>
+<div><br>
+在C#中，通过使用delegate，你可以通过&quot;+=&quot;操作符非常容易地为。Net对象中的一个事件添加一个甚至多个响应方法；还可以通过非常简单的&quot;-=&quot;操作符取消这些响应方法。如下面为temp按钮添加Click事件的语句：</div>
+<div> </div>
+<div>temp。Click+=new System.EventHandler(this.Test);//为test添加事件处理方法</div>
+<div> </div>
+<div>在上面声明事件的语句中，Eventhandler是一个delegate(代表)类型，其在。Net类库中如下声明的：</div>
+<div> </div>
+<div>public delegate void EventHandler(object sender，EventArgs e);</div>
+<div> </div>
+<div>这样，所有形如:void 函娄名(object 参数名，EventArgs 参数名);的函数都可以作为Control类的Click事件响应方法了。如下面所定义的一个事件响应方法：</div>
+<div> </div>
+<div>private void button1_Click(object sender， System.EventArgs e)</div>
+<div> </div>
+<div>由于是通过delegate来处理事件，因此，可能通过累加使一个事件具有多个响应方法；与此同时，还可以使一个方法作为多个事件的响应方法(注意：在C#语言类中的event成员后面只能出现&quot;+=&quot;与&quot;-=&quot;两个表示添加与取消事件响应函数的操作符)。不管是ASP。Net还是一般的Windows Forms 编程，在C#中，基本上我们遇到的事件响应方法都是说明成如下的形式：</div>
+<div> </div>
+<div>private void button1_Click(object sender， System。EventArgs e)</div>
+<div> </div>
+<div>那么，一个事件响应方法的存取权限、返回值类型、参数及类型甚至方法名称等是否都必须固定不变呢？答案是：不是！</div>
+<div> </div>
+<div>一般情况下，事件的响应方法中都有两个参数，其中一个代表引发事件的对象即sender，由于引发事件的对象不可预知的，因此我们把其声明成为object类型，所有的对象都适用。第二个参数代表引发事件的具体信息，各种类型的事件中可能不同，这要根据类中事件成员的说明决定。</div>
+<div> </div>
+<div>我们知道，事件是通过delegate来处理的。假设将要表示事件说明成如下形式：</div>
+<div> </div>
+<div>delegate int MyEventHandler(object sender， ToolBarButtonClickEventArgs e);</div>
+<div> </div>
+<div>则当涉及上面的事件响应函数声明时，就须要声明成如下的形式：</div>
+<div> </div>
+<div>private int MyTest(object sender，ToolBarButtonClickEventArgs e) {}</div>
+<div> </div>
+<div>在给对象添加事件响应方法时就可以用如下的代码实现：</div>
+<div> </div>
+<div>Control。Event+=new MyEventHandler(MyTest);</div>
+<div> </div>
+<div>总的来说，Java事件处理更直接，简单。而C#事件处理由于引用代理，使得程序更灵活，更体现程序之间的松藕合性。美国神鸟（Stryon <a href="http://www.stryon.com.cn/">http://www.stryon.com.cn</a>）公司宣布在Java开发平台上实现微软的.NET，命名为iNET。并于近期推出iNET的Beta3版本，其中就包括用Java实现了C#的三级事件处理机制。</div>
+<div> </div>
+<div> </div></div></body></html>

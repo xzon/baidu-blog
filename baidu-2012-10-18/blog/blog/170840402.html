@@ -1,0 +1,185 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>使用Perf4J进行性能分析和监控</title></head><body><h1>使用Perf4J进行性能分析和监控</h1><div><p>使用Perf4J进行性能分析和监控</p>
+<p><a href="http://www.infoq.com/cn/articles/perf4j">http://www.infoq.com/cn/articles/perf4j</a></p>
+<p>许多开发人员都很熟悉墨菲法则的一个例子：他们发现在花费了大量时间确保应用程序在开发环境中快速和灵活之后，在发布到生产环境的时候性能会不可思议的大幅下降。更糟糕的是，应用程序平时运行正常，老板或者重要客户操作应用的时候却反应缓慢。详细的日志记录和分析对于追踪这些间歇性的性能瓶颈尤为重要。</p>
+<p>然而，当今世界充满了面向服务的架构和分布式的应用，查找性能瓶颈对应的组件极其困难。考虑一个典型Web 2.0风格应用的服务器端的常见场景：</p>
+<ol>
+    <li>服务器接收一个Web请求，分发给负责产生响应的组件。</li>
+    <li>该请求也许需要通过LDAP服务器进行安全验证。</li>
+    <li>控制器组件对数据库执行查询。</li>
+    <li>控制器组件也会调用第三方Web服务。</li>
+    <li>控制器组件将所有获得的数据进行汇总，组成一系列业务对象用于显示。</li>
+    <li>业务对象被展现，响应内容传回用户浏览器。</li>
+    <li>运行于浏览器的AJAX代码产生其他的请求，与服务器端交互。</li>
+</ol>
+<p>对于&ldquo;为何我的网页反应迟钝？&rdquo;这样问题的回答需要研究多个组件和执行路径，同时需要生产环境中所有应用组件的详细性能数据。</p>
+<p>Perf4J是一款开源工具包，用于添加Java服务器端计时代码、记录日志和监控结果。对于熟悉诸如log4j日志框架的开发人员来说，可以这样类比：</p>
+<p align="center"><strong>Perf4J is to System.currentTimeMillis() as log4j is to System.out.println()</strong></p>
+<p>如何利用这个类比理解Perf4J呢？回想一下过去还没有广泛应用Java日志记录框架的糟糕岁月，我们大多数人如何添加日志记录语句。我们使用<code><font size="2">System.out.println()</font></code>作为一种&ldquo;简陋的调试器&rdquo;，利用这种快捷但糟糕的方式记录信息。我们很快意识到，这是不够的。我们希望把记录语句输出到专门的日志文件中（如果可能的话，多个不同文件），也许可以每天覆盖日志。我们需要能够设定重要性的不同级别以输出不用的日志语句，可以选择在不改变代码的情况下在特定环境下只输出特定日志，或者在不同环境中改变日志格式。因此，log4j提供的丰富功能来源于原始想法，是一种&ldquo;更好的 &rdquo;<code><font size="2">System.out.println()</font></code>日志语句。</p>
+<p>类似的，当Java新手发现他们需要添加性能监控代码时，他们经常这样做：</p>
+<p>// execute the block of code to be timed<br>
+log.info(&quot;ms for block n was: &quot; + (System.currentTimeMillis() - start));</p>
+<p>但是很快，这些开发人员发现他们需要更多的信息，综合的性能统计数据如平均、最小、最大、标准差和特定时间段内每秒的事务处理量。他们希望将这些数据绘成实时图表监控运行服务器上的问题，或者通过JMX输出性能指标以便于启动监控器在性能下降的情况下发出警报。此外，他们还希望计时语句可以和类似 log4j的框架配合使用。</p>
+<p>Perf4J的目标是通过易于集成（和扩展）的开源软件包提供这些功能。Per4J是由<a href="http://www.homeaway.com/"><font color="#0b59b2">Homeaway.com</font></a>开发的，其基础设施的分布式特性和网站的高可用性及性能需求需要深入的性能分析。Perf4J的特点包括：</p>
+<ul>
+    <li>简洁的 stop watch计时机制。</li>
+    <li>提供命令行工具，从原始的日志文件中生成汇总的统计数据和性能图表。</li>
+    <li>定制的log4j appender，可以在运行时应用中生成数据和图表，计划在以后的版本中支持<code><font size="2">java.util.logging</font></code>和logback。</li>
+    <li>能够以JMX属性的形式发布性能数据，在数据超过指定阈值时发送通知。</li>
+    <li>提供<code><font size="2">@Profiled</font></code>注解和一套自定义机制，允许在与AOP框架（如AspectJ或者Spring AOP）集成时巧妙的计时。</li>
+</ul>
+<p>下面的例子展现了如何轻松利用这些功能。可以通过<a href="http://perf4j.codehaus.org/devguide.html"><font color="#0b59b2">Perf4J开发人员指南</font></a>来了解集成Perf4J的详细信息。</p>
+<h2>利用StopWatch类开发计时代码</h2>
+<p><code><font size="2">org.perf4j.LoggingStopWatch</font></code>类用于在代码中添加计时语句并打印到标准输出或者日志文件中：</p>
+<pre>StopWatch stopWatch = new LoggingStopWatch();
+//... execute code here to be timed
+stopWatch.stop(&quot;example1&quot;, &quot;custom message text&quot;);</pre>
+<p>对<code><font size="2">stop()</font></code>方法的调用记录了执行时间并打印日志信息。默认情况下，基类<code><font size="2">LoggingStopWatch</font></code>将输出打印到<code><font size="2">System.err</font></code>流中。但是大多数情况下，你需要使用一个集成到现有Java日志框架（如<code><font size="2">Log4JStopWatch</font></code>、<code><font size="2">CommonsLogStopWatch</font></code>或者<code><font size="2">Slf4JStopWatch</font></code>）的子类。下面是一些<code><font size="2">stop watch</font></code>的输出示例：</p>
+<p>start[1233364397765] time[499] tag[example1] message[custom message text]<br>
+start[1233364398264] time[556] tag[example1] message[custom message text]<br>
+start[1233364398820] time[698] tag[example1] message[custom message text]</p>
+<h2>使用LogParser创建统计数据和图表</h2>
+<p>虽然默认的<code><font size="2">stop watch</font></code>输出相比直接调用<code><font size="2">System.currentTimeMillis()</font></code>来说没有很大的改进，但真正的好处在于能够解析这些输出以生成统计数据和图表。LogParser通过tag和时间片把<code><font size="2">stop watch</font></code>输出分组，生成详细的统计信息和可选的时间序列图（使用Google Chart API）。下面是一些使用默认文本格式（也支持csv格式）的示例输出：</p>
+<p>Performance Statistics&nbsp;&nbsp;  20:32:00 - 20:32:30<br>
+Tag&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Avg(ms)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Min&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Max&nbsp;&nbsp;&nbsp;&nbsp;  Std Dev&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Count<br>
+codeBlock1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  249.4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  487&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  151.3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  37<br>
+codeBlock2.failure&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  782.9&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  612&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  975&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  130.8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  17<br>
+codeBlock2.success&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  260.7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  500&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  159.5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  20<br>
+<br>
+Performance Statistics&nbsp;&nbsp;  20:32:30 - 20:33:00<br>
+Tag&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Avg(ms)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Min&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Max&nbsp;&nbsp;&nbsp;&nbsp;  Std Dev&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Count<br>
+codeBlock1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  244.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  494&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  150.6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  41<br>
+codeBlock2.failure&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  747.9&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  531&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  943&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  125.3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  21<br>
+codeBlock2.success&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  224.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  26&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  398&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  106.8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  21<br>
+<br>
+Performance Statistics&nbsp;&nbsp;  20:33:00 - 20:33:30<br>
+Tag&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Avg(ms)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Min&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Max&nbsp;&nbsp;&nbsp;&nbsp;  Std Dev&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Count<br>
+codeBlock1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  289.3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  464&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  141.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  22<br>
+codeBlock2.failure&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  781.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  599&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  947&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  135.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  8<br>
+codeBlock2.success&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  316.2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  115&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  490&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  112.6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  13</p>
+<p>平均执行时间和每秒事务处理量的图表以指向Google Chart Server的URL的形式生成。</p>
+<p><img src="http://www.infoq.com/resource/articles/perf4j/zh/resources/image.jpg;jsessionid=E61E6C5055562747F4B8E02261DBF86C"></p>
+<p>同时，虽然<code><font size="2">LogParser</font></code>默认从标准输入中读取数据，但是你也可以指定一个来自运行时服务器的日志文件，用<code><font size="2">LogParser</font></code>实时输出：</p>
+<pre>tail -f performance.log | java -jar perf4j-0.9.8.1.jar</pre>
+<h2>集成Log4J</h2>
+<p>Perf4J的扩展功能大部分通过一套定制的log4j appender提供。这样开发人员就能在部署阶段通过非常熟悉的日志框架来零零散散的添加分析和监控功能（未来的Perf4J将提供定制logback appender和<code><font size="2">java.util.logging</font></code>处理器）。其中一个重要的功能是允许Perf4J作为JMX MBeans的属性展示性能数据，同时在性能低于可接受的阈值时发送JMX通知。因为JMX已经成为处理和监控Java应用的标准接口，提供Perf4J MBean开启了广泛的由第三方监控应用提供的功能。举例来说，我们Homeaway的IT部门标准化了Nagios和Cacti用于系统监控，这两个工具都支持把MBeans作为数据源查询。</p>
+<p>下面的log4j.xml文件示例显示了如何启用用于JMX的Perf4J appender：</p>
+<p>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;<br>
+&lt;!DOCTYPE log4j:configuration SYSTEM &quot;log4j.dtd&quot;&gt;<br>
+<br>
+<br>
+&lt;log4j:configuration debug=&quot;false&quot; xmlns:log4j=&quot;http://jakarta.apache.org/log4j/&quot;&gt;<br>
+<br>
+<br>
+&nbsp;&nbsp;&nbsp;  &lt;!-- Perf4J appenders --&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;!--<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  This AsyncCoalescingStatisticsAppender groups StopWatch log messages<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  into GroupedTimingStatistics messages which it sends on the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  file appender and perf4jJmxAppender defined below<br>
+&nbsp;&nbsp;&nbsp;  --&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;appender name=&quot;CoalescingStatistics&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  class=&quot;org.perf4j.log4j.AsyncCoalescingStatisticsAppender&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!--<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  The TimeSlice option means timing logs are aggregated every 10 secs.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  --&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;param name=&quot;TimeSlice&quot; value=&quot;10000&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;appender-ref ref=&quot;fileAppender&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;appender-ref ref=&quot;perf4jJmxAppender&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/appender&gt;<br>
+<br>
+<br>
+&nbsp;&nbsp;&nbsp;  &lt;!--<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  This file appender is used to output aggregated performance statistics<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  in a format identical to that produced by the LogParser.<br>
+&nbsp;&nbsp;&nbsp;  --&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;appender name=&quot;fileAppender&quot; class=&quot;org.apache.log4j.FileAppender&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;param name=&quot;File&quot; value=&quot;perfStats.log&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;layout class=&quot;org.apache.log4j.PatternLayout&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;param name=&quot;ConversionPattern&quot; value=&quot;%m%n&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/layout&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/appender&gt;<br>
+<br>
+<br>
+&nbsp;&nbsp;&nbsp;  &lt;!--<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  This JMX appender creates an MBean and publishes it to the platform MBean<br>
+server by<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  default.<br>
+&nbsp;&nbsp;&nbsp;  --&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;appender name=&quot;perf4jJmxAppender&quot;<br>
+class=&quot;org.perf4j.log4j.JmxAttributeStatisticsAppender&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- The tag names whose statistics should be exposed as MBean attributes. --&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;param name=&quot;TagNamesToExpose&quot; value=&quot;firstBlock,secondBlock&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!--<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  The NotificationThresholds param configures the sending of JMX notifications<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  when statistic values exceed specified thresholds. This config states that<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  the firstBlock max value should be between 0 and 800ms, and the secondBlock max<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  value should be less than 1500 ms. You can also set thresholds on the Min,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Mean, StdDev, Count and TPS statistics - e.g. firstBlockMean(&lt;600).<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  --&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;param name=&quot;NotificationThresholds&quot; value=&quot;firstBlockMax(0-800),secondBlockMax(&lt;1500)&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/appender&gt;<br>
+<br>
+<br>
+&nbsp;&nbsp;&nbsp;  &lt;!-- Loggers --&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;!-- The Perf4J logger. --&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;logger name=&quot;org.perf4j.TimingLogger&quot; additivity=&quot;false&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;level value=&quot;INFO&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;appender-ref ref=&quot;CoalescingStatistics&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/logger&gt;<br>
+<br>
+<br>
+&nbsp;&nbsp;&nbsp;  &lt;!--<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  The root logger sends all log statements EXCEPT those sent to the perf4j<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  logger to System.out.<br>
+&nbsp;&nbsp;&nbsp;  --&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;root&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;level value=&quot;INFO&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;appender name=&quot;console&quot; class=&quot;org.apache.log4j.ConsoleAppender&quot;&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;layout class=&quot;org.apache.log4j.SimpleLayout&quot;/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/appender&gt;<br>
+&nbsp;&nbsp;&nbsp;  &lt;/root&gt;<br>
+&lt;/log4j:configuration&gt;</p>
+<p>除了JMX插件，Perf4J也支持生成性能图表的画图appender，使用前端的Perf4J画图Servlet。定制的csv布局可以轻松的导入Excel或者其他电子表格应用。</p>
+<h2>使用@Profiled注解简化性能日志</h2>
+<p>在代码中增加性能记录语句（通常的日志语句）的一个缺点是降低了代码的&ldquo;信噪比&rdquo;，难以在特定代码块中遵循严格的业务逻辑。为了改善这一不足，Perf4J提供了<code><font size="2">@Profiled</font></code>注解，可以添加在需要记录执行时间的方法上，允许方法本身不添加<code><font size="2">StopWatch<code>代码：</code></font></code></p>
+<pre>@Profiled(tag = &quot;dynamicTag_{$0}&quot;)
+public void profiledExample(String tagSuffix) {
+    ... business logic only here
+}</pre>
+<p>一旦添加了<code><font size="2">@Profiled</font></code>注解，Perf4J的计时切面会通过一个面向切面的编程框架如AspectJ或者Spring AOP启用。这个切面在方法调用周围加入建立和停止<code><font size="2">StopWatch</font></code>实例的字节码。计时切面甚至可以有选择的使用AspectJ的加载时编织（load-time weaving）功能。因此，通过使用加载时编织你可以保证那些没有启用性能监控的方法绝没有额外的负担。</p>
+<h2>一个简单的示例：基于Web的质数生成器</h2>
+<p>本示例将带你感受如何创建一个使用Perf4J库大多数功能的真实应用。你可以<a href="http://www.infoq.com/resource/articles/perf4j/zh/resources/perf4jPrimes.war;jsessionid=E61E6C5055562747F4B8E02261DBF86C"><font color="#0b59b2">下载<code><font size="2">perf4jPrimes.war</font></code>文件</font></a>，然后Servlet容器中运行它。在war包中也包含该应用的源代码。</p>
+<p>一切从简，本例子只包含两个主要的代码文件：<code><font size="2">primes.jsp</font></code>用于显示生成的质数和接受用户指定的参数，<code><font size="2">PrimeNumberGenerator</font></code>类包含真正的生成代码（大部分委托给<code><font size="2">java.math.BigInteger</font></code>类）。其中有三处使用了Perf4J计时代码块：</p>
+<ol>
+    <li>在<code><font size="2">primes.jsp</font></code>创建<code><font size="2">Log4JStopWatch</font></code>统计整个页面的生成时间。</li>
+    <li><code><font size="2">PrimeNumberGenerator.generatePrime()</font></code>方法具有一个<code><font size="2">Profiled</font></code>注解。</li>
+    <li><code><font size="2">PrimeNumberGenerator.randomFromRandomDotOrg()</font></code>也含有<code><font size="2">Profiled</font></code>注解。</li>
+</ol>
+<p>如果查看<code><font size="2">WEB-INF/classes/log4j.xml</font></code>文件，你会看到启用了下面的Perf4功能：</p>
+<ol>
+    <li>所有单独的<code><font size="2">stop watch</font></code>日志都被写入标准输出（请注意你的servlet容器可能把标准输出定向到磁盘的某个文件中）。如果需要的话，你可以直接使用<code><font size="2">LogParser</font></code>。</li>
+    <li><code><font size="2">AsyncCoalescingStatisticsAppender</font></code>被创建以汇总<code><font size="2">stop watch</font></code>日志并传递给下游的<code><font size="2">GraphingStatisticsAppenders</font></code>和<code><font size="2">JmxAttributeStatisticsAppender</font></code>。</li>
+    <li>两个<code><font size="2">GraphingStatisticsAppender</font></code>被创建，其中一个表示平均执行时间，另一个输出每秒事务数。</li>
+</ol>
+<p>一旦在Web服务器上启动了该Web应用，你就可以通过<code><font size="2">http://servername/&lt;rootContextLocation&gt;/primes.jsp</font></code>访问质数生成页面，其中<code><font size="2">rootContextLocation</font></code>由你的Web服务器配置决定（当然，为了方便，你也可以通过<code><font size="2">http://servername/&lt;rootContextLocation&gt;/PrimeNumberGenerator.java</font></code>查看<code><font size="2">PrimeNumberGenerator</font></code>源代码）。在<code><font size="2">primes.jsp</font></code>页面中，你会看到很多用于质数生成的不同参数。你可以改变参数，然后点击&ldquo; 生成质数&rdquo;按钮，看看这些参数是如何影响质数产生时间的。在生成大量质数之后，你可以通过三种途径来查看Perf4J输出：</p>
+<ol>
+    <li>原始的标准输出日志。</li>
+    <li>通过<code><font size="2">http://servername/&lt;rootContextLocation&gt;/perf4jGraphs</font></code>访问图形化Servlet。你应该能够看到平均执行时间和每秒事务数。</li>
+    <li>JMX监控也启用了。你可以通过Java SDK附带的jconsole应用查看Perf4J MBean值。这需要在启动Web服务器时，使用-Dcom.sun.management.jmxremote命令行参数。然后，如果在运行Web服务 器的同一台机器上启动jconsole就可以在&ldquo;<code><font size="2">MBeans</font></code>&rdquo;标签中看到 &ldquo;<code><font size="2">org.perf4j.StatisticsExposingMBean.Perf4J</font></code>&rdquo;的数据值。</li>
+</ol>
+<p>因为到现在为止你还没有启用任何<code><font size="2">TimingAspects</font></code>支持<code><font size="2">@Profiled</font></code>注解，你能够看到的唯一<code><font size="2">stop watch</font></code>输出就是&ldquo;<code><font size="2">fullPageGeneration</font></code>&rdquo;标记。如果要启用<code><font size="2">TimingAspects</font></code>，你可以使用<code><font size="2">AspectJ</font></code>加载时编织。你需要做的是，在启动Web服务器时使用<code><font size="2">AspectJ weaving</font></code>代理命令行参数：</p>
+<pre>-javaagent:/path/to/aspectjweaver-1.6.1.jar</pre>
+<p>你可以在这里下载jar包：<a href="http://mirrors.ibiblio.org/pub/mirrors/maven2/org/aspectj/aspectjweaver/1.6.1/aspectjweaver-1.6.1.jar"><font color="#0b59b2">http://mirrors.ibiblio.org/pub/mirrors/maven2/org/aspectj/aspectjweaver/1.6.1/aspectjweaver-1.6.1.jar</font></a></p>
+<p>当代理启用时，你可以在&ldquo;<code><font size="2">generatePrime</font></code>&rdquo;和&ldquo;<code><font size="2">randomFromRandomDotOrg</font></code>&rdquo;标记中看到<code><font size="2">stop watch</font></code>的输出。</p>
+<h2>陷阱与最佳实践</h2>
+<p>很多监控应用的方法，不论是针对性能、稳定性还是语义正确性，都无法最有效的体现它们的意图。要么生成了太多的信息以至于难以分析这些数据，要么在需要信息的地方却得不到关键的数据。虽然所有的监控都需要一些额外的开销，但是性能监控应该对这些引入的开销格外小心。以下建议可以帮助你最大限度地利用 Perf4J，同时又将副作用降到最低：</p>
+<ol>
+    <li><strong>在判断需要分析哪些方法和代码块时，首先把重点放在关键点上。</strong>在企业应用中，每当遇到性能瓶颈时，都会存在很多&ldquo;通常的疑点&rdquo;：数 据库调用、运程方法调用、磁盘I/O、针对大型数据集的计算操作。因此，你应该首先集中分析这些类型的操作。同时，因为这些操作花费几十甚至几百毫秒的时 间，Perf4J所带来的额外开销相对于本地执行时间来说微不足道，在实践中可以忽略不计。事实上，这也是Perf4J故意使用<code><font size="2">System.currentTimeMillis</font></code>（而不是<code><font size="2">System.nanoTime</font></code>）计时代码块的原因之一：纳秒的粒度在这种企业应用代码块中意 义并不大。</li>
+    <li><strong>Perf4J把性能分析的工作委托给独立的线程或者进程。</strong>当使用<code><font size="2">AsyncCoalescingStatisticsAppender</font></code>时，执行线程把日志事件推入到一个内存中的队列，由另外一个独立的线程发送这些日志 消息到下游appender。因此，即使那些下游appender做了大量敏感的工作，如建立图表、更新MBean属性或者存储到数据库中，对计时的代码 块的影响微乎其微，而且与这些下游appender做的工作多少无关。类似的，当把计时日志写入文件用于解析和分析时（例如，使用Unix tail命令），对于计时进程的影响也只与它写日志所花费的时间有关，与log分析器的时间无关。</li>
+    <li><strong>不要忘记性能回归测试的好处。</strong>除了监测运行时的性能瓶颈，Perf4J非常适合创建性能回归测试以判断代码更改是否对性能有显著影响（不论是积极或消极的）。通过创建一个原始代码的基准，你很快就能发现新代码对性能产生了何种影响。</li>
+    <li><strong>利用</strong><code><font size="2">@Profiled</font></code><strong>注解和AspectJ的加载时编织来决定哪些方法应该在部署时计时。</strong>如果使用了 @Profiled 注解，你可以自由的在方法调用周围添加计时，然后决定在使用AspectJ的<code><font size="2">aop.xml</font></code>配置文件进行部署时需要对哪些方法进行计时。没有计时的方法不 会被关注。虽然那些被计时的方法比直接在代码中使用<code><font size="2">StopWatches</font></code>存在一些细微的额外开销（事实上AspectJ在计时方法的周围建立了一个闭 包），这些开销相对于那些需要花费几毫秒的方法来说是微不足道的。</li>
+    <li><strong>不要忘记应用程序中JVM之外执行的部分。</strong>举例来说，很多Web 2.0应用的大部分都是通过运行在客户端浏览器中的JavaScript实现，虽然Perf4J可以用于衡量运行在服务器端的方法（响应AJAX远程调用），但如果JavaScript执行性能下降，你仍然需要其他的客户端调试工具。</li>
+</ol>
+<h2>展望Perf4J</h2>
+<p>Perf4J目前正在积极的发展，新的功能层出不穷。举例来说，凭借新版本的Perf4J，我们可以通过单独的配置文件指定要分析的方法，这样即使 无法获得某些方法的源代码也可以对其进行计时。我们始终将用户的反馈和需求放在第一位，如果你想打造它未来的功能，那现在就来尝试Perf4J吧。更重要 的是，Perf4J在Apache 2协议下完全开源，代码都充分文档化，你可以随意扩展。</p>
+<p>现在就<a title="下载Perf4J" href="http://perf4j.codehaus.org/downloads.html"><font color="#0b59b2">下载Perf4J</font></a>吧，告诉我们你的想法！</p>
+<p><strong>查看英文原文：</strong><a title="Performance Analysis and Monitoring with Perf4J" href="http://www.infoq.com/articles/perf4j;jsessionid=E61E6C5055562747F4B8E02261DBF86C"><font color="#0b59b2">Performance Analysis and Monitoring with Perf4J</font></a>。</p></div></body></html>

@@ -1,0 +1,159 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Tapestry for Nonbelievers:创建自己的ajax组件</title></head><body><h1>Tapestry for Nonbelievers:创建自己的ajax组件</h1><div><div>
+<p> </p>
+<h2>Tapestry for Nonbelievers:创建自己的ajax组件</h2>
+<p><a href="http://www.infoq.com/cn/articles/tapestry5-intro">http://www.infoq.com/cn/articles/tapestry5-intro</a></p>
+<h2>Tapestry 5中的Ajax</h2>
+<p>Ajax是Asynchronous JavaScript and XML（异步JavaScript和XML）的缩写，专门用来创建动态的、对终端用户更为友好的网站和web应用。使用Ajax，web页面能通过客户和 服务器之间的异步数据交换来实现灵活的反应和高互动性。Ajax很强大，如若想了解更多Ajax的相关信息，你可以参考<a href="http://en.wikipedia.org/wiki/Ajax_%28programming%29">Wikipedia</a>。</p>
+<p>Tapestry对Ajax的支持建立在当前流行的<a target="_blank" href="http://www.prototypejs.org/">Prototype</a>和<a target="_blank" href="http://script.aculo.us/">script.aculo.us</a>的JavaScript类库之上。由于这两个类库都被打包囊括在Tapestry中，所以在应用这两个类库的时候不需要再为它们做独立的部署或配置。</p>
+<p>通常来说，在使用Ajax的应用中，页面会结合用户请求来刷新其中的一部分显示。Tapestry中，ActionLink组件可以用来触发 Ajax的action。我们将通过举例来说明其工作原理。在这个例子中，我们会再一次通过修改Grid组件来追加一栏包含浏览用户详细资料链接的信息 栏。我们这就一起来添加一个名为&ldquo;view&rdquo;的栏来更新Grid模型，这个新添加的栏的内容最后会以ActionLink的形式显示在页面上。我们首先要 做的是在BeanModel中手工添加这样一个属性：</p>
+<pre>public class Start{
+     ...
+     public BeanModel getModel() {
+         BeanModel model = beanModelSource.create(User.class, false, resources);
+         model.add(&quot;delete&quot;, null);
+         <strong>model.add(&quot;view&quot;, null);</strong>
+         return model;
+     }
+}</pre>
+<p>其次，应该进一步添加一个&lt;t:parameter/&gt;来定义这个view属性的显示方式。</p>
+<pre>&lt;t:layout xmlns:t=&quot;http://tapestry.apache.org/schema/tapestry_5_0_0.xsd&quot;&gt;
+     &lt;h1&gt;Springfield citizens&lt;/h1&gt;
+     &lt;t:grid source=&quot;users&quot; model=&quot;model&quot; row=&quot;user&quot;&gt;
+         &lt;t:parameter name=&quot;nameCell&quot;&gt;...&lt;/t:parameter&gt;
+         &lt;t:parameter name=&quot;deleteCell&quot;&gt;...&lt;/t:parameter&gt;
+         <strong>&lt;t:parameter name=&quot;viewCell&quot;&gt;<br>             &lt;t:actionlink t:id=&quot;view&quot; zone=&quot;viewZone&quot; context=&quot;user.id&quot;&gt;View&lt;/t:actionlink&gt;<br>         &lt;/t:parameter&gt; </strong>
+     &lt;/t:grid&gt;
+&lt;/t:layout&gt;</pre>
+<p>正如之前提到的那样，ActionLink是触发服务器端的动作的一个组件。如果对触发动作不做任何定制的话， 那么动作的触发会导致整个页面的刷新。参数zone可以告诉ActionLink应该调用Ajax来更新页面的某个区域，这个更新区域的用户id必须是该 zone参数的值。Zone组件标识了页面中动态更新的部分。我们先来初试牛刀创建一个用户id为viewZone的Zone。</p>
+<pre>&lt;t:layout xmlns:t=&quot;http://tapestry.apache.org/schema/tapestry_5_0_0.xsd&quot;&gt;
+     &lt;h1&gt;Springfield citizens&lt;/h1&gt;<strong><br>     &lt;t:zone t:id=&quot;viewZone&quot;/&gt;</strong>
+     &lt;t:grid source=&quot;users&quot; model=&quot;model&quot; row=&quot;user&quot;&gt;...&lt;/t:grid&gt;
+&lt;/t:layout&gt;</pre>
+<p> </p>
+<p>页面上由Zone更新的内容可以用来定义。从某种形式上来说是具有free-floating特性的，可以被注射到组件中，block中的内容不按照默认方式显示。下面这段代码建立了一个id为userDetails的block，这个block专门用来显示存储在页面的detailUser属性中的一些用户属性。</p>
+<pre>&lt;t:layout xmlns:t=&quot;http://tapestry.apache.org/schema/tapestry_5_0_0.xsd&quot;&gt;
+     &lt;h1&gt;Springfield citizens&lt;/h1&gt;
+     &lt;t:zone t:id=&quot;viewZone&quot;/&gt;<strong><br>     &lt;t:block id=&quot;userDetails&quot;&gt;<br>         &lt;h2&gt;${detailUser.name}&lt;/h2&gt;<br>         &lt;ul style=&quot;padding-left: 40px;&quot;&gt;<br>             &lt;li&gt;Identifier: ${detailUser.id}&lt;/li&gt;<br>             &lt;li&gt;Email: ${detailUser.email}&lt;/li&gt;<br>             &lt;li&gt;Birthday: ${detailUser.birthday}&lt;/li&gt;<br>         &lt;/ul&gt;<br>     &lt;/t:block&gt;</strong>
+     &lt;t:grid source=&quot;users&quot; model=&quot;model&quot; row=&quot;user&quot;&gt;...&lt;/t:grid&gt;
+&lt;/t:layout&gt;</pre>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<pre>package org.hxzon.tapestry5.components;<br><br>import org.apache.tapestry5.ComponentResources;<br>import org.apache.tapestry5.Link;<br>import org.apache.tapestry5.MarkupWriter;<br>import org.apache.tapestry5.RenderSupport;<br>import org.apache.tapestry5.annotations.Environmental;<br>import org.apache.tapestry5.annotations.IncludeJavaScriptLibrary;<br>import org.apache.tapestry5.annotations.Parameter;<br>import org.apache.tapestry5.ioc.annotations.Inject;<br>import org.apache.tapestry5.json.JSONObject;<br>import org.apache.tapestry5.services.Request;<br>import org.apache.tapestry5.util.TextStreamResponse;<br><br>@IncludeJavaScriptLibrary(&quot;${tapestry.scriptaculous}/controls.js&quot;)<br>public class InPlaceEditor {<br> private static final String PARAM_NAME = &quot;t:InPlaceEditor&quot;;<br>    <br>    @Parameter(required = true)<br>    private String value;<br>    <br>    @Environmental<br>    private RenderSupport pageRenderSupport;<br>    <br>    @Inject<br>    private ComponentResources resources;<br>    <br>    @Inject<br>    private Request request;<br>    <br>    void afterRender(MarkupWriter writer){<br>     String elementName=resources.getElementName();<br>     if(elementName==null)elementName=&quot;span&quot;;<br>     <br>     String clientId = pageRenderSupport.allocateClientId(resources.getId());<br>        writer.element(elementName, &quot;id&quot;, clientId);<br>        resources.renderInformalParameters(writer);<br>        if (value != null)<br>            writer.write(value);<br>        writer.end();<br>        <br>        JSONObject config = new JSONObject();<br>        config.put(&quot;paramName&quot;, PARAM_NAME);<br>     Link link = resources.createEventLink(&quot;edit&quot;);<br>     pageRenderSupport.addScript(&quot;new Ajax.InPlaceEditor('%s', '%s', %s);&quot;, clientId, link.toAbsoluteURI(), config);<br>    }<br>    <br>    Object onEdit(){<br>     value = request.getParameter(PARAM_NAME);<br>     return new TextStreamResponse(&quot;text&quot;, value);<br>    }<br>}</pre>
+<p> </p>
+<p> </p>
+<h2>Quickstart和示范应用</h2>
+<p>本文的&ldquo;Tapestry入门&rdquo;和演示应用的源码可以从<a target="_blank" href="http://code.google.com/">Google Code</a>上的<a target="_blank" href="http://code.google.com/p/tapestry4nonbelievers/downloads/list">tapestry4nonbelievers</a>项目页面下载。这两个应用都已打包到WAR，下载之后可以直接载入到你所选择的集成开发环境中。</p>
+<h2>参考</h2>
+<ol>
+    <li><a target="_blank" href="http://tapestry.apache.org/tapestry5/">Tapestry 5</a></li>
+    <li><a target="_blank" href="http://www.springframework.org/">Spring</a></li>
+    <li><a target="_blank" href="http://code.google.com/p/google-guice/">Google Guice</a></li>
+    <li><a target="_blank" href="http://hivemind.apache.org/">Apache HiveMind</a></li>
+    <li><a target="_blank" href="http://www.prototypejs.org/">Prototype</a></li>
+    <li><a target="_blank" href="http://script.aculo.us/">script.aculo.us</a></li>
+    <li><a target="_blank" href="http://hibernate.org/">Hibernate</a></li>
+</ol>
+<p> </p>
+<p>当用户点击ActionLink view的时候，应用会触发一个action事件，并相应地调用与该事件匹配的onActionFromView函数。该函数需要用户id作为参数传递， 进而在数据库中找到相应的用户记录。从数据库中读取的用户记录会存储到私有属性detailUser中，这个属性会在中用到。</p>
+<p>正如上文所提到的，action方法返回值类型决定了服务器回复用户请求的类型。在传统非Ajax请求中，action方法返回值类型通常决定了哪 个页面是对用户请求的回复。为了实现对页面的部分回复，我们可以返回一个组件或者一个block，返回的这个组件或block的markup会在不刷新整 个页面的前提下更新Zone内容。出于这个目的，我们将通过@Inject注解注射刚刚创建的block。需要注意的是，属性名属性类要与组件客户id及 组件类保持一致（不然的话，你需要<a target="_blank" href="http://tapestry.apache.org/tapestry5/apidocs/org/apache/tapestry/ioc/annotations/Inject.html">定制@Inject注解</a>）。注射以后的block是onActionFromView函数的返回值，如果这个函数被触发，那么block的markup会被insert到对应的Zone中而刷新部分页面。</p>
+<pre>public class Start{
+     ...<strong><br>     @Inject<br>     private Block userDetails;<br><br>     private User detailUser;<br><br>     public User getDetailUser() { return detailUser; }<br><br>     Block onActionFromView(long id){<br>         detailUser = userDAO.find(id);<br>         return userDetails;<br>     }</strong>
+}</pre>
+<center><img src="http://hiphotos.baidu.com/hxzon/pic/item/4c7c217f7a7d6b4e29388a20.jpg"></center>
+<p>我们以实例阐述了Ajax最基本的功能－－刷新页面的一部分。此类功能在Tapestry 5中非常容易实现，你基本上不需要自己再编写任何JavaScript代码。Tapestry 5中内嵌的JavaScript类库所提供的功能在各浏览器中都兼容。</p>
+<h2>创建自己的ajax组件</h2>
+<p>很显然，单一采用页面部分刷新无法完全实现Web应用的交互性，我们还需要为应用创建定制的Ajax组件。本章节中，我们将结合<a target="_fcksavedurl=" href="http://script.aculo.us/">script.aculo.us</a>JavaScript类库中的<a target="_blank" href="http://script.aculo.us/">Ajax.InPlaceEditor</a>来创建一个Tapestry 5组件。我们可以利用InPlaceEditor来编辑页面上的一些文本内容。比如，在鼠标点击特定文本内容的时候，页面自动创建一个以该文本内容为值的输入文本域；用户可以修改文本域中的值，通过提交表单将新值取代文本域中的初始值。</p>
+<p>首先，我们采用与CSS导入到Layout中同样的方式来注射含有InPlaceEditor的JavaScript文件－－添加 @IncludeJavaScriptLibrary注解。需要指出的是，即使一个页面涉及很多组件，并且这些组件中可能有很多都通过 @IncludeJavaScriptLibrary注解导入同一个JavaScript文件，你仍然无需担心重复导入的发生。Tapestry对任何资 源都只导入一次。</p>
+<p>其次，我们还要注射一些组件必需的服务：</p>
+<ul>
+    <li>org.apache.tapestry.ComponentResources －－在上一章节中已提过。</li>
+    <li>org.apache.tapestry.PageRenderSupport －－用来修饰页面和组件的显示。</li>
+    <li>org.apache.tapestry.services.Request －－ HttpServletRequest的一个封装包</li>
+</ul>
+<p>我们需要建立一个包含如下内容的 t5demo.components.InPlaceEditor类：</p>
+<pre>@IncludeJavaScriptLibrary(&quot;${tapestry.scriptaculous}/controls.js&quot;)
+ public class InPlaceEditor{
+
+     private static final String PARAM_NAME = &quot;t:InPlaceEditor&quot;;
+
+     @Environmental
+     private PageRenderSupport pageRenderSupport;
+
+     @Inject
+     private ComponentResources resources;
+
+     @Inject
+     private Request request;
+
+}</pre>
+<p>接下来要创建的是一个必需的名为value的组件参数，该参数与InPlaceEditor容器属性相捆绑。</p>
+<pre>public class InPlaceEditor{
+ ...<strong><br>     @Parameter(required = true)<br>     private String value;<br> </strong>...
+}</pre>
+<p>我们再来编写一个用来显示组件的方法。Tapestry组件的显示渲染过程能够被划分为几个阶段。在此之前，我们尚且没有谈论过这些不同的阶段。但 出于尽量简化的原则，本文不准备展开对所有阶段的讨论，如果你是在想对这个话题有个全面的了解，那么我们推荐你参考阅读Tapestry文档。</p>
+<p>为了对组件显示进行渲染，我们会插入一个AfterRender阶段。这个阶段常常与另一个阶段－－BeginRender－－结合起来渲染 html标识，或者修饰组件模板。我们的组件没有标识也没有任何模板，所以只需要一个AfterRender阶段就够了。插入这个AfterRender 阶段还需要实现 afterRender(MarkupWriter)方法。首先可是试着查找markup中元素的名字，如果markup中没有定义任何元素名的话，就取<span>。 然后为组件分配一个唯一的 id。接下去，打开这个html元素并对那些非正式参数进行修饰。所谓的非正式参数指的是由模板内部用户提供而非定制组件所定义的那些参数。本例中唯一的 正式参数（定制组件所定义的参数）是value。一个典型的非正式参数例子是：style=&quot;someCssStyle&quot;。通常，我们并不关心用户提供的 Css风格，但我们可以把它存储起来在需要修饰组件的时候应用。在编写了value之后，关闭刚才打开的html元素。最后要做的是－－编写创建 Ajax.InPlaceEditor的JavaScript代码。</span></p>
+<p>JavaScript&ldquo;类&rdquo;－－Ajax.InPlaceEditor的构造函数需要三个参数：</p>
+<ul>
+    <li>第一个是所要编辑的元素的客户id。</li>
+    <li>第二个是提交修改值的URL。</li>
+    <li>第三个是包含一些选项的JSON对象。</li>
+</ul>
+<p>上节中，我们了解了ActionLink组件能够用来触发服务器端的action。在这个例子中，我们使用ComponentResources服 务来创建ActionLink。在这个链接被点击的时候，edit事件会被触发。这个事件的名字会被用来匹配事件触发时应该调用的对应的方法。被传递到 InPlaceEditor构造函数的JSONObject只包含一个键／值对，这个键／值用来命名包含有Ajax.InPlaceEditor提交的值 的用户请求参数。需要指出的是，PageRenderSupport用来在页面中添加JavaScript代码。该服务会在页面中添加一个 JavaScript回滚函数，页面DOM加载时会调用这个回滚函数。在得到最后的HTML之前，我们目前能看到的尽是函数代码：</p>
+<pre>void afterRender(MarkupWriter writer){
+     String elementName=resources.getElementName();
+     if(elementName==null)elementName=&quot;span&quot;;
+
+     String clientId = pageRenderSupport.allocateClientId(resources.getId());
+     writer.element(elementName, &quot;id&quot;, clientId);
+     resources.renderInformalParameters(writer);
+     if (value != null)
+         writer.write(value);
+     writer.end();
+
+     JSONObject config = new JSONObject();
+     config.put(&quot;paramName&quot;, PARAM_NAME);
+
+     Link link = resources.createActionLink(&quot;edit&quot;, false);
+     pageRenderSupport.addScript(&quot;new Ajax.InPlaceEditor('%s', '%s', %s);&quot;,
+                 clientId, link.toAbsoluteURI(), config);
+}</pre>
+<p>最后要做的是为action方法提供一个匹配的触发事件。点击ActionLink会触发edit事件，那么相应地，所需要添加的action方法 应该是onEdit。在这个方法中，我们从特定的请求参数中得到提交的值，并为对应捆绑的属性赋予这个新值。要更新客户端的这个新值，我们向客户端返回一 个含有所需数据的TextStreamResponse类型的回复。当然还可以选择其它类型作为返回值来更新客户端数据。</p>
+<ul>
+    <li>组件或block。上一章节中，我们用到了block来更新Zone。</li>
+    <li>JSON对象</li>
+</ul>
+<pre>Object onEdit(){
+     value = request.getParameter(PARAM_NAME);
+     return new TextStreamResponse(&quot;text&quot;, value);
+}</pre>
+<p>接下来的例子中，我们将一起使用InPlaceEditor来创建一个页面。为将要编辑的页面添加一个edit属性，再通过@Persist注解使得Tapestry在用户请求中保留文本域的值，然后为edit属性添加公有的getter／setter方法。</p>
+<pre>public class InPlaceEditorExample {
+     @Persist
+     private String edit=&quot;Please click here&quot;;
+      public String getEdit() { return edit; }
+     public void setEdit(String edit) { this.edit = edit; }
+}</pre>
+<p>在模板中把value参数与edit属性捆绑：</p>
+<pre>&lt;t:layout xmlns:t=&quot;http://tapestry.apache.org/schema/tapestry_5_0_0.xsd&quot;&gt;
+     &lt;h1&gt;Using InPlaceEditor&lt;/h1&gt;
+     &lt;div t:type=&quot;InPlaceEditor&quot; value=&quot;edit&quot;/&gt;
+&lt;/t:layout&gt;</pre>
+<p>最后得到的html代码如下：</p>
+<pre>...
+ &lt;div id=&quot;inplaceeditor&quot;&gt;Please click here&lt;/div&gt;
+ ...
+ &lt;script type=&quot;text/javascript&quot;&gt;
+ Tapestry.onDOMLoaded(function() {
+    new Ajax.InPlaceEditor('inplaceeditor',
+       '/app/inplaceeditorexample.inplaceeditor:edit', 
+{&quot;paramName&quot;:&quot;t:InPlaceEditor&quot;});
+ });
+&lt;/script&gt;</pre>
+<p>调用页面<a href="http://localhost:8080/app/inplaceeditorexample">http://localhost:8080/app/inplaceeditorexample</a>的话，你可以看到edit属性的默认值是&ldquo;Please click here&rdquo;。</p>
+<center><img src="http://hiphotos.baidu.com/hxzon/pic/item/55850108ce6a7376e8248820.jpg"></center>
+<p>如果点击这行&ldquo;Please click here&rdquo;的话，页面会变成如下所示：</p>
+<center><img src="http://hiphotos.baidu.com/hxzon/pic/item/e39219300176d4dfa8018e20.jpg"></center>
+<p>在文本框中输入一个新值，然后点击ok按钮，edit属性的值则会由提交的这个新值所替代。当然我们应该为这个组件继续进一步添加一些实用功能，比 如可以添加对edit文本框的验证等等。但本文的目的在于给大家提供一个关于Tapestry功能的全局概览，而不是要开发一个能够用于产品的完备组件 包。</p>
+</div></div></body></html>

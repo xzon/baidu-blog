@@ -1,0 +1,277 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>HTTP协议 包 JAVA解析</title></head><body><h1>HTTP协议 包 JAVA解析</h1><div><div>HTTP协议 包 JAVA解析</div>
+<div> </div>
+<div>一、超文本传输协议及HTTP包<br>
+&nbsp;&nbsp;&nbsp;  HTTP协议用于在Internet上发送和接收消息。HTTP协议是一种请求-应答式的协议&mdash;&mdash;客户端发送一个请求，服务器返回该请求的应答，所有的请求与应答都是HTTP包。HTTP协议使用可靠的TCP连接，默认端口是80。HTTP的第一个版本是HTTP/0.9，后来发展到了HTTP/1.0，现在最新的版本是HTTP/1.1。HTTP/1.1由RFC 2616 定义。<br>
+&nbsp;&nbsp;&nbsp;  在HTTP中，Client/Server之间的会话总是由客户端通过建立连接和发送HTTP请求包初始化，服务器不会主动联系客户端或要求与客户端建立连接。浏览器和服务器都可以随时中断连接，例如，在浏览网页时你可以随时点击&ldquo;停止&rdquo;按钮中断当前的文件下载过程，关闭与Web服务器的HTTP连接。<br>
+　　1 HTTP请求包<br>
+　　HTTP请求包(GET、POST等请求方法)由三个部分构成，分别是：方法-URI-协议/版本，请求头，请求正文。下面是一个HTTP请求包(GET)的例子：<br>
+GET /index.jsp HTTP/1.1<br>
+Accept-Language: zh-cn<br>
+Connection: Keep-Alive<br>
+Host: 192.168.0.106<br>
+Content-Length: 37 <br>
+userName=new_andy&amp;password=new_andy<br>
+<br>
+&nbsp;&nbsp;&nbsp;  请求包的第一行是方法-URI-协议/版本：<br>
+&nbsp;&nbsp;&nbsp;  GET就是请求方法，根据HTTP标准，HTTP请求可以使用多种请求方法。HTTP 1.1支持七种请求方法：GET、POST、HEAD、OPTIONS、PUT、DELETE和TRACE等，常用的为请求方法是GET和POST。<br>
+&nbsp;&nbsp;&nbsp;  /index.jsp表示URI。URI指定了要访问的网络资源。<br>
+&nbsp;&nbsp;&nbsp;  HTTP/1.1是协议和协议的版本。<br>
+&nbsp;&nbsp;&nbsp;  最后一行userName=new_andy&amp;password=new_andy为正文，正文与HTTP头部有一个空行(\r\n)分隔。这里需要说明的一点，其中Content-Length说明正文的长度，有的正文长度没有在头部说明，只是标明Transfer-Encoding: chunked。关于chunked类型的长度计算方法，见RFC 1626。<br>
+&nbsp;&nbsp;&nbsp;  请求包的头部还会包含许多有关客户端环境和请求正文的有用信息，这里不再描述。<br>
+　　2 HTTP应答包</div>
+<div> </div>
+<div>　　和HTTP请求包相似，由三个部分构成，分别是：协议-状态代码-描述，应答头，应答正文。下面是一个HTTP应答的例子：</div>
+<div> </div>
+<div>HTTP/1.1 200 OK<br>
+Server: Microsoft-IIS/4.0<br>
+Date: Mon, 3 Jan 2005 13:13:33 GMT<br>
+Content-Type: text/html<br>
+Last-Modified: Mon, 11 Jan 2004 13:23:42 GMT<br>
+Content-Length: 90</div>
+<div> </div>
+<div>&lt;html&gt;<br>
+&lt;head&gt;<br>
+&lt;title&gt;解读HTTP包示例&lt;/title&gt;&lt;/head&gt;&lt;body&gt;<br>
+Hello WORLD!<br>
+&lt;/body&gt;<br>
+&lt;/html&gt;</div>
+<div> </div>
+<div>　　HTTP应答包的第一行类似于HTTP请求的第一行，表示所用的协议是HTTP 1.1，服务器处理请求的状态码200。<br>
+　　应答头也和请求头一样包含许多有用的信息，例如服务器类型、日期时间、内容类型和长度等。应答的正文就是服务器返回的HTML页面。应答头和正文之间也用CRLF分隔。<br>
+二、Socket类与ServerSocket类<br>
+　　在Java中，通信端点由java.net.Socket类(客户端)或java.net.ServerSocket类(服务器端)表示。应用程序通过端点向网络发送或从网络读取数据。位于两台不同机器上的应用软件通过网络连接发送和接收字节流，从而实现通信。要把HTTP包发送给另一个应用，首先要知道对方的IP地址以及其通信端点的端口号。<br>
+&nbsp;&nbsp;  Socket类代表的是客户端，它是一个连接远程服务器应用时临时创建的端点。<br>
+&nbsp;&nbsp;  ServerSocker类代表的是服务器端，它启动后等待来自客户端的连接请求；一旦接收到请求，ServerSocket创建一个Socket实例来处理与该客户端的通信。对于服务器应用，我们不知道客户端应用什么时候会试图连接服务器，服务器必须一直处于等待连接的状态。</div>
+<div> </div>
+<div>　　下面是ServerSocket提供了四个构造函数，常用的构造函数的的一种形式为：<br>
+public ServerSocket(int port, int backLog, InetAddress bindingAddress);<br>
+参数：port指定服务器端监听客户端的端口；<br>
+backlog为连接请求的最大队列长度，一旦超越这个长度，服务器端点开始拒绝客户端的连接请求。<br>
+bindingAddress是一个java.net.InetAddress的实例，指定绑定IP地址。<br>
+　　创建好ServerSocket实例之后，调用它的accept方法，要求它等待传入的连接请求。只有出现了连接请求时，accept方法才会返回，它的返回值是一个Socket类的实例。随后，这个Socket对象就可以用来与客户端应用通信。<br>
+<br>
+Socket类有许多构造函数，常用的为：<br>
+public Socket(String host, int port)。参数是主机名称(IP地址或域名)和端口号。<br>
+　　参数host是远程机器的名字或IP地址，port是远程应用的端口号。<br>
+　　成功创建了Socket类的实例之后，我们就可以用它来发送和接收字节流形式的数据，数据一般为HTTP包。<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  要发送字节流，首先要调用Socket类的getOutputStream方法获得一个java.io.OutputStream对象；要从连接的另一端接收字节流，首先要调用Socket类的getInputStream方法获得一个java.io.InputStream对象。<br>
+　　下面的代码片断创建一个与本地HTTP服务器（127.0.0.1代表本地主机的IP地址）通信的Socket，发送一个HTTP请求包，准备接收服务器的应答。<br>
+Socket socket&nbsp;&nbsp;&nbsp;  = new Socket(&quot;127.0.0.1&quot;, &quot;80&quot;);<br>
+OutputStream os = socket.getOutputStream();<br>
+InputStream ins = socket.getInputStream();<br>
+StringBuffer sb=new StringBuffer();<br>
+sb.append(&quot;GET /index.jsp HTTP/1.1\r\n&quot;);//注意\r\n为回车换行<br>
+sb.append(&quot;Accept-Language: zh-cn\r\n&quot;);<br>
+sb.append(&quot;Connection: Keep-Alive\r\n&quot;);<br>
+sb.append(&quot;Host: 192.168.0.106\r\n&quot;);<br>
+sb.append(&quot;Content-Length: 37\r\n&quot;);<br>
+sb.append(&quot;\r\n&quot;);<br>
+sb.append(&quot;userName=new_andy&amp;password=new_andy\r\n&quot;);<br>
+sb.append(&quot;\r\n&quot;);<br>
+<br>
+//向Web服务器发送一个HTTP请求包<br>
+os.write(sb.toString().getBytes()); <br>
+<br>
+服务器端的代码在大致结构为：<br>
+while (!shutdown) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Socket socket = null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  socket = serverSocket.accept(); //等待客户以送HTTP请求包<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // 创建HTTP请求包处理线程<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  RequestThread request = new RequestThread(socket);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  request.start();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(shutdown) System.exit(0);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  catch (Exception e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+RequestThread线程分析HTTP请求包，跟根据请求包内容在服务端生成一个HTTP应答包。下一节说明怎样分析HTTP包。<br>
+InputStream input = socket.getInputStream(); //从此字节数据流获得HTTP请求包内容<br>
+&nbsp;&nbsp;&nbsp;  OutputStream output= socket.getOutputStream(); //向此字节流写入HTTP应答包内容<br>
+&nbsp;&nbsp;  <br>
+三、读取HTTP包<br>
+以下我自己设计的一个读取HTTP包的类SocketRequest。<br>
+public class SocketRequest { //从指定的Socket的InputStream中读取数据</div>
+<div> </div>
+<div>private InputStream input;<br>
+private String&nbsp;&nbsp;&nbsp;&nbsp;  uri;<br>
+private StringBuffer request=new StringBuffer(); //用于保存所有内容<br>
+private int&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  CONTENT_LENGTH=0; //实际包内容数据长<br>
+private boolean&nbsp;&nbsp;&nbsp;  bePost = false;<br>
+private boolean&nbsp;&nbsp;&nbsp;  beHttpResponse = false;<br>
+private boolean&nbsp;&nbsp;&nbsp;  beChucked = false;<br>
+private boolean&nbsp;&nbsp;&nbsp;  beGet = false;<br>
+private byte&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  crlf13 = (byte)13; //碶 ?br/&gt;&nbsp;&nbsp;  private byte&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  crlf10 = (byte)10; //碶 ?/FONT&gt;</div>
+<div> </div>
+<div>public SocketRequest(InputStream input) {<br>
+&nbsp;&nbsp;&nbsp;  this.input = input;<br>
+}<br>
+public SocketRequest(Socket socket) {<br>
+&nbsp;&nbsp;&nbsp;  this.input = socket.getInputStream();<br>
+}</div>
+<div> </div>
+<div>public void ReadData() { //解析 获得InputStream的数据<br>
+<br>
+ReadHeader(); //头部</div>
+<div> </div>
+<div>if(beChucked) //为Chucked<br>
+{<br>
+&nbsp;&nbsp;  int ChuckSize=0;<br>
+&nbsp;&nbsp;  while((ChuckSize=getChuckSize())&gt;0) //多个Chucked<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;  readLenData(ChuckSize+2);//读取定长数据<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  readLenData(2); //最后的2位 <br>
+}<br>
+<br>
+if(CONTENT_LENGTH&gt;0)<br>
+{<br>
+&nbsp;&nbsp;  readLenData(CONTENT_LENGTH);//读取定长数据<br>
+}<br>
+<br>
+&nbsp;&nbsp;&nbsp;  uri = &quot;&quot;;//parseUri(new String(request));<br>
+}<br>
+<br>
+private void readLenData(int size) //读取定长数据<br>
+{<br>
+&nbsp;&nbsp;  int readed=0; //已经读取数<br>
+&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;  int available=0;//input.available(); //可读数<br>
+&nbsp;&nbsp;&nbsp;  if(available&gt;(size-readed)) available=size-readed;<br>
+&nbsp;&nbsp;&nbsp;  while( readed&lt;size )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while(available==0){ //等到有数据可读<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  available = input.available(); //可读数<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(available&gt;(size-readed)) available= size-readed; //size-readed--剩余数<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(available&gt;2048) available= 2048; //size-readed--剩余数<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  byte[] buffer = new byte[available];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int reading = input.read(buffer);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  request=request.append(new String(buffer,0,reading)); //byte数组相加<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  readed+=reading; //已读字符<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }catch(IOException e){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Read readLenData Error!&quot;);<br>
+&nbsp;&nbsp;  }<br>
+}<br>
+<br>
+&nbsp;&nbsp;  private void ReadHeader() //读取头部 并获得大小<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;  byte[] crlf&nbsp;&nbsp;  = new byte[1];<br>
+&nbsp;&nbsp;  int&nbsp;&nbsp;&nbsp;&nbsp;  crlfNum= 0;&nbsp;&nbsp;  //已经连接的回车换行数 crlfNum=4为头部结束<br>
+&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  while( input.read(crlf)!=-1 )&nbsp;&nbsp;  //读取头部<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(crlf[0]==crlf13 || crlf[0]==crlf10)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  crlfNum++;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  { crlfNum=0; } //不是则清<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  request=request.append(new String(crlf,0,1)); //byte数组相加<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(crlfNum==4) break;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }catch(IOException e){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Read Http Header Error!&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;&nbsp;  String tempStr=(new String(request)).toUpperCase();<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  //这里我只处理了GET与POST方法<br>
+&nbsp;&nbsp;&nbsp;  String strMethod = tempStr.substring(0,4);<br>
+&nbsp;&nbsp;&nbsp;  if(strMethod.equals(&quot;GET &quot;)) //前<br>
+&nbsp;&nbsp;&nbsp;  { beGet=true;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  else if(strMethod.equals(&quot;POST&quot;))<br>
+&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  bePost=true;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  getContentlen_Chucked(tempStr);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;不支持的HTTP包类型&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  } //其它的其它类型 暂不支持<br>
+}</div>
+<div> </div>
+<div>private void getContentlen_Chucked(String tempStr) //获得长度 CONTENT-LENGTH 或 是否为CHUNKED型<br>
+{<br>
+&nbsp;&nbsp;  String ss1=&quot;CONTENT-LENGTH:&quot;;<br>
+&nbsp;&nbsp;  String ss2=new String(&quot;TRANSFER-ENCODING: CHUNKED&quot;);<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  int clIndex&nbsp;&nbsp;  = tempStr.indexOf(ss1);<br>
+&nbsp;&nbsp;&nbsp;  int chuckIndex = tempStr.indexOf(ss2); //为CHUNKED型<br>
+&nbsp;&nbsp;&nbsp;  byte requst[]= tempStr.getBytes();<br>
+&nbsp;&nbsp;&nbsp;  if(clIndex!=-1)<br>
+&nbsp;&nbsp;&nbsp;  { //从clIndex+1起至\r\n<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  StringBuffer sb=new StringBuffer();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for(int i=(clIndex+16);;i++)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(requst[i]!=(byte)13 &amp;&amp; requst[i]!=(byte)10 )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sb.append((char)requst[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  break;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  CONTENT_LENGTH=Integer.parseInt(sb.toString()); //正式的HTML文件的大小<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //System.out.println(&quot;CONTENT_LENGTH== &quot;+CONTENT_LENGTH);<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  if(chuckIndex!=-1) beChucked=true;<br>
+}<br>
+&nbsp;&nbsp;  <br>
+private int getChuckSize() //Chuck大小<br>
+&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;  byte[] crlf&nbsp;&nbsp;  = new byte[1];<br>
+&nbsp;&nbsp;&nbsp;  StringBuffer sb1&nbsp;&nbsp;  = new StringBuffer();</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  int&nbsp;&nbsp;&nbsp;&nbsp;  crlfNum= 0;&nbsp;&nbsp;  //已经连接的回车换行数 crlfNum=4为头部结束<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  while(input.read(crlf)!=-1)&nbsp;&nbsp;  //读取头部<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(crlf[0]==crlf13 || crlf[0]==crlf10)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  { crlfNum++; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  { crlfNum=0; } //不是则清<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sb1.append((char)crlf[0]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  request=request.append(new String(crlf,0,1)); //byte数组相加<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if(crlfNum==2) break;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }catch(IOException e){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Read Http Package Error!&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return 0;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+<br>
+&nbsp;&nbsp;  return Integer.parseInt((sb1.toString()).trim(),16); //16进控制<br>
+}<br>
+//通过此来进行过滤，是否为发至目标服务器的HTTP包<br>
+private String parseUri(String requestString) {<br>
+&nbsp;&nbsp;&nbsp;  int index1, index2;<br>
+&nbsp;&nbsp;&nbsp;  index1 = requestString.indexOf(??;<br>
+&nbsp;&nbsp;&nbsp;  if (index1 != -1) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  index2 = requestString.indexOf(?? index1 + 1);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (index2 &gt; index1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return requestString.substring(index1 + 1, index2);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  return null;<br>
+}</div>
+<div> </div>
+<div>public String getData() {<br>
+&nbsp;&nbsp;&nbsp;  return request.toString();<br>
+}<br>
+}</div>
+<div> </div>
+<div>使用此类:<br>
+SocketRequest request = new SocketRequest(socket); //socket为ServerSocket.accept()返回的Socket实例<br>
+request.ReadData(); //读取数据<br>
+request.getData();<br>
+为什么我要用这么大的力量去读取呢，尤其是在因为Socket连接在发送数据时，由于网络的原因经常会发生延迟现象，可能在服务器端开始接收数据时可能只有部分数据可以从InputStream中获得，在一些地方处理不当时，可能只能获得不完整的数据或是错误的数据。<br>
+从InputStream读取字节时有多种办法:<br>
+常用int read()与int read(byte[] b)。在用read(byte[])时，程序员经常会犯错误，因为在网络环境中，读取的数据量不一定等于参数的大小。<br>
+<br>
+希望我的这篇文章能给你带来一些帮助。</div></div></body></html>

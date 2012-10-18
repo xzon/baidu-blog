@@ -1,0 +1,72 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>java接口中为什么不能有静态方法</title></head><body><h1>java接口中为什么不能有静态方法</h1><div><div>java接口中为什么不能有静态方法</div>
+<div> </div>
+<div>接口的所有方法都是抽象的，而抽象方法是没有static，有static的方法是不能override的，所以这样定义接口才有意义。<br>
+接口中的变量也都是Final、static。<br>
+------------------------------------<br>
+在Thinking in Java中有这样的描述:<br>
+The interface keyword produces a completely abstract class, one that provides no implementation at all. It allows the creator to determine method names, argument lists, and return types, but no method bodies. An interface provides only a form, but no implementation.(接口是完全抽象的一个类,不提供任何实现)</div>
+<div> </div>
+<div>接口中的字段默认就是并且必须是public static final的,不是你所说的实例字段. 字段只能是属于类变量,不可以是实例变量.</div>
+<div> </div>
+<div>同样在Thinking in Java中有:<br>
+When you say something is static, it means that particular field or method is not tied to any particular object instance of that class.(接口中静态的属性或者方法均与具体的实例无关)<br>
+如果你在接口中将方法声明为静态的(与具体的实例无关),但接口中的方法又要求必须被实现类去实现(可能会有多个实现类),这岂不是自相矛盾!<br>
+--------------------------------------<br>
+静态方法是不能被子类重写(也叫覆盖)的(为什么不能重写，则是另外一个问题了)</div>
+<div> </div>
+<div>接口中是不能有被实现的方法的，否则它就不是接口而是抽象类</div>
+<div> </div>
+<div>一个类要实现接口中的方法，其实就是对接口方法的重写。而要实现静态方法，就必须重写接口中的静态方法，这和第一点产生冲突。</div>
+<div> </div>
+<div>如果觉得难以理解的话，请看下面的例子<br>
+假设在 java 中可以定义静态方法：<br>
+public interface MyInterface {<br>
+public static void f();<br>
+}</div>
+<div> </div>
+<div>有两个子类实现了这个接口：<br>
+public class A implements MyInterface {<br>
+public static void f(){<br>
+System.out.println(&quot;AAAA&quot;);<br>
+}<br>
+}</div>
+<div> </div>
+<div>public class B implements MyInterface {<br>
+public static void f(){<br>
+System.out.println(&quot;BBBB&quot;);<br>
+}<br>
+}</div>
+<div> </div>
+<div>现在有段程序需要调用 MyInterface 中定义的静态方法 f()，由于 f 是静态的，因此我们可以用<br>
+MyInterface.f();<br>
+来调用这个方法。</div>
+<div> </div>
+<div>但是，在 MyInterface 中并没有实现 f() 方法，因此必须是调用子类的实现。<br>
+那么这里就存在一个问题，到底是调用 A.f() 还是调用 B.f()呢，我们不知道，当然虚拟机也不可能会知道。<br>
+------------------------------------<br>
+这个答案我也在想，我们只知道规定接口是这样的，但同时thinking in java中也讲到，嵌套类是可以放到接口中去的，自然这个嵌套类是默认为public static的。而目的则是为了使这部分代码被这个接口的所有不同实现所公用。<br>
+static用来定义一个方法的一大用处就是，这部分内容不依赖于类的实例化，其内部也不会存在指向该类某对象的this指针。而嵌套类放到接口中后，过程是一样的，并不违反接口的定义。<br>
+当然，不可否认，这和在类中的静态方法作用是不太相同的。<br>
+下面这段代码可以看出来对接口中嵌套中的静态方法的调用：</div>
+<div> </div>
+<div>package com.test;</div>
+<div> </div>
+<div>interface ClassInterface {<br>
+class InnerClass {<br>
+public static void M() {<br>
+System.out.println(&quot;M&quot;);<br>
+}<br>
+}<br>
+}</div>
+<div> </div>
+<div>public class test {<br>
+<br>
+public static void main(String[] args) throws Exception {<br>
+ClassInterface.InnerClass.M();<br>
+}<br>
+}</div>
+<div> </div>
+<div>输出是M<br>
+-----------------------<br>
+hxzon:单例与静态方法的比较<br>
+单例方法可以被覆盖。</div></div></body></html>

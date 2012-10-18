@@ -1,0 +1,67 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Tomcat请求处理</title></head><body><h1>Tomcat请求处理</h1><div><h3>Tomcat请求处理</h3>
+<p><a href="http://zddava.javaeye.com/blog/260542">http://zddava.javaeye.com/blog/260542</a> <br>
+<a href="http://zddava.javaeye.com/blog/261453">http://zddava.javaeye.com/blog/261453</a><br>
+<a href="http://zddava.javaeye.com/category/53603">http://zddava.javaeye.com/category/53603</a> 更多</p>
+<p>tomcat源码品读<br>
+coyote org.apache.tomcat.util.net.JIoEndpoint</p>
+<h3>Tomcat请求处理(一) -- 服务器端口监听</h3>
+其实tomcat在哪个类中监听请求的代码很容易找到： <br>
+<br>
+在org.apache.tomcat.util.net.JIoEndpoint$Acceptor#run()中的这么一句： <br>
+<br>
+Socket socket = serverSocketFactory.acceptSocket(serverSocket); <br>
+<br>
+可是ServerSocketFactory是个抽象类，我还是很想知道整个过程的来龙去脉的。 <br>
+<br>
+那就要还是从初始化开始，当Tomcat的HTTP Connector初始化，org.apache.coyote.http11.Http11Protocol调用它的init()方法。 <br>
+<br>
+在这个init()方法中，又调用了org.apache.tomcat.util.net.JIoEndpoint#init()，代码如下：
+<pre>public void init() throws Exception {<br>  if (initialized)<br>   return;<br><br>  // acceptor线程的数量<br>  if (acceptorThreadCount == 0) {<br>   acceptorThreadCount = 1;<br>  }<br><br>  // 返回DefaultServerSocketFactory类对象做为ServerSocketFactory的实例<br>  if (serverSocketFactory == null) {<br>   serverSocketFactory = ServerSocketFactory.getDefault();<br>  }<br>  // 创建ServerSocket<br>  if (serverSocket == null) {<br>   try {<br>    if (address == null) {<br>     serverSocket = serverSocketFactory.createSocket(port, backlog);<br>    } else {<br>     serverSocket = serverSocketFactory.createSocket(port, backlog, address);<br>    }<br>   } catch (BindException be) {<br>    if (address == null)<br>     throw new BindException(be.getMessage() + &quot;&lt;null&gt;:&quot; + port);<br>    else<br>     throw new BindException(be.getMessage() + &quot; &quot; + address.toString() + &quot;:&quot; + port);<br>   }<br>  }<br><br>  initialized = true;<br><br> }</pre>
+<p>现在已经知道了文章最初提到的serverSocketFactory引用的是一个DefaultServerSocketFactory类的对象。并且在这里创建了一个ServerSocket对象。 <br>
+<br>
+当Tomcat初始化完毕，执行一系列开启服务的动作时，HTTP Connector也会执行它的start()方法，然后会调用Http11Protocol的start()方法，最后程序会执行到JIoEndpoint#start()，下面来看一下：</p>
+<pre>public void start() throws Exception {<br>  if (!initialized) {<br>   init();<br>  }<br><br>  if (!running) {<br>   running = true;<br>   paused = false;<br><br>   // 先初始化一些Worker<br>   if (executor == null) {<br>    workers = new WorkerStack(maxThreads);<br>   }<br><br>   // 开启Acceptor线程，默认只开启一个Acceptor线程，见JIoEndpoint#init()。<br>   for (int i = 0; i &lt; acceptorThreadCount; i++) {<br>    Thread acceptorThread = new Thread(new Acceptor(), getName() + &quot;-Acceptor-&quot; + i);<br>    acceptorThread.setPriority(threadPriority);<br>    acceptorThread.setDaemon(daemon);<br>    acceptorThread.start();<br>   }<br>  }<br> }</pre>
+<p>这样，就开启了一个Acceptor线程，接下来看一看这个线程做了什么东西。</p>
+<pre>public void run() {<br>   while (running) {<br><br>    while (paused) {<br>     try {<br>      Thread.sleep(1000);<br>     } catch (InterruptedException e) {<br>     }<br>    }<br><br>    try {<br>     // 开始监听端口<br>     Socket socket = serverSocketFactory.acceptSocket(serverSocket);<br>     // 初始化Socket<br>     serverSocketFactory.initSocket(socket);<br>     if (!processSocket(socket)) {<br>      try {<br>       socket.close();<br>      } catch (IOException e) {<br>      }<br>     }<br>    } catch (IOException x) {<br>     if (running)<br>      log.error(sm.getString(&quot;endpoint.accept.fail&quot;), x);<br>    } catch (Throwable t) {<br>     log.error(sm.getString(&quot;endpoint.accept.fail&quot;), t);<br>    }<br>   }<br><br>  }</pre>
+<p>至此，Tomcat开启了一个端口进行请求的监听。</p>
+<h3>Tomcat请求处理(二) -- 请求处理框架</h3>
+当Tomcat的Acceptor监听到有请求到来时，就会结束阻塞，继续进行程序下面的动作。如下面的代码所示：
+<pre>public void run() {<br>   while (running) {<br><br>    while (paused) {<br>     try {<br>      Thread.sleep(1000);<br>     } catch (InterruptedException e) {<br>     }<br>    }<br><br>    try {<br>     // 开始监听端口<br>     Socket socket = serverSocketFactory.acceptSocket(serverSocket);<br>     // 初始化Socket<br>     serverSocketFactory.initSocket(socket);<br>     // 处理Socket<br>     if (!processSocket(socket)) {<br>      try {<br>       socket.close();<br>      } catch (IOException e) {<br>      }<br>     }<br>    } catch (IOException x) {<br>     if (running)<br>      log.error(sm.getString(&quot;endpoint.accept.fail&quot;), x);<br>    } catch (Throwable t) {<br>     log.error(sm.getString(&quot;endpoint.accept.fail&quot;), t);<br>    }<br>   }<br><br>  }</pre>
+<p>结束阻塞后，首先是Socket的初始化，由于ServerSocketFactory的实现类DefaultServerSocketFactory并没有扩展initSocket()方法，所以这一步其实是什么都没做的。 <br>
+<br>
+接下来程序执行到了org.apache.tomcat.util.net.JIoEndpoint.processSocket(socket);这一步了，这个方法的源代码如下所示：</p>
+<pre>protected boolean processSocket(Socket socket) {<br>  try {<br>   if (executor == null) {<br>    // 得到一个Work并为它分配这个Socket<br>    getWorkerThread().assign(socket);<br>   } else {<br>    executor.execute(new SocketProcessor(socket));<br>   }<br>  } catch (Throwable t) {<br>   log.error(sm.getString(&quot;endpoint.process.fail&quot;), t);<br>   return false;<br>  }<br>  return true;<br> }</pre>
+<p>hxzon：这里提供了jdk5 executor+SocketProcessor和tomcat 自己的worker实现。使用jdk5 executor简洁许多。</p>
+<p>executor是一个外部的基于线程池的执行器，先不去考虑它，重点看一下getWorkerThread()和Worker#assign() <br>
+<br>
+getWorkerThread()的源代码如下：</p>
+<pre>protected Worker getWorkerThread() {<br>  // 获取一个Worker<br>  Worker workerThread = createWorkerThread();<br>  while (workerThread == null) {// 如果获取的Worker为Null<br>   try {<br>    synchronized (workers) {<br>     // 等待workers里边Worker的回收，recycleWorkerThread()中会调用notify通知这个线程结束等待的<br>     workers.wait();<br>    }<br>   } catch (InterruptedException e) {<br>   }<br>   // 等待结束，再次获取一个Worker<br>   workerThread = createWorkerThread();<br>  }<br>  return workerThread;<br> }</pre>
+<p>这里这个createWorkerThread()也就是获取Worker的方法值得研究一下。</p>
+<pre>protected Worker createWorkerThread() {<br>  synchronized (workers) {<br>   if (workers.size() &gt; 0) {// 如果堆栈中有剩余的Worker<br>    // 当前在使用的Worker线程计数<br>    curThreadsBusy++;<br>    // 将一个Worker推出堆栈<br>    return workers.pop();<br>   }<br>   // 如果堆栈中没有多余的Worker了，那么创建一个。<br>   if ((maxThreads &gt; 0) &amp;&amp; (curThreads &lt; maxThreads)) {<br>    // 如果maxThreads有定义，并且当前的Worker数量小于这个值。<br>    // 在recycleWorkerThread()中会将新创建的Worker放入堆栈的<br>    curThreadsBusy++;<br>    return (newWorkerThread());<br>   } else {<br>    if (maxThreads &lt; 0) {<br>     // maxThreads没有定义，可以有无限个Worker的情况。<br>     curThreadsBusy++;<br>     return (newWorkerThread());<br>    } else {<br>     return (null);<br>    }<br>   }<br>  }<br><br> }</pre>
+<p>而newWorkerThread()方法还是很好理解的：</p>
+<pre>protected Worker newWorkerThread() {<br>  Worker workerThread = new Worker();<br>  workerThread.start();<br>  return (workerThread);<br><br> }</pre>
+<p>创建一个Worker线程，并且开启线程。 <br>
+<br>
+经过上述的过程，就获得了一个Worker(并且已经开始运行了)，那么程序的下一步是调用Worker的assign()方法：</p>
+<pre>synchronized void assign(Socket socket) {<br>  // 等待获取完上一个Socket<br>  while (available) {<br>   try {<br>    wait();<br>   } catch (InterruptedException e) {<br>   }<br>  }<br>  <br>  // 保存新的Socket<br>  this.socket = socket;<br>  available = true;<br>  notifyAll();<br> }</pre>
+<p>这样新的Worker已经有一个Socket对象去处理了，下面来看一下Worker的线程中做了哪些工作。</p>
+<pre>public void run() {<br><br>  // 知道收到停止信号，否则一直循环<br>  while (running) {<br>   // 等待为这个线程设置一个Socket对象<br>   Socket socket = await();<br>   if (socket == null)<br>    continue;<br><br>   // 处理请求<br>   if (!setSocketOptions(socket) || !handler.process(socket)) {<br>    // 关闭Socket<br>    try {<br>     socket.close();<br>    } catch (IOException e) {<br>    }<br>   }<br><br>   // 回收Worker<br>   socket = null;<br>   recycleWorkerThread(this);<br><br>  }<br><br> }</pre>
+<p>其中await()用于等待有Socket对象赋给当前的Worker已进行请求处理，代码如下：</p>
+<pre>private synchronized Socket await() {<br><br>   // 等待获取Socket<br>   while (!available) {<br>    try {<br>     wait();<br>    } catch (InterruptedException e) {<br>    }<br>   }<br><br>   // Socket已经收到<br>   Socket socket = this.socket;<br>   available = false;<br><br>   // 这个notifyAll()是通知assign()中的等待Socket的处理已经开始了，<br>   // 可以为这个Worker赋新的值了。<br>   notifyAll();<br><br>   return (socket);<br><br>  }</pre>
+<p>而setSocketOptions()用于设定一些Socket的参数，如下所示：</p>
+<pre>protected boolean setSocketOptions(Socket socket) {<br>  int step = 1;<br>  try {<br><br>   if (soLinger &gt;= 0) {<br>    socket.setSoLinger(true, soLinger);<br>   }<br>   if (tcpNoDelay) {<br>    socket.setTcpNoDelay(tcpNoDelay);<br>   }<br>   if (soTimeout &gt; 0) {<br>    socket.setSoTimeout(soTimeout);<br>   }<br><br>   step = 2;<br>   serverSocketFactory.handshake(socket);<br><br>  } catch (Throwable t) {<br>   if (log.isDebugEnabled()) {<br>    if (step == 2) {<br>     log.debug(sm.getString(&quot;endpoint.err.handshake&quot;), t);<br>    } else {<br>     log.debug(sm.getString(&quot;endpoint.err.unexpected&quot;), t);<br>    }<br>   }<br>   return false;<br>  }<br>  return true;<br> }</pre>
+<p>handler.process(socket)封装了处理请求的全过程，下次再详细了解 <br>
+<br>
+而最后的recycleWorkerThread()用于回收Worker到堆栈中以备下次使用：</p>
+<pre>protected void recycleWorkerThread(Worker workerThread) {<br>  synchronized (workers) {<br>   workers.push(workerThread);<br>   curThreadsBusy--;<br>   workers.notify();<br>  }<br> }</pre>
+<p>好了，请求处理的整个流程大致就是这样的，下次再详细了解请求的真实处理部分，就是handler.process(socket)的内容。</p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p></div></body></html>

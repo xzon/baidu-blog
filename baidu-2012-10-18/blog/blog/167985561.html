@@ -1,0 +1,313 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>//SelectionListPair</title></head><body><h1>//SelectionListPair</h1><div><p> </p>
+<p>//SelectionListPair</p>
+<p>package com.xxx.hxzon.googcode;</p>
+<p>import java.awt.BorderLayout;<br>
+import java.awt.Color;<br>
+import java.awt.Component;<br>
+import java.awt.Dimension;<br>
+import java.awt.event.ActionEvent;<br>
+import java.awt.event.ActionListener;<br>
+import java.awt.event.MouseAdapter;<br>
+import java.awt.event.MouseEvent;<br>
+import java.util.ArrayList;<br>
+import java.util.Arrays;<br>
+import java.util.Collections;<br>
+import java.util.Comparator;<br>
+import java.util.List;</p>
+<p>import javax.swing.AbstractAction;<br>
+import javax.swing.BorderFactory;<br>
+import javax.swing.Box;<br>
+import javax.swing.BoxLayout;<br>
+import javax.swing.DefaultListCellRenderer;<br>
+import javax.swing.JButton;<br>
+import javax.swing.JFrame;<br>
+import javax.swing.JLabel;<br>
+import javax.swing.JList;<br>
+import javax.swing.JOptionPane;<br>
+import javax.swing.JPanel;<br>
+import javax.swing.JScrollPane;<br>
+import javax.swing.ListCellRenderer;<br>
+import javax.swing.ListModel;<br>
+import javax.swing.event.ListSelectionEvent;<br>
+import javax.swing.event.ListSelectionListener;</p>
+<p>public class SelectionListPair extends JPanel {<br>
+ private JList srcList;<br>
+ private JList selectedList;<br>
+ private JButton add, remove, addAll, removeAll;</p>
+<p> private List selectedData;<br>
+ private Comparator toStringCompator;</p>
+<p> public SelectionListPair(List srcData, String srcListTitle,<br>
+&nbsp;&nbsp;&nbsp; String destListTitle) {<br>
+&nbsp;&nbsp; super();<br>
+&nbsp;&nbsp; setLayout(new BoxLayout(this, BoxLayout.X_AXIS));<br>
+&nbsp;&nbsp; // center button panel(add, remove, addAll, removeAll)<br>
+&nbsp;&nbsp; JPanel center = new JPanel();<br>
+&nbsp;&nbsp; center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));<br>
+&nbsp;&nbsp; add = new JButton();<br>
+&nbsp;&nbsp; remove = new JButton();<br>
+&nbsp;&nbsp; addAll = new JButton();<br>
+&nbsp;&nbsp; removeAll = new JButton();<br>
+&nbsp;&nbsp; add.setFocusable(false);<br>
+&nbsp;&nbsp; remove.setFocusable(false);<br>
+&nbsp;&nbsp; addAll.setFocusable(false);<br>
+&nbsp;&nbsp; removeAll.setFocusable(false);<br>
+&nbsp;&nbsp; add.setToolTipText("add");<br>
+&nbsp;&nbsp; remove.setToolTipText("remove");<br>
+&nbsp;&nbsp; addAll.setToolTipText("add all");<br>
+&nbsp;&nbsp; removeAll.setToolTipText("remove add");<br>
+&nbsp;&nbsp; center.add(add);<br>
+&nbsp;&nbsp; center.add(Box.createVerticalStrut(10));<br>
+&nbsp;&nbsp; center.add(remove);<br>
+&nbsp;&nbsp; center.add(Box.createVerticalStrut(30));<br>
+&nbsp;&nbsp; center.add(addAll);<br>
+&nbsp;&nbsp; center.add(Box.createVerticalStrut(10));<br>
+&nbsp;&nbsp; center.add(removeAll);<br>
+&nbsp;&nbsp; // left list<br>
+&nbsp;&nbsp; JPanel left = new JPanel();<br>
+&nbsp;&nbsp; left.setPreferredSize(new Dimension(150, 350));<br>
+&nbsp;&nbsp; left.setSize(new Dimension(150, 350));<br>
+&nbsp;&nbsp; left.setBorder(BorderFactory.createTitledBorder(left.getBorder(),<br>
+&nbsp;&nbsp;&nbsp;&nbsp; srcListTitle));<br>
+&nbsp;&nbsp; left.setLayout(new BorderLayout());<br>
+&nbsp;&nbsp; ListCellRenderer cognitiveRender = new DefaultListCellRenderer() {<br>
+&nbsp;&nbsp;&nbsp; @Override<br>
+&nbsp;&nbsp;&nbsp; public Component getListCellRendererComponent(JList list,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object value, int index, boolean isSelected,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; boolean cellHasFocus) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; JLabel comp = (JLabel) super.getListCellRendererComponent(list,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; value, index, isSelected, cellHasFocus);<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (selectedData != null &amp;&amp; selectedData.contains(value))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; comp.setForeground(Color.gray);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; return comp;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; };<br>
+&nbsp;&nbsp; srcList = new JList();<br>
+&nbsp;&nbsp; srcList.setCellRenderer(cognitiveRender);<br>
+&nbsp;&nbsp; srcList.setVisibleRowCount(10);<br>
+&nbsp;&nbsp; left.add(new JScrollPane(srcList), BorderLayout.CENTER);<br>
+&nbsp;&nbsp; // right list<br>
+&nbsp;&nbsp; JPanel right = new JPanel();<br>
+&nbsp;&nbsp; right.setPreferredSize(new Dimension(150, 350));<br>
+&nbsp;&nbsp; right.setSize(new Dimension(150, 350));<br>
+&nbsp;&nbsp; right.setBorder(BorderFactory.createTitledBorder(right.getBorder(),<br>
+&nbsp;&nbsp;&nbsp;&nbsp; destListTitle));<br>
+&nbsp;&nbsp; right.setLayout(new BorderLayout());<br>
+&nbsp;&nbsp; selectedList = new JList();<br>
+&nbsp;&nbsp; selectedList.setVisibleRowCount(10);<br>
+&nbsp;&nbsp; right.add(new JScrollPane(selectedList), BorderLayout.CENTER);<br>
+&nbsp;&nbsp; // add them all<br>
+&nbsp;&nbsp; add(left);<br>
+&nbsp;&nbsp; add(center);<br>
+&nbsp;&nbsp; add(right);</p>
+<p>&nbsp;&nbsp; selectedData = new ArrayList();<br>
+&nbsp;&nbsp; if (srcData != null) {<br>
+&nbsp;&nbsp;&nbsp; srcList.setListData(srcData.toArray());<br>
+&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; toStringCompator = new Comparator() {<br>
+&nbsp;&nbsp;&nbsp; public int compare(Object o1, Object o2) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; return o1.toString().compareTo(o2.toString());<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; };</p>
+<p>&nbsp;&nbsp; add.setAction(new AbstractAction(" &gt;&gt;") {<br>
+&nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; add(true);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; });<br>
+&nbsp;&nbsp; remove.setAction(new AbstractAction("&lt;&lt; ") {<br>
+&nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; remove();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; });<br>
+&nbsp;&nbsp; addAll.setAction(new AbstractAction("&gt;&gt;&gt;") {<br>
+&nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; add_All();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; });<br>
+&nbsp;&nbsp; removeAll.setAction(new AbstractAction("&lt;&lt;&lt;") {<br>
+&nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; remove_All();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; });<br>
+&nbsp;&nbsp; srcList.addMouseListener(new MouseAdapter() {<br>
+&nbsp;&nbsp;&nbsp; public void mouseClicked(MouseEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (e.getClickCount() == 2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &amp;&amp; !selectedData.contains(srcList.getSelectedValue())) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; add(false);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; add.setEnabled(false);<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; });<br>
+&nbsp;&nbsp; selectedList.addMouseListener(new MouseAdapter() {<br>
+&nbsp;&nbsp;&nbsp; public void mouseClicked(MouseEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (e.getClickCount() == 2)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; remove();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; });<br>
+&nbsp;&nbsp; // set enable<br>
+&nbsp;&nbsp; removeAll.setEnabled(false);<br>
+&nbsp;&nbsp; remove.setEnabled(false);<br>
+&nbsp;&nbsp; if (srcList.getModel().getSize() &lt; 1)<br>
+&nbsp;&nbsp;&nbsp; addAll.setEnabled(false);<br>
+&nbsp;&nbsp; if (srcList.getSelectionModel().isSelectionEmpty())<br>
+&nbsp;&nbsp;&nbsp; add.setEnabled(false);<br>
+&nbsp;&nbsp; srcList.addListSelectionListener(new ListSelectionListener() {<br>
+&nbsp;&nbsp;&nbsp; public void valueChanged(ListSelectionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (!e.getValueIsAdjusting()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; add.setEnabled(!selectedData.contains(srcList<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .getSelectedValue()));<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; });<br>
+&nbsp;&nbsp; selectedList.addListSelectionListener(new ListSelectionListener() {<br>
+&nbsp;&nbsp;&nbsp; public void valueChanged(ListSelectionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (!e.getValueIsAdjusting()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; remove.setEnabled(e.getLastIndex() != -1);<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; });</p>
+<p> }</p>
+<p> public List getSelection() {<br>
+&nbsp;&nbsp; return selectedData;<br>
+ }</p>
+<p> private void add(boolean jump) {<br>
+&nbsp;&nbsp; Object[] selected = srcList.getSelectedValues();<br>
+&nbsp;&nbsp; List sel = Arrays.asList(selected);<br>
+&nbsp;&nbsp; selectedData.removeAll(sel);<br>
+&nbsp;&nbsp; selectedData.addAll(sel);<br>
+&nbsp;&nbsp; reInitSelectedData();</p>
+<p>&nbsp;&nbsp; if (jump) {<br>
+&nbsp;&nbsp;&nbsp; int max = srcList.getMaxSelectionIndex();<br>
+&nbsp;&nbsp;&nbsp; int length = srcList.getModel().getSize();<br>
+&nbsp;&nbsp;&nbsp; int newSelected = (max &lt; (length - 1)) ? (max + 1) : 0;<br>
+&nbsp;&nbsp;&nbsp; final int mark = newSelected;<br>
+&nbsp;&nbsp;&nbsp; if (selectedData.contains(srcList.getModel().getElementAt(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; newSelected))) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; // 先向前推一位<br>
+&nbsp;&nbsp;&nbsp;&nbsp; if (newSelected == length - 1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; newSelected = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; newSelected++;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; // 循环一周：直到再次遇见mark结束<br>
+&nbsp;&nbsp;&nbsp;&nbsp; while (newSelected != mark) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!selectedData.contains(srcList.getModel().getElementAt(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; newSelected)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;// 找到了合适的落脚点，提前退出<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 再向前推一位<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (newSelected == length - 1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; newSelected = 0;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; newSelected++;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; srcList.setSelectedIndex(newSelected);<br>
+&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp; // 发出通知改变相关按钮状态<br>
+&nbsp;&nbsp; if (selected.length &gt; 0) {<br>
+&nbsp;&nbsp;&nbsp; if (selectedData.size() == srcList.getModel().getSize())<br>
+&nbsp;&nbsp;&nbsp;&nbsp; propertyChange("AllAdded");<br>
+&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp; propertyChange("Added");<br>
+&nbsp;&nbsp; }</p>
+<p> }</p>
+<p> private void remove() {<br>
+&nbsp;&nbsp; int[] indices = selectedList.getSelectedIndices();<br>
+&nbsp;&nbsp; Object[] selected = selectedList.getSelectedValues();<br>
+&nbsp;&nbsp; List sel = Arrays.asList(selected);<br>
+&nbsp;&nbsp; selectedData.removeAll(sel);<br>
+&nbsp;&nbsp; int oldMax = selectedList.getMaxSelectionIndex();<br>
+&nbsp;&nbsp; boolean notTail = oldMax &lt; (selectedList.getModel().getSize() - 1);<br>
+&nbsp;&nbsp; reInitSelectedData();<br>
+&nbsp;&nbsp; // 自动选中下一项<br>
+&nbsp;&nbsp; int newSelected = notTail ? (oldMax + 1 - indices.length) : 0;<br>
+&nbsp;&nbsp; selectedList.setSelectedIndex(newSelected);<br>
+&nbsp;&nbsp; // 发出通知改变相关按钮状态<br>
+&nbsp;&nbsp; if (indices.length &gt; 0) {<br>
+&nbsp;&nbsp;&nbsp; if (selectedList.getSelectedIndex() == -1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp; propertyChange("AllRemoved");<br>
+&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp; propertyChange("Removed");<br>
+&nbsp;&nbsp; }<br>
+ }</p>
+<p> private void add_All() {<br>
+&nbsp;&nbsp; ListModel model = srcList.getModel();<br>
+&nbsp;&nbsp; int size = model.getSize();<br>
+&nbsp;&nbsp; selectedData.clear();<br>
+&nbsp;&nbsp; for (int i = 0; i &lt; size; i++) {<br>
+&nbsp;&nbsp;&nbsp; selectedData.add(model.getElementAt(i));<br>
+&nbsp;&nbsp; }<br>
+&nbsp;&nbsp; reInitSelectedData();<br>
+&nbsp;&nbsp; if (size &gt; 0)<br>
+&nbsp;&nbsp;&nbsp; propertyChange("AllAdded");<br>
+ }</p>
+<p> private void remove_All() {<br>
+&nbsp;&nbsp; selectedData.clear();<br>
+&nbsp;&nbsp; reInitSelectedData();<br>
+&nbsp;&nbsp; propertyChange("AllRemoved");<br>
+ }</p>
+<p> private void reInitSelectedData() {<br>
+&nbsp;&nbsp; Collections.sort(selectedData, toStringCompator);<br>
+&nbsp;&nbsp; selectedList.setListData(selectedData.toArray());<br>
+&nbsp;&nbsp; srcList.repaint();<br>
+ }</p>
+<p> private void propertyChange(String name) {<br>
+&nbsp;&nbsp; if ("AllAdded".equals(name)) {<br>
+&nbsp;&nbsp;&nbsp; addAll.setEnabled(false);<br>
+&nbsp;&nbsp;&nbsp; add.setEnabled(false);<br>
+&nbsp;&nbsp;&nbsp; removeAll.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; if (selectedList.getSelectedIndex() != -1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp; remove.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp; remove.setEnabled(false);<br>
+&nbsp;&nbsp; } else if ("AllRemoved".equals(name)) {<br>
+&nbsp;&nbsp;&nbsp; removeAll.setEnabled(false);<br>
+&nbsp;&nbsp;&nbsp; remove.setEnabled(false);<br>
+&nbsp;&nbsp;&nbsp; addAll.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; if (srcList.getSelectedIndex() != -1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp; add.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp; add.setEnabled(false);<br>
+&nbsp;&nbsp; } else if ("Added".equals(name)) {<br>
+&nbsp;&nbsp;&nbsp; // 已添加了一次，但未全部添加完<br>
+&nbsp;&nbsp;&nbsp; addAll.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; removeAll.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; if (selectedList.getSelectedIndex() != -1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp; remove.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp; remove.setEnabled(false);<br>
+&nbsp;&nbsp; } else if ("Removed".equals(name)) {<br>
+&nbsp;&nbsp;&nbsp; // 已删除了一次，但未清空<br>
+&nbsp;&nbsp;&nbsp; addAll.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; removeAll.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; if (srcList.getSelectedIndex() != -1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp; add.setEnabled(true);<br>
+&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp; add.setEnabled(false);<br>
+&nbsp;&nbsp; }<br>
+ }</p>
+<p> public static void main(String[] args) {<br>
+&nbsp;&nbsp; JFrame f=new JFrame();<br>
+&nbsp;&nbsp; List list=new ArrayList();<br>
+&nbsp;&nbsp; for(int i=0;i&lt;20;i++)<br>
+&nbsp;&nbsp;&nbsp; list.add(i);<br>
+&nbsp;&nbsp; final SelectionListPair selection=new SelectionListPair(list, "src", "selected");<br>
+&nbsp;&nbsp; JButton btn=new JButton("确定");<br>
+&nbsp;&nbsp; btn.addActionListener(new ActionListener(){</p>
+<p>&nbsp;&nbsp;&nbsp; @Override<br>
+&nbsp;&nbsp;&nbsp; public void actionPerformed(ActionEvent arg0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp; List selected=selection.getSelection();<br>
+&nbsp;&nbsp;&nbsp;&nbsp; String s="";<br>
+&nbsp;&nbsp;&nbsp;&nbsp; for(Object o:selected)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; s+=(","+o);<br>
+&nbsp;&nbsp;&nbsp;&nbsp; JOptionPane.showMessageDialog(null, s, "selected", JOptionPane.OK_OPTION);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp; });<br>
+&nbsp;&nbsp; f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);<br>
+&nbsp;&nbsp; f.add(selection,BorderLayout.CENTER);<br>
+&nbsp;&nbsp; f.add(btn,BorderLayout.SOUTH);<br>
+&nbsp;&nbsp; f.setSize(700,500);<br>
+&nbsp;&nbsp; f.setVisible(true);</p>
+<p> }</p>
+<p>}</p></div></body></html>

@@ -1,0 +1,66 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Tomcat源码分析之JNDI</title></head><body><h1>Tomcat源码分析之JNDI</h1><div><div>
+<p>Tomcat源码分析之JNDI</p>
+<div class="articleContent" >
+<p>在tomcat服务器中，我们可以通过配置文件%CATALINA_HOME%/conf/server.xml来对所用到的资源进行配置，如代码：<br>
+Xml代码<br>
+&lt;GlobalNamingResources&gt; <wbr></wbr><br>
+ <wbr></wbr> &lt;Resource name=&quot;UserDatabase&quot; auth=&quot;Container&quot; <wbr></wbr><br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> type=&quot;org.apache.catalina.UserDatabase&quot; <wbr></wbr><br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> description=&quot;User database that can be updated and saved&quot; <wbr></wbr><br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> factory=&quot;org.apache.catalina.users.MemoryUserDatabaseFactor<wbr></wbr>y&quot; <wbr></wbr><br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> pathname=&quot;conf/tomcat-users.xml&quot; /&gt; <wbr></wbr><br>
+ <wbr></wbr> &lt;Resource name=&quot;jdbc/wroxTC6&quot; auth=&quot;Container&quot; <wbr></wbr><br>
+type=&quot;javax.sql.DataSource&quot; maxActive=&quot;20&quot; maxIdle=&quot;30&quot; <wbr></wbr><br>
+maxWait=&quot;10000&quot; username=&quot;root&quot; password=&quot;1234&quot; <wbr></wbr><br>
+driverClassName=&quot;com.mysql.jdbc.Driver&quot; <wbr></wbr><br>
+url=&quot;jdbc:mysql://localhost:3306/test?autoReconnect=true&quot; /&gt; <wbr></wbr><br>
+&lt;/GlobalNamingResources&gt; <wbr></wbr><br>
+<br>
+ <wbr></wbr> &lt;GlobalNamingResources&gt;<br>
+ <wbr></wbr>  <wbr></wbr> &lt;Resource name=&quot;UserDatabase&quot; auth=&quot;Container&quot;<br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> type=&quot;org.apache.catalina.UserDatabase&quot;<br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> description=&quot;User database that can be updated and saved&quot;<br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> factory=&quot;org.apache.catalina.users.MemoryUserDatabaseFactor<wbr></wbr>y&quot;<br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> pathname=&quot;conf/tomcat-users.xml&quot; /&gt;<br>
+ <wbr></wbr>  <wbr></wbr> &lt;Resource name=&quot;jdbc/wroxTC6&quot; auth=&quot;Container&quot;<br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> type=&quot;javax.sql.DataSource&quot; maxActive=&quot;20&quot; maxIdle=&quot;30&quot;<br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> maxWait=&quot;10000&quot; username=&quot;root&quot; password=&quot;1234&quot;<br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> driverClassName=&quot;com.mysql.jdbc.Driver&quot;<br>
+ <wbr></wbr>  <wbr></wbr>  <wbr></wbr>  <wbr></wbr> url=&quot;jdbc:mysql://localhost:3306/test?autoReconnect=true&quot; /&gt;<br>
+ <wbr></wbr> &lt;/GlobalNamingResources&gt;<br>
+<br>
+在这段配置中，指定了两个资源，一个是UserDatabase，另一个是jdbc/wroxTC6。本文主要讲述了，在tomcat是怎样通过JNDI来找到这些资源的。<br>
+<br>
+1.JNDI基础和Tomcat中的JNDI<br>
+JNDI的全称是Java Naming and Directory Interface, JNDI的整体架构包含有JNDI API和JNDI SPI。利用前者可以访问各种Naming Services和Directory Services。<br>
+Service Providers利用JNDI SPI来编写这些服务。因此这些服务可以被Java应用灵活的插拔。<br>
+在JNDI中，用名字来标识一个服务对象，name和object之间建立的关联称为一个binding，binding的集合称作context。<br>
+javax.naming.Context是Naming Services所在的上下文接口；javax.naming.directory.DirContext是Directory Services所在的上下文接口。<br>
+在tomcat中类NamingContext实现了接口Context，在该类中保存有多个binding，每一个binding是一个NamingEntry实例。对于NamingEntry分为4种类型：ENTRY、LINK_REF、REFERENCE和CONTEXT。<br>
+在tomcat中的配置文件service.xml中，可以为tomcat服务器配置全局的Naming Resource，也可以单独为某一个web应用配置局部的Naming Resource。<br>
+<br>
+2.寻找被绑定的资源<br>
+在tomcat启动时，采用了责任链模式来进行。在启动StandardServer时，调用与之相关的监听器。在监听器NamingContextListener中，对全局的Naming Resources建立Context，绑定资源，查找资源等等。在启动StandardContext时，监听器NamingContextListener负责完成对局部Naming Resources相关操作。本文讲述对全局的Naming Resources的处理。<br>
+（1）首先是建立NamingContext类的实例：根Context（名字为：&quot;/&quot;）。<br>
+（2）将资源对象从NamingResources中取出，形成Reference，绑定到根Context中。<br>
+因为在加载配置文件时，利用tomcat中的Digester，已经将配置文件形成了类NamingResources的实例，也就是配置文件的信息已经形成了相应的NamingResources对象。从NamingResources实例中取出资源，建立ResourceRef实例。<br>
+ResourceRef继承了java.naming.Reference，该类并不是具体的Resource，也不做为binding中的object加入到Context中。但是通过该对象，可以找到待绑定的Service，例如在UserDatabase所形成的ResourceRef实例中，指定的Reference的className是org.apache.catalina.UserDatabase；而配置文件的factory属性对应于一个StringRefAddr对象，加入到了Reference中。<br>
+将该Reference对象，形成REFERENCE类型的NamingEntry对象，并以资源的name属性为名称，加入根Context中。例如：以UserDatabase为名称，将该Resource对应的REFERENCE类型的NamingEntry对象，加入到了根Context中。<br>
+（3）从根Context查找资源，利用Reference找到资源。<br>
+当利用资源名称查找资源时，调用的是NamingContext.lookup方法。该方法中利用JNDI的方法NamingManager.getObjectInstance来调用Service Provider所提供的Service。<br>
+在方法NamingManager.getObjectInstance中，若传递的Reference不为空，则调用Reference的getFactoryClassName来获得具体的factory类（该factory类由Service Provider来实现，所以能够找到具体的资源。在Tomcat中，ResourceRef覆盖了getFactoryClassName方法，得到的是ResourceFactory实例）<br>
+调用ResourceFactory.getObjectInstance方法，从Reference的RefAddr中得到org.apache.catalina.users.MemoryUserDatabaseFactor<wbr></wbr>y实例，通过MemoryUserDatabaseFactor<wbr></wbr>y.getObjectInstance得到具体的资源MemoryUserDatabase对象。<br>
+（4）将真实的对象赋给NamingEntry的object属性，更改NamingEntry的类型为ENTRY。<br>
+此时根Context中存在有对真实的资源的绑定，名称为该资源的名称。<br>
+<br>
+3.建立子Context<br>
+如果资源的名称中包含&quot;/&quot;，则将REFERENCE类型的NamingEntry对象加入到Context前，要建立子Context。例如资源&quot;jdbc/wroxTC6&quot;，需要建立子Context。<br>
+（1）建立子Context<br>
+建立子Context，并将该Context以CONTEXT类型的NamingEntry加入到根Context中。<br>
+（2）将资源对象从NamingResources中取出，形成Reference，绑定到子Context中。<br>
+在调用根Context对象的bind方法时，将资源的绑定委派到子Context中，将Reference绑定到子Context中。例如将资源&quot;wroxTC6&quot;绑定到以&quot;jdbc&quot;为名字的子Context中。<br>
+（3）查找资源，绑定真实的资源到子Context中。<br>
+在进行资源查找和找真实资源时，原理同2，只不过是首先找到子Context，然后再进行。</p>
+<p><a href="http://blog.sina.com.cn/s/blog_4f925fc30100atlb.html">http://blog.sina.com.cn/s/blog_4f925fc30100atlb.html</a></p>
+</div>
+</div></div></body></html>

@@ -1,0 +1,22 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>在Windows Server下集成Apache、Tomcat和IIS -hxzon动手</title></head><body><h1>在Windows Server下集成Apache、Tomcat和IIS -hxzon动手</h1><div><p>在Windows Server下集成Apache、Tomcat和IIS -hxzon动手</p>
+<p>　　我在《<a href="http://www.williamlong.info/archives/460.html" target="_blank"><font color="#4e0a13">Perl、PHP、ASP、JSP技术比较</font></a>》一文中曾经对四种流行的网站设计语言进行了评测和对比，常言道鱼与熊掌皆我所欲，两者不可兼得，那么有没有一种方法，可以做到鱼与熊掌兼得，同时支持这四种语言的Web服务器呢，今天我就介绍一下基于Windows Server 2003的同时在一个80端口支持这四种语言的方法。</p>
+<p>　　我们的策略是：安装三个Web服务器，Apache负责支持perl和php，IIS负责支持asp，Tomcat负责支持jsp，通过Apache的proxy_module将三个服务器集成到一个80端口。</p>
+<p>　　安装的方法是，先安装IIS、<a href="http://www.apache.org/" target="_blank"><font color="#4e0a13">Apache</font></a>和<a href="http://tomcat.apache.org/" target="_blank"><font color="#4e0a13">Tomcat</font></a>，配置Apache使用80端口，Tomcat使用8080端口，IIS使用8081端口。</p>
+<p>　　接着在Apache中修改httpd.conf文件，启用proxy_module和proxy_http_module，修改的内容是：</p>
+<p>&#160;&#160;&#160;  LoadModule proxy_module modules/mod_proxy.so<br>
+LoadModule proxy_http_module modules/mod_proxy_http.so</p>
+<p>　　然后在Apache的httpd.conf文件中增加如下几行：</p>
+<p>&#160;&#160;&#160;  ProxyPass /php !<br>
+ProxyPass /asp/ http://localhost:8081/<br>
+ProxyPassReverse /asp/ http://localhost:8081/<br>
+ProxyPass /jsp/ http://localhost:8080/<br>
+ProxyPassReverse /jsp/ http://localhost:8080/</p>
+<p>　　然后在&lt;Directory&gt;中设置各个服务所在网站的目录权限，这样php目录即可跑apache，支持php和perl，而asp目录则跑IIS，jsp目录跑Tomcat，全部都可共享80端口，一个端口同时支持Perl、PHP、ASP、JSP四种语言，兼容性很好，性能也不错。</p>
+<p>　　另外，将上述命令放在&lt;VirtualHost&gt;中，可以实现不同的虚拟主机使用不同的Web服务器，同一个端口同样可以跑多个Web Server，这对于那些出售虚拟主机的人来说很有用，如果你想在一台Windows服务器上配置不同的Web服务的话也可以尝试一下。</p>
+<p>　　以上配置在Windows Server 2003、Apache 2.2.6、Tomcat 6.0.16、IIS 6.0的环境下调试通过，运行正常。</p>
+<div class="post-body"><center><br>
+<br>
+原创文章如转载，请注明：转载自<a href="http://www.williamlong.info/"><font color="#4e0a13">月光博客</font></a> [ <a href="http://www.williamlong.info/"><font color="#4e0a13">http://www.williamlong.info/</font></a> ] <br>
+<br>
+本文链接地址：<a href="http://www.williamlong.info/archives/1308.html"><font color="#670e1a">http://www.williamlong.info/archives/1308.html</font></a> </center></div>
+<p> </p></div></body></html>

@@ -1,0 +1,651 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Java 语言中的函数编程</title></head><body><h1>Java 语言中的函数编程</h1><div><h1>Java 语言中的函数编程</h1>
+<p>利用闭包和高阶函数编写模块化的 Java 代码</p>
+<p>级别： 初级</p>
+<p>Abhijit Belapurkar (abhijit_belapurkar@infosys.com), 高级技术架构师, Infosys Technologies Limited</p>
+<p>2004 年 7 月 13 日</p>
+<blockquote>如果您从事大型企业项目开发，您就会熟悉编写模块化代码的好处。良构的、模块化的代码更容易编写、调试、理解和重用。Java 开发人员的问题是，函数编程范型长期以来只是通过像 Haskell、Scheme、Erlang 和 Lisp 这样的特殊语言实现的。在本文中，作者 Abhijit Belapurkar 展示了，如何使用像闭包（closure）和 高阶函数（higher order function）这样的函数编程结构，在 Java 语言中编写良构的、模块化的代码。</blockquote>
+<p>Java 语言中常被忽视的一个方面是它被归类为一种命令式（imperative）编程语言。命令式编程虽然由于与 Java 语言的关联而相当普及，但是并不是惟一可用的编程风格，也不总是最有效的。在本文中，我将探讨在 Java 开发实践中加入不同的编程方法 ── 即函数编程（FP）。</p>
+<p>命令式编程是一种用程序状态描述计算的方法。使用这种范型的编程人员用语句改变程序状态。这就是为什么，像 Java 这样的程序是由一系列让计算机执行的命令 （或者语句） 所组成的。 另一方面， 函数编程是一种强调表达式的计算而非命令的执行的一种编程风格。表达式是用函数结合基本值构成的，它类似于用参数调用函数。</p>
+<p>本文将介绍函数编程的基本特点，但是重点放在两个特别适用于 Java 开发框架的元素：闭包和高阶函数。如果您曾经使用过像 Python、Ruby 或者 Groovy （请参阅 参考资料）这样的敏捷开发语言，那么您就可能已经遇到过这些元素。在这里，您将看到在 Java 开发框架中直接使用它们会出现什么情况。我将首先对函数编程及其核心元素做一个简短的、概念性的综述，然后用常用的编程场景展示，用结构化的方式使用闭包和高阶函数会给 Java 代码带来什么好处。</p>
+<p>什么是函数编程？</p>
+<p>在经常被引用的论文 &ldquo;Why Functional Programming Matters&rdquo;（请参阅 参考资料） 中，作者 John Hughes 说明了模块化是成功编程的关键，而函数编程可以极大地改进模块化。在函数编程中，编程人员有一个天然框架用来开发更小的、更简单的和更一般化的模块， 然后将它们组合在一起。函数编程的一些基本特点包括：</p>
+<ul>
+    <li>支持闭包和高阶函数。</li>
+    <li>支持懒惰计算（lazy evaluation）。</li>
+    <li>使用递归作为控制流程的机制。</li>
+    <li>加强了引用透明性。</li>
+    <li>没有副作用。</li>
+</ul>
+<p>我将重点放在在 Java 语言中使用闭包和高阶函数上，但是首先对上面列出的所有特点做一个概述。</p>
+<p>闭包和高阶函数</p>
+<p>函数编程支持函数作为第一类对象，有时称为 闭包或者 仿函数（functor）对象。实质上，闭包是起函数的作用并可以像对象一样操作的对象。与此类似，FP 语言支持 高阶函数。高阶函数可以用另一个函数（间接地，用一个表达式） 作为其输入参数，在某些情况下，它甚至返回一个函数作为其输出参数。这两种结构结合在一起使得可以用优雅的方式进行模块化编程，这是使用 FP 的最大好处。</p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td><img src="http://www.ibm.com/i/c.gif"></td>
+            <td>
+            <table cellspacing="0" cellpadding="5" border="1">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee">命令式编程<br>
+                        <p>命令式编程这个名字是从自然语言（比如英语）的 祈使语气（imperative mood）衍生出来的，在这种语气中宣布命令并按照执行。除 Java 语言之外，C 和 C++ 是另外两种广泛使用的、符合命令式风格的高级编程语言。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>懒惰计算</p>
+<p>除了高阶函数和仿函数（或闭包）的概念，FP 还引入了 懒惰计算的概念。在懒惰计算中，表达式不是在绑定到变量时立即计算，而是在求值程序需要产生表达式的值时进行计算。延迟的计算使您可以编写可能潜在地生成无穷输出的函数。因为不会计算多于程序的其余部分所需要的值，所以不需要担心由无穷计算所导致的 out-of-memory 错误。一个懒惰计算的例子是生成无穷 Fibonacci 列表的函数，但是对 第 n 个Fibonacci 数的计算相当于只是从可能的无穷列表中提取一项。</p>
+<p>递归</p>
+<p>FP 还有一个特点是用递归做为控制流程的机制。例如，Lisp 处理的列表定义为在头元素后面有子列表，这种表示法使得它自己自然地对更小的子列表不断递归。</p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td><img src="http://www.ibm.com/i/c.gif"></td>
+            <td>
+            <table cellspacing="0" cellpadding="5" border="1">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee">关于实现库<br>
+                        <p>我使用了由 Apache Commons Functor 项目提供的库构建本文使用的例子。Apache Commons Functor 库包括大量基本构造，可以在涉及闭包和高阶函数的复杂使用场景中重复使用。当然，可以使用不同的实现（如 Java Generic Libraries、Mango 或者 Generic Algorithms for Java），而不会对在本文中所讨论和展示的概念有影响，尽管您必须下载和使用 Apache Commons Functor 库才能演示这里的例子。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>引用透明性</p>
+<p>函数程序通常还加强 引用透明性，即如果提供同样的输入，那么函数总是返回同样的结果。就是说，表达式的值不依赖于可以改变值的全局状态。这使您可以从形式上推断程序行为，因为表达式的意义只取决于其子表达式而不是计算顺序或者其他表达式的副作用。这有助于验证正确性、简化算法，甚至有助于找出优化它的方法。</p>
+<p>副作用</p>
+<p>副作用是修改系统状态的语言结构。因为 FP 语言不包含任何赋值语句，变量值一旦被指派就永远不会改变。而且，调用函数只会计算出结果 ── 不会出现其他效果。因此，FP 语言没有副作用。</p>
+<p>这些基本描述应足以让您完成本文中的函数编程例子。有关这个主题的更多参考资料请参阅 参考资料一节。</p>
+<p>Java 语言中的函数编程</p>
+<p>不管是否相信，在 Java 开发实践中您可能已经遇到过闭包和高阶函数，尽管当时您可能没有意识到。例如，许多 Java 开发人员在匿名内部类中封闭 Java 代码的一个词汇单元（lexical unit）时第一次遇到了 闭包。这个封闭的 Java 代码单元在需要时由一个 高阶函数 执行。例如，清单 1 中的代码在一个类型为 java.lang.Runnable 的对象中封闭了一个方法调用。</p>
+<p><br>
+清单 1. 隐藏的闭包<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>Runnable worker = new Runnable()
+{
+  public void run()
+  {
+    parseData(); 
+  }
+ };</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>方法 parseData 确实 封闭（因而有了名字 &ldquo;闭包&rdquo;）在 Runnable 对象的实例 worker 中。它可以像数据一样在方法之间传递，并可以在任何时间通过发送消息（称为 run ） 给 worker 对象而执行。</p>
+<p>更多的例子</p>
+<p>另一个在面向对象世界中使用闭包和高阶函数的例子是 Visitor 模式。如果还不熟悉这种模式，请参阅 参考资料以了解更多有关它的内容。基本上，Visitor 模式展现一个称为 Visitor 的参与者，该参与者的实例由一个复合对象（或者数据结构）接收，并应用到这个数据结构的每一个构成节点。Visitor 对象实质上 封闭 了处理节点/元素的逻辑，使用数据结构的 accept (visitor) 方法作为应用逻辑的高阶函数。</p>
+<p>通过使用适当不同的 Visitor 对象（即闭包），可以对数据结构的元素应用完全不同的处理逻辑。与此类似，可以向不同的高阶函数传递同样的闭包，以用另一种方法处理数据结构（例如，这个新的高阶函数可以实现不同逻辑，用于遍历所有构成元素）。</p>
+<p>类 java.utils.Collections 提供了另一个例子，这个类在版本 1.2 以后成为了 Java 2 SDK 的一部分。它提供的一种实用程序方法是对在 java.util.List 中包含的元素排序。不过，它使调用者可以将排序列表元素的逻辑封装到一个类型为 java.util.Comparator 的对象中，其中 Comparator 对象作为第二个参数传递给排序方法。</p>
+<p>在内部， sort 方法的引用实现基于 合并-排序（merge-sort） 算法。它通过对顺序中相邻的对象调用 Comparator 对象的 compare 方法遍历列表（list）中的元素。在这种情况下， Comparator 是闭包，而 Collections.sort 方法是高阶函数。这种方式的好处是明显的：可以根据在列表中包含的不同对象类型传递不同的 Comparator 对象（因为如何比较列表中任意两个对象的逻辑安全地封装在 Comparator 对象中）。与此类似， sort 方法的另一种实现可以使用完全不同的算法（比如说， 快速排序（quick-sort）） 并仍然重复使用同样的 Comparator 对象，将它作为基本函数应用到列表中两个元素的某种组合。</p>
+<p>创建闭包</p>
+<p>广意地说，有两种生成闭包的技术，使用闭包的代码可以等效地使用这两种技术。创建闭包后，可以以统一的方式传递它，也可以向它发送消息以让它执行其封装的逻辑。因此，技术的选择是偏好的问题，在某些情况下也与环境有关。</p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td><img src="http://www.ibm.com/i/c.gif"></td>
+            <td>
+            <table cellspacing="0" cellpadding="5" border="1">
+                <tbody>
+                    <tr>
+                        <td bgcolor="#eeeeee">最后一次要求下载！<br>
+                        <p>从这以后的讨论将结合基于 Apache Commons Functor 库的例子。如果您还没有下载这个库，应当 现在就下载。我将假定您可以访问 Javadocs 所带的 Apache 库，因此对单独的库类不再做过多的说明。</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>在第一种技术 表达式特化（expression specialization）中，由基础设施为闭包提供一个一般性的接口，通过编写这个接口的特定实现创建具体的闭包。在第二种技术 表达式合成（expression composition） 中，基础设施提供实现了基本一元/二元/三元/.../n 元操作（比如一元操作符 not 和二元操作符 and / or ）的具体帮助类。在这里，新的闭包由这些基本构建块的任意组合创建而成。</p>
+<p>我将在下面的几节中详细讨论这两种技术。</p>
+<p> </p>
+<p>表达式特化</p>
+<p>假定您在编写一个在线商店的应用程序。商店中可提供的商品用类 SETLItem 表示。每一件商品都有相关的标签价格， SETLItem 类提供了名为 getPrice 的方法，对商品实例调用这个方法时，会返回该商品的标签价格。</p>
+<p>如何检查 item1 的成本是否不低于 item2 呢？在 Java 语言中，一般要编写一个像这样的表达式：</p>
+<p>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>assert(item1.getPrice() &gt;= item2.getPrice());</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>像这样的表达式称为 二元谓词（binary predicate）， 二元是因为它取两个参数，而 谓词 是因为它用这两个参数做一些事情并生成布尔结果。不过要注意，只能在执行流程中执行上面的表达式，它的输出取决于 item1 和 item2 在特定瞬间的值。从函数编程的角度看，这个表达式还不是一般性的逻辑，就是说，它不能不管执行控制的当前位置而随心所欲地传递并执行。</p>
+<p>为了使二元谓词发挥作用，必须将它封装到一个对象中，通过 特化（specializing） 一个称为 BinaryPredicate 的接口做到这一点，这个接口是由 Apache Functor 库提供的，如清单 2 所示。</p>
+<p><br>
+清单 2. 表达式特化方法<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>package com.infosys.setl.fp;
+public class SETLItem
+{
+  private String name;
+  private String code;
+  private int price;
+  private String category;
+  
+  public int getPrice()
+  {
+ return price;
+  }
+ 
+  public void setPrice(int inPrice)
+  {
+ price = inPrice;
+  }
+ 
+  public String getName()
+  {
+ return name;
+  }
+ 
+  public void setName(String inName)
+  {
+ name = inName;
+  }
+  public String getCode()
+  {
+ return code;
+  }
+ 
+  public void setCode(String inCode)
+  {
+ code = inCode;
+  }
+ 
+  public String getCategory()
+  {
+ return category;
+  }
+ 
+  public void setCategory(String inCategory)
+  {
+ category = inCategory;
+  }
+}
+package com.infosys.setl.fp;
+import java.util.Comparator;
+public class PriceComparator implements Comparator
+{
+  public int compare (Object o1, Object o2)
+  {
+ return (((SETLItem)o1).getPrice()-((SETLItem)o2).getPrice());
+  } 
+}
+package com.infosys.setl.fp;
+import org.apache.commons.functor.*;
+import org.apache.commons.functor.core.comparator.*;
+import java.util.*;
+public class TestA
+{
+  public static void main(String[] args)
+  {
+ try
+ {
+   Comparator pc = new PriceComparator();
+   BinaryPredicate bp = new IsGreaterThanOrEqual(pc);
+   SETLItem item1 = new SETLItem();
+   item1.setPrice(100);
+   SETLItem item2 = new SETLItem();
+   item2.setPrice(99);
+   if (bp.test(item1, item2))
+     System.out.println(&quot;Item1 costs more than Item2!&quot;);
+   else
+     System.out.println(&quot;Item2 costs more than Item1!&quot;);
+   SETLItem item3 = new SETLItem();
+   item3.setPrice(101);
+   if (bp.test(item1, item3))
+     System.out.println(&quot;Item1 costs more than Item3!&quot;);
+   else
+       System.out.println(&quot;Item3 costs more than Item1!&quot;);
+ }
+ catch (Exception e)
+ {
+   e.printStackTrace();
+ }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>BinaryPredicate 接口以由 Apache Functor 库提供的 IsGreaterThanOrEqual 类的形式特化。 PriceComparator 类实现了 java.util.Comparator 接口，并被作为输入传递给 IsGreaterThanOrEqual 类。收到一个 test 消息时， IsGreaterThanOrEqual 类自动调用 PriceComparator 类的 compare 方法。 compare 方法预期接收两个 SETLItem 对象，相应地它返回两个商品的价格差。 compare 方法返回的正值表明 item1 的成本不低于 item2 。</p>
+<p>初看之下，对一个相当基本的操作要做很多的工作，那它有什么好处呢？特化 BinaryPredicate 接口（而不是编写 Java 比较表达式） 使您无论在何时何地都可以比较任意两个商品的价格。可以将 bp 对象作为数据传递并向它发送消息，以在任何时候、使用这两个参数的任何值来执行它（称为 test ）。</p>
+<p>表达式合成</p>
+<p>表达式合成是得到同样结果的一种稍有不同的技术。考虑计算特定 SETLItem 的净价问题，要考虑当前折扣和销售税率。清单 3 列出了这个问题基于仿函数的解决方式。</p>
+<p><br>
+清单 3. 表达式合成方法<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>package com.infosys.setl.fp;
+import org.apache.commons.functor.BinaryFunction;
+import org.apache.commons.functor.UnaryFunction;
+import org.apache.commons.functor.adapter.LeftBoundFunction;
+public class Multiply implements BinaryFunction
+{
+  public Object evaluate(Object left, Object right) 
+  {
+ return new Double(((Double)left).doubleValue() * ((Double)right).doubleValue());
+  }
+}
+package com.infosys.setl.fp;
+import org.apache.commons.functor.*;
+import org.apache.commons.functor.core.composite.*;
+import org.apache.commons.functor.adapter.*;
+import org.apache.commons.functor.UnaryFunction;
+public class TestB
+{
+  public static void main(String[] args)
+  {
+ try
+ {
+     double discountRate = 0.1;
+   double taxRate=0.33;
+   SETLItem item = new SETLItem();
+   item.setPrice(100);
+   UnaryFunction calcDiscountedPrice = 
+   new RightBoundFunction(new Multiply(), new Double(1-discountRate));
+   UnaryFunction calcTax = 
+   new RightBoundFunction(new Multiply(), new Double(1+taxRate));
+   CompositeUnaryFunction calcNetPrice = 
+   new CompositeUnaryFunction(calcTax, calcDiscountedPrice);
+   Double netPrice = (Double)calcNetPrice.evaluate(new Double(item.getPrice()));
+   System.out.println(&quot;The net price is: &quot; + netPrice); 
+ }
+ catch (Exception e)
+ {
+   e.printStackTrace();
+ }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>BinaryFunction 类似于前面看到的 BinaryPredicate ，是一个由 Apache Functor 提供的一般化仿函数（functor）接口。 BinaryFunction 接口有两个参数并返回一个 Object 值。类似地， UnaryFunction 是一个取一个 Object 参数并返回一个 Object 值的仿函数接口。</p>
+<p>RightBoundFunction 是一个由 Apache 库提供的适配器类，它通过使用常量右参数（right-side argument）将 BinaryFunction 适配给 UnaryFunction 接口。即，在一个参数中收到相应的消息（ evaluate ） 时，它在内部用两个参数发送一个 evaluate 消息给正在适配的 BinaryFunction ── 左边的是发送给它的参数，右边的是它知道的常量。您一定会猜到，名字 RightBoundFunction 来自于常量值是作为第二个 （右边） 参数传递这一事实。（是的，Apache 库还提供了一个 LeftBoundFunction ，其中常量是作为第一个参数或者左参数传递的。）</p>
+<p>用于双精度相乘的特化的 BinaryFunction</p>
+<p>清单 3 显示了名为 Multiply 的特化的 BinaryFunction ，它取两个 Double 作为输入并返回一个新的、由前两个双精度值相乘而得到 Double 。</p>
+<p>在 calcDiscountedRate 中实例化了一个新的 RightBoundFunction ，它通过用 (1 - discountRate) 作为其常量第二参数，将二元 Multiply 函数适配为一元接口。</p>
+<p>结果，可以用一个 Double 参数向 calcDiscountRate 发送一个名为 evaluate 的消息。在内部，输入参数 Double 乘以 calcDiscountRate 对象本身包含的常量值。</p>
+<p>与此类似，在 calcTaxRate 中实例化了一个新的 RightBoundFunction ，它通过用 (1 + taxRate) 作为其第二个常量参数将二元 Multiply 函数适配为一元接口。结果，可以用一个 Double 参数向 calcTaxRate 发送一个名为 evaluate 的消息。在内部，输入参数 Double 乘以 calcTaxRate 对象本身包含的常量值。</p>
+<p>这种将多参数的函数重新编写为一个参数的函数的合成（composition）技术也称为 currying。</p>
+<p>合成魔术在最后的时候就发挥作用了。实质上，计算对象净价的算法是首先计算折扣价格（使用 calcDiscountRate 仿函数），然后通过在上面加上销售税（用 calcSalesTax 仿函数）计算净价。就是说，需要组成一个函数，在内部调用第一个仿函数并将计算的输出流作为第二个仿函数的计算的输入。Apache 库提供了用于这种目的的一个内置仿函数，称为 CompositeUnaryFunction 。</p>
+<p>在清单 3 中， CompositeUnaryFunction 实例化为变量 calcNetPrice ，作为 calcDiscountRate 和 calcSalesTax 仿函数的合成。与前面一样，将可以向其他函数传递这个对象，其他函数也可以通过向它发送一个包含商品参数的 evaluate 消息要求它计算这种商品的净价。</p>
+<p>一元与二元合成</p>
+<p>在清单 3 中，您看到了 一元合成的一个例子，其中一个一元仿函数的结果是另一个的输入。另一种合成称为 二元合成，作为 evaluate 消息的一部分，需要传递两个一元仿函数的结果作为二元仿函数的参数。</p>
+<p>清单 4 是说明二元合成的必要性和风格的一个例子。假定希望保证商店可以给出的最大折扣有一个最大限度。因此，必须将作为 calcDiscount 仿函数计算结果得到的折扣量与 cap 值进行比较，并取最小值作为计算出的折扣价格。折扣价格是通过用标签价减去实际的折扣而计算的。</p>
+<p><br>
+清单 4. 二元合成<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>package com.infosys.setl.fp;
+import org.apache.commons.functor.BinaryFunction;
+public class Subtract implements BinaryFunction
+{
+  public Object evaluate(Object left, Object right) 
+  {
+ return new Double(((Double)left).doubleValue() - ((Double)right).doubleValue());
+  }
+}
+package com.infosys.setl.fp;
+import org.apache.commons.functor.BinaryFunction;
+import org.apache.commons.functor.UnaryFunction;
+public class BinaryFunctionUnaryFunction implements UnaryFunction
+{
+  private BinaryFunction function;
+ 
+  public BinaryFunctionUnaryFunction(BinaryFunction f)
+  {
+ function=f; 
+  }
+ 
+  public Object evaluate(Object obj) 
+  {
+ return function.evaluate(obj,obj);
+  }
+}
+package com.infosys.setl.fp;
+import org.apache.commons.functor.*;
+import org.apache.commons.functor.core.composite.*;
+import org.apache.commons.functor.adapter.*;
+import org.apache.commons.functor.UnaryFunction;
+import org.apache.commons.functor.core.Constant;
+import org.apache.commons.functor.core.comparator.Min;
+public class TestC
+{
+  public static void main(String[] args)
+  {
+ double discountRate = 0.1;
+ double taxRate=0.33;
+ double maxDiscount = 30;
+ SETLItem item = new SETLItem();
+ item.setPrice(350);
+ UnaryFunction calcDiscount = 
+   new RightBoundFunction(new Multiply(), new Double(discountRate));
+ Constant cap = new Constant(new Double(maxDiscount));
+ BinaryFunction calcActualDiscount = 
+   new UnaryCompositeBinaryFunction (new Min(), calcDiscount, cap);
+ BinaryFunctionUnaryFunction calcActualDiscountAsUnary = 
+   new BinaryFunctionUnaryFunction(calcActualDiscount);
+ BinaryFunction calcDiscountedPrice = 
+   new UnaryCompositeBinaryFunction (new Subtract(), new Identity(), calcActualDiscountAsUnary);
+ BinaryFunctionUnaryFunction calcDiscountedPriceAsUnary = 
+   new BinaryFunctionUnaryFunction(calcDiscountedPrice); 
+ UnaryFunction calcTax = 
+   new RightBoundFunction(new Multiply(), new Double(1+taxRate));
+ CompositeUnaryFunction calcNetPrice = 
+   new CompositeUnaryFunction(calcTax, calcDiscountedPriceAsUnary);
+ Double netPrice = (Double)calcNetPrice.evaluate(new Double(item.getPrice()));
+ System.out.println(&quot;The net price is: &quot; + netPrice);
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>通过首先观察所使用的 Apache Functor 库中的三个标准仿函数，开始分析和理解这段代码。</p>
+<ul>
+    <li>UnaryCompositeBinaryFunction 仿函数取一个二元函数和两个一元函数作为输入。首先计算后两个函数，它们的输出作为输入传递给二元函数。在清单 4 中对二元合成使用这个仿函数两次。</li>
+    <li>Constant 仿函数的计算总是返回一个常量值（即在其构造时输入的值），不管以后任何计算消息中传递给它的参数是什么值。在清单 4 中，变量 cap 的类型为 Constant 并总是返回最大折扣数量。</li>
+    <li>Identity 仿函数只是返回作为 evaluate 消息的输入参数传递给它的这个对象作为输出。清单 4 显示 Identity 仿函数的一个实例，该仿函数是在创建 calcDiscountedPrice 时作为一个一元仿函数创建和传递的。同时在清单 4 中， evaluate 消息包含标签价格作为其参数，这样 Identity 仿函数就返回标签价格作为输出。</li>
+</ul>
+<p>第一个二元合成在用计算 calcDiscount （通过对标签价格直接应用折扣率）和 cap 的 UnaryCompositeBinaryFunction 设置变量 calcActualDiscount 时是可见的。这两个一元仿函数计算的输出传递给称为 Min 的内置二元仿函数，它比较这两者并返回其中最小的值。</p>
+<p>这个例子显示了定制类 BinaryFunctionUnaryFunction 。这个类适配一个二元仿函数，使它像一元仿函数的接口。就是说，当这个类接收一个带有一个参数的 evaluate 消息时，它在内部发送 （向其封装的二元函数）一个 evaluate 消息，它的两个参数是作为输入接收的同一个对象。因为 calcActualDiscount 是二元函数，所以通过类型为 BinaryFunctionUnaryFunction 的 calcActualDiscountAsUnary 实例将它包装到一个一元仿函数接口中。很快就可以看到包装 calcActualDiscount 为一元仿函数的理由。</p>
+<p>当用 UnaryCompositeBinaryFunction 设置变量 calcDiscountedPrice 时发生第二个二元合成。 UnaryCompositeBinaryFunction 向新的 Identity 实例和 calcActualDiscountAsUnary 对象发送 evaluation 消息，这两个消息的输入参数都是标签价格。</p>
+<p>这两个计算（它们分别得出标签价格和实际的折扣值）的输出传递给名为 Subtract 的定制二元仿函数。当向后一个对象发送 evaluate 消息时，它立即计算并返回两个参数之间的差距（这是商品的折扣价）。这个二元仿函数也用定制的 BinaryFunctionUnaryFunction 包装为一个名为 calcDiscountedPriceAsUnary 的一元仿函数对象。</p>
+<p>与前面的情况一样，代码通过两个 calcTax 一元仿函数（也在清单 3 中遇到）和 calcDiscountedPriceAsUnary （在前面一段中描述）创建 CompositeUnaryFunction ，而以一个一元合成完成。这样得到的 calcNetPrice 变为接收一个 evaluate 消息和一个参数（所讨论商品的标签价格），而在内部，首先用这个参数计算 calcDiscountedPriceAsUnary 仿函数，然后用前一个计算的输出作为参数计算 calcTax 仿函数。</p>
+<p>使用闭包实现业务规则</p>
+<p>Apache Library 提供了各种不同的内置一元和二元仿函数，它使得将业务逻辑编写为可以传递并且可以用不同的参数在不同的位置执行的对象变得非常容易。在后面几节中，我将使用一个简单的例子展示对一个类似问题的函数编程方式。</p>
+<p>假定一个特定的商品是否可以有折扣取决于该商品的类别和定价。具体说，只有 Category &ldquo;A&rdquo; 中定价高于 100 美元和 Category &ldquo;B&ldquo; 中定价高于 200 美元的商品才有资格打折。清单 5 中的代码显示了一个名为 isEligibleForDiscount 的业务规则对象 （ UnaryPredicate ），如果用一个 item 对象作为参数发送 evaluate 消息，将返回一个表明是否可以对它打折的 Boolean。</p>
+<p><br>
+清单 5. 一个函数业务规则对象<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>package com.infosys.setl.fp;
+import org.apache.commons.functor.BinaryPredicate;
+import org.apache.commons.functor.UnaryPredicate;
+public class BinaryPredicateUnaryPredicate implements UnaryPredicate
+{
+  private BinaryPredicate bp;
+ 
+  public BinaryPredicateUnaryPredicate(BinaryPredicate prd)
+  {
+ bp=prd; 
+  }
+ 
+  public boolean test(Object obj)
+  {
+ return bp.test(obj,obj);
+  }
+}
+package com.infosys.setl.fp;
+import org.apache.commons.functor.*;
+import org.apache.commons.functor.core.composite.*;
+import org.apache.commons.functor.adapter.*;
+import org.apache.commons.functor.UnaryFunction;
+import org.apache.commons.functor.core.Constant;
+import org.apache.commons.functor.core.IsEqual;
+import org.apache.commons.functor.core.comparator.IsGreaterThanOrEqual;
+import org.apache.commons.functor.core.comparator.Min;
+import org.apache.commons.functor.core.Identity;
+public class TestD
+{
+  public static void main(String[] args)
+  {  
+ SETLItem item1 = new SETLItem();
+ item1.setPrice(350);
+ item1.setCategory(&quot;A&quot;);
+ SETLItem item2 = new SETLItem();
+ item2.setPrice(50);
+ item2.setCategory(&quot;A&quot;);
+ SETLItem item3 = new SETLItem();
+ item3.setPrice(200);
+ item3.setCategory(&quot;B&quot;);
+  
+ UnaryFunction getItemCat = 
+ new UnaryFunction()
+ {
+ public Object evaluate (Object obj)
+ {
+  return ((SETLItem)obj).getCategory();
+}
+    };
+    
+ UnaryFunction getItemPrice = 
+ new UnaryFunction()
+ {
+ public Object evaluate  (Object obj)
+ {
+  return new Double(((SETLItem)obj).getPrice());
+}
+  };
+  
+ Constant catA = new Constant(&quot;A&quot;);
+ Constant catB = new Constant(&quot;B&quot;);
+ Constant usd100 = new Constant(new Double(100));
+ Constant usd200 = new Constant(new Double(200));
+  
+ BinaryPredicateUnaryPredicate belongsToCatA = new BinaryPredicateUnaryPredicate
+   (new UnaryCompositeBinaryPredicate(new IsEqual(), getItemCat, catA));
+ BinaryPredicateUnaryPredicate belongsToCatB = new BinaryPredicateUnaryPredicate
+   (new UnaryCompositeBinaryPredicate(new IsEqual(), getItemCat, catB));
+  
+ BinaryPredicateUnaryPredicate moreThanUSD100 = new BinaryPredicateUnaryPredicate
+   (new UnaryCompositeBinaryPredicate(new IsGreaterThanOrEqual(), getItemPrice, usd100));
+ BinaryPredicateUnaryPredicate moreThanUSD200 = new BinaryPredicateUnaryPredicate
+   (new UnaryCompositeBinaryPredicate(new IsGreaterThanOrEqual(), getItemPrice, usd200));
+  
+ UnaryOr isEligibleForDiscount = new UnaryOr(new UnaryAnd(belongsToCatA, moreThanUSD100), 
+   new UnaryAnd(belongsToCatB, moreThanUSD200));
+ if (isEligibleForDiscount.test(item1))
+   System.out.println(&quot;Item #1 is eligible for discount!&quot;);
+ else
+   System.out.println(&quot;Item #1 is not eligible for discount!&quot;);
+   
+ if (isEligibleForDiscount.test(item2))
+   System.out.println(&quot;Item #2 is eligible for discount!&quot;);
+ else
+   System.out.println(&quot;Item #2 is not eligible for discount!&quot;);
+ if (isEligibleForDiscount.test(item3))
+   System.out.println(&quot;Item #3 is eligible for discount!&quot;);
+ else
+   System.out.println(&quot;Item #3 is not eligible for discount!&quot;);   
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>使用 ComparableComparator</p>
+<p>清单 5 中可能注意到的第一件事是我利用了名为 isEqual （用于检查所说商品的类别是否等于 &ldquo;A&rdquo;或者&ldquo;B &rdquo;） 和 isGreaterThanOrEqual （用于检查所述商品的定价是否大于或者等于指定值，对于 Category &ldquo;A&rdquo; 商品是 100，对于 Category &ldquo;B&rdquo; 商品是 200） 的内置二元谓词仿函数。</p>
+<p>您可能还记得在 清单 2 中，原来必须传递 PriceComparator 对象（封装了比较逻辑）以使用 isGreaterThanOrEqual 仿函数进行价格比较。不过在清单 5 中，不显式传递这个 Comparator 对象。如何做到不需要它？ 技巧就是，在没有指定该对象时， isGreaterThanOrEqual 仿函数（对这一点，甚至是 IsEqual 仿函数）使用默认的 ComparableComparator 。这个默认的 Comparator 假定两个要比较的对象实现了 java.lang.Comparable 接口，并对第一个参数（在将它类型转换为 Comparable 后）只是调用 compareTo 方法，传递第二个参数作为这个方法的参数。</p>
+<p>通过将比较工作委派给这个对象本身，对于 String 比较（像对 item 目录所做的）和 Double 比较（像对 item 价格所做的），可以原样使用默认的 Comparator 。 String 和 Double 都是实现了 Comparable 接口的默认 Java 类型。</p>
+<p>将二元谓词适配为一元</p>
+<p>可能注意到的第二件事是我引入了一个名为 BinaryPredicateUnaryPredicate 的新仿函数。这个仿函数（类似于在 清单 4 中第一次遇到的 BinaryFunctionUnaryFunction 仿函数）将一个二元谓词接口适配为一元接口。 BinaryPredicateUnaryPredicate 仿函数可以认为是一个带有一个参数的一元谓词：它在内部用同一个参数的两个副本计算包装的二元谓词。</p>
+<p>isEligibleForDiscount 对象封装了一个完整的业务规则。如您所见，它的构造方式 ── 即，通过将构造块从下到上放到一起以构成更复杂的块，再将它们放到一起以构成更复杂的块，等等 ── 使它本身天然地成为某种&ldquo;可视化的&rdquo;规则构造器。最后的规则对象可以是任意复杂的表达式，它可以动态地构造，然后传递以计算底层业务规则。</p>
+<p>对集合操作</p>
+<p>GoF Iterator 模式（请参阅 参考资料）提供了不公开其底层表示而访问集合对象的元素的方法。这种方法背后的思路是迭代与数据结构不再相关联（即它不是集合的一部分）。这种方式本身要使用一个表示集合中特定位置的对象，并用一个循环条件（在集合中增加其逻辑位置）以遍历集合中所有元素。循环体中的其他指令可以检查和/或操作集合中当前 Iterator 对象位置上的元素。在本例中，我们对迭代没有什么控制。（例如，必须调用多少次 next 、每次试图访问 next 元素时必须首先检查超出范围错误。） 此外，迭代器必须使用与别人一样的公共接口访问底层数据结构的&ldquo;成员&rdquo;，这使得访问效率不高。这种迭代器常被称为 &ldquo;外部迭代器（External Iterator）&rdquo;。</p>
+<p>FP 对这个问题采取了一种非常不同的方式。集合类有一个高阶函数，后者以一个仿函数作为参数并在内部对集合的每一个成员应用它。在本例中，因为迭代器共享了数据结构的实现，所以您可以完成控制迭代。此外，迭代很快，因为它可以直接访问数据结构成员。这种迭代器常被称为 内部迭代器（internal Iterator）。</p>
+<p>Apache Functor 库提供了各种非严格地基于 C++ 标准模板库实现的内部 Iterator 。它提供了一个名为 Algorithms 的 实用工具类，这个类有一个名为 foreach 的方法。 foreach 方法以一个 Iterator 对象和一个一元 Procedure 作为输入，并对遍历 Iterator 时遇到的每一个元素（元素本身是作为过程的一个参数传递的）运行一次。</p>
+<p>使用内部迭代器</p>
+<p>一个简单的例子将可以说明外部和内部 Iterator 的不同。假定提供了一组 SETLItem 对象并要求累积列表中成本高于 200 美元的那些商品的定价。清单 6 展现了完成这一工作的代码。</p>
+<p><br>
+清单 6. 使用外部和内部迭代器<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>package com.infosys.setl.fp;
+import java.util.*;
+import org.apache.commons.functor.Algorithms;
+import org.apache.commons.functor.UnaryFunction;
+import org.apache.commons.functor.UnaryProcedure;
+import org.apache.commons.functor.core.Constant;
+import org.apache.commons.functor.core.collection.FilteredIterator;
+import org.apache.commons.functor.core.comparator.IsGreaterThanOrEqual;
+import org.apache.commons.functor.core.composite.UnaryCompositeBinaryPredicate;
+public class TestE
+{
+  public static void main(String[] args)
+  {  
+ Vector items = new Vector();
+ for (int i=0; i&lt;10; i++)
+ {
+     SETLItem item = new SETLItem();
+   if (i%2==0)
+  item.setPrice(101);
+   else
+  item.setPrice(i);
+   items.add(item);
+ }
+ TestE t = new TestE(); 
+ System.out.println(&quot;The sum calculated using External Iterator is: &quot; + 
+   t.calcPriceExternalIterator(items));
+ System.out.println(&quot;The sum calculated using Internal Iterator is: &quot; +
+    t.calcPriceInternalIterator(items));
+  }
+ 
+  public int calcPriceExternalIterator(List items)
+  {
+ int runningSum = 0;
+ Iterator i = items.iterator();
+ while (i.hasNext())
+ {
+     int itemPrice = ((SETLItem)i.next()).getPrice();
+   if (itemPrice &gt;= 100)
+  runningSum += itemPrice;
+ }
+ return runningSum;
+  }
+ 
+  public int calcPriceInternalIterator(List items)
+  {
+ Iterator i = items.iterator();
+ UnaryFunction getItemPrice = 
+ new UnaryFunction()
+ {
+ public Object evaluate (Object obj)
+ {
+  return new Double(((SETLItem)obj).getPrice());
+}
+ };
+ Constant usd100 = new Constant(new Double(100));
+ BinaryPredicateUnaryPredicate moreThanUSD100 = new BinaryPredicateUnaryPredicate
+   (new UnaryCompositeBinaryPredicate(new IsGreaterThanOrEqual(), getItemPrice, usd100));
+ FilteredIterator fi = new FilteredIterator(i, moreThanUSD100);
+ Summer addPrice = new Summer();
+ Algorithms.foreach(fi, addPrice);
+ return addPrice.getSum();
+  }
+ 
+  static class Summer implements UnaryProcedure
+  {
+ private int sum=0;
+ public void run(Object obj)
+ {
+   sum += ((SETLItem)obj).getPrice();
+ }
+ public int getSum()
+ {
+   return sum;   
+ }
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>在 main() 方法中，设置一个有 10 种商品的列表，其中奇数元素的价格为 101 美元。（在真实应用程序中，将使用调用 JDBC 获得的 ResultSet 而不是本例中使用的 Vector 。）</p>
+<p>然后用两种不同的方法对列表执行所需要的操作： calcPriceExternalIterator 和 calcPriceInternalIterator 。正如其名字所表明的，前者基于 ExternalIterator 而后者基于 InternalIterator 。您将关心后一种方法，因为所有 Java 开发人员都应该熟悉前者。注意 InternalIterator 方法使用由 Apache Functor 库提供的两个结构。</p>
+<p>第一个结构称为 FilteredIterator 。它取一个迭代器加上一个一元 谓词 作为输入，并返回一个带有所感兴趣的属性的 Iterator 。这个属性给出了在遍历 Iterator 时遇到的每一个满足在 谓词 中规定的条件的元素。（因此由 FilteredIterator 的一个实例返回的 Iterator 可以作为 FilteredIterator 的第二个实例的输入传递，以此类推，以设置过滤器链，用于根据多种标准分步挑出元素。）在本例中，只对满足 一元谓词 &ldquo;大于或等于 100 美元&rdquo;规则的商品感兴趣。这种规则是在名为 moreThanUSD100 的 BinaryPredicateUnaryPredicate 中规定的，我们在 清单 5中第一次遇到了它。</p>
+<p>Apache Functor 库提供的第二个结构是名为 Algorithms 的实用程序类，在 前面描述 过这个类。在这个例子中，名为 Summer 的一元过程只是包含传递给它的 SETLItem 实例的定价，并将它添加到（本地）运行的 total 变量上。这是一个实现了前面讨论的内部迭代器概念的类。</p>
+<p>使用仿函数进行集合操纵</p>
+<p>我讨论了用仿函数和高阶函数编写模块的大量基础知识。我将用最后一个展示如何用仿函数实现集合操纵操作的例子作为结束。</p>
+<p>通常，有两种描述集合成员关系的方式。第一种是完全列出集合中的所有元素。这是 Java 编程人员传统上使用的机制 ── java.util.Set 接口提供了一个名为 add(Object) 的方法，如果作为参数传递到底层集合中的对象还未存在的话，该方法就添加它。</p>
+<p>不过，当集合中的元素共享某些公共属性时，通过声明惟一地标识了集合中元素的属性可以更高效地描述集合的成员关系。例如，后一种解决方案适合于集合成员的数量很大，以致不能在内存中显式地维护一个集合实现（像前一种方式那样）的情况。</p>
+<p>在这种情况下，可以用一个一元 谓词 表示这个集合。显然，一个一元 谓词 隐式定义了一组可以导致谓词计算为 true的所有值（对象）。事实上，所有集合操作都可以用不同类型的谓词组合来定义。清单 7 中展示了这一点：</p>
+<p><br>
+清单 7.使用仿函数的集合操作<br>
+<table class="FCK__ShowTableBorders" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+        <tr>
+            <td>
+            <pre>package com.infosys.setl.fp;
+import org.apache.commons.functor.UnaryPredicate;
+import org.apache.commons.functor.core.composite.UnaryAnd;
+import org.apache.commons.functor.core.composite.UnaryNot;
+import org.apache.commons.functor.core.composite.UnaryOr;
+public class SetOps
+{
+  public static UnaryPredicate union(UnaryPredicate up1, UnaryPredicate up2)
+  {
+ return new UnaryOr(up1, up2);
+  }
+ 
+  public static UnaryPredicate intersection(UnaryPredicate up1, UnaryPredicate up2)
+  {
+ return new UnaryAnd(up1, up2);
+  }
+ 
+  public static UnaryPredicate difference(UnaryPredicate up1, UnaryPredicate up2)
+  {
+ return new UnaryAnd(up1, new UnaryNot(up2));
+  }
+ 
+  public static UnaryPredicate symmetricDifference(UnaryPredicate up1, 
+    UnaryPredicate up2)
+  {
+ return difference(union(up1, up2), intersection(up1, up2));
+  }
+}</pre>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</p>
+<p>用一元 谓词 来描述集合 并集（union） 和 交集（intersection） 操作的定义应当是明确的：如果一个对象至少使指示两个集合的两个一元 谓词 中的一个计算为 true，那么这个对象就属于两个集合的并集（逻辑 Or ）；如果它使两个一元 谓词 都计算为 true，那么它就属于两个集合的交集（逻辑 And ）。</p>
+<p>两个集合的差在数学上定义为属于第一个集合但是不属于第二个集合一组元素。根据这个定义，静态方法 difference 也容易理解。</p>
+<p>最后，两个集合的对称差（symmetric difference）定义为只属于两个集合中的一个（或者两个都不属于）的所有元素。这可以取两个集合的并集，然后从中删除属于两个集合的交集的元素得到。就是说，它是对原来的集合（在这里是一元 谓词 ）使用 union 和 intersection 操作分别得到的两个集合的 difference 操作。后一个定义解释了为什么用前三种方法作为第四个方法中的构建块。</p>
+<p>结束语</p>
+<p>模块化是任何平台上高生产率和成功的编程的关键，这一点早已被认识到了。Java 开发人员的问题是模块化编程不仅是将问题分解，它还要求能将小的解决方案粘接到一起，成为一个有效的整体。由于这种类型的开发继承了函数编程范型，在 Java 平台上开发模块化代码时使用函数编程技术应是很自然的事。</p>
+<p>在本文中，我介绍了两种函数编程技术，它们可以容易地结合到 Java 开发实践中。正如从这里看到的，闭包和高阶函数对于 Java 开发人员来说并不是完全陌生的，它们可以有效地结合以创建一些非常有用的模块化解决方案。</p>
+<p>我希望本文提供了在 Java 代码中结合闭包和高阶函数的很好基础，并使您见识到了函数编程的优美和效率。要学习有关本文所讨论的概念和技术的更多内容，请参阅 参考资料。</p>
+<p><br>
+<a href="http://www.ibm.com/developerworks/cn/java/j-fp/">http://www.ibm.com/developerworks/cn/java/j-fp/</a></p></div></body></html>

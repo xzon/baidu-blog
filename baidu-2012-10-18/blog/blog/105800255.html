@@ -1,0 +1,268 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>5种DAO查询方法的签名方式，哪个更好？</title></head><body><h1>5种DAO查询方法的签名方式，哪个更好？</h1><div><p>5种DAO查询方法的签名方式，哪个更好？</p>
+<p>DAO类中查询方法的签名多种多样，大家都使用什么签名方法呢？拿出来讨论一下吧。 <br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  DAO层除了CRUD的数据操作外，另一个重要的操作就是根据查询条件执行数据查询，不同的ORM框架都允许用户动态绑定参数确定查询条件。查询条件项的数目往往是不固定的，如既可能要求以userName为条件查询User，也可能要求以userName+status等组合条件查询User。条件项数目的不定性给查询接口方法的设计造成为一定的困难，实体DAO定义带参的查询方法时，一般有5种方式，下面分别对这些方法进行介绍。 <br>
+<br>
+<strong>方式1：每一个条件项参数对应一个入参</strong> <br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  查询方法中为每一个查询条件项定义一个对应的入参，如：</p>
+<div class="dp-highlighter">
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/152830?page=1#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<ol class="dp-j">
+    <li><span><span>List&nbsp;&nbsp;  findOrder(String hql,Date startTime,Date endTime,</span><span class="keyword"><strong><font color="#7f0055">int</font></strong></span><span> deptId)&nbsp;&nbsp;</span></span></li>
+</ol>
+</div>
+<pre class="java" style="display: none" name="code">List  findOrder(String hql,Date startTime,Date endTime,int deptId)</pre>
+<p><br>
+<br>
+这种方法签名含义清晰，可读性强，内部的逻辑处理简单，但接口稳定性差。 <br>
+假如这个findOrder()方法需要添加一个userName的条件，有两种重构的方式：第一，调整方法的签名，新增一个String userName入参，这种重构被认为是不健康的重构，因为它违反软件设计中经典的&ldquo;开-闭原则&rdquo;，此外如果条件项个数很多，方法签名将显得过于拖沓；第二，在DAO类中新增一个重载查询方法，如果查询条件项的组合数过多，DAO类的方法数目将直线上升，整个实体DAO类将显得臃肿笨重。 <br>
+<br>
+<strong>方式2：使用数组传递条件项参数</strong> <br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  通过数组的方式传递查询条件项参数，由于参数类型的不一致性，要求数组类型采用Object[]：</p>
+<div class="dp-highlighter">
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/152830?page=1#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<ol class="dp-j">
+    <li><span><span>List&nbsp;&nbsp;  findOrder(String hql,Object[] params)&nbsp;&nbsp;</span></span></li>
+</ol>
+</div>
+<pre class="java" style="display: none" name="code">List  findOrder(String hql,Object[] params)</pre>
+<p><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  这种方法接口可以应付查询条件项参数组合的多样性并保持接口的稳定性，开发者必须在方法内部从数组中获取参数再传递给查询引擎。缺点是方法的可读性不强，调用者往往需要通过查看接口对应的Javadoc才能正确使用。此外，在JDK 5.0以下的版本中，因为没有自动拆/解包的语法特性，调用前必须对基本类型的参数使用封装类封装，有时在方法内部还需要进行相反的过程，在使用上较为不便。不过由于Spring为支持的ORM框架都提供了类似的查询接口（如HibernateTemplate#find(String queryString, Object[] values)），所以DAO方法内部的处理相对还是比较简单的。 <br>
+<br>
+<strong>方式3：使用JDK 5.0的不定参数</strong> <br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  如果在JDK 5.0中，则可以采用不定参数进行方法签名，这种方式在逻辑上和方式2并无多大的区别：</p>
+<div class="dp-highlighter">
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/152830?page=1#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<ol class="dp-j">
+    <li><span><span>List&nbsp;&nbsp;  findOrder(String hql,Object... params)&nbsp;&nbsp;</span></span></li>
+</ol>
+</div>
+<pre class="java" style="display: none" name="code">List  findOrder(String hql,Object... params)</pre>
+<p><br>
+<br>
+<strong>方式4：将查询条件项参数封装成对象</strong> <br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  为了提高方法1中方法签名简洁性，增强方法2、3中方法签名的可读性，方式4提出将查询条件项参数封装成一个对象的思路，查询方法使用查询条件对象传递查询条件：</p>
+<div class="dp-highlighter">
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/152830?page=1#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<ol class="dp-j">
+    <li><span><span>List&lt;Order&gt; findOrder(String hql,OrderQueryParam param)&nbsp;&nbsp;</span></span></li>
+</ol>
+</div>
+<pre class="java" style="display: none" name="code">List&lt;Order&gt; findOrder(String hql,OrderQueryParam param)</pre>
+<p><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  OrderQueryParam查询条件对象封装了hql查询语句可能会用到的条件项参数，在查询方法内部，开发者必须判断查询条件对象的属性并正确绑定条件项参数。由于需要为条件项参数定义一个类，因此会造成类数目的膨胀，有时甚至一个实体DAO需要对应多个查询条件参数类。另外，当需要添加一个新的条件项参数时，条件封装类还需要进行相应调整。 <br>
+<br>
+<strong>方式5：使用Map传递条件项参数</strong> <br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  另一种被广泛使用的方法是采用Map传递条件项参数，键为参数名，值为参数值：</p>
+<div class="dp-highlighter">
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/152830?page=1#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<ol class="dp-j">
+    <li><span><span>List&lt;Order&gt; findOrder(String hql,Map params)&nbsp;&nbsp;</span></span></li>
+</ol>
+</div>
+<pre class="java" style="display: none" name="code">List&lt;Order&gt; findOrder(String hql,Map params)</pre>
+<p><br>
+&nbsp;&nbsp;&nbsp;&nbsp;  使用这种方式，接口方法签名可以在条件项发生变化的情况下保持稳定，同时通过键指定条件项参数名在一定程度上解决了接口的健壮性（当调用者指定错误参数名时容易得到错误报警）。但和方法2、3一样调用者必须通过接口Javadoc才能明白不同条件项要以什么名称进行设置。 <br>
+<br>
+<span style="color: red">注：以上5个查询方法签名的总结摘自于《精通Spring 2.x--企业应用开发详解》</span></p>
+<p>=========================</p>
+<p>我们一般是写了一个分页查询的方法： <br>
+List pagedQuery(Page page, Where where); <br>
+where条件是一个条件树，可以任意进行组合完成复杂的条件查询。</p>
+<p>Where where = Where.rootWhere(&quot;prop&quot;,Where.EQ,object);</p>
+<p>====================</p>
+<p>Criteria更好. <br>
+and( <br>
+eq(&quot;thisDN&quot;,750), <br>
+gt(&quot;size&quot;,5) <br>
+or( <br>
+eq(&quot;otherDN&quot;,110), <br>
+like(&quot;name&quot;,&quot;%Rason%&quot;) <br>
+) <br>
+)</p>
+<p>==============</p>
+<p>要说查询条件的对象化, 那肯定是4. <br>
+1,2,3没有什么区别, 5只是在namedparam比较有用. 问题是有的, 但我如果写dao的话, 还是会用3. <br>
+要说内存占用和工作效率, 多半应该是3好于4. <br>
+我认为真正的dao是没有业务逻辑,只是怎么和数据库对话而已. 在已经有了hibernate/jpa/jdbctemplate的情况下, 这种东西实在没必要人去做. 除非数据库压根没可能对象化. <br>
+撇开dao不谈, 要说查询的方式, 我喜欢这样的方式: <br>
+<br>
+public interface PersonAccess { <br>
+<br>
+@Finder(query=&quot;from Person where firstName = :firstName&quot;) <br>
+Person find(@Named(&quot;firstName&quot;) String name); <br>
+} <br>
+翻页: <br>
+public interface PersonAccess { <br>
+<br>
+@Finder(query=&quot;from Person&quot;) <br>
+List&lt;Person&gt; listAll(@FirstResult int first, @MaxResults int max); <br>
+} <br>
+<br>
+接口已经完全说明怎么查询了,其实现的单例动态生成就可以了.asm+guice/cglib. <br>
+<br>
+(http://www.wideplay.com/dynamicfinders)</p>
+<p>====================</p>
+<p>参数不稳定，同样你的语句也会不稳定啊，比如userName+status的情况，就会成为where userName=? or status=?，楼主怎么没有讨论这种情况呢？这样的话，方法中传入语句就不行了。再者，你的查找方法为什么要传入语句呢，像List findOrder(String hql,Object[] params)，难道你还在DAO的外面去拼sql？而且怎么看findOrder也不是basedao里的，传入语句就没有道理了。楼主最好说清楚这里讨论的是basedao还是继承的dao <br>
+<br>
+我觉得楼主讨论的更像是DAO的查询方法的参数该怎样写，既清晰又简单。根据以上分析，应该变成这样： <br>
+List findOrder(String hql,Object[] params) --&gt; List findOrder(Object[] params) <br>
+方法里面，就可以根据情况使用hql、sql或Criteria <br>
+至于参数哪种好，我觉得除了那个参数一一写出来的，其他都还好</p>
+<p>=========================</p>
+<p>我目前的写法，只是感到不够灵活，到不够用的时候再想办法重构好了。。</p>
+<div class="bar">
+<div class="tools">Java代码 <a title="复制代码" href="http://www.javaeye.com/topic/152830?page=2#"><img alt="复制代码" src="http://www.javaeye.com/images/icon_copy.gif"></a></div>
+</div>
+<div class="dp-highlighter">
+<ol class="dp-j">
+    <li><span><span class="annotation"><font color="#646464">@Target</font></span><span>( { ElementType.FIELD }) &nbsp;&nbsp;</span></span></li>
+    <li><span class="annotation"><font color="#646464">@Retention</font></span><span>(RetentionPolicy.RUNTIME) &nbsp;&nbsp;</span></li>
+    <li><span class="keyword"><strong><font color="#7f0055">public</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">@interface</font></strong></span><span> SQLQuery { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">/** </font></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * 与查询参数对应的SQL片段的数组&lt;br&gt; </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * 数组长度=1：此SQL片段被插入到SQL查询语句中，实际参数值添加到与？对应的位置。&lt;br&gt; </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * 数组长度=2：此SQL片段被插入到SQL查询语句中，实际参数类型应该是Boolean，&lt;br&gt; </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * 当实参=true，插入第一个SQL片段，实参=false，插入第二个SQL片段 </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * @return </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  */</font></span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  String[] value() </span><span class="keyword"><strong><font color="#7f0055">default</font></strong></span><span> {}; &nbsp;&nbsp;</span></li>
+    <li><span>} &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span class="keyword"><strong><font color="#7f0055">public</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">class</font></strong></span><span> QueryBuilder { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 生成的SQL语句 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  StringBuilder sql = </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> StringBuilder(); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// sql中与&lsquo;?&rsquo;匹配的参数 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  List&lt;Object&gt; params = </span><span class="keyword"><strong><font color="#7f0055">new</font></strong></span><span> ArrayList&lt;Object&gt;(); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">/** </font></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * 构建查询语句&lt;br&gt; </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * 例子：QueryBuilder builder = new QueryBuilder();&lt;br&gt; </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * builder.setSql(buf);&lt;br&gt; </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * builder.setParams(params);&lt;br&gt; </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * builder.build(QueryArgs.class, args); </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * @param clazz </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  用注解标识的查询参数类 </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * @param args </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  查询参数对象，可以是查询参数类的实例，&lt;br&gt; </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  也可以仅仅是一个map，只要符合OGNL读取数据的方式。 </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * @return </font></span></span></li>
+    <li><span><span class="comment"><font color="#008200">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  */</font></span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">public</font></strong></span><span> StringBuilder build(Class&lt;?&gt; clazz, Object args) { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 如果没有传递实际参数，则忽略此次构建 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (args == </span><span class="keyword"><strong><font color="#7f0055">null</font></strong></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">return</font></strong></span><span> sql; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">for</font></strong></span><span> (Field field : clazz.getDeclaredFields()) { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SQLQuery query = field.getAnnotation(SQLQuery.</span><span class="keyword"><strong><font color="#7f0055">class</font></strong></span><span>); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 非查询字段，跳到下一个 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (query == </span><span class="keyword"><strong><font color="#7f0055">null</font></strong></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">continue</font></strong></span><span>; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">try</font></strong></span><span> { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Object value = Ognl.getValue(field.getName(), args); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 查询字段空缺的，跳到下一个 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (value == </span><span class="keyword"><strong><font color="#7f0055">null</font></strong></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  || (value </span><span class="keyword"><strong><font color="#7f0055">instanceof</font></strong></span><span> String &amp;&amp; StringUtils.isEmpty(value.toString()))) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">continue</font></strong></span><span>; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// query.value().length所表示的含义参考SQLQuery注解 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (query.value().length == </span><span class="number"><font color="#c00000">1</font></span><span>) { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sql.append(query.value()[</span><span class="number"><font color="#c00000">0</font></span><span>]); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  params.add(value); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } </span><span class="keyword"><strong><font color="#7f0055">else</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">if</font></strong></span><span> (query.value().length &gt;= </span><span class="number"><font color="#c00000">2</font></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sql.append(Boolean.valueOf(value.toString()) ? query.value()[</span><span class="number"><font color="#c00000">0</font></span><span>] &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  : query.value()[</span><span class="number"><font color="#c00000">1</font></span><span>]); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// query.value().length==0，跳到下一个 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } </span><span class="keyword"><strong><font color="#7f0055">catch</font></strong></span><span> (Exception e) { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  log.warn(</span><span class="string"><font color="#0000ff">&quot;处理查询参数失败，该参数被忽略：&quot;</font></span><span> + field.getName()); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">continue</font></strong></span><span>; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">return</font></strong></span><span> sql; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  } &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">//省略其他部分。。。。 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>} &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span class="keyword"><strong><font color="#7f0055">public</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">class</font></strong></span><span> QueryArgs { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 受理码 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="annotation"><font color="#646464">@SQLQuery</font></span><span>(</span><span class="string"><font color="#0000ff">&quot; and a.acceptCode=?&quot;</font></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  String acceptCode; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 项目类型 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="annotation"><font color="#646464">@SQLQuery</font></span><span>(</span><span class="string"><font color="#0000ff">&quot; and a.definition.id=?&quot;</font></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  Long definitionId; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 申请人姓名，模糊查询 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="annotation"><font color="#646464">@SQLQuery</font></span><span>(</span><span class="string"><font color="#0000ff">&quot; and a.proposer.name like '%'+?+'%'&quot;</font></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  String proposerName; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 受理时间范围1 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="annotation"><font color="#646464">@SQLQuery</font></span><span>(</span><span class="string"><font color="#0000ff">&quot; and a.acceptTime &gt;= ?&quot;</font></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  Date beginTime; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 受理时间范围2 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="annotation"><font color="#646464">@SQLQuery</font></span><span>(</span><span class="string"><font color="#0000ff">&quot; and a.acceptTime &lt;= ?&quot;</font></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  Date endTime; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 是否已经办结，如果未指定，则包括全部项目 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="annotation"><font color="#646464">@SQLQuery</font></span><span>( { </span><span class="string"><font color="#0000ff">&quot; and a.finishedTime is not null&quot;</font></span><span>, </span><span class="string"><font color="#0000ff">&quot; and a.finishedTime is null&quot;</font></span><span> }) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  Boolean m_finished; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 假想的finished参数，供页面使用， </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 因为struts2将0长度字符串传入Boolean的时候，转成了false，下面是为解决这个问题 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword"><strong><font color="#7f0055">public</font></strong></span><span> </span><span class="keyword"><strong><font color="#7f0055">void</font></strong></span><span> setFinished(String finished) { &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m_finished = StringUtils.isEmpty(finished) ? </span><span class="keyword"><strong><font color="#7f0055">null</font></strong></span><span> : Boolean.valueOf(finished); &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  } &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">// 承办单位id </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="annotation"><font color="#646464">@SQLQuery</font></span><span>(</span><span class="string"><font color="#0000ff">&quot; and a.definition.department.id=?&quot;</font></span><span>) &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;  Long departmentId; &nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment"><font color="#008200">//省略若干getter、setter。。。 </font></span><span>&nbsp;&nbsp;</span></li>
+    <li><span>}&nbsp;&nbsp;</span></li>
+</ol>
+</div>
+<p><span>================================</span></p>
+<span>
+<div class="quote_title">tianhen 写道</div>
+<div class="quote_div">我们一般是写了一个分页查询的方法： <br>
+List pagedQuery(Page page, Where where); <br>
+where条件是一个条件树，可以任意进行组合完成复杂的条件查询。</div>
+<p><br>
+你这种用Where的写法,会不会在安全上有问题呢,这样的话,任何一个程序员都可以操作这个表了,一下子就把数据层暴露了,虽然是select,但个人觉得为了安全,应该一个条件写一个方法~</p>
+<p><span>================================</span></p>
+<p><span><a href="http://www.javaeye.com/topic/152830">http://www.javaeye.com/topic/152830</a> <font color="#006699">5种DAO查询方法的签名方式，哪个更好？ （本文）</font></span></p>
+<p><span><font color="#006699"><a href="http://www.javaeye.com/topic/8055">http://www.javaeye.com/topic/8055</a> 一次关于简化DAO设计的初步思考！</font></span></p>
+<p><span><font color="#006699"><a href="http://www.javaeye.com/topic/32262">http://www.javaeye.com/topic/32262</a> Dao查询接口设计经验</font></span></p>
+<p><span><font color="#006699"><a href="http://www.javaeye.com/topic/7123">http://www.javaeye.com/topic/7123</a> 关于dao Api的取舍</font></span></p>
+<p><span><font color="#006699">百度关键字 find(String queryString, Object[] values)</font></span></p>
+</span></div></body></html>

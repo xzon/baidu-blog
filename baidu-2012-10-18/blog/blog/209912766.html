@@ -1,0 +1,313 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Swing and CSS -good</title></head><body><h1>Swing and CSS -good</h1><div><div>
+<p>Swing and CSS -good</p>
+<p><span class="date-display-single">Tue, 2003-10-14</span></p>
+<p><a href="http://today.java.net/author/joshua-marinacci">Joshua Marinacci</a></p>
+<p><a href="http://today.java.net/pub/a/today/2003/10/14/swingcss.html">http://today.java.net/pub/a/today/2003/10/14/swingcss.html</a></p>
+<p><a href="http://tk-ui.sourceforge.net/user-guide/cssengine/swingcssengine.html">http://tk-ui.sourceforge.net/user-guide/cssengine/swingcssengine.html</a></p>
+<p><a href="http://jmatter.org/documentation/html/chap17.html#tth_chAp17">http://jmatter.org/documentation/html/chap17.html#tth_chAp17</a>&nbsp;&nbsp;  JMatter framework</p>
+<p>In the old days of the Web, you had to write everything by hand, and you had to do it over and over again. If there was anything common between pages, you copied and pasted. Later, templating systems became commonplace, but were limited in scope and often restricted to compile-time tasks. If your content came from a database or other structured source, then you could set fonts and colors programmatically. But if you were in charge of, say, a magazine, then you couldn't change the look of a given article without laboriously parsing it all with regular expressions.</p>
+<p>Then along came CSS.</p>
+<p>Though support wasn't great at first, CSS finally lets you separate style from content in a way that works. Now you can set all of your paragraphs to be in a sans-serif font on a blue background, or you can make everything a rollover, if you want. The important thing is that the style can be kept in a separate file and then applied at runtime by the browser. Now you can set a style for your whole site at once, enforcing consistency, and change it later.</p>
+<p>In this article we'll take a similar journey. We'll consider how to take advantage of some of the styling benefits of CSS in a Swing application. When you have a large application written by tens (or even hundreds) of developers over years, setting a consistent style can be very helpful. Just as CSS allows you to maintain a consistent look across a complex web site, we will use the same technique to achieve this consistency across many screens in a complicated Swing application.</p>
+<h3>CSS Vs. Look and Feel</h3>
+<p>Before we get into a CSS implementation, let's consider the alternative: a custom look and feel. Swing Look and Feels (L&amp;Fs) are sets of classes that implement the actual drawing of components at a very low level (think lines and bitmaps). They can be swapped out for new ones at runtime, often to implement the look of a native platform; i.e., the JDK for OSX has a set of classes that make Swing apps look like native Aqua apps, with candy buttons and blue tint. Custom L&amp;Fs are powerful, but not trivial or quick to build. You will usually have to touch 20 or so classes and implement a whole bunch of special drawing code.</p>
+<p>Custom L&amp;Fs also have the disadvantage of being global. To change the look of one button, you have to change them all. Our system lets you change just certain objects and leave the rest alone, and changing the style later with our system will be quick and painless. Want a new style? Just edit a text file and reload.</p>
+<p>On the other hand, since a custom L&amp;F has access to low-level rendering, it can do effects and styles that are impossible at our level. We can imagine gradients and images for backgrounds, gaussian blurs for disabled buttons, and animation for tabbed pane transitions. In a future article, I hope to create a hybrid system that will exploit these possibilities.</p>
+<h3>A Sample Application</h3>
+<p>Consider an application that has hundreds of screens: all related, but different enough to require separate coding. If we want a common style, then our options may include the following:</p>
+<ul>
+    <li>Create a complete custom look and feel.</li>
+    <li>Go through every file for every screen and change every Swing constructor to a factory method for pre-styled components.</li>
+</ul>
+<p>Why can't we use something like CSS? A running Swing application is basically a tree of objects, so couldn't we apply the style at runtime as rules laid on top of the tree? By analogy, web pages are represented as the document object model (or DOM), which, for our purposes, means a tree of objects, one object for each element (paragraph, text field, image, etc.). CSS is a set of styles (such as colors and fonts) applied to the objects according to rules. The rules are described in the top of the web page or in a separate file, using the CSS syntax. The rules can be simple (<em>make all P elements be bold</em>) or complex (<em>make every other P node inside of each span node named &quot;header&quot; be bold)</em>.</p>
+<p>We are going to do the same thing with Swing. Instead of HTML nodes, we have Swing components. The rules will be described in an external XML file that we will apply at runtime. Since we are just starting, we will apply only simple rules and styles to keep the process clear. Later, we can add more complex effects to make the system really useful.</p>
+<p>We are going to use a simple instant messenger screen as our test application. Below is the minimum amount of code needed to get the widgets on the screen.</p>
+<p><strong><em>IMScreen1.java</em></strong></p>
+<pre>public class IMScreen1 {
+
+    public static JFrame initFrame() {
+        JLabel label = new JLabel(&quot;Ugliest IM in the world&quot;);
+        JTextArea textarea = new JTextArea(&quot;joshy: What do you think?\n&quot;
+            + &quot;\n&quot; + &quot;lizi: I think that it's awful!&quot;);
+        JTextField textfield = new JTextField(&quot;Is it really that bad?&quot;);
+        JButton button = new JButton(&quot;Send&quot;);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(2,2));
+        panel.add(textarea);
+        panel.add(label);
+        panel.add(textfield);
+        panel.add(button);
+
+        JFrame frame = new JFrame();
+        frame.setContentPane(panel);
+        return frame;
+    }
+
+    public static void main(String[] args) {
+        JFrame frame = initFrame();
+        frame.pack();
+        frame.show();
+    }
+}</pre>
+<p>We have a JFrame containing one each of the following: button, label, text field, and text area. All are aligned with a grid layout.</p>
+<p>Compile and run to get this:</p>
+<p><img src="http://today.java.net/images/2003/10/IMScreen1.gif"></p>
+<h3>Brute Force: Setting Properties</h3>
+<p>As a first approach, let's make changes to the components by just setting properties. You can do a lot with borders, fonts, and colors. Here we have changed the background color of the panel and button, added more space around the text components, right-aligned the label, and made the button bold. And just for good measure, we switch the layout to a vertical box.</p>
+<p><strong><em>IMScreen2.java</em></strong></p>
+<pre>panel.setLayout(new GridLayout(2,2));
+        panel.add(label);
+        panel.add(textarea);
+        panel.add(textfield);
+        panel.add(button);
+
+        // lets set the style now
+        Color pink = new Color(255,130,130);
+        panel.setBackground(pink);
+        button.setBackground(pink);
+
+        // create a border
+        Border border = BorderFactory.createEmptyBorder(5,5,5,5);
+        Border ta_border =
+            BorderFactory.createCompoundBorder(textarea.getBorder(),border);
+        textarea.setBorder(ta_border);
+        Border tf_border =
+            BorderFactory.createCompoundBorder(textfield.getBorder(),border);
+        textfield.setBorder(tf_border);
+
+        // set alignment and make the text field transparent
+        label.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        // make the button be bold
+        button.setFont(button.getFont().deriveFont(Font.BOLD));
+
+        // install a new vertical layout
+        panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));</pre>
+<p>Compile and run. Now, we get this:</p>
+<p><img src="http://today.java.net/images/2003/10/IMScreen2.gif"></p>
+<p>We've made a big visual change with just a few commands. Not bad, but this is a small project. If we were working on something bigger, it would be nice to do it programmatically so that we can reuse each setting.</p>
+<h3>Simplifying the Process Using Rules</h3>
+<p>As a second approach, we will start using rules. To keep it simple, we will select only by class, with each property specified by a string name and a string value. We would like it to be something along these lines: <code><font face="NSimsun">addRule(JButton,&quot;font-style&quot;,&quot;bold&quot;)</font></code>. This means that for all <code><font face="NSimsun">JButtons</font></code>, set the <code><font face="NSimsun">font-style</font></code> to <code><font face="NSimsun">bold</font></code>. This is very similar to the CSS equivalent: <code><font face="NSimsun">JButton { font-style : bold }</font></code>. With rules, we can rewrite our screen to remove the style settings from <code><font face="NSimsun">initFrame()</font></code>, and add these lines:</p>
+<p><strong><em>IMScreen3.java</em></strong></p>
+<pre>public static void main(String[] args) {
+        // set up the styles first
+        RuleManager rm = new RuleManager();
+        rm.addClassRule(JPanel.class,&quot;background&quot;,&quot;#ff9999&quot;);
+        rm.addClassRule(JButton.class,&quot;background&quot;,&quot;#ff9999&quot;);
+        rm.addClassRule(JTextField.class,&quot;margin&quot;,&quot;5&quot;);
+        rm.addClassRule(JTextArea.class,&quot;margin&quot;,&quot;5&quot;);
+        rm.addClassRule(JLabel.class,&quot;alignment&quot;,&quot;right&quot;);
+        rm.addClassRule(JButton.class,&quot;font-style&quot;,&quot;bold&quot;);
+        rm.addClassRule(JPanel.class,&quot;layout&quot;,&quot;column&quot;);
+
+        JFrame frame = initFrame();
+        rm.style(frame);
+        frame.pack();
+        frame.show();
+    }</pre>
+<p>Now we have a <code><font face="NSimsun">RuleManager</font></code> that we can use to add and apply our rules. Each line creates a new rule that applies one property setting to one class type. If you want two properties on the same class (say, color and font) then you have to call it twice. C'est facile!</p>
+<p>Under the hood, the <code><font face="NSimsun">RuleManager</font></code> looks like this:</p>
+<p><strong><em>RuleManager.java</em></strong></p>
+<pre>public class RuleManager {
+    private List rules;
+    public RuleManager() {
+        rules = new ArrayList();
+    }
+
+    public void addClassRule(Class clss, String property, String value) {
+        Rule rule = new ClassRule(clss, property, value);
+        rules.add(rule);
+    }
+
+    public void style(Component comp) {
+        // loop over the rules to find matches
+        Iterator it = rules.iterator();
+        while(it.hasNext()) {
+            Rule rule = (Rule)it.next();
+            // apply the rule if it matches
+            if(rule.matches(comp)) {
+                rule.apply(comp);
+            }
+        }
+
+        // loop over the children and call style recursively
+        if(! (comp instanceof Container)) {
+            return;
+        }
+        Component[] comps = ((Container)comp).getComponents();
+        for(int i=0; i&lt;comps.length; i++) {
+            style(comps[i]);
+        }
+    }
+}</pre>
+<h3>Laying the Foundation for CSS</h3>
+<p>To anticipate future types of matching, we have created an interface called <code><font face="NSimsun">Rule</font></code> that specifies matching and applying, and then a concrete implementation that matches on class types, called <code><font face="NSimsun">ClassRule</font></code>. Each call to <code><font face="NSimsun">addClassRule()</font></code> creates a <code><font face="NSimsun">ClassRule</font></code> object that implements the property settings. To actually apply the rules, the <code><font face="NSimsun">style()</font></code> method is called. This does a pre-order traversal of the entire tree, first looking for all rules that match the current node and then recursing over all of the children.</p>
+<p><code><font face="NSimsun">Rule</font></code> and <code><font face="NSimsun">ClassRule</font></code> look like what you would expect:</p>
+<p><strong><em>Rule.java</em></strong></p>
+<pre>public interface Rule {
+    public boolean matches(Object obj);
+    public void apply(Object obj);
+}</pre>
+<p><strong><em>ClassRule.java</em></strong></p>
+<pre>public boolean matches(Object obj) {
+        if(clss.isInstance(obj)) {
+            return true;
+        }
+        return false;
+    }
+
+    public void apply(Object obj) {
+        JComponent comp = (JComponent)obj;
+        if(property.equals(&quot;background&quot;)) {
+            comp.setBackground(Color.decode(value));
+        }
+        if(property.equals(&quot;margin&quot;)) {
+            int margin = Integer.parseInt(value);
+            Border m_border =
+                BorderFactory.createEmptyBorder(margin,margin,margin,margin);
+            Border c_border =
+                BorderFactory.createCompoundBorder(comp.getBorder(),m_border);
+            comp.setBorder(c_border);
+        }
+        if(property.equals(&quot;alignment&quot;)) {
+            if(comp instanceof JLabel) {
+                int align = -1;
+                if(value.equals(&quot;left&quot;)) { align = SwingConstants.LEFT; }
+                if(value.equals(&quot;center&quot;)) { align = SwingConstants.CENTER; }
+                if(value.equals(&quot;right&quot;)) { align = SwingConstants.RIGHT; }
+                ((JLabel)comp).setHorizontalAlignment(align);
+            }
+        }
+        if(property.equals(&quot;font-style&quot;)) {
+            if(value.equals(&quot;bold&quot;)) {
+                comp.setFont(comp.getFont().deriveFont(Font.BOLD));
+            }
+            if(value.equals(&quot;italics&quot;)) {
+                comp.setFont(comp.getFont().deriveFont(Font.ITALIC));
+            }
+        }
+
+        if(property.equals(&quot;layout&quot;)) {
+            if(value.equals(&quot;column&quot;)) {
+                comp.setLayout(new BoxLayout(comp,BoxLayout.Y_AXIS));
+            }
+        }
+    }</pre>
+<p><code><font face="NSimsun">ClassRule</font></code>'s <code><font face="NSimsun">apply</font></code> method is just the programmatic version of the styling code we had before. I should note that if this system was expanded to include all of the possible Swing settings, then <code><font face="NSimsun">ClassRule</font></code> would become too much to handle. At some point, we would have to refactor the system to separate the <strong>matching</strong> (or <em>selecting</em>, in CSS-speak) from the <strong>application</strong> of the rules. For this article, though, I thought it best to keep it simple.</p>
+<h3>Style Sheets for Swing Applications</h3>
+<p>Now that we can programmatically set up rules, it is a simple matter to load the rules from an XML file. I've created simple XML language to match the in-memory structure. It's just a list of rules with the class, property, and value specified for each one. We can easily imagine expanding this in the future as we design more elaborate selectors and properties.</p>
+<p><strong><em>css.xml</em></strong></p>
+<pre>&lt;css&gt;
+    &lt;rule class=&quot;JPanel&quot; property=&quot;background&quot; value=&quot;#ff9999&quot;/&gt;
+    &lt;rule class=&quot;JButton&quot; property=&quot;background&quot; value=&quot;#ff9999&quot;/&gt;
+    &lt;rule class=&quot;JTextField&quot; property=&quot;margin&quot; value=&quot;5&quot;/&gt;
+    &lt;rule class=&quot;JTextArea&quot; property=&quot;margin&quot; value=&quot;5&quot;/&gt;
+    &lt;rule class=&quot;JLabel&quot; property=&quot;alignment&quot; value=&quot;right&quot;/&gt;
+    &lt;rule class=&quot;JButton&quot; property=&quot;font-style&quot; value=&quot;bold&quot;/&gt;
+    &lt;rule class=&quot;JPanel&quot; property=&quot;layout&quot; value=&quot;column&quot;/&gt;
+&lt;/css&gt;</pre>
+<p>Then I've created another class called <code><font face="NSimsun">CSSLoader</font></code> to load the XML file and parse each rule element into a call to the <code><font face="NSimsun">RuleManager</font></code>; pretty straightforward code using the XML APIs. In particular, notice the call to <code><font face="NSimsun">css.getElementsByTagName()</font></code> instead of calling <code><font face="NSimsun">getChildNodes()</font></code>. This ensures that we skip both white space and non-&quot;rule&quot; elements (since we may add other kinds of rules in the future).</p>
+<p><strong><em>CSSLoader.java</em></strong></p>
+<pre>public class CSSLoader {
+    public static void load(String xml, RuleManager rm) throws Exception {
+        DocumentBuilder builder = DocumentBuilderFactory.newInstance().
+            newDocumentBuilder();
+        Document doc = builder.parse(xml);
+        Element css = doc.getDocumentElement();
+        NodeList list = css.getElementsByTagName(&quot;rule&quot;);
+        for(int i=0; i&lt;list.getLength(); i++) {
+            Element rule = (Element)list.item(i);
+            String clss = rule.getAttribute(&quot;class&quot;);
+            String property = rule.getAttribute(&quot;property&quot;);
+            String value = rule.getAttribute(&quot;value&quot;);
+            clss = &quot;javax.swing.&quot;+clss;
+            Class real_class = Class.forName(clss);
+            rm.addClassRule(real_class,property,value);
+        }
+    }
+}</pre>
+<p>And now we can simplify our main function again to look like this:</p>
+<p><strong><em>IMScreen4.java</em></strong></p>
+<pre>public static void main(String[] args) throws Exception {
+        // set up the styles first
+        RuleManager rm = new RuleManager();
+        CSSLoader.load(&quot;css.xml&quot;,rm);
+
+        JFrame frame = initFrame();
+        rm.style(frame);
+        frame.pack();
+        frame.show();
+    }</pre>
+<p>The great thing about refactoring is that your code tends to get <strong>smaller and easier</strong> to read as you push things out into other classes.</p>
+<p>Now we have a system to work with. From this base, we can build support for many more kinds of styling. The Swing framework allows almost anything to be done at runtime, and now we can take advantage of that by using a single function call per frame to style all of the components in our application. In a future article, I hope to explore more advanced styling techniques.</p>
+<p>There's only one problem now. What do you do if you don't have access to the source code? Some desktop toolkits allow you to customize your theme based on user preferences that apply to all applications. Our system can do that too, if there is a standardized location for the CSS file to reside, much like other user preferences. This only works for applications that have been CSS enabled, though. What about existing applications? Couldn't we do something for them just like existing HTML can be re-rendered using user-specified stylesheets? Of course we can, because of a very important but rarely seen object called the <code><font face="NSimsun">Toolkit</font></code>.</p>
+<h3>Formatting Components as They are Created</h3>
+<p><code><font face="NSimsun">java.awt.Toolkit</font></code> is special because it forms the bridge between the virtual world of AWT and Swing and the real graphics APIs on the underlying platform (Win32 GDI under Windows, Quartz under OSX, and X11 under Unix). It can give you information about the current environment, allocate system objects, and do a few other tricks, like setting the keyboard lights (see my blogs). It also lets you listen to the event queue. By creating an <code><font face="NSimsun">AWTEventListener</font></code> registered with the Toolkit, we can see every Swing event in the entire system from one place. For our system, we want to know whenever a component is added to a container, since that is the most likely time to do other Swing adjustments.</p>
+<p>I've created a <code><font face="NSimsun">SwingWatcher</font></code> class that does this. It is a singleton, to make sure we only have one at a time running in the system. Each time this class detects that a component has been added, it runs the style system on it. Then I created a Launcher program. Its sole purpose is to set up the CSS system and then start the real program.</p>
+<p><strong><em>SwingWatcher.java</em></strong></p>
+<pre>public class SwingWatcher implements AWTEventListener {
+    private static SwingWatcher watcher = new SwingWatcher();
+    private RuleManager rm;
+
+    private SwingWatcher() {
+        Toolkit tk = Toolkit.getDefaultToolkit();
+        tk.addAWTEventListener(this,AWTEvent.CONTAINER_EVENT_MASK);
+    }
+
+    public void eventDispatched(AWTEvent evt) {
+        if(evt instanceof ContainerEvent) {
+            ContainerEvent cevt = (ContainerEvent)evt;
+            if(cevt.getID() == ContainerEvent.COMPONENT_ADDED) {
+                Component comp = cevt.getChild();
+                if(rm != null) {
+                    rm.style(comp);
+                }
+            }
+        }
+    }
+
+    public static void start(RuleManager rule_m) {
+        watcher.rm = rule_m;
+    }
+}</pre>
+<p><strong><em>IMLauncher.java</em></strong></p>
+<pre>public class IMLauncher {
+    public static void main(String[] args) throws Exception {
+        // set up the styles first
+        RuleManager rm = new RuleManager();
+        CSSLoader.load(&quot;css.xml&quot;,rm);
+        SwingWatcher.start(rm);
+
+        // now start the real program
+        IMScreen5.main(args);
+    }
+}</pre>
+<p>With these two pieces, we can now run an unaltered Swing application with our styling, as long as we know the name of the startup class.</p>
+<h3>Summary</h3>
+<p>This is just a taste of what we can do with our system. We have taken a tree of Swing components and modified them programmatically to implement custom styling. We then refactored the system to separate the styling mechanism from the normal Swing code and take advantage of low-level AWT services to detect and apply the style at runtime from a text file. This system gives us an impressive amount of flexibility. Non-programmers can style completely unmodified applications for which they don't even have the code. But this is just the start.</p>
+<p>In the future, we can add advanced selectors and component control. Swing's underlying design allows us to enhance the system for any number of new features, some useful and some just plain fun.</p>
+<ul>
+    <li>
+    <p><strong>Named components</strong>: Just as in HTML, Swing lets you to assign a text name to each component. We could implement CSS-like <em>class</em> and <em>id</em> selectors. This allows the kind of high-level design CSS web applications enjoy: where different logical portions of an application are marked separately and the system takes care of custom styling.</p>
+    </li>
+    <li>
+    <p><strong>Platform-specific styling</strong>: Native platform look and feels may not play nicely with our CSSish styles, or at least not look very pretty. A color scheme that looks good with Sun's grey Metal L&amp;F might look awful on top of OSX's candy buttons. Marking certain styles for different platforms would help greatly.</p>
+    </li>
+    <li>
+    <p><strong>Accessibility and non-visual styles</strong>: Imagine a Swing app that not only looks great, but also sends UI descriptions to a braille reader as well, and not just a default listing of menu items, but a navigation scheme optimized for a linear experience.</p>
+    </li>
+    <li>
+    <p><strong>Graphics hacks</strong>: Creative use of the <code><font face="NSimsun">glasspane</font></code> and <code><font face="NSimsun">proxy</font></code> <code><font face="NSimsun">Graphics</font></code> objects could let us do animations, rollovers, and visual effects that were impossible before. Imagine being able to pump a scrollbar through an arbitrary matrix operation (scale, shear, rotate) without the original component ever knowing.</p>
+    </li>
+    <li>
+    <p><strong>Flexible Formatting</strong>: CSS lets web developers specify formatting at a higher level than table layout. Swing CSS lets us use constructs higher than the <code><font face="NSimsun">GridBagLayout</font></code>. Prefab layouts like <em>editor with toolbar</em>, <em>wizard</em>, and <em>three-paned email client</em> would greatly speed development and keep application screens consistent.</p>
+    </li>
+</ul>
+<p>I hope you've enjoyed exploring the dynamic side of Swing with me today. Swing is a rich and flexible toolkit with endless possibilities. By adding a new layer of separation between style and content, we have made it all the more powerful. Through innovation and creative design, Swing lets us make ever better software, and in the end, that's why we're all here.</p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+</div></div></body></html>

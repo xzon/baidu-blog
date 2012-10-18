@@ -1,0 +1,104 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>linux c 字符编码转换</title></head><body><h1>linux c 字符编码转换</h1><div><div>linux c 字符编码转换</div>
+<div> </div>
+<div>-------------------<br>
+hxzon:ok.</div>
+<div> </div>
+<div>#include &lt;iconv.h&gt;</div>
+<div> </div>
+<div>int codeConvert(char *from_charset,char *to_charset,char *inbuf,int inlen,char  *outbuf,int  outlen)<br>
+{<br>
+  iconv_t cd;<br>
+  char **pin = &amp;inbuf;<br>
+  char **pout = &amp;outbuf;</div>
+<div> </div>
+<div>  cd = iconv_open(to_charset,from_charset);<br>
+  if (cd==0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return -1;</div>
+<div> </div>
+<div>  memset(outbuf,0,outlen);<br>
+  if (iconv(cd,pin,(size_t* __restrict__)(&amp;inlen),pout,(size_t* __restrict__)(&amp;outlen))==-1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return -1;</div>
+<div> </div>
+<div>  iconv_close(cd);<br>
+  return 0;<br>
+}<br>
+示例codeConvert(&quot;utf-8&quot;,&quot;gbk&quot;,row[0],strlen(row[0]),netInfos[i].name,10);<br>
+-------------------<br>
+<a href="http://www.gnu.org/software/libiconv/documentation/libiconv/">http://www.gnu.org/software/libiconv/documentation/libiconv/</a><br>
+#include &lt;stdio.h&gt;<br>
+#include &lt;iconv.h&gt;<br>
+#include &lt;string.h&gt;</div>
+<div> </div>
+<div>#define LEN 10<br>
+int code_convert(char *from_charset,char *to_charset,char *inbuf,int inlen,char *outbuf,int outlen)<br>
+{<br>
+  iconv_t cd;<br>
+  char **pin = &amp;inbuf;<br>
+  char **pout = &amp;outbuf;</div>
+<div> </div>
+<div>  cd = iconv_open(to_charset,from_charset);<br>
+  if (cd==0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return -1;<br>
+  <br>
+  memset(outbuf,0,outlen);<br>
+  if (iconv(cd,pin,(size_t* __restrict__)(&amp;inlen),pout,(size_t* __restrict__)(&amp;outlen))==-1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return -1;<br>
+  <br>
+  iconv_close(cd);<br>
+  return 0;<br>
+}</div>
+<div> </div>
+<div>//UNICODE码转为GB2312码</div>
+<div> </div>
+<div>int u2g(char *inbuf,int inlen,char *outbuf,int outlen)<br>
+{<br>
+  return code_convert(&quot;utf-8&quot;,&quot;gb2312&quot;,inbuf,inlen,outbuf,outlen);<br>
+}<br>
+//GB2312码转为UNICODE码</div>
+<div> </div>
+<div>int g2u(char *inbuf,size_t inlen,char *outbuf,size_t outlen)<br>
+{<br>
+ return code_convert(&quot;gb2312&quot;,&quot;utf-8&quot;,inbuf,inlen,outbuf,outlen);<br>
+}</div>
+<div> </div>
+<div>//big5码转为utf8码</div>
+<div> </div>
+<div>int b2u(char *inbuf,int inlen,char *outbuf,int outlen)<br>
+{<br>
+  return code_convert(&quot;BIG5&quot;,&quot;utf-8&quot;,inbuf,inlen,outbuf,outlen);<br>
+}<br>
+//utf8码转为big5码</div>
+<div> </div>
+<div>int u2b(char *inbuf,size_t inlen,char *outbuf,size_t outlen)<br>
+{<br>
+ return code_convert(&quot;utf-8&quot;,&quot;BIG5&quot;,inbuf,inlen,outbuf,outlen);<br>
+}</div>
+<div> </div>
+<div><br>
+int main(int argc, char** argv)<br>
+{<br>
+ char* utf8 = argv[1];<br>
+ int len = LEN;<br>
+ char b_buf[LEN] = {'\0'};<br>
+ char u_buf[LEN] = {'\0'};<br>
+ char g_buf[LEN] = {'\0'};</div>
+<div> </div>
+<div> printf(&quot;utf8 is %s\n&quot;, utf8);<br>
+ u2g(utf8,strlen(utf8),g_buf,len);</div>
+<div> </div>
+<div> printf(&quot;gb2312 is %s\n&quot;, g_buf);<br>
+ g2u(g_buf,strlen(g_buf),u_buf,len);<br>
+ printf(&quot;utf-8 is %s\n&quot;, u_buf);</div>
+<div> </div>
+<div> if(u2b(utf8, strlen(utf8), b_buf, len)==-1)<br>
+  {<br>
+&nbsp;&nbsp;&nbsp;  printf(&quot;%s\n&quot;, &quot;u2b error&quot;);<br>
+&nbsp;&nbsp;&nbsp;  return -1;<br>
+  }<br>
+ printf(&quot;big5 is %s\n&quot;, b_buf);<br>
+ <br>
+ b2u(b_buf, strlen(b_buf), u_buf,len);<br>
+ printf(&quot;utf-8 is %s\n&quot;, u_buf);<br>
+ return 0;&nbsp;&nbsp;&nbsp;  <br>
+}<br>
+&nbsp;&nbsp;&nbsp;</div></div></body></html>

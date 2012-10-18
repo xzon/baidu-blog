@@ -1,0 +1,140 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>关于AspectJ 中的pointcut 语法</title></head><body><h1>关于AspectJ 中的pointcut 语法</h1><div><p>关于AspectJ 中的pointcut 语法</p>
+<p>pointcut，从字面的意思说的是切面的意思。也就是横切的时候，会有哪些执行点会被识别。只有先识别了，才能执行相应的Advice。<br>
+基本的定义如下：<br>
+<br>
+public pointcut accountOperations:call(* Account.*(..))<br>
+<br>
+<font size="2"><span style="font-size: small"><strong>1.通配符和pointcut 操作符</strong> </span><br>
+<br>
+</font>* 表示任何数量的字符，除了(.) <br>
+.. 表示任何数量的字符包括任何数量的(.) <br>
++ 描述指定类型的任何子类或者子接口<br>
+同java一样，提供了一元和二元的条件表达操作符。<br>
+一元操作符：!<br>
+二元操作符：||和&amp;&amp;<br>
+优先权同java<br>
+<br>
+<font size="2"><span style="font-size: small"><strong>2.签名语法</strong> </span><br>
+<br>
+</font><strong>类型签名样式</strong> <br>
+<br>
+主要的例子:<br>
+Account 类型Account<br>
+*Account 使用Account名称结束的类型，如SavingsAccount和CheckingAccount<br>
+java.*.Date 类型Date在任何直接的java子包中，如java.util.Date和java.sql.Date<br>
+java..* 任何在java包或者所有子包中的类型，如java.awt和java.util或者java.awt.event 和java.util.logging<br>
+javax..*Model+ 所有javax包或者子包中以Model结尾的类型和其所有子类，如TableModel,TreeModel。<br>
+！vector 所有除了Vector的类型<br>
+Vector|| Hashtable Vector或者Hashtable类型<br>
+java.util.RandomAccess+ 实现RandomAccess和List的所有子类<br>
+&amp;&amp; java.util.List+<br>
+<br>
+<strong>方法和构造器签名模式</strong> <br>
+<br>
+public void Collection.clear()：<br>
+在Collection中同样签名的clear方法<br>
+<br>
+public void Account.debit(float) throws InsufficientBalanceException：<br>
+Account中同样签名的debit方法<br>
+<br>
+public void Account.set*(*)<br>
+Account中以set开头，并且只有一个参数类型的方法<br>
+<br>
+public void Account.*()<br>
+Account中所有的没有参数的public void 方法<br>
+<br>
+public * Account.*()<br>
+Account中所有没有参数的public 方法<br>
+<br>
+public * Account.*(..)<br>
+Account中所有的public 方法<br>
+<br>
+* Account.*(..)<br>
+Account中的所有方法，包括private方法<br>
+<br>
+!public * Account.*(..)<br>
+所有的非public 方法<br>
+<br>
+* Account+.*(..)<br>
+所有的方法，包括子类的方法<br>
+<br>
+* java.io.Reader.read(..)<br>
+所有的read方法<br>
+<br>
+* java.io.Reader.read(char[],..)<br>
+所有以read(char[])开始的方法，包括read(char[])和read(char[],int,int)<br>
+<br>
+* javax..*.add*Listener(EventListener+)<br>
+命名以add开始，以Listener结尾的方法，参数中为EventListener或子类<br>
+<br>
+* *.*(..) throws RemoteException<br>
+抛出RemoteException的所有方法<br>
+<br>
+构造器，同上面<br>
+public Account.new()<br>
+没有参数的构造器方法<br>
+<br>
+<strong>属性签名模式</strong> <br>
+同方法一样，属性也查不多<br>
+* Account.* <br>
+所有的Account属性<br>
+<br>
+!public static * banking..*.*<br>
+所有的非public static 属性，在banking的包或者子包中<br>
+<br>
+<font size="2"><span style="font-size: small"><strong>3.主要的pointcuts类型</strong> </span><br>
+<br>
+</font>分类pointcuts<br>
+遵循特定的语法用于捕获每一个种类的可使用连接点。<br>
+主要的种类：<br>
+<br>
+方法执行：execution(MethodSignature) <br>
+方法调用：call(MethodSignature) <br>
+构造器执行：execution(ConstructorSignature) <br>
+构造器调用：call(ConstructorSignature) <br>
+类初始化：staticinitialization(TypeSignature) <br>
+属性读操作：get(FieldSignature) <br>
+属性写操作：set(FieldSignature) <br>
+例外处理执行：handler(TypeSignature) <br>
+对象初始化：initialization(ConstructorSignature) <br>
+对象预先初始化：preinitialization(ConstructorSignature) <br>
+Advice执行：adviceexecution()<br>
+基于控制流的pointcuts<br>
+主要包括两种类型的控制流：<br>
+cflow(Pointcut)，捕获所有的连接点在指定的方法执行中，包括执行方法本身。<br>
+cflowbelow(Pointcut)，捕获所有的连接点在指定的方法执行中，除了执行方法本身。<br>
+<br>
+如以下的例子：<br>
+cflow(call(* Account.debit(..))<br>
+所有的debit方法中的连接点，包括debit方法本身<br>
+cflowbelow(call(* Account.debit(..))<br>
+所有debit方法中的连接点，除了debit方法本身<br>
+cflow(transactedOperations())<br>
+所有由transactedOperations捕获的连接点<br>
+cflowbelow(execution(Account.new(..))<br>
+所有在Account 构造器中执行的连接点<br>
+<br>
+基于词汇结构的连接点<br>
+源代码片断。，如within()和withincode()<br>
+within ：捕获在指定类或者方面中的程序体中的所有连接点，包括内部类。<br>
+Withincode：用于捕获在构造器或者方法中的所有连接点，包括在其中的本地类<br>
+<br>
+执行对象连接点<br>
+匹配this,和target对象，作为方法被调用的对象。<br>
+this(Account)，所有Account的实例的执行点，匹配所有的连接点，如方法调用，属性设置，当前的执行对象为Account，或者其子类。<br>
+target(Account)：匹配所有的连接点，目标对象为Account或其子类。<br>
+<br>
+必须执行相应的类型，不能使用*,或者..通配符。当前静态方法，不能被匹配。<br>
+<br>
+在within()和this()中的区别：<br>
+一个是程序体，而另一个为对象执行。<br>
+<br>
+参数pointcuts<br>
+用于捕获参数类型的连接点。<br>
+args(String,..,int)<br>
+args(RemoteException)<br>
+<br>
+条件检测pointcuts<br>
+if(System.currentTimeMillis()&gt;triggerTime)</p>
+<p><br>
+AspectJ5 已经增加了不少语法，主要关于Annotation 的</p></div></body></html>

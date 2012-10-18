@@ -1,0 +1,95 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Swing透明和变换</title></head><body><h1>Swing透明和变换</h1><div><p>Swing透明和变换</p><p>&nbsp;</p><p>http://www.blogjava.net/ruislan/archive/2007/10/24/154689.html</p><p>http://java.net/projects/jna/downloads/directory/3.2.7</p><p>posted on 2007-10-21 13:43 ruislan </p><p>&nbsp;&nbsp;&nbsp; 
+以前或许大家对一个UI组件是否透明没有那么关心，但是自从Vista的毛玻璃出现后，UI透明就成了大家非常关注的一个话题，于是Java阵营开始了铺
+天盖地的讨论如何实现透明的效果，但是很不幸的是无论组件如何透明和变换，但是能够放置于屏幕任何位置的Window一族就是没法透明和变形，原生代码的
+问题还是交给原生代码来解决吧。<br>
+
+&nbsp;&nbsp;&nbsp; 自己写原生代码是可怕的，特别是对我这种只知道Java的平凡程序员，所以我们得借助一个非常方便的跨平台的调用OS function方便的Lib，JNA便是最佳选择（那个谁，这里不是讨论JRuby&amp;JPython的）。<br>
+
+&nbsp;&nbsp;&nbsp; so, all robots, transform!<br>
+
+&nbsp;&nbsp;&nbsp; 下面我们要做一个界面是圆角四边形的，中间有一个滑动条来滑动调节透明度。先看看做好的截图。<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp; <img src="http://www.blogjava.net/images/blogjava_net/ruislan/tr1.jpg" height="182" width="238"><img src="http://www.blogjava.net/images/blogjava_net/ruislan/tr2.jpg" height="173" width="230"><img src="http://www.blogjava.net/images/blogjava_net/ruislan/tr3.jpg" height="170" width="216"><br>
+
+&nbsp;&nbsp;&nbsp; 注意图中的JFrame边角已经变成了圆弧，滑动滑块，JFrame开始透明，桌面的图标显现出来，下面是代码。</p><span style="color: #008000;">/**</span><span style="color: #008000;"><br>
+&nbsp;*&nbsp;@(#)TransparentFrame.java&nbsp;&nbsp;v0.1.0&nbsp;&nbsp;2007-10-21<br>
+&nbsp;</span><span style="color: #008000;">*/</span><span style="color: #000000;"><br></span><span style="color: #0000ff;">package</span><span style="color: #000000;">&nbsp;ruislan.rswing.test;<br><br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;java.awt.BorderLayout;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;java.awt.Color;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;java.awt.Container;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;java.awt.Dimension;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;java.awt.Toolkit;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;java.awt.event.ActionEvent;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;java.awt.event.ActionListener;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;java.awt.geom.RoundRectangle2D;<br><br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;javax.swing.JButton;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;javax.swing.JFrame;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;javax.swing.JLabel;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;javax.swing.JPanel;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;javax.swing.JSlider;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;javax.swing.border.LineBorder;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;javax.swing.event.ChangeEvent;<br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;javax.swing.event.ChangeListener;<br><br></span><span style="color: #0000ff;">import</span><span style="color: #000000;">&nbsp;com.sun.jna.examples.WindowUtils;<br>//hxzon
+//import com.sun.jna.platform.WindowUtils;
+<br></span><span style="color: #008000;">/**</span><span style="color: #008000;"><br>
+&nbsp;*&nbsp;Transparent&nbsp;JFrame&nbsp;use&nbsp;JNA<br>
+&nbsp;*&nbsp;<br>
+&nbsp;*&nbsp;</span><span style="color: #808080;">@author</span><span style="color: #008000;">&nbsp;ruislan&nbsp;&lt;a&nbsp;href="mailto:z17520@126.com"/&gt;<br>
+&nbsp;*&nbsp;</span><span style="color: #808080;">@version</span><span style="color: #008000;">&nbsp;0.1.0<br>
+&nbsp;</span><span style="color: #008000;">*/</span><span style="color: #000000;"><br></span><span style="color: #0000ff;">public</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">class</span><span style="color: #000000;">&nbsp;TransparentFrame&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">private</span><span style="color: #000000;">&nbsp;JFrame&nbsp;frame;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">private</span><span style="color: #000000;">&nbsp;JPanel&nbsp;container;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">private</span><span style="color: #000000;">&nbsp;JSlider&nbsp;slider;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">private</span><span style="color: #000000;">&nbsp;JPanel&nbsp;titleBar;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">private</span><span style="color: #000000;">&nbsp;JLabel&nbsp;titleLabel;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">private</span><span style="color: #000000;">&nbsp;JButton&nbsp;closeButton;<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">public</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">static</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">void</span><span style="color: #000000;">&nbsp;main(String[]&nbsp;args)&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;TransparentFrame().launch();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">private</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">void</span><span style="color: #000000;">&nbsp;launch()&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createUI();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;launchUI();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">protected</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">void</span><span style="color: #000000;">&nbsp;launchUI()&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;frame.setVisible(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">protected</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">void</span><span style="color: #000000;">&nbsp;createUI()&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.setProperty(</span><span style="color: #000000;">"</span><span style="color: #000000;">sun.java2d.noddraw</span><span style="color: #000000;">"</span><span style="color: #000000;">,&nbsp;</span><span style="color: #000000;">"</span><span style="color: #000000;">true</span><span style="color: #000000;">"</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;frame&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;JFrame();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;frame.setSize(</span><span style="color: #000000;">200</span><span style="color: #000000;">,&nbsp;</span><span style="color: #000000;">150</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;frame.setAlwaysOnTop(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;frame.setUndecorated(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;JPanel();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;frame.setContentPane(container);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container.setLayout(</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;BorderLayout());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container.add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;JLabel(</span><span style="color: #000000;">"</span><span style="color: #000000;">Ubunto&nbsp;vs&nbsp;Vista,&nbsp;I&nbsp;like&nbsp;both.</span><span style="color: #000000;">"</span><span style="color: #000000;">),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BorderLayout.CENTER);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container.setBorder(</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;LineBorder(Color.BLACK));<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;titleBar&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;JPanel();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;titleBar.setLayout(</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;BorderLayout());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;titleLabel&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;JLabel(</span><span style="color: #000000;">"</span><span style="color: #000000;">JNA&nbsp;is&nbsp;great!</span><span style="color: #000000;">"</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;titleBar.add(titleLabel,&nbsp;BorderLayout.CENTER);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;titleBar.setBorder(</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;LineBorder(Color.GRAY));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeButton&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;JButton(</span><span style="color: #000000;">"</span><span style="color: #000000;">X</span><span style="color: #000000;">"</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeButton.setFocusPainted(</span><span style="color: #0000ff;">false</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeButton.addActionListener(</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;ActionListener()&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@Override<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">public</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">void</span><span style="color: #000000;">&nbsp;actionPerformed(ActionEvent&nbsp;e)&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.exit(</span><span style="color: #000000;">0</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;titleBar.add(closeButton,&nbsp;BorderLayout.EAST);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container.add(titleBar,&nbsp;BorderLayout.NORTH);<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;slider&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;JSlider(</span><span style="color: #000000;">0</span><span style="color: #000000;">,&nbsp;</span><span style="color: #000000;">100</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;slider.setValue(</span><span style="color: #000000;">100</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;slider.addChangeListener(</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;ChangeListener()&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@Override<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">public</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">void</span><span style="color: #000000;">&nbsp;stateChanged(ChangeEvent&nbsp;e)&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">float</span><span style="color: #000000;">&nbsp;value&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;slider.getValue();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WindowUtils.setWindowAlpha(frame,&nbsp;value&nbsp;</span><span style="color: #000000;">*</span><span style="color: #000000;">&nbsp;</span><span style="color: #000000;">0.01f</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container.add(slider,&nbsp;BorderLayout.SOUTH);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RoundRectangle2D.Float&nbsp;mask&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">new</span><span style="color: #000000;">&nbsp;RoundRectangle2D.Float(</span><span style="color: #000000;">0</span><span style="color: #000000;">,&nbsp;</span><span style="color: #000000;">0</span><span style="color: #000000;">,&nbsp;frame<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.getWidth(),&nbsp;frame.getHeight(),&nbsp;</span><span style="color: #000000;">20</span><span style="color: #000000;">,&nbsp;</span><span style="color: #000000;">20</span><span style="color: #000000;">);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WindowUtils.setWindowMask(frame,&nbsp;mask);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;centerWindow(frame);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">public</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">static</span><span style="color: #000000;">&nbsp;</span><span style="color: #0000ff;">void</span><span style="color: #000000;">&nbsp;centerWindow(Container&nbsp;window)&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dimension&nbsp;dim&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;Toolkit.getDefaultToolkit().getScreenSize();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">int</span><span style="color: #000000;">&nbsp;w&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;window.getSize().width;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">int</span><span style="color: #000000;">&nbsp;h&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;window.getSize().height;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">int</span><span style="color: #000000;">&nbsp;x&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;(dim.width&nbsp;</span><span style="color: #000000;">-</span><span style="color: #000000;">&nbsp;w)&nbsp;</span><span style="color: #000000;">/</span><span style="color: #000000;">&nbsp;</span><span style="color: #000000;">2</span><span style="color: #000000;">;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color: #0000ff;">int</span><span style="color: #000000;">&nbsp;y&nbsp;</span><span style="color: #000000;">=</span><span style="color: #000000;">&nbsp;(dim.height&nbsp;</span><span style="color: #000000;">-</span><span style="color: #000000;">&nbsp;h)&nbsp;</span><span style="color: #000000;">/</span><span style="color: #000000;">&nbsp;</span><span style="color: #000000;">2</span><span style="color: #000000;">;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window.setLocation(x,&nbsp;y);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+}</span><p>&nbsp;&nbsp;&nbsp; 利用JNA来制作透明效果非常简单，只需要调用<span style="color: #000000;">WindowUtils.setWindowAlpha(window, alpha</span><span style="color: #000000;">)
+就可以了。当然这是JNA特别为UI写的工具代码。如果要改变形状，用WindowUtils.setWindowMask(window, 
+shape)或者WindowUtils.setWindowMask(window, icon)就可以了，但是要注意一点必须设置</span><span style="color: #000000;">System.setProperty(</span><span style="color: #000000;">"</span><span style="color: #000000;">sun.java2d.noddraw</span><span style="color: #000000;">"</span><span style="color: #000000;">,&nbsp;</span><span style="color: #000000;">"</span><span style="color: #000000;">true</span><span style="color: #000000;">"</span><span style="color: #000000;">)，否则JNA会告诉你这个程序不支持透明。当然要运行起来，还得需要两个Jar，<a href="https://jna.dev.java.net/source/browse/*checkout*/jna/trunk/jnalib/dist/jna.jar?rev=HEAD">jna.jar</a> 和 <a href="https://jna.dev.java.net/source/browse/*checkout*/jna/trunk/jnalib/dist/examples.jar?rev=HEAD">examples.jar</a> ，都不是很大，只有200多K。<br>
+&nbsp;&nbsp;&nbsp; 虽然这篇文章只是介绍了一下JNA关于Swing的简单用法，但是有了这个我最先到的便是可以做类似于Yahoo Widget和Google 
+Widget之类的东西了，还可以做好看的fishEye,SideBar，JNA的JAR两个合起来不过400K，却能让这么多复杂的事情简单化，真是
+精湛的艺术啊，嗯。</span></p><p>&nbsp;</p></div></body></html>

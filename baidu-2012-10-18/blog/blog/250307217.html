@@ -1,0 +1,142 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Echo1 High-Level Technical Overview</title></head><body><h1>Echo1 High-Level Technical Overview</h1><div><h2>Echo1 High-Level Technical Overview</h2>
+<span class="submitted">Fri, 01/04/2008 - 14:37 &mdash; tliebeck</span>
+<p>The High-Level Technical Overview provides an introduction to how Echo works. An understanding of the basic concepts described in the <a href="http://echo.nextapp.com/site/echo1/doc/tutorial">Echo Tutorial</a> will be beneficial in understanding this documentation. The information contained in the technical overview is not required when developing Echo applications, but it benefit developers by providing a broader understanding of how things are working behind the scenes.</p>
+<p>http://echo.nextapp.com/site/echo1/doc/hltov</p>
+<h2>Fundamentals</h2>
+<span class="submitted">Sat, 01/05/2008 - 00:28 &mdash; tliebeck</span>
+<p>The Echo framework is divided into two distinct tiers:</p>
+<ul>
+    <li>The Component Framework</li>
+    <li>The Application Container</li>
+</ul>
+<h2>The Component Framework</h2>
+<p>The first tier, the <strong>Component Framework</strong>, provides classes used directly by application developers in order to create user interfaces. The component framework is contained entirely within the <code><font face="NSimsun">nextapp.echo</font></code> package structure.</p>
+<p>The Component Framework <strong>DOES NOT</strong> provide any capabilities for interacting with client Web browsers, such as processing requests or generating HTML code. Such responsibilities are handled entirely by the Application Container, which is discussed later.</p>
+<h3>Component Objects</h3>
+<p>Component objects may assembled into hierarchies to create user interfaces. Each component represents a specific type of user interface component, e.g. the <code><font face="NSimsun">Button</font></code> and <code><font face="NSimsun">TextField</font></code> components represent the obvious user interface features they describe. All component objects are derived from the <code><font face="NSimsun">nextapp.echo.Component</font></code> class. A component may have properties which define its appearance, data, and behavior. More complex components will separate this information amongst multiple classes using a Model-View-Controller design pattern.</p>
+<p><img src="http://echo.nextapp.com/images/echo1/hltov/Hierarchy.png"><br>
+Figure 1: <code><font face="NSimsun">Component</font></code> objects assembled into a hierarchy to create a user interface.</p>
+<h3>EchoInstances</h3>
+<p>An <code><font face="NSimsun">EchoInstance</font></code> object represents a single user-instance of an Echo application. <code><font face="NSimsun">EchoInstance</font></code> objects will be created for each new user visiting an application, and will maintain their state for the life of the user's session with the application. The <code><font face="NSimsun">EchoInstance</font></code> can be used by developers to store user-specific data that should be persistent throughout the life of the application. Storing data in an <code><font face="NSimsun">EchoInstance</font></code> would be analogous for JSP and Servlet programmers to storing data in a user's <code><font face="NSimsun">HttpSession</font></code>.</p>
+<p>When a new <code><font face="NSimsun">EchoInstance</font></code> is created for a user, it's <code><font face="NSimsun">init()</font></code> method will be invoked. The <code><font face="NSimsun">init()</font></code> method, which is declared <code><font face="NSimsun">abstract</font></code>, is responsible for returning a <code><font face="NSimsun">Window</font></code> component. This <code><font face="NSimsun">Window</font></code> will represent the existing window of the user's Web browser.</p>
+<p>The <code><font face="NSimsun">EchoInstance</font></code> object is responsible for keeping track of all top-level <code><font face="NSimsun">Window</font></code> components of an application. Any displayed <code><font face="NSimsun">Component</font></code> will have a window as its ultimate ancestor. Adding and removing windows to and from an application is accomplished by invoking <code><font face="NSimsun">EchoInstance</font></code>'s <code><font face="NSimsun">addWindow()</font></code> and <code><font face="NSimsun">removeWindow()</font></code> methods.</p>
+<h3>Events</h3>
+<p>Communication between <code><font face="NSimsun">Component</font></code>s is accomplished through the use of events. Components may generate events, which will be fired to listeners who register to receive them. <code><font face="NSimsun">Component</font></code>s will generate events whenever their states change.</p>
+<h2>The Application Container</h2>
+<p>The <strong>Application Container</strong> serves as a translation layer between an application's user interface (which is built using Echo components) and a client Web browser (whose interface is built using HTML and JavaScript). The Application Container is responsible for translating the state of an application's user interface into HTML and JavaScript, as well as translating user input from a client Web browser into a state where it can be processed by the application.</p>
+<p>The Application Container is contained in the <code><font face="NSimsun">nextapp.echoservlet</font></code> package hierarchy.</p>
+<p>Developers should not generally interact with the Application Container directly when developing Echo applications. If interaction with the Application Container is required, the appropriate method is for the developer to create his/her own rendered components (see <a href="http://echo.nextapp.com/site/echo1/doc/cat/">Component Authoring Tutorial</a>).</p>
+<p>Many classes within the Application Container are purposed to handle translation for a specific class within the Component Framework. For example, the <code><font face="NSimsun">InstancePeer</font></code> class is the application container equivalent of the component framework's <code><font face="NSimsun">EchoInstance</font></code> class, and the application container's <code><font face="NSimsun">TextFieldUI</font></code> is similarly associated with the component framework's <code><font face="NSimsun">TextField</font></code> component.</p>
+<h3>The EchoServer</h3>
+<p>The <code><font face="NSimsun">EchoServer</font></code> class is derived from the Servlet specification's <code><font face="NSimsun">HttpServlet</font></code> class. A single <code><font face="NSimsun">EchoServer</font></code> class is responsible for handling all client requests to a particular application.</p>
+<h3>InstancePeer</h3>
+<p>The <code><font face="NSimsun">InstancePeer</font></code> is the Application Container corollary of the <code><font face="NSimsun">EchoInstance</font></code> class of the Component Framework. <code><font face="NSimsun">InstancePeer</font></code>s are responsible for the overall state of the Application Container side of an application. The <code><font face="NSimsun">InstancePeer</font></code> tracks changes to the hierarchy of <code><font face="NSimsun">Component</font></code>s of a single user-instance, and is responsible for creating and deleting rendering peers (discussed shortly) as necessary. It is also responsible for managing notification of user input to components, and determining which components have changed on the server and thus need to be updated on the client.</p>
+<h3>Rendering Peers</h3>
+<p>Every component in a visible hierarchy that is part of a visible Window registered to an EchoInstance will have a rendering peer. These peer objects are created automatically for all components of an <code><font face="NSimsun">EchoInstance</font></code> by the Application Container's <code><font face="NSimsun">InstancePeer</font></code> object.</p>
+<p><img src="http://echo.nextapp.com/images/echo1/hltov/PeerArchitecture.png"><br>
+<em>Figure 2:</em> Application Container peer objects for handling<br>
+Web client translation of an application's user interface.</p>
+<p>Rendering peers are derived from the <code><font face="NSimsun">nextapp.echoservlet.ComponentPeer</font></code> class. The <code><font face="NSimsun">ComponentPeer</font></code> class specifies a method, <code><font face="NSimsun">render()</font></code> which is invoked to cause the peer to generate an HTML representation of itself for rendering. Additional interfaces, such as <code><font face="NSimsun">ClientInputProducer</font></code> and <code><font face="NSimsun">ClientActionProducer</font></code> may be implemented by a <code><font face="NSimsun">ComponentPeer</font></code> if it might receive user input from the client browser.</p>
+<p>One rendering peer object is created for each Component of an application. Thus, rendering peers are <em>stateful</em>. Peer objects may contain state information that is relevant to a component's interaction with the client browser but may not be relevant to the component itself.</p>
+<h3>Services</h3>
+<p>A Service is a class which registers itself to handle a certain type of HTTP request. A service is responsible for producing output which may be interpreted by a client Web browser, e.g. HTML code, JavaScript, a PNG image or even a Flash movie. Services are defined by implementing the <code><font face="NSimsun">nextapp.echoservlet.Service</font></code> interface.</p>
+<p>In some cases, rendering peers that render entire HTML documents will implement the <code><font face="NSimsun">Service</font></code> interface. Examples can be found with <code><font face="NSimsun">ContainerPaneUI</font></code> (which renders an HTML frameset) and <code><font face="NSimsun">ContentPaneUI</font></code> (which renders a content pane).</p>
+<p>Services must be <em>registered</em> in order to be eligible to be invoked. They may be registered globally, with the <code><font face="NSimsun">EchoServer</font></code>, as is the case for commonly used services such as those that render static JavaScript code to support specific components. Services which are also <code><font face="NSimsun">ComponentPeer</font></code>s will be registered with the single <code><font face="NSimsun">InstancePeer</font></code> to which they are relevant. <code><font face="NSimsun">ComponentPeer</font></code>s may also use additional services locally, called <em>Ancillary</em> services. Ancillary services exist for the life of the component peer, and are commonly used by components which will render images or internal frames which must be retrieved via additional HTTP requests from the client.</p>
+<h3>Connections</h3>
+<p>A <code><font face="NSimsun">Connection</font></code> object wraps an <code><font face="NSimsun">HttpServletRequest</font></code> and <code><font face="NSimsun">HttpServletResponse</font></code>, and provides convenience methods through which the relevant <code><font face="NSimsun">InstancePeer</font></code> for the user performing the operation may be obtained. A <code><font face="NSimsun">Connection</font></code> object is created by the <code><font face="NSimsun">EchoServer</font></code> whenever it receives an HTTP request. <code><font face="NSimsun">Connection</font></code> objects automatically parse the incoming HTTP request and forward it to the appropriate service by performing a lookup on the unique service identifier specified in the request.</p>
+<h2>Client/Server Interaction</h2>
+<span class="submitted">Sat, 01/05/2008 - 00:34 &mdash; tliebeck</span>
+<p>In order to achieve the capabilities of a desktop application from within the confines of a remote web browser, Echo uses some unconventional methods when interacting with browser clients. This section provides an overview of how interactions between the client and the server are performed.</p>
+<h3>Window Organization</h3>
+<p>Every window of an Echo application on the client browser has an HTML frameset as its content. This <em>root frameset</em> contains a <em>content frame</em> and a <em>controller frame</em>. The frameset is divided such that the content frame occupies 100% of the visual area of the window, while the controller frame is entirely non-visible.</p>
+<p>All visual components of the application are displayed in the content frame. It may contain an HTML document, or an HTML frameset containing documents and other framesets.</p>
+<h3>The Controller Frame</h3>
+<p>The controller frame functions as a communications channel between the client and the server. This frame contains an HTML form which is used to store user input. HTML form components contained in the content frame will invoke JavaScript calls to store user input into this form. When the controller frame is submitted to the server, the server will parse the form input to determine what changes the user has made to the client-side state of the application.</p>
+<p>The controller frame is submitted to the server when the user performs an operation which requires server interaction, e.g., clicking a <code><font face="NSimsun">Button</font></code> that has one or more <code><font face="NSimsun">ActionListener</font></code>s. When the controller frame is submitted, all changed data will be sent to the server. The server will analyze the submitted form and notify various components about user input via events.</p>
+<p>The server will note any components that have changed state by listening for <code><font face="NSimsun">PropertyChangeEvent</font></code>s from them. When a component changes, it's containing HTML frame will be marked as needing to be re-rendered.</p>
+<p>Once this process has been completed, the server will begin rendering a new controller frame in response to the request. This controller frame will contain JavaScript which will be invoked on the client to cause browser frames which have been modified to be refreshed such that they reflect the changes made on the server.</p>
+<h3>An Example Walk-Through</h3>
+<p>In order to illustrate how the client/server interaction process works, this section demonstrates a single group of interactions between the user, client, and server.</p>
+<p>The fictitious application used in this example consists of three <code><font face="NSimsun">ContentPane</font></code>s which are rendered on the client browser using an HTML frameset. The yellow pane initially contains the word &quot;Hello&quot;. The green pane contains two red buttons which have <code><font face="NSimsun">ActionListener</font></code>s, which will thus notify the server if they are clicked. The blue pane initially contains a <code><font face="NSimsun">TextField</font></code> and a <code><font face="NSimsun">SelectField</font></code>. In this example we will assume that the user is supposed to enter the name of a pet in the text field and select the type of the pet using the selection field.</p>
+<p>In the illustrations below, the contents of the browser are represented by the GUI window graphic. The dashed area below this window represents the controller frame. The content of this dashed area is used to illustrate the state of the controller frame (in reality, the controller form contains no visual content). The &quot;TODO&quot; column represents tasks that the controller frame needs to perform, and the &quot;DATA&quot; column represents user-updated data being held within its form.</p>
+<p><img src="http://echo.nextapp.com/images/echo1/hltov/CSInteraction1.png"></p>
+<table class="info cke_show_border FCK__ShowTableBorders">
+    <tbody>
+        <tr>
+            <th>Step</th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td class="row-heading">1</td>
+            <td>Initial state of screen. The user has made no changes since the last server interaction, and as such all data fields of the controller frame are empty.</td>
+        </tr>
+        <tr>
+            <td class="row-heading">2</td>
+            <td>User clicks on text field and enters name of pet, &quot;Fido.&quot;</td>
+        </tr>
+        <tr>
+            <td class="row-heading">3</td>
+            <td>User clicks outside of text field. A JavaScript <code><font face="NSimsun">onblur</font></code> event from the text field causes data to be copied to the appropriate field in form of the controller frame.</td>
+        </tr>
+        <tr>
+            <td class="row-heading">4</td>
+            <td>User selects pet type from selection field.</td>
+        </tr>
+        <tr>
+            <td class="row-heading">5</td>
+            <td>A JavaScript <code><font face="NSimsun">onchange</font></code> event from the select field causes data to be copied to the appropriate field of the controller frame.</td>
+        </tr>
+    </tbody>
+</table>
+<p><img src="http://echo.nextapp.com/images/echo1/hltov/CSInteraction2.png"></p>
+<table class="info cke_show_border FCK__ShowTableBorders">
+    <tbody>
+        <tr>
+            <th>Step</th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td class="row-heading">6</td>
+            <td>User clicks on a button that has an <code><font face="NSimsun">ActionListener</font></code>. JavaScript code is executed to cause the controller frame's form to be submitted.</td>
+        </tr>
+        <tr>
+            <td class="row-heading">7</td>
+            <td>The server receives the controller frame submission. The process of updating the server-side state of the application with changes made by the user on the client begins. The <code><font face="NSimsun">TextFieldUI</font></code> responsible for the text field is notified that its state was changed, via calls through its <code><font face="NSimsun">ClientInputProducer</font></code> interface. The <code><font face="NSimsun">TextFieldUI</font></code> updates the state of the model of the <code><font face="NSimsun">TextField</font></code> it represents, and the model fires a <code><font face="NSimsun">DocumentEvent</font></code> to any interested listeners describing the change. A similar process occurs when the <code><font face="NSimsun">SelectFieldUI</font></code> is notified of its data change. The button press that caused the server interaction is processed last. The <code><font face="NSimsun">ButtonUI</font></code> is notified through its <code><font face="NSimsun">ClientActionProducer</font></code> interface, and it in turn notifies its represented <code><font face="NSimsun">Button</font></code> which will then fire <code><font face="NSimsun">ActionEvent</font></code>s to listeners within the application.
+            <p>The collective firing of these events to the application has a result of the application changing state. In the case of this (entirely fictitious) application, the content of the yellow pane is changed to say &quot;Hi Fido!!!&quot; and the content of the blue pane is changed to display a picture of a dog. When these changes are made, the application container will be made aware of them via <code><font face="NSimsun">PropertyChangeEvent</font></code>s. The Application Container will respond to these events by marking frames as needing to be re-rendered on the client.</p>
+            <p>The server then proceeds to generate a new controller frame to reflect the updated server-side state, including JavaScript directives which will cause the client to refresh the necessary frames.</p>
+            </td>
+        </tr>
+        <tr>
+            <td class="row-heading">8</td>
+            <td>The browser receives the response from its submit of the controller frame. The browser replaces the old controller frame with the newly received one. At this point the visible content of the browser is still unchanged.
+            <p>The client then processes the JavaScript directives in the newly received controller frame. JavaScript code is executed to refresh the yellow and blue frames of the browser.</p>
+            </td>
+        </tr>
+        <tr>
+            <td class="row-heading">9</td>
+            <td>The server responds to the requests to re-render the yellow and blue frames.</td>
+        </tr>
+        <tr>
+            <td class="row-heading">10</td>
+            <td>The frames have been re-rendered, and the state of the client has once again been synchronized to that of the server.</td>
+        </tr>
+    </tbody>
+</table>
+<h2>Rendering Infrastructure</h2>
+<span class="submitted">Sat, 01/05/2008 - 00:38 &mdash; tliebeck</span>
+<p>Echo <em>services</em> are responsible for producing browser-understandable output. The <code><font face="NSimsun">Service</font></code> interface contains two methods: <code><font face="NSimsun">getId()</font></code> and <code><font face="NSimsun">service()</font></code>. The <code><font face="NSimsun">getId()</font></code> method is responsible for returning a unique alphanumeric string as an identifier (it may also contain underscores). The <code><font face="NSimsun">service()</font></code> method, which takes a <code><font face="NSimsun">Connection</font></code> as a parameter, is responsible for rendering the output to the provided <code><font face="NSimsun">Connection</font></code>.</p>
+<h2>HTML Rendering</h2>
+<p>Many Echo services will render their output in the form of HTML code. <code><font face="NSimsun">ComponentPeer</font></code> objects also render HTML code to generate browser-ready representations of server side <code><font face="NSimsun">Component</font></code> objects. Echo provides an HTML-generation infrastructure in order to facilitate the needs of these objects. The fundamental difference between <code><font face="NSimsun">Service</font></code>s and <code><font face="NSimsun">ComponentPeer</font></code>s in this regard is that <code><font face="NSimsun">Service</font></code>s are responsible for rendering entire HTML documents, while <code><font face="NSimsun">ComponentPeer</font></code>s are only responsible for rendering a sepcific part of the document. <code><font face="NSimsun">Service</font></code>s will invoke the <code><font face="NSimsun">render()</font></code> methods of <code><font face="NSimsun">ComponentPeer</font></code>s such that they provide their portion of the HTML document that the <code><font face="NSimsun">Service</font></code> is rendering.</p>
+<p>When an HTML document is rendered, it is first represented in memory as a hierarchy of <code><font face="NSimsun">nextapp.echoservlet.html.Element</font></code> objects. This hierarchy is assembled via calls to <code><font face="NSimsun">Element</font></code>'s <code><font face="NSimsun">add()</font></code> method. Attributes may be set on each element using the <code><font face="NSimsun">addAttribute()</font></code> method. When the hierarchy has been fully assembled, the <code><font face="NSimsun">render()</font></code> method is invoked on the root element. The <code><font face="NSimsun">render()</font></code> method takes a <code><font face="NSimsun">java.io.PrintWriter</font></code> as one of its parameters. All rendering is done by sending output to this <code><font face="NSimsun">PrintWriter</font></code>. This architecture dispenses with the need to do heavy-duty string concatenation on rendering. It also provides for capabilities where a <code><font face="NSimsun">ComponentPeer</font></code> may render code in multiple parts of an HTML document.</p>
+<h3>The <code><font face="NSimsun">nextapp.echoservlet.html</font></code> Package</h3>
+<p>The <code><font face="NSimsun">nextapp.echoservlet.html</font></code> package contains classes used in producing HTML documents. The <code><font face="NSimsun">Element</font></code> class is contained in this package, and is the most fundamental building block when creating HTML documents. <code><font face="NSimsun">Element</font></code>s are assembled into hierarchies which can be rendered into HTML documents. The <code><font face="NSimsun">html</font></code> package also provides provides classes for creating &quot;style&quot; and &quot;script&quot; HTML elements, whose content has significant formatting restrictions.</p>
+<h3>The <code><font face="NSimsun">HtmlDocument</font></code> Class</h3>
+<p>The <code><font face="NSimsun">HtmlDocument</font></code> class is not a part of the <code><font face="NSimsun">html</font></code> package; it is instead located in the core <code><font face="NSimsun">nextapp.echoservlet</font></code> package. While the classes of the <code><font face="NSimsun">html</font></code> package are used for generic HTML code generation, the <code><font face="NSimsun">HtmlDocument</font></code> class is specifically intended to provide a backbone for creating HTML documents rendered by Echo <code><font face="NSimsun">Service</font></code>s. The <code><font face="NSimsun">HtmlDocument</font></code> provides convenient methods of creating both content-containg and frameset HTML documents.</p>
+<h3>The <code><font face="NSimsun">ClientObjects</font></code> Class</h3>
+<p>The <code><font face="NSimsun">ClientObjects</font></code> class is used throughout Echo to generate URIs and JavaScript object names. It is a very simple class which contains only static methods, and as such, may not be instantiated. As an example of its use, a component peer might invoke the <code><font face="NSimsun">ClientObjects.getServiceUri()</font></code> method when rendering an <code><font face="NSimsun">&lt;img&gt;</font></code> element to determine the Echo URI of the service which will provide the image data.</p>
+<h2>Non-HTML Rendering</h2>
+<p>Many Echo services output data which is not in HTML. Echo services are capable of rendering other text formats and even binary data. These capabilities of Echo services will be used to render content such as JavaScript include files, images, multimedia content, and downloadable files.</p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p></div></body></html>

@@ -1,0 +1,81 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>NSIS脚本制作Java程序的EXE启动器</title></head><body><h1>NSIS脚本制作Java程序的EXE启动器</h1><div><h2><a href="http://www.blogjava.net/xilaile/archive/2007/05/13/117039.html">NSIS脚本制作Java程序的EXE启动器</a></h2>
+<p>NSIS调用外部程序的的命令是Exec，比如Exec &quot;notepad&quot;, 将启动Windows的默认文本编辑器Notepad。同样的道理可以用&quot;java -jar test.jar&quot;启动test.jar。</p>
+<p> </p>
+<div style="border-bottom: rgb(204,204,204) 1px solid; border-left: rgb(204,204,204) 1px solid; padding-bottom: 4px; background-color: rgb(238,238,238); padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; border-top: rgb(204,204,204) 1px solid; border-right: rgb(204,204,204) 1px solid; padding-top: 4px"><span style="color: rgb(0,0,0)">Name </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">Java Launcher</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+Caption </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">Java Launcher</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+Icon </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">Java Launcher.ico</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+OutFile </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">Java Launcher.exe</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+<br>
+SilentInstall silent<br>
+AutoCloseWindow true<br>
+ShowInstDetails nevershow<br>
+<br>
+Section </span><span style="color: rgb(0,0,0)">&quot;&quot;</span><span style="color: rgb(0,0,0)"><br>
+<span style="color: red">Exec </span></span><span style="color: red">&quot;java -jar test.jar&quot;</span><span style="color: rgb(0,0,0)"><br>
+SectionEnd</span></div>
+<br>
+将上面这段NSIS脚本拷贝到一个nsi文件中，用NSIS编译器编译，将产生Java Launcher.exe。双击Java Launcher.exe将启动同一目录下的test.jar文件，test.jar必须能够用java -jar test.jar启动，也就是说test.jar的manifest的Library和Main-Class都要正确设值好。否则的话，你可以用java -classpath jar1;jar2 main_class来启动。
+<p>如何编译NSIS脚本请参看我之前的一篇随笔 <a title="安装程序制作系统NSIS(Nullsoft scriptable install system)" href="http://www.blogjava.net/xilaile/archive/2007/03/29/107294.aspx">安装程序制作系统NSIS(Nullsoft Scriptable Install System)</a>。</p>
+<p>上面这个启动器的一个问题是会打开一个控制台窗口，这是因为用了java命令，只要改为javaw就不会出现控制台了。另外一个问题是不够健壮，只有当java或者javaw命令在当前目录下或者在PATH上，才能正确启动。也许你想带着一个JRE发布你的程序，那么就不能够去启动系统的java命令。下面来加入寻找java命令目录的功能，寻找的顺序为</p>
+<ol>
+    <li>当前目录下的jre子目录, 如果你的发布程序里带了一个jre，优先启动。</li>
+    <li>环境变量JAVA_HOME 指定的目录</li>
+    <li>在注册表中，HKLM\SOFTWARE\JavaSoft\Java Runtime Environment下保存着安装的JRE的目录信息。</li>
+    <li>当前目录和系统环境变量PATH中的目录</li>
+</ol>
+<span style="font-weight: bold">脚本</span><br>
+<div style="border-bottom: rgb(204,204,204) 1px solid; border-left: rgb(204,204,204) 1px solid; padding-bottom: 4px; background-color: rgb(238,238,238); padding-left: 4px; width: 98%; padding-right: 5px; font-size: 13px; border-top: rgb(204,204,204) 1px solid; border-right: rgb(204,204,204) 1px solid; padding-top: 4px"><span style="color: rgb(0,0,0)">Name </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">Java Launcher</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+Caption </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">Java Launcher</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+Icon </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">Java Launcher.ico</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+OutFile </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">Java Launcher.exe</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+<br>
+SilentInstall silent<br>
+AutoCloseWindow true<br>
+ShowInstDetails nevershow<br>
+<br>
+Section </span><span style="color: rgb(0,0,0)">&quot;&quot;</span><span style="color: rgb(0,0,0)"><br>
+Call GetJRE<br>
+Pop $R0<br>
+<br>
+</span><span style="color: rgb(0,128,0)">;</span><span style="color: rgb(0,128,0)"> change for your purpose (-jar etc.)</span><span style="color: rgb(0,128,0)"><br>
+</span><span style="color: rgb(0,0,0)">&nbsp;&nbsp;  StrCpy $</span><span style="color: rgb(0,0,0)">0</span><span style="color: rgb(0,0,0)"> '</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">$R0</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"> -jar test.jar'<br>
+<br>
+SetOutPath $EXEDIR<br>
+<span style="color: red">ExecWait $</span></span><span style="color: red">0</span><span style="color: rgb(0,0,0)"><br>
+SectionEnd<br>
+<br>
+Function GetJRE <br>
+Push $R0<br>
+Push $R1<br>
+<br>
+ClearErrors<br>
+StrCpy $R0 </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">$EXEDIR\jre\bin\javaw.exe</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+IfFileExists $R0 JreFound<br>
+StrCpy $R0 </span><span style="color: rgb(0,0,0)">&quot;&quot;</span><span style="color: rgb(0,0,0)"><br>
+<br>
+ClearErrors<br>
+ReadEnvStr $R0 </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">JAVA_HOME</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+StrCpy $R0 </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">$R0\bin\javaw.exe</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+IfErrors </span><span style="color: rgb(0,0,0)">0</span><span style="color: rgb(0,0,0)"> JreFound<br>
+<br>
+ClearErrors<br>
+ReadRegStr $R1 HKLM </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">SOFTWARE\JavaSoft\Java Runtime Environment</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"> </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">CurrentVersion</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+ReadRegStr $R0 HKLM </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">SOFTWARE\JavaSoft\Java Runtime Environment\$R1</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"> </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">JavaHome</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+StrCpy $R0 </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">$R0\bin\javaw.exe</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+<br>
+IfErrors </span><span style="color: rgb(0,0,0)">0</span><span style="color: rgb(0,0,0)"> JreFound<br>
+StrCpy $R0 </span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)">javaw.exe</span><span style="color: rgb(0,0,0)">&quot;</span><span style="color: rgb(0,0,0)"><br>
+<br>
+JreFound:<br>
+Pop $R1<br>
+Exch $R0<br>
+FunctionEnd</span></div>
+Function GetJRE定义了寻找JRE的函数，找到的javaw命令的路径可以从R0中取回。R0，R1是NSIS预定义的寄存器，或者说是变量，Push $R0将R0的内容压进堆栈，Pop $R0从堆栈中取回R0的内容。这一点和汇编程序很像。GetJRE按定义好的顺序判断指定路径下的是否存在javaw，如果是，返回。比如<br>
+ReadEnvStr $R0 &quot;JAVA_HOME&quot;&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  读入JAVA_HOME的值到R0<br>
+StrCpy $R0 &quot;$R0\bin\javaw.exe&quot; &nbsp;&nbsp;  &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  加上\bin\javaw.exe<br>
+IfFileExists $R0 JreFound &nbsp;&nbsp;  &nbsp;&nbsp;  &nbsp;&nbsp;  &nbsp;&nbsp;  &nbsp;&nbsp;  如果R0指定的文件存在，跳转到JreFound<br>
+ReadRegStr读取注册表中的键值。Exch $R0交换R0和堆栈头元素的值。其他函数从字面上就可以理解了，不需要过多的解释。<br>
+<br>
+最后要说明的是，这里用Execwait启动java命令，而不是Exec。区别是Exec马上退出Java Launcher.exe的进程，而 Execwait不退出，也就是说用Execwait在关闭程序之前，有两个活动进程，Java Launcher.exe和javaw.exe。这正是 eclipse3.3之前的EXE启动器的情况，比如Eclipse3.2启动后，任务管理器里有eclipse.exe和javaw.exe两个进程。使用Execwait的原因是Exec在Windows 2000下出现的一个问题，在使用程序的过程中，如果用户改变了桌面属性，比如背景图，系统就挂掉了。Eclipse在3.3之后改成了使用Java的 Invocation Interface启动startup.jar。详细的情况请看org.eclipse.equinox.executable项目。<br>
+<hr style="width: 100%; height: 2px">
+转载请保留<a title="http://www.blogjava.net/xilaile/archive/2007/05/13/117039.html" href="http://www.blogjava.net/xilaile/archive/2007/05/13/117039.html">http://www.blogjava.net/xilaile/archive/2007/05/13/117039.html</a></div></body></html>

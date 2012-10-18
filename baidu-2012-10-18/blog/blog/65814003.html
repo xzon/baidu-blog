@@ -1,0 +1,40 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>优化J2ME中的paint()函数</title></head><body><h1>优化J2ME中的paint()函数</h1><div><div>
+<p>优化J2ME中的paint()函数</p>
+<p>　　我们经常会遇到这样的问题，在模拟器上跑得很好的程序在实际的手机上却很慢，甚至运行不了，这大多数是因为重画机制的使用不当所致，J2ME中的paint()函数起到了画屏幕的作用，往往在需要动画的情况下非常频繁地需要调用，而且在一些低端手机或移动设备上面，对于paint()函数的频繁调用会引起相应时间长甚至无法正常工作等问题。所以，对于paint()函数的优化就显得特别重要。这里，我们提出几点优化paint()函数的方法和注意事项，在编程中大家可以参考：</p>
+</div>
+<div> </div>
+<div>　　1.不要在paint()函数当中使用耗时的操作，比如：</div>
+<div> </div>
+<div>　　try{<br>
+　　Image image_Splash = Image.createImage(&quot;/back.png&quot;);<br>
+　　g.drawImage(image_Splash, 0, 0,Graphics.TOP | Graphics.LEFT);<br>
+　　}<br>
+　　catch(Exception ex) {<br>
+　　}</div>
+<div> </div>
+<div>　　其中的创建图片的方法由于需要IO操作非常费时，因此要尽量避免，创建操作只在初始化的时候做一遍。</div>
+<div> </div>
+<div>　　2.使用像素较小的图片，一般来书，颜色种类少的图片显示时间就少，因此，尽量避免使用256色以上的图片，一些色调丰富，过度缓慢的图片往往需要 多种像素来满足需求，因此，尽量使用卡通图片，或者转换成256或16色的图片，会减少绘图时间。</div>
+<div> </div>
+<div>　　3.局部刷新， 每次的重画repaint()都要调用paint(),而并不是每一次repaint()都要重画整个屏幕，因此有时候之需要重画部分屏幕即可，这又有两种方法可以实现，第一种是利用Clip,Clip是一个矩形的绘图区域，当重绘时，仅仅重绘这个区域以内的内容，而不管其他部分，因此可以节省操作，可 以通过setClip()等函数设定绘图区域。</div>
+<div> </div>
+<div>　　另外可以通过repaint( x,y,width,height )来重画指定的某一个区域，这个函数实际上也是设定了某一个重绘Clip(),不过使用起来会更加方便。</div>
+<div> </div>
+<div>　　4.减少repaint()的次数，尽量只在产生作用的时候才重画。</div>
+<div> </div>
+<div>　　5.将paint()函数的部分内容提到外面来做，使得重画减少计算量和操作。</div>
+<div> </div>
+<div>　　6.使用双缓存技术，某些设备本身就支持双缓存技术，判断设备是否支持双缓存可以用Canvas类的isDoubleBuffered()方法。实现双缓存可以使用Image 类的可变图像技术。如，利用：</div>
+<div> </div>
+<div>image = Image.createImage( width, height );<br>
+Graphics g = image.getGraphics();</div>
+<div> </div>
+<div>　　来建立一个可变图像，它和Canvas一样都能够得到Graphics绘图对象的绘制。而且可以不在paint()函数里面，这一点非常重要。可以在init()中放入绘图语句，或者放到一个单独的函数中，把图片绘制到屏幕外缓冲当中，然后在paint()函数中仅仅是把这个Image绘制到当前的Canvas里面了，这样就可以节省很多计算操作。比如：</div>
+<div> </div>
+<div>public void paint(Graphics g){<br>
+g.translate(x - g.getTranslateX(), y - g.getTranslateY());//设置当前坐标系统<br>
+g.drawImage(image,0,0,g.TOP|g.LEFT);<br>
+g.translate(x - g.getTranslateX(), y - g.getTranslateY());//改回原来的坐标系统<br>
+}</div>
+<div> </div>
+<div> </div></div></body></html>

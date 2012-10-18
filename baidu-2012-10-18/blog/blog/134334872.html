@@ -1,0 +1,187 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>深入浅出JBoss Seam</title></head><body><h1>深入浅出JBoss Seam</h1><div><h1>深入浅出JBoss Seam</h1>
+<p class="info">作者 <strong>Michael Yuan</strong>译者 <strong>包亮</strong> 发布于 2007年11月2日 上午1时3分</p>
+<dl class="tags2"><dt class="community">社区 </dt><dd><a href="http://www.infoq.com/cn/java;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F" name="java">Java</a> </dd><dt class="topics">主题 </dt><dd><a href="http://www.infoq.com/cn/webframework;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F" name="webframework">Web框架</a> </dd><dt class="topics">标签 </dt><dd><a href="http://www.infoq.com/cn/seam;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F" name="seam">JBoss Seam</a>, </dd><dd><a href="http://www.infoq.com/cn/jboss;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F" name="jboss">JBoss</a>, </dd><dd><a href="http://www.infoq.com/cn/ejb;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F" name="ejb">EJB</a>, </dd><dd><a href="http://www.infoq.com/cn/JSF;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F" name="JSF">JSF</a> </dd></dl>
+<p>本文节选了Michael Yuan和Thomas Heute所著的即将出版<strong><a href="http://www.michaelyuan.com/blog/seam-next-gen-web-framework/">JBoss Seam: Power and Flexibility Beyond Java EE 5.0</a></strong>第一章和第二章，内容有所删减。</p>
+<h2>什么是Seam？</h2>
+<p>JBoss Seam是&ldquo;Java EE 5.0的一个轻量级的框架&rdquo;。这是什么意思？难道Java EE(Enterprise Edition) 5.0本身不是一套&ldquo;框架吗&rdquo;？为什么在官方规范之外，还需要另外一个框架？好吧，我们就将seam看作是本应该被包括在Java EE 5.0中的一个&ldquo;遗漏的框架&rdquo;吧。它在Java EE 5.0框架的上层，为所有的在企业Web应用中的组件提供了一个统一的、易于理解的编程模型。它同样使基于状态的应用和业务流程驱动的应用的开发易如反掌。换句话说，Seam致力于开发者生产力和应用扩展性。</p>
+<h3>1. 整合和强化Java EE框架</h3>
+<p>Java EE5.0的核心框架是EJB(Enterprise JavaBeans)3.0和JSF(JavaServer Faces)1.2。EJB 3.0(以下简称EJB3)是基于一个POJO(Plain Old Java Objects)的业务服务和数据库持久化的轻型框架。JSF是一个基于MVC(Model-View-Controller)的Web应用框架。大多数的Web应用都将包含有业务逻辑的EJB3组件和Web应用前端显示的JSF组件。EJB3和JSF虽然互补，但是他们是根据各自的理念设计的独立的框架。例如，EJB3使用注解（annotation）来配置服务，而JSF使用的是XML文件。更进一步讲，EJB3和JSF组件在框架层面上是互不敏感的。要整合EJB3和JSF，开发者必须手动地构造facade对象（如：JSF支持bean），将业务组件与Web页面和样板代码（又称plumbing代码）联结起来，以便能跨框架调用方法。将这些技术粘合起来是Seam的职责之一。</p>
+<p>Seam打破了EJB3和JSF之间的人工层，它为整合EJB3和JSF提供了一个一致的，基于注解的途径。只需要个别简单的注解，Seam中的EJB3业务组件就能直接被用来支持JSF Web表单或者处理Web UI事件。Seam允许开发者将&ldquo;同一种东西&rdquo;&mdash;&mdash;有注解的POJOs&mdash;&mdash;应用与所有的应用组件。与其他Web框架开发的应用相比，Seam应用概念简洁，同样的功能却需要较少的代码（在JAVA和XML中）。如果没有耐心，或者想要快速预览，一个Seam到底有多简单，你可以现看看本文描述的hello world一例。</p>
+<p>在JSP来说困难的任务，Seam可以轻易的完成。例如，JSF头疼的一个问题就是过分依赖HTTP POST。这使得将一个添加到书签中的JSF网页，通过HTTP GET访问相当困难。但是有了Seam，生成一个REST网页是非常容易的。Seam提供了一系列JSF组件标签和注解，增加了&ldquo;web友好&rdquo;和JSF应用的网页效率。</p>
+<p>同时，Seam拓展了EJB3到POJO的组件模式, 从web层到业务层都有了状态上下文。进一步说，Seam整合了一系列主要的其他开放源代码框架，例如jBPM、JBoss Rules(又名Drools)、JBoss Portal、JBoss Microcontainer等等。Seam不仅能将它们&ldquo;有机结合&rdquo;起来，而且可以像整合JSF和EJB3一样强化原有的框架。</p>
+<p>Seam位于Java EE 5.0底层，但它的应用并不局限与Java EE 5.0服务器。一个Seam应用可以部署在J2EE 1.4应用服务器和Tomcat服务器上。这意味着现在能在Seam应用中得到产品化支持。</p>
+<blockquote><strong>1 + 1 &gt; 2</strong><br>
+<p>或许有这样一种误解，认为Seam仅仅是将各种不同框架串起来的另外一个集成框架。Seam提供了它自身管理的状态上下文，允许框架通过注解和EL（表达式语言）表达式与其他框架进行深度整合。整合的程序来自于Seam开发者对第三方框架的认知。</p>
+</blockquote>
+<h3>2. 一个为ORM设计的Web框架</h3>
+<p>对象关系映射(ORM)解决方案在当今企业应用中广为使用。但是，大多数当前的业务和web框架并不是为ORM设计的，它们并不在整个Web交互生命周期&mdash;&mdash;从请求来临到响应完成&mdash;&mdash;管理持久上下文。这就导致了包括可怕的<strong>LazyInitializationException</strong>在内的各种ORM异常，带来了如&ldquo;数据传输对象（DTO）&rdquo;等丑陋的伎俩（ugly hacks）。</p>
+<p>Gavin King发明了Seam，同时他也发明了在世界上广为使用的ORM解决方案Hibernate。为了继承和发扬ORM的最佳实践，Seam进行了重新设计。有了Seam，就不必再写DTO，你所做的就是延迟加载。因为扩展后的持久上下文就如同一个自然的高速缓存，可以减少和数据库的交互，ORM的性能就会被极大地改进。</p>
+<p>进一步讲，因为Seam整合了ORM层、业务层和表示层，开发者就能够在表示层直接展示ORM对象，也能把数据库验证注解用于输入表单，以及重新定向ORM例外到定制的错误页面。</p>
+<h3>3.专为有状态Web应用而设计</h3>
+<p>Seam是专为有状态Web应用而设计的。Web应用是天生的多用户应用，电子商务应用天生也是有状态的和有事务的。但是，大多数已有Web应用框架是面向无状态应用的。开发者必须操作HTTP会话（session）对象来管理用户状态，与核心业务逻辑无关的代码不仅会混乱你的应用，而且带来了一系列的性能问题。</p>
+<p>在Seam中，所有的基础应用组件天生地有状态。它们使用起来要比HTTP session容易，因为它们的状态由Seam公开管理。没有必要在Seam应用中编写引起麻烦的状态管理代码&mdash;&mdash;只需在其组件上注解其做用域、生命周期方法以及其他状态属性，Seam就会掌管其他[译者注：指这些组件的生命周期]。Seam状态组件要比HTTP会话（session）能更好的管理用户状态。例如，你能有多个&ldquo;会话&rdquo;进行，每个&ldquo;会话&rdquo;由在一个HTTP会话（session）中一系列的Web请求和业务方法调用组成。</p>
+<p>进一步说，在Seam中，数据库缓存和事务能自动与应用的状态相连。Seam在内存中自动保存数据库更新，等到对话结束后提交到数据库。内存中的缓存能大大减轻复杂状态应用中数据库的负载。</p>
+<p>除了以上这些，Seam支持整合开源JBoss jBPM业务程序引擎，大大提升了Web应用中的状态管理。你现在能为一个机构中不同工作人员（诸如客户、经理、技术支持人员等等）的指定工作流程，利用工作流程来驱动应用，而不是依赖用户界面事件处理和数据库。</p>
+<h3>4. 支持Web 2.0</h3>
+<p>Seam为Web2.0应用进行了充分的优化。它给AJAX（异步JavaScript和XML，增加网页交互的一种技术）提供了多种支持&mdash;&mdash;从内置&ldquo;零Javascript&rdquo;的AJAX组件到有AJAX支持的JSF组件，再到定制的JavaScript库，Seam为浏览器端的Javascript对象提供了直接访问Seam服务器组件的途径。Seam提供了一个先进的并发模型，有效的管理来自同一用户的多个AJAX请求。</p>
+<p>对于AJAX应用，不断增长的数据库负载是一个巨大的挑战。与一个非AJAX应用相比，一个AJAX应用要向服务器发送的更频繁的请求。一但数据库必须响应这些AJAX请求，那么数据库就不堪重荷。Seam中的状态持久上下文正如一个内存中的缓存，它能在会话始末保存信息，最终帮助减少数据库交互。</p>
+<p>Web2.0应用往往为其数据使用复杂关系模型（例如，一个网络交际站点所做的就是处理和显示&ldquo;用户&rdquo;之间的关系），对于这些站点，延迟加载对于ORM层至关重要。否则，一个简单的查询就能级联地加载整个数据库。正如我们前面所讨论过的，Seam是现今唯一一个正确支持Web应用延时加载的Web框架。</p>
+<h3>5.依赖双向映射的Pojo服务</h3>
+<p>Seam是一个&ldquo;轻量级&rdquo;框架，因为它使用POJO（plain old Java objects）作为服务组件。在应用中，POJO没有使用接口或抽象类来&quot;钩住&quot;组件。当然，问题是如何使POJO交互来组成这个应用？它们如何与容器服务（例如，数据库持久化服务）交互？</p>
+<p>Seam通过使用一个流行的、被称作依赖注入(DI)的设计模式联结所有POJO组件。在这个模式下，Seam框架管理着所有组件的生命周期。当一个组件需要使用另外一个时，它通过注解（annotation）向Seam声明此依赖。Seam依据应用当前状态得到这个依赖组件，并将它注入到所需求的组件中。</p>
+<p>通过拓展依赖注入概念，一个Seam组件A不但可以构造另外一个组件B，而且把此组件B&ldquo;抛还&rdquo;给Seam以备其他组件（例如组件C）以后使用。</p>
+<p>这类双向依赖管理甚至都广泛的应用于简单的Seam web应用中（例如第二章的hello world一例）。在Seam术语中，我们称这个为&ldquo;依赖双向映射&rdquo;。</p>
+<h3>6.非常规的配置</h3>
+<p>[译者注：指以隐式映射为主题，以显式映射为例外的配置方式]</p>
+<p>使Seam易用的主要设计原则是&ldquo;非常规的配置&rdquo;。其思想是为这些组件提供一系列默认行为，开发者只需要在预期行为非默认的时候，显示地配置组件。例如, 当Seam将组件A作为属性注入到组件B时，默认地，组件A刚会以组件B被注入的属性的名称命名。Seam里还有很类似的细节。总的结果是Seam中配置元数据要比其他Java框架简单的多。因此，大多数的Seam应用能通过一系列简单的Java注解进行充分配置。开发者从减化的复杂度中受益匪浅，最后，与其他Java框架相比，用更少的代码实现同样的功能。</p>
+<h3>7.避免滥用XML</h3>
+<p>或许你已经注意到，Java注解在表述和处理Seam配置元数据时扮演着重要的角色。通过这样的设计使框架更易于操作。</p>
+<p>在J2EE发展早期，XML曾经被看作配置管理的&ldquo;圣杯&rdquo;。框架设计者将所有的配置信息，包括Java类和方法名称都统统丢进XML文档，而不考虑对开发者所带来的后果。反省后，发现这是个严重的错误。XML配置文档太过重复。开发者必须重复代码中已有的信息，从而将配置和代码联结起来。这些重复使应用易于出错（例如，一个拼写错误的类名可能在运行时显示为一个难于调试错误）。缺少合理的默认配置进一步使这一问题复杂化。事实上，在一些框架中，相当数量的样板代码伪装为XML，可能相当于或者超过实际应用中JAVA代码的数量。对于J2EE开发者，XML的滥用通常被称为&ldquo;XML地狱&rdquo;。</p>
+<p>Java社区认识到了XML的滥用问题，并且已经非常成功地用Java代码中的注解取代了XML。EJB3是Java官方标准化机构促进Java企业组件中注解使用的一项成果。EJB3完全可选择的使用XML文档，它向正确方向迈出了积极的一步。Seam加入了EJB3的注解，为整个web应用拓展了基于注解的编程模型。</p>
+<p>当然，XML对于配置数据并非完全不利。Seam设计者认识到XML适用于指定页面流程或者定义业务流程的web应用。XML文档使开发者集中地管理整个web应用的工作流程成为可能，同时也反对将配置信息分散于java源文件中。工作流程很少能与源代码耦合，因此XML文档中并不需要重复键入已存在于代码中的信息。</p>
+<h3>8.为测试而设计</h3>
+<p>Seam为了易于测试而重新设计。因为所有的Seam组件都是注解过的POJO，它们易于进行单元测试。开发者仅仅通过利用常规的Java new关键词来构造实例，然后在测试框架（例如JUnit 或者TestNG）中运行任何方法。如果需要测试多个Seam组件的交互，开发者则逐个实例化这些组件，然后手动建立它们的相互关系（也就是显示地使用setter 方法，而不是依靠Seam依赖注入功能）。</p>
+<p>集成测试整个Seam应用比较复杂，因为开发者必须在Seam容器中运行应用。Seam用嵌入的轻量级容器来帮助该类测试。在测试框架中，开发者能按步骤地加载Seam容器，然后运行测试。</p>
+<h3>9. 卓越的工具支持</h3>
+<p>对于一个聚焦于开发者生产力的应用框架，开发工具的支持至关重要。Seam发布了一个基于命令行的生成器，称作 SeamGen。SeamGen类似于Ruby-On-Rails中的生成器，它支持诸如从一个数据库生成完整CRUD应用的功能，聪明的开发者会通过诸如&ldquo;编辑/保存/在浏览器重新载入&rdquo;的步骤、有测试支持的特性，来改进web应用。</p>
+<p>但更重要的是，SeamGen生成项目不依赖于主流的Java集成开发环境，如Eclipse和NetBeans。有了SeamGen，开发者可以随时入门。</p>
+<h3>10. 让我们开始编码吧</h3>
+<p>总而言之，Seam为JavaEE应用削减了开发费用，同时，增加了Java EE 5.0不具有的强大的新功能。在下节（节选自本书第二章），我们将给您展示一些实际代码例子来阐述Seam如何工作的。你能通过网站<a>http://www.michaelyuan.com/seam/</a>下载到本书中所有的例子的源代码。</p>
+<h2>Seam Hello World</h2>
+<p>JBoss Seam是EJB3和JSF中间的粘合剂，这是Jboss Seam最基本的和最广泛的应用。通过被Seam管理的组件，Seam允许这两个框架之间无缝(不是有意双关的)的集成。它为整个web应用拓展了基于注解的EJB3 POJO编程模型。在层与层之间，没有了必需的手动JNDI查找，没有了冗长的JSF支持bean的声明，没有了过多facade方法，没有了艰辛的对象传递，快哉！</p>
+<blockquote><strong>继续在Seam中使用JavaEE模式</strong><br>
+<p>在传统的java EE应用中，一些设计模式，例如JNDI查找、XML声明组件、值对象、facade是被强制使用的。Seam用基于注解的POJO消除了这些人为的需求。但是，当Seam应用中真正需要它们的时候，仍然可以自由地使用这些模式。</p>
+</blockquote>
+<p>编写一个Seam web应用概念上很简单。你只需要编码出下列组件：</p>
+<ul>
+    <li>实体对象代表数据模型。实体对象可能是JPA或者Hibernate中的POJO对象。它们自动地映射到关系数据库表。</li>
+    <li>SF web页面展示了用户界面。页面通过表单捕获用户的输入，并且显示结果。表单域与其数据显示数据库表，这些表被映射到实体bean或者实体bean的集合上。</li>
+    <li>EJB3 会话bean或者注解过的Seam POJO可以作为JSF Web页面的UI事件处理器。它们处理封装在实体bean中的用户输入，为下一步（或者页面）生成显示的数据对象。</li>
+</ul>
+<p>所有以上组件均由Seam自行管理，它们在运行时被自动注入到正确的页面或者对象。例如，当用户单击按钮提交一个JSF表单，Seam就会自动解析表单域并构造一个实体bean。然后，Seam将实体bean传入同样被Seam构造的事件处理器会话bean中来处理。开发者不需要在代码中管理组件的生命周期和组件之间的相互关系。依赖处理过程中，没有样板代码和XML文件。</p>
+<p>本章中，我们使用hello world一例来明确展示Seam如何粘合一个web应用。该例子工作如下：用户能在web表单中输入其名字来&ldquo;问候&rdquo;Seam。一旦她提交了表单，应用则保存她的名字到一个关系数据库中，并且显示所有已经&ldquo;问候&rdquo;过Seam的用户。该项目示例在该书下载的源代码中的HelloWorld文件夹中。为了建立它，你必须安装Apache ANT 1.6版本以上 (http://ant.apache.org/)。进入HelloWorld目录，运行命令ant，则会生成build/jars/helloworld.ear文件，可以直接拷贝该文件到Jboss AS实例的server/default/deploy目录下。现在，启动JBoss AS并且打开网址http://localhost:8080/helloworld/。</p>
+<p>为了运行本书中的例子，我们建议您使用JEMS GUI安装程序安装一个与Seam兼容的JBoss AS。您可以从<a href="http://labs.jboss.com/portal/jemsinstaller/downloads">http://labs.jboss.com/portal/jemsinstaller/downloads</a>下载JEMS安装程序。如果您需要更多安装JBoss AS和应用部署帮助，请参见附录A，&ldquo;安装和部署JBoss AS&rdquo;</p>
+<p>欢迎使用示例作为模板，快速开始你自己Seam项目（参见附录B &ldquo;使用应用示例作为模板&rdquo;）。或者，你能使用命令行工具Seam Gen (参见第四章&ldquo;快速应用开发工具&rdquo;)自动生成项目模板，包括所有的配置文件。本章中，我将花少量的时间来阐释源代码项目中的目录结构。相反，我们将集中讨论代码和配置，这也是开发者建立一个Seam 应用必需的。如此，我们就能将知识应用到任何一个项目结构，而不需要受模板的限制。</p>
+<blockquote><strong>源代码目录</strong><br>
+<p>一个Seam应用由java类和XML或文本配置文件组成。本书的项目例子中，java源代码文件在src目录中，网页在view 目录中，所有的配置文件都在resources目录中。更多信息请看附件B,使用应用示例作为模板。</p>
+</blockquote>
+<h3>1. 创建一个数据模型</h3>
+<p>Helloworld应用中的数据模型仅仅是一个有name和id属性的person 类。注解<strong>@Entity</strong>告诉容器映射该类到一个关系数据库表，每个属性对应表中一个字段，每个person实例相当于表中的一条记录。因为Seam采用非常规的配置方式，容器为表名和字段中仅仅使用类名和属性名。属性id上的<strong>@Id</strong>和<strong>@GeneratedValue</strong>注解暗示id字段是主键，它的值是应用服务器为每个保存到数据库的peron对象自动生成。</p>
+<pre>@Entity<br>@Name(&quot;person&quot;)<br>public class Person implements Serializable {<br><br>  private long id;<br>  private String name;<br><br>  @Id @GeneratedValue<br>  public long getId() { return id;}<br>  public void setId(long id) { this.id = id; }<br><br>  public String getName() { return name; }<br>  public void setName(String name) {this.name = name;}<br>}</pre>
+<p>Person类中最重要的注解是@Name，它为这个将要注册于Seam中的Person bean指定了名称。在其他Seam组件中（例如，页面和会话bean）中，开发者能指直接使用&ldquo;<strong>person</strong>&rdquo;来引用被管理的<strong>Person bean</strong>。</p>
+<h3>2. 将数据模型映射到web表单</h3>
+<p>在JSF页面中，我们使用Person bean来支持表单输入文本域。<strong>#{person.name}</strong>符号指代名为&ldquo;<strong>person</strong>&rdquo;的Seam组件的name属性，名为&ldquo;<strong>person</strong>&rdquo;的Seam组件是<strong>Person</strong>实体bean的一个实例。</p>
+<pre>&lt;h:form&gt;<br>Please enter your name:&lt;br/&gt;<br>&lt;h:inputText value=&quot;#{person.name}&quot; size=&quot;15&quot;/&gt;&lt;br/&gt;<br>&lt;h:commandButton type=&quot;submit&quot; value=&quot;Say Hello&quot;<br>                 action=&quot;#{manager.sayHello}&quot;/&gt;<br>&lt;/h:form&gt;</pre>
+<p>通过以下的实体表单，JSF页面显示了数据库中所有已经向Seam说&ldquo;hello&rdquo;的用户。用户名单列表存储在一个名为&ldquo;<strong>fans</strong>&rdquo;的Seam组件中，它是一个<strong>List
+<person></person>
+</strong>对象。JSF<strong>dataTable</strong>通过遍历列表，每一行显示一个<strong>Person</strong>对象。<strong>Fan</strong>标记是<strong>fans</strong>列表的迭代子。</p>
+<pre>&lt;h:dataTable value=&quot;#{fans}&quot; var=&quot;fan&quot;&gt;<br>  &lt;h:column&gt;<br>    &lt;h:outputText value=&quot;#{fan.name}&quot;/&gt;<br>  &lt;/h:column&gt;<br>&lt;/h:dataTable&gt;</pre>
+<p><img src="http://hiphotos.baidu.com/hxzon/pic/item/407eb51c0b7e61ca86d6b608.jpg"></p>
+<p>图2.1显示了Hello World网页</p>
+<p>当用户点击&ldquo;Say Hello&rdquo;按钮提交表单，Seam用输入数据构造了该person组件。然后它调用了名为&ldquo;<strong>manager</strong>&rdquo;的Seam 组件的sayhello()的方法(像这样，<strong>#{manager.sayHello}</strong>是表单提交按钮的UI事件处理器)，这就在数据库中保存了<strong>person</strong>对象并且刷新了<strong>fans</strong>列表。名为<strong>manager</strong>的组件是一个EJB3的会话bean, 我们将在下节讨论该话题。</p>
+<h3>2. 处理web事件</h3>
+<p>Seam 中的名为manager的组件是会话bean <strong>ManagerAction</strong>，正如该类中<strong>@Name</strong>注解指定的。<strong>ManagerAction类</strong>有<strong>person</strong>和<strong>fans</strong>两个属性，这两个属性被<strong>@In</strong>和<strong>@Out</strong>所注解。</p>
+<pre>@Stateless<br>@Name(&quot;manager&quot;)<br>public class ManagerAction implements Manager {<br><br>  @In @Out<br>  private Person person;<br><br>  @Out<br>  private List &lt;Person&gt; fans;</pre>
+<p>注解@In和@Out在Seam编程模型中处于核心。因此，让我们看看到底它们在这里是做什么的。</p>
+<p>注解@In告诉Seam，在此会话bean中，执行任何一个方法之前，Seam就会把由JSF表单构造的名为person组件赋给该person字段（通过依赖注入）。开发者能为@In中的注入的组件指定一个任意的名称，但是如果没有指定，如这里所示，Seam会将同类型以及同名称的组件注入到该字段中。注解@Out告诉Seam，在执行任何方法后，Seam会将属性fans值和属性person的值都赋给被Seam管理的同名的组件。在Seam中，我们将这个操作称作 &ldquo;依赖抛出&rdquo;。以此，在ManagerAction.sayHello()方法中，我们仅仅需要更新属性fans和属性person的值，它们会自动显示在页面上。</p>
+<blockquote><strong>什么是双向映射</strong><br>
+<p>在Seam 文件中，有时你就会看到术语&ldquo;双向映射&rdquo;。它指的是被Seam管理的组件和Seam管理上下之间的注入和抛出。</p>
+</blockquote>
+<p>因为<strong>person</strong>属性已经通过注入持有了表单数据，<strong>sayHello()</strong>方法仅仅是通过JPA <strong>EntityManager</strong>将它保存到数据库中，JPA <strong>EntityManager</strong>也是通过<strong>@PersistenceContext</strong>注入的。当方法返回之后，它便更新了<strong>fans</strong>和<strong>person</strong>对象并且把这两个对象抛出。方法<strong>sayHello()</strong>一般会返回null，预示着在调用之后，更新的数据模型将在当前的JSF页面显示。</p>
+<pre>@PersistenceContext<br>  private EntityManager em;<br><br>  public String sayHello () {<br>    em.persist (person);<br>    person = new Person ();<br>    fans = em.createQuery(&quot;select p from Person p&quot;)<br>          .getResultList();<br><br>    return null;<br>  }</pre>
+<p>除了一些细节，我们基本完成了。可能你已经注意到，ManagerAction bean类实现了Manager接口。为了符合EJB3会话bean 规范，我需要一个能列出bean中所有业务方法的方法。下面是接口Manager代码，幸运的是，用任何高级IDE工具都能轻松地自动生成这个接口。</p>
+<pre>@Local<br>public interface Manager {<br>  public String sayHello ();<br>}</pre>
+<p>这就是在Hello World例子中需要的所有代码。后面两章小节将涵盖Seam应用的其他方法和配置。如果开发者为了自己的小型数据库应用想立即编码和定制helloworld项目，那么现在就可以跳过本章的剩余部分。</p>
+<h3>4. 更易于理解的seam编程模型</h3>
+<p>现在我们已经大致了解了Hello World的应用。但是我们还有一些重要的话题继续，例如其他折中途径以及前面代码没有涉及到重要特性，我们将在本节讨论这些话题。它们能帮助开发者对seam更深刻的理解，但是如果你没有耐心，可以直接跳过本节，需要的时再来阅读。</p>
+<h4>4.1 Seam POJO组件</h4>
+<p>上例中，我们用一个EJB3会话bean实现了应用逻辑，但是我们并不局限于EJB3组件。事实上，Seam中任何一个有<strong>@Name</strong>注解的POJO都能被转化为一个可管理的组件。</p>
+<p>例如，我们能将<strong>ManagerAction</strong>转化为一个 POJO，而不是一个EJB3 session bean。</p>
+<pre>@Name(&quot;manager&quot;)<br>public class ManagerAction {<br><br>  @In (create=true)<br>  private EntityManager em;<br><br>  ... ...<br>}</pre>
+<p>使用POJO取代EJB3 bean有正反两方面意见，使用POJO编程时很简单，因为它们不需要EJB3特有的注解和接口（参见上文）。如果你的所有业务组件都是Seam POJO, 那么你就能不依赖EJB3应用服务器，运行你的Seam 应用（参见23章，没有EJB3的Seam)。</p>
+<p>但是，POJO比EJB3的功能少，因为POJO不能获得EJB3容器服务。在不依赖EJB3的Seam 中丧失的EJB3服务就包括以下几点：</p>
+<ul>
+    <li><strong>@PersistenceContext</strong>注入在POJO中不在管用。为了在一个Seam POJO中得到EntityManager，开发者不得不在Seam配种文件中初始化EntityManager，然后使用Seam注解@In将它注入到POJO中。</li>
+    <li>POJOs中将不在支持方法级别事务声明（declarative method-level transaction）。相反，你可以配置Seam来划分事务，可以从收到web请求开始直到响应页面产生结束。</li>
+    <li>Seam POJO不是消息驱动组件。</li>
+    <li>不支持注解为<strong>@Asynchronous</strong>的方法。</li>
+    <li>不支持容器安全管理。</li>
+    <li>没有事务或者组件级别的持久上下文。Seam POJO中的所有的持久上下文都是经过拓展的（更多细节请参见7.1 &ldquo;默认的对话作用域&rdquo;）。</li>
+    <li>没有集成容器管理的体系结构（例如，JMX控制台服务）。</li>
+    <li>Seam POJO方法中没有Java RMI。</li>
+    <li>Seam POJO不能是注解为<strong>@WebService</strong>组件。</li>
+    <li>没有JCA集成。</li>
+</ul>
+<p>所以当在EJB3容器中进行部署时，为什么每个人都想使用POJO组件？答案就是，POJO组件对于纯&ldquo;业务逻辑&rdquo;组件非常有益。POJO为其他组件代理了数据访问、消息传递和其他基本功能。例如，我们能使用POJO组件操纵Seam数据访问对象，这对&ldquo;业务逻辑&rdquo;POJO是非常有用的，因为它们可以在需要的时候，在其他框架中被重用。但是总的来说，它们的应用要比EJB3组件少，特别是在中小型应用中。所以，本书的大多数例子我们都使用EJB3组件。</p>
+<h4>4.2 易于测试</h4>
+<p>我们已经在第一章中提到，Seam为了不依赖容器的方便的测试，进行了重新设计。在<strong>helloworld</strong>项目中，我们在测试文件夹中包括了单元测试和集成测试这两个测试用例。在纯Java SE环境下，Seam 测试体系模拟了数据库、JSF、Seam上下文以及其他应用服务器服务，只要运行ant test命令就能运行所有的测试。</p>
+<h4>4.3 基于Getter和Setter的双向映射</h4>
+<p>在Hello World一例中，我们已经展示了通过成员变量对Seam组件进行的双向映射，你也能通过Getter和Setter方法对组件进行双向映射。例如，以下代码就工作的很好。</p>
+<pre>private Person person;<br>private List &lt;Person&gt; fans;<br><br>@In<br>public void setPerson (Person person) {<br>  this.person = person;<br>}<br>@Out<br>public Person getPerson () {<br>  return person;<br>}<br>@Out<br>public List &lt;Person&gt; getFans () {<br>  return fans;<br>}</pre>
+<p>虽然以上的getter和setter方法看似轻微，利用getter和setter方法的双向映射真正的价值在于能其加入定制逻辑来操纵双向映射的过程。例如，你可以验证被注入的对象或者快速地从数据库重新得到被抛出的对象。</p>
+<h4>4.4避免过度的双向映射</h4>
+<p>在Hello World一例中 ,通过将数据组件作为业务组件的属性，可以轻易的减少或者消除双向映射。在JSF页面中，通过这种方式，开发者只需要引用业务组件，而不需要在业务组件和数据组件之间的双向映射。例如，开发者可以修改 ManagerAction类为以下所述。</p>
+<p>依赖双向映射是一个非常实用的设计模式。但是，正如其他设计模式，过度使用就会有害。过度的依赖双向映射让代码变得难以阅读，因为开发者必须理解每个注入的组件出自何处。过度的依赖双向映射也能增加性能消耗，因为双向映射是在运行时进行。</p>
+<pre>@Stateless<br>@Name(&quot;manager&quot;)<br>public class ManagerAction implements Manager {<br><br>  private Person person;<br>  public Person getPerson () {return person;}<br>  public void setPerson (Person person) {<br>    this.person = person;<br>  }<br><br>  private List &lt;Person&gt; fans;<br>  public List&lt;Person&gt; getFans () {return fans;}<br><br>...  ...<br>}</pre>
+<p>接下来，我们在页面上引用的属性如下：</p>
+<pre>&lt;h:form&gt;<br><br>Please enter your name:&lt;br/&gt;<br><br>&lt;h:inputText value=&quot;#{manager.person.name}&quot;/&gt;<br>&lt;br/&gt;<br>&lt;h:commandButton type=&quot;submit&quot; value=&quot;Say Hello&quot;<br>                 action=&quot;#{manager.sayHello}&quot;/&gt;<br>&lt;/h:form&gt;</pre>
+<pre>... ...</pre>
+<pre>&lt;h:dataTable value=&quot;#{manager.fans}&quot; var=&quot;fan&quot;&gt;<br>  &lt;h:column&gt;<br>    &lt;h:outputText value=&quot;#{fan.name}&quot;/&gt;<br>  &lt;/h:column&gt;<br>&lt;/h:dataTable&gt;</pre>
+<p>最后，具有了依赖管理的Seam是多用的。通常用数据访问业务组件封装数据是一项好的实践，特别是针对有状态业务组件。</p>
+<h4>4.5 JSF中的页面导航</h4>
+<p>本例中，只有一个页面。每次点击按钮后，JSF页面会重新显示更新过的数据模型。显然，大多数web应用多于一个页面。在JSF中，一个用户界面事件处理器能通过返回导航规则名称，决定下一步该显示哪个页面。例如，开发者可以在<strong>navigation.xml</strong>中定义以下导航规则。</p>
+<pre>&lt;navigation-case&gt;<br>  &lt;from-outcome&gt;anotherPage&lt;/from-outcome&gt;<br>  &lt;to-view-id&gt;/anotherPage.jsp&lt;/to-view-id&gt;<br>&lt;/navigation-case&gt;</pre>
+<p>之后，如果sayHello()方法返回一个名为&ldquo;another page&rdquo;的字符串，JSF下一步就该展示anotherPage.jsp。UI事件处理器决定了接下来要显示哪个页面，从而为我们带来了有步骤的控制。</p>
+<h4>4.6 通过EntityManager访问数据库</h4>
+<p>JPA（Java Persistence API）<strong>EntityManager</strong>管理着关系数据库表与实体bean 之间的映射。<strong>EntityManager</strong> 在运行时由应用服务器创建。你能使用注解@PersistenceContext，注入一个EntityManager的实例。</p>
+<p><strong>EntityManager.persist()</strong>方法将实体bean存为与之对应数据表的一条记录。EntityManager.query()方法运行SQL化的查询，并以实体bean集合形式从数据库返回数据。更多细节请参考JPA文件中关于如何使用EntityManager和查询语言。在本书中，我们只用最简单的查询语句。</p>
+<p>默认地，EntityManager将数据存于嵌入的HSQL数据库中。如果在本机上运行Jboss AS，可以通过以下步骤，为HSQL数据库开启一个GUI控制台：访问<strong>http://localhost:8080/jmx-console/</strong>，点击<strong>database=localDB,service=Hypersonic </strong>MBean服务，之后，点击在startDatabaseManager方法下方的&ldquo;invoke&rdquo;按钮。你就可以从控制台执行任意SQL指令。</p>
+<h3>5. 配置和打包</h3>
+<p>下面，我们将转移话题，讨论配置文件和应用程序打包。实际上，你可以通过Seam Gen命令行工具，生成几乎所有的配置文档和构造脚本文件。或者你也可以简单的重用在示例中的源文件。所以，如果你想首先学习Seam编程技术，但又担心接下来的配置和部署，这个是很正常的。你可以完全放心地跳过本节，需要的时候可以再次阅读。</p>
+<p>本节中，我们集中探讨Seam EJB3组件配置，JBoss AS外的Seam POJO配置和部署当然是可行的。</p>
+<p>大多数Seam配置文件都是XML文档。但是等等！我们刚才不是承诺Seam能让我们摆脱J2EE和Spring中的XML地狱吗？为什么它又有了XML文档呢? 是的，XML文档确实有很多用处。XML文档非常适合部署阶段的配置（例如web应用的根URL和后台数据库的定位）。因为它允许我们在部署阶段改变配置而不需要改变和重新编译源代码。它也适合粘合应用服务器中的不同子系统（例如，配置如何让JSF组件与Seam EJB3组件交互）。XML文档也非常适合表示层相关内容（例如网页和页面导航流程）。</p>
+<p>我们反对在XML文档中重复已经存在于Java源代码中的信息。开发者很快就会发现，这个简单的SeamEJB3 应用有多个XML配置文档，每个文档那个都非常简短，并且没有一个包含存在于Java代码中的信息。换句话说，Seam中没有&ldquo;XML代码&rdquo;。</p>
+<p>进一步讲，XML文档中的大多数内容都是静态的。所以开发者能在自己的Seam应用中轻松地重用这些文档。如何使用示例作为自己的应用模板的介绍，请参见附录B&mdash;&mdash;使用应用示例作为模板。</p>
+<p>我们将用下面几页来详细讲解示例应用的配置文档和打包后的目录结构。如果你没有耐心看下去，而且很满意这个应用模板，你可以跳过以下内容。不管怎样，不再罗嗦, 我们一起来了解hello world示例是如何进行配置和打包的。为了构建一个JBoss AS的部署Seam 应用，我们必须将以上所有java 类和配置文档打包为企业应用程序归档(EAR)。该例中，EAR文件是<strong>helloworld.ear</strong>。它包含了三个JAR文件那个和两个XML配置文档。</p>
+<pre>helloworld.ear<br>|+ app.war        //包含Web页面等<br>|+ app.jar        //包含Seam组件<br>|+ jboss-seam.jar // Seam库<br>|+ META-INF<br>   |+ application.xml<br>   |+ jboss-app.xml</pre>
+<blockquote><strong>源代码目录</strong><br>
+<p>在此项目的源代码中，resources/WEB-INF目录包含属于app.war/WEB-INF目录的配置文档。resources/META-INF目录包含属于app.jar/META-INF和helloworld.ear/META-INF的文档。Resources根目录包含属于根目录app.jar的文档。</p>
+</blockquote>
+<p>application.xml文档列出了在EAR中的JAR文件，并为该应用指定了根URL。</p>
+<pre>&lt;application&gt;<br>  &lt;display-name&gt;Seam Hello World&lt;/display-name&gt;<br><br>  &lt;module&gt;<br>    &lt;web&gt;<br>      &lt;web-uri&gt;app.war&lt;/web-uri&gt;<br>      &lt;context-root&gt;/helloworld&lt;/context-root&gt;<br>    &lt;/web&gt;<br>  &lt;/module&gt;<br><br>  &lt;module&gt;<br>    &lt;ejb&gt;app.jar&lt;/ejb&gt;<br>  &lt;/module&gt;<br><br>  &lt;module&gt;<br>    &lt;java&gt;jboss-seam.jar&lt;/java&gt;<br>  &lt;/module&gt;<br><br>&lt;/application&gt;</pre>
+<p><strong>jboss-app.xml</strong>文档为该应用指定了类加载器，每个EAR应用的类加载器应该有一个唯一的名称。这里我们使用应用程序名作为类加载器的名称，以避免重复。</p>
+<pre>&lt;jboss-app&gt;<br>  &lt;loader-repository&gt;<br>    helloworld:archive=helloworld.ear<br>  &lt;/loader-repository&gt;<br>&lt;/jboss-app&gt;</pre>
+<p>jboss-seam.jar是Seam发布Seam类库。app.war和app.jar文档由我们来建构。所以，下面我们要研究app.war和app.jar。</p>
+<h4>5.1. WAR文件</h4>
+<p><strong>app.war</strong>是按照Web应用程序归档规范打包的JAR文件，它包含页面和标准的JSF/Seam配置文档。你还可以将JSF特有的类库文件放入<strong>WEB-INF/lib</strong>目录 (例如<strong>jboss-seam-ui.jar</strong>)。</p>
+<pre>app.war<br>|+ hello.jsp<br>|+ index.html<br>|+ WEB-INF<br>   |+ web.xml<br>   |+ faces-config.xml<br>   |+ components.xml<br>   |+ navigation.xml</pre>
+<p><strong>web.xml</strong>文档是所有java EE web应用必需的。JSF用它来配置JSF servlet控制器，Seam用它来拦截所有的web请求。该配置文档的相当标准。</p>
+<pre>&lt;web-app version=&quot;2.4&quot;<br>    xmlns=&quot;http://java.sun.com/xml/ns/j2ee&quot;<br>    xmlns:xsi=&quot;...&quot;<br>    xsi:schemaLocation=&quot;...&quot;&gt;<br><br>  &lt;!-- Seam --&gt;<br>  &lt;listener&gt;<br>    &lt;listener-class&gt;<br>      org.jboss.seam.servlet.SeamListener<br>    &lt;/listener-class&gt;<br>  &lt;/listener&gt;<br><br>  &lt;!-- MyFaces --&gt;<br>  &lt;listener&gt;<br>    &lt;listener-class&gt;<br>org.apache.myfaces.webapp.StartupServletContextListener<br>    &lt;/listener-class&gt;<br>  &lt;/listener&gt;<br><br>  &lt;context-param&gt;<br>    &lt;param-name&gt;<br>      javax.faces.STATE_SAVING_METHOD<br>    &lt;/param-name&gt;<br>    &lt;param-value&gt;client&lt;/param-value&gt;<br>  &lt;/context-param&gt;<br><br>  &lt;servlet&gt;<br>    &lt;servlet-name&gt;Faces Servlet&lt;/servlet-name&gt;<br>    &lt;servlet-class&gt;<br>      javax.faces.webapp.FacesServlet<br>    &lt;/servlet-class&gt;<br>    &lt;load-on-startup&gt;1&lt;/load-on-startup&gt;<br>  &lt;/servlet&gt;<br><br>  &lt;!-- Faces Servlet Mapping --&gt;<br>  &lt;servlet-mapping&gt;<br>    &lt;servlet-name&gt;Faces Servlet&lt;/servlet-name&gt;<br>    &lt;url-pattern&gt;*.seam&lt;/url-pattern&gt;<br>  &lt;/servlet-mapping&gt;<br>  &lt;context-param&gt;<br>    &lt;param-name&gt;javax.faces.CONFIG_FILES&lt;/param-name&gt;<br>    &lt;param-value&gt;/WEB-INF/navigation.xml&lt;/param-value&gt;<br>  &lt;/context-param&gt;<br>&lt;/web-app&gt;</pre>
+<p><strong>faces-config.xml</strong>文档是JSF标准的配置文档，Seam用它来将其拦截器添加到JSF生命周期中。</p>
+<pre>&lt;faces-config&gt;<br><br>  &lt;lifecycle&gt;<br>    &lt;phase-listener&gt;<br>      org.jboss.seam.jsf.SeamPhaseListener<br>    &lt;/phase-listener&gt;<br>  &lt;/lifecycle&gt;<br><br>&lt;/faces-config&gt;</pre>
+<p>navigation.xml文档为多页面应用包含JSF页面导航规则。因为hello world示例只有一个简单的页面，因此该文档是空的。</p>
+<p><strong>components.xml</strong>文档包含Seam特有的配置选项，除<strong>jndi-pattern</strong>属性以外，其他都不依赖于应用。该属性必须包括EAR文档的名称，以便Seam通过其的JNDI全名访问EJB3 bean。</p>
+<pre>&lt;components ...&gt;<br><br>  &lt;core:init<br>    jndi-pattern=&quot;helloworld/#{ejbName}/local&quot;<br>    debug=&quot;false&quot;/&gt;<br><br>  &lt;core:manager conversation-timeout=&quot;120000&quot;/&gt;<br><br>&lt;/components&gt;</pre>
+<h4>5.2. Seam组件JAR包</h4>
+<p><strong>app.jar</strong>文档包含所有的EJB3bean 类（实体bean和会话bean）以及EJB3相关的配置文档。</p>
+<pre>app.jar<br>|+ Person.class        // entity bean<br>|+ Manager.class       // session bean interface<br>|+ ManagerAction.class // session bean<br>|+ seam.properties     // empty file but needed<br>|+ META-INF<br>   |+ ejb-jar.xml<br>   |+ persistence.xml</pre>
+<p><strong>seam.properties</strong>文档这儿是空但必需的，因为Jboss要通过它知道此JAR文件包含Seam EJB3 bean类，并且相应地处理注解。</p>
+<p><strong>ejb-jar.xml</strong>文档包含额外的配置信息，这些信息能重载或者增补EJB3 bean上的注解。在一个Seam应用中，它能将所有的EJB3 类加入Seam拦截器。我们能在所有的Seam应用中重用该文档。</p>
+<pre>&lt;ejb-jar&gt;<br>  &lt;assembly-descriptor&gt;<br>    &lt;interceptor-binding&gt;<br>      &lt;ejb-name&gt;*&lt;/ejb-name&gt;<br>      &lt;interceptor-class&gt;<br>        org.jboss.seam.ejb.SeamInterceptor<br>      &lt;/interceptor-class&gt;<br>    &lt;/interceptor-binding&gt;<br>  &lt;/assembly-descriptor&gt;<br>&lt;/ejb-jar&gt;</pre>
+<p><strong>persistence.xml</strong>文档为EJB3 实体bean配置了后台数据源。本例中，我们只是使用了被嵌入到JBoss AS中默认的HSQL数据库(也就是<strong>java:/DefaultDS</strong>数据源)。</p>
+<pre>&lt;persistence&gt;<br>  &lt;persistence-unit name=&quot;helloworld&quot;&gt;<br>    &lt;provider&gt;<br>      org.hibernate.ejb.HibernatePersistence<br>    &lt;/provider&gt;<br>    &lt;jta-data-source&gt;java:/DefaultDS&lt;/jta-data-source&gt;<br>    &lt;properties&gt;<br>      &lt;property name=&quot;hibernate.dialect&quot;<br>          value=&quot;org.hibernate.dialect.HSQLDialect&quot;/&gt;<br>      &lt;property name=&quot;hibernate.hbm2ddl.auto&quot;<br>          value=&quot;create-drop&quot;/&gt;<br>      &lt;property name=&quot;hibernate.show_sql&quot; value=&quot;true&quot;/&gt;<br>    &lt;/properties&gt;<br>  &lt;/persistence-unit&gt;<br>&lt;/persistence&gt;</pre>
+<p>这样，以上就是一个简单Seam应用所需的所有配置和打包。我们将在以后讨论到本书的更高级的主题时，涵盖更多的配置选项和类库。再次强调一下，Seam应用入门最简单的方法就是，不要担心这些配置文件，只需要从已有的应用模板做起。</p>
+<h3>6. 为何这么简单？</h3>
+<p>这就是hello world 应用，三个简单的Java类，一个JSF页面，一组静态配置文件。我们已经有了一个完整的数据库驱动的web应用。整个应用只需要的是少于30行的Java代码，没有一处&ldquo;XML代码&rdquo;。但是如果开发者有PHP背景，你可能仍然会问&ldquo;何以这么简单？我能在php中使用更少的代码吗？&rdquo;</p>
+<p>好吧，答案就是Seam应用在理论上要比PHP（或者其他任何一种脚本语言）应用简单的多。Seam 组件模式允许我们，有所控制地，可维护地给应用增加更多的功能。我们很快就会发现，Seam组件使开发有状态的和有事务的web应用变得易如反掌。对象关系映射框架（例如：实体bean）允许我们将注意力放在抽象数据模型上，而不需要处理数据库特有的SQL语句。</p>
+<p>本文是基于该书的第一章和第二章。后面的章节中，我们继续讨论如何使用Seam组件继续开发复杂的Seam 应用。参见<a href="http://www.infoq.com/resource/articles/jboss-seam/zh/resources/seam-book-toc.pdf;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F">本书目录</a>来查看本书的所有主题。</p>
+<p>请看Gavin King的两个访谈录来查看以往关于Seam的话题。</p>
+<ul>
+    <li>JBoss Seam 1.1 Indepth: An Interview with Gavin King</li>
+    <li>JBoss Seam 1.0: rethinking web application architecture</li>
+</ul>
+<h2>关于作者</h2>
+<p>Dr. Michael Yuan是<a href="http://www.michaelyuan.com/seam/;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F">JBoss Seam: Simplicity and Power Beyond Java EE 5.0</a>一书的作者。该书探讨了下一代web应用框架。他同时也是<a href="http://www.michaelyuan.com/blog/nokia-smartphone-hacks/;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F">Nokia Smartphone Hacks</a>一书和其他三本技术读物的作者。Michael潜心研究轻量级企业web应用，终端对终端的移动应用开发。你可以通过他的博客联系他。</p>
+<p><strong>查看英文原文：</strong><a href="http://www.infoq.com/articles/jboss-seam;jsessionid=A63B599DBEDDF1444D1C3DB3714D584F">Introduction to JBoss Seam</a></p>
+<hr>
+<p><strong>译者简介：</strong> 包亮，一名普通的程序员，喜欢敏捷实践，喜欢&quot;懒惰&quot;，减少重复，尽可能让工作变得简单。几年来，一直通过网络汲取知识，也希望通过网络将知识与人分享 。志愿参与InfoQ中文站内容建设，请邮件至<a href="mailto:china-editorial[at]infoq.com" name="china-editorial">china-editorial@infoq.com</a>。</p></div></body></html>

@@ -1,0 +1,64 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>NIO socket服务器注意的几点.</title></head><body><h1>NIO socket服务器注意的几点.</h1><div><div>
+<h3 class="type_original" title="原创">NIO socket服务器注意的几点.</h3>
+</div>
+<p><span>&nbsp;&nbsp;&nbsp;&nbsp;  当你看到这篇文章的时候,也许是像我一样,以经用google搜了一大堆socket的例子运行调试成功了.但是在实际应用中有几点需要注意的地方.要不然你的服务器还是一大堆的bug.</span></p>
+<p> </p>
+<p><span>1.注册读事件. </span></p>
+<p><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 客户端第刚链接过来的时候注册一次读事件.</span></p>
+<p><span>&nbsp;&nbsp;&nbsp;&nbsp;  已后就是在每次写完数据之后再去注册读事件.</span></p>
+<p> </p>
+<p><span>2.注册写事件.</span></p>
+<p><span>&nbsp;&nbsp;&nbsp;&nbsp;  每次处理过逻辑之后,注册写事件,然后把要返回的结果socketChannel.write(responseLineBuffer)写出去.</span></p>
+<p> </p>
+<p><span>3.在读数据的时候注意.</span></p>
+<p> </p>
+<p> </p>
+<ol class="dp-j">
+    <li><span><span class="comment">//首先客户端发来的数据应该带有标示这次发送过来的数据大小.</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span><span class="keyword">int</span><span> responseSize;&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span><span class="comment">//读来的数据缓冲区.</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>ByteBuffer requestLineBuffer = ByteBuffer.allocate(<span class="number">1024</span><span>);&nbsp;&nbsp;</span></span></li>
+</ol>
+<div><span><span>
+<p><span>*比如说客户端发过来1024个字节.这样的话正好 requestLineBuffer 一次读到1024个字节.这时 responseSize==requestLineBuffer里面数据的大小. 这正是你需要的完整数据.</span></p>
+<p> </p>
+<p><span>*如果客户端发送过来100个字节.这时responseSize&lt;requestLineBuffer里面数据的大小.这时你就需要判断当读到100个字节的时候就不要再往下读了,即使再读的话也是空数据.</span></p>
+<p> </p>
+<p><span>前两种情况正是你所希望的,responseSize&lt;=requestLineBuffer里面数据的大小.</span></p>
+<p> </p>
+<p><span>*如果客户端发送过来2048个字节,第一次最多也就读1024个字节的数据.这时responseSize&gt;requestLineBuffer,你就要判断如果第一次没有把数据读完整的话,还要再去把剩下的1024个字节的数读过来.</span></p>
+<p> </p>
+<p><span>这种情况也许你已经想到了.但下面还有2种诡异的情况.</span></p>
+<p> </p>
+<p><span>*如果客户端发送过来 2048 个字节,但是分2次或多次发送过来,比如说前两次读到 1548 个字节,这时你判断发现还没有接收到完整数据但再去用int count = socketChannel.read(requestLineBuffer);读,就是读不到数据.这样的话你就需要把这次读到的数据保存下来,再注册一个读的事件去读,等到下次把剩下的 500 个字节数据读过来后再去处理逻辑.这样的情况就是socketChannel.read的数据并不是一次把数据读到的,而是分多次.</span></p>
+<p> </p>
+<p><span>*最后一种情况就是 如果客户端发送过来 5000 个字节,但是每次请求的数据只有 1000 个字节,这说明客户端发送太快,或是服务器处理太慢,系统把这5次的请求的数据加到一起了.这时你就要把这5个请求一个一个的分别取出来一个一个的去处理相应的逻辑.</span></p>
+</span></span></div>
+<div>
+<ol class="dp-j">
+    <li><span><span class="comment">//注销写事件</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>key.interestOps(key.interestOps()&amp;~SelectionKey.OP_WRITE);&nbsp;&nbsp;</span></li>
+    <li><span><span class="comment">//注销读事件</span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>key.interestOps(key.interestOps()&amp;~SelectionKey.OP_READ);&nbsp;&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>key.cancel();&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;</span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span><span class="comment">//客户端关闭判断. </span><span>&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;</span></li>
+    <li><span><span class="keyword">int</span><span> count = socketChannel.read(requestLineBuffer);&nbsp;&nbsp;</span></span></li>
+    <li><span><span class="keyword">if</span><span> (count &lt;= -</span><span class="number">1</span><span>) {&nbsp;&nbsp;</span></span></li>
+    <li><span>&nbsp;&nbsp;&nbsp;&nbsp; close();&nbsp;&nbsp;</span></li>
+</ol>
+</div>
+<div> </div>
+<div> </div>
+<div> </div></div></body></html>

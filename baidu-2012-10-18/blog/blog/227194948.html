@@ -1,0 +1,80 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>透明显示原理及其实现</title></head><body><h1>透明显示原理及其实现</h1><div><p>透明显示原理及其实现<br>
+http://blog.csdn.net/penion/archive/2006/05/24/753017.aspx</p>
+<p>图标显示原理<br>
+　　其实,Windows中随处可见的图标就是一个透明位图的典型实例。<br>
+　　图标是由两个单独的位图组成的。第一个位图是由白色（颜色位全为1）背景与黑色（颜色位全为0）图标图案组成的,该位图将与当前屏幕显示通过与（AND）操作结合起来,故称其为AND位图。第二个位图是由黑色（颜色位全为0）背景与彩色图标图案组成的,该位图将与当前屏幕显示通过异或（XOR）操作结合起来,故称其为 XOR位图。图标的显示是通过两个步骤完成的：<br>
+<br>
+　　当前屏幕显示与AND位图通过AND操作结合起来；<br>
+　　当前屏幕显示与XOR 位图通过XOR操作结合起来。<br>
+<br>
+　　大家知道,1与任何数值AND操作的结果将维持原数值,而0与任何数值AND操作的结果则是0, 因此在步骤1中,AND位图中白色（1）与屏幕显示经过AND操作后被原色彩屏蔽,而黑色（0）则将原色彩屏蔽。步骤1结束后,屏幕上将留下一个黑色的图标图案。在随后的步骤2中,由于0与任何数值异或的结果都将是原数值,因此,XOR位图与屏幕显示经过异或操作后,位图和屏幕中的黑色部分都将被各自对应的彩色部分屏蔽。步骤2结束后,一个形状不规则的图标图案就出现在屏幕上了。这就是图标显示的原理。</p>
+<p>//-----------------------<br>
+hxzon 第一个位图称为遮罩。<br>
+遮罩（白色背景，黑色图案） 与 背景（背景图案，背景图案）=temp（背景图案，黑色图案）<br>
+图片（黑色背景，彩色图案）异或 temp（背景图案，黑色图案）=最终（背景图案，彩色图案）<br>
+<br>
+//-----------------------</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  实现代码(VC)<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  画透明位图通常的方法是使用遮罩。所谓遮罩就是一张黑白双色的位图，他和要透明的位图是对应的，遮罩描述了位图中需要透明的部分，透明的部分是黑色的，而不透明的是白色的，白色的部分就是透明的部分。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  假设图A是要画的透明位图，图B是遮罩，图A上是一个大写字母A,字母是红色的，背景是黑色的，图B背景是白色的，上面有一个黑色的字母A和图A的形状是一样的。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  比如我们要在一张蓝天白云的背景上透明地画图A，就是只把红色的字母A画上去。我们可以先将图B和背景进行与操作，再把图B和背景进行或操作就可以了。</p>
+<pre>BOOL DrawTransparentBmp(HDC hdc, HBITMAP hbmp, RECT &amp;rect, COLORREF <br>colorTrans)<br><br>{<br><br> HDC dcImage, dcTrans, dcImage24;<br><br> HBITMAP holdbmp24, hbmp24;<br><br> HBITMAP holdbmp;<br><br> HBITMAP hbmpTrans, holdbmpTrans;<br><br><br><br> // 创建内存DC<br><br> dcImage = CreateCompatibleDC(hdc);<br><br> dcTrans = CreateCompatibleDC(hdc);<br><br> dcImage24 = CreateCompatibleDC(hdc);<br><br><br><br> if (dcImage == NULL || dcTrans == NULL || dcImage24 == NULL)<br><br> // Error: can't create compatible dc<br><br> return FALSE;<br><br> // 获取图像属性<br><br> BITMAP bmp;<br><br> GetObject(hbmp, sizeof(bmp), &amp;bmp);<br><br><br><br> // 选择图片到目标DC中<br><br> holdbmp = (HBITMAP)SelectObject(dcImage, hbmp);<br><br><br><br> // 创建24位图<br><br>PBITMAPINFO lpBmpInfo;<br><br><br><br> lpBmpInfo = (BITMAPINFO*) new BYTE[sizeof(BITMAPINFOHEADER)];<br><br><br><br> lpBmpInfo-&gt;bmiHeader.biSize = sizeof(BITMAPINFOHEADER);<br><br> lpBmpInfo-&gt;bmiHeader.biPlanes = 1;<br><br> lpBmpInfo-&gt;bmiHeader.biBitCount = 24;//nBitCount;<br><br> lpBmpInfo-&gt;bmiHeader.biCompression = BI_RGB;<br><br> lpBmpInfo-&gt;bmiHeader.biSizeImage = 0;<br><br> lpBmpInfo-&gt;bmiHeader.biClrUsed = 0;<br><br><br><br> lpBmpInfo-&gt;bmiHeader.biWidth = bmp.bmWidth;<br><br> lpBmpInfo-&gt;bmiHeader.biHeight = bmp.bmHeight;<br><br><br><br> HDC dc = CreateCompatibleDC(NULL);<br><br><br><br> // 生成新图片<br><br> LPVOID lpBits;<br><br> hbmp24 =::CreateDIBSection(dc,lpBmpInfo,DIB_RGB_COLORS,<br><br> &amp;lpBits,NULL,0);<br><br><br><br> DeleteDC(dc);<br><br> delete lpBmpInfo;<br><br><br><br> if (hbmp24 == NULL)<br><br>  // Error<br><br>  return FALSE;<br><br><br><br> //将24位图片选择到位图DC<br><br><br><br>ldbmp24 = (HBITMAP)SelectObject(dcImage24, hbmp24);<br><br><br><br> // 将原图绘制到24位图中<br><br>itBlt(dcImage24, 0, 0, bmp.bmWidth, bmp.bmHeight, dcImage, 0, 0, <br>SRCCOPY);<br><br><br><br> // 创建Mask图<br><br> hbmpTrans = CreateBitmap(bmp.bmWidth, bmp.bmHeight, 1, 1, NULL);<br><br> if (hbmpTrans == NULL)<br><br>  // Error<br><br>  return FALSE;<br><br><br><br> // 选择Mask图到dcTrans中<br><br> holdbmpTrans = (HBITMAP)SelectObject(dcTrans, hbmpTrans);<br><br><br><br> // 创建掩码图像(基于指定的颜色),即AND Mask图<br><br>ORREF oldbkcolor = SetBkColor(dcImage24, colorTrans);<br><br> BitBlt(dcTrans, 0, 0, bmp.bmWidth, bmp.bmHeight, dcImage24, 0, 0, <br>SRCCOPY);<br><br><br><br> SetBkColor(dcImage24, RGB(0,0,0));<br><br> COLORREF oldtextcolor = SetTextColor(dcImage24, RGB(255,255,255));<br><br> BitBlt(dcImage24, 0, 0, bmp.bmWidth, bmp.bmHeight, dcTrans, 0, 0, <br>SRCAND);<br><br><br><br> // 去除指定颜色<br><br> COLORREF crOldBack, crOldText;<br><br>crOldBack = SetBkColor(hdc, RGB(255,255,255));<br><br>crOldText = SetTextColor(hdc, RGB(0,0,0));<br><br><br><br> // 显示透明图<br><br> StretchBlt(hdc, rect.left, rect.top, rect.right - rect.left,rect.bottom<br> - rect.top,<br><br> dcTrans, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCAND);<br><br> StretchBlt(hdc, rect.left, rect.top, rect.right - rect.left,rect.bottom<br> - rect.top,<br><br> dcImage24, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCPAINT);<br><br><br><br> // 恢复设置及其释放资源<br><br> SelectObject(dcImage, holdbmp);<br><br><br><br> SelectObject(dcImage24, holdbmp24);<br><br> SelectObject(dcTrans, holdbmpTrans);<br><br><br><br> DeleteObject(hbmp24);<br><br> DeleteObject(hbmpTrans);<br><br><br><br> SetBkColor(hdc, crOldBack);<br><br> SetTextColor(hdc, crOldText);<br><br><br><br> SetBkColor(dcImage24, oldbkcolor);<br><br> SetTextColor(dcImage24, oldtextcolor);<br><br><br><br> DeleteDC(dcImage);<br><br> DeleteDC(dcImage24);<br><br> DeleteDC(dcTrans);<br><br><br><br> return TRUE;<br><br>}</pre>
+<p>====================================</p>
+<p><strong>透明位图的显示</strong></p>
+<p>http://www.vckbase.com/document/viewdoc/?id=532</p>
+<p><a href="http://www.vckbase.com/code/downcode.asp?id=1765">下载本文示例代码</a><br>
+<br>
+包含透明色的位图的绘制方法有多种，最简单的方法是调用现成的函数：TransparentBlt,也可以通过自己的代码实现类似 TransparentBlt的功能，实现过程也有两种形式，一种是事先做一张掩码位图，另一种是动态生成掩码位图。本文将介绍动态生成掩码位图绘制具有透明区域位图的方法。<br>
+<br>
+<strong>一、TransparentBlt 函数的使用 </strong><br>
+<br>
+TransparentBlt 函数在Windows98/Windows2000以上版本运行，系统中需要包含 Msimg32.dll，使用时可以链接 Msimg32.lib。<br>
+Windows98下的TransparentBlt会产生资源泄漏，所以不建议在WIN98下使用该函数。<br>
+TransparentBlt函数原型如下:</p>
+<pre>BOOL TransparentBlt(<br>HDC hdcDest,      // 目标DC<br>int nXOriginDest,   // 目标X偏移<br>int nYOriginDest,   // 目标Y偏移<br>int nWidthDest,     // 目标宽度<br>int hHeightDest,    // 目标高度<br>HDC hdcSrc,         // 源DC<br>int nXOriginSrc,    // 源X起点<br>int nYOriginSrc,    // 源Y起点<br>int nWidthSrc,      // 源宽度<br>int nHeightSrc,     // 源高度<br>UINT crTransparent  // 透明色,COLORREF类型<br>);</pre>
+使用示例:
+<pre>CBitmap FootballBMP;<br>FootballBMP.LoadBitmap(IDB_FOOTBALLBMP);<br>CDC ImageDC;<br>ImageDC.CreateCompatibleDC(pDC);<br>CBitmap *pOldImageBMP = ImageDC.SelectObject(&amp;FootballBMP);<br>TransparentBlt(pDC-&gt;m_hDC, 0, 0, 218, 199, ImageDC.m_hDC, 0, 0, 218, 199, RGB(0,0,0xff));<br>ImageDC.SelectObject(pOldImageBMP);</pre>
+<strong>二、实现TransparentBlt函数</strong><br>
+<br>
+为了理解具有透明色位图的绘制过程，我们来亲手建立一个具有同TransparentBlt功能一致的实验函数，称之为TransparentBlt2。<br>
+<br>
+实验素材：有两张位图：bk.bmp是背景位图，football.bmp包含透明区域，透明色为蓝色RGB(0,0,0xff)<br>
+实验目的：以bk.bmp为背景，将football.bmp绘制到背景中，形成如下的最终效果图。<br>
+<img width="542" height="164" src="http://hiphotos.baidu.com/hxzon/pic/item/fe80c05c843a5503fbf2c089.jpg"><br>
+<br>
+<strong>2.1 透明位图绘制原理</strong><br>
+假设football.bmp -&gt;载入 HBITMAP hImageBMP -&gt; 选入 HDC hImageDC<br>
+<br>
+<strong>2.1.1 生成足球的单色掩码位图，透明区域为白色（全1），非透明区域为黑色（全0)</strong>
+<pre>HBITMAP hMaskBMP = CreateBitmap(nWidthDest, nHeightDest, 1, 1, NULL); // 建立单色位图<br>SetBkColor(hImageDC, RGB(0,0,0xff)); // 设置背景色为蓝色<br>BitBlt(hMaskDC, 0, 0, nWidthDest, nHeightDest, hImageDC, 0, 0, SRCCOPY); // 拷贝到hMaskDC</pre>
+这样足球位图中蓝色区域在掩码位图中成了白色，其它区域为黑色，此时hMaskBMP 如下图:<br>
+<img border="1" width="93" height="85" src="http://hiphotos.baidu.com/hxzon/pic/item/db9255436df0b4519313c689.jpg"> (图一)<br>
+<br>
+<strong>2.1.2 设置背景色为黑色，前景色为白色，将掩码位图(图一)与足球位图相&quot;与&quot;</strong>
+<pre>SetBkColor(hImageDC, RGB(0,0,0));<br>SetTextColor(hImageDC, RGB(255,255,255));<br>BitBlt(hImageDC, 0, 0, nWidthDest, nHeightDest, hMaskDC, 0, 0, SRCAND);</pre>
+这样，掩码位图中背景色（黑色）的区域在hImageBMP中被保留，前景色（白色）的部分变为黑色。 此时hImageBMP 如下图:<br>
+<img width="94" height="85" src="http://hiphotos.baidu.com/hxzon/pic/item/3058b4110b11b63eca80c489.jpg"> (图二)<br>
+<br>
+<strong>2.1.3 设置背景色为白色，前景色为黑色，将掩码位图(图一)与背景进行&ldquo;与&rdquo;运算</strong><br>
+<pre>SetBkColor(hdcDest,RGB(255,255,255));<br>SetTextColor(hdcDest,RGB(0,0,0));<br>BitBlt(hdcDest, nXOriginDest, nYOriginDest, nWidthDest, nHeightDest, hMaskDC, 0, 0, SRCAND);</pre>
+掩码中白色区域（数据与1相&ldquo;与&rdquo;结果不变）使背景保持不变，黑色区域变成黑色，此时背景显示如下:<br>
+<img width="144" height="105" src="http://hiphotos.baidu.com/hxzon/pic/item/58b9b67e508263780cd7da89.jpg"> (图三)<br>
+<br>
+<strong>2.1.4 将hImageBMP(图二)与背景(图三)进行&ldquo;或&rdquo;运算</strong>
+<pre>BitBlt(hdcDest, nXOriginDest, nYOriginDest, nWidthDest, nHeightDest, hImageDC, 0, 0, SRCPAINT);</pre>
+这样就将足球绘制到背景上了。<br>
+<br>
+<strong>2.2 TransparentBlt2函数全部实现代码</strong><br>
+<pre>void TransparentBlt2( HDC hdcDest,      // 目标DC<br>     int nXOriginDest,   // 目标X偏移<br>     int nYOriginDest,   // 目标Y偏移<br>     int nWidthDest,     // 目标宽度<br>     int nHeightDest,    // 目标高度<br>     HDC hdcSrc,         // 源DC<br>     int nXOriginSrc,    // 源X起点<br>     int nYOriginSrc,    // 源Y起点<br>     int nWidthSrc,      // 源宽度<br>     int nHeightSrc,     // 源高度<br>     UINT crTransparent  // 透明色,COLORREF类型<br>     )<br>{<br> HBITMAP hOldImageBMP, hImageBMP = CreateCompatibleBitmap(hdcDest, nWidthDest, nHeightDest); // 创建兼容位图<br> HBITMAP hOldMaskBMP, hMaskBMP = CreateBitmap(nWidthDest, nHeightDest, 1, 1, NULL);   // 创建单色掩码位图<br> HDC  hImageDC = CreateCompatibleDC(hdcDest);<br> HDC  hMaskDC = CreateCompatibleDC(hdcDest);<br> hOldImageBMP = (HBITMAP)SelectObject(hImageDC, hImageBMP);<br> hOldMaskBMP = (HBITMAP)SelectObject(hMaskDC, hMaskBMP);<br><br> // 将源DC中的位图拷贝到临时DC中<br> if (nWidthDest == nWidthSrc &amp;&amp; nHeightDest == nHeightSrc)<br>  BitBlt(hImageDC, 0, 0, nWidthDest, nHeightDest, hdcSrc, nXOriginSrc, nYOriginSrc, SRCCOPY);<br> else<br>  StretchBlt(hImageDC, 0, 0, nWidthDest, nHeightDest, <br>     hdcSrc, nXOriginSrc, nYOriginSrc, nWidthSrc, nHeightSrc, SRCCOPY);<br><br> // 设置透明色<br> SetBkColor(hImageDC, crTransparent);<br><br> // 生成透明区域为白色，其它区域为黑色的掩码位图<br> BitBlt(hMaskDC, 0, 0, nWidthDest, nHeightDest, hImageDC, 0, 0, SRCCOPY);<br><br> // 生成透明区域为黑色，其它区域保持不变的位图<br> SetBkColor(hImageDC, RGB(0,0,0));<br> SetTextColor(hImageDC, RGB(255,255,255));<br> BitBlt(hImageDC, 0, 0, nWidthDest, nHeightDest, hMaskDC, 0, 0, SRCAND);<br><br> // 透明部分保持屏幕不变，其它部分变成黑色<br> SetBkColor(hdcDest,RGB(255,255,255));<br> SetTextColor(hdcDest,RGB(0,0,0));<br> BitBlt(hdcDest, nXOriginDest, nYOriginDest, nWidthDest, nHeightDest, hMaskDC, 0, 0, SRCAND);<br><br> // &quot;或&quot;运算,生成最终效果<br> BitBlt(hdcDest, nXOriginDest, nYOriginDest, nWidthDest, nHeightDest, hImageDC, 0, 0, SRCPAINT);<br><br> // 清理、恢复 <br> SelectObject(hImageDC, hOldImageBMP);<br> DeleteDC(hImageDC);<br> SelectObject(hMaskDC, hOldMaskBMP);<br> DeleteDC(hMaskDC);<br> DeleteObject(hImageBMP);<br> DeleteObject(hMaskBMP);<br>}</pre>
+<strong>2.3 TransparentBlt的另外一个版本:TransparentBltU</strong><br>
+<br>
+TransparentBltU是Christian Graus 在WinDEV发表的一个函数，功能与TransparentBlt一致，以下是全部实现代码:
+<pre>bool TransparentBltU(<br>     HDC dcDest,         // handle to Dest DC<br>     int nXOriginDest,   // x-coord of destination upper-left corner<br>     int nYOriginDest,   // y-coord of destination upper-left corner<br>     int nWidthDest,     // width of destination rectangle<br>     int nHeightDest,    // height of destination rectangle<br>     HDC dcSrc,          // handle to source DC<br>     int nXOriginSrc,    // x-coord of source upper-left corner<br>     int nYOriginSrc,    // y-coord of source upper-left corner<br>     int nWidthSrc,      // width of source rectangle<br>     int nHeightSrc,     // height of source rectangle<br>     UINT crTransparent  // color to make transparent<br>  )<br>{<br>     if (nWidthDest &lt; 1) return false;<br>     if (nWidthSrc &lt; 1) return false;<br>     if (nHeightDest &lt; 1) return false;<br>     if (nHeightSrc &lt; 1) return false;<br><br>     HDC dc = CreateCompatibleDC(NULL);<br>     HBITMAP bitmap = CreateBitmap(nWidthSrc, nHeightSrc, 1, GetDeviceCaps(dc,<br>                                                              BITSPIXEL), NULL);<br><br>     if (bitmap == NULL)<br>     {<br>         DeleteDC(dc);    <br>         return false;<br>     }<br><br>     HBITMAP oldBitmap = (HBITMAP)SelectObject(dc, bitmap);<br><br>     if (!BitBlt(dc, 0, 0, nWidthSrc, nHeightSrc, dcSrc, nXOriginSrc,<br>                                                         nYOriginSrc, SRCCOPY))<br>     {<br>         SelectObject(dc, oldBitmap); <br>         DeleteObject(bitmap);        <br>         DeleteDC(dc);                <br>         return false;<br>     }<br><br>     HDC maskDC = CreateCompatibleDC(NULL);<br>     HBITMAP maskBitmap = CreateBitmap(nWidthSrc, nHeightSrc, 1, 1, NULL);<br><br>     if (maskBitmap == NULL)<br>     {<br>         SelectObject(dc, oldBitmap); <br>         DeleteObject(bitmap);        <br>         DeleteDC(dc);                <br>         DeleteDC(maskDC);            <br>         return false;<br>     }<br><br>     HBITMAP oldMask =  (HBITMAP)SelectObject(maskDC, maskBitmap);<br><br>     SetBkColor(maskDC, RGB(0,0,0));<br>     SetTextColor(maskDC, RGB(255,255,255));<br>     if (!BitBlt(maskDC, 0,0,nWidthSrc,nHeightSrc,NULL,0,0,BLACKNESS))<br>     {<br>         SelectObject(maskDC, oldMask); <br>         DeleteObject(maskBitmap);      <br>         DeleteDC(maskDC);              <br>         SelectObject(dc, oldBitmap);   <br>         DeleteObject(bitmap);          <br>         DeleteDC(dc);                  <br>         return false;<br>     }<br><br>     SetBkColor(dc, crTransparent);<br>     BitBlt(maskDC, 0,0,nWidthSrc,nHeightSrc,dc,0,0,SRCINVERT);<br><br>     SetBkColor(dc, RGB(0,0,0));<br>     SetTextColor(dc, RGB(255,255,255));<br>     BitBlt(dc, 0,0,nWidthSrc,nHeightSrc,maskDC,0,0,SRCAND);<br><br>     HDC newMaskDC = CreateCompatibleDC(NULL);<br>     HBITMAP newMask;<br>     newMask = CreateBitmap(nWidthDest, nHeightDest, 1,<br>                                    GetDeviceCaps(newMaskDC, BITSPIXEL), NULL);<br><br>     if (newMask == NULL)<br>     {<br>         SelectObject(dc, oldBitmap);<br>         DeleteDC(dc);<br>         SelectObject(maskDC, oldMask);<br>         DeleteDC(maskDC);<br>          DeleteDC(newMaskDC);<br>         DeleteObject(bitmap);     <br>         DeleteObject(maskBitmap); <br>         return false;<br>     }<br><br>     SetStretchBltMode(newMaskDC, COLORONCOLOR);<br>     HBITMAP oldNewMask = (HBITMAP) SelectObject(newMaskDC, newMask);<br>     StretchBlt(newMaskDC, 0, 0, nWidthDest, nHeightDest, maskDC, 0, 0,<br>                                               nWidthSrc, nHeightSrc, SRCCOPY);<br><br>     SelectObject(maskDC, oldMask);<br>     DeleteDC(maskDC);<br>     DeleteObject(maskBitmap); <br><br>     HDC newImageDC = CreateCompatibleDC(NULL);<br>     HBITMAP newImage = CreateBitmap(nWidthDest, nHeightDest, 1,<br>                                    GetDeviceCaps(newMaskDC, BITSPIXEL), NULL);<br><br>     if (newImage == NULL)<br>     {<br>         SelectObject(dc, oldBitmap);<br>         DeleteDC(dc);<br>         DeleteDC(newMaskDC);<br>         DeleteObject(bitmap);     <br>         return false;<br>     }<br><br>     HBITMAP oldNewImage = (HBITMAP)SelectObject(newImageDC, newImage);<br>     StretchBlt(newImageDC, 0, 0, nWidthDest, nHeightDest, dc, 0, 0, nWidthSrc,<br>                                                          nHeightSrc, SRCCOPY);<br><br>     SelectObject(dc, oldBitmap);<br>     DeleteDC(dc);<br>     DeleteObject(bitmap);     <br><br>     BitBlt( dcDest, nXOriginDest, nYOriginDest, nWidthDest, nHeightDest,<br>                                                      newMaskDC, 0, 0, SRCAND);<br><br>     BitBlt( dcDest, nXOriginDest, nYOriginDest, nWidthDest, nHeightDest,<br>                                                   newImageDC, 0, 0, SRCPAINT);<br><br>     SelectObject(newImageDC, oldNewImage);<br>     DeleteDC(newImageDC);<br>     SelectObject(newMaskDC, oldNewMask);<br>     DeleteDC(newMaskDC);<br>     DeleteObject(newImage);   <br>     DeleteObject(newMask);    <br><br>     return true;<br>}</pre>
+<br>
+说明：本文提供的TransparentBlt2函数旨在说明透明位图的显示原理，在Windows2000以上环境实际运用中建议使用现成的 TransparentBlt函数来绘制透明位图。
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p></div></body></html>

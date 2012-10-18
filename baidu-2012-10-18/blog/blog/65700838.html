@@ -1,0 +1,286 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>对比快速算法与jdk中排序算法的速度</title></head><body><h1>对比快速算法与jdk中排序算法的速度</h1><div><div>对比快速算法与jdk中排序算法的速度</div>
+<div> </div>
+<div>/**<br>
+* partition,有台湾国人译为轴，也叫分段元素，姑且不论哪个更准确，两个名称我都用。<br>
+* 分析了SUN公司数组排序源代码,并且根据本人实际需要,照搬出来一个sort(number, numberArr);<br>
+* 请把此类和QuickSort类一致观察运行效率的差异.<br>
+* @author Josh Bloch<br>
+* @see paulliu<br>
+* <br>
+*/<br>
+public class CollectionTest {</div>
+<div> </div>
+<div>public static void main(String[] array) {<br>
+&nbsp;&nbsp;  int length=400000;<br>
+&nbsp;&nbsp;  String[] numberArr=new String[length];<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  int[] number=new int[length];<br>
+&nbsp;&nbsp;  Random random=new Random();<br>
+&nbsp;&nbsp;  for(int i=0;i&lt;length;i++){<br>
+&nbsp;&nbsp;&nbsp;  number[i]=random.nextInt(10000);<br>
+&nbsp;&nbsp;&nbsp;  numberArr[i]=number[i]+"ss";<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;  //int[] number={1,14,32,14,11,54,32,14,26,3,14,10,436,56};<br>
+&nbsp;&nbsp;&nbsp;  long fisrtt=System.currentTimeMillis();<br>
+&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  //sort(number);<br>
+&nbsp;&nbsp;&nbsp;  //sort(number, numberArr);<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  System.out.println("计算时间MS："+(System.currentTimeMillis()-fisrtt));<br>
+&nbsp;&nbsp;&nbsp;  //***********************//<br>
+&nbsp;&nbsp;&nbsp;  long second=System.currentTimeMillis();<br>
+&nbsp;&nbsp;&nbsp;  QuickSort.sort(number, numberArr);<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  System.out.println("QuickSort计算时间MS："+(System.currentTimeMillis()-second));<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  for(int i=0;i&lt;number.length;i++){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //System.out.println(number[i]+"---------------"+numberArr[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //System.out.println(number[i]+"-----");<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  number=null;<br>
+&nbsp;&nbsp;&nbsp;  numberArr=null;<br>
+}</div>
+<div> </div>
+<div>public static void sort(int[] a) {<br>
+&nbsp;&nbsp;&nbsp;  sort1(a, 0, a.length);<br>
+}</div>
+<div> </div>
+<div>public static void sort(int[] a, String[] array) {<br>
+&nbsp;&nbsp;&nbsp;  sort2(a, 0, a.length, array);<br>
+}</div>
+<div> </div>
+<div>/**<br>
+&nbsp;&nbsp;  *<br>
+&nbsp;&nbsp;  * @param x int[]<br>
+&nbsp;&nbsp;  * @param off int<br>
+&nbsp;&nbsp;  * @param len int<br>
+&nbsp;&nbsp;  * @param array String[]<br>
+&nbsp;&nbsp;  */<br>
+private static void sort2(int x[], int off, int len, String[] array) {<br>
+&nbsp;&nbsp;&nbsp;  // Insertion sort on smallest arrays<br>
+&nbsp;&nbsp;&nbsp;  if (len &lt; 7) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int i = off; i &lt; len + off; i++) {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //////x[j - 1] &gt; x[j]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = i; j &gt; off &amp;&amp; x[j - 1]&lt;x[j]; j--) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //swap(x, j, j - 1);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ////<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap2(x, array, j, j - 1);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  // Choose a partition element, v<br>
+&nbsp;&nbsp;&nbsp;  int m = off + (len &gt;&gt; 1); // Small arrays, middle element<br>
+&nbsp;&nbsp;&nbsp;  if (len &gt; 7) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int l = off;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int n = off + len - 1;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (len &gt; 40) { // Big arrays, pseudomedian of 9<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int s = len / 8;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  l = med3(x, l, l + s, l + 2 * s);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m = med3(x, m - s, m, m + s);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  n = med3(x, n - 2 * s, n - s, n);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m = med3(x, l, m, n); // Mid-size, med of 3<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  int v = x[m];<br>
+&nbsp;&nbsp;&nbsp;  // Establish Invariant: v* (&lt;v)* (&gt;v)* v*<br>
+&nbsp;&nbsp;&nbsp;  int a = off, b = a, c = off + len - 1, d = c;<br>
+&nbsp;&nbsp;&nbsp;  while (true) {</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ////x[b] &lt;= v<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while (b &lt;= c &amp;&amp; x[b] &gt;= v) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (x[b] == v) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //swap(x, a++, b);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ////<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap2(x, array, a++, b);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  b++;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ////x[c] &gt;= v<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while (c &gt;= b &amp;&amp; x[c] &lt;= v) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (x[c] == v) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //swap(x, c, d--);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ////<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap2(x, array, c, d--);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  c--;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (b &gt; c) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  break;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //swap(x, b++, c--);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ////<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap2(x, array, b++, c--);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  // Swap partition elements back to middle<br>
+&nbsp;&nbsp;&nbsp;  int s, n = off + len;<br>
+&nbsp;&nbsp;&nbsp;  s = Math.min(a - off, b - a);<br>
+&nbsp;&nbsp;&nbsp;  //vecswap(x, off, b - s, s);<br>
+&nbsp;&nbsp;&nbsp;  ////<br>
+&nbsp;&nbsp;&nbsp;  vecswap2(x, array, off, b - s, s);<br>
+&nbsp;&nbsp;&nbsp;  s = Math.min(d - c, n - d - 1);<br>
+&nbsp;&nbsp;&nbsp;  //vecswap(x, b, n - s, s);<br>
+&nbsp;&nbsp;&nbsp;  ////<br>
+&nbsp;&nbsp;&nbsp;  vecswap2(x, array, b, n - s, s);<br>
+&nbsp;&nbsp;&nbsp;  // Recursively sort non-partition-elements<br>
+&nbsp;&nbsp;&nbsp;  if ( (s = b - a) &gt; 1) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //sort1(x, off, s);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ////<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sort2(x, off, s, array);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  if ( (s = d - c) &gt; 1) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //sort1(x, n - s, s);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ////<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sort2(x, n - s, s, array);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</div>
+<div> </div>
+<div>private static void sort1(int x[], int off, int len) {<br>
+&nbsp;&nbsp;&nbsp;  // Insertion sort on smallest arrays<br>
+&nbsp;&nbsp;&nbsp;  if (len &lt; 7) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int i = off; i &lt; len + off; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = i; j &gt; off &amp;&amp; x[j - 1] &gt; x[j]; j--) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap(x, j, j - 1);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  // Choose a partition element, v<br>
+&nbsp;&nbsp;&nbsp;  //选择一个较为合理的轴，或者叫分段元素v<br>
+&nbsp;&nbsp;&nbsp;  int m = off + (len &gt;&gt; 1); // Small arrays, middle element<br>
+&nbsp;&nbsp;&nbsp;  if (len &gt; 7) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int l = off;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int n = off + len - 1;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (len &gt; 40) { // Big arrays, pseudomedian of 9<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //对于大数组，先分段选择各自的轴<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  int s = len / 8;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  l = med3(x, l, l + s, l + 2 * s);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m = med3(x, m - s, m, m + s);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  n = med3(x, n - 2 * s, n - s, n);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  m = med3(x, l, m, n); // Mid-size, med of 3 所有轴中挑选更"合理"的那个作为整个数组的分段元素<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  int v = x[m];<br>
+&nbsp;&nbsp;&nbsp;  // Establish Invariant: v* (&lt;v)* (&gt;v)* v*<br>
+&nbsp;&nbsp;&nbsp;  int a = off, b = a, c = off + len - 1, d = c;<br>
+&nbsp;&nbsp;&nbsp;  while (true) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while (b &lt;= c &amp;&amp; x[b] &lt;= v) {//游标1，从起始到结束位置，找到大于中间值的数值<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (x[b] == v) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap(x, a++, b);//与中间值相等的数值放到前面<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  b++;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  while (c &gt;= b &amp;&amp; x[c] &gt;= v) {//游标2，从结束位置到起始位置，找寻小于中间值的数值<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (x[c] == v) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap(x, c, d--);//与中间值相等的数值放到后面<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  c--;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (b &gt; c) {//停止查找<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  break;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap(x, b++, c--);//把大于中间值并且位置起始位置的数值与小于中间值且位于数组末尾的数值进行交换<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  // Swap partition elements back to middle<br>
+&nbsp;&nbsp;&nbsp;  int s, n = off + len;<br>
+&nbsp;&nbsp;&nbsp;  s = Math.min(a - off, b - a);//游标1，停止查找后把中间值交换到末尾<br>
+&nbsp;&nbsp;&nbsp;  vecswap(x, off, b - s, s);<br>
+&nbsp;&nbsp;&nbsp;  s = Math.min(d - c, n - d - 1);<br>
+&nbsp;&nbsp;&nbsp;  vecswap(x, b, n - s, s);//游标2，停止查找后把中间值交换到起始<br>
+&nbsp;&nbsp;&nbsp;  // Recursively sort non-partition-elements<br>
+&nbsp;&nbsp;&nbsp;  if ( (s = b - a) &gt; 1) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sort1(x, off, s);//以中间值为界对小于中间值部分排序,不包含中间值<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  if ( (s = d - c) &gt; 1) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  sort1(x, n - s, s);//以中间值为界对大于中间值部分排序，不包含中间值<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</div>
+<div> </div>
+<div>//---------------//<br>
+private static void vecswap2(int x[], String[] arr, int a, int b, int n) {<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 0; i &lt; n; i++, a++, b++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap2(x, arr, a, b);</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;  }<br>
+}</div>
+<div> </div>
+<div>/**<br>
+&nbsp;&nbsp;  * Swaps x[a .. (a+n-1)] with x[b .. (b+n-1)].<br>
+&nbsp;&nbsp;  */<br>
+private static void vecswap(int x[], int a, int b, int n) {<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 0; i &lt; n; i++, a++, b++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap(x, a, b);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+/**<br>
+&nbsp;&nbsp;  * 找出中间值<br>
+&nbsp;&nbsp;  * @param x<br>
+&nbsp;&nbsp;  * @param a<br>
+&nbsp;&nbsp;  * @param b<br>
+&nbsp;&nbsp;  * @param c<br>
+&nbsp;&nbsp;  * @return<br>
+&nbsp;&nbsp;  */<br>
+private static int med3(int x[], int a, int b, int c) {<br>
+&nbsp;&nbsp;&nbsp;  return (x[a] &lt; x[b] ?<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (x[b] &lt; x[c] ? b : x[a] &lt; x[c] ? c : a) :<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (x[b] &gt; x[c] ? b : x[a] &gt; x[c] ? c : a));<br>
+}</div>
+<div> </div>
+<div>/**<br>
+&nbsp;&nbsp;  *<br>
+&nbsp;&nbsp;  * @param x String[]<br>
+&nbsp;&nbsp;  * @param a int<br>
+&nbsp;&nbsp;  * @param b int<br>
+&nbsp;&nbsp;  */<br>
+private static void swap2(int[] x, String[] array, int a, int b) {<br>
+&nbsp;&nbsp;&nbsp;  swap(x, a, b);<br>
+&nbsp;&nbsp;&nbsp;  String t = array[a];<br>
+&nbsp;&nbsp;&nbsp;  array[a] = array[b];<br>
+&nbsp;&nbsp;&nbsp;  array[b] = t;<br>
+}</div>
+<div> </div>
+<div>private static void swap(int x[], int a, int b) {<br>
+&nbsp;&nbsp;&nbsp;  int t = x[a];<br>
+&nbsp;&nbsp;&nbsp;  x[a] = x[b];<br>
+&nbsp;&nbsp;&nbsp;  x[b] = t;<br>
+}</div>
+<div> </div>
+<div>}</div>
+<div> </div>
+<div>研究一下算法的效率，对比一下从他处看到的快速算法与jdk中排序算法的速度。单机测试环境P4-2.66GHZ，随机数组测试，没有进行压力测试。</div>
+<div> </div>
+<div>结论如下：</div>
+<div> </div>
+<div>1、以前给出的QuickSort中三个方法，第一个和第二个效率相当，第三个方法thirdsort（）效率比较差，以前认为它在查找轴/分段元素时有一定优点，可测试发现比较笨拙，笨拙查找方式加上递归，导致效率低下；</div>
+<div> </div>
+<div>2、int型数组大小小与等于30万时，快速演算法中public static void sort(int[] number, int left, int right)方法和public static void provesortfirst(int[] number, int left, int right)方法与Arrays.sort()方法效率相当；</div>
+<div> </div>
+<div>3、数组大小大于等于30万时，Arrays.sort()的分段选取partiton的优点逐渐体现，效率高；</div>
+<div> </div>
+<div>4、sun公司jdk中排序算法与所见到的快速演算法原理几乎一样，递归的使用需要技巧才能体现更多的优势，jdk中递归的使用很值得学习啊（虽然原来也知道值得学习，现在更知道了，呵呵）；</div>
+<div> </div>
+<div>5、经过初步测试，自己实现sort(int [], String[]);方法比集合方法Collections.sort(ArrayList,new Comparator());效率要高不少，个人认为原因在于数组排序时的优势导致这样的结果；</div>
+<div> </div>
+<div>这次比较细致的测试所获不小，纠正了以前的一些认识偏差，sort(int [], String[])方法有一定实用价值,尤其你要排序的集合(尤其有数字，字符串混合)达到万、10万的级别时候，效率高。</div>
+<div> </div>
+<div><br>
+<div>Trackback: <a href="http://tb.blog.csdn.net/TrackBack.aspx?PostId=571192">http://tb.blog.csdn.net/TrackBack.aspx?PostId=571192</a><br>
+==========================================<br>
+其实就算为了防止快排退化。 <br>
+分别在前面，中间，后面各取3个数的中位数，然后再取总的3个数的中位数。使得快排时的分割尽量平衡。</div>
+</div>
+<div> </div>
+<div>==========================================<br>
+其中x是数组，off和len是要排序的区间,我想问，if&nbsp;&nbsp;  (x[b]&nbsp;&nbsp;  ==&nbsp;&nbsp;  v)&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  swap(x,&nbsp;&nbsp;  a++,&nbsp;&nbsp;  b);&nbsp;&nbsp;  <br>
+是啥意思啊?&nbsp;&nbsp;  <br>
+其中swap(x,a,b)函数的作用是Swaps&nbsp;&nbsp;  x[a]&nbsp;&nbsp;  with&nbsp;&nbsp;  x[b].&nbsp;&nbsp;  <br>
+===========<br>
+把与off位置值相等的数依次放到off开始的位置啊，如果off的值是最小的，就是把把最小的排到前面<br>
+===========<br>
+多谢顶,不过我看了半天也算看明白了,注意到后面还有s&nbsp;&nbsp;  =&nbsp;&nbsp;  Math.min(a-off,&nbsp;&nbsp;  b-a&nbsp;&nbsp;&nbsp;&nbsp;  );&nbsp;&nbsp;&nbsp;&nbsp;  vecswap(x,&nbsp;&nbsp;  off,&nbsp;&nbsp;  b-s,&nbsp;&nbsp;  s);&nbsp;&nbsp;  <br>
+s&nbsp;&nbsp;  =&nbsp;&nbsp;  Math.min(d-c,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  n-d-1);&nbsp;&nbsp;&nbsp;&nbsp;  vecswap(x,&nbsp;&nbsp;  b,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  n-s,&nbsp;&nbsp;  s);&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  <br>
+跟前面那语句加起来实际上只是为了把与v(选定的一个中间值)值相等的放到一起,后面就不需要对这些数进行排序了,当一个数组中有很多数相等,而你选定的中间值恰好为这个数时可以大大减少低归次数</div></div></body></html>

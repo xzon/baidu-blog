@@ -1,0 +1,400 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>//JDateChooser -swingcode -gcode</title></head><body><h1>//JDateChooser -swingcode -gcode</h1><div><p> </p>
+<p>//JDateChooser -swingcode -gcode<br>
+//日期时间选择对话框，模仿Windows日期和时间属性对话框</p>
+<p>package kobe.util;</p>
+<p>import javax.swing.*;<br>
+import javax.swing.event.ChangeListener;<br>
+import javax.swing.event.ChangeEvent;<br>
+import java.util.Calendar;<br>
+import java.util.GregorianCalendar;<br>
+import java.util.Date;<br>
+import java.awt.*;<br>
+import java.awt.geom.Ellipse2D;<br>
+import java.awt.geom.Line2D;<br>
+import java.awt.event.*;</p>
+<p>/**<br>
+* 日期时间选择对话框，模仿Windows日期和时间属性对话框<br>
+* <br>
+* @see #showDialog(java.awt.Component, String, java.util.Calendar)<br>
+*/<br>
+public class JDateChooser extends JPanel implements ChangeListener,<br>
+&nbsp;&nbsp;  ItemListener {</p>
+<p>private JComboBox month = new JComboBox(new String[] { "一月", "二月", "三月",<br>
+&nbsp;&nbsp;&nbsp;  "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月" });<br>
+private JSpinner year = new JSpinner(new SpinnerNumberModel(1, 1, 9999, 1));<br>
+private DateGrid dateGrid = new DateGrid();<br>
+private JSpinner time = new JSpinner(new SpinnerDateModel());</p>
+<p>public JDateChooser(Calendar initialDate) {<br>
+&nbsp;&nbsp;  this.setBackground(Color.white);<br>
+&nbsp;&nbsp;  this.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));<br>
+&nbsp;&nbsp;  this.setLayout(new GridLayout(1, 2, 5, 10));<br>
+&nbsp;&nbsp;  JPanel p1 = new JPanel();<br>
+&nbsp;&nbsp;  p1.setBackground(Color.white);<br>
+&nbsp;&nbsp;  p1.setBorder(BorderFactory.createCompoundBorder(BorderFactory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  .createTitledBorder(" 日期"), BorderFactory.createEmptyBorder(5,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  5, 10, 5)));<br>
+&nbsp;&nbsp;  p1.setLayout(new BorderLayout(10, 10));<br>
+&nbsp;&nbsp;  JPanel p11 = new JPanel(new GridLayout(1, 2, 10, 10));<br>
+&nbsp;&nbsp;  p11.setBackground(Color.white);<br>
+&nbsp;&nbsp;  p11.add(month);<br>
+&nbsp;&nbsp;  month.addItemListener(this);<br>
+&nbsp;&nbsp;  month.setPreferredSize(new Dimension(0, 20));<br>
+&nbsp;&nbsp;  p11.add(year);<br>
+&nbsp;&nbsp;  year.setEditor(new JSpinner.NumberEditor(year, "0"));<br>
+&nbsp;&nbsp;  year.addChangeListener(this);<br>
+&nbsp;&nbsp;  year.setPreferredSize(new Dimension(0, 20));<br>
+&nbsp;&nbsp;  p1.add(p11, BorderLayout.NORTH);<br>
+&nbsp;&nbsp;  p1.add(dateGrid);<br>
+&nbsp;&nbsp;  this.add(p1);<br>
+&nbsp;&nbsp;  JPanel p2 = new JPanel(new BorderLayout(10, 10));<br>
+&nbsp;&nbsp;  p2.setBackground(Color.white);<br>
+&nbsp;&nbsp;  p2.setBorder(BorderFactory.createCompoundBorder(BorderFactory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  .createTitledBorder(" 时间"), BorderFactory.createEmptyBorder(0,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  10, 10, 10)));<br>
+&nbsp;&nbsp;  time.setPreferredSize(new Dimension(0, 20));<br>
+&nbsp;&nbsp;  JSpinner.DateEditor editor = new JSpinner.DateEditor(time, "HH:mm:ss");<br>
+&nbsp;&nbsp;  editor.getTextField().setHorizontalAlignment(JTextField.RIGHT);<br>
+&nbsp;&nbsp;  time.setEditor(editor);<br>
+&nbsp;&nbsp;  JPanel p = new JPanel();<br>
+&nbsp;&nbsp;  p.setBackground(Color.white);<br>
+&nbsp;&nbsp;  time.setPreferredSize(new Dimension(100, 20));<br>
+&nbsp;&nbsp;  p.add(time);<br>
+&nbsp;&nbsp;  p2.add(p, BorderLayout.SOUTH);<br>
+&nbsp;&nbsp;  p2.add(new Clock(time));<br>
+&nbsp;&nbsp;  this.add(p2);<br>
+&nbsp;&nbsp;  setCalendar(initialDate);<br>
+&nbsp;&nbsp;  setPreferredSize(new Dimension(369, 200));<br>
+}</p>
+<p>/**<br>
+* 设置日期和时间<br>
+* <br>
+* @param calendar<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  日期和时间<br>
+*/<br>
+public void setCalendar(Calendar calendar) {<br>
+&nbsp;&nbsp;  if (calendar == null)<br>
+&nbsp;&nbsp;&nbsp;  calendar = new GregorianCalendar();<br>
+&nbsp;&nbsp;  month.setSelectedIndex(calendar.get(Calendar.MONTH));<br>
+&nbsp;&nbsp;  year.setValue(calendar.get(Calendar.YEAR));<br>
+&nbsp;&nbsp;  int year = (Integer) this.year.getValue();<br>
+&nbsp;&nbsp;  int month = this.month.getSelectedIndex() + 1;<br>
+&nbsp;&nbsp;  dateGrid.set(year, month);<br>
+&nbsp;&nbsp;  dateGrid.setDay(calendar.get(Calendar.DAY_OF_MONTH));<br>
+&nbsp;&nbsp;  time.setValue(calendar.getTime());<br>
+}</p>
+<p>/**<br>
+* 获得日期和时间<br>
+* <br>
+* @return 日期和时间<br>
+*/<br>
+public Calendar getCalendar() {<br>
+&nbsp;&nbsp;  int year = (Integer) this.year.getValue();<br>
+&nbsp;&nbsp;  int month = this.month.getSelectedIndex();<br>
+&nbsp;&nbsp;  int day = dateGrid.getDay();<br>
+&nbsp;&nbsp;  Calendar c = Calendar.getInstance();<br>
+&nbsp;&nbsp;  Date date = (Date) time.getValue();<br>
+&nbsp;&nbsp;  c.setTime(date);<br>
+&nbsp;&nbsp;  c.set(year, month, day);<br>
+&nbsp;&nbsp;  return c;<br>
+}</p>
+<p>/**<br>
+* 显示对话框以选择日期，使用方法同JColorChooser.showDialog<br>
+* <br>
+* @param c<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  父级组件<br>
+* @param title<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  对话框标题<br>
+* @param initialDate<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  初始化日期和时间<br>
+* @return 选择的日期，null为取消选择<br>
+*/<br>
+public static Calendar showDialog(Component c, String title,<br>
+&nbsp;&nbsp;&nbsp;  Calendar initialDate) {<br>
+&nbsp;&nbsp;  Window window = c == null ? JOptionPane.getRootFrame() : SwingUtilities<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  .windowForComponent(c);<br>
+&nbsp;&nbsp;  JDialog dlg;<br>
+&nbsp;&nbsp;  if (window instanceof Frame)<br>
+&nbsp;&nbsp;&nbsp;  dlg = new JDialog((Frame) window, title, true);<br>
+&nbsp;&nbsp;  else<br>
+&nbsp;&nbsp;&nbsp;  dlg = new JDialog((Dialog) window, title, true);<br>
+&nbsp;&nbsp;  JDateChooser dc = new JDateChooser(initialDate);<br>
+&nbsp;&nbsp;  ActionHandler actionHandler = new ActionHandler(dc);<br>
+&nbsp;&nbsp;  JPanel p = new JPanel(new BorderLayout());<br>
+&nbsp;&nbsp;  p.setBorder(BorderFactory.createCompoundBorder(BorderFactory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  .createEmptyBorder(6, 6, 0, 6), BorderFactory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  .createEtchedBorder()));<br>
+&nbsp;&nbsp;  p.add(dc);<br>
+&nbsp;&nbsp;  dlg.add(p);<br>
+&nbsp;&nbsp;  p = new JPanel(new FlowLayout(FlowLayout.RIGHT));<br>
+&nbsp;&nbsp;  dlg.add(p, BorderLayout.SOUTH);<br>
+&nbsp;&nbsp;  JButton btOk = new JButton("确定");<br>
+&nbsp;&nbsp;  btOk.addActionListener(actionHandler);<br>
+&nbsp;&nbsp;  dlg.getRootPane().setDefaultButton(btOk);<br>
+&nbsp;&nbsp;  p.add(btOk);<br>
+&nbsp;&nbsp;  JButton btCancel = new JButton("取消");<br>
+&nbsp;&nbsp;  btCancel.addActionListener(actionHandler);<br>
+&nbsp;&nbsp;  p.add(btCancel);<br>
+&nbsp;&nbsp;  dlg.pack();<br>
+&nbsp;&nbsp;  dlg.setLocationRelativeTo(window);<br>
+&nbsp;&nbsp;  dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);<br>
+&nbsp;&nbsp;  dlg.addWindowListener(actionHandler);<br>
+&nbsp;&nbsp;  dlg.setVisible(true);<br>
+&nbsp;&nbsp;  return actionHandler.getCalendar();<br>
+}</p>
+<p>public void stateChanged(ChangeEvent e) {<br>
+&nbsp;&nbsp;  dateGrid.set((Integer) year.getValue(), month.getSelectedIndex() + 1);<br>
+}</p>
+<p>public void itemStateChanged(ItemEvent e) {<br>
+&nbsp;&nbsp;  dateGrid.set((Integer) year.getValue(), month.getSelectedIndex() + 1);<br>
+}</p>
+<p>private static class ActionHandler extends WindowAdapter implements<br>
+&nbsp;&nbsp;&nbsp;  ActionListener {</p>
+<p>&nbsp;&nbsp;  private JDateChooser dc;</p>
+<p>&nbsp;&nbsp;  public ActionHandler(JDateChooser dc) {<br>
+&nbsp;&nbsp;&nbsp;  this.dc = dc;<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void windowClosing(WindowEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  actionPerformed(new ActionEvent(this, 0, "取消"));<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void actionPerformed(ActionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  JDialog dlg = (JDialog) SwingUtilities.windowForComponent(dc);<br>
+&nbsp;&nbsp;&nbsp;  dlg.dispose();<br>
+&nbsp;&nbsp;&nbsp;  if ("取消".equals(e.getActionCommand())) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  dc = null;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public Calendar getCalendar() {<br>
+&nbsp;&nbsp;&nbsp;  return dc == null ? null : dc.getCalendar();<br>
+&nbsp;&nbsp;  }<br>
+}</p>
+<p>private static class DateGrid extends JPanel implements MouseListener {</p>
+<p>&nbsp;&nbsp;  JLabel[][] lbs = new JLabel[7][7];</p>
+<p>&nbsp;&nbsp;  int year = 1, month = 1, day = 1;</p>
+<p>&nbsp;&nbsp;  public DateGrid() {<br>
+&nbsp;&nbsp;&nbsp;  super(new GridLayout(7, 7));<br>
+&nbsp;&nbsp;&nbsp;  this.setBackground(Color.white);<br>
+&nbsp;&nbsp;&nbsp;  Color blue = new Color(140, 150, 255);<br>
+&nbsp;&nbsp;&nbsp;  Color white = new Color(220, 220, 255);<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 0; i &lt; 7; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = 0; j &lt; 7; j++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.add(lbs[i][j] = new JLabel((String) null));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].setOpaque(true);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].setHorizontalAlignment(JLabel.CENTER);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].setBackground(Color.white);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (i &gt; 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].addMouseListener(this);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[0][j].setBackground(blue);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[0][j].setForeground(white);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  lbs[0][0].setText("日");<br>
+&nbsp;&nbsp;&nbsp;  lbs[0][1].setText("一");<br>
+&nbsp;&nbsp;&nbsp;  lbs[0][2].setText("二");<br>
+&nbsp;&nbsp;&nbsp;  lbs[0][3].setText("三");<br>
+&nbsp;&nbsp;&nbsp;  lbs[0][4].setText("四");<br>
+&nbsp;&nbsp;&nbsp;  lbs[0][5].setText("五");<br>
+&nbsp;&nbsp;&nbsp;  lbs[0][6].setText("六");<br>
+&nbsp;&nbsp;&nbsp;  this.setBorder(BorderFactory.createLoweredBevelBorder());<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void setDay(int day) {<br>
+&nbsp;&nbsp;&nbsp;  if (day &lt; 1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  day = 1;<br>
+&nbsp;&nbsp;&nbsp;  int days = maxDay(year, month);<br>
+&nbsp;&nbsp;&nbsp;  if (day &gt; days)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  day = days;<br>
+&nbsp;&nbsp;&nbsp;  this.day = day;<br>
+&nbsp;&nbsp;&nbsp;  int d = 0;<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 1; i &lt; 7; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = 0; j &lt; 7; j++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (lbs[i][j].getText() != null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (++d == day) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].setBackground(Color.blue);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].setForeground(Color.white);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  continue;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].setBackground(Color.white);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].setForeground(Color.black);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  repaint();<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public int getDay() {<br>
+&nbsp;&nbsp;&nbsp;  return day;<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void set(int year, int month) {<br>
+&nbsp;&nbsp;&nbsp;  if (year &lt; 1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  year = 1;<br>
+&nbsp;&nbsp;&nbsp;  else if (year &gt; 9999)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  year = 9999;<br>
+&nbsp;&nbsp;&nbsp;  if (month &lt; 1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  month = 1;<br>
+&nbsp;&nbsp;&nbsp;  else if (month &gt; 12)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  month = 12;<br>
+&nbsp;&nbsp;&nbsp;  // 计算当月一号星期几 本可以用Calendar现成的功能，只是好玩，自己写了个算法<br>
+&nbsp;&nbsp;&nbsp;  int pastdays = (year - 1) * 365 + (year - 1) / 4 - (year - 1) / 100;<br>
+&nbsp;&nbsp;&nbsp;  pastdays += (month - 1) * 31;<br>
+&nbsp;&nbsp;&nbsp;  pastdays -= (month - 1) / 2;<br>
+&nbsp;&nbsp;&nbsp;  if (month &gt;= 9 &amp;&amp; month % 2 == 1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  pastdays += 1;<br>
+&nbsp;&nbsp;&nbsp;  if (month &gt; 2) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  pastdays -= 2;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  if ((year % 4 == 0) &amp;&amp; (year % 400 != 0))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  pastdays += 1;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  int dayInWeak = pastdays % 7 - 1;<br>
+&nbsp;&nbsp;&nbsp;  if (dayInWeak == -1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  dayInWeak = 6;<br>
+&nbsp;&nbsp;&nbsp;  // ~<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 1; i &lt; 7; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = 0; j &lt; 7; j++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lbs[i][j].setText(null);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  int days = maxDay(year, month);<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 1; i &lt;= days; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  lbs[1 + (dayInWeak + i - 1) / 7][(dayInWeak + i - 1) % 7]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  .setText(String.valueOf(i));<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  this.year = year;<br>
+&nbsp;&nbsp;&nbsp;  this.month = month;<br>
+&nbsp;&nbsp;&nbsp;  setDay(day);<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  private int maxDay(int year, int month) {<br>
+&nbsp;&nbsp;&nbsp;  int days = (month % 2 == (month &gt; 7 ? 0 : 1)) ? 31 : 30;<br>
+&nbsp;&nbsp;&nbsp;  if (month == 2)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  days = (year % 4 == 0 &amp;&amp; year % 400 != 0) ? 29 : 28;<br>
+&nbsp;&nbsp;&nbsp;  return days;<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void mouseClicked(MouseEvent e) {<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void mousePressed(MouseEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  Object o = e.getSource();<br>
+&nbsp;&nbsp;&nbsp;  JLabel lb = null;<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 1; i &lt; 7; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = 0; j &lt; 7; j++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  JLabel b = lbs[i][j];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (b == o &amp;&amp; b.getText() != null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  lb = b;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  break;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  if (lb == null)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return;<br>
+&nbsp;&nbsp;&nbsp;  int d = 0;<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 1; i &lt; 7; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  for (int j = 0; j &lt; 7; j++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (lbs[i][j].getText() != null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  d++;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (lbs[i][j] == lb) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  setDay(d);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void mouseReleased(MouseEvent e) {<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void mouseEntered(MouseEvent e) {<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void mouseExited(MouseEvent e) {<br>
+&nbsp;&nbsp;  }<br>
+}</p>
+<p>private static class Clock extends JComponent implements ChangeListener {</p>
+<p>&nbsp;&nbsp;  Calendar c;<br>
+&nbsp;&nbsp;  int[] xs = new int[4];<br>
+&nbsp;&nbsp;  int[] ys = new int[4];<br>
+&nbsp;&nbsp;  static final Color handColor = new Color(24, 116, 109);</p>
+<p>&nbsp;&nbsp;  public Clock(JSpinner time) {<br>
+&nbsp;&nbsp;&nbsp;  time.addChangeListener(this);<br>
+&nbsp;&nbsp;&nbsp;  stateChanged(new ChangeEvent(time));<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  public void stateChanged(ChangeEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  JSpinner sp = (JSpinner) e.getSource();<br>
+&nbsp;&nbsp;&nbsp;  Date date = (Date) sp.getValue();<br>
+&nbsp;&nbsp;&nbsp;  if (c == null)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  c = Calendar.getInstance();<br>
+&nbsp;&nbsp;&nbsp;  c.setTime(date);<br>
+&nbsp;&nbsp;&nbsp;  repaint();<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  protected void paintComponent(Graphics g) {<br>
+&nbsp;&nbsp;&nbsp;  Graphics2D g2 = (Graphics2D) g;<br>
+&nbsp;&nbsp;&nbsp;  g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  RenderingHints.VALUE_ANTIALIAS_ON);<br>
+&nbsp;&nbsp;&nbsp;  float ox = getWidth() / 2f;<br>
+&nbsp;&nbsp;&nbsp;  float oy = getHeight() / 2f;<br>
+&nbsp;&nbsp;&nbsp;  final float R = 60f;<br>
+&nbsp;&nbsp;&nbsp;  Ellipse2D.Float oval = new Ellipse2D.Float();<br>
+&nbsp;&nbsp;&nbsp;  for (int i = 0; i &lt; 360; i += 360 / 12 / 5) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  float a = i / 360f * (float) Math.PI * 2;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  float dx = (float) Math.sin(a) * R;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  float dy = (float) Math.cos(a) * R;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  g2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  .setColor(i % (360 / 12) == 0 ? Color.black<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  : Color.lightGray);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  oval.setFrame(ox - dx - 1f, oy - dy - 1f, 2, 2);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  g2.fill(oval);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  if (i % (360 / 12) == 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  g2.setColor(Color.cyan);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  oval.setFrame(ox + dx - 2f, oy + dy - 1f, 2, 2);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  g2.fill(oval);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  int hour = c.get(Calendar.HOUR);<br>
+&nbsp;&nbsp;&nbsp;  int minute = c.get(Calendar.MINUTE);<br>
+&nbsp;&nbsp;&nbsp;  int second = c.get(Calendar.SECOND);<br>
+&nbsp;&nbsp;&nbsp;  float ha = (float) Math.PI * 2 / 12 * (hour + (float) minute / 60);<br>
+&nbsp;&nbsp;&nbsp;  float ma = (float) Math.PI * 2 / 60<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  * (minute + (float) second / 60);<br>
+&nbsp;&nbsp;&nbsp;  float sa = (float) Math.PI * 2 / 60 * second;<br>
+&nbsp;&nbsp;&nbsp;  g2.setColor(Color.lightGray);<br>
+&nbsp;&nbsp;&nbsp;  g2.translate(1, 1);<br>
+&nbsp;&nbsp;&nbsp;  drawHand(g2, ox, oy, ha, 40);<br>
+&nbsp;&nbsp;&nbsp;  g2.translate(1, 1);<br>
+&nbsp;&nbsp;&nbsp;  drawHand(g2, ox, oy, ma, 48);<br>
+&nbsp;&nbsp;&nbsp;  g2.translate(1, 1);<br>
+&nbsp;&nbsp;&nbsp;  drawHand(g2, ox, oy, sa, 50, false);<br>
+&nbsp;&nbsp;&nbsp;  g2.translate(-3, -3);<br>
+&nbsp;&nbsp;&nbsp;  g2.setColor(handColor);<br>
+&nbsp;&nbsp;&nbsp;  drawHand(g2, ox, oy, ha, 40);<br>
+&nbsp;&nbsp;&nbsp;  drawHand(g2, ox, oy, ma, 48);<br>
+&nbsp;&nbsp;&nbsp;  g2.setColor(Color.black);<br>
+&nbsp;&nbsp;&nbsp;  drawHand(g2, ox, oy, sa, 50, false);<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  private void drawHand(Graphics2D g2, float ox, float oy, float a,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  float len, boolean w) {<br>
+&nbsp;&nbsp;&nbsp;  xs[2] = (int) (ox + (float) Math.sin(a) * len);<br>
+&nbsp;&nbsp;&nbsp;  ys[2] = (int) (oy - (float) Math.cos(a) * len);<br>
+&nbsp;&nbsp;&nbsp;  xs[0] = (int) (ox + (float) Math.sin(a + Math.PI) * 10);<br>
+&nbsp;&nbsp;&nbsp;  ys[0] = (int) (oy - (float) Math.cos(a + Math.PI) * 10);<br>
+&nbsp;&nbsp;&nbsp;  if (w) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  xs[1] = (int) (ox + (float) Math.sin(a + Math.PI / 2) * 3);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ys[1] = (int) (oy - (float) Math.cos(a + Math.PI / 2) * 3);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  xs[3] = (int) (ox + (float) Math.sin(a + Math.PI * 3 / 2) * 3);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  ys[3] = (int) (oy - (float) Math.cos(a + Math.PI * 3 / 2) * 3);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  g2.fillPolygon(xs, ys, 4);<br>
+&nbsp;&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  Line2D.Float line = new Line2D.Float(xs[0], ys[0], xs[2], ys[2]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  g2.draw(line);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;  private void drawHand(Graphics2D g2, float ox, float oy, float a,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  float len) {<br>
+&nbsp;&nbsp;&nbsp;  this.drawHand(g2, ox, oy, a, len, true);<br>
+&nbsp;&nbsp;  }<br>
+}</p>
+<p>public static void main(String[] args) throws Exception {<br>
+&nbsp;&nbsp;  UIManager<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  .setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");<br>
+&nbsp;&nbsp;  Calendar c = JDateChooser.showDialog(null, "请选择日期", null);<br>
+&nbsp;&nbsp;  if (c == null)<br>
+&nbsp;&nbsp;&nbsp;  JOptionPane.showMessageDialog(null, "你没有选择时间");<br>
+&nbsp;&nbsp;  else<br>
+&nbsp;&nbsp;&nbsp;  JOptionPane.showMessageDialog(null, "你选择的时间是" + c.getTime());<br>
+}<br>
+}<br>
+转自 <a href="http://blog.csdn.net/wenlong342/archive/2008/05/09/2420732.aspx">http://blog.csdn.net/wenlong342/archive/2008/05/09/2420732.aspx</a></p></div></body></html>

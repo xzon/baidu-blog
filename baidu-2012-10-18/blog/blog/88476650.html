@@ -1,0 +1,136 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Java5/6中的字体自定义设置与美化（Linux/Windows）</title></head><body><h1>Java5/6中的字体自定义设置与美化（Linux/Windows）</h1><div><p><a href="http://blog.csdn.net/AutumnHealth/archive/2007/09/19/1791222.aspx">Java5/6中的字体自定义设置与美化（Linux/Windows）</a></p>
+<p>Java5/6中的字体自定义设置与美化（Linux/Windows）<br>
+&nbsp;&nbsp;&nbsp;  默认情况下，Java应用程序中的中文字体和英文字体是分开使用的，这样导致不能同时使用某个英文字体和某个中文字体来显示同个程序中包含中文和英文的文字。例如，在Netbeans中不能使用Courser 10 Pitch字体(Windows下为Courser New)和某个中文字体（比如宋体或微软雅黑）来显示一个java源代码，如果选择Courser字体，那么源代码中的中文就无法显示，如果选择宋体或雅黑，那么英文字体则是采用默认映射的某个字体。<br>
+&nbsp;&nbsp;&nbsp;  网络上给出了许多方法，但都只是给出某些简单的方法来解决java中文乱码问题，没讲清楚基本原理。<br>
+本文给出了一个完整的字体设置方法，并且给出Ubuntu7.04和WindowsXP上测试通过的<a href="http://forum.ubuntu.org.cn/download.php?id=18888"><font color="#770000">字体配置文件</font></a>以供参考。<br>
+&nbsp;&nbsp;&nbsp;  本文有点罗嗦，不过我想如果看完Sun官方的字体配置文件的文档，大家应该对Java字体配置会有个比较全面的了解。<br>
+&nbsp;&nbsp;&nbsp;  字体配置文件的Sun官方文档地址：<a href="http://http: //blog.csdn.net/oldjavaman/archive/2005/05/27/382110.aspx"><font color="#770000">http://java.sun.com/j2se/1.5.0/docs/guide/intl/fontconfig.html</font></a><br>
+&nbsp;&nbsp;&nbsp;  其他参考资料：<br>
+<a href="http://blog.csdn.net/oldjavaman/archive/2005/05/27/382110.aspx"><font color="#770000">http://blog.csdn.net/oldjavaman/archive/2005/05/27/382110.aspx</font></a><br>
+<a href="http://community.csdn.net/Expert/TopicView3.asp?id=5663604"><font color="#770000">http://community.csdn.net/Expert/TopicView3.asp?id=5663604</font></a><br>
+<br>
+一、字体配置文件(Font Configuration Files)的简介<br>
+&nbsp;&nbsp;&nbsp;  首先得弄清楚的是Java字体配置文件的加载方案。<br>
+&nbsp;&nbsp;&nbsp;  为了在一个操作系统中找到应用程序字体配置文件，必须了解以下信息：<br>
+&nbsp;&nbsp;&nbsp;  * JavaHome - JRE的目录，就像系统属性给出的&quot;java.home&quot;。<br>
+&nbsp;&nbsp;&nbsp;  * OS - 标识一个操作系统的一个字符串：<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  o 对于 Windows，&quot;98&quot;, &quot;2000&quot;, &quot;Me&quot;, &quot;XP&quot;, &quot;2003&quot;。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  o 对于 Solaris，空。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  o 对于 Linux， &quot;Sun&quot;, &quot;RedHat&quot;, &quot;Turbo&quot;, &quot;SuSE&quot;。<br>
+&nbsp;&nbsp;&nbsp;  * Version - 一个标识操作系统版本的字符串。<br>
+&nbsp;&nbsp;&nbsp;  Java运行时会使用它找到的以下文件中的第一个（有人说是按照这个顺序加载，但官方是说这些文件中的第一个）：<br>
+&nbsp;&nbsp;&nbsp;  JavaHome/lib/fontconfig.OS.Version.properties<br>
+&nbsp;&nbsp;&nbsp;  JavaHome/lib/fontconfig.OS.Version.bfc<br>
+&nbsp;&nbsp;&nbsp;  JavaHome/lib/fontconfig.OS.properties<br>
+&nbsp;&nbsp;&nbsp;  JavaHome/lib/fontconfig.OS.bfc<br>
+&nbsp;&nbsp;&nbsp;  JavaHome/lib/fontconfig.Version.properties<br>
+&nbsp;&nbsp;&nbsp;  JavaHome/lib/fontconfig.Version.bfc<br>
+&nbsp;&nbsp;&nbsp;  JavaHome/lib/fontconfig.properties<br>
+&nbsp;&nbsp;&nbsp;  JavaHome/lib/fontconfig.bfc<br>
+&nbsp;&nbsp;&nbsp;  其中，以.properties为后缀的文件是文本格式的文件，其他为二进制格式的文件。需要修改的，就是.properties后缀的文本文件，即字体配置文件。这个文件分为若干段，并在每段开始时用#标明：<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  *  版本属性<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # Version<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  用来标识这个字体配置文件格式的版本。这里指定为1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  version=1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;  *  组件字体映射<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # Component Font Mappings<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  组件字体映射属性描述了根据一个给出的某个样式(style)的逻辑字体(logical font)，决定用来哪个物理字体(physical font)的一个字符子集(character subset)来显示字符。。。（这句话太难翻译了：（，不知道翻译得对不对，不过意思差不多，原句：Component font mapping properties describe which physical font to use to render characters from a given character subset with a given logical font in a given style.）简单地说，就是根据以下形式来映射字体（这里指逻辑字体）：<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  所有字体.字符子集名字=物理字体名字<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  allfonts.CharacterSubsetName＝PlatformFontName<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  逻辑字体名字.样式名字.字符子集名字=物理字体名字<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  或者：<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  LogicalFontName.StyleName.CharacterSubsetName＝PlatformFontName<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  这里的物理字体名字在Linux/Solaris下和在Windows下表示方式不同，字符子集名字也有些差别。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  例如，Linux/Solaris下的一个映射：<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  monospaced.bold.latin-1=-bitstream-courier 10 pitch-bold-r-normal--*-%d-*-*-m-*-iso8859-1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  monospaced.bold.chinese-gb18030=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Windows下的一个映射：<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  monospaced.bold.alphabetic=Courier New Bold<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  monospaced.bold.chinese-ms950=PMingLiU<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  其中，monospaced为逻辑字体名字，逻辑自己名字只能是五个逻辑字体名字中的一个：serif，sansserif，monospaced， dialog，和dialoginput。bold为粗体的字体样式，字体样式只能是四个样式中的一个：plain（正常），bold（粗体）， italic（斜体），和bolditalic（粗体+斜体）。latin-1和alphabetic都是为字母的字符子集名字，前者用于Linux下，后者用于Windows下。等号右边是物理字体名字，它在Linux/Solaris和Windows的表示有很大的差别，在Linux/Solaris 下为更专业的表示方法，而在Windows下就是所见即所得的表示方法（可以为中文，但必须用unicode的形式来表示，这个后面会提到）。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  组件字体映射属性就是需要我们修改的一个部分。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  *  搜索顺序<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # Search Sequences<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Java运行时通过顺序属性来决定五种逻辑字体的搜索顺序。然而，一个字体配置文件可能指定由编码(encoding)，语言(language)和国家 (country)组合的特殊属性，运行时将会通过查找来决定每个逻辑字体的搜索顺序属性。这也是需要修改的一个部分。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  *  字体文件名字<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # Font File Names<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  字体文件名字属性提供了字体配置文件所使用的包含了物理字体的文件名字。在Windows下所有物理字体的名字是必须的，在Solaris和Linux下所有物理字体的名字是推荐的。（两种操作系统中的字体文件名字表示有很大的差别。）<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  还有其他一些属性，具体的说明请参见Sun的官方文档，它们是不需要我们修改的，其中有的甚至在字体配置文件中不需要指定：<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # Exclusion Ranges<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # Proportional Fonts<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # Appended Font Path<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # Motif Component Font Mappings<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  # AWT X11 Font Path<br>
+<br>
+&nbsp;&nbsp;&nbsp;  字体配置文件的Sun官方文档地址：http: //blog.csdn.net/oldjavaman/archive/2005/05/27/382110.aspx<br>
+<br>
+二、修改与美化<br>
+&nbsp;&nbsp;&nbsp;  通过上面对字体配置文件的简单了解，现在我们可以进行自定义修改与美化了。<br>
+&nbsp;&nbsp;&nbsp;  首先，你要用到的字体可能在字体配置文件中没有指定，我们必须自己指定要用到的物理字体(physical font)，并映射为不同操作系统平台下的表示(PlatformFontName)。<br>
+&nbsp;&nbsp;&nbsp;  例如，我们想选择微软雅黑字体（msyh.ttf）和Courser字体，这里假定你已经在操作系统上安装了这些字体。<br>
+Linux（Ubuntu7.04）下，我们在/etc/java-6-sun/fontconfig.properties（Ubuntu7.04通过 apt-get安装的jdk，手动安装jdk的话，字体配置文件在Javahome/jre/lib目录下，把 fontconfig.properties.src文件改名为fontconfig.properties）文件的# Font File Names 段添加：<br>
+filename.-microsoft-microsoft_yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0=/usr/share/fonts/yahei/msyh.ttf<br>
+说明：filename为固定的，后面跟一个点（.），紧接着是微软雅黑字体的物理名字（不包括引号）&ldquo;-microsoft- microsoft_yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0&rdquo;，这个名字在 fonts.dir文件中是这样表示的： &ldquo;-microsoft-microsoft yahei-medium-r-normal--0-0-0-0-p-0-gb18030.2000-0&rdquo;，差别就是需要用_替换名字中的空格，并且把- -0-0-0-0-p-0-改为--*-%d-*-*-p-*-，其中%d用来表示字体大小，运行时会自动填充这个值。medium-r-normal的 r表示正常样式的字体(msyh.ttf只包含这个样式)。等号右边是msyh.ttf文件的绝对路径。<br>
+&nbsp;&nbsp;&nbsp;  接着，我们就可以在字体配置文件中使用这个名字了。<br>
+&nbsp;&nbsp;&nbsp;  在# Component Font Mappings 段中，将包含chinese的中文字体都改为雅黑的名字，如下：<br>
+allfonts.chinese-gb18030=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+allfonts.chinese-gb18030.motif=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+allfonts.chinese-big5=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+allfonts.chinese-big5.motif=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+&nbsp;&nbsp;&nbsp;  并且将程序中用到的逻辑字体的中文字符子集映射为雅黑，如下（这里使用monospaced）：<br>
+monospaced.plain.chinese-gb18030=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+monospaced.plain.chinese-gb18030.motif=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+<br>
+monospaced.bold.chinese-gb18030=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+monospaced.bold.chinese-gb18030.motif=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+<br>
+monospaced.italic.chinese-gb18030=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+monospaced.italic.chinese-gb18030.motif=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+<br>
+monospaced.bolditalic.chinese-gb18030=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+monospaced.bolditalic.chinese-gb18030.motif=-microsoft-microsoft yahei-medium-r-normal--*-%d-*-*-p-*-gb18030.2000-0<br>
+<br>
+&nbsp;&nbsp;&nbsp;  至此，添加给Java应用程序添加雅黑字体已经完成，打开Netbeans看看，中文版的Netbeans的启动界面的中文，以及IDE里面的中文字体全部变成了雅黑。但是，英文字体还不是想要的，默认是Monospaced逻辑字体，它的英文字体映射到一个不知道叫什么的字体上了。尤其在源代码中，如果选择Courser 10 Pitch字体，代码中的中文将无法显示，用默认Monospaced字体来显示英文又觉得不好看。下面，我们将Monospaced逻辑字体的英文映射成Courser 10 Pitch。<br>
+&nbsp;&nbsp;&nbsp;  Ubuntu中，Courser 10 Pitch字体的物理文件位置在/usr/share/fonts/X11/Type1/目录下的c0419bt_.pfb（正常）、 c0582bt_.pfb（粗体）、c0583bt_.pfb（斜体）、c0611bt_.pfb（粗体+斜体）。我们在# Font File Names 段中添加这几个文件的映射：<br>
+filename.-bitstream-courier_10_pitch-medium-r-normal--*-%d-*-*-m-*-iso8859-1=/usr/share/fonts/X11/Type1/c0419bt_.pfb<br>
+filename.-bitstream-courier_10_pitch-medium-i-normal--*-%d-*-*-m-*-iso8859-1=/usr/share/fonts/X11/Type1/c0582bt_.pfb<br>
+filename.-bitstream-courier_10_pitch-bold-r-normal--*-%d-*-*-m-*-iso8859-1=/usr/share/fonts/X11/Type1/c0583bt_.pfb<br>
+filename.-bitstream-courier_10_pitch-bold-i-normal--*-%d-*-*-m-*-iso8859-1=/usr/share/fonts/X11/Type1/c0611bt_.pfb<br>
+&nbsp;&nbsp;&nbsp;  说明一下，medium-r为正常样式，medium-i为斜体样式，bold-r为粗体样式，bold-i为粗体+斜体样式。<br>
+然后在# Component Font Mappings 段中，将monospaced4种样式字体的latin-1字符集改为：<br>
+monospaced.plain.latin-1=-bitstream-courier 10 pitch-medium-r-normal--*-%d-*-*-m-*-iso8859-1<br>
+monospaced.plain.latin-1.motif=-bitstream-courier 10 pitch-medium-r-normal--*-%d-*-*-m-*-iso8859-1<br>
+<br>
+monospaced.bold.latin-1=-bitstream-courier 10 pitch-bold-r-normal--*-%d-*-*-m-*-iso8859-1<br>
+monospaced.bold.latin-1.motif=-bitstream-courier 10 pitch-bold-r-normal--*-%d-*-*-m-*-iso8859-1<br>
+<br>
+monospaced.italic.latin-1=-bitstream-courier 10 pitch-medium-i-normal--*-%d-*-*-m-*-iso8859-1<br>
+monospaced.italic.latin-1.motif=-bitstream-courier 10 pitch-medium-i-normal--*-%d-*-*-m-*-iso8859-1<br>
+<br>
+monospaced.bolditalic.latin-1=-bitstream-courier 10 pitch-bold-i-normal--*-%d-*-*-m-*-iso8859-1<br>
+monospaced.bolditalic.latin-1.motif=-bitstream-courier 10 pitch-bold-i-normal--*-%d-*-*-m-*-iso8859-1<br>
+<br>
+&nbsp;&nbsp;&nbsp;  好了，保存文件，重新打开Netbeans，现在你可以将源代码的字体设置为Monospaced，代码中的英文字体就是Courier 10 Pitch，而中文为雅黑。（Netbeans字体设置在&quot;工具&quot;-&gt;&quot;选项&quot;-&gt;&quot;字体和颜色&quot;-&gt;&quot;语法&quot;下，默认情况下， Java还是会采用其他的英文字体，可以全部手动设为Monospaced）<br>
+<br>
+&nbsp;&nbsp;&nbsp;  WindowsXP下会简单一点。我们不必自己重新写一个字体配置文件，将Javahome\jre\lib\ fontconfig.properties.src文件（Windows）改名为fontconfig.properties，打开。假设雅黑字体已经安装在了C:\Windows\Fonts\文件夹中，我们在fontconfig.properties文件的# Font File Names 段中添加雅黑字体的映射：<br>
+filename.\u5FAE\u8F6F\u96C5\u9ED1=msyh.ttf<br>
+filename.\u5FAE\u8F6F\u96C5\u9ED1_Bold=msyhbd.ttf<br>
+<br>
+&nbsp;&nbsp;&nbsp;  然后在# Component Font Mappings 段的allfonts的中文子集的字体改为雅黑，如下：<br>
+allfonts.chinese-ms936=\u5FAE\u8F6F\u96C5\u9ED1<br>
+allfonts.chinese-gb18030=\u5FAE\u8F6F\u96C5\u9ED1<br>
+&nbsp;&nbsp;&nbsp;  其中，ms936就是GBK字符集，ms950实际上就是Big5字符集，繁体的，也可以改用雅黑。<br>
+&nbsp;&nbsp;&nbsp;  你可以看到，Windows底下五种逻辑字体默认的简体中文字体的映射都采用allfonts的设置，所以其他地方都可以不用设置了。<br>
+&nbsp;&nbsp;&nbsp;  而对于英文，monospaced默认就是映射为Courier New字体，但为什么在Java程序里（比如Netbeans）确不能显示呢？<br>
+找到sequence.monospaced.GBK=sequence.monospaced.GBK=chinese-ms936,alphabetic,dingbats,symbol<br>
+可以看出对于中文字体的搜索顺序是先搜chinese-ms936，而chinese-ms936是用allfonts的雅黑来显示英文，所以不好看，因此你只要简单将 chinese-ms936和alphabetic这两个交换一下变成：<br>
+sequence.monospaced.GBK=alphabetic,chinese-ms936,dingbats,symbol<br>
+保存之后，重启你的Netbeans，这时编辑器里的英文字体就都编程Courier New了，包括Output窗口的字体。<br>
+<br>
+&nbsp;&nbsp;&nbsp;  这种方法修改和美化都分别在WindowsXP和Ubuntu7.04，JDK5/6下测试通过，不过能不能解决Java乱码我是还没测试，因为我电脑上 Java乱码问题早就解决了，懒得再去弄，有兴趣的，可以帮忙测试一下。<br>
+到这里，大家应该对Java字体配置有了一定的了解吧，现在可以自己动手把Java Swing程序的字体改成自己喜欢的了：）。<br>
+<a href="http://blog.csdn.net/AutumnHealth/archive/2007/09/19/1791222.aspx">http://blog.csdn.net/AutumnHealth/archive/2007/09/19/1791222.aspx</a>?</p></div></body></html>

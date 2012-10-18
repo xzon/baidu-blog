@@ -1,0 +1,87 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>下面介绍以下J2SE6.0 新特性</title></head><body><h1>下面介绍以下J2SE6.0 新特性</h1><div><div>
+<p>下面介绍以下J2SE6.0 新特性 <br>
+在Java 6的java.swt包下提供了SystemTray和TrayIcon类，这两个类可以实现系统托盘功能，下面让我们看看如何去实现系统托盘。这是我们要实现的流程：捕获关闭窗口事件、隐藏窗口、显示托盘图标，鼠标右击托盘图标、显示弹出菜单(自动)、选择菜单的显示窗口项，再显示窗口、隐藏托盘图标。 <br>
+<br>
+在进行编码之前让我再了解一下SystemTray和TrayIcon这两个类。每一个Java应用都会包含一个SystemTray实例，这个不需要你去实例化，你可以通过SystemTray.getSystemTray()获取，接下来我们就要在SystemTray中添加TrayIcon，这样在托盘区就会显示一个新的托盘图标。TrayIcon有四部分组成：名称、图标、弹出菜单和事件，所以我们将这四方面做好就可以完成其既定的功能。 <br>
+<br>
+下面我们建立一个JFrame的应用，这个应用包含一个TrayIcon对象，当主窗口被关闭时就显示该托盘图标，当点击托盘图标时再显示程序主窗口。 <br>
+<br>
+<br>
+public class MyFrame extends JFrame <br>
+{ <br>
+private TrayIcon trayIcon; <br>
+<br>
+public MyFrame() <br>
+{ <br>
+setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE); <br>
+this.addWindowListener(new WindowAdapter() <br>
+{ <br>
+public void windowClosing(WindowEvent e) <br>
+{ <br>
+if (SystemTray.isSupported()) <br>
+{ <br>
+setVisible(false); <br>
+minimizeToTray(); <br>
+} else <br>
+{ <br>
+System.exit(0); <br>
+} <br>
+} <br>
+}); <br>
+JPanel root = new JPanel(); <br>
+JButton exitButton = new JButton(&quot;ok&quot;); <br>
+exitButton.addActionListener(new ActionListener() <br>
+{ <br>
+public void actionPerformed(ActionEvent e) <br>
+{ <br>
+System.exit(0); <br>
+} <br>
+}); <br>
+root.add(exitButton); <br>
+getContentPane().add(root); <br>
+pack(); <br>
+<br>
+initTrayIcon(); <br>
+} <br>
+<br>
+public void minimizeToTray() <br>
+{ <br>
+SystemTray tray = SystemTray.getSystemTray(); <br>
+tray.add(trayIcon); <br>
+} <br>
+<br>
+private void initTrayIcon() <br>
+{ <br>
+Image image = <br>
+Toolkit.getDefaultToolkit().getImage(this.getClass().getResource(&quot;/logo.png&quot;)); <br>
+PopupMenu popup = new PopupMenu(); <br>
+MenuItem exitItem = new MenuItem(&quot;Show&quot;); <br>
+ActionListener showListener = new ActionListener() <br>
+{ <br>
+public void actionPerformed(ActionEvent e) <br>
+{ <br>
+setVisible(true); <br>
+SystemTray.getSystemTray().remove(trayIcon); <br>
+} <br>
+}; <br>
+exitItem.addActionListener(showListener); <br>
+popup.add(exitItem); <br>
+trayIcon = new TrayIcon(image, &quot;MyTray&quot;, popup); <br>
+trayIcon.addActionListener(showListener); <br>
+} <br>
+<br>
+public static void main(String[] args) <br>
+{ <br>
+MyFrame frame = new MyFrame(); <br>
+frame.setTitle(&quot;MyFrame&quot;); <br>
+frame.setVisible(true); <br>
+} <br>
+} <br>
+<br>
+在initTrayIcon()方法中，我们创建一个TrayIcon，提供文本，图标和一个弹出菜单，同时监听默认事件（Windows下双击托盘图标会触发这个事件）。 <br>
+<br>
+在窗口关闭的事件处理方法中，我们隐藏主窗口，然后在SystemTray中添加trayIcon对象。在响应显示主窗口的事件中，我们调用主窗口的显示方法，然后将trayIcon从SystemTray中移去，这样我们就实现了一个最简单的系统托盘的例子。 <br>
+<br>
+在JavaLobby上看到一个JTaskPaneGroup例子，利用TaskPane扩充SystemTray的一些界面效果非常不错的。</p>
+<p class="diaryFoot">- 作者： <a href=":void(0);">stkamen</a></p>
+</div></div></body></html>

@@ -1,0 +1,133 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>tomcat +mysql JNDI配置</title></head><body><h1>tomcat +mysql JNDI配置</h1><div><h2>tomcat +mysql JNDI配置</h2>
+<div class="t_msgfont" >1、安装Tomcat<br>
+　　参考Tomcat for window 的安装向导，基本直接安装即可，注意：安装时会提示输入<span class="t_tag" href="tag.php?name=%B9%DC%C0%ED">管理</span>用户名和密码，这是以后会用到的用户名和密码，切记。<br>
+　　<br>
+　　2、安装MySql<br>
+　　默认安装即可。<br>
+　　<br>
+　　3、使用Tomcat的Web管理<span class="t_tag" href="tag.php?name=%D3%A6%D3%C3">应用</span>配置数据源<br>
+　　启动Tomcat<span class="t_tag" href="tag.php?name=%B7%FE%CE%F1%C6%F7">服务器</span>，打开浏览器，输入http://localhost:8080/admin/（其中localhost可能是一台机器的IP或是服务器名称），进入管理界面的登陆页面，这时候请输入原来安装时要求输入的用户名和密码，登陆到管理界面，<br>
+　　<br>
+　　选择Resources－Data sources进入配置数据源界面，选择Data Source Actions －&gt;选择Create New Data Source,进入配置详细<span class="t_tag" href="tag.php?name=%D0%C5%CF%A2">信息</span>界面，内容如下：<br>
+　　<br>
+　　JNDI Name:　　jdbc/mysql<br>
+　　Data Source URL:　jdbc:mysql://192.168.0.16/SUBRDB<br>
+　　JDBC Driver Class:　 org.gjt.mm.mysql.Driver<br>
+　　User Name:　　root<br>
+　　Password:　　 ********<br>
+　　Max. Active Connections:　　4<br>
+　　Max. Idle Connections:　　2<br>
+　　Max. Wait for Connection:　　500<br>
+　　Validation Query:<br>
+　　<br>
+　　要求输入的JNDI Name等信息，其中除了JDBC DriverClass之外，其他的可以根据你的需要填写。比如Data Source URL的内容可能是：jdbc:mysql:// IP或是名称/DataBaseName，其中DataBaseName是你的<span class="t_tag" href="tag.php?name=%CA%FD%BE%DD%BF%E2">数据库</span>名称，IP是你的<span class="t_tag" href="tag.php?name=%CA%FD%BE%DD%BF%E2">数据库</span>的所在的服务器的IP或是名称。最后点击Save－&gt;Commit Change.这样你的数据源的基本资料配置一半了。<br>
+　　<br>
+　　4、web.xml和%TOMCAT_HOME%\conf\Catalina\localhost下对应你的引用的配置文件修改<br>
+　　通过文件夹导航到%TOMCAT_HOME%\conf，打开web.xml,在&lt;/web-app&gt;的前面添加以下内容：<br>
+　　<br>
+　　&lt;resource-ref&gt;<br>
+　　<br>
+　　&lt;description&gt;DB Connection&lt;/description&gt;<br>
+　　<br>
+　　&lt;res-ref-name&gt;jdbc/mysql&lt;/res-ref-name&gt;<br>
+　　<br>
+　　&lt;res-type&gt;<span class="t_tag" href="tag.php?name=java">java</span>x.sql.DataSource&lt;/res-type&gt;<br>
+　　<br>
+　　&lt;res-auth&gt;Container&lt;/res-auth&gt;<br>
+　　<br>
+　　&lt;/resource-ref&gt;<br>
+　　<br>
+　　注意res-ref-name填写的内容要与在上文提到的JNDI Name名称一致。<br>
+　　<br>
+　　通过文件夹导航到%TOMCAT_HOME%\conf\Catalina\localhost下，找到你的web应用对应的.xml文件，如　　ROOT.xml，并在此文件的下添入代码：<br>
+　　<br>
+　　&lt;ResourceLink name=&quot;jdbc/mysql&quot; global=&quot;jdbc/mysql&quot; type=&quot;javax.sql.DataSourcer&quot;/&gt;<br>
+　　<br>
+　　到这里，配置工作就基本完成了。<br>
+　　<br>
+　　5、其他注意事项<br>
+　　别忘了JDBC驱动程序mysql-connector-java-3.0.9-stable-bin.jar一定要放置到Tomcat的对应目录,你的JDBC驱动可能版比笔者高，不过只要能与所使用的MySql对应就可以了，因为我发现版本太低的JDBC驱动不能支持4.0.*版本的MySQL数据库，建议放置在%TOMCAT_HOME%\common\lib和应用的WEB-INF\lib下。两者有什么不同呢？其实一看就明白了，common\li是所有的应用都可以使用的库文件位置。<br>
+　　<br>
+　　重启你的Tomcat服务。<br>
+　　<br>
+　　6、编写<span class="t_tag" href="tag.php?name=%B2%E2%CA%D4">测试</span>代码<br>
+　　在应用的目录下建立一个Test.jsp文件，代码如下：<br>
+　　<br>
+　　&lt;!doctype html public &quot;-//w3c//dtd html 4.0 transitional//en&quot;<br>
+　　<br>
+　　&quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;<br>
+　　<br>
+　　&lt;%@ page import=&quot;java.sql.*&quot;%&gt;<br>
+　　<br>
+　　&lt;%@ page import=&quot;javax.sql.*&quot;%&gt;<br>
+　　<br>
+　　&lt;%@ page import=&quot;javax.naming.*&quot;%&gt;<br>
+　　<br>
+　　&lt;%@ page session=&quot;false&quot; %&gt;<br>
+　　<br>
+　　&lt;html&gt;<br>
+　　<br>
+　　&lt;head&gt;<br>
+　　<br>
+　　&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=gb2312&quot;&gt;<br>
+　　<br>
+　　&lt;title&gt;&lt;/title&gt;<br>
+　　<br>
+　　&lt;%<br>
+　　<br>
+　　out.print(&quot;我的测试开始&quot;);<br>
+　　<br>
+　　DataSource ds = null;<br>
+　　<br>
+　　try{<br>
+　　<br>
+　　InitialContext ctx=new InitialContext();<br>
+　　<br>
+　　ds=(DataSource)ctx.lookup(&quot;java:comp/env/jdbc/mysql&quot;);<br>
+　　<br>
+　　Connection conn = ds.getConnection();<br>
+　　<br>
+　　Statement stmt = conn.createStatement();<br>
+　　<br>
+　　//提示：users必须是数据库已有的表，<br>
+　　<br>
+　　//这里的数据库前文提及的Data Source URL配置里包含的数据库。<br>
+　　<br>
+　　String strSql = &quot; select * from users&quot;;<br>
+　　<br>
+　　ResultSet rs = stmt.executeQuery(strSql);<br>
+　　<br>
+　　while(rs.next()){<br>
+　　<br>
+　　out.print(rs.getString(1));<br>
+　　<br>
+　　}<br>
+　　<br>
+　　out.print(&quot;我的测试结束&quot;);<br>
+　　<br>
+　　}<br>
+　　<br>
+　　catch(Exception ex){<br>
+　　<br>
+　　out.print(&ldquo;出现例外，信息是:&rdquo;+ex.getMessage());<br>
+　　<br>
+　　ex.printStackTrace();<br>
+　　<br>
+　　}<br>
+　　<br>
+　　%&gt;<br>
+　　<br>
+　　&lt;/head&gt;<br>
+　　<br>
+　　&lt;body&gt;<br>
+　　<br>
+　　&lt;/body&gt;<br>
+　　<br>
+　　&lt;/html&gt;<br>
+　　<br>
+　　运行结果：<br>
+　　<br>
+　　我的测试开始12345678我的测试结束，因为我的rs.getString(1) 在数据库就是存放12345678<br>
+　　<br>
+　　7、总结<br>
+　　配置过程及其简单明了，这些配置免除了以往开发人员自己动手写数据源连接池的痛苦，这也是对开发过程的有力支持。</div></div></body></html>

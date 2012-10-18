@@ -1,0 +1,166 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>JDBC常用类和方法</title></head><body><h1>JDBC常用类和方法</h1><div><table class="buttomBorder FCK__ShowTableBorders" border="0" cellspacing="3" cellpadding="3" width="100%">
+    <tbody>
+        <tr>
+            <td class="contentTitle" align="center">JDBC常用类和方法 <hr width="70%">
+            </td>
+        </tr>
+        <tr>
+            <td align="center">2005-07-23 来源:Java-cn 作者:Java-cn</td>
+        </tr>
+        <tr>
+            <td class="content" valign="top" align="left"><font size="2" face="Times New Roman">一、四种驱动程序概念 <br>
+            <br>
+            A、JDBC-ODBC Bridge <br>
+            桥接器型的驱动程序，这类驱动程序的特色是必须在使用者端的计算机上事先安装好ODBC驱动程序，然后通过JDBC-ODBC的调用方法，进而通过ODBC来存取数据库。 <br>
+            作为JDK1.1后的一部分，是sun.jdbc.odbc包的一部分 <br>
+            Application---&gt;JDBC-ODBC&nbsp;&nbsp;  Bridge----&gt;JDBC-ODBC&nbsp;&nbsp;  Library---&gt;ODBC&nbsp;&nbsp;  Driver--&gt;Database <br>
+            适用于快速的原型系统，没有提供JDBC驱动的数据库如Access <br>
+            <br>
+            B、JDBC-Native API Bridge <br>
+            也是桥接器驱动程序之一，这类驱动程序也必须先在使用者计算机上先安装好特定的驱动程序（类似ODBC），然后通过JDBC-Native API桥接器的转换，把Java API调用转换成特定驱动程序的调用方法，进而存取数据库。 <br>
+            利用开发商提供的本地库来直接与数据库通信。 <br>
+            Application---&gt;JDBC&nbsp;&nbsp;  Driver----&gt;Native&nbsp;&nbsp;  Database&nbsp;&nbsp;  library----&gt;Database <br>
+            比A类性能略好。 <br>
+            <br>
+            C、JDBC-middleware <br>
+            这类型的驱动程序最大的好处就是省去了在使用者计算机上安装任何驱动程序的麻烦，只需在服务器端安装好middleware，而middleware会负责所有存取数据库必要的转换。 <br>
+            Application---&gt;Jdbc&nbsp;&nbsp;  Driver-----&gt;java&nbsp;&nbsp;  middleware---&gt;JDBC&nbsp;&nbsp;  Driver----&gt;Database <br>
+            具有最大的灵活性，通常由那些非数据库厂商提供，是四种类型中最小的。 <br>
+            <br>
+            D、Pure JDBC driver <br>
+            这类型的驱动程序是最成熟的JDBC驱动程序，不但无需在使用者计算机上安装任何额外的驱动程序，也不需要在服务器端安装任何中介程序(middleware)，所有存取数据库的操作，都直接由驱动程序来完成。 <br>
+            Application---&gt;Jdbc&nbsp;&nbsp;  driver-----&gt;database&nbsp;&nbsp;  engine---&gt;database <br>
+            最高的性能，通过自己的本地协议直接与数据库引擎通信，具备在Internet装配的能力。 <br>
+            <br>
+            <br>
+            二、常用的JDBC类与方法 <br>
+            <br>
+            1、DriverManager类： <br>
+            负责管理JDBC驱动程序。使用JDBC驱动程序之前，必须先将驱动程序加载并向DriverManager注册后才可以使用，同时提供方法来建立与数据库的连接。 <br>
+            <br>
+            方法： <br>
+            A、Class.forName(String driver); //加载注册驱动程序 <br>
+            B、Static Connection getConnection(String url,String user,String password) throws SQLException;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //取得对数据库的连接 <br>
+            C、Static Driver getDriver(String url) throws SQLExcetion; <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //在已经向DriverManager注册的驱动程序中寻找一个能够打开url所指定的数据库的驱动程序 <br>
+            <br>
+            <br>
+            2、Connection类 <br>
+            负责维护JSP/JAVA数据库程序和数据库之间的联机。可以建立三个非常有用的类对象。 <br>
+            <br>
+            方法： <br>
+            A、Statement createStatement() throws SQLException; //建立Statement类对象 <br>
+            Statement createStatement(int resultSetType,int resultSetConcurrency) throws SQLException; <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  // 建立Statement类对象 <br>
+            <br>
+            resultSetType值&nbsp;&nbsp;<br>
+            TYPE_FORWARD_ONLY 结果集不可滚动&nbsp;&nbsp;<br>
+            TYPE_SCROLL_INSENSITIVE 结果集可滚动，不反映数据库的变化&nbsp;&nbsp;<br>
+            TYPE_SCROLL_SENSITIVE 结果集可滚动，反映数据库的变化&nbsp;&nbsp;<br>
+            <br>
+            resultSetConcurrency值&nbsp;&nbsp;<br>
+            CONCUR_READ_ONLY 不能用结果集更新数据&nbsp;&nbsp;<br>
+            CONCUR_UPDATABLE 能用结果集更新数据&nbsp;&nbsp;<br>
+            <br>
+            JDBC2.0中才支持滚动的结果集，而且可以对数据进行更新 <br>
+            <br>
+            B、DatabaseMetaData getMetaData() throws SQLException; //建立DatabaseMetaData类对象 <br>
+            C、PreparedStatement prepareStatement(String sql) throws SQLException;&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //建立PreparedStatement类对象 <br>
+            D、boolean getAutoCommit() throws SQLException //返回Connection类对象的AutoCommit状态 <br>
+            E、void setAutoCommit(boolean autoCommit) throws SQLException&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //设定Connection类对象的AutoCommit状态 <br>
+            F、void commit() throws SQLException&nbsp;&nbsp;  //确定执行对数据库新增、删除或修改记录的操作 <br>
+            G、void rollback() throws SQLException&nbsp;&nbsp;  //取消执行对数据库新增、删除或修改记录的操作 <br>
+            H、void close() throws SQLException&nbsp;&nbsp;  //结束Connection对象对数据库的联机 <br>
+            I、boolean isClosed() throws SQLException //测试是否已经关闭Connection类对象对数据库的联机 <br>
+            <br>
+            3、Statement类 <br>
+            <br>
+            通过Statement类所提供的方法，可以利用标准的SQL命令，对数据库直接新增、删除或修改操作 <br>
+            <br>
+            方法： <br>
+            <br>
+            A、ResultSet executeQuery(String sql) throws SQLException //使用SELECT命令对数据库进行查询 <br>
+            B、int executeUpdate(String sql) throws SQLException&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //使用INSERTDELETEUPDATE对数据库进行新增、删除和修改操作。 <br>
+            C、void close() throws SQLException //结束Statement类对象对数据库的联机 <br>
+            <br>
+            <br>
+            4、PreparedStatement类 <br>
+            <br>
+            PreparedStatement 类和Statement类的不同之处在于PreparedStatement类对象会将传入的SQL命令事先编好等待使用，当有单一的SQL指令比多次执行时，用PreparedStatement类会比Statement类有效率 <br>
+            <br>
+            方法： <br>
+            <br>
+            A、ResultSet executeQuery() throws SQLException //使用SELECT命令对数据库进行查询 <br>
+            B、int executeUpdate() throws SQLException&nbsp;&nbsp;<br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //使用INSERTDELETEUPDATE对数据库进行新增、删除和修改操作。 <br>
+            C、ResultSetMetaData getMetaData() throws SQLException <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //取得ResultSet类对象有关字段的相关信息 <br>
+            D、void setInt(int parameterIndex,int x) throws SQLException <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //设定整数类型数值给PreparedStatement类对象的IN参数 <br>
+            E、void setFloat(int parameterIndex,float x) throws SQLException <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //设定浮点数类型数值给PreparedStatement类对象的IN参数 <br>
+            F、void setNull(int parameterIndex,int sqlType) throws SQLException <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //设定NULL类型数值给PreparedStatement类对象的IN参数 <br>
+            G、void setString(int parameterIndex,String x) throws SQLException <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //设定字符串类型数值给PreparedStatement类对象的IN参数 <br>
+            H、void setDate(int parameterIndex,Date x) throws SQLException <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //设定日期类型数值给PreparedStatement类对象的IN参数 <br>
+            I、void setTime(int parameterIndex,Time x) throws SQLException <br>
+            &nbsp;&nbsp;  &nbsp;&nbsp;&nbsp;  //设定时间类型数值给PreparedStatement类对象的IN参数 <br>
+            <br>
+            <br>
+            5、DatabaseMetaData类 <br>
+            <br>
+            DatabaseMetaData类保存了数据库的所有特性，并且提供许多方法来取得这些信息。 <br>
+            <br>
+            方法： <br>
+            <br>
+            A、String getDatabaseProductName() throws SQLException //取得数据库名称 <br>
+            B、String getDatabaseProductVersion() throws SQLException //取得数据库版本代号 <br>
+            C、String getDriverName() throws SQLException //取得JDBC驱动程序的名称 <br>
+            D、String getDriverVersion()&nbsp;&nbsp;  throws SQLException //取得JDBC驱动程序的版本代号 <br>
+            E、String getURL() throws SQLException //取得连接数据库的JDBC URL <br>
+            F、String getUserName() throws SQLException //取得登录数据库的使用者帐号 <br>
+            <br>
+            6、ResultSet类 <br>
+            <br>
+            负责存储查询数据库的结果。并提供一系列的方法对数据库进行新增、删除和修改操作。也负责维护一个记录指针（Cursor），记录指针指向数据表中的某个记录，通过适当的移动记录指针，可以随心所欲的存取数据库，加强程序的效率。 <br>
+            <br>
+            方法： <br>
+            <br>
+            A、boolean absolute(int row) throws SQLException&nbsp;&nbsp;  //移动记录指针到指定的记录 <br>
+            B、void beforeFirst() throws SQLException&nbsp;&nbsp;  //移动记录指针到第一笔记录之前 <br>
+            C、void afterLast() throws SQLException&nbsp;&nbsp;  //移动记录指针到最后一笔记录之后 <br>
+            D、boolean first() throws SQLException&nbsp;&nbsp;  //移动记录指针到第一笔记录 <br>
+            E、boolean last() throws SQLException&nbsp;&nbsp;  //移动记录指针到最后一笔记录 <br>
+            F、boolean next() throws SQLException&nbsp;&nbsp;  //移动记录指针到下一笔记录 <br>
+            G、boolean previous() throws SQLException&nbsp;&nbsp;  //移动记录指针到上一笔记录 <br>
+            H、void deleteRow() throws SQLException&nbsp;&nbsp;  //删除记录指针指向的记录 <br>
+            I、void moveToInsertRow() throws SQLException&nbsp;&nbsp;  //移动记录指针以新增一笔记录 <br>
+            J、void moveToCurrentRow() throws SQLException&nbsp;&nbsp;  //移动记录指针到被记忆的记录 <br>
+            K、void insertRow() throws SQLException&nbsp;&nbsp;  //新增一笔记录到数据库中 <br>
+            L、void updateRow() throws SQLException&nbsp;&nbsp;  //修改数据库中的一笔记录 <br>
+            M、void update类型(int columnIndex,类型 x) throws SQLException&nbsp;&nbsp;  //修改指定字段的值 <br>
+            N、int get类型(int columnIndex) throws SQLException&nbsp;&nbsp;  //取得指定字段的值 <br>
+            O、ResultSetMetaData getMetaData() throws SQLException //取得ResultSetMetaData类对象 <br>
+            <br>
+            7、ResultSetMetaData类 <br>
+            <br>
+            ResultSetMetaData类对象保存了所有ResultSet类对象中关于字段的信息，提供许多方法来取得这些信息。 <br>
+            <br>
+            方法： <br>
+            <br>
+            A、int getColumnCount() throws SQLException //取得ResultSet类对象的字段个数 <br>
+            B、int getColumnDisplaySize() throws SQLException //取得ResultSet类对象的字段长度 <br>
+            C、String getColumnName(int column) throws SQLException //取得ResultSet类对象的字段名称 <br>
+            D、String getColumnTypeName(int column) throws SQLException //取得ResultSet类对象的字段类型名称 <br>
+            E、String getTableName(int column) throws SQLException //取得ResultSet类对象的字段所属数据表的名称 <br>
+            F、boolean isCaseSensitive(int column) throws SQLException //测试ResultSet类对象的字段是否区分大小写 <br>
+            G、boolean isReadOnly(int column) throws SQLException //测试ResultSet类对象的字段是否为只读 </font></td>
+        </tr>
+    </tbody>
+</table></div></body></html>

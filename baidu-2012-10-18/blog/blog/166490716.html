@@ -1,0 +1,214 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Eclipse Profiler Plugin</title></head><body><h1>Eclipse Profiler Plugin</h1><div><h1>Eclipse Profiler Plugin</h1>
+<p>This is a plugin for the Eclipse platform which allows java code profiling. <a href="http://sourceforge.net/projects/eclipsecolorer">Project</a> <br>
+<a href="http://eclipsecolorer.sourceforge.net/index_profiler.html">http://eclipsecolorer.sourceforge.net/index_profiler.html</a></p>
+<p> </p>
+<h2>License</h2>
+CPL.
+<p> </p>
+<h2>General note</h2>
+<pre>1.) if you run the remote profiler, the filter settings<br>     in the eclipse environment are not taken into account.<br>     Instead you must provide the filter settings in the<br>     start command of your application server. You do this<br>     by adding an environment variable __PROFILER_PACKAGE_FILTER<br>     to the startup command of your aplication, see below.<br><br>2.) Setting up the profiler package filters (in general)<br>     You must define the environment variable __PROFILER_PACKAGE_FILTER<br>     as shown below in the examples for tomcat, jboss, weblogic and<br>     resin.<br><br>     General important Note:<br>     The environment variable contains following parts:<br>     <br>     the application starting class (__A__<classname></classname>)<br>     inclusion filters              (__P__<pattern></pattern>)<br>     exclusion filters              (__M__<pattern></pattern>)<br>     <br>     You must provide exactly one starting class, but you<br>     can have multiple inclusion and exclusion filters.<br><br>     The parts MUST be separated by the OS specific<br>     path.separator, i.e. &quot;:&quot; for unix or &quot;;&quot; for<br>     WINDOWS platforms)<br><br>     example package filter setting for WINDOWS:<br>-D__PROFILER_PACKAGE_FILTER=__A__org.apache.catalina.startup.Bootstrap;__M__sun.;__P__my.company.classes. <br><br>     example package filter setting for UNIX/LINUX:<br>-D__PROFILER_PACKAGE_FILTER=__A__org.apache.catalina.startup.Bootstrap:__M__sun.:__P__my.company.classes. <br><br>     In the examples below we provide the WINDOWS style. Please<br>     take care to use the LINUX/UNIX style if that aplies to you.</pre>
+<h2>Win32 installation</h2>
+<p>Copy ProfilerDLL.dll from root plugin folder into bin folder of your JRE installation. You can skip this step, plugin will ask you and copy DLL into your JRE\BIN when you will start profiling local application inside of Eclipse first time. It will also check, that you have in JRE\BIN same DLL as in plugin directory.</p>
+<h2>Linux installation</h2>
+<p>Profiler has native part compiled with gcc 3.2, but if you have old gcc or libraries you can build native part yourself. Extract files from native\profiler_linux.tgz and look at script &quot;m&quot;. This is example of compilation script. Change it as needed for you OS.<br>
+See also profile_cpu/profile_heap for examples of start line for cpu and heap profiling and r_cpu/r_heap as example how to use them.</p>
+<h2>Usage</h2>
+<p>Profiler plugin creates additional kind of launch configuration in Run menu. Profiler tab allows the user to define packages which shouldn't be instrumented, thus, all time usage will be referred to calling methods.<br>
+You can specify refresh rate, i.e. how often plugin will read statistics from prolifing JVM.<br>
+You can also set method, how to get time of enter in method and leave. There are two methods: fast, but usefull only if you have one active thread, which tries to use all CPU; or slow, which use JVMPI function GetCurrentThreadCpuTime() and allows detect how much of CPU was used by thread. However with this method profiled program runs about 3 times slower than with fast method.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/launch.gif"> <br>
+<strong>Fig. 1. Launch configuration.</strong><br>
+</center>
+<p> </p>
+<p>Profiler supports inclusive (grren) and exlusive (red) filters. You can noy only specify what packages should be excluded from instrumentation, but also what packages should be included. Usefull, if you want to profile only your own classes. You can move filters up and down using buttons or drag and drop.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/launch_drag_filter.gif"> <br>
+<strong>Fig. 1.1. Drag filters.</strong><br>
+</center>
+<p> </p>
+<p>Plugin allows remote profiling with &quot;Remote Profiler&quot; launch configuration. Notice, that remote profiling is supported only in &quot;run&quot; mode, i.e. when you create launch configuration using &quot;Run|Run...&quot; menu item.<br>
+You need to start remote application with special switches like: java -XrunProfilerDLL -Xbootclasspath/a:jakarta-regexp.jar;profiler_trace.jar;commons-lang.jar -D__PROFILER_PACKAGE_FILTER=__M__sun.;__M__com.sun. -D__PROFILER_USE_PACKAGE_FILTER=1 Here __M__ prefix used for exclusive filter, __P__ can be used for inclusive filter. And you should use __A__ for class with method &quot;main&quot;.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/launch_remote.gif"> <br>
+<strong>Fig. 2. Remote launch configuration.</strong><br>
+</center>
+<p> </p>
+<h2>Tomcat CPU profiling</h2>
+<p>Profiler was tested with jakarta-tomcat-4.1.12. Add after lines in catalina.bat: <br>
+set _EXECJAVA=%_RUNJAVA%<br>
+set MAINCLASS=org.apache.catalina.startup.Bootstrap<br>
+set ACTION=start<br>
+set SECURITY_POLICY_FILE=<br>
+set DEBUG_OPTS=<br>
+set JPDA= <br>
+following line: <br>
+set JAVA_OPTS=-XrunProfilerDLL:1 -Xbootclasspath/a:jakarta-regexp.jar;profiler_trace.jar;commons-lang.jar -D__PROFILER_PACKAGE_FILTER=__A__%MAINCLASS%;__M__sun.;__M__com.sun.;__M__java.;__M__javax.;__M__org.apache. -D__PROFILER_TIMING_METHOD=1 <br>
+Then copy jar's: commons-lang.jar jakarta-regexp.jar profiler_trace.jar to bin directory of tomcat. Now you can start tomcat using startup.bat and it will gather statistics for you. Next step is configuring Eclipse. You should create remote launch configuration and set host address as needed. This is all. Launch it, plugin will connect to your Tomcat and show you some statistics.</p>
+<h2>Tomcat heap profiling</h2>
+<p>Profiling heap is almost same as CPU profiling, but you should use following line: <br>
+set JAVA_OPTS=-XrunProfilerDLL:3,10,0 -D__PROFILER_PROFILE_HEAP=1 -Xbootclasspath/a:jakarta-regexp.jar;profiler_trace.jar;commons-lang.jar -D__PROFILER_PACKAGE_FILTER=__A__%MAINCLASS%;__M__ -D__PROFILER_TIMING_METHOD=1</p>
+<h2>JBoss profiling</h2>
+<p>Profiler was tested with jboss-3.0.6_tomcat-4.1.18. Add following line in your bin/run.bat (directly after echo off): <br>
+set JAVA_OPTS=-XrunProfilerDLL:1 -Xbootclasspath/a:jakarta-regexp.jar;profiler_trace.jar;commons-lang.jar -D__PROFILER_PACKAGE_FILTER=__A__org.jboss.Main;__M__sun.;__M__com.sun.;__M__java.;__M__javax. -D__PROFILER_TIMING_METHOD=1 <br>
+Then copy jar's: commons-lang.jar jakarta-regexp.jar profiler_trace.jar to bin directory of JBoss. Now you can start JBoss using run.bat and it will gather statistics for you. Next step is configuring Eclipse. You should create remote launch configuration and set host address as needed. This is all. Launch it, plugin will connect to your JBoss and show you some statistics.</p>
+<h2>WebLogic profiling</h2>
+<p>Profiler was tested with WebLogic 8.1, installed in &quot;c:/bea&quot;. WebLogic has its own JRE's, so you will need to copy ProfilerDLL.dll manually to C:\bea\jdk141_02\jre\bin. For profiling examples, change file C:\bea\weblogic81\samples\domains\examples\startExamplesServer.cmd, line where JAVA_OPTIONS is defined:<br>
+set JAVA_OPTIONS=-XrunProfilerDLL:1 -Xbootclasspath/a:jakarta-regexp.jar;profiler_trace.jar;commons-lang.jar -D__PROFILER_PACKAGE_FILTER=__A__weblogic.Server;__M__sun.;__M__com.sun.;__M__java.;__M__javax.;__M__weblogic. -D__PROFILER_TIMING_METHOD=1 <br>
+Then copy jar's: commons-lang.jar jakarta-regexp.jar profiler_trace.jar to &quot;C:\bea\weblogic81\samples\domains\examples&quot;. Now you can start WebLogic examplex using startExamplesServer.cmd, or shortcut in Windows menu, and it will gather statistics for you. Next step is configuring Eclipse. You should create remote launch configuration and set host address as needed. This is all. Launch it, plugin will connect to your WebLogic and show you some statistics.</p>
+<h2>Resin profiling</h2>
+<p>Profiler was tested with Resin-ee 2.1.10. Create batch file with following content in &quot;bin&quot;:<br>
+httpd.exe -J-XrunProfilerDLL:1 -Xbootclasspath/a:c:/prof/jakarta-regexp.jar;c:/prof/profiler_trace.jar;c:/prof/commons-lang.jar -D__PROFILER_PACKAGE_FILTER=__A__com.caucho.server.http.HttpServer;__M__sun.;__M__com.sun.;__M__java.;__M__javax. -D__PROFILER_TIMING_METHOD=1 <br>
+Then create directory &quot;prof&quot; in disc &quot;C&quot; and copy jar's: commons-lang.jar jakarta-regexp.jar profiler_trace.jar. Now you can start your batch file and it will gather statistics for you. Next step is configuring Eclipse. You should create remote launch configuration and set host address as needed. This is all. Launch it, plugin will connect to your Resin and show you some statistics.</p>
+<h2>Options</h2>
+<p>Profiler supports several options via -DXXX.</p>
+<table border="1">
+    <tbody>
+        <tr>
+            <th>Options</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>__PROFILER_PACKAGE_FILTER</td>
+            <td>Contains list of packages to include or exclude.<br>
+            Here __P__ - inclusive pattern, __M__ - exclusive pattern.<br>
+            And __A__ - application start class.<br>
+            Examples:<br>
+            Include only ru.* and de.* packages: __P__ru.;__P__de.<br>
+            Exclude system packages: __A__org.jboss.Main;__M__sun.;__M__com.sun.;__M__java.;__M__javax.<br>
+            If at least one inclusive pattern used, only classes accepted by inclusive patterns will be instrumented.</td>
+        </tr>
+        <tr>
+            <td>__PROFILER_TIMING_METHOD</td>
+            <td>Specifies timing method - how to measure elapsed time.<br>
+            0 - fast, System.currentTimeMillis(), good for application without sleeps and waits.<br>
+            1 - precise, thread aware, slow, good for multithreaded applications.<br>
+            2 - sampling profiling, very fast, good for long runned processes.</td>
+        </tr>
+        <tr>
+            <td>__PROFILER_PROFILE_HEAP</td>
+            <td>1, if HEAP profiling should be used.</td>
+        </tr>
+        <tr>
+            <td>__PROFILER_AUTO_START</td>
+            <td>0 - don't start automatically.<br>
+            1 (default) - start automatically.</td>
+        </tr>
+        <tr>
+            <td>__PROFILER_START_ON_METHOD</td>
+            <td>Start method name. When applications tries to enter in this method profiling starts (see __PROFILER_AUTO_START, it should be 0).<br>
+            Example: -D__PROFILER_START_ON_METHOD=ru.nlmk.train.Main.mainLoop</td>
+        </tr>
+        <tr>
+            <td>__PROFILER_PAUSE_ON_METHOD</td>
+            <td>1, if you need pause profiling when __PROFILER_START_ON_METHOD leaved.</td>
+        </tr>
+        <tr>
+            <td>__PROFILER_INSTRUMENT_SYSTEM_CLASSES</td>
+            <td>1, if you need instrument additional system classes, like java.lang.String, etc. Expensive!</td>
+        </tr>
+        <tr>
+            <td>__PROFILER_WAIT_FRONTEND_CONNECT</td>
+            <td>1, if you need to wait, until frontend (plugin) will connect. (0 by default).</td>
+        </tr>
+    </tbody>
+</table>
+<h2>CPU profiling</h2>
+<p>Profiler supports CPU profiling and basic function for heap profiling. The profiler collects invocation count and direct time statistics for every method. Direct time is the amount of time used by selected method for execute. Also a total time value displayed in calling tree for selected thread. The total time means a time used by selected method and by all the methods it had called.</p>
+<p>Only instrumentation profiling method is supported because of its precise. The overhead expenses reflects at speed decreasing app. 5 times to normal.</p>
+<h2>How it works</h2>
+The profiler subscribes for JVPMI event JVMPI_EVENT_CLASS_LOAD_HOOK which called during every class loading. The profiler modifies loading byte-code by adding profiler's method call &quot;enter&quot; in the beginning of the every method of loading class and at the end of it - &quot;leave&quot;. &quot;Enter&quot; profiler's method notes the time of entering to profiling method. &quot;Leave&quot; makes method leaving timestamp and calculates a difference between enter and leave timestamps. This difference means total time for this method call. Direct time calculates as total time of this method minus total time of the all methods called by it. The profiles makes some time corrections for the time spent by profiler.
+<p>The profiler implemented as an Eclipse perspective with following views: Threads, Packages, Classes, Methods, Thread methods, Thread call tree, Heap.</p>
+<p><strong>Threads.</strong><br>
+Shows a list with all threads (alive or dead) in the current process. Here you can pause/resume refreshing of statistics in views, pause/resume all threads in profilied program, clear all statistics or run GC in profiled JVM.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/threads.gif"> <br>
+<strong>Fig. 3. Threads View.</strong><br>
+</center>
+<p> </p>
+<p><strong>Call graph.</strong><br>
+Profiler uses Draw2D for displaying call graph of thread. All methods shown in several columns, column depends on level, on which this method was called. Inside one column methods sorted by direct time used. Each node in graph has color from red to dark gray, depending on direct time. Methods with maximum time use have red color, and methods, which almost don't use time, have grey color. Each method has hint with detailed information. You can double click on method to open it in editor.<br>
+Lines between method present call from source method to target. Lines from one level to directly next have black color, to next - blue, inside one level - red, and from backward calls - green. Width of line depeneds on how much of time use in this call.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/graph_full.gif"> <br>
+<strong>Fig. 3.1. Call graph.</strong><br>
+</center>You can also see hit for call. <center><img border="0" src="http://eclipsecolorer.sourceforge.net/graph_call_hint.gif"> <br>
+<strong>Fig. 3.2. Call hint.</strong><br>
+</center>As you can see, full graph looks fairly complex, but you can select part of it. Press mouse on some method and select then button &quot;Show callers&quot;, &quot;Show calles&quot; or &quot;Show caller and callees&quot;. You can see something like this: <center><img border="0" src="http://eclipsecolorer.sourceforge.net/graph_callers.gif"> <br>
+<strong>Fig. 3.3. Callers.</strong><br>
+</center><center><img border="0" src="http://eclipsecolorer.sourceforge.net/graph_callees.gif"> <br>
+<strong>Fig. 3.4. Callees.</strong><br>
+</center><center><img border="0" src="http://eclipsecolorer.sourceforge.net/graph_callers_callees.gif"> <br>
+<strong>Fig. 3.5. Callers and callees.</strong><br>
+</center>You can double click on call line for opening editor with source method with highlighting places, where it calls target method. <center><img border="0" src="http://eclipsecolorer.sourceforge.net/graph_show_calls.gif"> <br>
+<strong>Fig. 3.6. Show calls.</strong><br>
+</center>
+<p> </p>
+<p><strong>Packages.</strong><br>
+Shows a list with all methods with class hierarchy from package. This allows to determine packages which used the most of CPU time. In this view (and in Classes and Methods views also) the user can see in gray color the methods with unmodified parameters since last update. The user can hide such kind of methods by applying appropriate filters.<br>
+Here:<br>
+Name - name of package/class/method<br>
+Inv. - invocation count<br>
+% - percent of all invocations<br>
+Time - direct time used<br>
+% - percent of total time<br>
+Time/Inv. - average time used for one invocation<br>
+Total time - total time used directly by method and by all methods it calls<br>
+Inst. time - time used for instrumentation of class</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/packages.gif"> <br>
+<strong>Fig. 4. Packages View.</strong><br>
+</center>
+<p> </p>
+<p>You can add package or class to filter by pressing right mose button on element in table and selecting menu item. Filter can be added to launch configuration filter (will be used in next profiling, if you will active it) or to view filters (will be activated right now).</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/filter_add.gif"> <br>
+<strong>Fig. 4.1. Add filter.</strong><br>
+</center>
+<p> </p>
+<p><strong>Classes.</strong><br>
+Shows a list of all class methods with method hierarchy from class. This allows to determine classes with the most CPU time usage.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/classes.gif"> <br>
+<strong>Fig. 5. Classes View.</strong><br>
+</center>
+<p> </p>
+<p><strong>Filters.</strong><br>
+Allows to define which kind of methods can be shown.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/filter.gif"> <br>
+<strong>Fig. 6. Filters.</strong><br>
+</center>You can save configured name patterns (inclusive or exalusive) with some name and description, then you will able to select them in check list box. <center><img border="0" src="http://eclipsecolorer.sourceforge.net/filter_new.gif"> <br>
+<strong>Fig. 6.1. New filter.</strong><br>
+</center>Later you can change this user defined filter. <center><img border="0" src="http://eclipsecolorer.sourceforge.net/filter_edit.gif"> <br>
+<strong>Fig. 6.2. Edit filter.</strong><br>
+</center>
+<p> </p>
+<p><strong>Methods.</strong><br>
+Shows the statistics for all methods of the current process.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/all_methods.gif"> <br>
+<strong>Fig. 7. All Methods View.</strong><br>
+</center>
+<p> </p>
+<p><strong>Thread methods.</strong><br>
+Shows methods statictics for thread selected in Threads View.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/thread_methods.gif"> <br>
+<strong>Fig. 8. Thread Methods View.</strong><br>
+</center>
+<p> </p>
+<p><strong>Thread tree.</strong><br>
+Shows a methods invocation tree for thread selected in Threads View. Here red square used for highlighted methods (from thread methods context menu) and green dot used for all other methods.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/thread_tree.gif"> <br>
+<strong>Fig. 9. Thread Tree View.</strong><br>
+</center>
+<p> </p>
+<p><strong>Inverted thread tree.</strong><br>
+Shows a methods invocation tree for thread selected in Threads View starting from leaves. This allows you fastly detect, that some leaf method uses much of total time and see, what methods it is called.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/thread_tree_inverted.gif"> <br>
+<strong>Fig. 9.1. Inverted thread Tree View.</strong><br>
+</center>
+<p> </p>
+<p><strong>Heap.</strong><br>
+Shows heap usage graph: total (green), used (blue) and free (yellow) heap.</p>
+<center><img border="0" alt="Heap View." src="http://eclipsecolorer.sourceforge.net/heap.gif"> <br>
+<strong>Fig. 10. Heap View.</strong><br>
+</center>
+<p> </p>
+<p>Here is an overall view of the profiler perspective. You can see a method HashMap.put opened in source code editor with highlighted lines of code which has the maximum hit count (size of annotation depends on hit count). You can open source code editor by choosing menu item &quot;Open method in editor&quot; in context menu.</p>
+<center><img border="0" src="http://eclipsecolorer.sourceforge.net/perspective.gif"> <br>
+<strong>Fig. 11. Perspective.</strong><br>
+</center>
+<p> </p>
+<p> </p>
+<a href="http://sourceforge.net/"><img border="0" alt="SourceForge Logo" width="210" height="62" src="http://sourceforge.net/sflogo.php?group_id=68851&amp;type=5"> </a></div></body></html>

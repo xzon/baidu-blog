@@ -1,0 +1,433 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>org.openswing.swing.client.BaseInputControl</title></head><body><h1>org.openswing.swing.client.BaseInputControl</h1><div><p> </p>
+<p>org.openswing.swing.client.BaseInputControl</p>
+<p>----------------------------</p>
+<p>package org.openswing.swing.client;</p>
+<p>import java.awt.BorderLayout;<br>
+import java.awt.Color;<br>
+import java.awt.Dimension;<br>
+import java.awt.FlowLayout;<br>
+import java.awt.Font;<br>
+import java.awt.GridBagConstraints;<br>
+import java.awt.GridBagLayout;<br>
+import java.awt.Insets;<br>
+import java.awt.ItemSelectable;<br>
+import java.awt.event.FocusEvent;<br>
+import java.awt.event.FocusListener;<br>
+import java.awt.event.ItemEvent;<br>
+import java.awt.event.ItemListener;<br>
+import java.beans.Beans;<br>
+import java.util.ArrayList;</p>
+<p>import javax.swing.ImageIcon;<br>
+import javax.swing.JComponent;<br>
+import javax.swing.JLabel;<br>
+import javax.swing.JPanel;<br>
+import javax.swing.JTextField;<br>
+import javax.swing.SwingConstants;<br>
+import javax.swing.text.JTextComponent;</p>
+<p>import org.openswing.swing.form.model.client.ValueChangeEvent;<br>
+import org.openswing.swing.form.model.client.ValueChangeListener;<br>
+import org.openswing.swing.logger.client.Logger;<br>
+import org.openswing.swing.util.client.ClientSettings;<br>
+import org.openswing.swing.util.client.ClientUtils;</p>
+<p><br>
+/**<br>
+* &lt;p&gt;Title: OpenSwing Framework&lt;/p&gt;<br>
+* &lt;p&gt;Description: Class that could be used as bease class for an input control.&lt;/p&gt;<br>
+* &lt;p&gt;Copyright: Copyright (C) 2006 Mauro Carniel&lt;/p&gt;<br>
+*<br>
+* &lt;p&gt; This file is part of OpenSwing Framework.<br>
+* This library is free software; you can redistribute it and/or<br>
+* modify it under the terms of the (LGPL) Lesser General Public<br>
+* License as published by the Free Software Foundation;<br>
+*<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  GNU LESSER GENERAL PUBLIC LICENSE<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Version 2.1, February 1999<br>
+*<br>
+* This library is distributed in the hope that it will be useful,<br>
+* but WITHOUT ANY WARRANTY; without even the implied warranty of<br>
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU<br>
+* Library General Public License for more details.<br>
+*<br>
+* You should have received a copy of the GNU Library General Public<br>
+* License along with this library; if not, write to the Free<br>
+* Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.<br>
+*<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  The author may be contacted at:<br>
+*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  maurocarniel@tin.it&lt;/p&gt;<br>
+*<br>
+* @author Mauro Carniel<br>
+* @version 1.0<br>
+*/<br>
+public class BaseInputControl extends JPanel implements InputControl {</p>
+<p>/** attribute name that identifies the input control */<br>
+private String attributeName = null;</p>
+<p>/** mandatory property of the input control */<br>
+private boolean required = false;</p>
+<p>/** define if the input control is enabled on INSERT mode */<br>
+private boolean enabledOnInsert = true;</p>
+<p>/** define if the input control is enabled on EDIT mode */<br>
+private boolean enabledOnEdit = true;</p>
+<p>/** define if the input control value is duplicated when user has clicked on COPY button */<br>
+private boolean canCopy = true;</p>
+<p>/** define if the input control value is changed */<br>
+private boolean changed = false;</p>
+<p>/** label used when showing error messages related to the input control */<br>
+private LabelControl linkedLabel = null;</p>
+<p>/** mandatory symbol */<br>
+private JLabel requiredIcon = new JLabel(&quot;*&quot;);</p>
+<p>/** old input control value */<br>
+protected Object oldValue;</p>
+<p>/** value changed listener list */<br>
+private ArrayList valueChangedListeners = new ArrayList();</p>
+<p>/** default background color of the binding component */<br>
+protected Color defaultBackgroundColor = null;</p>
+<p>/** tooltip text */<br>
+private String toolTipText = null;</p>
+<p>/** column text horizontal alignment */<br>
+private int textAlignment = SwingConstants.LEFT;</p>
+<p>/** popup menu */<br>
+private InputControlPopupMenu inputControlPopupMenu;</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Constructor.<br>
+&nbsp;&nbsp;  */<br>
+public BaseInputControl() {<br>
+&nbsp;&nbsp;&nbsp;  this.setOpaque(false);<br>
+&nbsp;&nbsp;&nbsp;  addFocusListener(new FocusListener() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void focusGained(FocusEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (!getBindingComponent().hasFocus())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // set focus to the component inside this...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  getBindingComponent().requestFocus();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void focusLost(FocusEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  });</p>
+<p>&nbsp;&nbsp;&nbsp;  if (Beans.isDesignTime()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  requiredIcon.setForeground(Color.red);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  requiredIcon.setFont(new Font(requiredIcon.getFont().getFontName(),Font.PLAIN,20));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  requiredIcon.setPreferredSize(new Dimension(15, 15));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  requiredIcon.setFocusable(false);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  requiredIcon.setText(&quot;&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  requiredIcon.setIcon(new ImageIcon(ClientUtils.getImage(&quot;obl.gif&quot;,getClass())));<br>
+&nbsp;&nbsp;&nbsp;  }</p>
+<p>}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Method called by the sub-class to initialize focus listener used to push input control value in the VOModel.<br>
+&nbsp;&nbsp;  * @param component component inside this<br>
+&nbsp;&nbsp;  */<br>
+protected void initListeners() {<br>
+&nbsp;&nbsp;&nbsp;  defaultBackgroundColor = getBindingComponent().getBackground();</p>
+<p>&nbsp;&nbsp;&nbsp;  getBindingComponent().addFocusListener(new FocusListener() {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void focusGained(FocusEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  controlFocusGained(e);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void focusLost(FocusEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  controlFocusLost(e);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;&nbsp;  });</p>
+<p>&nbsp;&nbsp;&nbsp;  if (getBindingComponent() instanceof ItemSelectable) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((ItemSelectable)getBindingComponent()).addItemListener(new ItemListener() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void itemStateChanged(ItemEvent e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (e.getStateChange()==ItemEvent.SELECTED &amp;&amp; attributeName!=null) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  maybeFireValueChangedEvent();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  });<br>
+&nbsp;&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;&nbsp;  inputControlPopupMenu = new InputControlPopupMenu(this);</p>
+<p>&nbsp;&nbsp;&nbsp;  ClientUtils.addTabListener(getBindingComponent());<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return component inside this whose contains the value<br>
+&nbsp;&nbsp;  */<br>
+public JComponent getBindingComponent() {<br>
+&nbsp;&nbsp;&nbsp;  Logger.error(this.getClass().getName(), &quot;getBindingComponent&quot;, &quot;This method must be overridden in '&quot;+this.getClass().getName()+&quot;'&quot;,null);<br>
+&nbsp;&nbsp;&nbsp;  return null;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Add a value changed listener to this input control.<br>
+&nbsp;&nbsp;  * @param listener value changed listener to add<br>
+&nbsp;&nbsp;  */<br>
+public final void addValueChangedListener(ValueChangeListener listener) {<br>
+&nbsp;&nbsp;&nbsp;  this.valueChangedListeners.add(listener);<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Remove a value changed listener from this input control.<br>
+&nbsp;&nbsp;  * @param listener value changed listener to remove<br>
+&nbsp;&nbsp;  */<br>
+public final void removeValueChangedListener(ValueChangeListener listener) {<br>
+&nbsp;&nbsp;&nbsp;  this.valueChangedListeners.remove(listener);<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Method called by the sub-class to fire a value changed event.<br>
+&nbsp;&nbsp;  */<br>
+protected void maybeFireValueChangedEvent() {<br>
+&nbsp;&nbsp;&nbsp;  // retrieve current value...<br>
+&nbsp;&nbsp;&nbsp;  Object newValue = getValue();</p>
+<p>&nbsp;&nbsp;&nbsp;  if (isEnabled() &amp;&amp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((this.oldValue==null &amp;&amp; newValue!=null) ||<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (this.oldValue!=null &amp;&amp; newValue==null) ||<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (this.oldValue!=null &amp;&amp; newValue!=null &amp;&amp; ! this.oldValue.equals(newValue)))) {</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // mark the input control as changed<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  setChanged(true);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // fire value changed events...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ValueChangeEvent e = new ValueChangeEvent(this, attributeName, this.oldValue, newValue);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (int i = 0; i &lt; this.valueChangedListeners.size(); i++)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((ValueChangeListener)this.valueChangedListeners.get(i)).valueChanged(e);</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // update old value...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.oldValue = newValue;<br>
+&nbsp;&nbsp;&nbsp;  }</p>
+<p>}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * This method is called when the input control receives focus.<br>
+&nbsp;&nbsp;  */<br>
+private void controlFocusGained(FocusEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  if (this instanceof DateControl)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  maybeFireValueChangedEvent();<br>
+&nbsp;&nbsp;&nbsp;  oldValue = getValue();<br>
+&nbsp;&nbsp;&nbsp;  if (ClientSettings.VIEW_BACKGROUND_SEL_COLOR &amp;&amp; isEnabled()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  getBindingComponent().setBackground(ClientSettings.BACKGROUND_SEL_COLOR);<br>
+&nbsp;&nbsp;&nbsp;  }</p>
+<p>&nbsp;&nbsp;&nbsp;  if (ClientSettings.SELECT_DATA_IN_EDITABLE_FORM &amp;&amp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  isEnabled() &amp;&amp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  getBindingComponent() instanceof JTextComponent)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((JTextComponent)getBindingComponent()).select(0,((JTextComponent)getBindingComponent()).getText().length());</p>
+<p>}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * This method is called when the input control losts focus.<br>
+&nbsp;&nbsp;  */<br>
+private void controlFocusLost(FocusEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  if (ClientSettings.VIEW_BACKGROUND_SEL_COLOR &amp;&amp; isEnabled()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  getBindingComponent().setBackground(defaultBackgroundColor);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  maybeFireValueChangedEvent();<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Link the input control label to the specified label.<br>
+&nbsp;&nbsp;  * @param linkedLabel label used when showing error messages related to the input control<br>
+&nbsp;&nbsp;  */<br>
+public final void setLinkLabel(LabelControl linkedLabel) {<br>
+&nbsp;&nbsp;&nbsp;  this.linkedLabel = linkedLabel;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return label used when showing error messages related to the input control<br>
+&nbsp;&nbsp;  */<br>
+public final LabelControl getLinkLabel() {<br>
+&nbsp;&nbsp;&nbsp;  return linkedLabel;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return mandatory property of the input control<br>
+&nbsp;&nbsp;  */<br>
+public final boolean isRequired() {<br>
+&nbsp;&nbsp;&nbsp;  return required;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return current Font setting<br>
+&nbsp;&nbsp;  */<br>
+public final Font getFont() {<br>
+&nbsp;&nbsp;&nbsp;  return getBindingComponent()==null?null:getBindingComponent().getFont();<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Set the specified font.<br>
+&nbsp;&nbsp;  * @param font Font to set<br>
+&nbsp;&nbsp;  */<br>
+public final void setFont(Font font) {<br>
+&nbsp;&nbsp;&nbsp;  if (getBindingComponent()!=null)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  getBindingComponent().setFont(font);<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Set a tooltip text. This text will be translated according to the internationalization settings.<br>
+&nbsp;&nbsp;  * @param toolTipText tool tip text entry in the dictionary<br>
+&nbsp;&nbsp;  */<br>
+public final void setToolTipText(String toolTipText) {<br>
+&nbsp;&nbsp;&nbsp;  this.toolTipText = toolTipText;<br>
+&nbsp;&nbsp;&nbsp;  if (!Beans.isDesignTime())<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  getBindingComponent().setToolTipText(ClientSettings.getInstance().getResources().getResource(toolTipText));<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return tool tip text entry in the dictionary<br>
+&nbsp;&nbsp;  */<br>
+public final String getToolTipText() {<br>
+&nbsp;&nbsp;&nbsp;  return toolTipText;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Define mandatory property of the input control.<br>
+&nbsp;&nbsp;  * @param require mandatory property of the input control<br>
+&nbsp;&nbsp;  */<br>
+public final void setRequired(boolean required) {<br>
+&nbsp;&nbsp;&nbsp;  if (!this.required &amp;&amp; required &amp;&amp; ClientSettings.VIEW_MANDATORY_SYMBOL) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  if (this.getLayout() instanceof FlowLayout)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.add(requiredIcon);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  else if (this.getLayout() instanceof BorderLayout)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.add(requiredIcon,BorderLayout.EAST);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  else if (this.getLayout() instanceof GridBagLayout)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.add(requiredIcon, new GridBagConstraints(4, 0, 1, 1, 0.0, 1.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 5, 0));</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.revalidate();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.repaint();<br>
+&nbsp;&nbsp;&nbsp;  } else if (this.required &amp;&amp; !required &amp;&amp; ClientSettings.VIEW_MANDATORY_SYMBOL) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.remove(requiredIcon);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  this.required = required;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return &lt;code&gt;true&lt;/code&gt; if the input control is enabled on INSERT mode, &lt;code&gt;false&lt;/code&gt; otherwise<br>
+&nbsp;&nbsp;  */<br>
+public final boolean isEnabledOnInsert() {<br>
+&nbsp;&nbsp;&nbsp;  return enabledOnInsert;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Define if the input control is enabled on INSERT mode.<br>
+&nbsp;&nbsp;  * @param enabled &lt;code&gt;true&lt;/code&gt; if the input control is enabled on INSERT mode, &lt;code&gt;false&lt;/code&gt; otherwise<br>
+&nbsp;&nbsp;  */<br>
+public final void setEnabledOnInsert(boolean enabled) {<br>
+&nbsp;&nbsp;&nbsp;  this.enabledOnInsert = enabled;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return &lt;code&gt;true&lt;/code&gt; if the input control is enabled on EDIT mode, &lt;code&gt;false&lt;/code&gt; otherwise<br>
+&nbsp;&nbsp;  */<br>
+public final boolean isEnabledOnEdit() {<br>
+&nbsp;&nbsp;&nbsp;  return enabledOnEdit;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Define if the input control is enabled on EDIT mode, &lt;code&gt;false&lt;/code&gt; otherwise<br>
+&nbsp;&nbsp;  * @param enabled mandatory property of the input control<br>
+&nbsp;&nbsp;  */<br>
+public final void setEnabledOnEdit(boolean enabled) {<br>
+&nbsp;&nbsp;&nbsp;  this.enabledOnEdit = enabled;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return define if the input control value is duplicated when user has clicked on COPY button<br>
+&nbsp;&nbsp;  */<br>
+public final boolean isCanCopy() {<br>
+&nbsp;&nbsp;  return canCopy;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Define if the input control value is duplicated when user has clicked on COPY button.<br>
+&nbsp;&nbsp;  * @param canCopy define if the input control value is duplicated when user has clicked on COPY button<br>
+&nbsp;&nbsp;  */<br>
+public final void setCanCopy(boolean canCopy) {<br>
+&nbsp;&nbsp;&nbsp;  this.canCopy = canCopy;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Link the input control to the form which contains it and with the specified the attribute.<br>
+&nbsp;&nbsp;  * @param attributeName attribute name to which link the input control<br>
+&nbsp;&nbsp;  */<br>
+public final void setAttributeName(String attributeName) {<br>
+&nbsp;&nbsp;&nbsp;  this.attributeName = attributeName;<br>
+//&nbsp;&nbsp;&nbsp;  AttributeNameEditor.setColumnType(this.getClass());<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Link the input control to the form which contains it and with the specified the attribute.<br>
+&nbsp;&nbsp;  * @param attributeName attribute name to which link the input control<br>
+&nbsp;&nbsp;  */<br>
+public final String getAttributeName() {<br>
+&nbsp;&nbsp;&nbsp;  return attributeName;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Set current input control abilitation.<br>
+&nbsp;&nbsp;  */<br>
+public void setEnabled(boolean enabled) {<br>
+&nbsp;&nbsp;&nbsp;  Logger.error(this.getClass().getName(), &quot;setEnabled&quot;, &quot;This method must be overridden in '&quot;+this.getClass().getName()+&quot;'&quot;,null);<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return current input control abilitation<br>
+&nbsp;&nbsp;  */<br>
+public boolean isEnabled() {<br>
+&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Logger.error(this.getClass().getName(), &quot;isEnabled&quot;,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &quot;This method must be overridden in '&quot; +<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  this.getClass().getName() + &quot;'&quot;, null);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return false;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  catch (Exception ex) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return false;<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return value related to the input control<br>
+&nbsp;&nbsp;  */<br>
+public Object getValue() {<br>
+&nbsp;&nbsp;&nbsp;  Logger.error(this.getClass().getName(), &quot;getValue&quot;, &quot;This method must be overridden in '&quot;+this.getClass().getName()+&quot;'&quot;,null);<br>
+&nbsp;&nbsp;&nbsp;  return null;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Set value to the input control.<br>
+&nbsp;&nbsp;  * @param value value to set into the input control<br>
+&nbsp;&nbsp;  */<br>
+public void setValue(Object value) {<br>
+&nbsp;&nbsp;&nbsp;  Logger.error(this.getClass().getName(), &quot;setValue&quot;, &quot;This method must be overridden in '&quot;+this.getClass().getName()+&quot;'&quot;,null);<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return &lt;code&gt;true&lt;/code&gt; if the input control value is changed, &lt;code&gt;false&lt;/code&gt; otherwise<br>
+&nbsp;&nbsp;  */<br>
+public final boolean isChanged() {<br>
+&nbsp;&nbsp;&nbsp;  return changed;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Define if the input control value is changed.<br>
+&nbsp;&nbsp;  * @param changed &lt;code&gt;true&lt;/code&gt; if the input control value is changed, &lt;code&gt;false&lt;/code&gt; otherwise<br>
+&nbsp;&nbsp;  */<br>
+public final void setChanged(boolean changed) {<br>
+&nbsp;&nbsp;&nbsp;  this.changed = changed;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return value changed listeners list<br>
+&nbsp;&nbsp;  */<br>
+public final ValueChangeListener[] getValueChangeListeners() {<br>
+&nbsp;&nbsp;&nbsp;  return (ValueChangeListener[])valueChangedListeners.toArray(new ValueChangeListener[valueChangedListeners.size()]);<br>
+}</p>
+<p><br>
+public void requestFocus() {<br>
+&nbsp;&nbsp;&nbsp;  getBindingComponent().requestFocus();<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * @return column text horizontal alignment<br>
+&nbsp;&nbsp;  */<br>
+public final int getTextAlignment() {<br>
+&nbsp;&nbsp;&nbsp;  return this.textAlignment;<br>
+}</p>
+<p><br>
+/**<br>
+&nbsp;&nbsp;  * Set column text horizontal alignement.<br>
+&nbsp;&nbsp;  * @param alignment column text horizontal alignement; possible values: &quot;SwingConstants.LEFT&quot;, &quot;SwingConstants.RIGHT&quot;, &quot;SwingConstants.CENTER&quot;.<br>
+&nbsp;&nbsp;  */<br>
+public final void setTextAlignment(int alignment) {<br>
+&nbsp;&nbsp;&nbsp;  this.textAlignment = alignment;<br>
+&nbsp;&nbsp;&nbsp;  if (!Beans.isDesignTime() &amp;&amp; getBindingComponent()!=null &amp;&amp; getBindingComponent() instanceof JTextField)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ((JTextField)getBindingComponent()).setHorizontalAlignment(alignment);<br>
+}</p>
+<p> </p>
+<p>}</p></div></body></html>

@@ -1,0 +1,581 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Portal Framework介绍（第一部分）</title></head><body><h1>Portal Framework介绍（第一部分）</h1><div><div>
+<div>
+<div>Portal Framework介绍（第一部分）</div>
+<div>
+<div>
+<div>
+<div>目录</div>
+<div> </div>
+<div> </div>
+<div>1 概述... 3</div>
+<div>2 基本概念... 3</div>
+<div>2.1 Portal定义... 3</div>
+<div>2.2 Portlet定义... 4</div>
+<div>2.3 Portal页面的元素... 5</div>
+<div>2.4 Portlet生命周期... 6</div>
+<div>2.5 Portlet标签库... 7</div>
+<div>2.6 JSR168和WSRP. 7</div>
+<div>3 Portal的功能... 8</div>
+<div>4 部分开源Portal框架的分析和比较... 9</div>
+<div>4.1 评价标准... 9</div>
+<div>4.2 选中的开源Portal框架... 10</div>
+<div>4.3 评价结果... 10</div>
+</div>
+<div> </div>
+<div> </div>
+<div>1概述</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  门户（Portal）一词从最初被提出，到2003年十月发布的Portlet1.0规范以及2005年十二月重新投票通过的Portlet2.0规范以来，已经有很长一段历史了。非常流行的Spring框架也在2.0 M1版本将Potlet MVC框架融入进来。但Portlet MVC框架和现在流行的MVC框架的无缝整合还是不太理想，直接影响Portlet技术的普及率。那么此技术究竟是历久弥新的技术还是日渐消亡，最终被取代的技术？不是本文所要说明的重点。本文主要是从一个Portal初学者的角度对Portal的主要概念，应用场景等等做一些简单的描述，作为本阶段Portal研究的一个总结报告，并为将来做更深层次的研究做好准备。</div>
+<div>2 基本概念</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  这部分主要针对JSR168规范中的主要内容做了一些说明。</div>
+<div>2.1 Portal定义</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  在Portlet规范中是这样描述Portal的，&ldquo;Portal是一种Web应用，通常用来提供个性化、单点登录、聚集各个信息源的内容，并作为信息系统表现层的宿主。聚集是指将来自各个信息源的内容集成到一个Web页面里的活动&rdquo;。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Portal功能可以主要分为以下几个方面：</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  1) 个性化：个性化服务的基本实现使用户能从两个方面个性化他的页面：第一，页面的个性化，用户用户根据自身喜好决定标题条的颜色和图标；第二，内容的个性化，用户可以决定他的页面上有哪些Portlets。例如，如果我是个体育迷，我可能会用一个能提供我钟爱球队的portlet来取代股票和新闻的portlets。另外，基于规则的个性化，一些在个性化服务方面领先的商业实现版本允许你自定义为用户显示什么样的页面所依据的标准（如收入和兴趣）。在这种情况下，可以设定像&ldquo;对收入为X的用户显示馈赠商品的portlet&rdquo;和&ldquo;对收入为X用户显示打折商品的portlet&rdquo;这样的商业规则。例如，WebSphere Portal 5的个性化功能可以基于规则引擎，用户喜好（preference）和用户属性信息（profile）来定制用户相关的个性化页面。Weblogic Portal的文档中是这样描述个性化内容的，&ldquo;个性化内容就是根据特定上下文（通常和当前用户相关联）而生成的内容。在Weblogic Portal中，这个特定上下文一般包括用户属性信息（profile），用户当前的请求（request），用户当前的session，当前的日期和时间（date and time），另外，Portal也支持自定义业务规则来满足特定的用户需求&rdquo;。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  2) 单点登录：只需登录Portal服务器一次就可以访问所有其它的应用，这意味着你无需再分别登录每一个应用。例如一旦我登录了我的intranet网站，我就能访问mail应用、IM消息应用和其它的intranet应用，不必再分别登录这些应用。Portal服务器会为你分配一个通行证库。你只需要在mail应用力设定一词用户名和密码，这些信息将以加密的方式存储在通行证库中。在你已登录到intranet网站并要访问mail应用的时候，portal服务器会从通行证库中读取你的通行证替你登录到mail服务器上。你对其它应用的访问也将照此处理。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  3) 内容聚集：Portlet规范中规定portal的主要工作之一是聚集由各种portlet应用生成的内容。Portlets是一种Web组件，就像servlets一样是专门为合成页面里的内容聚集在一起而设计的。通常请求一个portal页面会引发多个portlets被调用。每个portlet都会生成标记段，并与别的portlets生成的标记段组合在一起嵌入到portal页面的标记内。</div>
+<div>2.2 Portlet定义</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  1) portlet：Portlet是被portlet容器所管理的基于Java技术的web组件，它处理客户端请求并生成动态内容。通常请求一个portal页面引发多个portlets被调用，每个portlet都会生成一个标记段，并与别的portlets生成的标记段组合在一起形成一个完整的portal页面展示给用户。每个portlet的生命周期被portlet容器所管理。每个portlet可能随当前登录用户不同而生成不同的内容。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  2) portlet容器：Portlet容器负责管理portlets的生命周期并提供portlets的运行环境。它还提供portlet preferences的持久化存储功能。Portlet容器从portal接受请求并分配到它所管理的potlets中去执行。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  3) portlets和servlets的关系：</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets在以下方面与servlets相似：</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets是基于Java技术的web组件；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  porlets由特定的容器管理；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets生成动态内容；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets的生命周期由容器管理；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets通过请求/响应模式与web客户端交互。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets在以下方面与servlets相异：</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets只能生成标记段，而不是整个文档；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets没有可供直接访问的URL地址。不过你还是能够让别人通过URL访问到portlet，你可以把包含该portlet的页面的URL发给他；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  web客户端通过一个portal系统和portlets交互；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets包含action请求和render请求；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets有预先定义好的portlet模式和窗口状态；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets可以在一个portal页面上同时存在多个；</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlets不能在响应中设置字符集编码和HTTP 和headers；</div>
+<div>portlets和servlets/JSP的通讯：</div>
+<div> </div>
+<div>portlet容器和servlet容器的关系：</div>
+<div>portlet容器是servlet容器的扩展，于是portlet容器一般是建立在servlet容器之上并且具有servlet容器所有的功能，portlet容器支持Servlet规范2.3。</div>
+<div> </div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  4) portlets附加的功能：</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  设置参数的持久化存储：portlets提供了一个PortletPreferences对象用来保存用户的设置参数。这些参数被存入一个持久化数据库，这样服务器重启后数据依然有效。开发者不必关心这些数据存储的具体实现机制。</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  请求处理：portlets提供了更为细粒度的请求处理。对于用户在portlet上动作时向该portlet发出的请求(一种称为活跃期的状态)，或者因用户在其它portlet上动作而引发的刷新页面请求，Portal服务器提供了两种不同的回调方法来处理。</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Portlet模式：portlets用模式的概念来表示用户在做什么。JSR 168定义了三种Portlet模式：VIEW、EDIT和HELP。一个portlet实例在任何时候都可以恰巧在一种　portlet模式下。其他自定义portlet模式（如配置和源）都是可能的。VIEW模式是默认的模式。Portlet规范建议EDIT模式允许portlet用户定制portlet实例，以及HELP模式显示关于portlet的用法信息。Portlet必须支持VIEW模式，但在portlet中对EDIT模式和HELP模式的支持是可选的。在使用mail应用的时候，你可能会用它来读信、写信或检查信件――这些都是mail应用的预定功能，Portlets通常以VIEW模式提供这些功能。但还有一些活动，像指定刷新时间或（重新）设置用户名和密码，这些活动允许用户定制应用的行为，因此它们用的是EDIT模式。Mail应用的帮助功能用的是HELP模式。</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  窗口状态：窗口状态决定了portal页面上留给portlet生成内容的空间。JSR 168定义了三种Window状态：NORMAL、MINIMIZED和MAXIMIZED。Portlet实例任何时候都可以恰好是一种window状态。其他自定义window状态（如半页）也是可能的。在NORMAL状态下，portlet占了屏幕区的一小部分。屏幕状态与其他portlet共享。在MINIMIZED状态下，portlet的内容被隐藏, portlet只显示为标题条。在MAXIMIZED状态下，portlet的内容占屏幕区的大部分。其他共享同一页面的portlet在MAXIMIZED状态下被隐藏。</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  用户信息：通常portlets向发出请求的用户提供个性化的内容，为了能更加行之有效，portlets需要访问用户的属性信息，如姓名、email、电话等。Portlet API为此提供了用户属性的概念，开发者能够用标准的方式访问这些属性，并由管理员负责在这些属性与真实的用户信息数据库（通常是LDAP服务器）之间建立映射关系。</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  portlet context：每个portlet关联一个PortletContext对象的实例。通过此对象，可以获得上下文相关的初始化参数，设置和保存一些上下文相关的属性以供别的servlets和portlets获取。另外还可以通过它得到一个request dispatcher对象来转发到servlets和JSPs。</div>
+<div>2.3 Portal页面的元素</div>
+<div>图2.3.1显示了Portal页面的各种元素。</div>
+<div><img border="0" src="http://writeblog.csdn.net/images/blogjava_net/patrick/6242/r_clip_image001.gif">
+<div>
+<p> </p>
+</div>
+</div>
+<div> </div>
+<div>图2.3.1 portal页面的元素</div>
+<div>每个portlet页面由一个或多个portlet窗口组成，每个portlet窗口又分为两部分：一个是外观，它决定了portlet窗口的标题条、控制和边界的样式；另一个是portlet段，它由portlet应用填充。Portal服务器决定了portal页面的整体观感，像标识、标题条颜色、控制图标等。通过修改几个JSP和css模板文件就可以改变portal的整个观感。</div>
+<div>2.4 Portlet生命周期</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  为了成功地创建portlet，您必须遵照portlet生命周期。javax.portlet.Portlet接口中的方法定义了该生命周期，这些生命周期方法是init()、render()、processAction()和destroy()。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  1) 初始化</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  当启动一个portlet应用或懒加载条件下portal容器需要某个portlet来执行来自客户端的请求时，需要执行init()方法。它用于获得所需的任何昂贵资源（如数据库连接），并执行其它一次性活动。在portlets初始化时，经常需要用到portletConfig对象获取初始化参数和各种资源。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  2) 处理请求</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  通过调用processAction()方法处理不同种类的动作和render()方法呈现内容。通常是通过portlets创建的URL提交请求。Portlet URLs包括action URLs和render URLs两种类型。一般情况下，一个aciton URL对应一个action请求和当前portle页面上所有的portlets的render请求，一个render URL对应当前portle页面上所有的portlets的render请求。但是如果portlet使用了缓存技术，则portal/portlet容器可能不会调用render()方法，而直接从缓存中取出展现标记段。</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  动作处理</div>
+<div>调用processAction()方法，在此方法中可以获得ActionRequest和ActionResponse两个参数。通过ActionRequest参数，可以获取action请求的参数，窗口状态，porlet模式，portal上下文对象，portlet会话对象和portlet preference数据。在处理action请求时，可以转发到一个指定的URL。通过ActionResponse对象，portlet可以改变它的模式和窗口状态。</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  呈现内容</div>
+<div>调用render()方法，在此方法可以获得RenderRequest参数和RenderResponse两个参数。通过RenderRequest参数，可以获取action请求的参数，窗口状态，porlet模式，portal上下文对象，portlet会话对象和portlet preference数据。通过RenderResponse对象可以生成呈现内容或委托给servlet或JSP生成呈现内容。但也有一些限制：第一，生成HTML标记段不得使用下列标签：base, body, iframe, frame, frameset, head, html和title；第二，生成XHTML和基于XHTML标记段不得使用下列标签：base, body, iframe, head, html和title。</div>
+<div>javax.portlet.GenericPortlet类提供了呈现内容的一些默认功能。我们创建的大多数portlet将会扩展javax.portlet.GenericPortlet类，而不是直接实现javax.portlet.Portlet接口。GenericPortlet类实现了render()方法。如果portlet的window状态被最小化，那么render()方法不能做任何事情。如果portlet的window状态不是最小化，那么render()方法设置在portlet.xml文件中指定的标题，并调用doDispatch()方法。根据Portlet模式， doDispatch()方法适当地调用doView()、doEdit()和doHelp()方法。这样，由于GenericPortlet类帮助实现render()方法，并且提供doView()、doEdit()和doHelp()方法来覆盖，因此GenericPortlet类比Portlet接口更便于扩展。</div>
+<div>3) 完成</div>
+<div>当portlet的实例被撤销部署时，使用destroy()方法来释放这些资源。</div>
+<div>2.5 Portlet标签库</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  使用portlet标签库允许我们在JSP中获取portlet特定的元素，例如RenderRequest对象和RenderResponse对象。还可以在JSP中生成portlet URL。在JSP页面中必须有类似下面的声明：</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;%@ taglib uri=&rdquo;http://java.sun.com/portlet&rdquo; prefix=&rdquo;portlet&rdquo; %&gt;</div>
+<div>2.6 JSR168和WSRP</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  在实际的应用场景中，我们经常需要把不同的应用程序集成在一个统一的用户界面上。Portal技术可以很好的解决这一问题，但需要开发一定数量的portlets。但有时我们需要把同一个portlet部署在不同的门户中，此时可能我们要费很大的力气重新为每个门户重新开发相同的portlet。有很多通用的portlets在升级应用服务器时不能很好的做到重用。此时我们怎么办？</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  我们只有遵循业界公认的标准，标准可以帮助我们减轻移植和互操作的带来的痛苦。随着门户标准JSR168和用于远程Web服务portlet（WSRP）的广泛采用，我们将能够很容易的做到重用和维护。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  总的来讲，这些新标准正在给门户部署的本质带来根本性的变化，伴随而来的是门户开发商市场的剧变。越来越多的客户在根据门户的总体体系结构是否符合该企业来选择门户技术，而不是根据门户的一组专用的特性，例如portlets的数目来选择。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  1) JSR168</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  JSR168规范为创建portlets建立了标准的API。它是为实现portlet、基于Java的门户服务器和其他Web应用程序之间的互操作性而设计的。现在大多数开源的和商用的Portal产品都支持JSR168。因此开发符合JSR168规范的portlet的客户可以很容易的将portlets从某一开发商的门户移到另一个开发商的门户中。此外，客户现在还可以使用迅速增长的开箱即用、符合标准的portlets。按照Java标准化组织（Java Community Process）所述，JSR168 portlet拥有一个适用于所有门户客户端的简单的，标准的API，支持多种类型的客户端（多设备，多浏览器），支持本地化和国际化，允许门户应用程序的热部署和重新部署，并包含声明性安全（与servlet和EJB规范中使用的机制相同）。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  2) WSRP</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  由JSR168标准获取的益处被WSRP进一步得到增强。WSRP是由OASIS（一个由开发电子商务标准的行业专家所组成的非赢利性社团）创建，它使得开发的portlets可以被远程的门户展现出来。WSRP使原来极难实现的功能成为可能。例如，部署一次portlet，可以把它们传递到任何符合标准的门户中去；将第三方提供的portlets整合进自己的门户中，增强来自不同开发商的门户之间的互操作性。</div>
+<div>3 Portal的功能</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  在JSR168规范中只定义了Portal所应具有的功能的一个最小集合。然而在现实场景中，不论是开源的portal框架实现，还是商业Portal产品都在标准的基础上作了扩展。总的说来，一般Portal可能会包含以下功能，见表3.1：</div>
+<table border="1" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <div>功能</div>
+            </td>
+            <td>
+            <div>描述</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>内容聚合</div>
+            </td>
+            <td>
+            <div>能够把各种不同应用的内容聚合到一个统一的页面呈现给用户。</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>基于角色的视图定制</div>
+            </td>
+            <td>
+            <div>能够基于组织机构中不同的用户的角色生成不同的视图内容。例如，人力资源总监和财务经理登录后所看到的页面也是不同的。</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>个性化</div>
+            </td>
+            <td>
+            <div>用户能够根据个人喜好定制符合自己风格的页面和内容。例如，小王喜欢淡蓝色的格调，并且投资股票，则他可以选择一个淡蓝色风格的主题，并且使用一个已经定制好的股票portlet，允许小王设定此portlet的自动刷新时间和自选股等。</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>单点登录</div>
+            </td>
+            <td>
+            <div>只需登录Portal服务器一次就可以访问所有其它的应用，这意味着你无需再分别登录每一个应用。</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>协作功能</div>
+            </td>
+            <td>
+            <div>一些Portal框架可能会提供复杂的portlets用于聊天，应用程序共享，白板，在线会议，论坛等。</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>国际化</div>
+            </td>
+            <td>
+            <div>根据locale的不同呈现不同国家的文字。</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>工作流</div>
+            </td>
+            <td>
+            <div>这里主要指支持跨越不同数据源和应用的工作流。</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>支持不同的客户端</div>
+            </td>
+            <td>
+            <div>包括主流web浏览器，PDA等。</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<div>表3.1 Portal功能</div>
+<div>4 部分开源Portal框架的分析和比较</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  开源框架中我实际接触到的两个开源框架就Liferay和JetSpeed，而且时间不长，以我的经验很难做出客观的评价。在网上查了一些资料，有一份比较权威的报告给出了一些评价标准和测试数据，应该能够比较客观的给出一些结论。</div>
+<div>4.1 评价标准</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  每个开源框架都有其优点和缺点，如果没有一套全面的标准来评价，很难说清楚哪个框架更好。其实从做项目的观点出发，没有最好的技术，只有最适合的技术。但我们一般都会在选择某项技术的时候，尽可能的追求功能完善，易于开发和扩展，文档全面等等。下面是这份权威资料给出的标准：</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  1) 遵循JSR168规范</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  这是这些标准中最重要的一个要求，对规范支持得好，意味着做到很好的重用和别的Portal产品的交互等。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  2) 便于安装</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  包括数据库的配置以及在web应用服务器中的发布等。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  3) 文档</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  是否有详细的安装文档，开发文档和用户手册等。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  4) 在线支持</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  包括开发社区，Wiki，邮件列表等，当使用Portal产品遇到问题时是否能快捷的寻找到解决问题的方法。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  5) Potal管理</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  包括管理节目是否友好，方便，易于添加用户管理，角色管理，分类管理，布局，皮肤管理，增加和删除portlets等等。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  6) portlet资源库</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  一般portal框架都能附带的发布一些可被重用的portlets。例如邮件portlet，日程表portlet，搜索portlet等等。这里我们主要的评价标准是这些portlets是否能被很好的复用。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  7) 性能</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  包括portal框架的启动时间，portlet的装载时间，数据库的访问时间等等。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  8) 安全</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  很多portal框架都有默认的安全机制，但默认的认证和授权机制远远不能满足某些大项目的要求。在这里，主要考虑portal框架是否能够很好的和JAAS，SSO，SSL等安全技术整合以及整合的难易程度等。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  9) 技术</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  不同的portal框架基于不同的技术开发，同时可能要求portlet开发人员也使用同样的技术，例如Struts，JSF，Spring，Hibernate，Tiles，EJB以及Web services等技术。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  10) Portal特性</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  通常情况下Portal框架除了作为一个portal/portlet容器外，还附带一些很有用的特性，例如内容管理系统（CMS），工作流（Workflow），管理工具，监控工具等。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  11) 服务器兼容性</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  此标准主要检验portal框架是否能够很好的运行在大部分的服务器中，包括Tomcat，JBoss，Weblogic，Websphere等主力的服务器。</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  12) WSRP标准</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  对The Web Services for Remote Portlets(WSRP)规范的支持。</div>
+<div>4.2 选中的开源Portal框架</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  在这份标准中，被选中来作评价和测试的框架一般都是在某个行业使用比较广泛或当前比较流行的开源框架，但可能也有漏掉一些相当不错的开源框架，例如Aapche JetSpeed。下面列出被选中的框架及其被选中的简短理由：</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Sakai 1.5（广泛的用于Virtual Research Environment(VRE)领域）</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  uPortal（广泛的用于Academic Institutes work领域）</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  GridSphere（第一个支持JSR168规范的开源portal框架）</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  eXo平台（当前非常流行）</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Liferay（当前非常流行，良好的用户界面以及丰富的内建portlets）</div>
+<div>l&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  StringBeans（非常易用）</div>
+<div>对于每个portal框架，我将不再做详细介绍，有兴趣的可以去它们的网站或google一下。</div>
+<div>4.3 评价结果</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  下面将基于4.1给出的评价标准，仔细的给每个开源Portal框架打分，1~5分，其中5分是满分，最后统计总分，就是我们评价的最优开源Portal框架，见表4.3.1：</div>
+<table border="1" cellspacing="0" cellpadding="0">
+    <tbody>
+        <tr>
+            <td>
+            <div>标准</div>
+            </td>
+            <td colspan="6">
+            <div>Portal框架</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div> </div>
+            </td>
+            <td>
+            <div>Sakai 1.5</div>
+            </td>
+            <td>
+            <div>uPortal</div>
+            </td>
+            <td>
+            <div>GridSphere</div>
+            </td>
+            <td>
+            <div>eXo平台</div>
+            </td>
+            <td>
+            <div>Liferay</div>
+            </td>
+            <td>
+            <div>StringBeans</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>遵循JSR168规范</div>
+            </td>
+            <td>
+            <div>0</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>便于安装</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>文档</div>
+            </td>
+            <td>
+            <div>2</div>
+            </td>
+            <td>
+            <div>2</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>在线支持</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>Potal管理</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>自定义</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>portlet资源库</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>性能</div>
+            </td>
+            <td>
+            <div>2</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>安全</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>技术</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>Portal特性</div>
+            </td>
+            <td>
+            <div>2</div>
+            </td>
+            <td>
+            <div>2</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>2</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>服务器兼容性</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>4</div>
+            </td>
+            <td>
+            <div>5</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>WSRP标准</div>
+            </td>
+            <td>
+            <div>0</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>0</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>3</div>
+            </td>
+            <td>
+            <div>0</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+            <div>合计</div>
+            </td>
+            <td>
+            <div>35</div>
+            </td>
+            <td>
+            <div>49</div>
+            </td>
+            <td>
+            <div>51</div>
+            </td>
+            <td>
+            <div>57</div>
+            </td>
+            <td>
+            <div>58</div>
+            </td>
+            <td>
+            <div>51</div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<div>表4.3.1 评价结果</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  基于上表的评分，每个项目可以基于自己的特性和对各个Portal框架的了解程度，酌情的调整打分，以选择最适合自己项目的Portal框架。<br>
+<a href="http://blog.csdn.net/daigua245/archive/2009/04/29/4137185.aspx">http://blog.csdn.net/daigua245/archive/2009/04/29/4137185.aspx</a></div>
+</div>
+</div>
+</div>
+</div></div></body></html>

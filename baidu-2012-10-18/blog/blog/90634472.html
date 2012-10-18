@@ -1,0 +1,342 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Writing a Web Crawler in the Java Programming Language</title></head><body><h1>Writing a Web Crawler in the Java Programming Language</h1><div><p>Writing a Web Crawler in the Java Programming Language</p>
+<p>import java.applet.Applet;<br>
+import java.text.*;<br>
+import java.awt.*;<br>
+import java.awt.event.*;<br>
+import java.util.*;<br>
+import java.net.*;<br>
+import java.io.*;</p>
+<p>public class WebCrawler extends Applet implements ActionListener, Runnable {<br>
+public static final String SEARCH = &quot;Search&quot;;<br>
+public static final String STOP = &quot;Stop&quot;;<br>
+public static final String DISALLOW = &quot;Disallow:&quot;;<br>
+public static final int&#160;&#160;&#160;  SEARCH_LIMIT = 50;</p>
+<p>&#160;&#160;&#160;  Panel&#160;&#160;  panelMain;<br>
+List&#160;&#160;&#160;  listMatches;<br>
+Label&#160;&#160;  labelStatus;</p>
+<p>&#160;&#160;&#160;  // URLs to be searched<br>
+Vector vectorToSearch;<br>
+// URLs already searched<br>
+Vector vectorSearched;<br>
+// URLs which match<br>
+Vector vectorMatches;</p>
+<p>&#160;&#160;&#160;  Thread searchThread;</p>
+<p>&#160;&#160;&#160;  TextField textURL;<br>
+Choice&#160;&#160;&#160;  choiceType;</p>
+<p>&#160;&#160;&#160;  public void init() {</p>
+<p>// set up the main UI panel<br>
+panelMain = new Panel();<br>
+panelMain.setLayout(new BorderLayout(5, 5));</p>
+<p>// text entry components<br>
+Panel panelEntry = new Panel();<br>
+panelEntry.setLayout(new BorderLayout(5, 5));</p>
+<p>Panel panelURL = new Panel();<br>
+panelURL.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));<br>
+Label labelURL = new Label(&quot;Starting URL: &quot;, Label.RIGHT);<br>
+panelURL.add(labelURL);<br>
+textURL = new TextField(&quot;&quot;, 40);<br>
+panelURL.add(textURL);<br>
+panelEntry.add(&quot;North&quot;, panelURL);</p>
+<p>Panel panelType = new Panel();<br>
+panelType.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));<br>
+Label labelType = new Label(&quot;Content type: &quot;, Label.RIGHT);<br>
+panelType.add(labelType);<br>
+choiceType = new Choice();<br>
+choiceType.addItem(&quot;text/html&quot;);<br>
+choiceType.addItem(&quot;audio/basic&quot;);<br>
+choiceType.addItem(&quot;audio/au&quot;);<br>
+choiceType.addItem(&quot;audio/aiff&quot;);<br>
+choiceType.addItem(&quot;audio/wav&quot;);<br>
+choiceType.addItem(&quot;video/mpeg&quot;);<br>
+choiceType.addItem(&quot;video/x-avi&quot;);<br>
+panelType.add(choiceType);<br>
+panelEntry.add(&quot;South&quot;, panelType);</p>
+<p>panelMain.add(&quot;North&quot;, panelEntry);</p>
+<p>// list of result URLs<br>
+Panel panelListButtons = new Panel();<br>
+panelListButtons.setLayout(new BorderLayout(5, 5));</p>
+<p>Panel panelList = new Panel();<br>
+panelList.setLayout(new BorderLayout(5, 5));<br>
+Label labelResults = new Label(&quot;Search results&quot;);<br>
+panelList.add(&quot;North&quot;, labelResults);<br>
+Panel panelListCurrent = new Panel();<br>
+panelListCurrent.setLayout(new BorderLayout(5, 5));<br>
+listMatches = new List(10);<br>
+panelListCurrent.add(&quot;North&quot;, listMatches);<br>
+labelStatus = new Label(&quot;&quot;);<br>
+panelListCurrent.add(&quot;South&quot;, labelStatus);<br>
+panelList.add(&quot;South&quot;, panelListCurrent);</p>
+<p>panelListButtons.add(&quot;North&quot;, panelList);</p>
+<p>// control buttons<br>
+Panel panelButtons = new Panel();<br>
+Button buttonSearch = new Button(SEARCH);<br>
+buttonSearch.addActionListener(this);<br>
+panelButtons.add(buttonSearch);<br>
+Button buttonStop = new Button(STOP);<br>
+buttonStop.addActionListener(this);<br>
+panelButtons.add(buttonStop);</p>
+<p>panelListButtons.add(&quot;South&quot;, panelButtons);</p>
+<p>panelMain.add(&quot;South&quot;, panelListButtons);</p>
+<p>add(panelMain);<br>
+setVisible(true);</p>
+<p>repaint();</p>
+<p>// initialize search data structures<br>
+vectorToSearch = new Vector();<br>
+vectorSearched = new Vector();<br>
+vectorMatches = new Vector();</p>
+<p>// set default for URL access<br>
+URLConnection.setDefaultAllowUserInteraction(false);<br>
+}</p>
+<p>&#160;&#160;&#160;  public void start() {<br>
+}</p>
+<p>&#160;&#160;&#160;  public void stop() {<br>
+if (searchThread != null) {<br>
+setStatus(&quot;stopping...&quot;);<br>
+searchThread = null;<br>
+}<br>
+}</p>
+<p>&#160;&#160;&#160;  public void destroy() {<br>
+}</p>
+<p>&#160;&#160;&#160;  boolean robotSafe(URL url) {<br>
+String strHost = url.getHost();</p>
+<p>// form URL of the robots.txt file<br>
+String strRobot = &quot;http://&quot; + strHost + &quot;/robots.txt&quot;;<br>
+URL urlRobot;<br>
+try { <br>
+urlRobot = new URL(strRobot);<br>
+} catch (MalformedURLException e) {<br>
+// something weird is happening, so don't trust it<br>
+return false;<br>
+}</p>
+<p>String strCommands;<br>
+try {<br>
+InputStream urlRobotStream = urlRobot.openStream();</p>
+<p>&#160;&#160;&#160;&#160;  // read in entire file<br>
+byte b[] = new byte[1000];<br>
+int numRead = urlRobotStream.read(b);<br>
+strCommands = new String(b, 0, numRead);<br>
+while (numRead != -1) {<br>
+if (Thread.currentThread() != searchThread)<br>
+break;<br>
+numRead = urlRobotStream.read(b);<br>
+if (numRead != -1) {<br>
+String newCommands = new String(b, 0, numRead);<br>
+strCommands += newCommands;<br>
+}<br>
+}<br>
+urlRobotStream.close();<br>
+} catch (IOException e) {<br>
+// if there is no robots.txt file, it is OK to search<br>
+return true;<br>
+}</p>
+<p>// assume that this robots.txt refers to us and <br>
+// search for &quot;Disallow:&quot; commands.<br>
+String strURL = url.getFile();<br>
+int index = 0;<br>
+while ((index = strCommands.indexOf(DISALLOW, index)) != -1) {<br>
+index += DISALLOW.length();<br>
+String strPath = strCommands.substring(index);<br>
+StringTokenizer st = new StringTokenizer(strPath);</p>
+<p>&#160;&#160;&#160;&#160;  if (!st.hasMoreTokens())<br>
+break;<br>
+<br>
+String strBadPath = st.nextToken();</p>
+<p>&#160;&#160;&#160;&#160;  // if the URL starts with a disallowed path, it is not safe<br>
+if (strURL.indexOf(strBadPath) == 0)<br>
+return false;<br>
+}</p>
+<p>return true;<br>
+}</p>
+<p>&#160;&#160;&#160;  public void paint(Graphics g) {<br>
+//Draw a Rectangle around the applet's display area.<br>
+g.drawRect(0, 0, getSize().width - 1, getSize().height - 1);</p>
+<p>panelMain.paint(g);<br>
+panelMain.paintComponents(g);<br>
+// update(g);<br>
+// panelMain.update(g);<br>
+}</p>
+<p>&#160;&#160;&#160;  public void run() {<br>
+String strURL = textURL.getText();<br>
+String strTargetType = choiceType.getSelectedItem();<br>
+int numberSearched = 0;<br>
+int numberFound = 0;</p>
+<p>if (strURL.length() == 0) {<br>
+setStatus(&quot;ERROR: must enter a starting URL&quot;);<br>
+return;<br>
+}</p>
+<p>// initialize search data structures<br>
+vectorToSearch.removeAllElements();<br>
+vectorSearched.removeAllElements();<br>
+vectorMatches.removeAllElements();<br>
+listMatches.removeAll();</p>
+<p>vectorToSearch.addElement(strURL);</p>
+<p>while ((vectorToSearch.size() &gt; 0) <br>
+&amp;&amp; (Thread.currentThread() == searchThread)) {<br>
+// get the first element from the to be searched list<br>
+strURL = (String) vectorToSearch.elementAt(0);</p>
+<p>&#160;&#160;&#160;&#160;  setStatus(&quot;searching &quot; + strURL);</p>
+<p>&#160;&#160;&#160;&#160;  URL url;<br>
+try { <br>
+url = new URL(strURL);<br>
+} catch (MalformedURLException e) {<br>
+setStatus(&quot;ERROR: invalid URL &quot; + strURL);<br>
+break;<br>
+}</p>
+<p>&#160;&#160;&#160;&#160;  // mark the URL as searched (we want this one way or the other)<br>
+vectorToSearch.removeElementAt(0);<br>
+vectorSearched.addElement(strURL);</p>
+<p>&#160;&#160;&#160;&#160;  // can only search http: protocol URLs<br>
+if (url.getProtocol().compareTo(&quot;http&quot;) != 0) <br>
+break;</p>
+<p>&#160;&#160;&#160;&#160;  // test to make sure it is before searching<br>
+if (!robotSafe(url))<br>
+break;</p>
+<p>&#160;&#160;&#160;&#160;  try {<br>
+// try opening the URL<br>
+URLConnection urlConnection = url.openConnection();</p>
+<p>&#160;&#160;  urlConnection.setAllowUserInteraction(false);</p>
+<p>&#160;&#160;  InputStream urlStream = url.openStream();<br>
+String type <br>
+= urlConnection.guessContentTypeFromStream(urlStream);<br>
+if (type == null)<br>
+break;<br>
+if (type.compareTo(&quot;text/html&quot;) != 0) <br>
+break;</p>
+<p>&#160;&#160;  // search the input stream for links<br>
+// first, read in the entire URL<br>
+byte b[] = new byte[1000];<br>
+int numRead = urlStream.read(b);<br>
+String content = new String(b, 0, numRead);<br>
+while (numRead != -1) {<br>
+if (Thread.currentThread() != searchThread)<br>
+break;<br>
+numRead = urlStream.read(b);<br>
+if (numRead != -1) {<br>
+String newContent = new String(b, 0, numRead);<br>
+content += newContent;<br>
+}<br>
+}<br>
+urlStream.close();</p>
+<p>&#160;&#160;  if (Thread.currentThread() != searchThread)<br>
+break;</p>
+<p>&#160;&#160;  String lowerCaseContent = content.toLowerCase();</p>
+<p>&#160;&#160;  int index = 0;<br>
+while ((index = lowerCaseContent.indexOf(&quot;&lt;a&quot;, index)) != -1)<br>
+{<br>
+if ((index = lowerCaseContent.indexOf(&quot;href&quot;, index)) == -1) <br>
+break;<br>
+if ((index = lowerCaseContent.indexOf(&quot;=&quot;, index)) == -1) <br>
+break;<br>
+<br>
+if (Thread.currentThread() != searchThread)<br>
+break;</p>
+<p>&#160;&#160;&#160;&#160;&#160;  index++;<br>
+String remaining = content.substring(index);</p>
+<p>&#160;&#160;&#160;&#160;&#160;  StringTokenizer st <br>
+= new StringTokenizer(remaining, &quot;\t\n\r\&quot;&gt;#&quot;);<br>
+String strLink = st.nextToken();</p>
+<p>&#160;&#160;&#160;&#160;&#160;  URL urlLink;<br>
+try {<br>
+urlLink = new URL(url, strLink);<br>
+strLink = urlLink.toString();<br>
+} catch (MalformedURLException e) {<br>
+setStatus(&quot;ERROR: bad URL &quot; + strLink);<br>
+continue;<br>
+}</p>
+<p>&#160;&#160;&#160;&#160;&#160;  // only look at http links<br>
+if (urlLink.getProtocol().compareTo(&quot;http&quot;) != 0)<br>
+break;</p>
+<p>&#160;&#160;&#160;&#160;&#160;  if (Thread.currentThread() != searchThread)<br>
+break;</p>
+<p>&#160;&#160;&#160;&#160;&#160;  try {<br>
+// try opening the URL<br>
+URLConnection urlLinkConnection <br>
+= urlLink.openConnection();<br>
+urlLinkConnection.setAllowUserInteraction(false);<br>
+InputStream linkStream = urlLink.openStream();<br>
+String strType <br>
+= urlLinkConnection.guessContentTypeFromStream(linkStream);<br>
+linkStream.close();</p>
+<p>&#160;&#160;&#160;  // if another page, add to the end of search list<br>
+if (strType == null)<br>
+break;<br>
+if (strType.compareTo(&quot;text/html&quot;) == 0) {<br>
+// check to see if this URL has already been <br>
+// searched or is going to be searched<br>
+if ((!vectorSearched.contains(strLink)) <br>
+&amp;&amp; (!vectorToSearch.contains(strLink))) {</p>
+<p>&#160;&#160;&#160;&#160;  // test to make sure it is robot-safe!<br>
+if (robotSafe(urlLink))<br>
+vectorToSearch.addElement(strLink);<br>
+}<br>
+}</p>
+<p>&#160;&#160;&#160;  // if the proper type, add it to the results list<br>
+// unless we have already seen it<br>
+if (strType.compareTo(strTargetType) == 0) {<br>
+if (vectorMatches.contains(strLink) == false) {<br>
+listMatches.add(strLink);<br>
+vectorMatches.addElement(strLink);<br>
+numberFound++;<br>
+if (numberFound &gt;= SEARCH_LIMIT)<br>
+break;<br>
+}<br>
+}<br>
+} catch (IOException e) {<br>
+setStatus(&quot;ERROR: couldn't open URL &quot; + strLink);<br>
+continue;<br>
+}<br>
+}<br>
+} catch (IOException e) {<br>
+setStatus(&quot;ERROR: couldn't open URL &quot; + strURL);<br>
+break;<br>
+}</p>
+<p>&#160;&#160;&#160;&#160;  numberSearched++;<br>
+if (numberSearched &gt;= SEARCH_LIMIT)<br>
+break;<br>
+}</p>
+<p>if (numberSearched &gt;= SEARCH_LIMIT || numberFound &gt;= SEARCH_LIMIT)<br>
+setStatus(&quot;reached search limit of &quot; + SEARCH_LIMIT);<br>
+else<br>
+setStatus(&quot;done&quot;);<br>
+searchThread = null;<br>
+// searchThread.stop();<br>
+}</p>
+<p>&#160;&#160;&#160;  void setStatus(String status) {<br>
+labelStatus.setText(status);<br>
+}</p>
+<p>&#160;&#160;&#160;  public void actionPerformed(ActionEvent event) {<br>
+String command = event.getActionCommand();</p>
+<p>if (command.compareTo(SEARCH) == 0) {<br>
+setStatus(&quot;searching...&quot;);</p>
+<p>&#160;&#160;&#160;&#160;  // launch a thread to do the search<br>
+if (searchThread == null) {<br>
+searchThread = new Thread(this);<br>
+}<br>
+searchThread.start();<br>
+}<br>
+else if (command.compareTo(STOP) == 0) {<br>
+stop();<br>
+}<br>
+}<br>
+public static void main (String argv[])<br>
+{<br>
+Frame f = new Frame(&quot;WebFrame&quot;);<br>
+WebCrawler applet = new WebCrawler();<br>
+f.add(&quot;Center&quot;, applet);</p>
+<p>/*&#160;&#160;  Behind a firewall set your proxy and port here!<br>
+*/<br>
+Properties props= new Properties(System.getProperties());<br>
+props.put(&quot;http.proxySet&quot;, &quot;true&quot;);<br>
+props.put(&quot;http.proxyHost&quot;, &quot;webcache-cup&quot;);<br>
+props.put(&quot;http.proxyPort&quot;, &quot;8080&quot;);</p>
+<p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;  Properties newprops = new Properties(props);<br>
+System.setProperties(newprops);<br>
+/**/</p>
+<p>&#160;&#160;<br>
+applet.init();<br>
+applet.start();<br>
+f.pack();<br>
+f.show();<br>
+}</p>
+<p>}</p>
+<p>trace: <a href="http://java.sun.com/developer/technicalArticles/ThirdParty/WebCrawler/">http://java.sun.com/developer/technicalArticles/ThirdParty/WebCrawler/</a></p></div></body></html>

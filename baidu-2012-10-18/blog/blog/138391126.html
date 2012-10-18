@@ -1,0 +1,207 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>基于Annotation的Struts2.0+Hibernate3.3+Spring2.5整合开发 (2)</title></head><body><h1>基于Annotation的Struts2.0+Hibernate3.3+Spring2.5整合开发 (2)</h1><div><div>
+<div class="postTitle"><a href="http://www.blogjava.net/rongxh7/archive/2009/03/25/261782.html">基于Annotation的Struts2.0+Hibernate3.3+Spring2.5整合开发 (2) </a></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  基于Annotation的SSH整合开发，其实，并没有我当初想像中那么顺利。真正去做的时候，才发觉有许多问题。但不要紧，探索一下吧。在探索过程中学到知识，才是最重要的。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  言归正传，现在，我们加入Spring的支持：把spring-framework-2.5.5\dist中的spirng.jar引进我们项目的lib目录来，还要添加\lib\aspectj\下的两个jar包，以支持切面编程。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  必要的配置文件还是要的：<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  applicationContext-common.xml</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; <br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  xmlns:context=&quot;http://www.springframework.org/schema/context&quot;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  xmlns:aop=&quot;http://www.springframework.org/schema/aop&quot;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  xmlns:tx=&quot;http://www.springframework.org/schema/tx&quot;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  xsi:schemaLocation=&quot;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 配置SessionFactory,由Spring容器来管理Hibernate --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 非Annotation时,使用org.springframework.orm.hibernate3.LocalSessionFactoryBean,<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  它注入实体类的方式是setMappingResources(),而Hibernate Annotation所用的映射方式<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  不是mapping resource,而是mapping class,这就要用到LocalSessionFactoryBean的子类<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  AnnotationSessionFactoryBean了.因为AnnotationSessionFactoryBean它支持实体的注入<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  方式setAnnotatedClasses,即对应Hibernate中的mapping class.参见这两个类的源代码. --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;sessionFactory&quot;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  class=&quot;org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;configLocation&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;classpath:hibernate.cfg.xml&lt;/value&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/property&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/bean&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 配置事务管理器 --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;transactionManager&quot;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  class=&quot;org.springframework.orm.hibernate3.HibernateTransactionManager&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;sessionFactory&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;ref bean=&quot;sessionFactory&quot; /&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/property&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/bean&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 配置事务的传播特性 --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;tx:advice id=&quot;txAdvice&quot; transaction-manager=&quot;transactionManager&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;tx:attributes&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;tx:method name=&quot;save*&quot; propagation=&quot;REQUIRED&quot; /&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;tx:method name=&quot;update*&quot; propagation=&quot;REQUIRED&quot; /&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;tx:method name=&quot;delete*&quot; propagation=&quot;REQUIRED&quot; /&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;tx:method name=&quot;*&quot; read-only=&quot;true&quot; /&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/tx:attributes&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/tx:advice&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 那些类的哪些方法参与事务 --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;aop:config&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;aop:pointcut id=&quot;allServiceMethod&quot; expression=&quot;execution(* com.rong.dao.*.*.*(..))&quot; /&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;aop:advisor pointcut-ref=&quot;allServiceMethod&quot; advice-ref=&quot;txAdvice&quot; /&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/aop:config&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 使Spring关注Annotation --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;context:annotation-config/&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 让Spring通过自动扫描来查询和管理Bean --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;context:component-scan base-package=&quot;com.rong&quot;/&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- <br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;userDao&quot; class=&quot;com.rong.dao.UserDaoBean&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;sessionFactory&quot; ref=&quot;sessionFactory&quot;/&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/bean&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;userService&quot; class=&quot;com.rong.service.UserServiceBean&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;userDao&quot; ref=&quot;userDao&quot;/&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/bean&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&lt;/beans&gt;</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  关键的两点：</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 使Spring关注Annotation --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;context:annotation-config/&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 让Spring通过自动扫描来查询和管理Bean --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;context:component-scan base-package=&quot;com.rong&quot;/&gt;</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  这样配置之后，就省去了上面注释掉的DAO层和Service层等配置代码。是不是很方便呢。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  关于这一部分的XML代码，我们下面还会作解释。<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  来开发我们的DAO层吧,接口如下：</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">package com.rong.dao;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import java.util.List;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import com.rong.entity.User;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedBlock.gif">public interface UserDao <img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public void save(User user);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public void delete(int id);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public void update(User user);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public List&lt;User&gt; query();<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public User get(int id);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedBlockEnd.gif">}</div>
+<p><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  DAO层的实现类：</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">package com.rong.dao;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import java.util.List;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import org.springframework.stereotype.Repository;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import com.rong.entity.User;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">@Repository(&quot;userDao&quot;)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //声明此类为数据持久层的类<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedBlock.gif">public class UserDaoBean extends MyHibernateDaoSupport implements UserDao <img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public void save(User user)<img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super.getHibernateTemplate().save(user);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockEnd.gif">&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public void delete(int id)<img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super.getHibernateTemplate().delete(super.getHibernateTemplate().load(User.class, id));<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockEnd.gif">&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public void update(User user)<img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super.getHibernateTemplate().update(user);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockEnd.gif">&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  @SuppressWarnings(&quot;unchecked&quot;)<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public List&lt;User&gt; query()<img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return super.getHibernateTemplate().find(&quot;from User&quot;);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockEnd.gif">&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public User get(int id)<img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  return (User)super.getHibernateTemplate().get(&quot;from User&quot;, id);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockEnd.gif">&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedBlockEnd.gif">}<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  大家可以看到，我们这里继承的不是HibernateDaoSupport,而是我自己编写的一个类MyHibernateDaoSupport。其代码如下：</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">package com.rong.dao;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import javax.annotation.Resource;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import org.hibernate.SessionFactory;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import org.springframework.orm.hibernate3.support.HibernateDaoSupport;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedBlock.gif">public class MyHibernateDaoSupport extends HibernateDaoSupport <img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  @Resource(name=&quot;sessionFactory&quot;)&nbsp;&nbsp;&nbsp;&nbsp;  //为父类HibernateDaoSupport注入sessionFactory的值<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public void setSuperSessionFactory(SessionFactory sessionFactory)<img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  super.setSessionFactory(sessionFactory);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockEnd.gif">&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedBlockEnd.gif">}</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  我们之所以要改写HibernateDaoSupport，是因我为，我们要为DAO层的类注入SessionFactory这个属性。以后，我们开发的DAO类，就可以直接重用这个MyHibernateDaoSupport了。其实，这样做是相当于配置文件方式的代码：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;userDao&quot; class=&quot;com.rong.dao.UserDaoBean&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;sessionFactory&quot; ref=&quot;sessionFactory&quot;/&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/bean&gt;</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  我们既然要用annotation代替XML文件的，就要让它也能像原来那样使用sessionFactory,故为MyHibernateDaoSupport注入SessionFactory。子类继承这个类时，也继承其Annotation。这样，我们就可以实现SessionFactory的注入了。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  到现在，我们再回过头来看applicationContext-common.xml中的</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;bean id=&quot;sessionFactory&quot;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  class=&quot;org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;property name=&quot;configLocation&quot;&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;value&gt;classpath:hibernate.cfg.xml&lt;/value&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/property&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/bean&gt;</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  我们平时开发Hibernate与Spring整合时，常常会用到org.springframework.orm.hibernate3.LocalSessionFactoryBean来提供SessionFactory，而我们这里却要改成org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean。其实是这样的，我们在Hibernate.cfg.xml中配置的实体类映射的方式如下：（详见<a href="http://www.blogjava.net/rongxh7/archive/2009/03/23/261577.html">基于Annotation的Struts2.0+Hibernate3.3+Spring2.5整合开发 (1)</a> ）</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!--<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;mapping resource=&quot;com/rong/entity/User.hbm.xml&quot;/&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 在Hibernate中注册User实体类,区别于上面注释掉的resource写法 --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;mapping class=&quot;com.rong.entity.User&quot;/&gt;</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  要使Hibernate的实体类支持注解，去掉xxx.hbm.xml的文件，故我们所用的是mapping class方式，不是mapping resource的方法。然而，LocalSessionFactoryBean这个类，它采用的实体类映射方式是mapping resource，（详情可参见LocalSessionFactoryBean这个类的源代码）。如果我们在配置中仍然用这个类的话，Hibernate与Spring整合时，就会报错。而AnnotationSessionFactoryBean这个类在LocalSessionFactoryBean的基础上添加了mapping class方式实现实体类映射（详见AnnotationSessionFactoryBean类的源代码）。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  我们再来看Service层的代码：（接口比较简单，节约篇幅就不列出了）</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">package com.rong.service;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import java.util.List;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import javax.annotation.Resource;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import org.springframework.beans.factory.annotation.Autowired;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import org.springframework.stereotype.Service;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import com.rong.dao.UserDao;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">import com.rong.entity.User;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">@Service(&quot;userService&quot;)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  //声明此类为业务逻辑层的类<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedBlock.gif">public class UserServiceBean implements UserService <img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  @Autowired<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  private UserDao userDao;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockStart.gif"><img src="http://www.blogjava.net/Images/OutliningIndicators/ContractedSubBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;  public void save(User user)<img src="http://www.blogjava.net/Images/dot.gif">{<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  userDao.save(user);<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedSubBlockEnd.gif">&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/InBlock.gif"><br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/ExpandedBlockEnd.gif">}</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  我们用到的注解上面一般都作了注释，就不多叙。@Autowired和@Resource功能差不多，就是把对象注入，相当于&lt;bean&gt;配置的功能。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  好，就开发到这样，是不是忘记了什么？记得要配置web.xml，部分代码如下：</p>
+<div><img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 修改Spring配置文件的路径 --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;context-param&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;param-name&gt;contextConfigLocation&lt;/param-name&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;param-value&gt;classpath*:applicationContext-*.xml&lt;/param-value&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/context-param&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;!-- 配置Spring --&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;listener&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  &lt;listener-class&gt;org.springframework.web.context.ContextLoaderListener&lt;/listener-class&gt;<br>
+<img src="http://www.blogjava.net/Images/OutliningIndicators/None.gif">&nbsp;&nbsp;&nbsp;&nbsp;  &lt;/listener&gt;</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  是不是真的成功了？用Junit测试一下吧，我测试过是没问题的，由于篇幅，Junit的测试代码就不贴出来了。自己练习一下吧！<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  其实，到现在为止，我们发觉我们的XML配置文件还是很多。其实，这样想想，上一阶段我们省去了xxx.hbm.xml这类的文件，这一阶段，我们少去了&lt;bean id=&quot;&quot; class=&quot;&quot;&gt;&lt;property name=&quot;&quot; ref=&quot;&quot;&gt;这样的配置项。而这些，正是我们项目开发中，大量使用的配置。而只要书写简单的Annotation注解，就可以省去这样，我们何乐而不用。而那些我们保留的XML配置文件（如：数据库连接，事务），这样是写死的，一个项目就写一次或复制过来用，我们保留它又何妨？</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  好，暂时到这里，我们还有下一阶段的基于Annotation的SSH整合开发，我们将会以一个用户注册的例子，把Struts2的注解带到我们的整合开发中来。一起期待吧！<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  (*^-^*) 本文原创，转载请注明出处， <a href="http://www.blogjava.net/rongxh7">http://www.blogjava.net/rongxh7</a>谢谢! (*^-^*)</p>
+</div></div></body></html>

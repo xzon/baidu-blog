@@ -1,0 +1,784 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 3. 上下文相关的组件模型 -seam满江红</title></head><body><h1>Chapter 3. 上下文相关的组件模型 -seam满江红</h1><div><div>
+<div>
+<div>
+<div>
+<h2>Chapter 3. 上下文相关的组件模型 -seam满江红</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam中的两个核心概念是 context（上下文）思想和 component（组件）思想。组件是具有状态的对象，通常是EJB，组件的实例会和上下文绑定，在此上下文中具有一个名字。Bijection（双向注入）可以将内部的组件名（实例变量名）别名为上下文相关的名字，允许Seam动态组装组件树，还可以重新组装。</p>
+<p>让我们从了解Seam内置的上下文开始。</p>
+<div>
+<div>
+<div>
+<div>
+<h2><a name="d0e2963"></a>3.1. Seam上下文</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam上下文是由框架创建和销毁的。应用程序不能通过显式的Java API调用来控制上下文划分。上下文通常是隐含的。然而，在某些情况下，上下文可以通过annotation（注解）划分。</p>
+<p>基本的Seam上下文有:</p>
+<div>
+<ul type="disc">
+    <li>
+    <p>Stateless context</p>
+    </li>
+    <li>
+    <p>Event （or request） context</p>
+    </li>
+    <li>
+    <p>Page context</p>
+    </li>
+    <li>
+    <p>Conversation context</p>
+    </li>
+    <li>
+    <p>Session context</p>
+    </li>
+    <li>
+    <p>Business process context</p>
+    </li>
+    <li>
+    <p>Application context</p>
+    </li>
+</ul>
+</div>
+<p>你可能在servlet及相关规范中已经见过其中一些上下文了，但其中有两个可能从未见过：conversation context（业务对话上下文），和 business process context（业务流程上下文）。 在Web应用程序中，状态管理如此凌乱和容易出错的原因就是，内置的三个上下文（request, session 和application）从业务逻辑的角度来看不是很有意义。 例如，用户登录session的构建，对应用实际的工作流程来说就是相当随意的。 因此，大部分的Seam组件被限定在业务会话或者业务流程上下文中，因为这些上下文从应用的角度来说最有意义。</p>
+<p>让我们按顺序来考察每个context（上下文）。</p>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3002"></a>3.1.1. Stateless context（无状态上下文）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>那些确实没有状态的组件（主要是无状态Session Bean）总是运行在无状态上下文中（实际上就是上下文无关）。 无状态组件没什么太大的意思，也有争议认为它们不十分面向对象。但不管怎么样，它们还是很重要，并且通常很有用。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3007"></a>3.1.2. Event context（事件上下文）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>事件上下文是&ldquo;最窄&rdquo;的有状态上下文，是Web Request 上下文的泛化，用以包含其他种类的事件。 然而，与JSF请求的生命周期相关联的事件上下文是事件上下文最重要的实例，并且也是你最常打交道的。 与事件上下文相关联的组件在请求结束时被销毁，但是它们的状态至少在请求的生命周期中是存在并且是定义良好的。</p>
+<p>当你通过RMI或者Seam Remoting调用Seam组件的时候，一个事件上下文将为这个调用而被创建和销毁。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3014"></a>3.1.3. Page context（页面上下文）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>页面上下文允许你将状态与一个渲染页面的实例相关联。 你可以在Event Listener中初始化状态，或者在实际渲染页面的时候初始化状态，任何源于该页面的事件都可以访问到这些状态。 这在支持像可点击列表这种的功能时特别有用，列表的内容通过服务器端的数据变化产生。 实际上状态被序列化到了客户端，因此在多窗口操作或者回退按钮的时候，这种结构是非常健壮的。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3019"></a>3.1.4. Conversation context（业务会话上下文）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>业务会话上下文是Seam中最核心的概念。conversation（业务会话）是从用户的视角看待的一个工作单元。 它可能跨越与用户交互的多个Servlet、多个请求，和多个数据库事务。但是对用户来说，一个业务会话解决一个单一的问题。 例如说：&ldquo;预订酒店&rdquo;，&ldquo;批准合同&rdquo;，&ldquo;创建订单&rdquo;都是业务会话。 你可以将业务会话理解成对一个&ldquo;use case（用例）&rdquo;或&ldquo;user story（用户故事）&rdquo;的实现，当然特定的业务关联并非与此类例子完全一致。</p>
+<p>业务会话保存关于&ldquo;在此窗口中，用户正在干什么&rdquo;的状态。在任何时间，一个用户可能同时位于多个业务会话活动中，一般是在几个不同窗口中。 业务会话上下文让我们可以确保不同业务会话的状态不会互相干扰，不会导致Bug。</p>
+<p>你可能要花上一点时间才能习惯以这一业务会话的观点来思考你的应用程序。 但一旦你习惯于它，你会喜欢上这个术语，并且再不会不用业务会话来思考了！</p>
+<p>一些业务会话仅存在在一次请求中。跨域多个请求的业务会话必须通过Seam提供的annotation注解来划分。</p>
+<p>一些业务会话同时也是tasks（任务）。任务是一种业务会话，它特指一个长时间运行的业务流程，当正确完成后，可能会触发一个业务流程状态的转换。Seam为任务划分提供了专门的注解。</p>
+<p>业务对话可以是nested（嵌套）的，一个业务对话嵌套&ldquo;在&rdquo;一个更大的业务对话中。这是一项高级特性。</p>
+<p>通常，业务对话状态实际上由Seam保存在Servlet Session 中，跨越请求。Seam实现了可配置的 conversation timeout，可以自动销毁不活动的业务会话，这就可以确保，如果用户取消对话，用户的登录Session中保存的状态不会无限增长。</p>
+<p>对于在一个长时间运行的业务会话中所产生的并发请求，Seam按顺序执行。</p>
+<p>除此之外，Seam也可以配置成把对话状态保存在客户端浏览器中。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3052"></a>3.1.5. Session context（Session上下文）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Session上下文保存与用户登录session相关联的状态。虽然当需要在多个业务会话中交换状态的时候这很有用，但我们一般不建议使用Session 上下文保存组件，除非是保存有关登录用户的全局信息。</p>
+<p>在JSR-168 Portal环境下，Session上下文代表Portlet上下文。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3059"></a>3.1.6. Business process context （业务流程上下文）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>业务流程上下文保存了长时间运行的业务流程相关的状态。这种状态由BPM引擎（jBPM）管理和持久化。 业务流程跨越多个用户的交互，因此状态在多个用户之间通过良好定义的方式共享。 当前的任务决定当前的业务流程实例，业务流程的生命周期通过外置的 process definition language（流程定义语言） 来定义，因此没有特别的annotation注解用于划分业务流程。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3067"></a>3.1.7. Application context（应用上下文）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Application上下文就是Servlet规范中的Servlet上下文。应用程序上下文在保存静态信息方面有用，例如配置数据，引用数据或者元模型。 例如，Seam把自己的配置和元模型保存在应用程序上下文中。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3072"></a>3.1.8. Context variables（上下文变量）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>上下文定义了命名空间，一组 context variables（上下文变量）。 这些工作很类似Servlet规范中对Session或Request attributes的定义。 你可以绑定任何你喜欢的值到Context Variable，但通常我们会绑定Seam组件实例到Context Variables。</p>
+<p>因此，在上下文中，组件实例是通过上下文变量名字来辨别的（通常是这样，但并非绝对，就和组件名称一样）。 你可以通过程序在特定范围内访问被命名的组件实例，这是通过 Contexts 类进行的，它提供了对 Context 接口的几个线程绑定的实例的访问：</p>
+<pre>User user = (User) Contexts.getSessionContext().get(&quot;user&quot;);</pre>
+<p>你也可以通过名字来设置或修改变量值：</p>
+<pre>Contexts.getSessionContext().set(&quot;user&quot;, user);</pre>
+<p>但通常，我们通过注射（injection）来从上下文中获得组件，并且通过反向注射（outjection）把组件实例返回上下文。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3096"></a>3.1.9. Context搜索优先级</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>有时候如上面的例子所示，组件实例是从某个特定的已知范围内获取的。 其他的时候则是通过 priority order(优先级顺序) 在所有有状态范围内搜寻。这个顺序是这样的：</p>
+<div>
+<ul type="disc">
+    <li>
+    <p>Event context</p>
+    </li>
+    <li>
+    <p>Page context</p>
+    </li>
+    <li>
+    <p>Conversation context</p>
+    </li>
+    <li>
+    <p>Session context</p>
+    </li>
+    <li>
+    <p>Business process context</p>
+    </li>
+    <li>
+    <p>Application context</p>
+    </li>
+</ul>
+</div>
+<p>你可以通过调用 Contexts.lookupInStatefulContexts() 来执行带优先级的搜索。你在JSF页面中通过名字访问组件的时候，执行的就是这种带优先级的搜索。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3128"></a>3.1.10. 并发模型</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Servlet和EJB规范都没有定义任何关于如何管理来自同一个客户端的并发请求的条款。 Servlet容器简单地让所有的线程并发运行，把线程资源安全共享的任务交给应用程序代码。 EJB容器允许无状态组件并发访问，但如果并发访问一个有状态Session Bean,就会抛出一个异常。</p>
+<p>旧式的Web应用程序是围绕细粒度的同步请求编写的，因此这种行为可能还OK。 但是对现代的程序而言，由于大量使用了很多细粒度的异步（AJAX）请求，并发是实际存在的，并且必须被程序模型支持。 Seam在其上下文模型中加入了并发管理层。</p>
+<p>Seam Session 和应用上下文是多线程的。Seam允许在一个上下文中并发请求，并发处理。事件（Event）和页面（Page）上下文自然是单线程的。 业务流程（business process）上下文严格而言是多线程的，但实际情况中并发很少见，因此大多数情况不会出现并发。 最后，Seam为Conversation Context提供了 每对话每进程单线程 模型，这是通过把同一个长时间运行的对话上下文中的并发请求序列化实现的。</p>
+<p>因为Session上下文是多线程的，并且经常包含不稳定的状态，所以Session范围内的组件总是被Seam保护以防止并发操作。 Seam默认把针对Session范围的Session Bean和JavaBean的请求序列化（并且检测、解决任何发生的死锁）。 对Application Scoped的组件来说，这却不是默认行为，因为Application Scoped的组件通常不会包含的不稳定状态，并且在全局级别进行同步代价 极其 高昂。但是，你可以强制对任何Session Bean或JavaBean组件采用序列化的线程模型，要做的就是加上 @Synchronized 注解。</p>
+<p>并发模型意味着AJAX客户端可以安全的使用不稳定的Session和会话状态，并且不需要开发者做任何特别的工作。</p>
+</div>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h2><a name="d0e3150"></a>3.2. Seam 组件</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Seam组件是POJO（Plain Old Java Objects）。特别地，他们是JavaBean或者EJB 3.0 enterprise bean。Seam并不强求组件是EJB，甚至可以不使用EJB 3.0兼容的容器，Seam在设计的时候处处考虑对EJB 3.0的支持，并且包含对EJB 3.0的深度整合。</p>
+<div>
+<ul type="disc">
+    <li>
+    <p>EJB 3.0 stateless Session Beans</p>
+    </li>
+    <li>
+    <p>EJB 3.0 stateful Session Beans</p>
+    </li>
+    <li>
+    <p>EJB 3.0 entity beans</p>
+    </li>
+    <li>
+    <p>JavaBeans</p>
+    </li>
+    <li>
+    <p>EJB 3.0 message-driven beans</p>
+    </li>
+</ul>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3171"></a>3.2.1. 无状态Session Bean</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>无状态Session Bean组件无法在多次调用之间保持状态。因此，它们通常在不同的Seam上下文中，操作其他组件的状态。他们可以作为JSF的action listener，但是不能为JSF组件的显示提供属性。</p>
+<p>因为每次请求都产生一个新的实例，无状态session bean可以并发访问。把其实例和请求相关联是EJB3容器的责任（通常这些实例会从一个可重用的池中分配，所以你可能会发现某些实例变量还保存着上次使用的痕迹。）</p>
+<p>无状态Session Bean总是生活在无状态上下文中。</p>
+<p>无状态Session Bean是Seam组件中最没趣的了。</p>
+<p>Seam无状态Session Bean组件可以使用 Component.getInstance() 或者 @In(create=true) 实例化。它们不能直接使用JNDI或者 new 操作实例化。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3193"></a>3.2.2. 有状态Session Bean</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>有状态Session Bean不仅可以在bean的多次调用之间保持状态，而且在多次请求之间也可以保持状态。 不由数据库保存的状态通常应该由有状态Session Bean保持。这是Seam和其他web框架之间的一个显著的不同点。 其他框架把当前会话的信息直接保存在 HttpSession 中，而在Seam中你应该把它们保存在有状态Session Bean的实例中，该实例被绑定到会话上下文。这可以让Seam来替你管理状态的生命周期，并且保证在多个不同的并发会话中没有状态冲突。</p>
+<p>有状态Session Bean经常被作为JSF action listener使用，也可以作为JSF显示或者form提交的backing bean(支持bean ,或称后台bean)，提供属性供组件访问。</p>
+<p>默认情况下，有状态Session Bean会被绑定到Conversation Context。它们绝不会绑定到page或stateless context。</p>
+<p>对Session范围的有状态Session Bean的并发请求，会被Seam按顺序串行处理。</p>
+<p>Seam有状态Session Bean组件可以使用 Component.getInstance() 或者 @In(create=true) 实例化。它们不能直接使用JNDI或者 new 操作实例化。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3218"></a>3.2.3. 实体Bean</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>实体Bean可以被绑定到上下文变量，起到Seam组件的作用。因为Entity除了上下文标识之外，还有持久标识，Entity实体通常明确的由Java Code绑定，而非由Seam隐性初始化。</p>
+<p>Entity Bean实体不支持双向注入或者上下文划分。对Entity Bean的调用也不会触发验证。</p>
+<p>Entity Bean通常不作为JSF的action listener使用，但经常作为JSF组件用于显示或者form提交的后台bean,提供属性功能。 特别是，当Entity作为后台Bean的时候，它会和一个无状态Session Bean扮演的action listener联用，来实现CRUD之类的功能。</p>
+<p>默认情况下，Entity Bean被绑定到Conversation Context。他们永远不能被绑定到无状态Context。</p>
+<p>注意，在集群环境中，把Entity Bean直接绑定到Conversation或者Session范围的Seam上下文变量，与在有状态Session Bean中保持一个对Entity Bean的引用相比，性能比较差。因此，并非所有的Seam应用程序都会把Entity Bean定义为Seam组件。</p>
+<p>Seam实体Bean组件可以使用 Component.getInstance()、@In(create=true) 或者直接使用 new 操作来实例化。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3242"></a>3.2.4. JavaBeans</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>JavaBeans可以像无状态或者有状态Session Bean那样使用。但是，它们不能提供Session Bean那么多的功能（声明式事务划分、声明式安全性、高效的集群状态复制、EJB 3.0持久化、超时方法等等）。</p>
+<p>在后面有一章，我们会展示如何在没有EJB容器的情况下使用Seam和Hibernate。此时，组件是JavaBeans，而非Session Beans。 但是注意，在很多应用服务器中，对Conversation或Session 范围的Seam JavaBean组件集群操作，要比对有状态Session Bean组件集群慢。</p>
+<p>默认，JavaBeans是绑定到Event Context的。</p>
+<p>对Session范围的JavaBeans的并发请求总是会被Seam转化为串行执行。</p>
+<p>Seam JavaBean组件可以使用 Component.getInstance()、@In(create=true) 或者直接使用 new 操作来实例化。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3264"></a>3.2.5. 消息驱动Bean</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>消息驱动Bean通常作为Seam组件。但是，消息驱动Bean与其他Seam组件的调用方式非常不同&mdash;&mdash;它们并非通过Context变量调用，它们会监听发送到JMS Queue或者Topic的消息。</p>
+<p>消息驱动Bean不能被绑定到Seam上下文。它们也不能访问它们的&ldquo;调用者&rdquo;的Session或者会话状态。但是，它们支持双向注入和一些其他的Seam功能。</p>
+<p>消息驱动Bean不会被应用实例化，它是在接受到一条消息时由EJB容器来完成实例化的。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3273"></a>3.2.6. 拦截</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>为了表演Seam的魔术（双向注入，上下文划分，校验等），它必须对组件调用进行拦截。 对JavaBean而言，Seam可以完全控制组件的初始化，不需要特别的配置。对于Entity Bean，也不需要拦截器，因为双向注入和上下文划分不起作用。 对Session Bean，我们必须为它注册EJB拦截器。我们可以使用注解，比如：</p>
+<pre>@Stateless
+@Interceptors(SeamInterceptor.class)
+public class LoginAction implements Login {
+    ...
+}</pre>
+<p>但是更好的办法是在 ejb-jar.xml 中定义拦截器。</p>
+<pre>&lt;interceptors&gt;
+   &lt;interceptor&gt;
+      &lt;interceptor-class&gt;org.jboss.seam.ejb.SeamInterceptor&lt;/interceptor-class&gt;
+   &lt;/interceptor&gt;
+&lt;/interceptors&gt;
+
+&lt;assembly-descriptor&gt;
+   &lt;interceptor-binding&gt;
+      &lt;ejb-name&gt;*&lt;/ejb-name&gt;
+      &lt;interceptor-class&gt;org.jboss.seam.ejb.SeamInterceptor&lt;/interceptor-class&gt;
+   &lt;/interceptor-binding&gt;
+&lt;/assembly-descriptor&gt;</pre>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3287"></a>3.2.7. 组件名字</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>所有Seam组件都需要名字。我们可以通过 @Name 注解来命名组件：</p>
+<pre>@Name(&quot;loginAction&quot;)
+@Stateless
+public class LoginAction implements Login {
+    ...
+}</pre>
+<p>这个名字是 seam component name，和EJB规范定义的任何其他名字都没有关系。 但是，Seam组件名字就相当于JSF管理的Bean Name的名字，因此，可以理解为这两个概念是等同的。</p>
+<p>@Name 不是定义组件名称的唯一方式，但是我们总得要在 某个地方 来指定名字。 否则，Seam 所有的注解部分就无法工作。</p>
+<p>就如同在JSF中，Seam组件实例绑定成上下文变量时，其名字通常和组件名相同。 因此，例如我们可以通过 Contexts.getStatelessContext().get(&quot;loginAction&quot;) 来访问 LoginAction。 特别是，不管Seam自己何时初始化一个组件，它将这个新实例以组件的名字绑定成一个变量。 但是，又和JSF一样，应用程序也可以把组件绑定成其他的上下文变量，只需通过API编程调用。 例如，当前登录的用户（User）可以被绑定成为Session上下文中的 currentUser 变量，而同时，另一个用作某种管理功能的用户则被绑定成对话上下文的 user 变量。</p>
+<p>对非常大型的应用程序，经常使用全限定名；内置的Seam组件就是这样。</p>
+<pre>@Name(&quot;com.jboss.myapp.loginAction&quot;)
+@Stateless
+@Interceptors(SeamInterceptor.class)
+public class LoginAction implements Login {
+    ...
+}</pre>
+<p>我们可以在Java代码和JSF表达式语言中使用全限定的组件名称。</p>
+<pre>&lt;h:commandButton type=&quot;submit&quot; value=&quot;Login&quot;
+                 action=&quot;#{com.jboss.myapp.loginAction.login}&quot;/&gt;</pre>
+<p>这很啰嗦，Seam也提供了把全限定名简写的办法。在 components.xml 文件中加入类似这样的一行：</p>
+<pre>&lt;factory name=&quot;loginAction&quot; scope=&quot;STATELESS&quot; value=&quot;#{com.jboss.myapp.loginAction}&quot;/&gt;</pre>
+<p>所有的Seam内置组件都有全限定名，但大多数都在Seam jar文件的 components.xml 中简写为简单的名字。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3347"></a>3.2.8. 定义组件范围（Defining the Component Scope）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们可以使用 @Scope 注解来覆盖默认的组件范围（上下文）。这可以让我们定义组件实例被Seam初始化后绑定到的具体上下文。</p>
+<pre>@Name(&quot;user&quot;)
+@Entity
+@Scope(SESSION)
+public class User {
+    ...
+}</pre>
+<p>org.jboss.seam.ScopeType定义了可能范围的枚举.</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3362"></a>3.2.9. 具有多个角色的组件（Components with multiple roles）</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>有些Seam组件类可以在系统中具有多个角色。例如，我们经常有一个 User 类用作Session-Scoped组件，代表当前用户，同时它又在用户管理界面中被用作Conversation-Scoped组件。@Role 注解让我们可以定义组件在另一个范围中的额外角色名 &mdash;&mdash; 这可以让我们把相同的组件类绑定成不同的上下文变量。（任何Seam组件 实例 都可以被绑定到多个上下文变量，但@Role使得我们也可以在类的级别做到这一点，从而享受自动实例化的优点。）</p>
+<pre>@Name(&quot;user&quot;)
+@Entity
+@Scope(CONVERSATION)
+@Role(name=&quot;currentUser&quot;, scope=SESSION)
+public class User {
+    ...
+}</pre>
+<p>@Roles 注解可以让我们为组件指定任意多的附加角色。</p>
+<pre>@Name(&quot;user&quot;)
+@Entity
+@Scope(CONVERSATION)
+@Roles({@Role(name=&quot;currentUser&quot;, scope=SESSION),
+        @Role(name=&quot;tempUser&quot;, scope=EVENT)})
+public class User {
+    ...
+}</pre>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h3><a name="d0e3385"></a>3.2.10. 内置组件</h3>
+</div>
+</div>
+<div> </div>
+</div>
+<p>和很多优秀的框架一样，Seam自产自用，主要实现了一系列的内置Seam拦截器（后文详述）和Seam组件。这让应用程序在运行时和内置的组件交互变得很容易，甚至可以用自己编写的实现来替换掉内置组件，由此来定制Seam的基本功能。内置组件在 org.jboss.seam.core 这个Seam 命名空间中定义，Java包名也是相同的。</p>
+<p>像所有Seam组件一样，内置组件也可以被注射，但是它们也提供了便利的instance()静态方法：</p>
+<pre>FacesMessages.instance().add(&quot;Welcome back, #{user.name}!&quot;);</pre>
+</div>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h2><a name="d0e3400"></a>3.3. 双向注入</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Dependency injection（依赖注入） 和 inversion of control（控制反转）现在对大多数Java 开发者来说都是熟悉的概念了。依赖注入允许一个组件通过容器&ldquo;注入&rdquo;另一个组件到一个setter方法或者实例变量的方式，来获得被&ldquo;注入&rdquo;组件的引用 (reference)。我们之前看过的所有依赖注入的实现，注入发生在组件创建的时候，在此后实例的整个生命周期中不再改变。对无状态组件，这么做是有道理的。从客户端的角度来看，特定种类的无状态组件的所有实例都是可以替换的。另一方面，Seam着重处理有状态组件。此时传统的依赖注入不再是非常有效了。Seam引入了bijection（双向注入） 这个名词，用来作为注入的广义概括。和injection（单向注入）对比，bijection是：</p>
+<div>
+<ul type="disc">
+    <li>
+    <p>contextual（上下文相关的） - 双向注入用来针对不同的上下文来组装有状态组件（在较大范围的上下文中的组件，可以引用较小范围上下文中的组件）</p>
+    </li>
+    <li>
+    <p>bidirectional（双向的） - 被触发后，值从上下文变量中注射到组件属性中，也可以从组件属性outjected（反向注入） 回上下文,这样被调用的组件可以只通过改写自己的实例变量就同时操作了上下文变量的值</p>
+    </li>
+    <li>
+    <p>dynamic（动态的） - 因为上下文变量的值随着时间不断改变，而且因为Seam组件是有状态的，双向注入在每次组件被调用的时候都发生。</p>
+    </li>
+</ul>
+</div>
+<p>基本上，通过设置实例变量是需要注入、反向注入、还是二者皆是，双向注入让你将上下文变量映射到组件实例变量。当然，我们使用注解来设置双向注入。</p>
+<p>@In 注解指明应该注入值，可能是注入实例变量：</p>
+<pre>@Name(&quot;loginAction&quot;)
+@Stateless
+public class LoginAction implements Login {
+    @In User user;
+    ...
+}</pre>
+<p>或者注入setter方法：</p>
+<pre>@Name(&quot;loginAction&quot;)
+@Stateless
+public class LoginAction implements Login {
+    User user;
+
+    @In
+    public void setUser(User user) {
+        this.user=user;
+    }
+
+    ...
+}</pre>
+<p>默认情况下，针对被注入的属性或者实例变量名， Seam会对所有的上下文进行优先级搜索。 如果你希望明确指定上下文变量名，可以这样写：@In(&quot;currentUser&quot;)。</p>
+<p>如果没有组件实例绑定到具名的上下文变量，你可能希望Seam创建一个，你可以指定 @In(create=true)。 如果值是可选的（可以为null），请指定 @In(required=false)。</p>
+<p>对于某些组件，到处指定 @In(create=true) 是很繁琐的。 你可以注解整个组件为 @AutoCreate，它就会在任何需要的时候自动创建，不需要明确的指定 create=true。</p>
+<p>你还可以注入表达式的值：</p>
+<pre>@Name(&quot;loginAction&quot;)
+@Stateless
+public class LoginAction implements Login {
+    @In(&quot;#{user.username}&quot;) String username;
+    ...
+}</pre>
+<p>（在下一章，有更多的关于组件生命周期和注射的内容。）</p>
+<p>@Out 注解指定了某个属性需要对外注入，可能是从实例变量：</p>
+<pre>@Name(&quot;loginAction&quot;)
+@Stateless
+public class LoginAction implements Login {
+    @Out User user;
+    ...
+}</pre>
+<p>或者从某个getter方法：</p>
+<pre>@Name(&quot;loginAction&quot;)
+@Stateless
+@Interceptors(SeamInterceptor.class)
+public class LoginAction implements Login {
+    User user;
+
+    @Out
+    public User getUser() {
+        return user;
+    }
+
+    ...
+}</pre>
+<p>属性可以既是被注入的，也可以对外注入：</p>
+<pre>@Name(&quot;loginAction&quot;)
+@Stateless
+public class LoginAction implements Login {
+    @In @Out User user;
+    ...
+}</pre>
+<p>或者：</p>
+<pre>@Name(&quot;loginAction&quot;)
+@Stateless
+public class LoginAction implements Login {
+    User user;
+
+    @In
+    public void setUser(User user) {
+        this.user=user;
+    }
+
+    @Out
+    public User getUser() {
+        return user;
+    }
+
+    ...
+}</pre>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h2><a name="d0e3498"></a>3.4. Lifecycle methods（生命周期方法）</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>Session Bean和实体Bean Seam组件支持所有通用的EJB3.0生命周期回调（@PostConstruct, @PreDestroy, 等等）。但是Seam也同样支持JavaBean组件使用任意的这些回调。然而，一但这些注解在J2EE环境中失效，Seam定义了两个附加组件完成生命周期回调，这等同于 @PostConstruct 和 @PreDestroy.</p>
+<p>@Create 方法在Seam实例化一个组件后被调用。组件只可以定义一个 @Create 方法。</p>
+<p>@Destroy 方法在Seam组件被绑定的上下文结束时被调用。组件只可以定义一个 @Destroy 方法。</p>
+<p>另外，有状态Session Bean组件 必须 定义一个无参并注解为 @Remove 的方法。这个方法在上下文结束时被Seam调用。</p>
+<p>最后，相关的注解还有 @Startup，它可以用在任何Application或者Session范围的组件上。 @Startup 注解告诉Seam在上下文开始的时候立刻初始化组件，而不是在被客户访问的时候才创建。 控制startup组件的初始化顺序通过指定 @Startup(depends={....}) 进行。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h2><a name="d0e3550"></a>3.5. 条件装载（Conditional installation）</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>@Install 注解让你控制组件的条件装载，允许随着不同的部署情形而改变。例如：</p>
+<div>
+<ul type="disc">
+    <li>
+    <p>希望在测试中mock out一些基础组件。</p>
+    </li>
+    <li>
+    <p>希望在一些特殊的部署情形下改变组件的实现。</p>
+    </li>
+    <li>
+    <p>希望只有满足依赖条件的时候才安装某些组件（对框架作者很有用）。</p>
+    </li>
+</ul>
+</div>
+<p>@Install 通过让你指定 precedence（优先级） 和 dependencies（依赖） 来运作。</p>
+<p>组件的优先级是一个数字，当在classpath中存在多个同组件名的类的时候，seam依靠它来决定安装哪个组件。 Seam会选取优先级数字最大的。有一些预定义的优先级值：（按升序排列）：</p>
+<div>
+<ol type="1">
+    <li>
+    <p>BUILT_IN &mdash; 优先级最低的组件,是内置在Seam中的组件。</p>
+    </li>
+    <li>
+    <p>FRAMEWORK &mdash; 第三方框架定义的组件可能覆盖内置组件，但被应用程序组件所重载。</p>
+    </li>
+    <li>
+    <p>APPLICATION &mdash; 默认优先级。大部分应用程序组件适合这一级别。</p>
+    </li>
+    <li>
+    <p>DEPLOYMENT &mdash; 和部署相关的应用程序组件</p>
+    </li>
+    <li>
+    <p>MOCK &mdash; 为在测试中使用的mock objects所准备。</p>
+    </li>
+</ol>
+</div>
+<p>假设我们有一个组件，名为 messageSender ，和一个JMS队列交互。</p>
+<pre>@Name(&quot;messageSender&quot;)
+public class MessageSender {
+    public void sendMessage() {
+        //do something with JMS
+    }
+}</pre>
+<p>在我们的单元测试中，我们并没有JMS队列可用，因此我们需要stub这个方法。我们会创建一个 mock 组件，在单元测试运行时放在classpath中，但绝不会在部署应用程序时出现。</p>
+<pre>@Name(&quot;messageSender&quot;)
+@Install(precedence=MOCK)
+public class MockMessageSender extends MessageSender {
+    public void sendMessage() {
+        //do nothing!
+    }
+}</pre>
+<p>当seam在classpath中发现多个组件时，precedence 帮助Seam决定使用哪个版本。</p>
+<p>如果我们能精确控制使用 classpath中存在的类，是很美妙的。 但是如果我在编写一个可重用的框架，具有很多依赖条件，我不希望用那么多的jar来肢解框架。 我希望通过已经安装了哪些了组件，以及classpath中存在哪些组件，来决定安装组件。 @Install 注解也控制这一功能。Seam内部使用这一机制来控制很多内部组件的条件安装。虽然你可能不会在你的程序中使用它。</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h2><a name="d0e3636"></a>3.6. 日志</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>面对下面的代码，谁都会被搞得七窍生烟：</p>
+<pre>private static final Log log = LogFactory.getLog(CreateOrderAction.class);
+
+public Order createOrder(User user, Product product, int quantity) {
+    if ( log.isDebugEnabled() ) {
+        log.debug(&quot;Creating new order for user: &quot; + user.username() +
+            &quot; product: &quot; + product.name()
+            + &quot; quantity: &quot; + quantity);
+    }
+    return new Order(user, product, quantity);
+}</pre>
+<p>难以想象为何简单的log信息会被搞得如此之复杂。用于log的代码函数比用于实际业务逻辑的还要多！很惊讶,Java社区10年内都没有对此加以改变。</p>
+<p>Seam提供了可以显著简化上述代码的logging API：</p>
+<pre>@Logger private Log log;
+
+public Order createOrder(User user, Product product, int quantity) {
+    log.debug(&quot;Creating new order for user: #0 product: #1 quantity: #2&quot;, user.username(), product.name(), quantity);
+    return new Order(user, product, quantity);
+}</pre>
+<p>是否把 log 变量声明为static并不重要，它都可以工作，除非是Entity Bean组件，需要把 log 声明为静态的。</p>
+<p>注意你并不需要繁杂的 if ( log.isDebugEnabled() ) 保卫语句，因为字符串相加操作是在 debug() 方法 内部 发生的。也请注意通常不需要显式指定log类型，因为Seam知道哪个组件正在注入 Log。</p>
+<p>假设 User 和 Product 是当前上下文中可用的Seam组件，写起来更加简便：</p>
+<pre>@Logger private Log log;
+
+public Order createOrder(User user, Product product, int quantity) {
+    log.debug(&quot;Creating new order for user: #{user.username} product: #{product.name} quantity: #0&quot;, quantity);
+    return new Order(user, product, quantity);
+}</pre>
+<p>Seam loging自动选择发送结果到log4j或者JDK logging。如果log4j在classpath中，Seam会使用它，否则，Seam会使用JDK logging.</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h2><a name="d0e3684"></a>3.7. Mutable接口和@ReadOnly</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>很多应用服务器的 HttpSession 集群实现都有问题，对绑定到Session的可变对象状态的改变只有在明确调用 setAttribute() 的时候才会被复制。 这是Bug的一个源头，这些Bug难以在开发阶段有效找出，因为它们只会在应用服务器失效切换的时候才会被发现。 而且，实际的复制信息包含了绑定到Session的所有序列化对象图，这是低效的。</p>
+<p>当然，EJB 有状态Session Bean必须进行自动dirty checking，并进行可变状态的复制，并且EJB 容器也应该引入优化，例如属性级别的复制。 但不幸的是，并非所有的Seam用户都有这么好的运气，他们的环境可能并不支持EJB 3.0。 因此，对于Session和Conversation范围内的JavaBean和Entity Bean组件，在Web容器的Session集群之上，Seam提供了额外的集群安全的状态管理层。</p>
+<p>对于Session或Conversation范围的JavaBean组件，每次组件被引用程序调用的时候，Seam自动通过调用一次 setAttribute() 来触发复制。当然，对大部分是读操作的组件来说，这效率不高。你可以通过实现 org.jboss.seam.core.Mutable 接口来控制这一行为。或者扩展 org.jboss.seam.core.AbstractMutable，在组件内实现自己的dirty-checking逻辑。例如，</p>
+<pre>@Name(&quot;account&quot;)
+public class Account extends AbstractMutable
+{
+    private BigDecimal balance;
+
+    public void setBalance(BigDecimal balance)
+    {
+        setDirty(this.balance, balance);
+        this.balance = balance;
+    }
+
+    public BigDecimal getBalance()
+    {
+        return balance;
+    }
+
+    ...
+
+}</pre>
+<p>或者，你可以使用 @ReadOnly 注解来达到类似的效果：</p>
+<pre>@Name(&quot;account&quot;)
+public class Account
+{
+    private BigDecimal balance;
+
+    public void setBalance(BigDecimal balance)
+    {
+        this.balance = balance;
+    }
+
+    @ReadOnly
+    public BigDecimal getBalance()
+    {
+        return balance;
+    }
+
+    ...
+
+}</pre>
+<p>对Session或Conversation范围的Entity Bean组件，在每次被请求的时候Seam自动通过一次 setAttribute() 调用来触发复制，除非（对话范围的）实体和一个Seam管理的持久化上下文相关联，此时无需复制。这一策略不是最高效的，因此Session或Conversation范围的Entity Bean应该小心使用。你总是可以编写有状态的Session Bean或者JavaBean组件来&ldquo;管理&rdquo;Entity Bean实例。例如，</p>
+<pre>@Stateful
+@Name(&quot;account&quot;)
+public class AccountManager extends AbstractMutable
+{
+    private Account account; // an entity bean
+
+    @Unwrap
+    public void getAccount()
+    {
+        return account;
+    }
+
+    ...
+
+}</pre>
+<p>注意,对于 EntityHome 类，Seam应用框架提供了一个非常好的例子来说明如何使用Seam组件来管理实体Bean的实例.</p>
+</div>
+<div>
+<div>
+<div>
+<div>
+<h2><a name="d0e3736"></a>3.8. Factory和Manager组件</h2>
+</div>
+</div>
+<div> </div>
+</div>
+<p>我们经常需要与非Seam组件的对象打交道。但是我们仍然希望把它们通过 @In 注入我们的组件，并在值和方法表达式中使用它们。 有时候，我们甚至需要把它们绑定到Seam 上下文的生命周期里（例如@Destroy）。 所以Seam上下文可以容纳非Seam组件的对象，并且Seam提供了一些很好的特性，这些特性使得我们与绑定到上下文里的非组件对象打交道更加容易。</p>
+<p>factory component pattern（工厂组件模式）让Seam组件作为非组件对象的构造器。 当上下文变量被引用，但是没有值被绑定到它时，会调用一个factory method（工厂方法）。 我们通过@Factory注解来定义工厂方法。 工厂方法把一个值绑定到上述上下文变量，并且决定被绑定的值的范围。有两种工厂方法。第一种返回一个值，Seam会把它绑定到上下文里：</p>
+<pre>@Factory(scope=CONVERSATION)
+public List&lt;Customer&gt; getCustomerList() {
+    return ... ;
+}</pre>
+<p>第二种方法返回 void，它自己把值绑定到上下文变量：</p>
+<pre>@DataModel List&lt;Customer&gt; customerList;
+
+@Factory(&quot;customerList&quot;)
+public void initCustomerList() {
+    customerList = ...  ;
+}</pre>
+<p>两种情况下，当我们引用 customerList 上下文变量，而其值为null时，工厂方法被调用，然后对这个值生命周期的其他部分就无法操纵了。 更加强大的模式是 manager component pattern（管理者组件模式）。 在这种情况下，有一个Seam组件绑定到上下文变量，它管理着上下文变量的值，对客户端不可见。</p>
+<p>管理者组件可以是任何组件，它需要一个 @Unwrap 方法。 该方法返回对客户端可见的值，每次 上下文变量被引用的时候都会被调用。</p>
+<pre>@Name(&quot;customerList&quot;)
+@Scope(CONVERSATION)
+public class CustomerListManager
+{
+    ...
+
+    @Unwrap
+    public List&lt;Customer&gt; getCustomerList() {
+        return ... ;
+    }
+}</pre>
+<p>当你有一个对象并需要对其组件的生命周期更多的控制时，管理组件模式就显得尤其有用。 例如，如果你有一个重量级的对象，当上下文结束时你想对其进行清除操作，你可以@Unwrap对象，并在管理组件的 @Destroy 方法中执行清除操作。</p>
+<pre>@Name(&quot;hens&quot;)
+@Scope(APPLICATION)
+public class HenHouse {
+
+    Set&lt;Hen&gt; hens;
+
+    @In(required=false) Hen hen;
+
+    @Unwrap
+    public List&lt;Hen&gt; getHens() {
+        if (hens == null) {
+            // Setup our hens
+        }
+        return hens;
+    }
+
+    @Observer({&quot;chickBorn&quot;, &quot;chickenBoughtAtMarket&quot;})
+    public addHen() {
+        hens.add(hen);
+    }
+
+    @Observer(&quot;chickenSoldAtMarket&quot;)
+    public removeHen() {
+        hens.remove(hen);
+    }
+
+    @Observer(&quot;foxGetsIn&quot;)
+    public removeAllHens() {
+        hens.clear();
+    }
+    ...
+}</pre>
+<p>这里，被管理的组件观察那些改变在下面的对象的事件。组件自己管理这些动作，并且由于对象在每一次访问中都被解开，所以这里提供了一个统一的视图。</p>
+</div>
+<p> </p>
+</div></div></body></html>

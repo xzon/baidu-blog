@@ -1,0 +1,418 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Chapter 2 Swing Rendering Fundamentals - Threading</title></head><body><h1>Chapter 2 Swing Rendering Fundamentals - Threading</h1><div>Chapter 2 Swing Rendering Fundamentals - Threading
+<p> </p>
+<p>《Filthy Rich Clients: Developing Animated and Graphical Effects for Desktop Java? Applications》pdf</p>
+<p>java swing SwingUtilities SwingWorker 用法 hxzon</p>
+<h3>Threading</h3>
+<p>As we discussed earlier, Swing relies on the older AWT GUI toolkit for top-level<br>
+window support and event dispatching. Whenever you run a Swing application,<br>
+three threads are automatically created. The &#64257;rst one is the main thread, which<br>
+runs your application’s main method. A second thread, called the toolkit thread,<br>
+is in charge of capturing the system events, like keyboard key presses or mouse<br>
+movements. Although this thread is vital, it is only part of AWT implementation<br>
+and never runs application code. Capture events are sent over to a third thread,<br>
+the EDT.<br>
+The EDT is very important because it is in charge of dispatching the events cap-<br>
+tured by the toolkit thread to the appropriate components and calling the painting<br>
+methods. It is also the thread on which you interact with Swing. For instance, if<br>
+you press a key in a JTextField, the EDT dispatches the key press events to the<br>
+component’s key listener. The component then updates its model and posts a<br>
+paint request to the event queue. The EDT dequeues the paint request and noti-<br>
+&#64257;es the component a second time, asking it to repaint itself. In short, everything<br>
+in AWT and Swing happens on the EDT. Note that if events are received faster<br>
+than they can be delivered, the EDT queues them until they can be processed.<br>
+While easy to understand on the surface, this simple threading model can yield<br>
+poor performance in Swing applications if the implications of the Swing’s single-<br>
+threaded model are not considered. Indeed, performing a long operation on the<br>
+EDT, such as reading or writing a &#64257;le, will block the whole UI. No event can<br>
+then be dispatched and no update of the screen can be performed while the long<br>
+operation is underway. The result from the user perspective is that the applica-<br>
+tion appears to be hung or, at least, very slow.</p>
+<p><span style="color: rgb(255,0,0)">4. See the blog postings at http://weblogs.java.net/blog/chet/archive/2005/04/swing_update_no_<br>
+1.html and http://weblogs.java.net/blog/zixle/archive/2005/04/no_more_gray_re_1.html for more<br>
+details on this excellent “true double-buffering” feature.</span></p>
+<p>Poorly written applications that block the EDT for long periods of time have<br>
+contributed to some people thinking that Swing itself is slow. Most Swing<br>
+application performance issues are actually perceived performance issues. The<br>
+Swing components dispatch their work quite quickly. However, when the appli-<br>
+cation blocks the EDT, it freezes the user interface and the user thinks the appli-<br>
+cation runs slowly. Freezing happens, for instance, when you have long<br>
+computations or I/O accesses running in a method executed by the EDT.<br>
+The following example, available on the book’s Web site, exhibits such behavior.<br>
+Run the application and click the Freeze button. It should remain pressed for a<br>
+few seconds. Whenever the user clicks on a button, the actionPerformed()<br>
+method of the button’s ActionListener is called. Since this action is triggered<br>
+by an event, actionPerformed() is invoked on the EDT. In this particular case,<br>
+the code pauses the current thread for 4 seconds, emulating a long operation that<br>
+blocks Swing’s ability to dispatch events and repaint the GUI.<br>
+The following example shows that failure to understand and master Swing’s<br>
+threading can lead to applications that perform poorly.<br>
+public class FreezeEDT extends JFrame <br>
+implements ActionListener {<br>
+public FreezeEDT() {<br>
+&nbsp;&nbsp;&nbsp;  super("Freeze");<br>
+&nbsp;&nbsp;&nbsp;  JButton freezer = new JButton("Freeze");<br>
+&nbsp;&nbsp;&nbsp;  freezer.addActionListener(this);<br>
+&nbsp;&nbsp;&nbsp;  add(freezer);<br>
+&nbsp;&nbsp;&nbsp;  pack();<br>
+}<br>
+public void actionPerformed(ActionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  // Simulates a long running operation.<br>
+&nbsp;&nbsp;&nbsp;  // For instance: reading a large file,<br>
+&nbsp;&nbsp;&nbsp;  // performing network operations, etc.<br>
+&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Thread.sleep(4000);<br>
+&nbsp;&nbsp;&nbsp;  } catch (InterruptedException e) {<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+public static void main(String... args) {<br>
+&nbsp;&nbsp;&nbsp;  FreezeEDT edt = new FreezeEDT();<br>
+&nbsp;&nbsp;&nbsp;  edt.setVisible(true);<br>
+}<br>
+}</p>
+<h3>Threading Model</h3>
+<p>Swing’s threading model is based on a single rule: The EDT is responsible for<br>
+executing any method that modi&#64257;es a component’s state. This includes any com-<br>
+ponent’s constructor. According to this rule, and despite what you can read in<br>
+many books and tutorials about Swing, the main() method in the previous code<br>
+example is invalid and can cause a deadlock. Because the JFrame is a Swing<br>
+component, and because it instantiates another Swing component, it should be<br>
+created on the EDT, not on the main thread.<br>
+Swing is not a “thread-safe” API. It should be invoked only on the EDT. The<br>
+great minds behind Swing made this choice on purpose to guarantee the order<br>
+and predictability of events. A single-threaded API is also much simpler to<br>
+understand and debug than a multithreaded one. Incidentally, Swing is not the<br>
+only single-threaded graphical toolkit: SWT, QT, and .NET WinForms provide a<br>
+similar threading model.<br>
+Now that you know that you must avoid performing any lengthy operations on<br>
+the EDT, you need to &#64257;nd a solution to this common problem. The &#64257;rst answer<br>
+that springs to mind is to use another thread, as in the following code example.<br>
+In this actionPerformed() method, a new thread is spawned to read a large &#64257;le<br>
+(of, say, several megabytes) and add the results in a JTextArea:<br>
+public void actionPerformed(ActionEvent e) {<br>
+new Thread(new Runnable() {<br>
+&nbsp;&nbsp;&nbsp;  public void run() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String text = readHugeFile();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // Bad code alert: modifying textArea on this thread<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  // violates the EDT rule<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  textArea.setText(text);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}).start();<br>
+}<br>
+At &#64257;rst, this code seems to be the solution to your problem, as it does not block<br>
+the EDT. Unfortunately, it violates Swing’s single-thread rule: it doesn’t modify<br>
+the text component’s state on the EDT. Doing so will not necessarily cause any<br>
+trouble during your tests, but a deadlock can appear anytime, and more often<br>
+than not, it will happen when one of your customers is using the application.<br>
+5</p>
+<p><span style="color: rgb(255,0,0)">5. Or when you are demonstrating your application onstage in front of a large audience. There is<br>
+some universal law about such events, as fundamental as the law of gravity and the perpetuation<br>
+of single socks.</span></p>
+<p>Tracking down and &#64257;xing such a bug is very dif&#64257;cult and time consuming, so it<br>
+is highly recommended to always follow Swing’s single-threading rule.<br>
+Invoke Later<br>
+But don’t fret! Swing offers three very useful methods to deal with the EDT in<br>
+the class javax.swing.SwingUtilities. The &#64257;rst of these methods is called<br>
+invokeLater(), and it can be used to post a new task on the EDT. Here is how<br>
+you can rewrite the previous example to be both nonblocking and correct:<br>
+public void actionPerformed(ActionEvent e) {<br>
+new Thread(new Runnable() {<br>
+&nbsp;&nbsp;&nbsp;  public void run() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  final String text = readHugeFile();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SwingUtilities.invokeLater(new Runnable() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void run() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  textArea.setText(text);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  });<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}).start();<br>
+}<br>
+In the new version of the code, the application posts a Runnable task that updates<br>
+the content of the text area on the EDT. The invokeLater() implementation takes<br>
+care of creating and queuing a special event that contains the Runnable.This event<br>
+is processed on the EDT in the order it was received, just like any other event.<br>
+When its time comes, it is dispatched by running the Runnable’s run() method.<br>
+Using invokeLater() is as simple as passing a Runnable instance whose sole<br>
+method, run(), contains the code you wish to execute on the EDT. So what<br>
+exactly happens in this code? First, the user clicks on a button and the EDT<br>
+invokes actionPerformed(). Then, the application creates and starts a new<br>
+thread, which reads the content of a &#64257;le and stores it in a String. Finally, a new<br>
+task, the Runnable instance, is created and placed in the queue of the EDT<br>
+thanks to invokeLater(). Now that you know how to force a block of code to<br>
+be invoked on the EDT, it is easy to &#64257;x the main() method of the &#64257;rst example:<br>
+public static void main(String... args) {<br>
+SwingUtilities.invokeLater(new Runnable() {<br>
+&nbsp;&nbsp;&nbsp;  public void run() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  FreezeEDT edt = new FreezeEDT();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  edt.setVisible(true);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+});<br>
+}</p>
+<h3>Is This the EDT?</h3>
+<p>The second SwingUtilities method that makes it easier to work with Swing’s<br>
+threading model is called isEventDispatchThread(). When invoked, this<br>
+method returns true if the calling code is currently being executed on the EDT,<br>
+false otherwise. You can therefore create methods that can be called from the<br>
+EDT and any other thread and still obey the rule, as shown in the following<br>
+example.<br>
+private void incrementLabel() {<br>
+tickCounter++;<br>
+Runnable code = new Runnable() {<br>
+&nbsp;&nbsp;&nbsp;  public void run() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  counter.setText(String.valueOf(tickCounter));<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+};<br>
+if (SwingUtilities.isEventDispatchThread()) {<br>
+&nbsp;&nbsp;&nbsp;  code.run();<br>
+} else {<br>
+&nbsp;&nbsp;&nbsp;  SwingUtilities.invokeLater(code);<br>
+}<br>
+}<br>
+This method uses an integer, tickCounter, to change the text of a JLabel called<br>
+counter. When incrementLabel() is called from the EDT, the code executes<br>
+directly. Otherwise, invokeLater() is used to schedule the task for the EDT. A<br>
+full working version of this example can be found on the book’s Web site under<br>
+the name SwingThreading.<br>
+The third and last SwingUtilities method related to threading, invokeAndWait(),<br>
+is also the least commonly used (which is probably a good thing, as we will see).<br>
+Its behavior is similar to invokeLater() in that it allows you to post a Runnable<br>
+task to be executed on the EDT. The difference is that invokeAndWait() blocks<br>
+the current thread and waits until the EDT is done executing the task.<br>
+Let us imagine an intelligent application that can detect when the time it has<br>
+spent reading a &#64257;le has exceeded some threshold. This application reads a &#64257;le in<br>
+a separate thread and, after 10 seconds of work, asks the user whether he would<br>
+like to continue or cancel the operation. To implement such a feature, you would<br>
+normally initialize a lock to stop the reader thread and then display a dialog box<br>
+on the EDT.<br>
+Writing such a piece of code is possible but dangerous because you can easily intro-<br>
+duce a deadlock. The following example shows how you can use invokeAndWait()</p>
+<p>to do the job safely. The complete, executable version of this example is called<br>
+SwingThreadingWait and can be found on the book’s Web site.<br>
+try {<br>
+// Holds the answer to the dialog box<br>
+final int[] answer = new int[1];<br>
+<br>
+// Pauses the current thread until the dialog box <br>
+// is dismissed<br>
+SwingUtilities.invokeAndWait(new Runnable() {<br>
+&nbsp;&nbsp;&nbsp;  public void run() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  answer[0] = JOptionPane.showConfirmDialog(null,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  "Abort long operation?",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  "Abort?",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  JOptionPane.YES_NO_OPTION);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+});<br>
+if (answer[0] == JOptionPane.YES_OPTION) {<br>
+&nbsp;&nbsp;&nbsp;  return;<br>
+}<br>
+} catch (InterruptedException ie) {<br>
+} catch (InvocationTargetException ite) {<br>
+}<br>
+Swing developers should be aware, however, that there is deadlock potential in<br>
+invokeAndWait(), as there is in any code that creates a thread interdependency.<br>
+If the calling code holds some lock (explicitly or implicitly) that the code called<br>
+through invokeAndWait() requires, then the EDT code will wait for the non-<br>
+EDT code to release the lock, which cannot happen because the non-EDT code<br>
+is waiting for the EDT code to complete, and the application will hang.<br>
+In general, invokeAndWait() may appear simpler to use than invokeLater(),<br>
+because it executes a Runnable task synchronously, and it would seem as though<br>
+you don’t have to worry about more than one thread executing your code at the<br>
+same time. But it is risky to use if you are not absolutely sure of the threading<br>
+and locking dependencies that you are creating, so it should be used only in very<br>
+clearly risk-free situations.<br>
+Besides the three utility methods just covered, every Swing component offers two<br>
+useful methods that can be called from any thread: repaint() and revalidate().<br>
+The latter forces a component to lay out its children, and the former simply<br>
+refreshes the display. These two methods do their work on the EDT, no matter<br>
+what thread you invoke them on.</p>
+<p>The repaint() method is widely used throughout the Swing API to synchronize<br>
+components’ properties and the screen. For instance, when you change the fore-<br>
+ground color of a button by calling JButton.setForeground(Color), Swing<br>
+stores the new color and calls repaint() to automatically show the new value of<br>
+the color property. Calling repaint() triggers the execution of several other<br>
+methods on the EDT, including paint() and paintComponent().<br>
+If you place the following component in a JFrame and spawn a new thread called<br>
+repaint() on the component, you will always see the message “true” in the con-<br>
+sole output. The complete running example, called SafeRepaint, can be found<br>
+on this book’s Web site.<br>
+public class SafeComponent extends JLabel {<br>
+public SafeComponent() {<br>
+&nbsp;&nbsp;&nbsp;  super("Safe Repaint");<br>
+}<br>
+public void paintComponent(Graphics g) {<br>
+&nbsp;&nbsp;&nbsp;  super.paintComponent(g);<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SwingUtilities.isEventDispatchThread());<br>
+}<br>
+}</p>
+<h3>Timers and the Event Dispatch Thread</h3>
+<p>The Java SE API offers two ways to schedule tasks to be executed at regular time<br>
+intervals: java.util.Timer and javax.swing.Timer. Both classes use a timer<br>
+thread to offer similar functionalities. Knowing which time class to use for a par-<br>
+ticular situation can be tricky. Here is how you can use java.util.Timer to<br>
+change a button’s color every 3 seconds:<br>
+java.util.Timer clown = new java.util.Timer();<br>
+clown.schedule(new TimerTask() {<br>
+public void run() {<br>
+&nbsp;&nbsp;&nbsp;  SwingUtilities.invokeLater(new Runnable() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void run() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  button.setForeground(getRandomColor());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  });<br>
+}<br>
+}, 0, 3000); // delay, period</p>
+<p>A java.util.Timer can schedule several TimerTasks, each with a different<br>
+execution interval. You can also cancel a TimerTask at any time. The major issue<br>
+with java.util.Timer is that it does not execute the tasks on the EDT, leaving<br>
+that responsibility to the developer. Since user interfaces seldom require highly<br>
+precise timers that can handle hundreds of tasks at once, it is a good idea to use<br>
+javax.swing.Timer instead.<br>
+The Swing Timer class offers a different API that integrates better in a Swing<br>
+environment. While a single timer supports several tasks, they all have the same<br>
+repeat period. The following example is a rewrite of the previous one with a<br>
+Swing timer:<br>
+javax.swing.Timer clown = new javax.swing.Timer(3000,<br>
+new ActionListener() {<br>
+&nbsp;&nbsp;&nbsp;  public void actionPerformed(ActionEvent evt) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  button.setForeground(getRandomColor());<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+});<br>
+clown.start();<br>
+Swing’s timer makes it trivial to periodically run Actions. This timer also ensures<br>
+that all the tasks are executed on the EDT rather than in a random thread. Choosing<br>
+the appropriate timer class will save you a lot of time and debugging efforts when<br>
+dealing with the Swing threading model. Timers that update the user interface are<br>
+usually javax.swing.Timer instances; timers that drive background operations,<br>
+such as polling a Web server, are usually java.util.Timer instances.</p>
+<h3>Painless Threading through SwingWorker</h3>
+<p>The SwingUtilities class is a great asset to ensure that your application will<br>
+run smoothly and &#64258;awlessly. Despite its advantages, SwingUtilities often<br>
+leads to a code base made dif&#64257;cult to read and maintain because of the numerous<br>
+anonymous Runnable classes you need to create. To remedy this problem, the<br>
+Swing developers created SwingWorker, a utility class that simpli&#64257;es the cre-<br>
+ation of long-running tasks that update the user interface.<br>
+This tool has been included in Java SE 6 but remains available for older versions of<br>
+the JDK, namely J2SE 5.0, on the Web site http://swingworker.dev.java.net. The<br>
+following code and text assumes that you are using either J2SE 5.0 or Java SE 6.<br>
+SwingWorker is a generic class available in the javax.swing package for Java<br>
+SE 6 and in org.jdesktop.swingworker for J2SE 5.0. This class lets you run a<br>
+speci&#64257;c task on a background thread, post intermediate results on the EDT, and<br>
+post the &#64257;nal result on the EDT as well.</p>
+<p>Let us imagine a simple use case to better understand the SwingWorker architec-<br>
+ture. We want to load a set of images from the hard drive and display those<br>
+images in the user interface. To avoid blocking the user interface, we want to<br>
+load the images on a background thread.<br>
+At the same time, we want to present progress information to the user by show-<br>
+ing the names of the &#64257;les that have been loaded so far. When the background<br>
+thread has &#64257;nished, we want to return a list of the images it has loaded. We also<br>
+want to show the &#64257;le name of each loaded image in the user interface.<br>
+When you want to implement such a lengthy task for your user interface with<br>
+SwingWorker, you need to subclass SwingWorker and override doInBackground().<br>
+SwingWorker allows you to specify the types of the intermediate and &#64257;nal values<br>
+with two generic types, called T and V. The &#64257;rst one, T, is the type of result com-<br>
+puted by the method doInBackground() in a worker, or background, thread.<br>
+The other type, V, is the type of intermediate values that you can send to the<br>
+EDT by calling publish(V...). SwingWorker then invokes process(V...) on<br>
+the EDT. You should override the process method to display the intermediate<br>
+results in your GUI. Upon completion, SwingWorker invokes the done() method<br>
+on the EDT. <br>
+The doInBackground() method can publish intermediate results at any time by<br>
+calling publish(V...), which in turn invokes the process(V...) method in the<br>
+EDT.<br>
+The done() method is also usually overridden to display the &#64257;nal result. Upon<br>
+completion of doInBackground(), the SwingWorker automatically invokes<br>
+done() in the EDT. In done(), you can call the get() method to retrieve the<br>
+value computed by doInBackground().<br>
+The relation among doInBackground(), publish(V...), process(V...), and<br>
+done() is shown in Figure 2-8. <br>
+The following code snippet shows a SwingWorker implementation for the use<br>
+case we de&#64257;ned earlier (loading a set of images from the hard drive and showing<br>
+the loaded &#64257;les’ names):<br>
+// Final result is a list of Image<br>
+// Intermediate result is a message as a String<br>
+public class ImageLoadingWorker extends <br>
+&nbsp;&nbsp;&nbsp;  SwingWorker&lt;List&lt;Image&gt;, String&gt; {<br>
+private JTextArea log;<br>
+private JPanel viewer;<br>
+private String[] filenames;</p>
+<p>public ImageLoadingWorker(JTextArea log, JPanel viewer, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String... filenames) {<br>
+&nbsp;&nbsp;&nbsp;  this.log = log;<br>
+&nbsp;&nbsp;&nbsp;  this.viewer = viewer;<br>
+&nbsp;&nbsp;&nbsp;  this.filenames = filenames;<br>
+}<br>
+// On the EDT<br>
+// Displays the loaded images in the JPanel<br>
+@Override<br>
+protected void done() {<br>
+&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  for (Image image : get()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  viewer.add(new JLabel(new ImageIcon(image)));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  viewer.revalidate();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  } catch (Exception e) { }<br>
+}<br>
+// On the EDT<br>
+// Logs a message in the JTextArea<br>
+@Override<br>
+protected void process(String... messages) {<br>
+&nbsp;&nbsp;&nbsp;  for (String message : messages) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  log.append(message);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  log.append("\n");<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}<br>
+// On a worker (background) thread<br>
+// Loads images from disk and sends a message<br>
+// as a String to the EDT by calling publish(V...)<br>
+@Override<br>
+public List&lt;Image&gt; doInBackground() {<br>
+&nbsp;&nbsp;&nbsp;  List&lt;Image&gt; images = new ArrayList&lt;Image&gt;();<br>
+&nbsp;&nbsp;&nbsp;  for (String filename : filenames) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  images.add(ImageIO.read(new File(filename)));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  publish("Loaded " + filename);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } catch (IOException ioe) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  publish("Error loading " + filename);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  return images;<br>
+} <br>
+}</p>
+<p>Figure 2-8&nbsp;&nbsp;  The process(V...) and done() methods are automatically invoked in the <br>
+EDT by the SwingWorker.</p>
+<p>In this code, doInBackground() loads a list of Images and logs the success of<br>
+each operation by publishing a message. Even if only one value is published at a<br>
+time, the process() method can be called with several values. When the process()<br>
+method is called on the EDT, the SwingWorker implementation passes along all<br>
+of the pending values from the publish() calls.<br>
+Once doInBackground() has &#64257;nished, done() fetches the result by calling get()<br>
+and adds the pictures to the user interface. Since done() executes on the EDT, the<br>
+single-thread rule is not broken. The &#64257;nal step is to execute the SwingWorker<br>
+like so:<br>
+JButton start = new JButton("Start");<br>
+start.addActionListener(new ActionListener() {<br>
+public void actionPerformed(ActionEvent e) {<br>
+&nbsp;&nbsp;&nbsp;  String[] files = new String[] {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  "Bodie_small.png", "Carmela_small.png",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  "Unknown.png", "Denied.png",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  "Death Valley_small.png", "Lake_small.png"<br>
+&nbsp;&nbsp;&nbsp;  };<br>
+&nbsp;&nbsp;&nbsp;  new ImageLoadingWorker(log, viewer, files).execute();<br>
+}<br>
+});<br>
+The complete running example, ImageLoader, can be found on the book’s Web<br>
+site.</p>
+<h3>Threading Summary</h3>
+<p>Understanding and mastering Swing’s threading model does not require much<br>
+effort and can help you create powerful and snappy applications. With the help<br>
+of utilities like SwingWorker, you can write multithreaded code that is easy to<br>
+read and maintain. Every time you write a lengthy operation, think of the single-<br>
+thread rule and check whether or not you might block the EDT. Everyone hates<br>
+slow, unresponsive user interfaces, so save your users some pain and make your<br>
+Swing applications responsive.</p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p></div></body></html>

@@ -1,0 +1,224 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>支持中文的文本框自动提示 -Ajax+Java实例 -hxzon -gcode -ajaxcode</title></head><body><h1>支持中文的文本框自动提示 -Ajax+Java实例 -hxzon -gcode -ajaxcode</h1><div><pre><div>支持中文的文本框自动提示 -Ajax+Java实例 -hxzon -gcode -ajaxcode<br>
+  <br>
+========================================<br>
+hxzon：<br>
+1.autocomplete属性不是w3c标准，但很多浏览器都支持。这里关闭，将使客户端自带的输入记录提示无效。<br>
+2.第一次运行毫无反应，原因在于没有导入autoComplete.js脚本。<br>
+正确放置之后，控制台输出了想要的结果，但是没有在网页上出现下来提示。<br>
+用alert测试。<br>
+错误在于下边这句<br>
+var results=xmlHttp.responseXML.getElementsByTagName("name");<br>
+把getElementsByTagName漏写了s。<br>
+3.改正后仍用alert(results.length)测试，发现为0。<br>
+最后发现，在于AutoCompleteServlet里出错。<br>
+response.setContentType("text/xml;charset=UTF-8");<br>
+这句话因为默认生成时是text/html,要记得改成text/xml。<br>
+3.输入中文有乱码问题。<br>
+在autoCompleteServlet里添加<br>
+request.setCharacterEncoding("UTF-8");<br>
+解决中文问题。<br>
+4.tomcat服务器。<br>
+index页面，当用户键入时，触发makeRequest,发送请求到autoCompleteServlet。<br>
+5.Java程序员的Ajax技术开发。<br>
+========================================================<br>
+------index.html---------------<br>
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"&gt;<br>
+&lt;html&gt;<br>
+  &lt;head&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;title&gt;auto complete&lt;/title&gt;<br>
+ &lt;meta http-equiv="Content-Type" content="text/html;charset=UTF-8"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;link rel="stylesheet" type="text/css" href="autoComplete.css"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;script src="autoComplete.js" type="text/javascript" &gt;&lt;/script&gt;<br>
+ <br>
+&lt;/head&gt;<br>
+  <br>
+  &lt;body&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;form action="#"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      please enter a name;&lt;br&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;input type="text" id="searchField" autocomplete="off" <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      onkeyup="makeRequest()" /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;br&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;div id="popups"&gt;&lt;/div&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;/form&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;div id="previewArea" &gt;&lt;/div&gt;<br>
+  &lt;/body&gt;<br>
+&lt;/html&gt;<br>
+---------autoComplete.js-----------------------------<br>
+var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp;<br>
+function&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      makeRequest(){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      inputField=document.getElementById("searchField");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      str=inputField.value;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if(str!=""){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      createXMLHttpRequest();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp.onreadystatechange=handleStateChange;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      queryString="names="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      +encodeURIComponent(str);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp.open("POST","autoComplete",true);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded;");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp.send(queryString);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp.open("GET",url,true);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp.send(null);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      else{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      clearSuggestion();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+}//end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      makeRequest<br>
+ <br>
+function&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      createXMLHttpRequest(){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if(window.ActiveXObject){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp=new&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      ActiveXObject("Microsoft.XMLHTTP");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      else&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if(window.XMLHttpRequest){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      xmlHttp=new&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      XMLHttpRequest();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+}//end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      createXMLHttpRequest<br>
+ <br>
+function&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      handleStateChange(){//状态更新时的动作<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if(xmlHttp.readyState==4){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if(xmlHttp.status==200){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      displayNames();//parseResults()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+}//end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      handleStateChang<br>
+ <br>
+function&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      displayNames(){//处理得到的结果（parseResults() )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      str=document.getElementById("searchField").value;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      document.getElementById("searchField").className="";<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      popUp=document.getElementById("popups");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      //alert("error1");because&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      getElementsByTagName&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      not&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      getElementByTagName<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      results=xmlHttp.responseXML.getElementsByTagName("name");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      //alert(results.length);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if(results.length&gt;0){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      clearSuggestion();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      suggest=null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      for(var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      i=0;i&lt;results.length;i++){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      suggest=document.createElement("div");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      suggest.appendChild(document.createTextNode(results[i].firstChild.nodeValue));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      //suggest.innerHTML=results[i].firstChild.nodeValue;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      suggest.onclick=makeChoice;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      suggest.className="suggestions";<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      popUp.appendChild(suggest);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }//end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      foundCt=document.getElementById("popups").childNodes.length;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if(foundCt==0){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      document.getElementById("searchField").className="error";<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if(foundCt==1){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      document.getElementById("searchField").value=document.getElementById("popups").firstChild.innerHTML;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      document.getElementById("popups").innerHTML="";<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }//end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      big&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      if<br>
+}//end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      displayNames<br>
+ <br>
+function&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      makeChoice(event){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      div=(event)?event.target:window.event.srcElement;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      document.getElementById("searchField").value=div.innerHTML;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      document.getElementById("popups").innerHTML="";<br>
+}//end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      makeChoice<br>
+ <br>
+function&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      clearSuggestion(){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      var&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      models=document.getElementById("popups");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      while(models.childNodes.length&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      0){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      models.removeChild(models.childNodes[0]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+}//end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      clearSuggestion<br>
+-----------AutoCompleteServlet.java---------------------------<br>
+package autocomplete;<br>
+ <br>
+import java.io.IOException;<br>
+import java.io.PrintWriter;<br>
+ <br>
+import javax.servlet.ServletException;<br>
+import javax.servlet.http.HttpServlet;<br>
+import javax.servlet.http.HttpServletRequest;<br>
+import javax.servlet.http.HttpServletResponse;<br>
+ <br>
+public class AutoCompleteServlet extends HttpServlet {<br>
+ <br>
+private String[] names={<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      "Abe","Abel","Abigail","abraham",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      "Marcus","Marcy","Marge","may",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      "\u7528\u6237\u540D","\u7528\u6237","\u7528\u6237\u540D\u5B57",//用户名，用户，用户名字<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      "计算机","计算"<br>
+ };<br>
+ <br>
+ <br>
+ public void doGet(HttpServletRequest request, HttpServletResponse response)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      throws ServletException, IOException {<br>
+&nbsp;&nbsp;&nbsp;      doPost(request,response);<br>
+ }</div>
+<div> </div>
+<div>public void doPost(HttpServletRequest request, HttpServletResponse response)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      throws ServletException, IOException {<br>
+ <br>
+&nbsp;&nbsp;&nbsp;      response.setContentType("text/xml;charset=UTF-8");<br>
+&nbsp;&nbsp;&nbsp;      //response.setCharacterEncoding("UTF-8");<br>
+&nbsp;&nbsp;&nbsp;      response.setHeader("Cache-Control", "no-cache");<br>
+&nbsp;&nbsp;&nbsp;      //<br>
+&nbsp;&nbsp;&nbsp;      PrintWriter out = response.getWriter();<br>
+&nbsp;&nbsp;&nbsp;      out.println("&lt;response&gt;");<br>
+  <br>
+&nbsp;&nbsp;&nbsp;      request.setCharacterEncoding("UTF-8");//hxzon add<br>
+&nbsp;&nbsp;&nbsp;      String prefix=request.getParameter("names");<br>
+&nbsp;&nbsp;&nbsp;      //System.out.println("prefix:"+prefix);<br>
+&nbsp;&nbsp;&nbsp;      for(int i=0; i&lt;names.length; i++){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      if(names[i].toLowerCase().indexOf(prefix.toLowerCase()) == 0){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      out.println("&lt;name&gt;"  +names[i]+  "&lt;/name&gt;");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      //System.out.println("&lt;name&gt;"  +names[i]+  "&lt;/name&gt;");<br>
+&nbsp;&nbsp;&nbsp;&nbsp;      }<br>
+&nbsp;&nbsp;&nbsp;      }<br>
+&nbsp;&nbsp;&nbsp;      out.println("&lt;/response&gt;");<br>
+&nbsp;&nbsp;&nbsp;      //out.flush();<br>
+&nbsp;&nbsp;&nbsp;      out.close();<br>
+ }</div>
+<div> </div>
+<div>public void init() throws ServletException {<br>
+&nbsp;&nbsp;&nbsp;      // Put your code here<br>
+ }<br>
+ <br>
+}<br>
+-------------web.xml-----------------------------<br>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;<br>
+&lt;web-app version="2.4" <br>
+ xmlns="<a href="http://java.sun.com/xml/ns/j2ee">http://java.sun.com/xml/ns/j2ee</a>" <br>
+ xmlns:xsi="<a href="http://www.w3.org/2001/XMLSchema-instance">http://www.w3.org/2001/XMLSchema-instance</a>" <br>
+ xsi:schemaLocation="<a href="http://java.sun.com/xml/ns/j2ee">http://java.sun.com/xml/ns/j2ee</a> <br>
+ <a href="http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd</a>"&gt;<br>
+  &lt;servlet&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;description&gt;This is the description of my J2EE component&lt;/description&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;display-name&gt;This is the display name of my J2EE component&lt;/display-name&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;servlet-name&gt;AutoCompleteServlet&lt;/servlet-name&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;servlet-class&gt;autocomplete.AutoCompleteServlet&lt;/servlet-class&gt;<br>
+  &lt;/servlet&gt;<br>
+ <br>
+&lt;servlet-mapping&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;servlet-name&gt;AutoCompleteServlet&lt;/servlet-name&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;url-pattern&gt;/autoComplete&lt;/url-pattern&gt;<br>
+  &lt;/servlet-mapping&gt;<br>
+  &lt;welcome-file-list&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      &lt;welcome-file&gt;index.html&lt;/welcome-file&gt;<br>
+  &lt;/welcome-file-list&gt;<br>
+&lt;/web-app&gt;<br>
+-----------autoComplete.css--------------------------------<br>
+@CHARSET "UTF-8";<br>
+body,#searchField{<br>
+ font:1.2em arial,helvetica,sans-serif;<br>
+}<br>
+ <br>
+.suggestions{<br>
+ background-color:#fff;<br>
+ padding:2px 6px;<br>
+ border:1px solid #000;<br>
+}<br>
+.suggestions:hover{<br>
+ background-color:#69f;<br>
+}<br>
+#popups{<br>
+ position:absolute;<br>
+}<br>
+#searchField.error{<br>
+ background-color:#ffc;<br>
+}<br>
+------------------------------</div></pre></div></body></html>

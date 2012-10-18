@@ -1,0 +1,281 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>proxy state 读书笔记</title></head><body><h1>proxy state 读书笔记</h1><div><div class="blog_title">
+<h3><a href="http://wangpx.javaeye.com/blog/177391">proxy state 读书笔记</a></h3>
+</div>
+<div class="blog_content">
+<p><img class="magplus" title="点击查看原始大小图片" height="437" width="700" border="0" src="http://wangpx.javaeye.com/topics/download/f115f3c8-67bf-34e2-81a8-86fafd2ae70a"></p>
+<p>定义：为另一个对象提供一个替身或者战位符以范围这个对象。</p>
+<p>要点：</p>
+<p>1。代理模式为另外一个对象提供代表，以便控制客户对对象的访问，管理访问的方式有许多种。</p>
+<p>2。远程带来管理客户和远程对象之间的交会。</p>
+<p>3。虚拟代理控制访问实例化开销大的对象。</p>
+<p>4。保护代理基于调用者控制对对象方法的访问。</p>
+<p>5。代理模式有许多变体，例如：缓存代理，同步代理，防火墙代理和写入时复制代理。</p>
+<p>6。代理在结构上类似装饰者，但是目的不同。</p>
+<p>7。装饰者模式为对象加上行为，而代理则是控制访问。</p>
+<p>8。java内置的代理支持，可以根据需要将来动态代理，并将所有调用分配到所选的处理器。</p>
+<p>9。就合其他的包装者一样，代理会造成你的设计中类的数目增加。</p>
+<p> </p>
+<p>//虚拟代理</p>
+<p>package pattern;</p>
+<p>import java.awt.Component;<br>
+import java.awt.Graphics;<br>
+import java.awt.event.ActionEvent;<br>
+import java.awt.event.ActionListener;<br>
+import java.net.MalformedURLException;<br>
+import java.net.URL;<br>
+import java.util.Enumeration;<br>
+import java.util.Hashtable;</p>
+<p>import javax.swing.ImageIcon;<br>
+import javax.swing.JComponent;<br>
+import javax.swing.JFrame;<br>
+import javax.swing.JMenu;<br>
+import javax.swing.JMenuBar;<br>
+import javax.swing.JMenuItem;</p>
+<p>public class ImageProxyTestDrive {</p>
+<p>ImageComponent imageComponent;<br>
+JFrame frame = new JFrame(&quot;CD Cover viewer&quot;);<br>
+JMenuBar menuBar;<br>
+JMenu menu;<br>
+Hashtable cds = new Hashtable();</p>
+<p>public static void main(String[] args) throws Exception {<br>
+&nbsp;&nbsp;  ImageProxyTestDrive testDrive = new ImageProxyTestDrive();<br>
+&nbsp;&nbsp;  // TODO Auto-generated method stub</p>
+<p>}</p>
+<p>public ImageProxyTestDrive() throws Exception {<br>
+&nbsp;&nbsp;  cds.put(&quot;Ambient: Music for Airports&quot;, &quot;<a href="http://image.club.china.com/3212956/2008/3/27/0.jpg">http://image.club.china.com/3212956/2008/3/27/0.jpg</a>&quot;);<br>
+&nbsp;&nbsp;  cds.put(&quot;Ima&quot;,&quot;<a href="http://image.club.china.com/3934/2008/3/22/0.jpg">http://image.club.china.com/3934/2008/3/22/0.jpg</a>&quot;);<br>
+&nbsp;&nbsp;  cds.put(&quot;Selected Ambient Works,Vol.2&quot;, &quot;<a href="http://image.club.china.com/3934/2008/1/22/2.jpg">http://image.club.china.com/3934/2008/1/22/2.jpg</a>&quot;);<br>
+&nbsp;&nbsp;  URL initialURL = new URL((String) cds.get(&quot;Ima&quot;));<br>
+&nbsp;&nbsp;  menuBar = new JMenuBar();<br>
+&nbsp;&nbsp;  menu = new JMenu(&quot;Favorite CDs&quot;);<br>
+&nbsp;&nbsp;  menuBar.add(menu);<br>
+&nbsp;&nbsp;  frame.setJMenuBar(menuBar);<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;  for (Enumeration e = cds.keys(); e.hasMoreElements();) {<br>
+&nbsp;&nbsp;&nbsp;  String name = (String) e.nextElement();<br>
+&nbsp;&nbsp;&nbsp;  JMenuItem menuItem = new JMenuItem(name);<br>
+&nbsp;&nbsp;&nbsp;  menu.add(menuItem);<br>
+&nbsp;&nbsp;&nbsp;  menuItem.addActionListener(new ActionListener() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  public void actionPerformed(ActionEvent event) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  imageComponent.setIcon(new ImageProxy(getCDUrl(event<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  .getActionCommand())));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  frame.repaint();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  });<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  Icon icon = new ImageProxy(initialURL);<br>
+&nbsp;&nbsp;  imageComponent = new ImageComponent(icon);<br>
+&nbsp;&nbsp;  frame.getContentPane().add(imageComponent);<br>
+&nbsp;&nbsp;  frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);<br>
+&nbsp;&nbsp;  frame.setSize(800, 600);<br>
+&nbsp;&nbsp;  frame.setVisible(true);<br>
+}</p>
+<p>URL getCDUrl(String name) {<br>
+&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;  return new URL((String) cds.get(name));<br>
+&nbsp;&nbsp;  } catch (MalformedURLException e) {<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;  return null;<br>
+&nbsp;&nbsp;  }<br>
+}<br>
+}</p>
+<p>interface Icon {<br>
+int getIconWidth();</p>
+<p>int getIconHeight();</p>
+<p>void paintIcon(final Component c, Graphics g, int x, int y);<br>
+}</p>
+<p>class ImageProxy implements Icon {<br>
+ImageIcon imageIcon;<br>
+URL imageURL;<br>
+Thread retrievalThread;<br>
+boolean retrieving = false;</p>
+<p>public ImageProxy(URL url) {<br>
+&nbsp;&nbsp;  imageURL = url;<br>
+}</p>
+<p>public int getIconWidth() {<br>
+&nbsp;&nbsp;  if (imageIcon != null) {<br>
+&nbsp;&nbsp;&nbsp;  return imageIcon.getIconWidth();<br>
+&nbsp;&nbsp;  } else<br>
+&nbsp;&nbsp;&nbsp;  return 500;<br>
+}</p>
+<p>public int getIconHeight() {<br>
+&nbsp;&nbsp;  if (imageIcon != null) {<br>
+&nbsp;&nbsp;&nbsp;  return imageIcon.getIconHeight();<br>
+&nbsp;&nbsp;  } else<br>
+&nbsp;&nbsp;&nbsp;  return 400;<br>
+}</p>
+<p>public void paintIcon(final Component c, Graphics g, int x, int y) {<br>
+&nbsp;&nbsp;  if (imageIcon != null) {<br>
+&nbsp;&nbsp;&nbsp;  imageIcon.paintIcon(c, g, x, y);<br>
+&nbsp;&nbsp;  } else {<br>
+&nbsp;&nbsp;&nbsp;  g.drawString(&quot;Loading CD cover,please wait...&quot;, x + 40, y + 40);<br>
+&nbsp;&nbsp;&nbsp;  if (!retrieving) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  retrieving = true;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  retrievalThread = new Thread(new Runnable() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  public void run() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  try {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  imageIcon = new ImageIcon(imageURL, &quot;CD Cover&quot;);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  c.repaint();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  } catch (Exception e) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  });<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  retrievalThread.start();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }<br>
+}<br>
+<br>
+}</p>
+<p>class ImageComponent extends JComponent {<br>
+private Icon icon;</p>
+<p>public ImageComponent(Icon icon) {<br>
+&nbsp;&nbsp;  this.icon = icon;<br>
+}</p>
+<p>public void setIcon(Icon icon) {<br>
+&nbsp;&nbsp;  this.icon = icon;<br>
+}</p>
+<p>public void paintComponent(Graphics g) {<br>
+&nbsp;&nbsp;  super.paintComponent(g);<br>
+&nbsp;&nbsp;  int w = icon.getIconWidth();<br>
+&nbsp;&nbsp;  int h = icon.getIconHeight();<br>
+&nbsp;&nbsp;  int x = (800 - w) / 2;<br>
+&nbsp;&nbsp;  int y = (600 - h) / 2;<br>
+&nbsp;&nbsp;  this.icon.paintIcon(this, g, x, y);<br>
+}</p>
+<p>}</p>
+<p>//动态代理 和安全代理</p>
+<p> </p>
+<p>package pattern;</p>
+<p>import java.lang.reflect.InvocationHandler;<br>
+import java.lang.reflect.InvocationTargetException;<br>
+import java.lang.reflect.Method;<br>
+import java.lang.reflect.Proxy;</p>
+<p>public class MatchMakingTestDrive {</p>
+<p>/**<br>
+* @param args<br>
+*/<br>
+public static void main(String[] args) {<br>
+&nbsp;&nbsp;  MatchMakingTestDrive test=new MatchMakingTestDrive();<br>
+&nbsp;&nbsp;  test.drive();</p>
+<p>}<br>
+&nbsp;&nbsp;&nbsp;  public MatchMakingTestDrive(){<br>
+&nbsp;&nbsp;&nbsp;  //initializeDatabase();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  public void drive(){<br>
+&nbsp;&nbsp;&nbsp;  PersonBean joe=new PersonBeanImpl(&quot;Joe Javabean&quot;);<br>
+&nbsp;&nbsp;&nbsp;  PersonBean ownerProxy=getOwnerProxy(joe);<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Name is &quot; + ownerProxy.getName());<br>
+&nbsp;&nbsp;&nbsp;  ownerProxy.setInterests(&quot;bowling, GO&quot;);<br>
+&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  ownerProxy.setHotOrNotRating(10);<br>
+&nbsp;&nbsp;&nbsp;  }catch(Exception e){<br>
+&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  System.out.println(&quot;Can't set rating from owner proxy&quot;);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Rating is&quot;+ ownerProxy.getHotOrNotRating());<br>
+&nbsp;&nbsp;&nbsp;  PersonBean nonOwnerProxy=getNoOwnerProxy(joe);<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Name is &quot;+ nonOwnerProxy.getName());<br>
+&nbsp;&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  nonOwnerProxy.setInterests(&quot;bowling, Go&quot;);<br>
+&nbsp;&nbsp;&nbsp;  }catch(Exception e){<br>
+&nbsp;&nbsp;&nbsp;  &nbsp;&nbsp;  System.out.println(&quot;Can't set interests from non owner proxy&quot;);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  nonOwnerProxy.setHotOrNotRating(3);<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Rating set from non owner proxy&quot;);<br>
+&nbsp;&nbsp;&nbsp;  System.out.println(&quot;Rating is &quot;+ nonOwnerProxy.getHotOrNotRating());<br>
+&nbsp;&nbsp;&nbsp;  <br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  PersonBean getOwnerProxy(PersonBean person){<br>
+&nbsp;&nbsp;&nbsp;  return (PersonBean)Proxy.newProxyInstance(person.getClass().getClassLoader(),person.getClass().getInterfaces(),new OwnerInvocationHandler(person));<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;&nbsp;  PersonBean getNoOwnerProxy(PersonBean person){<br>
+&nbsp;&nbsp;&nbsp;  return (PersonBean)Proxy.newProxyInstance(person.getClass().getClassLoader(),person.getClass().getInterfaces(),new NoOwnerInvocationHandler(person));<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+}</p>
+<p>interface PersonBean {<br>
+String getName();</p>
+<p>String getGender();</p>
+<p>String getInterests();</p>
+<p>int getHotOrNotRating();</p>
+<p>void setName(String name);</p>
+<p>void setGender(String gender);</p>
+<p>void setInterests(String interests);</p>
+<p>void setHotOrNotRating(int rating);</p>
+<p>}<br>
+class PersonBeanImpl implements PersonBean{<br>
+String name;<br>
+String gender;<br>
+String interests;<br>
+int rating;<br>
+int ratingCount=0;<br>
+public PersonBeanImpl(String name){<br>
+name=name;<br>
+}<br>
+public String getName() {<br>
+&nbsp;&nbsp;  return name;<br>
+}<br>
+public void setName(String name) {<br>
+&nbsp;&nbsp;  this.name = name;<br>
+}<br>
+public String getGender() {<br>
+&nbsp;&nbsp;  return gender;<br>
+}<br>
+public int getHotOrNotRating(){<br>
+&nbsp;&nbsp;  if(ratingCount==0)return 0;<br>
+&nbsp;&nbsp;  return (rating/ratingCount);<br>
+}<br>
+public void setGender(String gender) {<br>
+&nbsp;&nbsp;  this.gender = gender;<br>
+}<br>
+public String getInterests() {<br>
+&nbsp;&nbsp;  return interests;<br>
+}<br>
+public void setInterests(String interests) {<br>
+&nbsp;&nbsp;  this.interests = interests;<br>
+}<br>
+public void setHotOrNotRating(int rating){<br>
+&nbsp;&nbsp;  this.rating+=rating;<br>
+&nbsp;&nbsp;  ratingCount++;<br>
+}<br>
+}</p>
+<p>class OwnerInvocationHandler implements InvocationHandler{<br>
+PersonBean person;<br>
+public OwnerInvocationHandler(PersonBean person){<br>
+&nbsp;&nbsp;  this.person=person;<br>
+}<br>
+public Object invoke(Object proxy,Method method,Object[] args) throws IllegalAccessException{<br>
+&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;  if(method.getName().startsWith(&quot;get&quot;)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return method.invoke(person, args);<br>
+&nbsp;&nbsp;&nbsp;  }else if(method.getName().equals(&quot;setHotOrNotRating&quot;)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  throw new IllegalAccessException();<br>
+&nbsp;&nbsp;&nbsp;  }else if(method.getName().startsWith(&quot;set&quot;)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return method.invoke(person, args);<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }catch(InvocationTargetException e){<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  return null;<br>
+}<br>
+}</p>
+<p>class NoOwnerInvocationHandler implements InvocationHandler{<br>
+PersonBean person;<br>
+public NoOwnerInvocationHandler(PersonBean person){<br>
+&nbsp;&nbsp;  this.person=person;<br>
+}<br>
+public Object invoke(Object proxy,Method method,Object[] args) throws IllegalAccessException{<br>
+&nbsp;&nbsp;  try{<br>
+&nbsp;&nbsp;&nbsp;  if(method.getName().startsWith(&quot;get&quot;)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return method.invoke(person, args);<br>
+&nbsp;&nbsp;&nbsp;  }else if(method.getName().equals(&quot;setHotOrNotRating&quot;)){&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  return method.invoke(person, args);<br>
+&nbsp;&nbsp;&nbsp;  }else if(method.getName().startsWith(&quot;set&quot;)){<br>
+&nbsp;&nbsp;&nbsp;&nbsp;  throw new IllegalAccessException();<br>
+&nbsp;&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  }catch(InvocationTargetException e){<br>
+&nbsp;&nbsp;&nbsp;  e.printStackTrace();<br>
+&nbsp;&nbsp;  }<br>
+&nbsp;&nbsp;  return null;<br>
+}<br>
+}</p>
+</div></div></body></html>
